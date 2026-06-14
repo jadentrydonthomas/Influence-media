@@ -33,7 +33,7 @@ if ("IntersectionObserver" in window) {
         }
       });
     },
-    { threshold: 0.15 }
+    { threshold: 0.12 }
   );
   revealEls.forEach((el) => io.observe(el));
 } else {
@@ -46,7 +46,7 @@ const animateCount = (el) => {
   const target = parseFloat(el.dataset.count);
   const suffix = el.dataset.suffix || "";
   const isFloat = target % 1 !== 0;
-  const duration = 1400;
+  const duration = 1500;
   const start = performance.now();
   const tick = (now) => {
     const p = Math.min((now - start) / duration, 1);
@@ -72,6 +72,18 @@ if ("IntersectionObserver" in window) {
   counters.forEach((c) => statIO.observe(c));
 }
 
+// ===== Pre-select package when "Choose <plan>" is clicked =====
+document.querySelectorAll('.plan a[href="#contact"]').forEach((link) => {
+  link.addEventListener("click", () => {
+    const name = link.closest(".plan")?.querySelector(".plan__name")?.textContent.trim();
+    const select = document.getElementById("package");
+    if (name && select) {
+      const match = [...select.options].find((o) => o.value === name);
+      if (match) select.value = name;
+    }
+  });
+});
+
 // ===== Contact form (client-side handling) =====
 const form = document.getElementById("contactForm");
 const note = document.getElementById("formNote");
@@ -83,6 +95,7 @@ form.addEventListener("submit", (e) => {
   const name = form.name.value.trim();
   const email = form.email.value.trim();
   const message = form.message.value.trim();
+  const pkg = form.package.value;
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   if (!name || !emailOk || !message) {
@@ -95,7 +108,7 @@ form.addEventListener("submit", (e) => {
   // Hook this up to a form service (Formspree, Netlify Forms, etc.) when ready.
   try {
     const saved = JSON.parse(localStorage.getItem("im_leads") || "[]");
-    saved.push({ name, email, company: form.company.value.trim(), message, at: new Date().toISOString() });
+    saved.push({ name, email, package: pkg, message, at: new Date().toISOString() });
     localStorage.setItem("im_leads", JSON.stringify(saved));
   } catch (_) {}
 

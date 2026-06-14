@@ -3,27 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Influence Media — social media strategies that drive engagement and customer acquisition. We turn audiences into customers." />
-  <title>Influence Media — Social Media Strategy & Growth</title>
+  <meta name="description" content="Influence Media — a social media growth agency that turns views into customers through content, management, and influencer marketing." />
+  <meta name="theme-color" content="#08080a" />
+  <title>Influence Media — Turning Views Into Customers</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23080808'/%3E%3Crect x='18' y='15' width='28' height='7' rx='2' fill='%23E5B94E'/%3E%3Crect x='18' y='42' width='28' height='7' rx='2' fill='%23E5B94E'/%3E%3Crect x='26' y='19' width='12' height='26' fill='%23E5B94E'/%3E%3Cpath d='M29 26 L39 32 L29 38 Z' fill='%23080808'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <!-- Navigation -->
   <header class="nav" id="nav">
     <div class="container nav__inner">
-      <a href="#home" class="nav__logo">
-        <span class="nav__logo-mark">IM</span>
-        <span class="nav__logo-text">Influence&nbsp;Media</span>
+      <a href="#home" class="nav__logo" aria-label="Influence Media home">
+        <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="goldNav" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#F4D27A" />
+              <stop offset="0.5" stop-color="#E5B94E" />
+              <stop offset="1" stop-color="#C9962E" />
+            </linearGradient>
+          </defs>
+          <rect x="3" y="3" width="58" height="58" rx="15" fill="#0b0b0d" stroke="url(#goldNav)" stroke-width="2.5" />
+          <rect x="18" y="15" width="28" height="7" rx="2" fill="url(#goldNav)" />
+          <rect x="18" y="42" width="28" height="7" rx="2" fill="url(#goldNav)" />
+          <rect x="26" y="19" width="12" height="26" fill="url(#goldNav)" />
+          <path d="M29 26 L39 32 L29 38 Z" fill="#0b0b0d" />
+        </svg>
+        <span class="nav__logo-text">INFLUENCE<small>MEDIA</small></span>
       </a>
       <nav class="nav__links" id="navLinks">
         <a href="#services">Services</a>
-        <a href="#process">Process</a>
         <a href="#results">Results</a>
+        <a href="#packages">Packages</a>
         <a href="#about">About</a>
-        <a href="#contact" class="nav__cta">Get Started</a>
+        <a href="#contact" class="nav__cta">Let's Talk</a>
       </nav>
       <button class="nav__toggle" id="navToggle" aria-label="Toggle menu">
         <span></span><span></span><span></span>
@@ -33,49 +48,50 @@
 
   <!-- Hero -->
   <section class="hero" id="home">
-    <div class="hero__glow"></div>
+    <div class="hero__grid" aria-hidden="true"></div>
+    <div class="hero__glow" aria-hidden="true"></div>
     <div class="container hero__inner">
       <div class="hero__content reveal">
-        <span class="hero__eyebrow">Social Media Marketing Agency</span>
+        <span class="hero__eyebrow">Social Media Growth Agency</span>
         <h1 class="hero__title">
-          People don't just leave their house.<br />
-          <span class="grad-text">They get influenced.</span>
+          Great product?<br />
+          We make sure it <span class="grad-text">gets seen.</span>
         </h1>
         <p class="hero__subtitle">
-          Influence Media builds social media strategies that drive real engagement
-          and turn audiences into customers. We craft the moments that move people to act.
+          People don't just leave their house — they're influenced. We turn attention into
+          results through strategy, content, and data. <strong>Turning views into customers.</strong>
         </p>
         <div class="hero__actions">
-          <a href="#contact" class="btn btn--primary">Start Your Campaign</a>
-          <a href="#results" class="btn btn--ghost">See the Results</a>
+          <a href="#packages" class="btn btn--primary">View Packages</a>
+          <a href="#results" class="btn btn--ghost">See Real Results</a>
         </div>
         <div class="hero__stats">
           <div class="stat">
-            <span class="stat__num" data-count="320" data-suffix="%">0%</span>
-            <span class="stat__label">Avg. engagement lift</span>
+            <span class="stat__num" data-count="778" data-suffix="K">0</span>
+            <span class="stat__label">TikTok post views</span>
           </div>
           <div class="stat">
-            <span class="stat__num" data-count="1.4" data-suffix="M">0</span>
-            <span class="stat__label">Audiences reached</span>
+            <span class="stat__num" data-count="358" data-suffix="K">0</span>
+            <span class="stat__label">Instagram views / 90 days</span>
           </div>
           <div class="stat">
-            <span class="stat__num" data-count="60" data-suffix="+">0</span>
-            <span class="stat__label">Brands grown</span>
+            <span class="stat__num" data-count="12.9" data-suffix="K">0</span>
+            <span class="stat__label">Followers grown from zero</span>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Brands / Social proof strip -->
+  <!-- Marquee -->
   <section class="marquee" aria-hidden="true">
     <div class="marquee__track">
-      <span>Engagement</span><span>•</span><span>Customer Acquisition</span><span>•</span>
-      <span>Content Strategy</span><span>•</span><span>Paid Social</span><span>•</span>
-      <span>Influencer Partnerships</span><span>•</span><span>Brand Building</span><span>•</span>
-      <span>Engagement</span><span>•</span><span>Customer Acquisition</span><span>•</span>
-      <span>Content Strategy</span><span>•</span><span>Paid Social</span><span>•</span>
-      <span>Influencer Partnerships</span><span>•</span><span>Brand Building</span><span>•</span>
+      <span>Content Creation</span><span class="dot">●</span><span>Social Media Management</span><span class="dot">●</span>
+      <span>Influencer Marketing</span><span class="dot">●</span><span>Algorithm-Based Growth</span><span class="dot">●</span>
+      <span>Brand Visibility</span><span class="dot">●</span>
+      <span>Content Creation</span><span class="dot">●</span><span>Social Media Management</span><span class="dot">●</span>
+      <span>Influencer Marketing</span><span class="dot">●</span><span>Algorithm-Based Growth</span><span class="dot">●</span>
+      <span>Brand Visibility</span><span class="dot">●</span>
     </div>
   </section>
 
@@ -84,114 +100,147 @@
     <div class="container">
       <div class="section__head reveal">
         <span class="section__eyebrow">What we do</span>
-        <h2 class="section__title">Strategies built to convert attention into customers</h2>
+        <h2 class="section__title">We manage your social presence so you can focus on your business</h2>
         <p class="section__lede">
-          Reach is easy. Influence is hard. Every service we offer is designed
-          to move your audience one step closer to becoming a paying customer.
+          You deliver what you do best. We showcase it the right way — and make sure the right
+          people see it.
         </p>
       </div>
       <div class="cards">
         <article class="card reveal">
-          <div class="card__icon">📈</div>
-          <h3>Social Media Strategy</h3>
-          <p>Data-driven roadmaps that define your voice, your audience, and the exact content that earns engagement.</p>
-        </article>
-        <article class="card reveal">
-          <div class="card__icon">🎯</div>
-          <h3>Customer Acquisition</h3>
-          <p>Full-funnel paid social campaigns engineered to acquire customers profitably — not just impressions.</p>
-        </article>
-        <article class="card reveal">
           <div class="card__icon">🎬</div>
-          <h3>Content Creation</h3>
-          <p>Scroll-stopping short-form video, photography, and copy crafted to make people stop, watch, and buy.</p>
+          <h3>Full-Service Management</h3>
+          <p>We run your social media end to end — posting, planning, and growth — so you don't have to lift a finger.</p>
         </article>
         <article class="card reveal">
-          <div class="card__icon">🤝</div>
-          <h3>Influencer Partnerships</h3>
-          <p>We match your brand with the right creators to build trust and reach audiences that actually convert.</p>
-        </article>
-        <article class="card reveal">
-          <div class="card__icon">💬</div>
-          <h3>Community Management</h3>
-          <p>Active, on-brand engagement that turns followers into a loyal community — and a community into revenue.</p>
+          <div class="card__icon">📹</div>
+          <h3>Content &amp; Videography</h3>
+          <p>Scroll-stopping short-form video and content, professionally shot, edited, and captioned to convert.</p>
         </article>
         <article class="card reveal">
           <div class="card__icon">📊</div>
-          <h3>Analytics & Reporting</h3>
-          <p>Transparent reporting on the metrics that matter, so every dollar of spend is tied to real outcomes.</p>
+          <h3>Analytics &amp; Performance</h3>
+          <p>We track the numbers that matter and report on real performance, not vanity metrics.</p>
+        </article>
+        <article class="card reveal">
+          <div class="card__icon">🚀</div>
+          <h3>Algorithm-Based Growth</h3>
+          <p>We work with the platforms' algorithms — trends, hashtags, and timing — to maximize your reach.</p>
+        </article>
+        <article class="card reveal">
+          <div class="card__icon">💬</div>
+          <h3>Engagement &amp; Audience</h3>
+          <p>We grow and nurture your community through comment and DM responses that build real relationships.</p>
+        </article>
+        <article class="card reveal">
+          <div class="card__icon">✨</div>
+          <h3>Brand Visibility</h3>
+          <p>From influencer collaborations to brand partnerships, we put your brand in front of the right audience.</p>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- Process -->
-  <section class="section section--alt" id="process">
+  <!-- Results / Track record -->
+  <section class="section section--alt" id="results">
     <div class="container">
       <div class="section__head reveal">
-        <span class="section__eyebrow">How it works</span>
-        <h2 class="section__title">A simple process, serious results</h2>
+        <span class="section__eyebrow">Proven track record</span>
+        <h2 class="section__title">Real results. Real growth.</h2>
+        <p class="section__lede">Numbers from real client work — not estimates.</p>
       </div>
-      <div class="steps">
-        <div class="step reveal">
-          <span class="step__num">01</span>
-          <h3>Discover</h3>
-          <p>We dig into your brand, audience, and goals to find where the real growth opportunities live.</p>
+      <div class="track">
+        <div class="track__item reveal"><span class="track__num grad-text">778K</span><span>TikTok post views</span></div>
+        <div class="track__item reveal"><span class="track__num grad-text">358K</span><span>Instagram views (90 days)</span></div>
+        <div class="track__item reveal"><span class="track__num grad-text">316K</span><span>Top single-post views</span></div>
+        <div class="track__item reveal"><span class="track__num grad-text">12.9K</span><span>Instagram followers</span></div>
+        <div class="track__item reveal"><span class="track__num grad-text">4,451</span><span>TikTok followers</span></div>
+      </div>
+
+      <!-- Case study -->
+      <div class="casestudy reveal">
+        <div class="casestudy__head">
+          <span class="casestudy__tag">Case Study</span>
+          <h3>Sapodilla's DC</h3>
+          <p>Caribbean Restaurant · Washington, DC · ~3 months · grown from zero</p>
         </div>
-        <div class="step reveal">
-          <span class="step__num">02</span>
-          <h3>Strategize</h3>
-          <p>We build a custom social strategy with clear content pillars, channels, and KPIs.</p>
-        </div>
-        <div class="step reveal">
-          <span class="step__num">03</span>
-          <h3>Create & Launch</h3>
-          <p>Our team produces and ships content and campaigns designed to engage and convert.</p>
-        </div>
-        <div class="step reveal">
-          <span class="step__num">04</span>
-          <h3>Optimize</h3>
-          <p>We measure everything and double down on what works to compound your results over time.</p>
+        <div class="casestudy__grid">
+          <div><strong>778K</strong><span>TikTok views</span></div>
+          <div><strong>49K</strong><span>TikTok likes</span></div>
+          <div><strong>6,797</strong><span>TikTok shares</span></div>
+          <div><strong>316K</strong><span>Single IG post views</span></div>
+          <div><strong>12.9K</strong><span>IG followers from 0</span></div>
+          <div><strong>4,451</strong><span>TikTok followers from 0</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Results -->
-  <section class="section" id="results">
+  <!-- Packages -->
+  <section class="section" id="packages">
     <div class="container">
       <div class="section__head reveal">
-        <span class="section__eyebrow">Proof</span>
-        <h2 class="section__title">Results we're proud of</h2>
-        <p class="section__lede">A few outcomes from brands who let us turn their audience into customers.</p>
+        <span class="section__eyebrow">Our service packages</span>
+        <h2 class="section__title">Flexible plans designed to grow your brand organically</h2>
+        <p class="section__lede">Simple, transparent pricing billed every two weeks. Cancel anytime.</p>
       </div>
-      <div class="results">
-        <div class="result reveal">
-          <span class="result__num grad-text">4.2×</span>
-          <p>return on ad spend for a DTC apparel brand in 90 days</p>
-        </div>
-        <div class="result reveal">
-          <span class="result__num grad-text">+218%</span>
-          <p>follower growth for a local hospitality group in one quarter</p>
-        </div>
-        <div class="result reveal">
-          <span class="result__num grad-text">38k</span>
-          <p>qualified leads generated through a single creator campaign</p>
-        </div>
-      </div>
-
-      <div class="testimonial reveal">
-        <blockquote>
-          "Influence Media didn't just grow our numbers — they grew our revenue.
-          They understood that attention only matters if it turns into customers."
-        </blockquote>
-        <div class="testimonial__author">
-          <span class="testimonial__avatar">SR</span>
-          <div>
-            <strong>Sarah Reyes</strong>
-            <span>Founder, Lumen Apparel</span>
+      <div class="plans">
+        <!-- Starter -->
+        <article class="plan reveal">
+          <div class="plan__head">
+            <h3 class="plan__name">Starter</h3>
+            <p class="plan__tagline">Build Your Presence</p>
+            <div class="plan__price"><span class="plan__amount">$300</span><span class="plan__cycle">/ 2 weeks</span></div>
+            <p class="plan__monthly">Monthly equivalent: $600</p>
           </div>
-        </div>
+          <ul class="plan__features">
+            <li>3 videos per week</li>
+            <li>Professional editing &amp; captions</li>
+            <li>Hashtag + trend strategy</li>
+            <li>TikTok &amp; Instagram posting</li>
+            <li>Content calendar planning</li>
+            <li>Content strategy sessions</li>
+          </ul>
+          <a href="#contact" class="btn btn--ghost btn--full">Choose Starter</a>
+        </article>
+
+        <!-- Growth (featured) -->
+        <article class="plan plan--featured reveal">
+          <span class="plan__badge">★ Most Popular ★</span>
+          <div class="plan__head">
+            <h3 class="plan__name">Growth</h3>
+            <p class="plan__tagline">Manage &amp; Engage</p>
+            <div class="plan__price"><span class="plan__amount">$500</span><span class="plan__cycle">/ 2 weeks</span></div>
+            <p class="plan__monthly">Monthly equivalent: $1,000</p>
+          </div>
+          <ul class="plan__features">
+            <li><em>Everything in Starter</em></li>
+            <li>Full page management</li>
+            <li>Comment &amp; DM responses</li>
+            <li>Community engagement</li>
+            <li>Monthly analytics report</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="#contact" class="btn btn--primary btn--full">Choose Growth</a>
+        </article>
+
+        <!-- Premium -->
+        <article class="plan reveal">
+          <div class="plan__head">
+            <h3 class="plan__name">Premium</h3>
+            <p class="plan__tagline">The Full Experience</p>
+            <div class="plan__price"><span class="plan__amount">$800</span><span class="plan__cycle">/ 2 weeks</span></div>
+            <p class="plan__monthly">Monthly equivalent: $1,600</p>
+          </div>
+          <ul class="plan__features">
+            <li><em>Everything in Growth</em></li>
+            <li>Influencer collaborations</li>
+            <li>Campaign strategy &amp; outreach</li>
+            <li>Staff training &amp; handover</li>
+            <li>Brand partnership facilitation</li>
+          </ul>
+          <a href="#contact" class="btn btn--ghost btn--full">Choose Premium</a>
+        </article>
       </div>
     </div>
   </section>
@@ -201,32 +250,21 @@
     <div class="container about">
       <div class="about__content reveal">
         <span class="section__eyebrow">Who we are</span>
-        <h2 class="section__title">We believe influence is the most powerful form of marketing</h2>
+        <h2 class="section__title">We turn attention into results</h2>
         <p>
-          People don't just leave their house — they're influenced. Every purchase,
-          every visit, every decision starts with a moment of influence. At Influence Media,
-          we engineer those moments at scale.
+          Influence Media is a social media growth agency built on a simple belief: a great
+          product means nothing if no one sees it. We make sure yours does.
         </p>
         <p>
-          We're a team of strategists, creators, and media buyers obsessed with one thing:
-          turning your audience into your customers. No vanity metrics, no fluff —
-          just social media strategies that move people to act.
+          Through strategy, content, and data, we manage your social presence so your business
+          can focus on delivering what it does best — while we showcase it the right way.
         </p>
-        <a href="#contact" class="btn btn--primary">Work With Us</a>
+        <a href="#contact" class="btn btn--primary">Let's Build Something Iconic</a>
       </div>
       <div class="about__panel reveal">
-        <div class="about__value">
-          <strong>Engagement first</strong>
-          <span>We earn attention before we ask for the sale.</span>
-        </div>
-        <div class="about__value">
-          <strong>Customer obsessed</strong>
-          <span>Every strategy is built around acquiring real customers.</span>
-        </div>
-        <div class="about__value">
-          <strong>Radically transparent</strong>
-          <span>You always know what we're doing and why it works.</span>
-        </div>
+        <div class="about__value"><strong>Strategy</strong><span>Every move backed by a plan, not guesswork.</span></div>
+        <div class="about__value"><strong>Content</strong><span>Scroll-stopping creative shot and edited to convert.</span></div>
+        <div class="about__value"><strong>Data</strong><span>We measure everything and double down on what works.</span></div>
       </div>
     </div>
   </section>
@@ -236,9 +274,12 @@
     <div class="container">
       <div class="contact__card reveal">
         <div class="contact__intro">
-          <span class="section__eyebrow">Get started</span>
-          <h2 class="section__title">Let's turn your audience into customers</h2>
-          <p>Tell us about your brand and goals. We'll get back to you within one business day.</p>
+          <span class="section__eyebrow">Ready to grow?</span>
+          <h2 class="section__title">Let's build something iconic together</h2>
+          <p>Tell us about your brand and which package you're interested in. We'll get back to you within one business day.</p>
+          <div class="contact__direct">
+            <a href="https://www.instagram.com/influencemedia.ai/" target="_blank" rel="noopener">📸 @influencemedia.ai</a>
+          </div>
         </div>
         <form class="contact__form" id="contactForm" novalidate>
           <div class="field">
@@ -250,12 +291,17 @@
             <input type="email" id="email" name="email" placeholder="you@brand.com" required />
           </div>
           <div class="field">
-            <label for="company">Company</label>
-            <input type="text" id="company" name="company" placeholder="Your brand" />
+            <label for="package">Interested package</label>
+            <select id="package" name="package">
+              <option value="">No preference yet</option>
+              <option value="Starter">Starter — $300 / 2 weeks</option>
+              <option value="Growth">Growth — $500 / 2 weeks</option>
+              <option value="Premium">Premium — $800 / 2 weeks</option>
+            </select>
           </div>
           <div class="field">
-            <label for="message">What are you trying to grow?</label>
-            <textarea id="message" name="message" rows="4" placeholder="Tell us about your goals..." required></textarea>
+            <label for="message">Tell us about your brand</label>
+            <textarea id="message" name="message" rows="4" placeholder="What do you want to grow?" required></textarea>
           </div>
           <button type="submit" class="btn btn--primary btn--full">Send Message</button>
           <p class="contact__note" id="formNote" role="status"></p>
@@ -268,21 +314,37 @@
   <footer class="footer">
     <div class="container footer__inner">
       <div class="footer__brand">
-        <span class="nav__logo-mark">IM</span>
-        <span class="nav__logo-text">Influence Media</span>
-        <p>Social media strategies that drive engagement and customer acquisition.</p>
+        <a href="#home" class="nav__logo" aria-label="Influence Media home">
+          <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="goldFoot" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#F4D27A" />
+                <stop offset="0.5" stop-color="#E5B94E" />
+                <stop offset="1" stop-color="#C9962E" />
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="58" height="58" rx="15" fill="#0b0b0d" stroke="url(#goldFoot)" stroke-width="2.5" />
+            <rect x="18" y="15" width="28" height="7" rx="2" fill="url(#goldFoot)" />
+            <rect x="18" y="42" width="28" height="7" rx="2" fill="url(#goldFoot)" />
+            <rect x="26" y="19" width="12" height="26" fill="url(#goldFoot)" />
+            <path d="M29 26 L39 32 L29 38 Z" fill="#0b0b0d" />
+          </svg>
+          <span class="nav__logo-text">INFLUENCE<small>MEDIA</small></span>
+        </a>
+        <p>Turning views into customers through content, management, and influencer marketing.</p>
       </div>
       <div class="footer__links">
         <a href="#services">Services</a>
-        <a href="#process">Process</a>
         <a href="#results">Results</a>
+        <a href="#packages">Packages</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
+        <a href="https://www.instagram.com/influencemedia.ai/" target="_blank" rel="noopener">Instagram</a>
       </div>
     </div>
     <div class="container footer__bottom">
-      <span>© <span id="year"></span> Influence Media. All rights reserved.</span>
-      <span>Built to influence.</span>
+      <span>© <span id="year"></span> Influence Media · Content Creation · Management · Influencer Marketing</span>
+      <span>Let's build something iconic.</span>
     </div>
   </footer>
 
