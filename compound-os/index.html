@@ -473,6 +473,18 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 @keyframes heroSweep{0%{background-position:140% 0;opacity:0}16%{opacity:.85}48%{opacity:.95}74%{background-position:-44% 0;opacity:0}100%{background-position:-44% 0;opacity:0}}
 .hero .ha-id h1{color:#fff;-webkit-text-fill-color:#fff;text-shadow:0 2px 26px rgba(0,0,0,.6),0 0 2px rgba(255,255,255,.35);animation:none;background:none}
 .hero .ha-code{text-shadow:0 1px 8px rgba(0,0,0,.6)}
+/* Hero background video (YouTube iframe or mp4) */
+.hero .hero-vid{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:16/9;min-height:100%;transform:translate(-50%,-50%);border:0;pointer-events:none}
+/* ✎ Set hero image/video button */
+.hero .hero-edit{position:absolute;left:22px;top:18px;z-index:5;width:34px;height:34px;border-radius:11px;cursor:pointer;display:grid;place-items:center;background:rgba(14,16,26,.46);border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(10px);box-shadow:0 8px 22px -10px rgba(0,0,0,.7);opacity:.7;transition:opacity .18s,transform .18s}
+.hero:hover .hero-edit{opacity:1}
+.hero .hero-edit:hover{transform:scale(1.07);border-color:#fff}
+.hero .hero-edit svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hm-hint{font-size:11.5px;line-height:1.5;color:var(--faint);margin:6px 0 14px}
+.hm-actions{display:flex;gap:9px;align-items:center}
+.hm-actions .modal-add{margin-top:0;flex:1}
+.hm-reset{padding:13px 16px;border-radius:14px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--line2);white-space:nowrap}
+.hm-reset:hover{color:var(--text);background:rgba(255,255,255,.1)}
 /* Graded cinematic backdrop for stations without a photo yet */
 .hero.has-grad{background:
   radial-gradient(130% 150% at 82% -10%,rgba(var(--env1),.65),transparent 56%),
@@ -489,12 +501,38 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 @media(max-width:840px){.tv-grid{grid-template-columns:1fr}}
 .tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}
 .tv-card .tradingview-widget-copyright{font-size:10px;opacity:.4;padding:2px 4px}
+.tv-watchrow{display:flex;gap:9px;margin-bottom:10px}
+.tv-watchrow input{flex:1;font-family:var(--sans);font-size:14px;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:13px;padding:11px 14px;outline:none}
+.tv-watchrow input:focus{border-color:var(--stk1)}
+.tv-watchrow input::placeholder{color:var(--faint)}
+.tv-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;min-height:8px}
+.tv-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:999px;padding:6px 8px 6px 12px;cursor:pointer;transition:all .16s}
+.tv-chip:hover{background:rgba(255,255,255,.1)}
+.tv-chip.on{color:#04130c;background:linear-gradient(120deg,var(--stk1),#6EE7B7);border-color:transparent}
+.tv-chip .tv-x{border:none;background:rgba(0,0,0,.12);color:inherit;width:16px;height:16px;border-radius:50%;font-size:9px;cursor:pointer;line-height:1;opacity:.6}
+.tv-chip .tv-x:hover{opacity:1;background:rgba(0,0,0,.25)}
+.tv-chip.on .tv-x{background:rgba(0,0,0,.18)}
+.tv-empty{font-size:12.5px;color:var(--faint)}
+.tv-grid .tv-pane{display:flex;flex-direction:column;min-width:0}
+.tv-panelabel{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:7px}
+/* Quick-launch link cards (AI / Media / Nucor) */
+.launch-card{margin-top:20px}
+.launch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:680px){.launch-grid{grid-template-columns:1fr}}
+.launch{display:flex;align-items:center;gap:10px;padding:13px 15px;border-radius:15px;text-decoration:none;background:rgba(255,255,255,.04);border:1px solid var(--line);transition:all .18s;position:relative;overflow:hidden}
+.launch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(var(--c1),var(--c2))}
+.launch:hover{background:rgba(255,255,255,.08);border-color:var(--line2);transform:translateY(-2px)}
+.launch .lc-main{flex:1;min-width:0;padding-left:4px}
+.launch .lc-t{font-size:13.5px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.launch .lc-s{font-size:11.5px;color:var(--dim);margin-top:2px}
+.launch .lc-go{width:16px;height:16px;stroke:var(--c1);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;opacity:.7;transition:transform .18s}
+.launch:hover .lc-go{transform:translate(2px,-2px);opacity:1}
 /* ── Calendar: softer, deeper, less blocky ── */
 .cal{border-radius:26px;box-shadow:0 44px 96px -58px rgba(var(--env1),.7),inset 0 1px 0 rgba(255,255,255,.07)}
 .tg-head{background:linear-gradient(180deg,rgba(255,255,255,.045),transparent)}
 .tg-head .dd{letter-spacing:-.02em}
 .tg-head .dh.today .dd{box-shadow:0 10px 22px -8px rgba(255,255,255,.55)}
-.dcol{background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(180deg,rgba(255,176,84,.055),transparent 20%,transparent 66%,rgba(80,110,220,.07));background-size:100% var(--hourH),100% 100%}
+.dcol{background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px);background-size:100% var(--hourH)}
 .dcol.is-today{background-color:rgba(243,244,248,.035)}
 .ev{border-radius:13px;padding:8px 11px 8px 14px;border:1px solid rgba(255,255,255,.18);
   background:linear-gradient(155deg,color-mix(in srgb,var(--c1) 92%,transparent),color-mix(in srgb,var(--c2) 95%,transparent));
@@ -504,7 +542,8 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .ev:hover{filter:brightness(1.12) saturate(1.08);transform:translateY(-1px) scale(1.015)}
 .ev.tiny{padding:4px 10px 4px 14px}
 .adchip{border-radius:12px;padding:8px 12px;box-shadow:0 10px 20px -11px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.26)}
-.nowline::after{content:"NOW";position:absolute;left:5px;top:-8px;font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;color:#fff;background:#F43F5E;border-radius:5px;padding:1px 6px;box-shadow:0 3px 9px rgba(244,63,94,.6)}
+.nowline{height:1px;background:linear-gradient(90deg,rgba(244,63,94,.85),rgba(244,63,94,.25));box-shadow:none}
+.nowline::before{left:-3px;top:-3px;width:7px;height:7px;background:#F43F5E;box-shadow:0 0 8px rgba(244,63,94,.7)}
 .cal-note{padding:2px 0}
 /* Remove-block button in the detail drawer */
 .dw-del{margin-top:12px;width:100%;padding:13px;border-radius:14px;cursor:pointer;font-size:13.5px;font-weight:700;color:#FCA5A5;background:rgba(244,63,94,.10);border:1px solid rgba(244,63,94,.34);transition:all .18s}
@@ -516,6 +555,12 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 /* Station tiles — art breathes on hover, glyph lifts */
 .st-tile .tile-art{transition:transform .55s cubic-bezier(.2,.7,.3,1);will-change:transform}
 .st-tile:hover .tile-art{transform:scale(1.07)}
+.st-tile .tile-art{height:96px;position:relative;overflow:hidden}
+.st-tile .tile-art .tile-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) contrast(1.02)}
+.st-tile .tile-art .tile-grad{position:absolute;inset:0;background:linear-gradient(160deg,color-mix(in srgb,var(--c1) 30%,transparent),transparent 45%),linear-gradient(0deg,rgba(7,8,14,.86),transparent 62%)}
+.st-tile .tile-art.noimg{background:linear-gradient(150deg,color-mix(in srgb,var(--c1) 55%,#0a0b14),color-mix(in srgb,var(--c2) 40%,#06070e))}
+.st-tile .glyph{top:70px}
+.st-tile b{letter-spacing:-.01em}
 .st-tile .glyph{transition:transform .35s cubic-bezier(.2,.7,.3,1),box-shadow .35s}
 .st-tile:hover .glyph{transform:translateY(-3px) scale(1.06)}
 /* Up-next + metric band get a soft specular top line */
@@ -591,6 +636,7 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer"></aside>
 <div class="modal-wrap" id="addslot"></div>
+<div class="modal-wrap" id="heromodal"></div>
 <button class="fab" id="fab" aria-label="Open assistant"><svg viewBox="0 0 24 24"><path d="M12 1.6l1.2 6.3 4.6-4.4-2.7 5.8 6.3-.9-5.6 3.1 5.6 3.1-6.3-.9 2.7 5.8-4.6-4.4-1.2 6.3-1.2-6.3-4.6 4.4 2.7-5.8-6.3.9 5.6-3.1-5.6-3.1 6.3.9-2.7-5.8 4.6 4.4z"/></svg></button>
 <div class="chat" id="chat">
   <div class="chat-head">
@@ -673,29 +719,39 @@ const TILE_ART={
  media:`<svg viewBox="0 0 220 88" preserveAspectRatio="xMidYMid slice"><g filter="url(#fog)">${[[60,30,30,'.25'],[150,60,26,'.2'],[40,66,20,'.18']].map(([x,y,r,o])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="rgba(165,180,252,${o})"/>`).join('')}</g><circle cx="150" cy="44" r="30" fill="none" stroke="url(#chrome)" stroke-width="6" filter="url(#bloom2)"/><circle cx="150" cy="44" r="17" fill="url(#lensG)"/><circle cx="150" cy="44" r="7" fill="#190A3D"/></svg>`,
  work:`<svg viewBox="0 0 220 88" preserveAspectRatio="xMidYMid slice"><ellipse cx="110" cy="88" rx="120" ry="40" fill="url(#forge)" filter="url(#fog)"/><g transform="translate(28,12)">${[0,1,2,3].map(c=>`<rect x="${c*54-4}" y="20" width="8" height="56" fill="url(#beam)"/>`).join('')}${[20,48,76].map(y=>`<rect x="0" y="${y-3}" width="166" height="6" fill="url(#beam)"/>`).join('')}<path d="M0,76 L54,48 M54,76 L0,48 M108,48 L162,20" stroke="#86EFAC" stroke-width="2" fill="none" opacity=".8" filter="url(#bloom2)"/></g></svg>`,
 };
-/* Real rendered hero art. Where a station has an image it replaces the
-   hand-drawn SVG; stations left null keep their SVG hero until a render exists. */
 /* ── Hero media ──────────────────────────────────────────────────────────
-   Each station can show a real photo OR a looping video behind the glass.
-   To use your own: set img/video to any URL (Pexels, your Canva export, a
-   file you drop in assets/img/…). Photos below are real, free-licensed shots
-   served from Wikimedia's CDN. Stations with img:null use a graded cinematic
-   backdrop until you give them a picture — swap in one line, no other change. */
+   Each station shows a real photo OR a looping video behind the glass.
+   Defaults below are real, free-licensed photos (Wikimedia CDN). You can
+   override any of them right inside the app — click the ✎ on a hero and paste
+   an image URL or a YouTube / .mp4 link; it saves to your browser. */
 const WM=f=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1600';
 const HERO={
- fe:    {img:WM('Chicago Skyway, Interstate 90, Chicago, Illinois (11051973923).jpg')},
- ai:    {img:WM('Datacenter Server Racks (22370909788).jpg')},
- media: {img:null},   // drop in your own filming/creator shot or video URL
- stocks:{img:WM('NYSE Advanced Trading Floor.jpg')},
- work:  {img:null},   // drop in a steel-mill / I-beam shot or video URL
+ fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center 55%'},
+ ai:    {img:WM('Datacenter Server Racks (22370909788).jpg'),pos:'center 45%'},
+ media: {img:null},   // set your own filming/creator photo or video in-app (✎)
+ stocks:{img:WM('Bowling Green td (2018-12-13) 06 - 26 Broadway, Charging Bull.jpg'),pos:'center 38%'},
+ work:  {img:WM('Flaring of Blast Furnace Gas at Night.jpg'),pos:'center 50%'},
 };
+let heroOverrides={};                 // {station:{img,video,pos}} from localStorage
+const heroFor=k=>Object.assign({},HERO[k]||{},heroOverrides[k]||{});
+const heroHasMedia=k=>{const h=heroFor(k);return !!(h.img||h.video)};
+function ytId(u){
+ if(!u)return null;u=String(u).trim();
+ const m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+ if(m)return m[1];
+ if(/^[\w-]{11}$/.test(u))return u;
+ return null;
+}
 function heroMarkup(k){
- const h=HERO[k]||{};
- if(h.video) return `<video class="hero-img" autoplay muted loop playsinline ${h.img?`poster="${h.img}"`:''}><source src="${h.video}" type="video/mp4"></video>`;
- if(h.img)   return `<img class="hero-img" src="${h.img}" alt="${k}" loading="eager" onerror="var x=this.closest('.hero');x.classList.add('has-grad');x.classList.remove('has-img');this.remove()">`;
+ const h=heroFor(k);
+ if(h.video){
+   const yt=ytId(h.video);
+   if(yt)return `<iframe class="hero-vid" src="https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&loop=1&playlist=${yt}&controls=0&playsinline=1&modestbranding=1&rel=0&showinfo=0&disablekb=1" allow="autoplay; encrypted-media" referrerpolicy="no-referrer" tabindex="-1" title="hero"></iframe>`;
+   return `<video class="hero-img" autoplay muted loop playsinline ${h.img?`poster="${h.img}"`:''}><source src="${h.video}" type="video/mp4"></video>`;
+ }
+ if(h.img)return `<img class="hero-img" src="${h.img}" alt="${k}" loading="eager" style="object-position:${h.pos||'center'}" onerror="var x=this.closest('.hero');x.classList.add('has-grad');x.classList.remove('has-img');this.remove()">`;
  return '';
 }
-const heroHasMedia=k=>!!(HERO[k]&&(HERO[k].img||HERO[k].video));
 const E=(s,e,n,c)=>({s,e,n,c});const AD=(n,c)=>({allday:true,n,c});
 const AM=E('06:00','06:45','Morning review — formulas + flashcards','fe');
 const WORK=E('07:00','15:00','Nucor — quote engineering','work');
@@ -819,7 +875,7 @@ function featureHTML(k){
  if(k==='work')return `<h3><span class="h-ic">${glyph('steel')}</span>Mentor Map</h3><div class="mentor"><div class="mav">DM</div><div class="mmain"><b>Danielle Miles</b><span>Current mentor — quote engineering</span></div><span class="mstage">Now</span></div><div class="mentor"><div class="mav">NM</div><div class="mmain"><b>Nathan Miller</b><span>Engineering + sales hybrid</span></div><span class="mstage">Next</span></div><div class="mentor"><div class="mav">JB</div><div class="mmain"><b>Jeff Brasseur</b><span>Regional sales supervisor</span></div><span class="mstage">Target</span></div><div class="leadrow"><span class="lc">VanDyken</span><span class="lc">Liegl</span><span class="lc">Byerely</span><span class="lc">Gentry</span></div><div class="path"><div class="pstep cur">Quote Eng.</div><span class="parrow">→</span><div class="pstep">Hybrid</div><span class="parrow">→</span><div class="pstep">Sales Eng.</div></div>`;
  return '';
 }
-const KEYS={sched:'os4-sched',topics:'os4-topics',st:'os4-stations',streak:'os4-streak'};
+const KEYS={sched:'os4-sched',topics:'os4-topics',st:'os4-stations',streak:'os4-streak',hero:'os4-hero',watch:'os4-watch'};
 let schedule=JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
 let topicState={},stState={},streak={days:0,last:null,history:[]},curWeek='w1',curView='home';
 function freshStations(){const o={};Object.keys(STATIONS).forEach(k=>{o[k]={tasks:STATIONS[k].tasks.map(t=>({t,done:false})),logs:[]}});return o}
@@ -936,6 +992,32 @@ function openAddSlot(wk,di,startMin){
   }
   draw();wrap.classList.add('on');$('#scrim').classList.add('on');
 }
+/* ═══ set a station's hero image or video (saved to your browser) ═══ */
+let watchList=['NASDAQ:NVDA','NASDAQ:MSFT','NASDAQ:GOOGL','NASDAQ:AMZN','NASDAQ:META'];
+function closeHeroModal(){$('#heromodal').classList.remove('on');$('#scrim').classList.remove('on')}
+function openHeroModal(k){
+  const wrap=$('#heromodal'),cur=heroFor(k),cs=catStyle(k);
+  wrap.innerHTML=`<div class="modal" style="${cs}">
+    <div class="modal-head"><button class="mclose" aria-label="Close">✕</button><div class="mh-k">${STATIONS[k].title} · hero</div><div class="mh-t">Set image or video</div></div>
+    <div class="modal-body">
+      <p class="ml">Image URL</p>
+      <div class="modal-row"><input class="m-name" id="hm-img" placeholder="https://…/photo.jpg" value="${(cur.img||'').replace(/"/g,'&quot;')}"></div>
+      <p class="ml">Video — paste a YouTube link or an .mp4 URL</p>
+      <div class="modal-row"><input class="m-name" id="hm-vid" placeholder="https://youtube.com/watch?v=… or https://…/clip.mp4" value="${(heroOverrides[k]&&heroOverrides[k].video||'').replace(/"/g,'&quot;')}"></div>
+      <p class="hm-hint">Video plays muted on a loop behind the glass. Leave video blank to use the image. Free clips: pexels.com/videos, coverr.co, or any YouTube link.</p>
+      <div class="hm-actions"><button class="modal-add" id="hm-save">Save</button><button class="hm-reset" id="hm-reset">Reset to default</button></div>
+    </div></div>`;
+  wrap.querySelector('.mclose').addEventListener('click',closeHeroModal);
+  wrap.querySelector('#hm-save').addEventListener('click',async()=>{
+    const img=$('#hm-img').value.trim(),vid=$('#hm-vid').value.trim();
+    if(!img&&!vid){delete heroOverrides[k];}else{heroOverrides[k]={};if(img)heroOverrides[k].img=img;if(vid)heroOverrides[k].video=vid;}
+    await sset(KEYS.hero,heroOverrides);closeHeroModal();renderStation(k);if(curView==='home')renderHome();
+  });
+  wrap.querySelector('#hm-reset').addEventListener('click',async()=>{
+    delete heroOverrides[k];await sset(KEYS.hero,heroOverrides);closeHeroModal();renderStation(k);if(curView==='home')renderHome();
+  });
+  wrap.classList.add('on');$('#scrim').classList.add('on');
+}
 document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>setWeek(b.dataset.w)));
 function renderP2(){$('#p2panel').innerHTML=[['ai','AI','Primary track',['Curriculum: fundamentals → agents → building','One build per month — first: Nucor quoting helper','Book 1 drafted from session logs']],['media','Media','Build track',['Site + portfolio by end of July','Spine Wellness → repeatable playbook','Saturday batch filming','Outreach after site exists']],['stocks','Stocks','Study track',['Friday-only: options + IPO framework','Paper-trade 3 months before capital','Watchlist feeds Book 3']]].map(([c,b,s,items])=>`<div class="pillar" style="${catStyle(c)}"><div class="pillar-head"><div class="glyph" style="${catStyle(c)}">${glyph(c)}</div><div><b>${b}</b><span>${s}</span></div></div><ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul></div>`).join('')}
 function weekOfToday(){for(const wk of['w1','w2','w3'])if(schedule[wk].some(d=>isTodayCol(d)))return wk;return 'w1'}
@@ -967,7 +1049,7 @@ function renderHome(){
   tl.innerHTML=all.map(b=>`<div class="titem" style="${catStyle(b.c)}"><div class="tt">all day</div><div class="bar"></div><div class="glyph">${glyph(b.c)}</div><div class="tn">${b.n}</div></div>`).join('')+timed.map(b=>{const past=toMin(b.e)<=mins,live=toMin(b.s)<=mins&&toMin(b.e)>mins;return`<div class="titem${past?' past':''}${live?' live':''}" style="${catStyle(b.c)}"><div class="tt">${fmt(b.s)}</div><div class="bar"></div><div class="glyph">${glyph(b.c)}</div><div class="tn">${b.n}</div></div>`}).join('');
   const blocks=[...all,...timed];tl.querySelectorAll('.titem').forEach((el,i)=>el.addEventListener('click',()=>openDrawer(blocks[i])));
   $('#tline-title').textContent='Today — '+(d.name.charAt(0)+d.name.slice(1).toLowerCase());
-  $('#sttiles').innerHTML=Object.keys(STATIONS).map(k=>{const m=METRICS[k](stState[k])[0];return`<button class="st-tile" data-v="${k}" style="${catStyle(k)}"><div class="tile-art">${TILE_ART[k]}</div><div class="glyph">${glyph(k)}</div><div class="tile-body"><b>${STATIONS[k].title}</b><span class="tile-metric">${m[0]}: <b>${m[1]}</b></span></div></button>`}).join('');
+  $('#sttiles').innerHTML=Object.keys(STATIONS).map(k=>{const m=METRICS[k](stState[k])[0];const h=heroFor(k);const art=h.img?`<img class="tile-img" src="${h.img}" alt="" loading="lazy" style="object-position:${h.pos||'center'}" onerror="this.closest('.tile-art').classList.add('noimg');this.remove()">`:'';return`<button class="st-tile" data-v="${k}" style="${catStyle(k)}"><div class="tile-art${h.img?'':' noimg'}">${art}<span class="tile-grad"></span></div><div class="glyph">${glyph(k)}</div><div class="tile-body"><b>${STATIONS[k].title}</b><span class="tile-metric">${m[0]}: <b>${m[1]}</b></span></div></button>`}).join('');
   $('#sttiles').querySelectorAll('.st-tile').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 }
 function openDrawer(b,ctx){
@@ -986,18 +1068,19 @@ function openDrawer(b,ctx){
   });
 }
 function closeDrawer(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on')}
-$('#scrim').addEventListener('click',()=>{closeDrawer();closeAddSlot()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeAddSlot()}});
+$('#scrim').addEventListener('click',()=>{closeDrawer();closeAddSlot();closeHeroModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeAddSlot();closeHeroModal()}});
 function renderStation(k){
   const cfg=STATIONS[k],st=stState[k],el=$('#v-'+k),cs=catStyle(k);
   const mets=METRICS[k](st);
   const chips=cfg.chips.map((c,i)=>`<div class="chip c${i+1}"><span class="cl">${c[0]}</span><span class="cv">${c[1]}</span></div>`).join('');
   const micSVG='<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
   el.innerHTML=`
-   <div class="hero rise ${heroHasMedia(k)?'has-img':'has-grad'}" style="${cs}">${heroMarkup(k)}<div class="ha-shade"></div><div class="ha-code">${cfg.code}</div>${chips}<div class="ha-id"><div class="glyph">${glyph(k)}</div><div><div class="eyebrow">Workstation</div><h1>${cfg.title}</h1></div></div></div>
+   <div class="hero rise ${heroHasMedia(k)?'has-img':'has-grad'}" style="${cs}">${heroMarkup(k)}<div class="ha-shade"></div><button class="hero-edit" id="hero-edit-${k}" title="Set image or video" aria-label="Set hero image or video"><svg viewBox="0 0 24 24"><path d="M3 17.5V21h3.5L17 10.5 13.5 7 3 17.5z"/><path d="M15 5.5l3.5 3.5 1.6-1.6a1.6 1.6 0 0 0 0-2.3l-1.2-1.2a1.6 1.6 0 0 0-2.3 0L15 5.5z" fill="#fff" stroke="none"/></svg></button><div class="ha-code">${cfg.code}</div>${chips}<div class="ha-id"><div class="glyph">${glyph(k)}</div><div><div class="eyebrow">Workstation</div><h1>${cfg.title}</h1></div></div></div>
    <div class="metricband" style="${cs}">${mets.map(([l,v])=>`<div class="mb-cell"><div class="mb-l">${l}</div><div class="mb-v" data-to="${v}">0</div></div>`).join('')}</div>
    <p class="subline">${cfg.line}</p>
-   ${k==='stocks'?`<div class="card tv-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Live Market — chart, watchlist &amp; news</h3><div class="tv-ticker" id="tv-ticker"></div><div class="tv-chart" id="tv-chart"></div><div class="tv-grid"><div class="tv-mini" id="tv-watch"></div><div class="tv-mini" id="tv-news"></div></div><p class="rs-note">Live data via TradingView — type any ticker in the chart's search box. Study &amp; education only.</p></div>`:''}
+   ${stationExtras(k,cs)}
+   ${k==='stocks'?`<div class="card tv-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Live Market — chart, watchlist &amp; news</h3><div class="tv-ticker" id="tv-ticker"></div><div class="tv-watchrow"><input id="tv-add" placeholder="Add to watchlist — AAPL, NASDAQ:NVDA, BTCUSD…" autocomplete="off"><button class="rs-go" id="tv-addbtn">Add</button></div><div class="tv-chips" id="tv-chips"></div><div class="tv-chart" id="tv-chart"></div><div class="tv-grid"><div class="tv-pane"><div class="tv-panelabel" id="tv-newslabel">News</div><div class="tv-mini" id="tv-news"></div></div><div class="tv-pane"><div class="tv-panelabel">Watchlist &amp; indexes</div><div class="tv-mini" id="tv-watch"></div></div></div><p class="rs-note">Live data via TradingView — click a ticker to load its chart &amp; news, or use the chart's own search. Study &amp; education only.</p></div>`:''}
    ${k==='stocks'?`<div class="card research" style="${cs}"><h3><span class="h-ic">${glyph('stocks')}</span>Research Desk — live, web-connected</h3><div class="rs-row"><input id="rs-in" placeholder="Research a name… 'Anthropic lock-up status' or 'NVDA this week'"><button class="rs-go" id="rs-go">Run</button></div><div class="rs-out" id="rs-out"><div class="rs-card" id="rs-card"></div><button class="rs-save" id="rs-save">Save to memory log</button></div><p class="rs-note">Runs Claude with live web search. Works inside Claude. Research & education only — your decisions stay yours.</p></div>`:''}
    <div class="card station-ai" style="${cs}"><div class="sa-head"><div class="sa-ic glyph" style="${cs}">${glyph(k)}</div><div class="sa-meta"><b>${STATION_AI[k].name}</b><span>Your dedicated ${cfg.title} AI — plan, ask, add a task, or log, by voice or text</span></div><button class="spkbtn" id="sa-spk-${k}" aria-label="Voice replies" title="Voice replies"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button></div><div class="sa-body" id="sa-body-${k}"></div><div class="sa-in"><button class="micbtn" id="sa-mic-${k}" aria-label="Voice">${micSVG}</button><input id="sa-in-${k}" placeholder="Talk to your ${STATION_AI[k].name}…" autocomplete="off"><button class="sendbtn" id="sa-send-${k}" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button></div></div>
    <div class="st-bento" style="${cs}">
@@ -1007,6 +1090,7 @@ function renderStation(k){
      <div class="card bento-stream logform"><h3><span class="h-ic">${glyph('logg')}</span>Memory Stream — speak or type</h3><div class="ta-wrap"><textarea id="li-${k}" placeholder="End every session here. Talk freely — long is fine. This is stored data you'll mine later for the books and agents."></textarea><button class="micbtn ta-mic" id="lm-${k}" aria-label="Voice">${micSVG}</button></div><button class="logbtn" id="lb-${k}">Save to memory</button><div class="stream-rail"><div class="logs" id="lg-${k}"></div></div></div>
    </div>`;
   el.querySelectorAll('.mb-v').forEach(v=>countUp(v,v.dataset.to));
+  {const he=$('#hero-edit-'+k);if(he)he.addEventListener('click',()=>openHeroModal(k));}
   function drawTasks(){$('#tl-'+k).innerHTML=st.tasks.map((t,i)=>`<div class="task${t.done?' done':''}" data-i="${i}"><div class="tch"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div><div class="tn">${t.t}</div><button class="del" aria-label="Delete">✕</button></div>`).join('')||'<p style="font-size:13px;color:var(--faint)">Nothing open. Add one above.</p>';$('#tl-'+k).querySelectorAll('.task').forEach(row=>{row.addEventListener('click',async e=>{const i=+row.dataset.i;if(e.target.closest('.del'))st.tasks.splice(i,1);else st.tasks[i].done=!st.tasks[i].done;drawTasks();await sset(KEYS.st,stState)})})}
   drawTasks();
   $('#tb-'+k).addEventListener('click',async()=>{const v=$('#ti-'+k).value.trim();if(!v)return;st.tasks.unshift({t:v,done:false});$('#ti-'+k).value='';drawTasks();await sset(KEYS.st,stState)});
@@ -1030,20 +1114,51 @@ function tvWidget(elId,src,config){
   const s=document.createElement('script');s.async=true;s.src=src;s.innerHTML=JSON.stringify(config);
   wrap.appendChild(s);host.appendChild(wrap);
 }
+/* ═══ per-station quick-launch link cards ═══ */
+function launchCard(title,gk,items,cs,note){
+  return `<div class="card launch-card" style="${cs}"><h3><span class="h-ic">${glyph(gk)}</span>${title}</h3><div class="launch-grid">${items.map(([label,sub,url])=>`<a class="launch" href="${url}" target="_blank" rel="noopener noreferrer"><div class="lc-main"><div class="lc-t">${label}</div><div class="lc-s">${sub}</div></div><svg class="lc-go" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></a>`).join('')}</div>${note?`<div class="feat-note">${note}</div>`:''}</div>`;
+}
+function stationExtras(k,cs){
+  if(k==='ai')return launchCard('Launch — Claude workspace','ai',[
+    ['Claude','Chat, Projects &amp; artifacts','https://claude.ai'],
+    ['Claude Code','Build in your terminal — docs','https://docs.claude.com/en/docs/claude-code/overview'],
+    ['API Console','Keys, usage &amp; the Workbench','https://console.anthropic.com'],
+    ['Docs','Prompting, agents &amp; the API','https://docs.claude.com'],
+  ],cs,'Keep Claude open on a second screen and use the <b>Build Queue</b> below as your database of things to build — log each session in the memory stream and your AI Mentor keeps the thread.');
+  if(k==='media')return launchCard('Channels &amp; site','media',[
+    ['Influence Media — live site','Your portfolio / homepage','https://jadentrydonthomas.github.io/Influence-media/'],
+    ['Instagram','Business + personal brand','https://instagram.com'],
+    ['TikTok','Short-form pipeline','https://tiktok.com'],
+    ['Canva','Design &amp; batch exports','https://canva.com'],
+  ],cs,'Business first — keep Spine Wellness fed; your personal brand rides alongside. Tip: hit the <b>✎</b> on the hero and paste a filming clip or reel URL to make this room feel like the studio.');
+  if(k==='work')return launchCard('Agents for work — Copilot stack','build',[
+    ['Microsoft 365 Copilot','Where Nucor works day-to-day','https://www.microsoft.com/en-us/microsoft-365/copilot'],
+    ['Copilot Studio','Build your own work agents','https://www.microsoft.com/en-us/microsoft-copilot/microsoft-copilot-studio'],
+    ['GitHub Copilot','Code + automation','https://github.com/features/copilot'],
+    ['Power Automate','Automate the quote workflow','https://make.powerautomate.com'],
+  ],cs,'Nucor runs on Copilot — learn to build small agents around the <b>quote→sales</b> workflow. Log every automatable step in the memory stream; those become your first work agents.');
+  return '';
+}
+let curSymbol='NASDAQ:NVDA';
+const TVBASE='https://s3.tradingview.com/external-embedding/';
+const symShort=s=>String(s).split(':').pop();
+function tvTape(){tvWidget('tv-ticker',TVBASE+'embed-widget-ticker-tape.js',{symbols:watchList.map(s=>({proName:s,title:symShort(s)})),showSymbolLogo:true,isTransparent:true,displayMode:'adaptive',colorTheme:'dark',locale:'en'});}
+function tvChart(sym){tvWidget('tv-chart',TVBASE+'embed-widget-advanced-chart.js',{autosize:true,symbol:sym,interval:'D',timezone:'America/Chicago',theme:'dark',style:'1',locale:'en',withdateranges:true,allow_symbol_change:true,hide_side_toolbar:false,details:true,support_host:'https://www.tradingview.com'});}
+function tvSymNews(sym){tvWidget('tv-news',TVBASE+'embed-widget-timeline.js',{feedMode:'symbol',symbol:sym,colorTheme:'dark',isTransparent:true,displayMode:'regular',width:'100%',height:'100%',locale:'en'});}
+function tvOverview(){tvWidget('tv-watch',TVBASE+'embed-widget-market-overview.js',{colorTheme:'dark',dateRange:'1D',showChart:true,locale:'en',isTransparent:true,width:'100%',height:'100%',tabs:[{title:'Watchlist',symbols:watchList.map(s=>({s,d:symShort(s)}))},{title:'Indexes',symbols:[{s:'FOREXCOM:SPXUSD',d:'S&P 500'},{s:'NASDAQ:IXIC',d:'Nasdaq'},{s:'FOREXCOM:DJI',d:'Dow 30'}]}]});}
+function drawChips(){const el=$('#tv-chips');if(!el)return;
+  el.innerHTML=watchList.map(s=>`<span class="tv-chip${s===curSymbol?' on':''}" data-s="${s}">${symShort(s)}<button class="tv-x" data-s="${s}" aria-label="Remove">✕</button></span>`).join('')||'<span class="tv-empty">Add a ticker to start your watchlist →</span>';
+  el.querySelectorAll('.tv-chip').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('.tv-x'))return;setSymbol(c.dataset.s)}));
+  el.querySelectorAll('.tv-x').forEach(b=>b.addEventListener('click',async e=>{e.stopPropagation();watchList=watchList.filter(x=>x!==b.dataset.s);await sset(KEYS.watch,watchList);tvTape();tvOverview();drawChips();}));
+}
+function setSymbol(s){curSymbol=s;tvChart(s);tvSymNews(s);drawChips();const t=$('#tv-newslabel');if(t)t.textContent='News — '+symShort(s);}
+async function addWatch(){const i=$('#tv-add');if(!i)return;let v=i.value.trim().toUpperCase();if(!v)return;if(!watchList.includes(v))watchList.push(v);i.value='';await sset(KEYS.watch,watchList);tvTape();tvOverview();setSymbol(v);}
 function mountMarketDesk(){
-  tvWidget('tv-ticker','https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js',{
-    symbols:[{proName:'NASDAQ:NVDA',title:'NVDA'},{proName:'NASDAQ:MSFT',title:'MSFT'},{proName:'NASDAQ:GOOGL',title:'GOOGL'},{proName:'NASDAQ:AMZN',title:'AMZN'},{proName:'FOREXCOM:SPXUSD',title:'S&P 500'},{proName:'NASDAQ:IXIC',title:'Nasdaq'},{proName:'TVC:GOLD',title:'Gold'},{proName:'BITSTAMP:BTCUSD',title:'BTC'}],
-    showSymbolLogo:true,isTransparent:true,displayMode:'adaptive',colorTheme:'dark',locale:'en'});
-  tvWidget('tv-chart','https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js',{
-    autosize:true,symbol:'NASDAQ:NVDA',interval:'D',timezone:'America/Chicago',theme:'dark',style:'1',locale:'en',
-    withdateranges:true,allow_symbol_change:true,hide_side_toolbar:false,details:true,
-    support_host:'https://www.tradingview.com'});
-  tvWidget('tv-watch','https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js',{
-    colorTheme:'dark',dateRange:'1D',showChart:true,locale:'en',isTransparent:true,width:'100%',height:'100%',
-    tabs:[{title:'Watch',symbols:[{s:'NASDAQ:NVDA',d:'NVIDIA'},{s:'NASDAQ:MSFT',d:'Microsoft'},{s:'NASDAQ:GOOGL',d:'Alphabet'},{s:'NASDAQ:AMZN',d:'Amazon'},{s:'NASDAQ:META',d:'Meta'}]},
-          {title:'Indexes',symbols:[{s:'FOREXCOM:SPXUSD',d:'S&P 500'},{s:'NASDAQ:IXIC',d:'Nasdaq'},{s:'FOREXCOM:DJI',d:'Dow 30'}]}]});
-  tvWidget('tv-news','https://s3.tradingview.com/external-embedding/embed-widget-timeline.js',{
-    feedMode:'market',market:'stock',colorTheme:'dark',isTransparent:true,displayMode:'regular',width:'100%',height:'100%',locale:'en'});
+  curSymbol=watchList[0]||'NASDAQ:NVDA';
+  tvTape();tvChart(curSymbol);tvSymNews(curSymbol);tvOverview();drawChips();
+  const t=$('#tv-newslabel');if(t)t.textContent='News — '+symShort(curSymbol);
+  const btn=$('#tv-addbtn');if(btn)btn.addEventListener('click',addWatch);
+  const add=$('#tv-add');if(add)add.addEventListener('keydown',e=>{if(e.key==='Enter')addWatch();});
 }
 function drawFETopics(){const w=$('#fetopics');if(!w)return;w.innerHTML=FE_TOPICS.map(([n,wk],i)=>`<div class="tsm${topicState[i]?' done':''}" data-i="${i}" style="--c1:var(--fe1);--c2:var(--fe2)"><div class="tch"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div><span class="tn">${n}</span><span class="tw">${wk}</span></div>`).join('');w.querySelectorAll('.tsm').forEach(t=>t.addEventListener('click',async()=>{topicState[t.dataset.i]=!topicState[t.dataset.i];drawFETopics();await sset(KEYS.topics,topicState)}));const done=feDone();const pf=$('#pfill');if(pf){pf.style.width=(done/14*100)+'%';$('#pnum').textContent=done+'/14'}}
 function wireResearch(refreshLogs){
@@ -1187,8 +1302,9 @@ chatin.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
 attachMic($('#chatmic'),txt=>{chatin.value=txt});
 /* ═══ init ═══ */
 (async function init(){
-  const[sv,tp,ss,sk]=await Promise.all([sget(KEYS.sched),sget(KEYS.topics),sget(KEYS.st),sget(KEYS.streak)]);
+  const[sv,tp,ss,sk,ho,wl]=await Promise.all([sget(KEYS.sched),sget(KEYS.topics),sget(KEYS.st),sget(KEYS.streak),sget(KEYS.hero),sget(KEYS.watch)]);
   if(sv)schedule=sv; if(tp)topicState=tp; streak=sk||{days:0,last:null,history:[]};
+  if(ho)heroOverrides=ho; if(wl&&wl.length)watchList=wl;
   stState=ss||freshStations();
   Object.keys(STATIONS).forEach(k=>{if(!stState[k])stState[k]={tasks:STATIONS[k].tasks.map(t=>({t,done:false})),logs:[]}});
   renderNav();curWeek=weekOfToday();setEnv('home');go('home');
