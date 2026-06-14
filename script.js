@@ -1,3 +1,25 @@
+// =============================================================
+//  CONFIG — the two things you can turn on yourself
+// =============================================================
+
+// 1) PAYMENTS (Stripe Payment Links).
+//    When you create your Stripe account, make a Payment Link for each
+//    package (recurring every 2 weeks) and paste the URLs below.
+//    See STRIPE_SETUP.md for step-by-step instructions.
+//    Until a link is filled in, the button sends people to the signup form.
+const STRIPE_LINKS = {
+  Starter: "", // e.g. "https://buy.stripe.com/xxxxxxxx"
+  Growth: "",  // e.g. "https://buy.stripe.com/yyyyyyyy"
+  Premium: "", // e.g. "https://buy.stripe.com/zzzzzzzz"
+};
+
+// 2) EMAIL — where signup form submissions are sent.
+//    Uses Formsubmit (free, no account). The FIRST time someone submits,
+//    Formsubmit emails this address a one-time link to activate. Click it once.
+const SIGNUP_EMAIL = "jaden.thomas.media@gmail.com";
+
+// =============================================================
+
 // ===== Year in footer =====
 document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -41,7 +63,7 @@ if ("IntersectionObserver" in window) {
 }
 
 // ===== Animated stat counters =====
-const counters = document.querySelectorAll(".stat__num");
+const counters = document.querySelectorAll("[data-count]");
 const animateCount = (el) => {
   const target = parseFloat(el.dataset.count);
   const suffix = el.dataset.suffix || "";
@@ -72,22 +94,30 @@ if ("IntersectionObserver" in window) {
   counters.forEach((c) => statIO.observe(c));
 }
 
-// ===== Pre-select package when "Choose <plan>" is clicked =====
-document.querySelectorAll('.plan a[href="#contact"]').forEach((link) => {
-  link.addEventListener("click", () => {
-    const name = link.closest(".plan")?.querySelector(".plan__name")?.textContent.trim();
-    const select = document.getElementById("package");
-    if (name && select) {
-      const match = [...select.options].find((o) => o.value === name);
-      if (match) select.value = name;
+// ===== Package buttons → Stripe checkout (or signup form) =====
+const packageSelect = document.getElementById("package");
+document.querySelectorAll(".plan__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const plan = btn.dataset.plan;
+    const link = STRIPE_LINKS[plan];
+    if (link) {
+      // Payment is configured — send them straight to checkout.
+      window.location.href = link;
+      return;
     }
+    // No payment link yet — pre-select the plan and scroll to the signup form.
+    if (packageSelect) {
+      const match = [...packageSelect.options].find((o) => o.value === plan);
+      if (match) packageSelect.value = plan;
+    }
+    document.getElementById("contact").scrollIntoView({ behavior: "smooth" });
   });
 });
 
-// ===== Contact form (client-side handling) =====
+// ===== Signup / contact form → email via Formsubmit =====
 const form = document.getElementById("contactForm");
 const note = document.getElementById("formNote");
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   note.className = "contact__note";
   note.textContent = "";
@@ -98,21 +128,49 @@ form.addEventListener("submit", (e) => {
   const pkg = form.package.value;
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // Honeypot — if filled, silently drop (it's a bot).
+  if (form._honey && form._honey.value) return;
+
   if (!name || !emailOk || !message) {
     note.classList.add("error");
     note.textContent = "Please fill in your name, a valid email, and a message.";
     return;
   }
 
-  // No backend yet — store locally and confirm.
-  // Hook this up to a form service (Formspree, Netlify Forms, etc.) when ready.
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending...";
+
+  // Local backup so a lead is never lost even if the network fails.
   try {
     const saved = JSON.parse(localStorage.getItem("im_leads") || "[]");
     saved.push({ name, email, package: pkg, message, at: new Date().toISOString() });
     localStorage.setItem("im_leads", JSON.stringify(saved));
   } catch (_) {}
 
-  note.classList.add("success");
-  note.textContent = `Thanks ${name}! Your message is in — we'll reply within one business day.`;
-  form.reset();
+  try {
+    const res = await fetch(`https://formsubmit.co/ajax/${SIGNUP_EMAIL}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        name,
+        email,
+        package: pkg || "Not specified",
+        message,
+        _subject: `New Influence Media signup${pkg ? " — " + pkg : ""}`,
+        _template: "table",
+      }),
+    });
+    if (!res.ok) throw new Error("Network error");
+    note.classList.add("success");
+    note.textContent = `Thanks ${name}! Your message is on its way — we'll reply within one business day.`;
+    form.reset();
+  } catch (err) {
+    note.classList.add("error");
+    note.textContent = "Hmm, something went wrong sending that. Please DM us on Instagram @influencemedia.ai and we'll get right back to you.";
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
 });
