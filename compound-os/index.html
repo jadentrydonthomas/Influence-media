@@ -482,7 +482,37 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .hero.nucor .nucor-wm i{display:block;font-style:normal;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.72);margin-top:8px}
 .hero.nucor::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(120deg,rgba(22,163,74,.28),transparent 46%);mix-blend-mode:screen}
 /* Hero background video (YouTube iframe or mp4) */
-.hero .hero-vid{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:16/9;min-height:100%;transform:translate(-50%,-50%);border:0;pointer-events:none}
+.hero .hero-vid{position:absolute;left:50%;top:50%;width:max(100%,604px);aspect-ratio:16/9;transform:translate(-50%,-50%);border:0;pointer-events:none;z-index:1}
+/* ════════════════ Month calendar ════════════════ */
+.calmonth{margin-top:4px}
+.mhead{display:flex;align-items:center;justify-content:center;gap:18px;margin:2px 0 14px}
+.mtitle{font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.01em;min-width:190px;text-align:center}
+.mnav{width:38px;height:38px;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid var(--line2);color:var(--text);font-size:20px;line-height:1;display:grid;place-items:center;transition:background .15s,transform .15s}
+.mnav:hover{background:rgba(255,255,255,.11);transform:translateY(-1px)}
+.mdow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+.mdow span{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;text-align:center}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.mcell{position:relative;min-height:108px;border-radius:14px;padding:8px 8px 9px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));border:1px solid var(--line);display:flex;flex-direction:column;gap:5px;transition:transform .14s,border-color .14s,box-shadow .14s}
+.mcell.empty{background:none;border:none}
+.mcell.blank{opacity:.5}
+.mcell[data-key]:not(.blank){cursor:pointer}
+.mcell[data-key]:hover{transform:translateY(-2px);border-color:var(--line2);box-shadow:0 16px 30px -22px rgba(0,0,0,.8)}
+.mcell.today{border-color:rgba(224,185,120,.6);box-shadow:0 0 0 1px rgba(224,185,120,.35),0 16px 34px -24px rgba(224,185,120,.5)}
+.mcell.today .mnum{color:var(--gold)}
+.mcell.exam{border-color:rgba(255,140,80,.55);background:linear-gradient(180deg,rgba(255,120,60,.12),rgba(255,120,60,.04))}
+.mnum{font-family:var(--disp);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;color:var(--dim)}
+.mexam{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.1em;color:#FFB54D;background:rgba(255,140,60,.16);padding:2px 5px;border-radius:5px}
+.mchips{display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.mchip{display:flex;align-items:center;gap:5px;font-size:10.5px;line-height:1.25;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mchip .mdot{flex:none;width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 0 7px -1px var(--c1)}
+.mmore{font-size:9.5px;font-weight:600;color:var(--faint);margin-top:1px}
+.dw-daylist{display:flex;flex-direction:column;gap:9px}
+.dw-dayitem{display:flex;align-items:flex-start;gap:11px;text-align:left;width:100%;padding:13px 14px;border-radius:14px;cursor:pointer;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--line);transition:transform .14s,border-color .14s}
+.dw-dayitem:hover{transform:translateX(2px);border-color:var(--line2)}
+.dw-dayitem .mdot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:4px;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 0 9px -1px var(--c1)}
+.ddi-t{font-weight:600;font-size:13.5px;color:var(--text);line-height:1.3}
+.ddi-s{font-size:11px;color:var(--faint);margin-top:2px}
+@media(max-width:760px){.mcell{min-height:74px}.mchip{font-size:0;gap:0}.mchip .mdot{width:8px;height:8px}.mmore{font-size:8px}}
 .hero .hero-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;width:66px;height:66px;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:rgba(14,16,26,.5);border:1.5px solid rgba(255,255,255,.55);backdrop-filter:blur(8px);box-shadow:0 10px 30px -8px rgba(0,0,0,.7);transition:transform .18s,background .18s}
 .hero .hero-play:hover{transform:translate(-50%,-50%) scale(1.08);background:rgba(14,16,26,.7)}
 .hero .hero-play svg{width:26px;height:26px;margin-left:3px}
@@ -672,7 +702,8 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
     <section class="view" id="v-cal">
       <div class="eyebrow">Schedule</div><h1 class="disp">The Calendar</h1>
       <div class="cal-bar"><div class="cal-note" id="calnote" style="margin:0"></div>
-        <div class="seg" role="tablist"><button data-w="w1">Week 1</button><button data-w="w2">Week 2</button><button data-w="w3">Week 3</button><button data-w="tpl">Template</button><button data-w="p2">Phase 2</button></div></div>
+        <div class="seg" role="tablist"><button data-w="mon">Month</button><button data-w="w1">Week 1</button><button data-w="w2">Week 2</button><button data-w="w3">Week 3</button><button data-w="tpl">Template</button><button data-w="p2">Phase 2</button></div></div>
+      <div class="calmonth" id="monthwrap" style="display:none"></div>
       <div class="cal" id="calwrap"><div class="tgrid-scroll"><div class="tgrid" id="tgrid"></div></div></div>
       <div class="pillars" id="p2panel" style="display:none;margin-top:4px"></div>
     </section>
@@ -745,6 +776,38 @@ async function callAI(body){
   return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 }
 const AI_OFFLINE_MSG="Live AI isn't connected yet. Tap the key icon at the top of this chat (or the assistant button) to paste your Anthropic API key — it saves only on this device and switches every assistant + the Research Desk on. Tasks, logs, schedule and voice already work.";
+/* ═══ Offline brain — useful answers with no API key, zero cost ═══ */
+function localAnswer(text){
+  const q=String(text||'').toLowerCase().trim();if(!q)return null;
+  const has=(...w)=>w.some(x=>q.includes(x));
+  // jump to a station / view
+  const dest=[['fe','fe',['fe exam','fe command','fe ']],['ai','ai',['ai lab','claude','ai station']],['media','media',['media studio','influence media']],['stocks','stocks',['market','stocks','watchlist']],['work','work',['nucor','work track','career']],['brand','brand',['my media','personal brand','brand']],['cal','cal',['calendar','schedule','month']],['home','home',['home','dashboard']]];
+  if(has('open','go to','show me','take me','jump to')){for(const[v,,kw]of dest)if(kw.some(k=>q.includes(k))){go(v);return `Opening ${v==='cal'?'the Calendar':v==='home'?'Home':(CATNAME[v]||v)}.`}}
+  // days to exam
+  if(has('day','days','till','until','how long','when')&&has('fe','exam','test'))return `${daysToExam()} days until the FE — target July 1. ${daysToExam()<=7?'Taper week. Trust the reps.':'Keep stacking blocks.'}`;
+  // today / what's next / what's left
+  if(has("what's left","whats left","left today","rest of","next","up next","right now","happening","today","schedule for today")){
+    const{d}=todayData();const mins=new Date().getHours()*60+new Date().getMinutes();
+    const timed=d.blocks.filter(b=>!b.allday&&b.s!==b.e).sort((a,b)=>toMin(a.s)-toMin(b.s));
+    const left=timed.filter(b=>toMin(b.e)>mins);
+    if(!left.length)return "Day's done — nothing left on the board. Rest up, 6 AM comes fast.";
+    const cur=left.find(b=>toMin(b.s)<=mins&&toMin(b.e)>mins);
+    const head=cur?`Right now: ${cur.n} (until ${fmt(cur.e)}).`:`Next up: ${left[0].n} at ${fmt(left[0].s)}.`;
+    const list=left.slice(0,5).map(b=>`• ${fmt(b.s)}–${fmt(b.e)} ${b.n}`).join('\n');
+    return `${head}\n\nStill ahead today:\n${list}`;
+  }
+  // streak
+  if(has('streak'))return `You're on a ${streak.days}-day streak. ${streak.days?'Don\'t break the chain.':'Log something today to start one.'}`;
+  // progress / readiness
+  if(has('progress','readiness','ready','how am i','how\'s it going','hows it going','status')){
+    const ready=Math.round(feDone()/14*100);
+    return `FE readiness: ${ready}% (${feDone()}/14 topics). AI builds: ${stState.ai.logs.length}, Media: ${stState.media.logs.length}, Stocks: ${stState.stocks.logs.length}, Nucor: ${stState.work.logs.length}. ${ready<50?'Push the heavy-weight topics first.':'Solid — keep the streak alive.'}`;
+  }
+  // help
+  if(has('help','what can you','how do you work','what do you do'))
+    return "Even without an API key I can answer live from your data — try:\n• \"days till the FE\"\n• \"what's left today?\"\n• \"how's my progress?\"\n• \"open media\" / \"open the calendar\"\n\nFor full conversation + auto-editing your schedule, paste an Anthropic key via the 🔑 icon.";
+  return null;
+}
 const cssVar=c=>c==='stocks'?'stk':c==='work'?'wrk':c==='body'?'bdy':c;
 const catStyle=c=>`--c1:var(--${cssVar(c)}1);--c2:var(--${cssVar(c)}2)`;
 const stamp=()=>new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -878,6 +941,7 @@ const NOTES={
  w3:'<b>Week 3 — Simulate & close.</b> Two full timed exams, weak-area drills, taper. Then New York.',
  tpl:'<b>The standing spine.</b> Gym 5×/week incl. Sunday. Sundays carry a full afternoon shift; Friday evenings stay free after an early study block.',
  p2:'<b>Phase 2 — from Jul 6.</b> AI primary · media build · stocks study. Learn → document → publish: one pipeline, three books.',
+ mon:'<b>The whole runway.</b> Every block, laid out by day. Tap any day to open its full plan — tap a block for the brief. The FE sits on July 1.',
 };
 const SUBTOPICS={
  'Math':['Analytic geometry & trig','Calculus: derivatives, integrals','Differential equations','Probability distributions','Regression & curve fitting'],
@@ -1001,7 +1065,8 @@ function renderNav(){
   $('#navrail').innerHTML=`<div class="mark"><svg viewBox="0 0 24 24"><path d="M12 1.6l1.2 6.3 4.6-4.4-2.7 5.8 6.3-.9-5.6 3.1 5.6 3.1-6.3-.9 2.7 5.8-4.6-4.4-1.2 6.3-1.2-6.3-4.6 4.4 2.7-5.8-6.3.9 5.6-3.1-5.6-3.1 6.3.9-2.7-5.8 4.6 4.4z"/></svg></div>`+NAV.map(n=>`<button class="rbtn${curView===n.id?' on':''}" data-v="${n.id}" style="--c:${n.c}" aria-label="${n.label}">${glyph(n.g)}<span class="tip">${n.label}</span></button>`).join('')+`<div class="spacer"></div>`;
   document.querySelectorAll('.rbtn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 }
-function go(v){curView=v;setEnv(v);document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));$('#v-'+(v==='home'?'home':v==='cal'?'cal':v)).classList.add('on');document.querySelectorAll('.rbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(['fe','ai','media','stocks','work','brand'].includes(v))renderStation(v);if(v==='home')renderHome();if(v==='cal')setWeek(curWeek);window.scrollTo({top:0})}
+function go(v){curView=v;setEnv(v);document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));$('#v-'+(v==='home'?'home':v==='cal'?'cal':v)).classList.add('on');document.querySelectorAll('.rbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(['fe','ai','media','stocks','work','brand'].includes(v))renderStation(v);if(v==='home')renderHome();if(v==='cal'){if(!calInit){calInit=true;curWeek='mon'}setWeek(curWeek)}window.scrollTo({top:0})}
+let calInit=false;
 const isTodayCol=d=>{const n=new Date();return d.mon===n.getMonth()&&d.dnum===n.getDate()};
 function lanes(evts){const sorted=evts.map((e,i)=>({...e,i})).sort((a,b)=>toMin(a.s)-toMin(b.s));const ends=[],lane={};sorted.forEach(e=>{const en=e.e===e.s?toMin(e.s)+30:toMin(e.e);let l=ends.findIndex(t=>t<=toMin(e.s));if(l<0){l=ends.length;ends.push(0)}ends[l]=en;lane[e.i]=l});const count={};sorted.forEach(e=>{const en=e.e===e.s?toMin(e.s)+30:toMin(e.e);const ov=sorted.filter(o=>toMin(o.s)<en&&(o.e===o.s?toMin(o.s)+30:toMin(o.e))>toMin(e.s));count[e.i]=Math.max(...ov.map(o=>lane[o.i]))+1});return{lane,count}}
 function renderGrid(wk){
@@ -1028,7 +1093,38 @@ function renderGrid(wk){
     }));
   }
 }
-function setWeek(wk){curWeek=wk;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.w===wk));$('#calnote').innerHTML=NOTES[wk];if(wk==='p2'){$('#calwrap').style.display='none';$('#p2panel').style.display='grid';renderP2()}else{$('#calwrap').style.display='';$('#p2panel').style.display='none';renderGrid(wk)}}
+function setWeek(wk){curWeek=wk;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.w===wk));$('#calnote').innerHTML=NOTES[wk]||'';
+  const cw=$('#calwrap'),p2=$('#p2panel'),mo=$('#monthwrap');cw.style.display='none';p2.style.display='none';mo.style.display='none';
+  if(wk==='p2'){p2.style.display='grid';renderP2()}
+  else if(wk==='mon'){mo.style.display='block';renderMonth()}
+  else{cw.style.display='';renderGrid(wk)}}
+/* ═══ Month view — every block across the weeks, laid out by date ═══ */
+let monView={y:2026,m:5};
+function monthBlocks(){const map={};['w1','w2','w3'].forEach(wk=>{(schedule[wk]||[]).forEach(d=>{if(d.dnum===''||d.dnum==null)return;const key=d.mon+'-'+d.dnum;if(!map[key])map[key]={blocks:[],exam:false};map[key].blocks=map[key].blocks.concat(d.blocks);if(d.exam)map[key].exam=true})});return map}
+function renderMonth(){
+  const wrap=$('#monthwrap'),{y,m}=monView,map=monthBlocks();
+  const start=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),t=new Date();
+  const monNm=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let cells='';for(let i=0;i<start;i++)cells+='<div class="mcell empty"></div>';
+  for(let dt=1;dt<=dim;dt++){const key=m+'-'+dt,info=map[key];
+    const isToday=t.getFullYear()===y&&t.getMonth()===m&&t.getDate()===dt;
+    const items=info?info.blocks.filter(b=>b.s!==b.e):[];
+    const chips=items.slice(0,3).map(b=>`<div class="mchip" style="${catStyle(b.c)}"><span class="mdot"></span>${b.allday?'':fmt(b.s)+' '}${b.n}</div>`).join('');
+    const more=items.length>3?`<div class="mmore">+${items.length-3} more</div>`:'';
+    cells+=`<div class="mcell${isToday?' today':''}${info?'':' blank'}${info&&info.exam?' exam':''}" ${info?`data-key="${key}" data-dt="${dt}"`:''}><div class="mnum">${dt}${info&&info.exam?'<span class="mexam">EXAM</span>':''}</div><div class="mchips">${chips}${more}</div></div>`}
+  wrap.innerHTML=`<div class="mhead"><button class="mnav" data-d="-1" aria-label="Previous month">‹</button><div class="mtitle">${monNm[m]} ${y}</div><button class="mnav" data-d="1" aria-label="Next month">›</button></div><div class="mdow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<span>${d}</span>`).join('')}</div><div class="mgrid">${cells}</div>`;
+  wrap.querySelectorAll('.mnav').forEach(b=>b.addEventListener('click',()=>{monView.m+=+b.dataset.d;if(monView.m<0){monView.m=11;monView.y--}if(monView.m>11){monView.m=0;monView.y++}renderMonth()}));
+  wrap.querySelectorAll('.mcell[data-key]').forEach(c=>c.addEventListener('click',()=>{const info=map[c.dataset.key];if(info)openDayDrawer(y,m,+c.dataset.dt,info.blocks)}));
+}
+function openDayDrawer(y,m,dt,blocks){
+  const dw=$('#drawer'),date=new Date(y,m,dt);
+  const all=blocks.filter(b=>b.allday),timed=blocks.filter(b=>!b.allday&&b.s!==b.e).sort((a,b)=>toMin(a.s)-toMin(b.s)),ordered=[...all,...timed];
+  dw.style='--c1:var(--gold);--c2:#9a6b2e';
+  dw.innerHTML=`<div class="dw-head"><button class="dw-close" aria-label="Close">✕</button><span class="dw-cat">${glyph('cal')} Day plan</span><div class="dw-title">${date.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div><div class="dw-time">${ordered.length} block${ordered.length===1?'':'s'}</div></div><div class="dw-body"><div class="dw-daylist">${ordered.map((b,i)=>`<button class="dw-dayitem" data-i="${i}" style="${catStyle(b.c)}"><span class="mdot"></span><div class="ddi-main"><div class="ddi-t">${b.n}</div><div class="ddi-s">${b.allday?'All day':fmt(b.s)+' — '+fmt(b.e)} · ${CATNAME[b.c]||''}</div></div></button>`).join('')}</div></div>`;
+  dw.classList.add('on');$('#scrim').classList.add('on');
+  dw.querySelector('.dw-close').addEventListener('click',closeDrawer);
+  dw.querySelectorAll('.dw-dayitem').forEach(el=>el.addEventListener('click',()=>openDrawer(ordered[+el.dataset.i])));
+}
 /* ═══ tap an empty calendar slot → add a block (persists) ═══ */
 const SLOT_PRESETS=[
  {n:'Deep study',c:'fe',dur:120},{n:'Timed practice',c:'fe',dur:90},
@@ -1200,7 +1296,7 @@ function openDrawer(b,ctx){
     const arr=schedule[ctx.wk]&&schedule[ctx.wk][ctx.di]&&schedule[ctx.wk][ctx.di].blocks;
     if(arr&&ctx.bi>-1&&ctx.bi<arr.length)arr.splice(ctx.bi,1);
     await sset(KEYS.sched,schedule);closeDrawer();
-    if(curView==='cal'&&curWeek!=='p2')renderGrid(curWeek);else if(curView==='home')renderHome();
+    if(curView==='cal'&&curWeek!=='p2'&&curWeek!=='mon')renderGrid(curWeek);else if(curView==='home')renderHome();
   });
 }
 function closeDrawer(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on')}
@@ -1385,7 +1481,7 @@ function stationSys(k){const a=STATION_AI[k];return a.sys+'\n\n'+ACTION_PROTOCOL
 async function sendStation(k,forced){
   const inp=$('#sa-in-'+k);if(!inp)return;const text=(forced!==undefined?forced:inp.value).trim();if(!text)return;if(forced===undefined)inp.value='';
   appendStation(k,'user',text);stationHistory[k].push({role:'user',text});
-  if(!aiConfigured()){appendStation(k,'bot',AI_OFFLINE_MSG);return}
+  if(!aiConfigured()){const a=localAnswer(text);appendStation(k,'bot',a||AI_OFFLINE_MSG);return}
   const body=$('#sa-body-'+k);const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';body.appendChild(typing);body.scrollTop=body.scrollHeight;
   const sbtn=$('#sa-send-'+k);if(sbtn)sbtn.disabled=true;
   try{
@@ -1484,7 +1580,7 @@ async function sendMsg(forced){
   const text=(forced!==undefined?forced:chatin.value).trim();if(!text)return;
   if(forced===undefined)chatin.value='';
   pushMsg('user',text);
-  if(!aiConfigured()){pushMsg('bot',AI_OFFLINE_MSG);return}
+  if(!aiConfigured()){const a=localAnswer(text);if(a){pushMsg('bot',a);speak(a)}else pushMsg('bot',AI_OFFLINE_MSG);return}
   const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';chatbody.appendChild(typing);chatbody.scrollTop=chatbody.scrollHeight;chatsend.disabled=true;
   try{
     const payload={model:aiModel(),max_tokens:600,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
@@ -1517,7 +1613,7 @@ attachMic($('#chatmic'),txt=>{chatin.value=txt});
   Object.keys(STATIONS).forEach(k=>{if(!stState[k])stState[k]={tasks:STATIONS[k].tasks.map(t=>({t,done:false})),logs:[]}});
   renderNav();curWeek=weekOfToday();setEnv('home');go('home');
   proactiveGreeting();fab.classList.add('nudge');
-  setInterval(()=>{if(curView==='home')renderHome();else if(curView==='cal'&&curWeek!=='p2')renderGrid(curWeek)},60000);
+  setInterval(()=>{if(curView==='home')renderHome();else if(curView==='cal'&&curWeek!=='p2'&&curWeek!=='mon')renderGrid(curWeek)},60000);
   if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>{};
 })();
 </script>
