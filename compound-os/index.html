@@ -473,6 +473,13 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 @keyframes heroSweep{0%{background-position:140% 0;opacity:0}16%{opacity:.85}48%{opacity:.95}74%{background-position:-44% 0;opacity:0}100%{background-position:-44% 0;opacity:0}}
 .hero .ha-id h1{color:#fff;-webkit-text-fill-color:#fff;text-shadow:0 2px 26px rgba(0,0,0,.6),0 0 2px rgba(255,255,255,.35);animation:none;background:none}
 .hero .ha-code{text-shadow:0 1px 8px rgba(0,0,0,.6)}
+/* Nucor-branded hero */
+.hero.nucor .chip{display:none}
+.hero.nucor .nucor-wm{position:absolute;right:26px;top:20px;z-index:4;text-align:right;line-height:1}
+.hero.nucor .nucor-wm span{display:inline-block;font-family:var(--disp);font-weight:800;font-size:clamp(24px,3.6vw,40px);letter-spacing:.06em;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.65)}
+.hero.nucor .nucor-wm span::after{content:"";display:block;height:4px;margin-top:5px;border-radius:3px;background:linear-gradient(90deg,#16A34A,#34D07A);box-shadow:0 0 16px rgba(52,208,122,.75)}
+.hero.nucor .nucor-wm i{display:block;font-style:normal;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.72);margin-top:8px}
+.hero.nucor::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(120deg,rgba(22,163,74,.28),transparent 46%);mix-blend-mode:screen}
 /* Hero background video (YouTube iframe or mp4) */
 .hero .hero-vid{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:16/9;min-height:100%;transform:translate(-50%,-50%);border:0;pointer-events:none}
 /* ✎ Set hero image/video button */
@@ -527,6 +534,32 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .launch .lc-s{font-size:11.5px;color:var(--dim);margin-top:2px}
 .launch .lc-go{width:16px;height:16px;stroke:var(--c1);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;opacity:.7;transition:transform .18s}
 .launch:hover .lc-go{transform:translate(2px,-2px);opacity:1}
+/* SEC free-cash-flow card */
+.sec-card .sec-row{display:flex;gap:9px}
+.sec-card .sec-row input{flex:1;font-family:var(--sans);font-size:14px;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:13px;padding:11px 14px;outline:none}
+.sec-card .sec-row input:focus{border-color:var(--stk1)}
+.sec-card .sec-row input::placeholder{color:var(--faint)}
+.sec-out{margin-top:14px}
+.sec-msg{font-size:12.5px;line-height:1.55;color:var(--dim);padding:4px 2px}
+.sec-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.sec-tbl th{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:right;padding:6px 10px;border-bottom:1px solid var(--line)}
+.sec-tbl th:first-child{text-align:left}
+.sec-tbl td{text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sec-tbl td.sy{text-align:left;font-weight:700;color:var(--text)}
+.sec-tbl td.sf{position:relative;font-weight:700}
+.sec-tbl td.sf.pos{color:var(--stk1)}.sec-tbl td.sf.neg{color:#FB7185}
+.sec-tbl td.sf .sbar{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:currentColor;opacity:.5;max-width:calc(100% - 20px)}
+/* Media client roster */
+.cl-list{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.cl-item{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:13px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.cl-item .cl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:linear-gradient(140deg,var(--c1),var(--c2));box-shadow:0 0 10px var(--c2)}
+.cl-item .cl-n{flex:1;font-size:13.5px;font-weight:600}
+.cl-item .cl-x{width:24px;height:24px;border:none;background:transparent;color:var(--faint);cursor:pointer;border-radius:8px;font-size:13px;opacity:.6}
+.cl-item .cl-x:hover{color:#F43F5E;opacity:1}
+/* Assistant nudge dot */
+.fab.nudge::after{content:"";position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:#F43F5E;border:2px solid #0C0E18;box-shadow:0 0 10px rgba(244,63,94,.8);animation:nudgePulse 1.8s ease-in-out infinite}
+@keyframes nudgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@media(prefers-reduced-motion:reduce){.fab.nudge::after{animation:none}}
 /* ── Calendar: softer, deeper, less blocky ── */
 .cal{border-radius:26px;box-shadow:0 44px 96px -58px rgba(var(--env1),.7),inset 0 1px 0 rgba(255,255,255,.07)}
 .tg-head{background:linear-gradient(180deg,rgba(255,255,255,.045),transparent)}
@@ -726,10 +759,10 @@ const TILE_ART={
    an image URL or a YouTube / .mp4 link; it saves to your browser. */
 const WM=f=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1600';
 const HERO={
- fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center 55%'},
- ai:    {img:WM('Datacenter Server Racks (22370909788).jpg'),pos:'center 45%'},
+ fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center 55%',video:'BAyKFntiDhU'},
+ ai:    {img:WM('Datacenter Server Racks (22370909788).jpg'),pos:'center 45%',video:'eim3k3zyagY'},
  media: {img:null},   // set your own filming/creator photo or video in-app (✎)
- stocks:{img:WM('Bowling Green td (2018-12-13) 06 - 26 Broadway, Charging Bull.jpg'),pos:'center 38%'},
+ stocks:{img:WM('Bowling Green td (2018-12-13) 06 - 26 Broadway, Charging Bull.jpg'),pos:'center 38%',video:'EEX0EHTTePE'},
  work:  {img:WM('Flaring of Blast Furnace Gas at Night.jpg'),pos:'center 50%'},
 };
 let heroOverrides={};                 // {station:{img,video,pos}} from localStorage
@@ -875,7 +908,8 @@ function featureHTML(k){
  if(k==='work')return `<h3><span class="h-ic">${glyph('steel')}</span>Mentor Map</h3><div class="mentor"><div class="mav">DM</div><div class="mmain"><b>Danielle Miles</b><span>Current mentor — quote engineering</span></div><span class="mstage">Now</span></div><div class="mentor"><div class="mav">NM</div><div class="mmain"><b>Nathan Miller</b><span>Engineering + sales hybrid</span></div><span class="mstage">Next</span></div><div class="mentor"><div class="mav">JB</div><div class="mmain"><b>Jeff Brasseur</b><span>Regional sales supervisor</span></div><span class="mstage">Target</span></div><div class="leadrow"><span class="lc">VanDyken</span><span class="lc">Liegl</span><span class="lc">Byerely</span><span class="lc">Gentry</span></div><div class="path"><div class="pstep cur">Quote Eng.</div><span class="parrow">→</span><div class="pstep">Hybrid</div><span class="parrow">→</span><div class="pstep">Sales Eng.</div></div>`;
  return '';
 }
-const KEYS={sched:'os4-sched',topics:'os4-topics',st:'os4-stations',streak:'os4-streak',hero:'os4-hero',watch:'os4-watch'};
+const KEYS={sched:'os4-sched',topics:'os4-topics',st:'os4-stations',streak:'os4-streak',hero:'os4-hero',watch:'os4-watch',clients:'os4-clients'};
+let clients=['Spine Wellness · Dr. Josh Anane'];
 let schedule=JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
 let topicState={},stState={},streak={days:0,last:null,history:[]},curWeek='w1',curView='home';
 function freshStations(){const o={};Object.keys(STATIONS).forEach(k=>{o[k]={tasks:STATIONS[k].tasks.map(t=>({t,done:false})),logs:[]}});return o}
@@ -1033,13 +1067,15 @@ function renderMomentum(){
 }
 function renderHome(){
   const n=new Date(),h=n.getHours();
-  $('#greeting').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', Jaden.';
-  $('#datesub').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' · Phase 1 — FE Sprint';
   const left=daysToExam(),start=new Date(2026,5,13),target=new Date(2026,6,1),total=Math.round((target-start)/86400000);
   const feFrac=Math.min(1,Math.max(.05,1-left/total));
-  const sessions=totalLogs(),wkPct=Math.min(100,Math.round((streak.days/7)*100));
-  $('#homestats').innerHTML=`<div class="stat-cap fe"><div class="ringw">${ringSVG('hr-fe')}<div class="rnum">${left}</div></div><div><div class="sc-l">Days to FE</div><div class="sc-v">Target Jul 1</div></div></div><div class="stat-cap flame"><div class="flm">🔥</div><div><div class="sc-l" style="color:var(--gold)">Streak</div><div class="sc-v"><b>${streak.days}</b> day${streak.days===1?'':'s'}</div></div></div><div class="stat-cap wk"><div class="ringw">${ringSVG('hr-wk')}<div class="rnum" style="font-size:14px">${sessions}</div></div><div><div class="sc-l">Logged</div><div class="sc-v">${sessions} session${sessions===1?'':'s'}</div></div></div>`;
-  requestAnimationFrame(()=>{const C=2*Math.PI*24;const fe=$('#hr-fe');if(fe){fe.style.stroke='url(#gFe)';fe.style.strokeDashoffset=C*(1-feFrac)}const w=$('#hr-wk');if(w){w.style.stroke='url(#gWk)';w.style.strokeDashoffset=C*(1-wkPct/100)}});
+  const ready=Math.round(feDone()/14*100);
+  const hi=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const TAGS=['one block at a time.','compounding daily.','trust the reps.','build it, log it, repeat.','steady hands, sharp focus.','future-you is watching.'];
+  $('#greeting').textContent=`${hi}, Jaden.`;
+  $('#datesub').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+` · ${left} days to the FE · ${TAGS[n.getDate()%TAGS.length]}`;
+  $('#homestats').innerHTML=`<div class="stat-cap fe"><div class="ringw">${ringSVG('hr-fe')}<div class="rnum">${left}</div></div><div><div class="sc-l">Days to FE</div><div class="sc-v">Target Jul 1</div></div></div><div class="stat-cap flame"><div class="flm">🔥</div><div><div class="sc-l" style="color:var(--gold)">Streak</div><div class="sc-v"><b>${streak.days}</b> day${streak.days===1?'':'s'}</div></div></div><div class="stat-cap wk"><div class="ringw">${ringSVG('hr-wk')}<div class="rnum" style="font-size:15px">${ready}%</div></div><div><div class="sc-l">Readiness</div><div class="sc-v">${feDone()} / 14 topics</div></div></div>`;
+  requestAnimationFrame(()=>{const C=2*Math.PI*24;const fe=$('#hr-fe');if(fe){fe.style.stroke='url(#gFe)';fe.style.strokeDashoffset=C*(1-feFrac)}const w=$('#hr-wk');if(w){w.style.stroke='url(#gWk)';w.style.strokeDashoffset=C*(1-ready/100)}});
   const{d}=todayData();renderMomentum();const mins=n.getHours()*60+n.getMinutes();
   const timed=d.blocks.filter(b=>!b.allday&&b.s!==b.e).sort((a,b)=>toMin(a.s)-toMin(b.s));
   const cur=timed.find(b=>toMin(b.s)<=mins&&toMin(b.e)>mins),nxt=timed.find(b=>toMin(b.s)>mins),item=cur||nxt,up=$('#upnext');
@@ -1076,11 +1112,13 @@ function renderStation(k){
   const chips=cfg.chips.map((c,i)=>`<div class="chip c${i+1}"><span class="cl">${c[0]}</span><span class="cv">${c[1]}</span></div>`).join('');
   const micSVG='<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
   el.innerHTML=`
-   <div class="hero rise ${heroHasMedia(k)?'has-img':'has-grad'}" style="${cs}">${heroMarkup(k)}<div class="ha-shade"></div><button class="hero-edit" id="hero-edit-${k}" title="Set image or video" aria-label="Set hero image or video"><svg viewBox="0 0 24 24"><path d="M3 17.5V21h3.5L17 10.5 13.5 7 3 17.5z"/><path d="M15 5.5l3.5 3.5 1.6-1.6a1.6 1.6 0 0 0 0-2.3l-1.2-1.2a1.6 1.6 0 0 0-2.3 0L15 5.5z" fill="#fff" stroke="none"/></svg></button><div class="ha-code">${cfg.code}</div>${chips}<div class="ha-id"><div class="glyph">${glyph(k)}</div><div><div class="eyebrow">Workstation</div><h1>${cfg.title}</h1></div></div></div>
+   <div class="hero rise ${heroHasMedia(k)?'has-img':'has-grad'}${k==='work'?' nucor':''}" style="${cs}">${heroMarkup(k)}<div class="ha-shade"></div><button class="hero-edit" id="hero-edit-${k}" title="Set image or video" aria-label="Set hero image or video"><svg viewBox="0 0 24 24"><path d="M3 17.5V21h3.5L17 10.5 13.5 7 3 17.5z"/><path d="M15 5.5l3.5 3.5 1.6-1.6a1.6 1.6 0 0 0 0-2.3l-1.2-1.2a1.6 1.6 0 0 0-2.3 0L15 5.5z" fill="#fff" stroke="none"/></svg></button>${k==='work'?'<div class="nucor-wm"><span>NUCOR</span><i>Build it. Sell it. Move up.</i></div>':`<div class="ha-code">${cfg.code}</div>`}${chips}<div class="ha-id"><div class="glyph">${glyph(k)}</div><div><div class="eyebrow">${k==='work'?'Career · Steel':'Workstation'}</div><h1>${cfg.title}</h1></div></div></div>
    <div class="metricband" style="${cs}">${mets.map(([l,v])=>`<div class="mb-cell"><div class="mb-l">${l}</div><div class="mb-v" data-to="${v}">0</div></div>`).join('')}</div>
    <p class="subline">${cfg.line}</p>
    ${stationExtras(k,cs)}
+   ${k==='media'?`<div class="card client-card" style="${cs}"><h3><span class="h-ic">${glyph('flw')}</span>Client roster</h3><div class="addrow"><input id="cl-in" placeholder="Add a client — name · contact"><button class="iconbtn" id="cl-add" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="cl-list" id="cl-list"></div><div class="feat-note">The foundation for the agency machine — your roster lives here. Next: per-client <b>website dev</b>, <b>content analysis</b>, and <b>outreach agents</b> (Instagram / email) once the AI backend is on.</div></div>`:''}
    ${k==='stocks'?`<div class="card tv-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Live Market — chart, watchlist &amp; news</h3><div class="tv-ticker" id="tv-ticker"></div><div class="tv-watchrow"><input id="tv-add" placeholder="Add to watchlist — AAPL, NASDAQ:NVDA, BTCUSD…" autocomplete="off"><button class="rs-go" id="tv-addbtn">Add</button></div><div class="tv-chips" id="tv-chips"></div><div class="tv-chart" id="tv-chart"></div><div class="tv-grid"><div class="tv-pane"><div class="tv-panelabel" id="tv-newslabel">News</div><div class="tv-mini" id="tv-news"></div></div><div class="tv-pane"><div class="tv-panelabel">Watchlist &amp; indexes</div><div class="tv-mini" id="tv-watch"></div></div></div><p class="rs-note">Live data via TradingView — click a ticker to load its chart &amp; news, or use the chart's own search. Study &amp; education only.</p></div>`:''}
+   ${k==='stocks'?`<div class="card sec-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Free Cash Flow — from SEC 10-K filings</h3><div class="sec-row"><input id="sec-in" placeholder="Ticker — e.g. NVDA, MSFT, AAPL" autocomplete="off"><button class="rs-go" id="sec-go">Pull</button></div><div class="sec-out" id="sec-out"></div><p class="rs-note">Pulls annual figures straight from EDGAR (data.sec.gov). <b>Free cash flow = cash from operations − capital expenditures.</b> Education only.</p></div>`:''}
    ${k==='stocks'?`<div class="card research" style="${cs}"><h3><span class="h-ic">${glyph('stocks')}</span>Research Desk — live, web-connected</h3><div class="rs-row"><input id="rs-in" placeholder="Research a name… 'Anthropic lock-up status' or 'NVDA this week'"><button class="rs-go" id="rs-go">Run</button></div><div class="rs-out" id="rs-out"><div class="rs-card" id="rs-card"></div><button class="rs-save" id="rs-save">Save to memory log</button></div><p class="rs-note">Runs Claude with live web search. Works inside Claude. Research & education only — your decisions stay yours.</p></div>`:''}
    <div class="card station-ai" style="${cs}"><div class="sa-head"><div class="sa-ic glyph" style="${cs}">${glyph(k)}</div><div class="sa-meta"><b>${STATION_AI[k].name}</b><span>Your dedicated ${cfg.title} AI — plan, ask, add a task, or log, by voice or text</span></div><button class="spkbtn" id="sa-spk-${k}" aria-label="Voice replies" title="Voice replies"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button></div><div class="sa-body" id="sa-body-${k}"></div><div class="sa-in"><button class="micbtn" id="sa-mic-${k}" aria-label="Voice">${micSVG}</button><input id="sa-in-${k}" placeholder="Talk to your ${STATION_AI[k].name}…" autocomplete="off"><button class="sendbtn" id="sa-send-${k}" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button></div></div>
    <div class="st-bento" style="${cs}">
@@ -1102,7 +1140,8 @@ function renderStation(k){
   attachMic($('#lm-'+k),txt=>{$('#li-'+k).value=txt},{getBase:()=>$('#li-'+k).value.trim()});
   wireStationChat(k);
   if(k==='fe')drawFETopics();
-  if(k==='stocks'){wireResearch(drawLogs);mountMarketDesk();}
+  if(k==='stocks'){wireResearch(drawLogs);mountMarketDesk();wireSEC();}
+  if(k==='media')wireClients();
 }
 /* ═══ TradingView live market widgets (no API key, client-side) ═══ */
 function tvWidget(elId,src,config){
@@ -1131,7 +1170,12 @@ function stationExtras(k,cs){
     ['TikTok','Short-form pipeline','https://tiktok.com'],
     ['Canva','Design &amp; batch exports','https://canva.com'],
   ],cs,'Business first — keep Spine Wellness fed; your personal brand rides alongside. Tip: hit the <b>✎</b> on the hero and paste a filming clip or reel URL to make this room feel like the studio.');
-  if(k==='work')return launchCard('Agents for work — Copilot stack','build',[
+  if(k==='work')return launchCard('Nucor','steel',[
+    ['Nucor.com','Company, products &amp; news','https://www.nucor.com'],
+    ['Nucor Careers','Roles &amp; the sales-engineering track','https://www.nucor.com/careers'],
+    ['Nucor Connect','Internal portal','https://connect.nucor.com'],
+    ['Investor / 10-K','Filings &amp; the numbers','https://www.nucor.com/investors'],
+  ],cs,'')+launchCard('Agents for work — Copilot stack','build',[
     ['Microsoft 365 Copilot','Where Nucor works day-to-day','https://www.microsoft.com/en-us/microsoft-365/copilot'],
     ['Copilot Studio','Build your own work agents','https://www.microsoft.com/en-us/microsoft-copilot/microsoft-copilot-studio'],
     ['GitHub Copilot','Code + automation','https://github.com/features/copilot'],
@@ -1159,6 +1203,51 @@ function mountMarketDesk(){
   const t=$('#tv-newslabel');if(t)t.textContent='News — '+symShort(curSymbol);
   const btn=$('#tv-addbtn');if(btn)btn.addEventListener('click',addWatch);
   const add=$('#tv-add');if(add)add.addEventListener('keydown',e=>{if(e.key==='Enter')addWatch();});
+}
+/* ═══ SEC EDGAR free-cash-flow analyzer (10-K, no key) ═══ */
+const SEC_CIK={NVDA:'0001045810',MSFT:'0000789019',GOOGL:'0001652044',GOOG:'0001652044',AMZN:'0001018724',META:'0001326801',AAPL:'0000320193',TSLA:'0001318605',AMD:'0000002488',NFLX:'0001065280',INTC:'0000050863',CRM:'0001108524',ORCL:'0001341439',ADBE:'0000796343',DIS:'0001744489',JPM:'0000019617',V:'0001403161',MA:'0001141391',NKE:'0000320187',KO:'0000021344',PEP:'0000077476',WMT:'0000104169',COST:'0000909832',BA:'0000012927',CAT:'0000018230',NUE:'0000073309',PLTR:'0001321655',UBER:'0001543151',SHOP:'0001594805',COIN:'0001679788',ABNB:'0001559720'};
+const fmtUSD=v=>{const a=Math.abs(v),s=v<0?'-':'';if(a>=1e9)return s+'$'+(a/1e9).toFixed(2)+'B';if(a>=1e6)return s+'$'+(a/1e6).toFixed(1)+'M';return s+'$'+Math.round(a).toLocaleString()};
+async function secConcept(cik,concept){
+  const r=await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`);
+  if(!r.ok)throw new Error('http '+r.status);
+  const j=await r.json(),u=(j.units&&j.units.USD)||[],m={};
+  u.forEach(x=>{if(x.form==='10-K'&&x.fp==='FY'&&x.fy)m[x.fy]=x.val});
+  return m;
+}
+async function secCapex(cik){
+  for(const c of ['PaymentsToAcquirePropertyPlantAndEquipment','PaymentsToAcquireProductiveAssets','PaymentsForCapitalImprovements']){
+    try{const m=await secConcept(cik,c);if(Object.keys(m).length)return m}catch(e){}
+  }
+  return {};
+}
+function wireClients(){
+  const list=$('#cl-list'),inp=$('#cl-in'),add=$('#cl-add');if(!list)return;
+  function draw(){list.innerHTML=clients.map((c,i)=>`<div class="cl-item"><span class="cl-dot"></span><span class="cl-n">${c}</span><button class="cl-x" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')||'<p class="stream-empty">No clients yet — add your first above.</p>';
+    list.querySelectorAll('.cl-x').forEach(b=>b.addEventListener('click',async()=>{clients.splice(+b.dataset.i,1);await sset(KEYS.clients,clients);draw()}));}
+  draw();
+  async function addC(){const v=(inp.value||'').trim();if(!v)return;clients.unshift(v);inp.value='';await sset(KEYS.clients,clients);draw()}
+  add.addEventListener('click',addC);inp.addEventListener('keydown',e=>{if(e.key==='Enter')addC()});
+}
+function wireSEC(){
+  const go=$('#sec-go'),inp=$('#sec-in'),out=$('#sec-out');if(!go)return;
+  async function run(){
+    let t=(inp.value||'').trim().toUpperCase().replace(/[^A-Z.]/g,'');if(!t)return;
+    const cik=SEC_CIK[t];
+    if(!cik){out.innerHTML=`<div class="sec-msg">No CIK on file for <b>${t}</b> yet. Built-in: ${Object.keys(SEC_CIK).slice(0,14).join(', ')}…<br>Tell me to add ${t} and I'll wire its CIK.</div>`;return}
+    out.innerHTML=`<div class="sec-msg">Pulling ${t} from EDGAR…</div>`;go.disabled=true;go.textContent='…';
+    try{
+      const [ocf,capex]=await Promise.all([secConcept(cik,'NetCashProvidedByUsedInOperatingActivities'),secCapex(cik)]);
+      const yrs=Object.keys(ocf).map(Number).filter(y=>ocf[y]!=null).sort((a,b)=>b-a).slice(0,4);
+      if(!yrs.length){out.innerHTML='<div class="sec-msg">No annual cash-flow data returned for that filer.</div>';}
+      else{
+        const rows=yrs.map(y=>{const o=ocf[y],c=capex[y];return{y,o,c,fcf:(c!=null)?o-c:null}});
+        const maxF=Math.max(...rows.map(r=>Math.abs(r.fcf!=null?r.fcf:r.o)))||1;
+        out.innerHTML=`<table class="sec-tbl"><thead><tr><th>FY</th><th>Op. cash flow</th><th>CapEx</th><th>Free cash flow</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="sy">${r.y}</td><td>${fmtUSD(r.o)}</td><td>${r.c!=null?fmtUSD(-Math.abs(r.c)):'—'}</td><td class="sf ${r.fcf>=0?'pos':'neg'}">${r.fcf!=null?fmtUSD(r.fcf):'—'}<span class="sbar" style="width:${Math.min(100,Math.abs(r.fcf||0)/maxF*100)}%"></span></td></tr>`).join('')}</tbody></table><div class="sec-msg">Source: SEC EDGAR · ${t} · annual 10-K (us-gaap).</div>`;
+      }
+    }catch(e){out.innerHTML=`<div class="sec-msg">Couldn't reach SEC EDGAR from the browser just now (cross-origin or rate limit). Try again shortly — or once the AI backend is on, the Research Desk can pull it for you.</div>`;}
+    go.disabled=false;go.textContent='Pull';
+  }
+  go.addEventListener('click',run);inp.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
 }
 function drawFETopics(){const w=$('#fetopics');if(!w)return;w.innerHTML=FE_TOPICS.map(([n,wk],i)=>`<div class="tsm${topicState[i]?' done':''}" data-i="${i}" style="--c1:var(--fe1);--c2:var(--fe2)"><div class="tch"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div><span class="tn">${n}</span><span class="tw">${wk}</span></div>`).join('');w.querySelectorAll('.tsm').forEach(t=>t.addEventListener('click',async()=>{topicState[t.dataset.i]=!topicState[t.dataset.i];drawFETopics();await sset(KEYS.topics,topicState)}));const done=feDone();const pf=$('#pfill');if(pf){pf.style.width=(done/14*100)+'%';$('#pnum').textContent=done+'/14'}}
 function wireResearch(refreshLogs){
@@ -1219,7 +1308,17 @@ function wireStationChat(k){
 /* ═══ conversational scheduling assistant (state-aware + talks back) ═══ */
 const fab=$('#fab'),chat=$('#chat'),chatbody=$('#chatbody'),chatin=$('#chatin'),chatsend=$('#chatsend'),spkbtn=$('#spkbtn');
 let speakOn=false,chatGreeted=false;
-fab.addEventListener('click',()=>{chat.classList.toggle('open');if(chat.classList.contains('open')){chatin.focus();if(!chatGreeted){chatGreeted=true;setTimeout(()=>pushQuick(['How many days till the FE?',"What's left today?",'How is my FE progress?']),250)}}});
+function proactiveGreeting(){
+  try{const s=stateSummary(),h=new Date().getHours();
+    const hi=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+    const left=s.remainingToday.length;
+    let m=`${hi}, Jaden. ${s.daysToExam} days to the FE · ${s.streakDays}-day streak · readiness ${s.feReadinessPct}%. `;
+    m+=left?`${left} block${left>1?'s':''} left today — next up: ${s.remainingToday[0]}. `:`Today's blocks are done — nice. `;
+    m+=`What's the one thing that has to move today?`;
+    const cb=$('#chatbody'),first=cb&&cb.querySelector('.msg.bot');if(first)first.textContent=m;
+  }catch(e){}
+}
+fab.addEventListener('click',()=>{chat.classList.toggle('open');fab.classList.remove('nudge');if(chat.classList.contains('open')){chatin.focus();if(!chatGreeted){chatGreeted=true;setTimeout(()=>pushQuick(['What should I focus on today?',"What's left today?",'How is my FE progress?']),250)}}});
 spkbtn.addEventListener('click',()=>{speakOn=!speakOn;spkbtn.classList.toggle('on',speakOn);spkbtn.title=speakOn?'Voice replies on':'Voice replies off';if(!speakOn&&window.speechSynthesis)window.speechSynthesis.cancel();if(speakOn)speak("Okay, I'll talk back now.")});
 function speak(t){if(!speakOn||!window.speechSynthesis)return;const clean=t.replace(/[*_#`>•→]/g,' ').replace(/\s+/g,' ').trim();if(!clean)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(clean);u.rate=1.04;u.pitch=1;const vs=window.speechSynthesis.getVoices();const pick=vs.find(v=>/Google US English|Samantha|Daniel|Microsoft/i.test(v.name))||vs.find(v=>v.lang&&v.lang.startsWith('en'));if(pick)u.voice=pick;window.speechSynthesis.speak(u)}
 function pushMsg(role,text){const d=document.createElement('div');d.className='msg '+role;d.textContent=text;chatbody.appendChild(d);chatbody.scrollTop=chatbody.scrollHeight;return d}
@@ -1302,12 +1401,13 @@ chatin.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
 attachMic($('#chatmic'),txt=>{chatin.value=txt});
 /* ═══ init ═══ */
 (async function init(){
-  const[sv,tp,ss,sk,ho,wl]=await Promise.all([sget(KEYS.sched),sget(KEYS.topics),sget(KEYS.st),sget(KEYS.streak),sget(KEYS.hero),sget(KEYS.watch)]);
+  const[sv,tp,ss,sk,ho,wl,cls]=await Promise.all([sget(KEYS.sched),sget(KEYS.topics),sget(KEYS.st),sget(KEYS.streak),sget(KEYS.hero),sget(KEYS.watch),sget(KEYS.clients)]);
   if(sv)schedule=sv; if(tp)topicState=tp; streak=sk||{days:0,last:null,history:[]};
-  if(ho)heroOverrides=ho; if(wl&&wl.length)watchList=wl;
+  if(ho)heroOverrides=ho; if(wl&&wl.length)watchList=wl; if(cls)clients=cls;
   stState=ss||freshStations();
   Object.keys(STATIONS).forEach(k=>{if(!stState[k])stState[k]={tasks:STATIONS[k].tasks.map(t=>({t,done:false})),logs:[]}});
   renderNav();curWeek=weekOfToday();setEnv('home');go('home');
+  proactiveGreeting();fab.classList.add('nudge');
   setInterval(()=>{if(curView==='home')renderHome();else if(curView==='cal'&&curWeek!=='p2')renderGrid(curWeek)},60000);
   if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>{};
 })();
