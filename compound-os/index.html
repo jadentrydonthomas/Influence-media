@@ -556,6 +556,18 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .cl-item .cl-n{flex:1;font-size:13.5px;font-weight:600}
 .cl-item .cl-x{width:24px;height:24px;border:none;background:transparent;color:var(--faint);cursor:pointer;border-radius:8px;font-size:13px;opacity:.6}
 .cl-item .cl-x:hover{color:#F43F5E;opacity:1}
+/* Home progress-across-sectors graph */
+.progress-card{margin-top:18px}
+.prog-rows{display:flex;flex-direction:column;gap:13px;margin-top:4px}
+.prog-row{display:grid;grid-template-columns:150px 1fr 92px;align-items:center;gap:14px}
+@media(max-width:620px){.prog-row{grid-template-columns:110px 1fr 70px;gap:10px}}
+.prog-lab{text-align:left;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);padding:0;transition:color .15s}
+.prog-lab:hover{color:var(--c1)}
+.prog-track{height:11px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;border:1px solid var(--line)}
+.prog-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--c1),var(--c2));box-shadow:0 0 14px -2px var(--c1);transition:width 1.1s cubic-bezier(.3,.7,.3,1)}
+.prog-val{text-align:right;font-family:var(--disp);font-weight:800;font-size:18px;color:var(--c1);line-height:1}
+.prog-val span{display:block;font-family:var(--sans);font-weight:600;font-size:10.5px;color:var(--faint);margin-top:3px;letter-spacing:.02em}
+@media(prefers-reduced-motion:reduce){.prog-fill{transition:none}}
 /* Assistant nudge dot */
 .fab.nudge::after{content:"";position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:#F43F5E;border:2px solid #0C0E18;box-shadow:0 0 10px rgba(244,63,94,.8);animation:nudgePulse 1.8s ease-in-out infinite}
 @keyframes nudgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
@@ -651,6 +663,7 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
         <div><div class="card upnext" id="upnext"></div><div class="stations-row" id="sttiles"></div></div>
         <div class="card"><h3 id="tline-title">Today</h3><div class="tline" id="tline"></div></div>
       </div>
+      <div class="card progress-card" id="progresscard"></div>
     </section>
     <section class="view" id="v-cal">
       <div class="eyebrow">Schedule</div><h1 class="disp">The Calendar</h1>
@@ -759,11 +772,11 @@ const TILE_ART={
    an image URL or a YouTube / .mp4 link; it saves to your browser. */
 const WM=f=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1600';
 const HERO={
- fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center 55%',video:'BAyKFntiDhU'},
- ai:    {img:WM('Datacenter Server Racks (22370909788).jpg'),pos:'center 45%',video:'eim3k3zyagY'},
- media: {img:null},   // set your own filming/creator photo or video in-app (✎)
- stocks:{img:WM('Bowling Green td (2018-12-13) 06 - 26 Broadway, Charging Bull.jpg'),pos:'center 38%',video:'EEX0EHTTePE'},
- work:  {img:WM('Flaring of Blast Furnace Gas at Night.jpg'),pos:'center 50%'},
+ fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center 50%'},
+ ai:    {img:'assets/img/hero-ai.png',pos:'center'},
+ media: {img:'assets/img/hero-media.png',pos:'center 42%'},
+ stocks:{img:'assets/img/hero-stocks.png',pos:'center 42%'},
+ work:  {img:'assets/img/hero-work.png',pos:'center'},
 };
 let heroOverrides={};                 // {station:{img,video,pos}} from localStorage
 const heroFor=k=>Object.assign({},HERO[k]||{},heroOverrides[k]||{});
@@ -1087,6 +1100,22 @@ function renderHome(){
   $('#tline-title').textContent='Today — '+(d.name.charAt(0)+d.name.slice(1).toLowerCase());
   $('#sttiles').innerHTML=Object.keys(STATIONS).map(k=>{const m=METRICS[k](stState[k])[0];const h=heroFor(k);const art=h.img?`<img class="tile-img" src="${h.img}" alt="" loading="lazy" style="object-position:${h.pos||'center'}" onerror="this.closest('.tile-art').classList.add('noimg');this.remove()">`:'';return`<button class="st-tile" data-v="${k}" style="${catStyle(k)}"><div class="tile-art${h.img?'':' noimg'}">${art}<span class="tile-grad"></span></div><div class="glyph">${glyph(k)}</div><div class="tile-body"><b>${STATIONS[k].title}</b><span class="tile-metric">${m[0]}: <b>${m[1]}</b></span></div></button>`}).join('');
   $('#sttiles').querySelectorAll('.st-tile').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
+  renderProgress();
+}
+function renderProgress(){
+  const el=$('#progresscard');if(!el)return;
+  const ready=Math.round(feDone()/14*100);
+  const rows=[
+    {k:'fe',label:'FE readiness',val:ready,sub:feDone()+'/14 topics',pct:ready},
+    {k:'ai',label:'AI builds logged',val:stState.ai.logs.length,sub:'sessions',pct:Math.min(100,stState.ai.logs.length*12)},
+    {k:'media',label:'Media output',val:stState.media.logs.length,sub:clients.length+' client'+(clients.length===1?'':'s'),pct:Math.min(100,stState.media.logs.length*12)},
+    {k:'stocks',label:'Stocks insights',val:stState.stocks.logs.length,sub:watchList.length+' on watch',pct:Math.min(100,stState.stocks.logs.length*12)},
+    {k:'work',label:'Nucor reps',val:stState.work.logs.length,sub:'logged',pct:Math.min(100,stState.work.logs.length*12)},
+  ];
+  el.innerHTML=`<h3><span class="h-ic" style="--c1:var(--gold);--c2:#9a6b2e">${glyph('chart')}</span>Progress across sectors</h3><div class="prog-rows">`+
+    rows.map(r=>`<div class="prog-row" style="${catStyle(r.k)}"><button class="prog-lab" data-v="${r.k}">${r.label}</button><div class="prog-track"><div class="prog-fill" style="width:0%" data-w="${r.pct}"></div></div><div class="prog-val">${r.val}<span>${r.sub}</span></div></div>`).join('')+`</div>`;
+  el.querySelectorAll('.prog-lab').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
+  requestAnimationFrame(()=>el.querySelectorAll('.prog-fill').forEach(f=>{f.style.width=f.dataset.w+'%'}));
 }
 function openDrawer(b,ctx){
   const d=detailFor(b),dw=$('#drawer');dw.style=catStyle(b.c);
