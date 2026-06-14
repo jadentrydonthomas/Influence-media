@@ -24,6 +24,7 @@ window.COMPOUND_CONFIG = window.COMPOUND_CONFIG || { apiUrl: null };
   --text:#F3F4F8;--dim:rgba(243,244,248,.62);--faint:rgba(243,244,248,.36);--gold:#E0B978;
   --fe1:#FFB54D;--fe2:#E06A12;--ai1:#F472B6;--ai2:#7C3AED;--media1:#A5B4FC;--media2:#6D28D9;
   --stk1:#34D399;--stk2:#0B7A5C;--wrk1:#34D07A;--wrk2:#0A5C36;--bdy1:#7DD3FC;--bdy2:#0E7490;
+  --brand1:#22D3EE;--brand2:#2563EB;
   --env1:124,58,237;--env2:13,148,136;--floor:124,58,237;
   --hourH:54px;--disp:'Sora',system-ui,sans-serif;--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
 }
@@ -201,7 +202,7 @@ h1.disp{font-family:var(--disp);font-weight:700;font-size:clamp(34px,5vw,52px);l
 .nowline::before{content:"";position:absolute;left:-4px;top:-3.5px;width:9px;height:9px;border-radius:50%;background:#F43F5E}
 .cat-fe{--c1:var(--fe1);--c2:var(--fe2)}.cat-ai{--c1:var(--ai1);--c2:var(--ai2)}
 .cat-media{--c1:var(--media1);--c2:var(--media2)}.cat-stocks{--c1:var(--stk1);--c2:var(--stk2)}
-.cat-work{--c1:var(--wrk1);--c2:var(--wrk2)}.cat-body{--c1:var(--bdy1);--c2:var(--bdy2)}
+.cat-work{--c1:var(--wrk1);--c2:var(--wrk2)}.cat-body{--c1:var(--bdy1);--c2:var(--bdy2)}.cat-brand{--c1:var(--brand1);--c2:var(--brand2)}
 .pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .pillar{border-radius:22px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--line);backdrop-filter:blur(14px)}
 .pillar-head{display:flex;align-items:center;gap:11px;padding:16px 18px;border-bottom:1px solid var(--line);background:linear-gradient(120deg,color-mix(in srgb,var(--c2) 24%,transparent),transparent)}
@@ -482,6 +483,9 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .hero.nucor::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(120deg,rgba(22,163,74,.28),transparent 46%);mix-blend-mode:screen}
 /* Hero background video (YouTube iframe or mp4) */
 .hero .hero-vid{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:16/9;min-height:100%;transform:translate(-50%,-50%);border:0;pointer-events:none}
+.hero .hero-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;width:66px;height:66px;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:rgba(14,16,26,.5);border:1.5px solid rgba(255,255,255,.55);backdrop-filter:blur(8px);box-shadow:0 10px 30px -8px rgba(0,0,0,.7);transition:transform .18s,background .18s}
+.hero .hero-play:hover{transform:translate(-50%,-50%) scale(1.08);background:rgba(14,16,26,.7)}
+.hero .hero-play svg{width:26px;height:26px;margin-left:3px}
 /* ✎ Set hero image/video button */
 .hero .hero-edit{position:absolute;left:22px;top:18px;z-index:5;width:34px;height:34px;border-radius:11px;cursor:pointer;display:grid;place-items:center;background:rgba(14,16,26,.46);border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(10px);box-shadow:0 8px 22px -10px rgba(0,0,0,.7);opacity:.7;transition:opacity .18s,transform .18s}
 .hero:hover .hero-edit{opacity:1}
@@ -677,6 +681,7 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
     <section class="view" id="v-media"></section>
     <section class="view" id="v-stocks"></section>
     <section class="view" id="v-work"></section>
+    <section class="view" id="v-brand"></section>
   </main>
 </div>
 <div class="scrim" id="scrim"></div>
@@ -727,8 +732,10 @@ async function sset(k,v){
       browser) → calls Claude directly with the browser-access header
    2. window.COMPOUND_CONFIG.apiUrl → your own hosted proxy
    3. inside a Claude artifact → direct (proxied) */
-const AI_KEY_K='os4-aikey';
+const AI_KEY_K='os4-aikey',AI_MODEL_K='os4-aimodel';
+const AI_MODELS={haiku:'claude-haiku-4-5-20251001',sonnet:'claude-sonnet-4-6'};
 function getAIKey(){try{return localStorage.getItem(AI_KEY_K)||''}catch(e){return ''}}
+function aiModel(){try{const m=localStorage.getItem(AI_MODEL_K);return AI_MODELS[m]||AI_MODELS.haiku}catch(e){return AI_MODELS.haiku}}
 function aiConfigured(){return !!getAIKey()||!!(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||HAS_CLAUDE_STORE}
 async function callAI(body){
   const key=getAIKey();
@@ -758,10 +765,11 @@ const GLYPHS={
  flw:{f:false,svg:'<rect x="3" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="16" width="7" height="5" rx="1.5"/><path d="M6.5 8v5a3 3 0 0 0 3 3h5"/>'},
  chart:{f:false,svg:'<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>'},
  steel:{f:false,svg:'<path d="M4 4h16M4 20h16M7 4v16M17 4v16M7 4l10 16M17 4L7 20"/>'},
+ brand:{f:false,svg:'<circle cx="12" cy="12" r="2.2" fill="#fff" stroke="none"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.5 5.5a9 9 0 0 0 0 13M18.5 5.5a9 9 0 0 1 0 13"/>'},
 };
 const glyph=c=>{const g=GLYPHS[c]||GLYPHS.body;return `<svg class="${g.f?'f':''}" viewBox="0 0 24 24">${g.svg}</svg>`};
-const CATNAME={fe:'FE Exam',ai:'AI · Claude',media:'Influence Media',stocks:'Stocks',work:'Nucor',body:'Body & Life'};
-const ENV={home:{e1:'124,58,237',e2:'13,148,136',fl:'124,58,237'},cal:{e1:'124,58,237',e2:'13,148,136',fl:'124,58,237'},fe:{e1:'224,106,18',e2:'180,83,9',fl:'224,106,18'},ai:{e1:'124,58,237',e2:'236,72,153',fl:'147,51,234'},media:{e1:'109,40,217',e2:'129,140,248',fl:'129,92,246'},stocks:{e1:'16,185,129',e2:'13,148,136',fl:'16,185,129'},work:{e1:'16,140,80',e2:'10,92,54',fl:'27,194,104'}};
+const CATNAME={fe:'FE Exam',ai:'AI · Claude',media:'Influence Media',stocks:'Stocks',work:'Nucor',body:'Body & Life',brand:'My Media'};
+const ENV={home:{e1:'124,58,237',e2:'13,148,136',fl:'124,58,237'},cal:{e1:'124,58,237',e2:'13,148,136',fl:'124,58,237'},fe:{e1:'224,106,18',e2:'180,83,9',fl:'224,106,18'},ai:{e1:'124,58,237',e2:'236,72,153',fl:'147,51,234'},media:{e1:'109,40,217',e2:'129,140,248',fl:'129,92,246'},stocks:{e1:'16,185,129',e2:'13,148,136',fl:'16,185,129'},work:{e1:'16,140,80',e2:'10,92,54',fl:'27,194,104'},brand:{e1:'34,211,238',e2:'37,99,235',fl:'34,211,238'}};
 function setEnv(v){const e=ENV[v]||ENV.home;const r=document.documentElement.style;r.setProperty('--env1',e.e1);r.setProperty('--env2',e.e2);r.setProperty('--floor',e.fl)}
 const ART={
 fe:`<svg viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="feAtmo" cx="50%" cy="16%" r="95%"><stop offset="0%" stop-color="rgba(224,106,18,.4)"/><stop offset="55%" stop-color="rgba(224,106,18,.06)"/><stop offset="100%" stop-color="transparent"/></radialGradient><linearGradient id="feMem" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFE3AE"/><stop offset="55%" stop-color="#FFB54D"/><stop offset="100%" stop-color="#C2540A"/></linearGradient><radialGradient id="feNode" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#FFF1D6"/><stop offset="100%" stop-color="#E06A12"/></radialGradient></defs><rect width="1000" height="340" fill="#0E0A04"/><rect width="1000" height="340" fill="url(#feAtmo)"/><g filter="url(#fog)"><circle cx="500" cy="70" r="150" fill="rgba(255,150,60,.28)"/><circle cx="800" cy="250" r="120" fill="rgba(224,106,18,.2)"/><circle cx="180" cy="240" r="120" fill="rgba(180,83,9,.18)"/></g><g opacity=".18">${[...Array(18)].map((_,i)=>`<line x1="${i*60}" y1="0" x2="${i*60}" y2="340" stroke="#FFB54D"/>`).join('')}${[...Array(7)].map((_,i)=>`<line x1="0" y1="${i*54}" x2="1000" y2="${i*54}" stroke="#FFB54D"/>`).join('')}</g><g filter="url(#fog)" opacity=".5"><g transform="translate(70,30) scale(1,.82)" stroke="#E06A12" stroke-width="6" fill="none"><path d="M40,210 L150,80 L260,210 L370,80 L480,210 L590,80 L700,210 L810,80 L900,210"/><path d="M150,80 H810"/><path d="M40,210 H900"/></g></g><g filter="url(#soft)" opacity=".55"><g transform="translate(40,18)" stroke="#FFA94D" stroke-width="5" fill="none"><path d="M50,212 L160,90 L270,212 L380,90 L490,212 L600,90 L710,212 L820,90 L900,212"/><path d="M160,90 H820"/></g></g><g filter="url(#soft)"><polygon points="62,238 902,152 902,176 62,262" fill="url(#feMem)" opacity=".5"/><polygon points="62,238 902,152 902,160 62,246" fill="#FFE3AE" opacity=".55"/></g><g filter="url(#bloom)" stroke="url(#feMem)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="draw" d="M70,236 L190,104 L310,236 L430,104 L550,236 L670,104 L790,236 L900,150"/><path class="draw" style="animation-delay:.4s" d="M190,104 H670"/><path class="draw" style="animation-delay:.7s" d="M70,236 H900"/></g>${[70,310,550,790].map(x=>`<circle cx="${x}" cy="236" r="8" fill="url(#feNode)" filter="url(#bloom2)"/>`).join('')}${[190,430,670].map(x=>`<circle cx="${x}" cy="104" r="8" fill="url(#feNode)" filter="url(#bloom2)"/>`).join('')}<circle cx="430" cy="104" r="26" fill="rgba(255,200,120,.35)" filter="url(#fog)"/><path d="M58,236 l-16,26 h32 Z" fill="#1a1206" stroke="#E06A12" stroke-width="2"/><circle cx="790" cy="258" r="7" fill="#1a1206" stroke="#E06A12" stroke-width="2"/><circle cx="808" cy="258" r="7" fill="#1a1206" stroke="#E06A12" stroke-width="2"/><line x1="70" y1="278" x2="900" y2="278" stroke="rgba(255,181,77,.3)"/>${[70,310,550,790].map(x=>`<line x1="${x}" y1="274" x2="${x}" y2="282" stroke="rgba(255,181,77,.4)"/>`).join('')}${[[140,46],[680,40],[860,90]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.4" fill="#FFE3AE" class="twinkle"/>`).join('')}</svg>`,
@@ -789,6 +797,7 @@ const HERO={
  media: {video:'eim3k3zyagY',img:'assets/img/hero-media.png',pos:'center'},
  stocks:{video:'EEX0EHTTePE',img:'assets/img/hero-stocks.png',pos:'center'},
  work:  {img:'assets/img/hero-work.png',pos:'center'},
+ brand: {img:'assets/img/hero-brand.png',pos:'center'},
 };
 let heroOverrides={};                 // {station:{img,video,pos}} from localStorage
 const heroFor=k=>Object.assign({},HERO[k]||{},heroOverrides[k]||{});
@@ -805,15 +814,27 @@ function heroMarkup(k){
  if(h.video){
    const yt=ytId(h.video),pos=h.pos||'center';
    if(yt){
-     // YouTube: the video's own frame is the backdrop (always visible), the
-     // player autoplays muted on desktop; on phones it shows the frame.
-     return `<img class="hero-img" src="https://i.ytimg.com/vi/${yt}/maxresdefault.jpg" alt="" style="object-position:${pos}" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${yt}/hqdefault.jpg'"><iframe class="hero-vid" src="https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&mute=1&loop=1&playlist=${yt}&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media" referrerpolicy="no-referrer" loading="eager" tabindex="-1" title="hero video"></iframe>`;
+     // The video's own frame is the always-visible backdrop. Desktop loads a
+     // muted ambient loop; phones show a play button that plays inline on tap
+     // (mobile blocks autoplay, but tap-to-play always works).
+     return `<img class="hero-img" src="https://i.ytimg.com/vi/${yt}/maxresdefault.jpg" alt="" style="object-position:${pos}" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${yt}/hqdefault.jpg'"><button class="hero-play" data-yt="${yt}" aria-label="Play video"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff" stroke="none"/></svg></button>`;
    }
    // direct video file (.mp4/.webm…) — autoplays inline on phones too
    return `<video class="hero-img" autoplay muted loop playsinline ${h.img?`poster="${h.img}"`:''} onerror="var x=this.closest('.hero');if(x){x.classList.add('has-grad');x.classList.remove('has-img')}"><source src="${h.video}"></video>`;
  }
  if(h.img)return `<img class="hero-img" src="${h.img}" alt="${k}" loading="eager" style="object-position:${h.pos||'center'}" onerror="var x=this.closest('.hero');x.classList.add('has-grad');x.classList.remove('has-img');this.remove()">`;
  return '';
+}
+function wireHeroVideo(scope){
+  const btn=(scope||document).querySelector('.hero-play');if(!btn)return;
+  const yt=btn.dataset.yt,host=btn.parentElement;
+  const load=sound=>{const f=document.createElement('iframe');f.className='hero-vid';
+    f.src=`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${yt}&iv_load_policy=3`+(sound?'':'&mute=1&controls=0&disablekb=1');
+    f.allow='autoplay; encrypted-media';f.setAttribute('referrerpolicy','no-referrer');f.setAttribute('title','hero video');
+    host.appendChild(f);btn.remove();};
+  btn.addEventListener('click',e=>{e.stopPropagation();load(true);});
+  // desktop: load the muted ambient loop automatically; phones wait for a tap
+  try{if(window.matchMedia&&window.matchMedia('(hover:hover) and (pointer:fine)').matches)load(false);}catch(e){}
 }
 const E=(s,e,n,c)=>({s,e,n,c});const AD=(n,c)=>({allday:true,n,c});
 const AM=E('06:00','06:45','Morning review — formulas + flashcards','fe');
@@ -919,6 +940,9 @@ const STATIONS={
  work:{title:'Nucor Track',code:'STN-05 · STEEL',line:'Quote engineering today, sales engineering next. Every interaction is a rep toward the move.',chips:[['Path','QUOTE→SALES'],['Tool','eQUOTE'],['Network','4 MENTORS']],
   play:[['Mentorship map',['Danielle Miles — current mentor','Nathan Miller — eng+sales hybrid, next','Jeff Brasseur — regional sales supervisor','Leadership: VanDyken · Liegl · Byerely · Gentry']],['The move',['Master eQuote — speed + accuracy','Learn the quote→sales handoff end to end','Visible wins: turnaround, clean quotes','Raise the goal in Q3 reviews']]],
   tasks:['Questions list for next Danielle 1:1','eQuote — 3 speed reps this week','Map one quote→sales handoff fully']},
+ brand:{title:'My Media',code:'STN-06 · CREATOR',line:'Your personal brand — talking finance, AI and the build out loud. One hub for TikTok, Instagram and YouTube; separate from the agency.',chips:[['Topics','FIN · AI'],['Format','SHORT-FORM'],['Goal','AUDIENCE']],
+  play:[['Content pillars',['Finance — what you\'re learning; IPO/lock-up framing (education only)','AI — building agents, using Claude, what actually worked','The journey — FE, Nucor, discipline, compounding']],['Cadence',['Batch on weekends','One idea → three platforms','Repurpose long-form into shorts']]],
+  tasks:['Define 3 content pillars','Film first finance/AI short','Set a weekly posting cadence','Send channel links to wire the hub']},
 };
 const openT=s=>s.tasks.filter(t=>!t.done).length;
 const FE_TOPICS=[['Mathematics & Statistics','W1'],['Ethics & Prof. Practice','W1'],['Engineering Economics','W1'],['Statics','W1'],['Dynamics','W1'],['Mechanics of Materials','W1'],['Materials','W2'],['Fluid Mechanics','W2'],['Water Resources & Env.','W2'],['Structural Engineering','W2'],['Geotechnical Eng.','W2'],['Transportation Eng.','W2'],['Surveying','W2'],['Construction Eng.','W2']];
@@ -929,8 +953,10 @@ const METRICS={
  media:s=>[['Open tasks',openT(s)],['Sessions logged',s.logs.length],['Active clients','1']],
  stocks:s=>[['Insights logged',s.logs.length],['Watchlist','3'],['Open tasks',openT(s)]],
  work:s=>[['Reps logged',s.logs.length],['Open tasks',openT(s)],['Mentors','4']],
+ brand:s=>[['Posts logged',s.logs.length],['Ideas open',openT(s)],['Platforms','3']],
 };
 function featureHTML(k){
+ if(k==='brand')return `<h3><span class="h-ic">${glyph('brand')}</span>Content Pillars</h3><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">Finance, in plain English</div><div class="qs">What you're learning — frameworks, not tips</div></div><span class="qbadge">Pillar 1</span></div><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">Building with AI</div><div class="qs">Agents, Claude, what actually shipped</div></div><span class="qbadge">Pillar 2</span></div><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">The journey</div><div class="qs">FE, Nucor, discipline, compounding</div></div><span class="qbadge">Pillar 3</span></div><div class="feat-note">Education only on finance — no buy/sell calls. Batch on weekends, then cut one idea into a TikTok, a Reel and a YouTube short.</div>`;
  if(k==='fe')return `<h3><span class="h-ic">${glyph('book')}</span>Topic Progression</h3><div class="pbar-row"><div class="pbar"><div class="pfill" id="pfill"></div></div><div class="pnum" id="pnum">0/14</div></div><div class="tsmwrap" id="fetopics"></div><div class="feat-note"><b>High-weight four</b> — Statics, Mechanics of Materials, Geotechnical, Transportation — are 25–40% of the whole exam. Clear these to green first; they pay the most per hour.</div>`;
  if(k==='ai')return `<h3><span class="h-ic">${glyph('build')}</span>Build Queue</h3><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">Nucor quoting helper</div><div class="qs">First real agent — speeds your eQuote work</div></div><span class="qbadge">In design</span></div><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">Influence Media content engine</div><div class="qs">Caption + scheduling assistant for clients</div></div><span class="qbadge">Queued</span></div><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">Books knowledge base</div><div class="qs">Your logs → structured chapter source</div></div><span class="qbadge">Ongoing</span></div><div class="phases"><div class="phase on"><div class="pp">PHASE A</div><div class="pl">Prompting</div></div><div class="phase"><div class="pp">PHASE B</div><div class="pl">Agents</div></div><div class="phase"><div class="pp">PHASE C</div><div class="pl">Automation</div></div></div>`;
  if(k==='media')return `<h3><span class="h-ic">${glyph('flw')}</span>Content Pipeline</h3><div class="pipe"><div class="stage"><div class="num">4</div><div class="lab">Ideas</div></div><div class="stage"><div class="num">2</div><div class="lab">Filming</div></div><div class="stage"><div class="num">1</div><div class="lab">Editing</div></div><div class="stage"><div class="num">3</div><div class="lab">Scheduled</div></div><div class="stage"><div class="num">12</div><div class="lab">Posted</div></div></div><div class="qcard"><span class="qdot"></span><div class="qmain"><div class="qt">Spine Wellness</div><div class="qs">Dr. Josh Anane — presets, films & edits his own</div></div><span class="qbadge">Active</span></div><div class="feat-note">Spine Wellness posts <b>3× a day</b> — batch on weekends so the queue stays two days ahead. The repeatable agency machine gets built in Phase 2.</div>`;
@@ -970,12 +996,12 @@ function attachMic(btn,onText,opts={}){
   requestAnimationFrame(frame);
   if(!reduced){const px=$('#parallax');addEventListener('pointermove',e=>{const x=(e.clientX/innerWidth-.5),y=(e.clientY/innerHeight-.5);px.style.transform=`translate(${x*-20}px,${y*-20}px)`})}
 })();
-const NAV=[{id:'home',g:'home',label:'Home',c:'#F3F4F8'},{id:'cal',g:'cal',label:'Calendar',c:'#F3F4F8'},{id:'fe',g:'fe',label:'FE Command',c:'var(--fe1)'},{id:'ai',g:'ai',label:'AI Lab',c:'var(--ai1)'},{id:'media',g:'media',label:'Media Studio',c:'var(--media1)'},{id:'stocks',g:'stocks',label:'Market Desk',c:'var(--stk1)'},{id:'work',g:'work',label:'Nucor Track',c:'var(--wrk1)'}];
+const NAV=[{id:'home',g:'home',label:'Home',c:'#F3F4F8'},{id:'cal',g:'cal',label:'Calendar',c:'#F3F4F8'},{id:'fe',g:'fe',label:'FE Command',c:'var(--fe1)'},{id:'ai',g:'ai',label:'AI Lab',c:'var(--ai1)'},{id:'media',g:'media',label:'Media Studio',c:'var(--media1)'},{id:'stocks',g:'stocks',label:'Market Desk',c:'var(--stk1)'},{id:'work',g:'work',label:'Nucor Track',c:'var(--wrk1)'},{id:'brand',g:'brand',label:'My Media',c:'var(--brand1)'}];
 function renderNav(){
   $('#navrail').innerHTML=`<div class="mark"><svg viewBox="0 0 24 24"><path d="M12 1.6l1.2 6.3 4.6-4.4-2.7 5.8 6.3-.9-5.6 3.1 5.6 3.1-6.3-.9 2.7 5.8-4.6-4.4-1.2 6.3-1.2-6.3-4.6 4.4 2.7-5.8-6.3.9 5.6-3.1-5.6-3.1 6.3.9-2.7-5.8 4.6 4.4z"/></svg></div>`+NAV.map(n=>`<button class="rbtn${curView===n.id?' on':''}" data-v="${n.id}" style="--c:${n.c}" aria-label="${n.label}">${glyph(n.g)}<span class="tip">${n.label}</span></button>`).join('')+`<div class="spacer"></div>`;
   document.querySelectorAll('.rbtn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 }
-function go(v){curView=v;setEnv(v);document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));$('#v-'+(v==='home'?'home':v==='cal'?'cal':v)).classList.add('on');document.querySelectorAll('.rbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(['fe','ai','media','stocks','work'].includes(v))renderStation(v);if(v==='home')renderHome();if(v==='cal')setWeek(curWeek);window.scrollTo({top:0})}
+function go(v){curView=v;setEnv(v);document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));$('#v-'+(v==='home'?'home':v==='cal'?'cal':v)).classList.add('on');document.querySelectorAll('.rbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(['fe','ai','media','stocks','work','brand'].includes(v))renderStation(v);if(v==='home')renderHome();if(v==='cal')setWeek(curWeek);window.scrollTo({top:0})}
 const isTodayCol=d=>{const n=new Date();return d.mon===n.getMonth()&&d.dnum===n.getDate()};
 function lanes(evts){const sorted=evts.map((e,i)=>({...e,i})).sort((a,b)=>toMin(a.s)-toMin(b.s));const ends=[],lane={};sorted.forEach(e=>{const en=e.e===e.s?toMin(e.s)+30:toMin(e.e);let l=ends.findIndex(t=>t<=toMin(e.s));if(l<0){l=ends.length;ends.push(0)}ends[l]=en;lane[e.i]=l});const count={};sorted.forEach(e=>{const en=e.e===e.s?toMin(e.s)+30:toMin(e.e);const ov=sorted.filter(o=>toMin(o.s)<en&&(o.e===o.s?toMin(o.s)+30:toMin(o.e))>toMin(e.s));count[e.i]=Math.max(...ov.map(o=>lane[o.i]))+1});return{lane,count}}
 function renderGrid(wk){
@@ -1062,22 +1088,27 @@ function closeHeroModal(){$('#heromodal').classList.remove('on');$('#scrim').cla
 function closeAIModal(){$('#aimodal').classList.remove('on');$('#scrim').classList.remove('on')}
 function openAIModal(){
   const wrap=$('#aimodal'),has=!!getAIKey();
+  let curM='haiku';try{curM=localStorage.getItem(AI_MODEL_K)||'haiku'}catch(e){}
   wrap.innerHTML=`<div class="modal" style="--c1:var(--ai1);--c2:var(--ai2)">
     <div class="modal-head"><button class="mclose" aria-label="Close">✕</button><div class="mh-k">Connect AI</div><div class="mh-t">${has?'AI is connected':'Turn on the assistants'}</div></div>
     <div class="modal-body">
       <p class="hm-hint">Paste your <b>Anthropic API key</b> to make every assistant + the Research Desk live. It's stored <b>only in this browser</b> (never uploaded, never in the site's code) and calls Claude directly. ${has?'A key is already saved.':''}</p>
       <p class="ml">Anthropic API key</p>
       <div class="modal-row"><input class="m-name" id="ai-key" type="password" placeholder="sk-ant-…" value="${has?'••••••••••••':''}" autocomplete="off"></div>
-      <p class="hm-hint">Get one at <b>console.anthropic.com</b> → API Keys. Tip: on a shared device, remove it when you're done.</p>
+      <p class="ml">Model — controls your cost</p>
+      <div class="seg ai-modelseg" id="ai-modelseg"><button data-m="haiku" class="${curM==='haiku'?'on':''}">Haiku · economical</button><button data-m="sonnet" class="${curM==='sonnet'?'on':''}">Sonnet · sharper</button></div>
+      <p class="hm-hint"><b>Haiku</b> is far cheaper — best for everyday chat, planning and logging. Switch to <b>Sonnet</b> only when you want deeper reasoning. Replies are kept short to save tokens. The Research Desk uses web search (the only pricey call) and only runs when you click <i>Run</i>.</p>
       <div class="hm-actions"><button class="modal-add" id="ai-save">Save &amp; connect</button>${has?'<button class="hm-reset" id="ai-remove">Remove key</button>':''}</div>
     </div></div>`;
   wrap.querySelector('.mclose').addEventListener('click',closeAIModal);
+  wrap.querySelectorAll('#ai-modelseg button').forEach(b=>b.addEventListener('click',()=>{curM=b.dataset.m;wrap.querySelectorAll('#ai-modelseg button').forEach(x=>x.classList.toggle('on',x===b))}));
   wrap.querySelector('#ai-save').addEventListener('click',()=>{
     const v=$('#ai-key').value.trim();
     if(v&&!/^•+$/.test(v)){try{localStorage.setItem(AI_KEY_K,v)}catch(e){}}
+    try{localStorage.setItem(AI_MODEL_K,curM)}catch(e){}
     closeAIModal();
     try{const cb=$('#chatbody');if(cb){const b=document.createElement('div');b.className='msg sys';b.textContent='✓ AI connected';cb.appendChild(b)}}catch(e){}
-    if(['fe','ai','media','stocks','work'].includes(curView))wireStationChat(curView);
+    if(['fe','ai','media','stocks','work','brand'].includes(curView))wireStationChat(curView);
   });
   const rm=wrap.querySelector('#ai-remove');if(rm)rm.addEventListener('click',()=>{try{localStorage.removeItem(AI_KEY_K)}catch(e){}closeAIModal();});
   wrap.classList.add('on');$('#scrim').classList.add('on');
@@ -1199,6 +1230,7 @@ function renderStation(k){
    </div>`;
   el.querySelectorAll('.mb-v').forEach(v=>countUp(v,v.dataset.to));
   {const he=$('#hero-edit-'+k);if(he)he.addEventListener('click',()=>openHeroModal(k));}
+  wireHeroVideo(el);
   function drawTasks(){$('#tl-'+k).innerHTML=st.tasks.map((t,i)=>`<div class="task${t.done?' done':''}" data-i="${i}"><div class="tch"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div><div class="tn">${t.t}</div><button class="del" aria-label="Delete">✕</button></div>`).join('')||'<p style="font-size:13px;color:var(--faint)">Nothing open. Add one above.</p>';$('#tl-'+k).querySelectorAll('.task').forEach(row=>{row.addEventListener('click',async e=>{const i=+row.dataset.i;if(e.target.closest('.del'))st.tasks.splice(i,1);else st.tasks[i].done=!st.tasks[i].done;drawTasks();await sset(KEYS.st,stState)})})}
   drawTasks();
   $('#tb-'+k).addEventListener('click',async()=>{const v=$('#ti-'+k).value.trim();if(!v)return;st.tasks.unshift({t:v,done:false});$('#ti-'+k).value='';drawTasks();await sset(KEYS.st,stState)});
@@ -1251,6 +1283,12 @@ function stationExtras(k,cs){
     ['GitHub Copilot','Code + automation','https://github.com/features/copilot'],
     ['Power Automate','Automate the quote workflow','https://make.powerautomate.com'],
   ],cs,'Nucor runs on Copilot — learn to build small agents around the <b>quote→sales</b> workflow. Log every automatable step in the memory stream; those become your first work agents.');
+  if(k==='brand')return launchCard('Your channels — central hub','brand',[
+    ['TikTok','Short-form home base','https://tiktok.com'],
+    ['Instagram','Reels + presence','https://instagram.com'],
+    ['YouTube','Long-form &amp; shorts','https://youtube.com'],
+    ['Influence Media (business)','Your agency tab','https://jadentrydonthomas.github.io/Influence-media/'],
+  ],cs,'Send me your real TikTok / IG / YouTube links and I\'ll wire them straight to your handles. This brand is <b>you</b> — kept separate from the Influence Media business.');
   return '';
 }
 let curSymbol='NASDAQ:NVDA';
@@ -1325,7 +1363,7 @@ function wireResearch(refreshLogs){
   async function run(){const q=inp.value.trim();if(!q)return;lastQ=q;out.classList.add('on');
     if(!aiConfigured()){card.textContent=AI_OFFLINE_MSG;return}
     go.disabled=true;go.textContent='…';card.textContent='Researching "'+q+'" — pulling live data…';
-    try{const res=await callAI({model:'claude-sonnet-4-6',max_tokens:1400,system:'You are the research analyst on Jaden\'s Market Desk. He studies IPO dynamics (lock-up expiry then support formation then scale-in) and watches Anthropic, SpaceX, OpenAI. Use web search for current info. Reply in plain text under 220 words: what is happening now, key dates/numbers, and how it ties to his framework if relevant. Short paragraphs, no markdown headers/bullets. End with one line on what to watch next. Research and education only, never buy/sell advice.',messages:[{role:'user',content:q}],tools:[{type:'web_search_20250305',name:'web_search'}]});const data=await res.json();const txt=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();card.textContent=txt||'No result — try rephrasing.'}catch(e){card.textContent='Connection hiccup — try again.'}
+    try{const res=await callAI({model:aiModel(),max_tokens:1000,system:'You are the research analyst on Jaden\'s Market Desk. He studies IPO dynamics (lock-up expiry then support formation then scale-in) and watches Anthropic, SpaceX, OpenAI. Use web search for current info. Reply in plain text under 220 words: what is happening now, key dates/numbers, and how it ties to his framework if relevant. Short paragraphs, no markdown headers/bullets. End with one line on what to watch next. Research and education only, never buy/sell advice.',messages:[{role:'user',content:q}],tools:[{type:'web_search_20250305',name:'web_search'}]});const data=await res.json();const txt=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();card.textContent=txt||'No result — try rephrasing.'}catch(e){card.textContent='Connection hiccup — try again.'}
     go.disabled=false;go.textContent='Run'}
   go.addEventListener('click',run);inp.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
   save.addEventListener('click',async()=>{const txt=card.textContent.trim();if(!txt)return;stState.stocks.logs.unshift({ts:stamp()+' · RESEARCH: '+lastQ,t:txt});bumpStreak();await sset(KEYS.st,stState);refreshLogs();save.textContent='Saved ✓';setTimeout(()=>save.textContent='Save to memory log',1600)});
@@ -1338,6 +1376,7 @@ const STATION_AI={
  media:{name:'Media Producer',intro:"I'm your Media Producer for Influence Media. Spine Wellness posts 3× a day — tell me what you're filming and I'll help you batch and caption ahead.",sys:"You are Jaden's Media Producer for Influence Media. Client: Spine Wellness (Dr. Josh Anane), who posts 3× per day and films/edits his own footage. Focus only on content: ideas, batching, captions, hooks, the pipeline (ideas→filming→editing→scheduled→posted), and growth. Maintenance mode until July 1; the agency machine scales in Phase 2. Default actions to the 'media' station."},
  stocks:{name:'Market Analyst',intro:"I'm your Market Analyst. Watchlist is Anthropic, SpaceX, OpenAI. Ask me to explain a concept or frame a name — and use the Research Desk above for live data. Study only, no trade calls.",sys:"You are Jaden's Market Analyst. Focus only on markets: his watchlist (Anthropic, SpaceX, OpenAI), the IPO/lock-up framework (expiry → support forms → scale in), and options study. STUDY AND EDUCATION ONLY — never give buy/sell/timing advice or price targets. Remind him the Research Desk above pulls live data, and that live trading waits until after the FE and 3 months of paper trades. Default actions to the 'stocks' station."},
  work:{name:'Career Coach',intro:"I'm your Career Coach. The play is quote engineering → sales engineering. Tell me what happened at work and I'll help you turn it into a visible win.",sys:"You are Jaden's Career Coach at Nucor. Focus only on his quote→sales-engineering path: mastering eQuote, learning the quote-to-sales handoff, visible wins (turnaround, clean quotes), and his network — mentors Danielle Miles (current), Nathan Miller (eng+sales, next), Jeff Brasseur (sales supervisor); leadership VanDyken, Liegl, Byerely, Gentry. Default actions to the 'work' station."},
+ brand:{name:'Brand Producer',intro:"I'm your Brand Producer. This is your personal channel — finance, AI, the journey. Tell me a topic and I'll shape hooks, scripts and a posting plan across TikTok, Instagram and YouTube.",sys:"You are Jaden's personal-brand Producer (separate from his Influence Media agency). He creates short-form content about finance, AI/Claude, and his journey (FE exam, Nucor, discipline). Help with content pillars, hooks, scripts, captions, repurposing one idea across TikTok/Instagram/YouTube, and growth. On finance keep it EDUCATIONAL — no buy/sell/timing advice. Default actions to the 'brand' station."},
 };
 const stationHistory={},stationSpeak={};
 function appendStation(k,role,text){const b=$('#sa-body-'+k);if(!b)return;const d=document.createElement('div');d.className='msg '+role;d.textContent=text;b.appendChild(d);b.scrollTop=b.scrollHeight;return d}
@@ -1350,8 +1389,8 @@ async function sendStation(k,forced){
   const body=$('#sa-body-'+k);const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';body.appendChild(typing);body.scrollTop=body.scrollHeight;
   const sbtn=$('#sa-send-'+k);if(sbtn)sbtn.disabled=true;
   try{
-    const msgs=stationHistory[k].map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
-    const res=await callAI({model:'claude-sonnet-4-6',max_tokens:900,system:stationSys(k),messages:msgs});
+    const msgs=stationHistory[k].slice(-8).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
+    const res=await callAI({model:aiModel(),max_tokens:600,system:stationSys(k),messages:msgs});
     const data=await res.json();let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
     typing.remove();
     let parsed=null;try{parsed=JSON.parse(raw)}catch(e){const mm=raw.match(/\{[\s\S]*\}/);if(mm){try{parsed=JSON.parse(mm[0])}catch(e2){}}}
@@ -1438,7 +1477,7 @@ function applyActions(actions,silent){
   });
   if(changed)sset(KEYS.sched,schedule);
   if(touchedStations)sset(KEYS.st,stState);
-  if(changed||touchedStations){if(!silent){if(['fe','ai','media','stocks','work'].includes(curView))renderStation(curView);else if(curView==='cal')setWeek(curWeek);else renderHome()}}
+  if(changed||touchedStations){if(!silent){if(['fe','ai','media','stocks','work','brand'].includes(curView))renderStation(curView);else if(curView==='cal')setWeek(curWeek);else renderHome()}}
   return changed||touchedStations;
 }
 async function sendMsg(forced){
@@ -1448,7 +1487,7 @@ async function sendMsg(forced){
   if(!aiConfigured()){pushMsg('bot',AI_OFFLINE_MSG);return}
   const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';chatbody.appendChild(typing);chatbody.scrollTop=chatbody.scrollHeight;chatsend.disabled=true;
   try{
-    const payload={model:'claude-sonnet-4-6',max_tokens:900,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
+    const payload={model:aiModel(),max_tokens:600,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
     const res=await callAI(payload);
     const data=await res.json();
     let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
