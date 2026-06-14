@@ -506,6 +506,10 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .adchip{border-radius:12px;padding:8px 12px;box-shadow:0 10px 20px -11px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.26)}
 .nowline::after{content:"NOW";position:absolute;left:5px;top:-8px;font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;color:#fff;background:#F43F5E;border-radius:5px;padding:1px 6px;box-shadow:0 3px 9px rgba(244,63,94,.6)}
 .cal-note{padding:2px 0}
+/* Remove-block button in the detail drawer */
+.dw-del{margin-top:12px;width:100%;padding:13px;border-radius:14px;cursor:pointer;font-size:13.5px;font-weight:700;color:#FCA5A5;background:rgba(244,63,94,.10);border:1px solid rgba(244,63,94,.34);transition:all .18s}
+.dw-del:hover{background:rgba(244,63,94,.18);color:#fff}
+.dw-del[data-armed="1"]{background:linear-gradient(140deg,#F43F5E,#FB7185);color:#fff;border-color:transparent}
 /* Chips read as real frosted glass tiles */
 .chip{background:rgba(14,16,26,.34);border:1px solid rgba(255,255,255,.22);box-shadow:0 16px 40px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 22px rgba(var(--env1),.12)}
 .chip .cv{text-shadow:0 1px 10px rgba(0,0,0,.5)}
@@ -867,7 +871,7 @@ function renderGrid(wk){
   const now=new Date();
   days.forEach((d,di)=>{const timed=d.blocks.map((b,bi)=>({...b,bi})).filter(b=>!b.allday&&b.s!==b.e);const{lane,count}=lanes(timed);h+=`<div class="dcol${isTodayCol(d)?' is-today':''}">`;timed.forEach((b,i)=>{const top=(toMin(b.s)-DAY_START)/60*54;const ht=Math.max(19,(toMin(b.e)-toMin(b.s))/60*54-3);const cn=count[i]||1,l=lane[i]||0,w=100/cn,lf=w*l;const cls=ht<29?'tiny':ht<46?'short':'';h+=`<div class="ev cat-${b.c} ${cls}" data-d="${di}" data-b="${b.bi}" style="top:${top}px;height:${ht}px;left:calc(${lf}% + 3px);width:calc(${w}% - 6px)" title="${b.n}"><div class="et">${glyph(b.c)}<span>${fmt(b.s)}–${fmt(b.e)}</span></div><div class="en">${b.n}</div></div>`});if(isTodayCol(d)){const m=now.getHours()*60+now.getMinutes();if(m>=DAY_START&&m<=DAY_START+HOURS*60)h+=`<div class="nowline" style="top:${(m-DAY_START)/60*54}px"></div>`}h+=`</div>`});
   h+=`</div>`;grid.innerHTML=h;
-  grid.querySelectorAll('.ev,.adchip').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openDrawer(schedule[wk][+el.dataset.d].blocks[+el.dataset.b])}));
+  grid.querySelectorAll('.ev,.adchip').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openDrawer(schedule[wk][+el.dataset.d].blocks[+el.dataset.b],{wk,di:+el.dataset.d,bi:+el.dataset.b})}));
   if(schedule[wk].some(d=>d.mon!==-1)||wk==='tpl'){
     grid.querySelectorAll('.tg-body .dcol').forEach((col,di)=>col.addEventListener('click',e=>{
       if(e.target.closest('.ev'))return;
@@ -966,12 +970,20 @@ function renderHome(){
   $('#sttiles').innerHTML=Object.keys(STATIONS).map(k=>{const m=METRICS[k](stState[k])[0];return`<button class="st-tile" data-v="${k}" style="${catStyle(k)}"><div class="tile-art">${TILE_ART[k]}</div><div class="glyph">${glyph(k)}</div><div class="tile-body"><b>${STATIONS[k].title}</b><span class="tile-metric">${m[0]}: <b>${m[1]}</b></span></div></button>`}).join('');
   $('#sttiles').querySelectorAll('.st-tile').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 }
-function openDrawer(b){
+function openDrawer(b,ctx){
   const d=detailFor(b),dw=$('#drawer');dw.style=catStyle(b.c);
-  dw.innerHTML=`<div class="dw-head"><button class="dw-close" aria-label="Close">✕</button><span class="dw-cat">${glyph(b.c)} ${CATNAME[b.c]}</span><div class="dw-title">${b.n}</div><div class="dw-time">${b.allday?'ALL DAY':fmt(b.s)+' — '+fmt(b.e)}</div></div><div class="dw-body"><div class="dw-sec">${d.head}</div><p class="dw-p">${d.p}</p>${d.steps?`<div class="dw-sec">The plan</div><ul class="dw-steps">${d.steps.map((s,i)=>`<li><i>${i+1}</i>${s}</li>`).join('')}</ul>`:''}${d.extra?`<p class="dw-p" style="margin-top:14px">${d.extra}</p>`:''}${d.res?`<div class="dw-sec">Resources</div><div class="dw-res">${d.res.items.map(([nm,desc])=>`<div class="dw-resitem"><span class="rk">${d.res.rk}</span><div><b>${nm}</b><span>${desc}</span></div></div>`).join('')}</div>`:''}${STATIONS[b.c]?`<button class="dw-go">Open ${STATIONS[b.c].title} →</button>`:''}</div>`;
+  dw.innerHTML=`<div class="dw-head"><button class="dw-close" aria-label="Close">✕</button><span class="dw-cat">${glyph(b.c)} ${CATNAME[b.c]}</span><div class="dw-title">${b.n}</div><div class="dw-time">${b.allday?'ALL DAY':fmt(b.s)+' — '+fmt(b.e)}</div></div><div class="dw-body"><div class="dw-sec">${d.head}</div><p class="dw-p">${d.p}</p>${d.steps?`<div class="dw-sec">The plan</div><ul class="dw-steps">${d.steps.map((s,i)=>`<li><i>${i+1}</i>${s}</li>`).join('')}</ul>`:''}${d.extra?`<p class="dw-p" style="margin-top:14px">${d.extra}</p>`:''}${d.res?`<div class="dw-sec">Resources</div><div class="dw-res">${d.res.items.map(([nm,desc])=>`<div class="dw-resitem"><span class="rk">${d.res.rk}</span><div><b>${nm}</b><span>${desc}</span></div></div>`).join('')}</div>`:''}${STATIONS[b.c]?`<button class="dw-go">Open ${STATIONS[b.c].title} →</button>`:''}${ctx?`<button class="dw-del" id="dw-del">Remove from schedule</button>`:''}</div>`;
   dw.classList.add('on');$('#scrim').classList.add('on');
   dw.querySelector('.dw-close').addEventListener('click',closeDrawer);
   const g=dw.querySelector('.dw-go');if(g)g.addEventListener('click',()=>{closeDrawer();go(b.c)});
+  const del=dw.querySelector('#dw-del');
+  if(del)del.addEventListener('click',async()=>{
+    if(del.dataset.armed!=='1'){del.dataset.armed='1';del.textContent='Tap again to remove';return}
+    const arr=schedule[ctx.wk]&&schedule[ctx.wk][ctx.di]&&schedule[ctx.wk][ctx.di].blocks;
+    if(arr&&ctx.bi>-1&&ctx.bi<arr.length)arr.splice(ctx.bi,1);
+    await sset(KEYS.sched,schedule);closeDrawer();
+    if(curView==='cal'&&curWeek!=='p2')renderGrid(curWeek);else if(curView==='home')renderHome();
+  });
 }
 function closeDrawer(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on')}
 $('#scrim').addEventListener('click',()=>{closeDrawer();closeAddSlot()});
