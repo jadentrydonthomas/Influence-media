@@ -1,56 +1,59 @@
 # Compound OS
 
-A personal command-center dashboard — one place to run the sprint: study, schedule,
-five workstations (FE · AI · Media · Stocks · Nucor), and a per-area AI assistant in each.
+Your personal command center — one place to run the sprint: study, schedule, five
+workstations (FE · AI · Media · Stocks · Nucor), each with its own AI assistant, plus
+live market data. Dependency-free static site (HTML + CSS + vanilla JS). Open it and it
+works; everything saves to your browser.
 
-This is the standalone, deployable build of the prototype. It runs as a dependency-free
-static site (HTML + CSS + vanilla JS) and persists everything in your browser, so it works
-the moment you open it — no build step, no server required.
+## Highlights
+- **Live market desk** — TradingView charts, ticker tape, watchlist and market news built
+  into Stocks. Type any ticker in the chart's search box. (No API key, loads in your browser.)
+- **Real photography per workspace** — free-licensed shots served from Wikimedia's CDN,
+  colour-graded to each station. Swap any hero for your **own image or video** in one line.
+- **Calendar** — week grids with the live "now" line; **tap any empty slot to add a block**
+  (preset or custom), with a guard on your protected 7am–3pm Nucor block.
+- **Per-station AI + global assistant**, **voice** in/out, tasks, memory-stream logs, playbooks.
+- **Persistence** via `localStorage` — no server needed for any of the above.
 
-## What works offline (no backend)
-- **Home** — greeting, days-to-FE ring, streak, momentum strip, up-next, today timeline, station tiles
-- **Calendar** — week grids, color-coded blocks, the live "now" line, click any block for a research-grounded brief
-- **Tap an empty slot → add a block** — pick a preset or name your own; it persists
-- **Five stations** — tasks, memory-stream logs, playbooks, domain panels (FE topic tracker, etc.)
-- **Voice** — speech-to-text input and spoken replies (Web Speech API)
-- **Persistence** — saved to `localStorage` (keys `os4-*`)
+## Use your own hero image or video
+Open `index.html`, find the `HERO` map near the top of the script, and set a URL:
+```js
+const HERO = {
+  media: { img: "https://.../your-photo.jpg" },           // a photo
+  work:  { video: "https://.../mill.mp4", img: "poster.jpg" }, // a looping video
+  ...
+};
+```
+Anything works — a Pexels/Coverr URL, a Canva export, or a file you drop in `assets/img/`.
+If an image ever fails to load, the station falls back to a graded cinematic backdrop.
 
-## Real hero imagery
-The Market Desk, AI Lab, and Media Studio use real rendered art (`assets/img/hero-*.png`).
-FE Command and Nucor Track keep their themed vector heroes until matching renders are dropped in —
-just add `assets/img/hero-fe.png` / `hero-nucor.png` and set them in the `HERO_IMG` map in `index.html`.
-
-## Run it locally
+## Run locally
 ```bash
 cd compound-os
-python3 -m http.server 8000   # then open http://localhost:8000
+python3 -m http.server 8000   # open http://localhost:8000
 ```
 
+## Make it permanently live (pick one)
+**A — Instant, zero account:** drag the `compound-os` folder onto
+[Netlify Drop](https://app.netlify.com/drop). You get a permanent URL immediately.
+
+**B — Auto-deploys every time it changes (recommended):** connect the repo to
+**Netlify** or **Vercel**, set the **base/root directory** to `compound-os`. Every push
+goes live automatically at a permanent URL. `netlify.toml` is already included.
+
+**C — GitHub Pages:** put these files in a repo, then Settings → Pages → deploy from
+`main` → `/`. `.nojekyll` is included so `assets/` serves correctly.
+
+### Point your domain at it
+Buy a domain, then in your host (Netlify/Vercel) → Domain settings → add it and follow the
+DNS records shown. One-click HTTPS. Done.
+
 ## Turn the AI assistants on (optional)
-The assistants need an Anthropic API key, which must live on a server, not in the browser.
-1. Deploy `api/chat.example.js` as a serverless function (Vercel / Cloudflare / Netlify) with
-   `ANTHROPIC_API_KEY` set in the environment.
-2. In `index.html`, set the endpoint before the main script:
-   ```html
-   <script>window.COMPOUND_CONFIG = { apiUrl: "https://your-app.vercel.app/api/chat" };</script>
-   ```
-Without this, every other feature still works and the AI panels show a friendly "offline" note.
-
-## Deploy live (free)
-**Easiest:** drag the `compound-os` folder onto [Netlify Drop](https://app.netlify.com/drop).
-
-**GitHub Pages:** create a new repo (e.g. `compound-os`), push these files, then
-Settings → Pages → deploy from the `main` branch root. `.nojekyll` is already included so
-the `assets/` folder serves correctly.
-
-## Point your main domain at it
-1. Buy the domain (Namecheap, Cloudflare, Google Domains, etc.).
-2. **Netlify:** Site → Domain management → add your domain → follow the DNS records shown.
-   **GitHub Pages:** add a `CNAME` file containing your domain, then in your DNS create a
-   `CNAME` record (for `www`) → `<username>.github.io`, or four `A` records (for the apex)
-   → `185.199.108.153`, `.109.153`, `.110.153`, `.111.153`.
-3. Enable HTTPS (one click on both hosts). Done.
+The assistants need an Anthropic key, which must live on a server. Deploy
+`api/chat.example.js` as a serverless function with `ANTHROPIC_API_KEY` set, then in
+`index.html` set `window.COMPOUND_CONFIG = { apiUrl: "https://…/api/chat" }`. Without it,
+everything else still works and the AI panels show a friendly note. (TradingView and the
+calendar do **not** need this.)
 
 ## Stack
-Vanilla HTML/CSS/JS. No framework, no build. Fonts via Google Fonts. Designed dark-first,
-responsive, with reduced-motion support.
+Vanilla HTML/CSS/JS. No framework, no build. Dark-first, responsive, reduced-motion aware.

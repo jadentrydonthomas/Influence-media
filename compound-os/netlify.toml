@@ -1,0 +1,12 @@
+# Compound OS — Netlify config.
+# When you connect this repo to Netlify, set the site's "Base directory" to
+# compound-os and Netlify will read this file. It serves the folder as-is.
+[build]
+  publish = "."
+  command = ""
+
+# Long-cache the static assets, always revalidate the HTML so updates show.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

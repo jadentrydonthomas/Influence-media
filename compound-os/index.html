@@ -473,6 +473,39 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 @keyframes heroSweep{0%{background-position:140% 0;opacity:0}16%{opacity:.85}48%{opacity:.95}74%{background-position:-44% 0;opacity:0}100%{background-position:-44% 0;opacity:0}}
 .hero .ha-id h1{color:#fff;-webkit-text-fill-color:#fff;text-shadow:0 2px 26px rgba(0,0,0,.6),0 0 2px rgba(255,255,255,.35);animation:none;background:none}
 .hero .ha-code{text-shadow:0 1px 8px rgba(0,0,0,.6)}
+/* Graded cinematic backdrop for stations without a photo yet */
+.hero.has-grad{background:
+  radial-gradient(130% 150% at 82% -10%,rgba(var(--env1),.65),transparent 56%),
+  radial-gradient(110% 130% at 0% 110%,rgba(var(--env2),.5),transparent 60%),
+  radial-gradient(80% 90% at 50% 50%,rgba(var(--env1),.12),transparent 70%),
+  linear-gradient(160deg,#0c1018,#06070e 70%)}
+.hero.has-grad::before{content:"";position:absolute;inset:0;opacity:.5;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero.has-grad .ha-shade{background:linear-gradient(180deg,transparent 30%,rgba(6,7,14,.45) 64%,rgba(6,7,14,.9) 100%)}
+/* TradingView live market widgets */
+.tv-card .tv-ticker{margin:2px 0 14px;border-radius:13px;overflow:hidden;border:1px solid var(--line);background:#0b0f17;min-height:46px}
+.tv-card .tv-chart{height:clamp(360px,52vh,520px);border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-bottom:14px;background:#0b0f17}
+.tv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tv-grid .tv-mini{height:420px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0b0f17}
+@media(max-width:840px){.tv-grid{grid-template-columns:1fr}}
+.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}
+.tv-card .tradingview-widget-copyright{font-size:10px;opacity:.4;padding:2px 4px}
+/* ── Calendar: softer, deeper, less blocky ── */
+.cal{border-radius:26px;box-shadow:0 44px 96px -58px rgba(var(--env1),.7),inset 0 1px 0 rgba(255,255,255,.07)}
+.tg-head{background:linear-gradient(180deg,rgba(255,255,255,.045),transparent)}
+.tg-head .dd{letter-spacing:-.02em}
+.tg-head .dh.today .dd{box-shadow:0 10px 22px -8px rgba(255,255,255,.55)}
+.dcol{background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(180deg,rgba(255,176,84,.055),transparent 20%,transparent 66%,rgba(80,110,220,.07));background-size:100% var(--hourH),100% 100%}
+.dcol.is-today{background-color:rgba(243,244,248,.035)}
+.ev{border-radius:13px;padding:8px 11px 8px 14px;border:1px solid rgba(255,255,255,.18);
+  background:linear-gradient(155deg,color-mix(in srgb,var(--c1) 92%,transparent),color-mix(in srgb,var(--c2) 95%,transparent));
+  box-shadow:0 12px 24px -13px rgba(0,0,0,.82),inset 0 1px 0 rgba(255,255,255,.30),inset 0 0 0 1px rgba(255,255,255,.05);
+  backdrop-filter:blur(3px) saturate(1.1);-webkit-backdrop-filter:blur(3px) saturate(1.1)}
+.ev::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:3px;border-radius:3px;background:rgba(255,255,255,.62);box-shadow:0 0 10px rgba(255,255,255,.45)}
+.ev:hover{filter:brightness(1.12) saturate(1.08);transform:translateY(-1px) scale(1.015)}
+.ev.tiny{padding:4px 10px 4px 14px}
+.adchip{border-radius:12px;padding:8px 12px;box-shadow:0 10px 20px -11px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.26)}
+.nowline::after{content:"NOW";position:absolute;left:5px;top:-8px;font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;color:#fff;background:#F43F5E;border-radius:5px;padding:1px 6px;box-shadow:0 3px 9px rgba(244,63,94,.6)}
+.cal-note{padding:2px 0}
 /* Chips read as real frosted glass tiles */
 .chip{background:rgba(14,16,26,.34);border:1px solid rgba(255,255,255,.22);box-shadow:0 16px 40px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 22px rgba(var(--env1),.12)}
 .chip .cv{text-shadow:0 1px 10px rgba(0,0,0,.5)}
@@ -638,13 +671,27 @@ const TILE_ART={
 };
 /* Real rendered hero art. Where a station has an image it replaces the
    hand-drawn SVG; stations left null keep their SVG hero until a render exists. */
-const HERO_IMG={
- stocks:'assets/img/hero-stocks.png',
- ai:'assets/img/hero-ai.png',
- media:'assets/img/hero-media.png',
- fe:null,
- work:null,
+/* ── Hero media ──────────────────────────────────────────────────────────
+   Each station can show a real photo OR a looping video behind the glass.
+   To use your own: set img/video to any URL (Pexels, your Canva export, a
+   file you drop in assets/img/…). Photos below are real, free-licensed shots
+   served from Wikimedia's CDN. Stations with img:null use a graded cinematic
+   backdrop until you give them a picture — swap in one line, no other change. */
+const WM=f=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1600';
+const HERO={
+ fe:    {img:WM('Chicago Skyway, Interstate 90, Chicago, Illinois (11051973923).jpg')},
+ ai:    {img:WM('Datacenter Server Racks (22370909788).jpg')},
+ media: {img:null},   // drop in your own filming/creator shot or video URL
+ stocks:{img:WM('NYSE Advanced Trading Floor.jpg')},
+ work:  {img:null},   // drop in a steel-mill / I-beam shot or video URL
 };
+function heroMarkup(k){
+ const h=HERO[k]||{};
+ if(h.video) return `<video class="hero-img" autoplay muted loop playsinline ${h.img?`poster="${h.img}"`:''}><source src="${h.video}" type="video/mp4"></video>`;
+ if(h.img)   return `<img class="hero-img" src="${h.img}" alt="${k}" loading="eager" onerror="var x=this.closest('.hero');x.classList.add('has-grad');x.classList.remove('has-img');this.remove()">`;
+ return '';
+}
+const heroHasMedia=k=>!!(HERO[k]&&(HERO[k].img||HERO[k].video));
 const E=(s,e,n,c)=>({s,e,n,c});const AD=(n,c)=>({allday:true,n,c});
 const AM=E('06:00','06:45','Morning review — formulas + flashcards','fe');
 const WORK=E('07:00','15:00','Nucor — quote engineering','work');
@@ -935,9 +982,10 @@ function renderStation(k){
   const chips=cfg.chips.map((c,i)=>`<div class="chip c${i+1}"><span class="cl">${c[0]}</span><span class="cv">${c[1]}</span></div>`).join('');
   const micSVG='<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
   el.innerHTML=`
-   <div class="hero rise${HERO_IMG[k]?' has-img':''}" style="${cs}">${HERO_IMG[k]?`<img class="hero-img" src="${HERO_IMG[k]}" alt="${cfg.title}" loading="eager">`:ART[k]}<div class="ha-shade"></div><div class="ha-code">${cfg.code}</div>${chips}<div class="ha-id"><div class="glyph">${glyph(k)}</div><div><div class="eyebrow">Workstation</div><h1>${cfg.title}</h1></div></div></div>
+   <div class="hero rise ${heroHasMedia(k)?'has-img':'has-grad'}" style="${cs}">${heroMarkup(k)}<div class="ha-shade"></div><div class="ha-code">${cfg.code}</div>${chips}<div class="ha-id"><div class="glyph">${glyph(k)}</div><div><div class="eyebrow">Workstation</div><h1>${cfg.title}</h1></div></div></div>
    <div class="metricband" style="${cs}">${mets.map(([l,v])=>`<div class="mb-cell"><div class="mb-l">${l}</div><div class="mb-v" data-to="${v}">0</div></div>`).join('')}</div>
    <p class="subline">${cfg.line}</p>
+   ${k==='stocks'?`<div class="card tv-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Live Market — chart, watchlist &amp; news</h3><div class="tv-ticker" id="tv-ticker"></div><div class="tv-chart" id="tv-chart"></div><div class="tv-grid"><div class="tv-mini" id="tv-watch"></div><div class="tv-mini" id="tv-news"></div></div><p class="rs-note">Live data via TradingView — type any ticker in the chart's search box. Study &amp; education only.</p></div>`:''}
    ${k==='stocks'?`<div class="card research" style="${cs}"><h3><span class="h-ic">${glyph('stocks')}</span>Research Desk — live, web-connected</h3><div class="rs-row"><input id="rs-in" placeholder="Research a name… 'Anthropic lock-up status' or 'NVDA this week'"><button class="rs-go" id="rs-go">Run</button></div><div class="rs-out" id="rs-out"><div class="rs-card" id="rs-card"></div><button class="rs-save" id="rs-save">Save to memory log</button></div><p class="rs-note">Runs Claude with live web search. Works inside Claude. Research & education only — your decisions stay yours.</p></div>`:''}
    <div class="card station-ai" style="${cs}"><div class="sa-head"><div class="sa-ic glyph" style="${cs}">${glyph(k)}</div><div class="sa-meta"><b>${STATION_AI[k].name}</b><span>Your dedicated ${cfg.title} AI — plan, ask, add a task, or log, by voice or text</span></div><button class="spkbtn" id="sa-spk-${k}" aria-label="Voice replies" title="Voice replies"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button></div><div class="sa-body" id="sa-body-${k}"></div><div class="sa-in"><button class="micbtn" id="sa-mic-${k}" aria-label="Voice">${micSVG}</button><input id="sa-in-${k}" placeholder="Talk to your ${STATION_AI[k].name}…" autocomplete="off"><button class="sendbtn" id="sa-send-${k}" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button></div></div>
    <div class="st-bento" style="${cs}">
@@ -958,7 +1006,32 @@ function renderStation(k){
   attachMic($('#lm-'+k),txt=>{$('#li-'+k).value=txt},{getBase:()=>$('#li-'+k).value.trim()});
   wireStationChat(k);
   if(k==='fe')drawFETopics();
-  if(k==='stocks')wireResearch(drawLogs);
+  if(k==='stocks'){wireResearch(drawLogs);mountMarketDesk();}
+}
+/* ═══ TradingView live market widgets (no API key, client-side) ═══ */
+function tvWidget(elId,src,config){
+  const host=document.getElementById(elId);if(!host)return;
+  host.innerHTML='';
+  const wrap=document.createElement('div');wrap.className='tradingview-widget-container';
+  const inner=document.createElement('div');inner.className='tradingview-widget-container__widget';
+  wrap.appendChild(inner);
+  const s=document.createElement('script');s.async=true;s.src=src;s.innerHTML=JSON.stringify(config);
+  wrap.appendChild(s);host.appendChild(wrap);
+}
+function mountMarketDesk(){
+  tvWidget('tv-ticker','https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js',{
+    symbols:[{proName:'NASDAQ:NVDA',title:'NVDA'},{proName:'NASDAQ:MSFT',title:'MSFT'},{proName:'NASDAQ:GOOGL',title:'GOOGL'},{proName:'NASDAQ:AMZN',title:'AMZN'},{proName:'FOREXCOM:SPXUSD',title:'S&P 500'},{proName:'NASDAQ:IXIC',title:'Nasdaq'},{proName:'TVC:GOLD',title:'Gold'},{proName:'BITSTAMP:BTCUSD',title:'BTC'}],
+    showSymbolLogo:true,isTransparent:true,displayMode:'adaptive',colorTheme:'dark',locale:'en'});
+  tvWidget('tv-chart','https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js',{
+    autosize:true,symbol:'NASDAQ:NVDA',interval:'D',timezone:'America/Chicago',theme:'dark',style:'1',locale:'en',
+    withdateranges:true,allow_symbol_change:true,hide_side_toolbar:false,details:true,
+    support_host:'https://www.tradingview.com'});
+  tvWidget('tv-watch','https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js',{
+    colorTheme:'dark',dateRange:'1D',showChart:true,locale:'en',isTransparent:true,width:'100%',height:'100%',
+    tabs:[{title:'Watch',symbols:[{s:'NASDAQ:NVDA',d:'NVIDIA'},{s:'NASDAQ:MSFT',d:'Microsoft'},{s:'NASDAQ:GOOGL',d:'Alphabet'},{s:'NASDAQ:AMZN',d:'Amazon'},{s:'NASDAQ:META',d:'Meta'}]},
+          {title:'Indexes',symbols:[{s:'FOREXCOM:SPXUSD',d:'S&P 500'},{s:'NASDAQ:IXIC',d:'Nasdaq'},{s:'FOREXCOM:DJI',d:'Dow 30'}]}]});
+  tvWidget('tv-news','https://s3.tradingview.com/external-embedding/embed-widget-timeline.js',{
+    feedMode:'market',market:'stock',colorTheme:'dark',isTransparent:true,displayMode:'regular',width:'100%',height:'100%',locale:'en'});
 }
 function drawFETopics(){const w=$('#fetopics');if(!w)return;w.innerHTML=FE_TOPICS.map(([n,wk],i)=>`<div class="tsm${topicState[i]?' done':''}" data-i="${i}" style="--c1:var(--fe1);--c2:var(--fe2)"><div class="tch"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div><span class="tn">${n}</span><span class="tw">${wk}</span></div>`).join('');w.querySelectorAll('.tsm').forEach(t=>t.addEventListener('click',async()=>{topicState[t.dataset.i]=!topicState[t.dataset.i];drawFETopics();await sset(KEYS.topics,topicState)}));const done=feDone();const pf=$('#pfill');if(pf){pf.style.width=(done/14*100)+'%';$('#pnum').textContent=done+'/14'}}
 function wireResearch(refreshLogs){
