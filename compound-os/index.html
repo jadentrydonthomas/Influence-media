@@ -683,11 +683,13 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 <aside class="drawer" id="drawer"></aside>
 <div class="modal-wrap" id="addslot"></div>
 <div class="modal-wrap" id="heromodal"></div>
+<div class="modal-wrap" id="aimodal"></div>
 <button class="fab" id="fab" aria-label="Open assistant"><svg viewBox="0 0 24 24"><path d="M12 1.6l1.2 6.3 4.6-4.4-2.7 5.8 6.3-.9-5.6 3.1 5.6 3.1-6.3-.9 2.7 5.8-4.6-4.4-1.2 6.3-1.2-6.3-4.6 4.4 2.7-5.8-6.3.9 5.6-3.1-5.6-3.1 6.3.9-2.7-5.8 4.6 4.4z"/></svg></button>
 <div class="chat" id="chat">
   <div class="chat-head">
     <div class="cg"><svg viewBox="0 0 24 24"><path d="M12 1.6l1.2 6.3 4.6-4.4-2.7 5.8 6.3-.9-5.6 3.1 5.6 3.1-6.3-.9 2.7 5.8-4.6-4.4-1.2 6.3-1.2-6.3-4.6 4.4 2.7-5.8-6.3.9 5.6-3.1-5.6-3.1 6.3.9-2.7-5.8 4.6 4.4z"/></svg></div>
     <div class="ct"><b>Compound Assistant</b><span>Ask about progress · plan · log</span></div>
+    <button class="spkbtn" id="aikeybtn" aria-label="Connect AI" title="Connect AI (API key)"><svg viewBox="0 0 24 24"><path d="M14 7a4 4 0 1 0-3.9 5H13l2 2 2-2 2 2 2-2-2-2h-1.1A4 4 0 0 0 14 7z"/><circle cx="10" cy="11" r="1.4" fill="#fff" stroke="none"/></svg></button>
     <button class="spkbtn" id="spkbtn" aria-label="Toggle voice replies" title="Voice replies off"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button>
   </div>
   <div class="chat-body" id="chatbody">
@@ -720,12 +722,22 @@ async function sset(k,v){
     localStorage.setItem(k,JSON.stringify(v));return true;
   }catch(e){return false}
 }
-/* AI endpoint resolution:
-   1. window.COMPOUND_CONFIG.apiUrl  → your hosted backend proxy (recommended)
-   2. inside a Claude artifact        → call Anthropic directly (proxied for you)
-   3. otherwise                       → null; AI panels show a graceful note */
-const AI_API=(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||(HAS_CLAUDE_STORE?'https://api.anthropic.com/v1/messages':null);
-const AI_OFFLINE_MSG="The AI runs through a backend that isn't connected here, so live replies are off — but your tasks, logs, schedule and voice all work and save. Add a backend URL in COMPOUND_CONFIG to switch it on.";
+/* AI connection. Priority:
+   1. a personal Anthropic API key you paste in-app (stored only in your
+      browser) → calls Claude directly with the browser-access header
+   2. window.COMPOUND_CONFIG.apiUrl → your own hosted proxy
+   3. inside a Claude artifact → direct (proxied) */
+const AI_KEY_K='os4-aikey';
+function getAIKey(){try{return localStorage.getItem(AI_KEY_K)||''}catch(e){return ''}}
+function aiConfigured(){return !!getAIKey()||!!(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||HAS_CLAUDE_STORE}
+async function callAI(body){
+  const key=getAIKey();
+  if(key)return fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+  const url=(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||(HAS_CLAUDE_STORE?'https://api.anthropic.com/v1/messages':null);
+  if(!url)throw new Error('no-ai');
+  return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
+const AI_OFFLINE_MSG="Live AI isn't connected yet. Tap the key icon at the top of this chat (or the assistant button) to paste your Anthropic API key — it saves only on this device and switches every assistant + the Research Desk on. Tasks, logs, schedule and voice already work.";
 const cssVar=c=>c==='stocks'?'stk':c==='work'?'wrk':c==='body'?'bdy':c;
 const catStyle=c=>`--c1:var(--${cssVar(c)}1);--c2:var(--${cssVar(c)}2)`;
 const stamp=()=>new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -772,10 +784,10 @@ const TILE_ART={
    an image URL or a YouTube / .mp4 link; it saves to your browser. */
 const WM=f=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1600';
 const HERO={
- fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center 50%'},
- ai:    {img:'assets/img/hero-ai.png',pos:'center'},
- media: {img:'assets/img/hero-media.png',pos:'center 42%'},
- stocks:{img:'assets/img/hero-stocks.png',pos:'center 42%'},
+ fe:    {video:'tRsQsTMvPNg',img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center'},
+ ai:    {img:'assets/img/hero-ai.png',pos:'center'},          // the Claude image you wanted
+ media: {video:'eim3k3zyagY',img:'assets/img/hero-media.png',pos:'center'},
+ stocks:{video:'EEX0EHTTePE',img:'assets/img/hero-stocks.png',pos:'center'},
  work:  {img:'assets/img/hero-work.png',pos:'center'},
 };
 let heroOverrides={};                 // {station:{img,video,pos}} from localStorage
@@ -791,8 +803,11 @@ function ytId(u){
 function heroMarkup(k){
  const h=heroFor(k);
  if(h.video){
-   const yt=ytId(h.video);
-   if(yt)return `<iframe class="hero-vid" src="https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&loop=1&playlist=${yt}&controls=0&playsinline=1&modestbranding=1&rel=0&showinfo=0&disablekb=1" allow="autoplay; encrypted-media" referrerpolicy="no-referrer" tabindex="-1" title="hero"></iframe>`;
+   const yt=ytId(h.video),pos=h.pos||'center';
+   if(yt){
+     const poster=h.img||('https://i.ytimg.com/vi/'+yt+'/maxresdefault.jpg');
+     return `<img class="hero-img" src="${poster}" alt="" style="object-position:${pos}" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${yt}/hqdefault.jpg'"><iframe class="hero-vid" src="https://www.youtube.com/embed/${yt}?autoplay=1&mute=1&loop=1&playlist=${yt}&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1" allow="autoplay; encrypted-media" referrerpolicy="no-referrer" loading="eager" tabindex="-1" title="hero video"></iframe>`;
+   }
    return `<video class="hero-img" autoplay muted loop playsinline ${h.img?`poster="${h.img}"`:''}><source src="${h.video}" type="video/mp4"></video>`;
  }
  if(h.img)return `<img class="hero-img" src="${h.img}" alt="${k}" loading="eager" style="object-position:${h.pos||'center'}" onerror="var x=this.closest('.hero');x.classList.add('has-grad');x.classList.remove('has-img');this.remove()">`;
@@ -1042,6 +1057,29 @@ function openAddSlot(wk,di,startMin){
 /* ═══ set a station's hero image or video (saved to your browser) ═══ */
 let watchList=['NASDAQ:NVDA','NASDAQ:MSFT','NASDAQ:GOOGL','NASDAQ:AMZN','NASDAQ:META'];
 function closeHeroModal(){$('#heromodal').classList.remove('on');$('#scrim').classList.remove('on')}
+function closeAIModal(){$('#aimodal').classList.remove('on');$('#scrim').classList.remove('on')}
+function openAIModal(){
+  const wrap=$('#aimodal'),has=!!getAIKey();
+  wrap.innerHTML=`<div class="modal" style="--c1:var(--ai1);--c2:var(--ai2)">
+    <div class="modal-head"><button class="mclose" aria-label="Close">✕</button><div class="mh-k">Connect AI</div><div class="mh-t">${has?'AI is connected':'Turn on the assistants'}</div></div>
+    <div class="modal-body">
+      <p class="hm-hint">Paste your <b>Anthropic API key</b> to make every assistant + the Research Desk live. It's stored <b>only in this browser</b> (never uploaded, never in the site's code) and calls Claude directly. ${has?'A key is already saved.':''}</p>
+      <p class="ml">Anthropic API key</p>
+      <div class="modal-row"><input class="m-name" id="ai-key" type="password" placeholder="sk-ant-…" value="${has?'••••••••••••':''}" autocomplete="off"></div>
+      <p class="hm-hint">Get one at <b>console.anthropic.com</b> → API Keys. Tip: on a shared device, remove it when you're done.</p>
+      <div class="hm-actions"><button class="modal-add" id="ai-save">Save &amp; connect</button>${has?'<button class="hm-reset" id="ai-remove">Remove key</button>':''}</div>
+    </div></div>`;
+  wrap.querySelector('.mclose').addEventListener('click',closeAIModal);
+  wrap.querySelector('#ai-save').addEventListener('click',()=>{
+    const v=$('#ai-key').value.trim();
+    if(v&&!/^•+$/.test(v)){try{localStorage.setItem(AI_KEY_K,v)}catch(e){}}
+    closeAIModal();
+    try{const cb=$('#chatbody');if(cb){const b=document.createElement('div');b.className='msg sys';b.textContent='✓ AI connected';cb.appendChild(b)}}catch(e){}
+    if(['fe','ai','media','stocks','work'].includes(curView))wireStationChat(curView);
+  });
+  const rm=wrap.querySelector('#ai-remove');if(rm)rm.addEventListener('click',()=>{try{localStorage.removeItem(AI_KEY_K)}catch(e){}closeAIModal();});
+  wrap.classList.add('on');$('#scrim').classList.add('on');
+}
 function openHeroModal(k){
   const wrap=$('#heromodal'),cur=heroFor(k),cs=catStyle(k);
   wrap.innerHTML=`<div class="modal" style="${cs}">
@@ -1133,8 +1171,9 @@ function openDrawer(b,ctx){
   });
 }
 function closeDrawer(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on')}
-$('#scrim').addEventListener('click',()=>{closeDrawer();closeAddSlot();closeHeroModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeAddSlot();closeHeroModal()}});
+$('#scrim').addEventListener('click',()=>{closeDrawer();closeAddSlot();closeHeroModal();closeAIModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeAddSlot();closeHeroModal();closeAIModal()}});
+{const akb=$('#aikeybtn');if(akb)akb.addEventListener('click',openAIModal);}
 function renderStation(k){
   const cfg=STATIONS[k],st=stState[k],el=$('#v-'+k),cs=catStyle(k);
   const mets=METRICS[k](st);
@@ -1282,9 +1321,9 @@ function drawFETopics(){const w=$('#fetopics');if(!w)return;w.innerHTML=FE_TOPIC
 function wireResearch(refreshLogs){
   const go=$('#rs-go'),inp=$('#rs-in'),out=$('#rs-out'),card=$('#rs-card'),save=$('#rs-save');if(!go)return;let lastQ='';
   async function run(){const q=inp.value.trim();if(!q)return;lastQ=q;out.classList.add('on');
-    if(!AI_API){card.textContent=AI_OFFLINE_MSG;return}
+    if(!aiConfigured()){card.textContent=AI_OFFLINE_MSG;return}
     go.disabled=true;go.textContent='…';card.textContent='Researching "'+q+'" — pulling live data…';
-    try{const res=await fetch(AI_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1400,system:'You are the research analyst on Jaden\'s Market Desk. He studies IPO dynamics (lock-up expiry then support formation then scale-in) and watches Anthropic, SpaceX, OpenAI. Use web search for current info. Reply in plain text under 220 words: what is happening now, key dates/numbers, and how it ties to his framework if relevant. Short paragraphs, no markdown headers/bullets. End with one line on what to watch next. Research and education only, never buy/sell advice.',messages:[{role:'user',content:q}],tools:[{type:'web_search_20250305',name:'web_search'}]})});const data=await res.json();const txt=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();card.textContent=txt||'No result — try rephrasing.'}catch(e){card.textContent='Connection hiccup — try again.'}
+    try{const res=await callAI({model:'claude-sonnet-4-6',max_tokens:1400,system:'You are the research analyst on Jaden\'s Market Desk. He studies IPO dynamics (lock-up expiry then support formation then scale-in) and watches Anthropic, SpaceX, OpenAI. Use web search for current info. Reply in plain text under 220 words: what is happening now, key dates/numbers, and how it ties to his framework if relevant. Short paragraphs, no markdown headers/bullets. End with one line on what to watch next. Research and education only, never buy/sell advice.',messages:[{role:'user',content:q}],tools:[{type:'web_search_20250305',name:'web_search'}]});const data=await res.json();const txt=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();card.textContent=txt||'No result — try rephrasing.'}catch(e){card.textContent='Connection hiccup — try again.'}
     go.disabled=false;go.textContent='Run'}
   go.addEventListener('click',run);inp.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
   save.addEventListener('click',async()=>{const txt=card.textContent.trim();if(!txt)return;stState.stocks.logs.unshift({ts:stamp()+' · RESEARCH: '+lastQ,t:txt});bumpStreak();await sset(KEYS.st,stState);refreshLogs();save.textContent='Saved ✓';setTimeout(()=>save.textContent='Save to memory log',1600)});
@@ -1305,12 +1344,12 @@ function stationSys(k){const a=STATION_AI[k];return a.sys+'\n\n'+ACTION_PROTOCOL
 async function sendStation(k,forced){
   const inp=$('#sa-in-'+k);if(!inp)return;const text=(forced!==undefined?forced:inp.value).trim();if(!text)return;if(forced===undefined)inp.value='';
   appendStation(k,'user',text);stationHistory[k].push({role:'user',text});
-  if(!AI_API){appendStation(k,'bot',AI_OFFLINE_MSG);return}
+  if(!aiConfigured()){appendStation(k,'bot',AI_OFFLINE_MSG);return}
   const body=$('#sa-body-'+k);const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';body.appendChild(typing);body.scrollTop=body.scrollHeight;
   const sbtn=$('#sa-send-'+k);if(sbtn)sbtn.disabled=true;
   try{
     const msgs=stationHistory[k].map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
-    const res=await fetch(AI_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:stationSys(k),messages:msgs})});
+    const res=await callAI({model:'claude-sonnet-4-6',max_tokens:900,system:stationSys(k),messages:msgs});
     const data=await res.json();let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
     typing.remove();
     let parsed=null;try{parsed=JSON.parse(raw)}catch(e){const mm=raw.match(/\{[\s\S]*\}/);if(mm){try{parsed=JSON.parse(mm[0])}catch(e2){}}}
@@ -1404,11 +1443,11 @@ async function sendMsg(forced){
   const text=(forced!==undefined?forced:chatin.value).trim();if(!text)return;
   if(forced===undefined)chatin.value='';
   pushMsg('user',text);
-  if(!AI_API){pushMsg('bot',AI_OFFLINE_MSG);return}
+  if(!aiConfigured()){pushMsg('bot',AI_OFFLINE_MSG);return}
   const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';chatbody.appendChild(typing);chatbody.scrollTop=chatbody.scrollHeight;chatsend.disabled=true;
   try{
     const payload={model:'claude-sonnet-4-6',max_tokens:900,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
-    const res=await fetch(AI_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const res=await callAI(payload);
     const data=await res.json();
     let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
     typing.remove();
