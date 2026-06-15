@@ -525,6 +525,9 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .hero .hero-edit:hover{transform:scale(1.07);border-color:#fff}
 .hero .hero-edit svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .hm-hint{font-size:11.5px;line-height:1.5;color:var(--faint);margin:6px 0 14px}
+.ai-free{font-size:12px;line-height:1.55;color:var(--dim);background:linear-gradient(180deg,rgba(52,211,153,.12),rgba(52,211,153,.04));border:1px solid rgba(52,211,153,.32);border-radius:13px;padding:11px 13px;margin:4px 0 14px}
+.ai-free a{color:var(--stk1);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(52,211,153,.5)}
+.ai-free code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px}
 .hm-actions{display:flex;gap:9px;align-items:center}
 .hm-actions .modal-add{margin-top:0;flex:1}
 .hm-reset{padding:13px 16px;border-radius:14px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--line2);white-space:nowrap}
@@ -770,16 +773,34 @@ async function sset(k,v){
 const AI_KEY_K='os4-aikey',AI_MODEL_K='os4-aimodel';
 const AI_MODELS={haiku:'claude-haiku-4-5-20251001',sonnet:'claude-sonnet-4-6'};
 function getAIKey(){try{return localStorage.getItem(AI_KEY_K)||''}catch(e){return ''}}
+function aiProvider(key){return /^AIza/.test(key||getAIKey())?'gemini':'anthropic'}
+const GEMINI_MODEL='gemini-2.0-flash';
+/* Google Gemini (free tier) — normalize its response to the Anthropic shape so
+   the rest of the app (which reads data.content[].text) works unchanged. */
+async function callGemini(key,body){
+  const req={contents:(body.messages||[]).map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:String(m.content||'')}]})),generationConfig:{maxOutputTokens:body.max_tokens||1024,temperature:0.7}};
+  if(body.system)req.systemInstruction={parts:[{text:String(body.system)}]};
+  if(body.tools&&body.tools.length)req.tools=[{google_search:{}}];
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
+  let data={};try{data=await res.json()}catch(e){}
+  if(!res.ok){const msg=(data&&data.error&&data.error.message)||('Gemini error '+res.status);return {json:async()=>({content:[{type:'text',text:msg}]})}}
+  const parts=(data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts)||[];
+  const text=parts.map(p=>p.text||'').join('').trim();
+  return {json:async()=>({content:[{type:'text',text}]})};
+}
 function aiModel(){try{const m=localStorage.getItem(AI_MODEL_K);return AI_MODELS[m]||AI_MODELS.haiku}catch(e){return AI_MODELS.haiku}}
 function aiConfigured(){return !!getAIKey()||!!(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||HAS_CLAUDE_STORE}
 async function callAI(body){
   const key=getAIKey();
-  if(key)return fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+  if(key){
+    if(aiProvider(key)==='gemini')return callGemini(key,body);
+    return fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+  }
   const url=(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||(HAS_CLAUDE_STORE?'https://api.anthropic.com/v1/messages':null);
   if(!url)throw new Error('no-ai');
   return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 }
-const AI_OFFLINE_MSG="Live AI isn't connected yet. Tap the key icon at the top of this chat (or the assistant button) to paste your Anthropic API key — it saves only on this device and switches every assistant + the Research Desk on. Tasks, logs, schedule and voice already work.";
+const AI_OFFLINE_MSG="Live chat isn't connected yet. Tap the 🔑 key icon up top and paste a FREE Google Gemini key (get one in 2 min at aistudio.google.com/apikey — no card) to switch on every assistant + grounded research at $0. Your schedule, tasks, logs, FCF tool and voice already work without it.";
 /* ═══ Offline brain — useful answers with no API key, zero cost ═══ */
 function localAnswer(text){
   const q=String(text||'').toLowerCase().trim();if(!q)return null;
@@ -1190,12 +1211,13 @@ function openAIModal(){
   wrap.innerHTML=`<div class="modal" style="--c1:var(--ai1);--c2:var(--ai2)">
     <div class="modal-head"><button class="mclose" aria-label="Close">✕</button><div class="mh-k">Connect AI</div><div class="mh-t">${has?'AI is connected':'Turn on the assistants'}</div></div>
     <div class="modal-body">
-      <p class="hm-hint">Paste your <b>Anthropic API key</b> to make every assistant + the Research Desk live. It's stored <b>only in this browser</b> (never uploaded, never in the site's code) and calls Claude directly. ${has?'A key is already saved.':''}</p>
-      <p class="ml">Anthropic API key</p>
-      <div class="modal-row"><input class="m-name" id="ai-key" type="password" placeholder="sk-ant-…" value="${has?'••••••••••••':''}" autocomplete="off"></div>
-      <p class="ml">Model — controls your cost</p>
+      <p class="hm-hint">Paste an API key to turn on every assistant + the Research Desk. The key is stored <b>only in this browser</b> (never uploaded, never in the site's code). I auto-detect which provider you're using. ${has?'A key is already saved.':''}</p>
+      <div class="ai-free"><b>💚 Free option (recommended):</b> grab a <b>Google Gemini</b> key — it's free, no credit card. Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, click <i>Create API key</i>, paste it below. Keys start with <code>AIza…</code>. Everything runs at $0 within a generous daily limit.</div>
+      <p class="ml">API key — Gemini (free) or Anthropic</p>
+      <div class="modal-row"><input class="m-name" id="ai-key" type="password" placeholder="AIza…  (or sk-ant-… for Claude)" value="${has?'••••••••••••':''}" autocomplete="off"></div>
+      <p class="ml">Claude model (only used for an Anthropic key)</p>
       <div class="seg ai-modelseg" id="ai-modelseg"><button data-m="haiku" class="${curM==='haiku'?'on':''}">Haiku · economical</button><button data-m="sonnet" class="${curM==='sonnet'?'on':''}">Sonnet · sharper</button></div>
-      <p class="hm-hint"><b>Haiku</b> is far cheaper — best for everyday chat, planning and logging. Switch to <b>Sonnet</b> only when you want deeper reasoning. Replies are kept short to save tokens. The Research Desk uses web search (the only pricey call) and only runs when you click <i>Run</i>.</p>
+      <p class="hm-hint">With a <b>Gemini</b> key this is ignored — it uses Gemini Flash (free) and the Research Desk gets real Google-grounded search. With an <b>Anthropic</b> key, <b>Haiku</b> is cheapest for everyday use; <b>Sonnet</b> for deeper reasoning.</p>
       <div class="hm-actions"><button class="modal-add" id="ai-save">Save &amp; connect</button>${has?'<button class="hm-reset" id="ai-remove">Remove key</button>':''}</div>
     </div></div>`;
   wrap.querySelector('.mclose').addEventListener('click',closeAIModal);
