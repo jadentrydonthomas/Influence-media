@@ -2,13 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Compound OS — Command Center</title>
 <meta name="description" content="A personal command-center dashboard: FE study, schedule, five workstations, and per-area AI assistants.">
 <meta name="theme-color" content="#06070E">
 <meta property="og:title" content="Compound OS">
 <meta property="og:description" content="One place to run the sprint — study, schedule, build, and talk to per-area AI.">
 <meta property="og:type" content="website">
+<!-- Installable app (PWA) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Compound OS">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<!-- Keyless AI provider (free, no API key). async so a slow/blocked CDN never stalls the app. -->
+<script async src="https://js.puter.com/v2/"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230C0E18'/%3E%3Cpath d='M12 3.6l1 5 3.7-3.5-2.1 4.6 5-.7-4.5 2.5 4.5 2.5-5-.7 2.1 4.6L13 18l-1 5-1-5-3.7 3.5 2.1-4.6-5 .7 4.5-2.5-4.5-2.5 5 .7L6.3 5.1 10 8.6z' fill='%23E0B978'/%3E%3C/svg%3E">
 <script>
 /* Deployment config. To make the AI assistants work on a hosted site,
@@ -73,7 +82,8 @@ button{font-family:var(--sans)}
 .rail .spacer{flex:1}
 @media(max-width:760px){.rail{position:fixed;bottom:0;top:auto;left:0;right:0;height:64px;flex-direction:row;justify-content:space-around;padding:0 6px;border-right:none;border-top:1px solid var(--line)}.rail .mark,.rail .spacer{display:none}.rbtn.on::before{left:10px;right:10px;top:auto;bottom:-1px;width:auto;height:3px}.rbtn .tip{display:none}}
 .main{padding:30px 36px 90px;max-width:1480px;width:100%;margin:0 auto}
-@media(max-width:760px){.main{padding:20px 16px 120px}}
+@media(max-width:760px){.main{padding:calc(20px + env(safe-area-inset-top)) 16px calc(120px + env(safe-area-inset-bottom))}
+  .rail{height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}}
 .view{display:none}
 .view.on{display:block;animation:fade .5s ease}
 @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -388,7 +398,7 @@ h1.disp{font-family:var(--disp);font-weight:700;font-size:clamp(34px,5vw,52px);l
 .fab{position:fixed;right:24px;bottom:24px;z-index:80;width:60px;height:60px;border-radius:20px;border:1px solid var(--line2);cursor:pointer;background:linear-gradient(140deg,#1B1F2D,#0C0E18);display:grid;place-items:center;transition:transform .2s,border-color .2s;box-shadow:0 0 28px -8px rgba(224,185,120,.6)}
 .fab:hover{transform:scale(1.06);border-color:var(--gold)}
 .fab svg{width:26px;height:26px;fill:var(--gold)}
-@media(max-width:760px){.fab{bottom:78px}}
+@media(max-width:760px){.fab{bottom:calc(78px + env(safe-area-inset-bottom))}}
 .chat{position:fixed;right:24px;bottom:96px;z-index:80;width:min(412px,calc(100vw - 30px));height:min(594px,calc(100vh - 140px));border-radius:24px;display:none;flex-direction:column;overflow:hidden;background:rgba(10,12,20,.92);border:1px solid var(--line2);backdrop-filter:blur(34px)}
 @media(max-width:760px){.chat{bottom:150px}}
 .chat.open{display:flex}
@@ -789,13 +799,33 @@ async function callGemini(key,body){
   return {json:async()=>({content:[{type:'text',text}]})};
 }
 function aiModel(){try{const m=localStorage.getItem(AI_MODEL_K);return AI_MODELS[m]||AI_MODELS.haiku}catch(e){return AI_MODELS.haiku}}
-function aiConfigured(){return !!getAIKey()||!!(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||HAS_CLAUDE_STORE}
+function puterReady(){return typeof window!=='undefined'&&window.puter&&window.puter.ai&&typeof window.puter.ai.chat==='function'}
+function aiConfigured(){return !!getAIKey()||puterReady()||!!(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||HAS_CLAUDE_STORE}
+/* Puter.js — free, keyless AI (works the moment the page loads). Normalized to
+   the Anthropic content shape so the rest of the app is unchanged. */
+const PUTER_MODEL='gpt-4o-mini';
+function puterText(r){
+  if(!r)return '';
+  if(typeof r==='string')return r;
+  if(r.message&&r.message.content!=null){const c=r.message.content;if(typeof c==='string')return c;if(Array.isArray(c))return c.map(x=>(x&&x.text)||(typeof x==='string'?x:'')).join('')}
+  if(r.text)return r.text;
+  if(typeof r.toString==='function'){const s=r.toString();if(s&&s!=='[object Object]')return s}
+  return '';
+}
+async function callPuter(body){
+  const msgs=[];
+  if(body.system)msgs.push({role:'system',content:String(body.system)});
+  (body.messages||[]).forEach(m=>msgs.push({role:m.role==='assistant'?'assistant':'user',content:String(m.content||'')}));
+  const resp=await window.puter.ai.chat(msgs,{model:PUTER_MODEL});
+  return {json:async()=>({content:[{type:'text',text:puterText(resp)}]})};
+}
 async function callAI(body){
   const key=getAIKey();
   if(key){
     if(aiProvider(key)==='gemini')return callGemini(key,body);
     return fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
   }
+  if(puterReady())return callPuter(body);
   const url=(window.COMPOUND_CONFIG&&window.COMPOUND_CONFIG.apiUrl)||(HAS_CLAUDE_STORE?'https://api.anthropic.com/v1/messages':null);
   if(!url)throw new Error('no-ai');
   return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -1209,10 +1239,11 @@ function openAIModal(){
   const wrap=$('#aimodal'),has=!!getAIKey();
   let curM='haiku';try{curM=localStorage.getItem(AI_MODEL_K)||'haiku'}catch(e){}
   wrap.innerHTML=`<div class="modal" style="--c1:var(--ai1);--c2:var(--ai2)">
-    <div class="modal-head"><button class="mclose" aria-label="Close">✕</button><div class="mh-k">Connect AI</div><div class="mh-t">${has?'AI is connected':'Turn on the assistants'}</div></div>
+    <div class="modal-head"><button class="mclose" aria-label="Close">✕</button><div class="mh-k">AI settings</div><div class="mh-t">${has?'Using your own key':'AI is on — free, no setup'}</div></div>
     <div class="modal-body">
-      <p class="hm-hint">Paste an API key to turn on every assistant + the Research Desk. The key is stored <b>only in this browser</b> (never uploaded, never in the site's code). I auto-detect which provider you're using. ${has?'A key is already saved.':''}</p>
-      <div class="ai-free"><b>💚 Free option (recommended):</b> grab a <b>Google Gemini</b> key — it's free, no credit card. Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, click <i>Create API key</i>, paste it below. Keys start with <code>AIza…</code>. Everything runs at $0 within a generous daily limit.</div>
+      <div class="ai-free"><b>✓ The assistants already work — free, no key needed.</b> Every coach and the Research Desk run out of the box. You don't have to do anything here. ${has?'You currently have your own key saved (below).':'This box is optional — only for power users.'}</div>
+      <p class="hm-hint"><b>Optional upgrade:</b> add your own API key for faster, sharper answers and grounded web search. Stored <b>only in this browser</b>, never uploaded. I auto-detect the provider.</p>
+      <div class="ai-free" style="background:linear-gradient(180deg,rgba(124,58,237,.12),rgba(124,58,237,.04));border-color:rgba(124,58,237,.32)"><b>Free Gemini key:</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> → <i>Create API key</i> (no credit card). Keys start with <code>AIza…</code>. Runs at $0 with grounded Google search.</div>
       <p class="ml">API key — Gemini (free) or Anthropic</p>
       <div class="modal-row"><input class="m-name" id="ai-key" type="password" placeholder="AIza…  (or sk-ant-… for Claude)" value="${has?'••••••••••••':''}" autocomplete="off"></div>
       <p class="ml">Claude model (only used for an Anthropic key)</p>
@@ -1524,7 +1555,7 @@ async function sendStation(k,forced){
     const changed=parsed?applyActions(parsed.actions,true):false;
     if(changed){stationHistory[k].push({role:'sys',text:'✓ Updated'});renderStation(k);}
     else if(parsed&&parsed.quick)appendStationQuick(k,parsed.quick);
-  }catch(e){typing.remove();appendStation(k,'bot',"I can't reach my brain right now — the assistant runs live inside Claude, so this works when the app is open there. Your tasks and logs still save fine.")}
+  }catch(e){typing.remove();const a=localAnswer(text);appendStation(k,'bot',a||"The live AI didn't respond just now — the free provider may be busy. Try again in a moment; your tasks and logs still save fine.")}
   const sb=$('#sa-send-'+k);if(sb)sb.disabled=false;
 }
 function wireStationChat(k){
@@ -1627,7 +1658,7 @@ async function sendMsg(forced){
     } else {
       const fallback=raw||"I didn't catch that — try rephrasing?";pushMsg('bot',fallback);speak(fallback);
     }
-  }catch(e){typing.remove();const err="I can't reach my brain right now — the assistant runs live inside Claude, so this works when the app is open there. Your tasks and logs still save fine.";pushMsg('bot',err)}
+  }catch(e){typing.remove();const a=localAnswer(text);pushMsg('bot',a||"The live AI didn't respond just now — the free provider may be busy. Try again in a moment. Your schedule, tasks and logs all still save, and I can still answer progress questions.")}
   chatsend.disabled=false;chatin.focus();
 }
 chatsend.addEventListener('click',()=>sendMsg());
@@ -1644,6 +1675,7 @@ attachMic($('#chatmic'),txt=>{chatin.value=txt});
   proactiveGreeting();fab.classList.add('nudge');
   setInterval(()=>{if(curView==='home')renderHome();else if(curView==='cal'&&curWeek!=='p2'&&curWeek!=='mon')renderGrid(curWeek)},60000);
   if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>{};
+  if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 })();
 </script>
 </body>

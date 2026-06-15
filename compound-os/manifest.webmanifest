@@ -1,0 +1,16 @@
+{
+  "name": "Compound OS — Command Center",
+  "short_name": "Compound OS",
+  "description": "Personal command center: FE study, schedule, workstations, and per-area AI assistants.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06070E",
+  "theme_color": "#06070E",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
