@@ -576,7 +576,7 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .sec-card .sec-row input{flex:1;font-family:var(--sans);font-size:14px;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:13px;padding:11px 14px;outline:none}
 .sec-card .sec-row input:focus{border-color:var(--stk1)}
 .sec-card .sec-row input::placeholder{color:var(--faint)}
-.sec-out{margin-top:14px}
+.sec-out{margin-top:14px;overflow-x:auto}
 .sec-msg{font-size:12.5px;line-height:1.55;color:var(--dim);padding:4px 2px}
 .sec-tbl{width:100%;border-collapse:collapse;font-size:13px}
 .sec-tbl th{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:right;padding:6px 10px;border-bottom:1px solid var(--line)}
@@ -1181,7 +1181,7 @@ function openAddSlot(wk,di,startMin){
   draw();wrap.classList.add('on');$('#scrim').classList.add('on');
 }
 /* ═══ set a station's hero image or video (saved to your browser) ═══ */
-let watchList=['NASDAQ:NVDA','NASDAQ:MSFT','NASDAQ:GOOGL','NASDAQ:AMZN','NASDAQ:META'];
+let watchList=['NASDAQ:NVDA','NASDAQ:MSFT','NASDAQ:GOOGL','NYSE:AIR','NASDAQ:AIRJ','NYSE:HYLN','NYSE:NUE'];
 function closeHeroModal(){$('#heromodal').classList.remove('on');$('#scrim').classList.remove('on')}
 function closeAIModal(){$('#aimodal').classList.remove('on');$('#scrim').classList.remove('on')}
 function openAIModal(){
@@ -1321,7 +1321,7 @@ function renderStation(k){
    ${stationExtras(k,cs)}
    ${k==='media'?`<div class="card client-card" style="${cs}"><h3><span class="h-ic">${glyph('flw')}</span>Client roster</h3><div class="addrow"><input id="cl-in" placeholder="Add a client — name · contact"><button class="iconbtn" id="cl-add" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="cl-list" id="cl-list"></div><div class="feat-note">The foundation for the agency machine — your roster lives here. Next: per-client <b>website dev</b>, <b>content analysis</b>, and <b>outreach agents</b> (Instagram / email) once the AI backend is on.</div></div>`:''}
    ${k==='stocks'?`<div class="card tv-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Live Market — chart, watchlist &amp; news</h3><div class="tv-ticker" id="tv-ticker"></div><div class="tv-watchrow"><input id="tv-add" placeholder="Add to watchlist — AAPL, NASDAQ:NVDA, BTCUSD…" autocomplete="off"><button class="rs-go" id="tv-addbtn">Add</button></div><div class="tv-chips" id="tv-chips"></div><div class="tv-chart" id="tv-chart"></div><div class="tv-grid"><div class="tv-pane"><div class="tv-panelabel" id="tv-newslabel">News</div><div class="tv-mini" id="tv-news"></div></div><div class="tv-pane"><div class="tv-panelabel">Watchlist &amp; indexes</div><div class="tv-mini" id="tv-watch"></div></div></div><p class="rs-note">Live data via TradingView — click a ticker to load its chart &amp; news, or use the chart's own search. Study &amp; education only.</p></div>`:''}
-   ${k==='stocks'?`<div class="card sec-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Free Cash Flow — from SEC 10-K filings</h3><div class="sec-row"><input id="sec-in" placeholder="Ticker — e.g. NVDA, MSFT, AAPL" autocomplete="off"><button class="rs-go" id="sec-go">Pull</button></div><div class="sec-out" id="sec-out"></div><p class="rs-note">Pulls annual figures straight from EDGAR (data.sec.gov). <b>Free cash flow = cash from operations − capital expenditures.</b> Education only.</p></div>`:''}
+   ${k==='stocks'?`<div class="card sec-card" style="${cs}"><h3><span class="h-ic">${glyph('chart')}</span>Free Cash Flow — from SEC 10-K filings</h3><div class="sec-row"><input id="sec-in" placeholder="Any US ticker — NVDA, AIR, HYLN, AIRJ, NUE…" autocomplete="off"><button class="rs-go" id="sec-go">Pull</button></div><div class="sec-out" id="sec-out"></div><p class="rs-note">Pulls annual figures straight from EDGAR (data.sec.gov) for any US-listed filer — <b>no API key, no AI, completely free.</b> <b>Free cash flow = cash from operations − capital expenditures.</b> Education only.</p></div>`:''}
    ${k==='stocks'?`<div class="card research" style="${cs}"><h3><span class="h-ic">${glyph('stocks')}</span>Research Desk — live, web-connected</h3><div class="rs-row"><input id="rs-in" placeholder="Research a name… 'Anthropic lock-up status' or 'NVDA this week'"><button class="rs-go" id="rs-go">Run</button></div><div class="rs-out" id="rs-out"><div class="rs-card" id="rs-card"></div><button class="rs-save" id="rs-save">Save to memory log</button></div><p class="rs-note">Runs Claude with live web search. Works inside Claude. Research & education only — your decisions stay yours.</p></div>`:''}
    <div class="card station-ai" style="${cs}"><div class="sa-head"><div class="sa-ic glyph" style="${cs}">${glyph(k)}</div><div class="sa-meta"><b>${STATION_AI[k].name}</b><span>Your dedicated ${cfg.title} AI — plan, ask, add a task, or log, by voice or text</span></div><button class="spkbtn" id="sa-spk-${k}" aria-label="Voice replies" title="Voice replies"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button></div><div class="sa-body" id="sa-body-${k}"></div><div class="sa-in"><button class="micbtn" id="sa-mic-${k}" aria-label="Voice">${micSVG}</button><input id="sa-in-${k}" placeholder="Talk to your ${STATION_AI[k].name}…" autocomplete="off"><button class="sendbtn" id="sa-send-${k}" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button></div></div>
    <div class="st-bento" style="${cs}">
@@ -1414,22 +1414,21 @@ function mountMarketDesk(){
   const btn=$('#tv-addbtn');if(btn)btn.addEventListener('click',addWatch);
   const add=$('#tv-add');if(add)add.addEventListener('keydown',e=>{if(e.key==='Enter')addWatch();});
 }
-/* ═══ SEC EDGAR free-cash-flow analyzer (10-K, no key) ═══ */
-const SEC_CIK={NVDA:'0001045810',MSFT:'0000789019',GOOGL:'0001652044',GOOG:'0001652044',AMZN:'0001018724',META:'0001326801',AAPL:'0000320193',TSLA:'0001318605',AMD:'0000002488',NFLX:'0001065280',INTC:'0000050863',CRM:'0001108524',ORCL:'0001341439',ADBE:'0000796343',DIS:'0001744489',JPM:'0000019617',V:'0001403161',MA:'0001141391',NKE:'0000320187',KO:'0000021344',PEP:'0000077476',WMT:'0000104169',COST:'0000909832',BA:'0000012927',CAT:'0000018230',NUE:'0000073309',PLTR:'0001321655',UBER:'0001543151',SHOP:'0001594805',COIN:'0001679788',ABNB:'0001559720'};
+/* ═══ SEC EDGAR free-cash-flow analyzer (10-K, no key, no AI) ═══ */
+const SEC_CIK={NVDA:'0001045810',MSFT:'0000789019',GOOGL:'0001652044',GOOG:'0001652044',AMZN:'0001018724',META:'0001326801',AAPL:'0000320193',TSLA:'0001318605',AMD:'0000002488',NFLX:'0001065280',INTC:'0000050863',CRM:'0001108524',ORCL:'0001341439',ADBE:'0000796343',DIS:'0001744489',JPM:'0000019617',V:'0001403161',MA:'0001141391',NKE:'0000320187',KO:'0000021344',PEP:'0000077476',WMT:'0000104169',COST:'0000909832',BA:'0000012927',CAT:'0000018230',NUE:'0000073309',PLTR:'0001321655',UBER:'0001543151',SHOP:'0001594805',COIN:'0001679788',ABNB:'0001559720',AIR:'0000100517',HYLN:'0001759631',RKLB:'0001819994',ACHR:'0001824920',JOBY:'0001819848'};
 const fmtUSD=v=>{const a=Math.abs(v),s=v<0?'-':'';if(a>=1e9)return s+'$'+(a/1e9).toFixed(2)+'B';if(a>=1e6)return s+'$'+(a/1e6).toFixed(1)+'M';return s+'$'+Math.round(a).toLocaleString()};
-async function secConcept(cik,concept){
-  const r=await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`);
-  if(!r.ok)throw new Error('http '+r.status);
-  const j=await r.json(),u=(j.units&&j.units.USD)||[],m={};
-  u.forEach(x=>{if(x.form==='10-K'&&x.fp==='FY'&&x.fy)m[x.fy]=x.val});
-  return m;
+let _tickerMap=null;
+async function tickerMap(){
+  if(_tickerMap)return _tickerMap;
+  try{const r=await fetch('https://www.sec.gov/files/company_tickers.json');if(r.ok){const d=await r.json(),m={};Object.values(d).forEach(v=>{if(v&&v.ticker)m[v.ticker]=String(v.cik_str).padStart(10,'0')});_tickerMap=m}}catch(e){}
+  return _tickerMap||{};
 }
-async function secCapex(cik){
-  for(const c of ['PaymentsToAcquirePropertyPlantAndEquipment','PaymentsToAcquireProductiveAssets','PaymentsForCapitalImprovements']){
-    try{const m=await secConcept(cik,c);if(Object.keys(m).length)return m}catch(e){}
-  }
-  return {};
-}
+async function resolveCIK(t){if(SEC_CIK[t])return SEC_CIK[t];const m=await tickerMap();return m[t]||null}
+async function secFacts(cik){const r=await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`);if(!r.ok)throw new Error('http '+r.status);return r.json()}
+function annualSeries(facts,tags){const g=(facts.facts&&facts.facts['us-gaap'])||{};for(const t of tags){const c=g[t];if(c&&c.units&&c.units.USD){const m={};c.units.USD.forEach(x=>{if(x.form==='10-K'&&x.fp==='FY'&&x.fy&&x.val!=null)m[x.fy]=x.val});if(Object.keys(m).length)return m}}return {}}
+const OCF_TAGS=['NetCashProvidedByUsedInOperatingActivities','NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'];
+const CAPEX_TAGS=['PaymentsToAcquirePropertyPlantAndEquipment','PaymentsToAcquireProductiveAssets','PaymentsForCapitalImprovements'];
+const REV_TAGS=['RevenueFromContractWithCustomerExcludingAssessedTax','Revenues','RevenueFromContractWithCustomerIncludingAssessedTax','SalesRevenueNet'];
 function wireClients(){
   const list=$('#cl-list'),inp=$('#cl-in'),add=$('#cl-add');if(!list)return;
   function draw(){list.innerHTML=clients.map((c,i)=>`<div class="cl-item"><span class="cl-dot"></span><span class="cl-n">${c}</span><button class="cl-x" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')||'<p class="stream-empty">No clients yet — add your first above.</p>';
@@ -1442,19 +1441,21 @@ function wireSEC(){
   const go=$('#sec-go'),inp=$('#sec-in'),out=$('#sec-out');if(!go)return;
   async function run(){
     let t=(inp.value||'').trim().toUpperCase().replace(/[^A-Z.]/g,'');if(!t)return;
-    const cik=SEC_CIK[t];
-    if(!cik){out.innerHTML=`<div class="sec-msg">No CIK on file for <b>${t}</b> yet. Built-in: ${Object.keys(SEC_CIK).slice(0,14).join(', ')}…<br>Tell me to add ${t} and I'll wire its CIK.</div>`;return}
-    out.innerHTML=`<div class="sec-msg">Pulling ${t} from EDGAR…</div>`;go.disabled=true;go.textContent='…';
+    out.innerHTML=`<div class="sec-msg">Resolving ${t}…</div>`;go.disabled=true;go.textContent='…';
     try{
-      const [ocf,capex]=await Promise.all([secConcept(cik,'NetCashProvidedByUsedInOperatingActivities'),secCapex(cik)]);
-      const yrs=Object.keys(ocf).map(Number).filter(y=>ocf[y]!=null).sort((a,b)=>b-a).slice(0,4);
-      if(!yrs.length){out.innerHTML='<div class="sec-msg">No annual cash-flow data returned for that filer.</div>';}
+      const cik=await resolveCIK(t);
+      if(!cik){out.innerHTML=`<div class="sec-msg">Couldn't find an SEC filer for <b>${t}</b>. Check the symbol — e.g. AirJoule is <b>AIRJ</b>, Hyliion is <b>HYLN</b>, AAR Corp is <b>AIR</b>. Private companies (SpaceX, Anthropic, OpenAI) don't file 10-Ks, so there's no public cash-flow data for them.</div>`;go.disabled=false;go.textContent='Pull';return}
+      out.innerHTML=`<div class="sec-msg">Pulling ${t} from EDGAR…</div>`;
+      const facts=await secFacts(cik);
+      const ocf=annualSeries(facts,OCF_TAGS),capex=annualSeries(facts,CAPEX_TAGS),rev=annualSeries(facts,REV_TAGS);
+      const yrs=Object.keys(ocf).map(Number).filter(y=>ocf[y]!=null).sort((a,b)=>b-a).slice(0,5);
+      if(!yrs.length){out.innerHTML=`<div class="sec-msg">EDGAR returned no annual operating-cash-flow data for <b>${facts.entityName||t}</b>. It may be newly public or not have filed a 10-K yet.</div>`}
       else{
-        const rows=yrs.map(y=>{const o=ocf[y],c=capex[y];return{y,o,c,fcf:(c!=null)?o-c:null}});
+        const rows=yrs.map(y=>{const o=ocf[y],c=capex[y],rv=rev[y],fcf=(c!=null)?o-c:null;return{y,o,c,rv,fcf,margin:(fcf!=null&&rv)?fcf/rv:null}});
         const maxF=Math.max(...rows.map(r=>Math.abs(r.fcf!=null?r.fcf:r.o)))||1;
-        out.innerHTML=`<table class="sec-tbl"><thead><tr><th>FY</th><th>Op. cash flow</th><th>CapEx</th><th>Free cash flow</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="sy">${r.y}</td><td>${fmtUSD(r.o)}</td><td>${r.c!=null?fmtUSD(-Math.abs(r.c)):'—'}</td><td class="sf ${r.fcf>=0?'pos':'neg'}">${r.fcf!=null?fmtUSD(r.fcf):'—'}<span class="sbar" style="width:${Math.min(100,Math.abs(r.fcf||0)/maxF*100)}%"></span></td></tr>`).join('')}</tbody></table><div class="sec-msg">Source: SEC EDGAR · ${t} · annual 10-K (us-gaap).</div>`;
+        out.innerHTML=`<table class="sec-tbl"><thead><tr><th>FY</th><th>Revenue</th><th>Op. cash flow</th><th>CapEx</th><th>Free cash flow</th><th>FCF margin</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="sy">${r.y}</td><td>${r.rv!=null?fmtUSD(r.rv):'—'}</td><td>${fmtUSD(r.o)}</td><td>${r.c!=null?fmtUSD(-Math.abs(r.c)):'—'}</td><td class="sf ${r.fcf>=0?'pos':'neg'}">${r.fcf!=null?fmtUSD(r.fcf):'—'}<span class="sbar" style="width:${Math.min(100,Math.abs(r.fcf||0)/maxF*100)}%"></span></td><td>${r.margin!=null?(r.margin*100).toFixed(1)+'%':'—'}</td></tr>`).join('')}</tbody></table><div class="sec-msg">Source: SEC EDGAR · ${facts.entityName||t} · annual 10-K (us-gaap). <b>Free public data — no API key or AI used.</b></div>`;
       }
-    }catch(e){out.innerHTML=`<div class="sec-msg">Couldn't reach SEC EDGAR from the browser just now (cross-origin or rate limit). Try again shortly — or once the AI backend is on, the Research Desk can pull it for you.</div>`;}
+    }catch(e){out.innerHTML=`<div class="sec-msg">SEC EDGAR didn't respond (network or rate limit). This pulls <b>free public data — no AI key needed</b>. Wait a few seconds and hit Pull again. If it keeps failing, an ad-blocker or your network may be blocking data.sec.gov.</div>`}
     go.disabled=false;go.textContent='Pull';
   }
   go.addEventListener('click',run);inp.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
