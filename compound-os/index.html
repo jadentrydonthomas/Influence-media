@@ -859,10 +859,10 @@ const TILE_ART={
    an image URL or a YouTube / .mp4 link; it saves to your browser. */
 const WM=f=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width=1600';
 const HERO={
- fe:    {video:'tRsQsTMvPNg',img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center'},
+ fe:    {img:WM('BNSF 9.6 railroad bridge, train crossing swing span.jpg'),pos:'center'},
  ai:    {video:'assets/video/ai-lab.mp4',img:'assets/img/hero-ai.png',pos:'center'},          // the Claude image you wanted
- media: {video:'eim3k3zyagY',img:'assets/img/hero-media.png',pos:'center'},
- stocks:{video:'EEX0EHTTePE',img:'assets/img/hero-stocks.png',pos:'center'},
+ media: {img:'assets/img/hero-media.png',pos:'center'},
+ stocks:{img:'assets/img/hero-stocks.png',pos:'center'},
  work:  {video:'assets/video/nucor.mp4',img:'assets/img/hero-work.png',pos:'center'},
  brand: {img:'assets/img/hero-brand.png',pos:'center'},
 };
@@ -914,35 +914,33 @@ const sprint=(t,p,flex,gym=true)=>{const b=[AM,WORK];if(gym)b.push(GYM);b.push(E
 const FRI=(t,q)=>[AM,WORK,GYM,E('17:00','18:30','Deep study — '+t,'fe'),E('18:30','19:15','Timed quiz — '+q,'fe'),E('19:30','24:00','Evening free — Dominique / decompress','body')];
 const SUN=(study,p,ev)=>[AD('Church','body'),E('12:30','13:30','Gym — Sunday session','body'),E('14:00','17:15',study,'fe'),E('17:30','18:30',p,'fe'),E('18:45','19:30','Weekly review + plan with Claude','ai'),ev,E('21:45','22:30','Reading','body'),SLP];
 const DEFAULT_SCHEDULE={
-w1:[{name:'SAT',dnum:13,mon:5,blocks:[E('08:00','09:00','Book Pearson VUE seat + NCEES handbook','fe'),E('09:00','12:30','Timed diagnostic — half exam, score by topic','fe'),E('13:30','14:30','Gym','body'),E('15:30','17:30','Deep study — Math & Statistics','fe'),E('19:30','20:30','Spine Wellness — preset week\'s posts','media'),E('21:00','22:30','AI exploration with Claude','ai')]},
- {name:'SUN',dnum:14,mon:5,blocks:SUN('Deep study — Ethics + Engineering Economics','Timed practice — Economics set',E('19:45','21:30','Media build — Spine Wellness content prep','media'))},
- {name:'MON',dnum:15,mon:5,blocks:sprint('Statics: equilibrium, trusses, frames','Statics set 1',E('21:30','22:30','AI hour — learn + log','ai'))},
- {name:'TUE',dnum:16,mon:5,blocks:sprint('Statics: centroids, friction → Dynamics','Statics set 2',E('21:30','22:30','Media — Spine Wellness check-in','media'))},
- {name:'WED',dnum:17,mon:5,blocks:sprint('Dynamics: kinematics, work-energy','Dynamics set',E('21:30','22:30','AI hour — build something small','ai'),false)},
- {name:'THU',dnum:18,mon:5,blocks:sprint('Mechanics: stress, strain, bending','Mechanics set 1',E('21:30','22:30','Free — decompress','body'))},
- {name:'FRI',dnum:19,mon:5,blocks:FRI('Mechanics: shear/moment, columns','Week 1 mixed quiz')}],
-w2:[{name:'SAT',dnum:20,mon:5,blocks:[E('08:30','12:00','Deep study — Fluid Mechanics','fe'),E('12:30','13:30','Gym','body'),E('14:30','15:30','Timed practice — Fluids','fe'),E('16:30','18:00','Film TikTok batch','media'),E('20:00','21:00','Stocks — watchlist + IPO framework','stocks')]},
- {name:'SUN',dnum:21,mon:5,blocks:SUN('Deep study — Materials + Week 1 catch-up','Mixed practice — Weeks 1–2',E('19:45','21:30','AI build hour + log','ai'))},
- {name:'MON',dnum:22,mon:5,blocks:sprint('Water Resources: channels, pipes, hydrology','Water set',E('21:30','22:30','AI hour — learn + log','ai'))},
- {name:'TUE',dnum:23,mon:5,blocks:sprint('Structural — analysis + design (your strength)','Structural set',E('21:30','22:30','Media — presets + posting','media'))},
- {name:'WED',dnum:24,mon:5,blocks:sprint('Geotechnical: soils, foundations','Geotech set',E('21:30','22:30','AI hour','ai'),false)},
- {name:'THU',dnum:25,mon:5,blocks:sprint('Transportation: geometric design, traffic','Transportation set',E('21:30','22:30','Free — decompress','body'))},
- {name:'FRI',dnum:26,mon:5,blocks:FRI('Surveying + Construction Eng.','Week 2 mixed quiz')}],
-w3:[{name:'SAT',dnum:27,mon:5,blocks:[E('08:00','13:30','FULL TIMED PRACTICE EXAM — 110 questions','fe'),E('15:00','16:00','Gym','body'),E('16:30','17:30','Score + weak-topic list','fe')]},
- {name:'SUN',dnum:28,mon:5,blocks:SUN('Rework every missed problem by hand','Weak-area drills #1',E('19:45','20:45','Plan exam week logistics','fe'))},
- {name:'MON',dnum:29,mon:5,blocks:sprint('Weak-area drill #2 (from exam scores)','Weak-topic set',null)},
- {name:'TUE',dnum:30,mon:5,blocks:[AM,WORK,E('17:00','19:30','Second timed half-exam + review','fe'),DIN,E('20:00','20:45','Light formula review — then stop','fe'),E('21:00','23:00','Relax — brain rests before exams','body'),SLP]},
- {name:'WED',dnum:1,mon:6,exam:true,blocks:[AD('FE CIVIL EXAM — target date','fe'),E('18:00','20:00','Done. Celebrate with Dominique.','body')]},
- {name:'THU',dnum:2,mon:6,blocks:[AD('Buffer exam date','fe'),E('19:00','21:00','Pack for New York','body')]},
+w1:[{name:'MON',dnum:15,mon:5,blocks:[AM,WORK,GYM,E('16:45','17:00','✅ Confirm Pearson VUE seat + open NCEES Handbook (PDF)','fe'),E('17:00','19:00','Deep study — Mathematics & Statistics: trig, calculus, probability','fe'),DIN,E('19:45','21:15','Timed practice — Math & Stats set','fe'),E('21:30','22:30','AI hour — learn + log','ai'),READ,SLP]},
+ {name:'TUE',dnum:16,mon:5,blocks:sprint('Statics: FBDs, equilibrium, trusses & frames (high-weight)','Statics set 1',E('21:30','22:30','AI hour — learn + log','ai'))},
+ {name:'WED',dnum:17,mon:5,blocks:sprint('Statics: centroids, moment of inertia, friction (high-weight)','Statics set 2',E('21:30','22:30','Media — post a short','media'),false)},
+ {name:'THU',dnum:18,mon:5,blocks:sprint('Dynamics: kinematics, Newton\'s 2nd law, work-energy, impulse','Dynamics set',E('21:30','22:30','Free — decompress','body'))},
+ {name:'FRI',dnum:19,mon:5,blocks:FRI('Mechanics of Materials: stress, strain, axial, torsion (high-weight)','Statics + Dynamics quiz')},
+ {name:'SAT',dnum:20,mon:5,blocks:[E('08:30','12:00','Deep study — Mechanics of Materials: shear & moment, beam bending, columns','fe'),E('12:30','13:30','Gym','body'),E('14:30','16:30','Deep study — Materials: properties, steel & concrete, failure','fe'),E('17:00','18:00','Timed practice — Mechanics + Materials set','fe'),E('20:00','21:00','Stocks — watchlist + study','stocks')]},
+ {name:'SUN',dnum:21,mon:5,blocks:SUN('Deep study — Engineering Economics + Ethics & Professional Practice','Timed practice — Economics + Ethics set',E('19:45','21:00','Light review — fix Week 1 misses','fe'))}],
+w2:[{name:'MON',dnum:22,mon:5,blocks:sprint('Fluid Mechanics: fluid statics, Bernoulli, pipe flow, pumps','Fluids set',E('21:30','22:30','AI hour — learn + log','ai'))},
+ {name:'TUE',dnum:23,mon:5,blocks:sprint('Water Resources & Environmental: open channel, hydrology, treatment','Water set',E('21:30','22:30','Media — post a short','media'))},
+ {name:'WED',dnum:24,mon:5,blocks:sprint('Geotechnical: soil classification, phase relations, effective stress (high-weight)','Geotech set 1',E('21:30','22:30','AI hour','ai'),false)},
+ {name:'THU',dnum:25,mon:5,blocks:sprint('Geotechnical: consolidation, shear strength, foundations & walls (high-weight)','Geotech set 2',E('21:30','22:30','Free — decompress','body'))},
+ {name:'FRI',dnum:26,mon:5,blocks:FRI('Transportation: curves, sight distance, traffic & LOS (high-weight)','Fluids + Geotech quiz')},
+ {name:'SAT',dnum:27,mon:5,blocks:[E('08:30','12:00','Deep study — Structural: analysis, beams, steel (LRFD) & reinforced concrete','fe'),E('12:30','13:30','Gym','body'),E('14:30','16:00','Deep study — Transportation: pavement, earthwork, finish','fe'),E('16:30','17:30','Timed practice — Structural + Transportation set','fe'),E('20:00','21:00','Stocks — IPO framework','stocks')]},
+ {name:'SUN',dnum:28,mon:5,blocks:SUN('Deep study — Surveying + Construction Engineering','Timed practice — Surveying + Construction set',E('19:45','21:15','Full mixed review — all 14 topics, list weak areas','fe'))}],
+w3:[{name:'MON',dnum:29,mon:5,blocks:[AM,WORK,E('16:30','19:30','Timed half-exam (55 Q) — simulate + score by topic','fe'),DIN,E('20:00','21:30','Rework every miss by hand','fe'),READ,SLP]},
+ {name:'TUE',dnum:30,mon:5,blocks:[AM,WORK,E('16:30','18:30','Weak-area drills from exam scores','fe'),DIN,E('19:00','20:00','Light formula review — handbook navigation only','fe'),E('20:00','22:30','Relax — pack, lay out ID, early stop','body'),SLP]},
+ {name:'WED',dnum:1,mon:6,exam:true,blocks:[AD('FE CIVIL EXAM — you\'re ready. Trust the reps.','fe'),E('18:00','20:00','Done. Celebrate with Dominique.','body')]},
+ {name:'THU',dnum:2,mon:6,blocks:[AD('Decompress — exam behind you','body'),E('19:00','21:00','Pack for New York','body')]},
  {name:'FRI',dnum:3,mon:6,blocks:[AD('Travel → New York · July 4th','body')]}],
 tpl:[{name:'WEEKDAY',dnum:'',mon:-1,blocks:[E('06:00','06:45','Morning review','fe'),WORK,E('15:30','16:30','Gym — Mon·Tue·Thu·Fri','body'),E('17:00','19:00','Deep work #1','fe'),DIN,E('19:45','21:15','Deep work #2','fe'),E('21:30','22:30','Flex — AI / media','ai'),READ,SLP]},
  {name:'SATURDAY',dnum:'',mon:-1,blocks:[E('08:30','12:00','Long deep-work block','fe'),E('12:30','13:30','Gym','body'),E('15:00','17:00','Content / media batch','media'),E('20:00','21:00','Stocks — watchlist + study','stocks')]},
  {name:'SUNDAY',dnum:'',mon:-1,blocks:[AD('Church','body'),E('12:30','13:30','Gym — Sunday session','body'),E('14:00','17:15','Deep work — main priority','fe'),E('17:30','18:30','Build / practice block','fe'),E('18:45','19:30','Weekly review with Claude','ai'),E('19:45','21:30','Flex — media / AI build','media'),E('21:45','22:30','Reading','body'),SLP]}],
 };
 const NOTES={
- w1:'<b>Week 1 — Foundations.</b> Math, econ, ethics, statics. Sundays run a full shift: gym at 12:30, a 3-hour deep block, practice, review. Fridays study before dinner, then the night is yours. <span class="hot">Action #1: book the Pearson VUE seat today.</span>',
- w2:'<b>Week 2 — Mechanics & water.</b> Statics, Mechanics of Materials, Geotechnical and Transportation are the four heaviest-weighted topics — together 25–40% of the exam. Bank your strengths fast, pour the time into fluids and geotech.',
- w3:'<b>Week 3 — Simulate & close.</b> Two full timed exams, weak-area drills, taper. Then New York.',
+ w1:'<b>Week 1 — Foundations &amp; mechanics (starts today).</b> Math → Statics → Dynamics → Mechanics of Materials → Materials, then Economics &amp; Ethics on Sunday. Weeknights are study after Nucor; the weekend carries the long blocks. <span class="hot">Tonight: confirm your Pearson VUE seat and open the NCEES Handbook PDF.</span>',
+ w2:'<b>Week 2 — The heavy half.</b> Fluids, Water/Env, then Geotechnical and Transportation — two of the four heaviest-weighted topics (Statics, Mechanics, Geotech, Transportation ≈ 25–40% of the exam). Saturday banks Structural; Sunday closes Surveying + Construction and a full mixed review.',
+ w3:'<b>Week 3 — Simulate &amp; taper.</b> Timed half-exam Monday, rework every miss, weak-area drills Tuesday, then a light review and early stop. Exam Wednesday, July 1. Trust the reps.',
  tpl:'<b>The standing spine.</b> Gym 5×/week incl. Sunday. Sundays carry a full afternoon shift; Friday evenings stay free after an early study block.',
  p2:'<b>Phase 2 — from Jul 6.</b> AI primary · media build · stocks study. Learn → document → publish: one pipeline, three books.',
  mon:'<b>The whole runway.</b> Every block, laid out by day. Tap any day to open its full plan — tap a block for the brief. The FE sits on July 1.',
@@ -1013,7 +1011,7 @@ const STATIONS={
   tasks:['Define 3 content pillars','Film first finance/AI short','Set a weekly posting cadence','Send channel links to wire the hub']},
 };
 const openT=s=>s.tasks.filter(t=>!t.done).length;
-const FE_TOPICS=[['Mathematics & Statistics','W1'],['Ethics & Prof. Practice','W1'],['Engineering Economics','W1'],['Statics','W1'],['Dynamics','W1'],['Mechanics of Materials','W1'],['Materials','W2'],['Fluid Mechanics','W2'],['Water Resources & Env.','W2'],['Structural Engineering','W2'],['Geotechnical Eng.','W2'],['Transportation Eng.','W2'],['Surveying','W2'],['Construction Eng.','W2']];
+const FE_TOPICS=[['Mathematics & Statistics','W1'],['Statics','W1'],['Dynamics','W1'],['Mechanics of Materials','W1'],['Materials','W1'],['Engineering Economics','W1'],['Ethics & Prof. Practice','W1'],['Fluid Mechanics','W2'],['Water Resources & Env.','W2'],['Geotechnical Eng.','W2'],['Transportation Eng.','W2'],['Structural Engineering','W2'],['Surveying','W2'],['Construction Eng.','W2']];
 const feDone=()=>FE_TOPICS.filter((_,i)=>topicState[i]).length;
 const METRICS={
  fe:s=>[['Readiness',Math.round(feDone()/14*100)+'%'],['Topics cleared',feDone()+' / 14'],['Sessions logged',s.logs.length]],
@@ -1473,7 +1471,7 @@ function wireResearch(refreshLogs){
   save.addEventListener('click',async()=>{const txt=card.textContent.trim();if(!txt)return;stState.stocks.logs.unshift({ts:stamp()+' · RESEARCH: '+lastQ,t:txt});bumpStreak();await sset(KEYS.st,stState);refreshLogs();save.textContent='Saved ✓';setTimeout(()=>save.textContent='Save to memory log',1600)});
 }
 /* ═══ per-station AI assistants ═══ */
-const ACTION_PROTOCOL=`Respond ONLY with a JSON object, no other text: {"reply":"<message to Jaden>","actions":[...],"quick":["<optional short reply chip>"]}. Action types: {"op":"add_block","week":"w1|w2|w3|tpl","day":"MON|TUE|WED|THU|FRI|SAT|SUN|WEEKDAY|SATURDAY|SUNDAY","s":"HH:MM","e":"HH:MM","n":"title","c":"fe|ai|media|stocks|work|body"}; {"op":"remove_block","week","day","match"}; {"op":"add_task","station","task"}; {"op":"check_task","station","match"}; {"op":"log","station","text"}. Use 24h times. A MOVE = one remove_block + one add_block. If the request is ambiguous (which day/time/which item), set actions to [] and ASK ONE short question, offering 2-4 "quick" chips. Protect the 7am-3pm Nucor block, sleep, and Friday evenings (flag gently, propose an alternative, comply if he insists). Keep reply under 55 words, warm and voice-friendly. Use STATE numbers; never invent them.`;
+const ACTION_PROTOCOL=`Respond ONLY with a JSON object, no other text: {"reply":"<message to Jaden>","actions":[...],"quick":["<optional short reply chip>"]}. Action types: {"op":"add_block","week":"w1|w2|w3|tpl","day":"MON|TUE|WED|THU|FRI|SAT|SUN|WEEKDAY|SATURDAY|SUNDAY","s":"HH:MM","e":"HH:MM","n":"title","c":"fe|ai|media|stocks|work|body"}; {"op":"remove_block","week","day","match"}; {"op":"add_task","station","task"}; {"op":"check_task","station","match"}; {"op":"log","station","text"}. Use 24h times. A MOVE = one remove_block + one add_block. If the request is ambiguous (which day/time/which item), set actions to [] and ASK ONE short question, offering 2-4 "quick" chips. Protect the 7am-3pm Nucor block, sleep, and Friday evenings (flag gently, propose an alternative, comply if he insists). Be genuinely helpful as a specialist coach: default to a tight voice-friendly reply (~80 words), but when he asks for a plan, breakdown, or how to attack something, give the full answer with concrete specifics and a short numbered list when it helps. Use STATE numbers; never invent them.`;
 const STATION_AI={
  fe:{name:'FE Coach',intro:"I'm your FE Coach. Ask me how to attack a topic, what to study tonight, or your readiness — and I'll keep you on pace for July 1. Want a plan for today?",sys:"You are Jaden's FE Coach — his dedicated FE Civil exam tutor and study strategist. Focus only on the FE exam: the 14 topics, the method (diagnostic → prioritize by weight → learn the open-book NCEES handbook → review every miss by failure type), the high-weight four (Statics, Mechanics of Materials, Geotechnical, Transportation = 25-40%), exam-day logistics, and pacing to July 1. Default task/log actions to the 'fe' station."},
  ai:{name:'AI Mentor',intro:"I'm your AI Mentor. We're going fundamentals → agents → automation, and turning your logs into Book 1. Tell me what you learned or what you want to build next.",sys:"You are Jaden's AI Mentor — guiding him from AI fundamentals to building agents with Claude (API + Claude Code), and turning his daily logs into Book 1. Curriculum: Phase A prompting/context/memory, Phase B agents/tool-use, Phase C automation. First build: a Nucor quoting helper. Focus only on his AI learning and builds. Default actions to the 'ai' station."},
@@ -1494,7 +1492,7 @@ async function sendStation(k,forced){
   const sbtn=$('#sa-send-'+k);if(sbtn)sbtn.disabled=true;
   try{
     const msgs=stationHistory[k].slice(-8).map(m=>({role:m.role==='user'?'user':'assistant',content:m.text}));
-    const res=await callAI({model:aiModel(),max_tokens:600,system:stationSys(k),messages:msgs});
+    const res=await callAI({model:aiModel(),max_tokens:1024,system:stationSys(k),messages:msgs});
     const data=await res.json();let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
     typing.remove();
     let parsed=null;try{parsed=JSON.parse(raw)}catch(e){const mm=raw.match(/\{[\s\S]*\}/);if(mm){try{parsed=JSON.parse(mm[0])}catch(e2){}}}
@@ -1565,8 +1563,8 @@ Use 24h times. A MOVE = one remove_block + one add_block. Default new items to h
 RULES:
 - If the request is ambiguous (which day? which station? what time?), set actions to [] and ASK one short question in reply. Offer 2-4 "quick" chips when helpful (e.g. ["Monday","Tuesday","This evening"]).
 - Protect: the 7am-3pm Nucor block, sleep, and Friday evenings (free for Dominique). If he asks to schedule over them, gently flag it and propose an alternative — but comply if he insists.
-- Keep reply under 60 words, friendly and direct. When relevant, weave in a progress nudge from STATE (e.g. "that's day 6 of your streak"). 
-- If he just asks a question (no change needed), return actions [] and answer it.`;
+- Be genuinely useful, not just short. Default to a tight, voice-friendly reply (~80 words), but when Jaden asks for a plan, breakdown, strategy, or explanation, give the full answer — multiple sentences or a short numbered list — grounded in specific STATE numbers and his real schedule. Never pad with vague encouragement; say something concrete he can act on. When relevant, weave in a progress nudge from STATE (e.g. "that's day 6 of your streak").
+- If he just asks a question (no change needed), return actions [] and answer it well.`;
 function applyActions(actions,silent){
   let changed=false,touchedStations=false;
   const findDay=(wk,day)=>{const arr=schedule[wk];if(!arr)return null;return arr.find(d=>d.name.toUpperCase()===String(day||'').toUpperCase())||null};
@@ -1591,7 +1589,7 @@ async function sendMsg(forced){
   if(!aiConfigured()){const a=localAnswer(text);if(a){pushMsg('bot',a);speak(a)}else pushMsg('bot',AI_OFFLINE_MSG);return}
   const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';chatbody.appendChild(typing);chatbody.scrollTop=chatbody.scrollHeight;chatsend.disabled=true;
   try{
-    const payload={model:aiModel(),max_tokens:600,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
+    const payload={model:aiModel(),max_tokens:1024,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
     const res=await callAI(payload);
     const data=await res.json();
     let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
