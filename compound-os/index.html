@@ -673,6 +673,45 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
   .hero.has-img::after{animation:none;opacity:0}
   .st-tile:hover .tile-art,.st-tile:hover .glyph{transform:none}
 }
+/* ── Phone fit & legibility ──────────────────────────────────────────
+   Stop full-bleed decorative layers + the off-screen drawer from inflating
+   the layout viewport (which was zooming the whole page out on phones), then
+   scale type and tap targets up so everything reads clearly. */
+@media(max-width:760px){
+  html,body{overflow-x:hidden;max-width:100vw}
+  .main{min-width:0;overflow-x:hidden}
+  .seg{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .mesh{left:0;right:0}
+  .parallax{left:0;right:0;overflow:hidden}
+  .aurora span{left:0;width:100%}
+  .parallax .o1{right:-12%}
+  .parallax .o2{left:-12%}
+  .drawer{width:min(440px,100vw)}
+  .drawer:not(.on){transform:translateX(110%);visibility:hidden}
+
+  body{font-size:17px}
+  h1.disp{font-size:clamp(27px,8.4vw,36px);line-height:1.08;overflow-wrap:break-word;margin-top:6px}
+  .subline{font-size:16px;line-height:1.5;margin-top:10px}
+  .eyebrow{font-size:11.5px;letter-spacing:.2em}
+  .card{border-radius:22px}
+  .card h3{font-size:18px}
+  .stat-cap{padding:16px 18px;gap:14px}
+  .stat-cap .sc-v{font-size:15px}
+  .mom-cell .mc-d{font-size:11px}
+  .mom-cell .mc-dot{font-size:17px}
+  .upnext .un-name{font-size:25px}
+  .upnext .un-time{font-size:15px}
+  .upnext .open-detail{font-size:14px;padding:12px 18px}
+  .st-tile b{font-size:17px}
+  .seg button{font-size:14px;padding:11px 17px}
+  .cal-note{font-size:15px}
+  .mnum{font-size:15px}
+  /* bigger, comfier bottom nav targets */
+  .rail{height:calc(68px + env(safe-area-inset-bottom))}
+  .rbtn{width:54px;height:54px}
+  .rbtn svg{width:25px;height:25px}
+}
 </style>
 </head>
 <body>
