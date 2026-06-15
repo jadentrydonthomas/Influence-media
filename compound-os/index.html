@@ -538,6 +538,11 @@ h1.disp{background:linear-gradient(100deg,#C7CDE6 0%,#C7CDE6 38%,#FFFFFF 50%,#C7
 .ai-free{font-size:12px;line-height:1.55;color:var(--dim);background:linear-gradient(180deg,rgba(52,211,153,.12),rgba(52,211,153,.04));border:1px solid rgba(52,211,153,.32);border-radius:13px;padding:11px 13px;margin:4px 0 14px}
 .ai-free a{color:var(--stk1);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(52,211,153,.5)}
 .ai-free code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px}
+.sync-sec{margin-top:18px;padding-top:16px;border-top:1px solid var(--line2)}
+.sync-sec .ml{color:var(--text);font-weight:700}
+.sync-sec code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;word-break:break-all}
+#synctoast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,16px);z-index:120;background:rgba(16,185,129,.16);border:1px solid rgba(52,211,153,.5);color:#d1fae5;font-size:13px;font-weight:600;padding:11px 18px;border-radius:14px;backdrop-filter:blur(20px);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;max-width:90vw;text-align:center}
+#synctoast.on{opacity:1;transform:translate(-50%,0)}
 .hm-actions{display:flex;gap:9px;align-items:center}
 .hm-actions .modal-add{margin-top:0;flex:1}
 .hm-reset{padding:13px 16px;border-radius:14px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--line2);white-space:nowrap}
@@ -810,10 +815,32 @@ async function sget(k){
 }
 async function sset(k,v){
   try{
-    if(HAS_CLAUDE_STORE){await window.storage.set(k,JSON.stringify(v));return true}
-    localStorage.setItem(k,JSON.stringify(v));return true;
+    if(HAS_CLAUDE_STORE){await window.storage.set(k,JSON.stringify(v));onStatePersisted(k);return true}
+    localStorage.setItem(k,JSON.stringify(v));onStatePersisted(k);return true;
   }catch(e){return false}
 }
+/* ═══ Cross-device sync — free, no account ════════════════════════════
+   localStorage stays the source of truth on each device; on top of it we
+   mirror your whole state to a tiny anonymous cloud blob so your phone and
+   desktop share one live state. Turn it on once (creates a space + pairing
+   link); open that link on another device to join. Last-write-wins by time.
+   If the cloud is unreachable, the app keeps working fully on local data. */
+const SYNC_ID_K='os4-syncid', JSONBLOB='https://jsonblob.com/api/jsonBlob';
+let syncId=null, syncEnabled=false, applyingRemote=false, lastSyncV=0, _pushTimer=null, _pollTimer=null;
+try{syncId=localStorage.getItem(SYNC_ID_K)||null;syncEnabled=!!syncId;}catch(e){}
+function snapshot(){return{v:Date.now(),sched:schedule,topics:topicState,st:stState,streak:streak,hero:heroOverrides,watch:watchList,clients:clients};}
+function onStatePersisted(k){if(applyingRemote||!syncEnabled||!syncId)return;if([KEYS.sched,KEYS.topics,KEYS.st,KEYS.streak,KEYS.hero,KEYS.watch,KEYS.clients].indexOf(k)<0)return;clearTimeout(_pushTimer);_pushTimer=setTimeout(cloudPush,1000);}
+async function cloudPush(){if(!syncId)return;const snap=snapshot();try{const r=await fetch(JSONBLOB+'/'+syncId,{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(snap)});if(r.ok)lastSyncV=snap.v;}catch(e){}}
+async function cloudPull(initial){if(!syncId)return;try{const r=await fetch(JSONBLOB+'/'+syncId,{headers:{'Accept':'application/json'}});if(!r.ok)return;const s=await r.json();if(s&&s.v&&s.v>lastSyncV){applySnapshot(s);if(!initial)syncToast('↻ Synced from your other device');}}catch(e){}}
+function applySnapshot(s){applyingRemote=true;try{if(s.sched)schedule=s.sched;if(s.topics)topicState=s.topics;if(s.st)stState=s.st;if(s.streak)streak=s.streak;if(s.hero)heroOverrides=s.hero;if(s.watch)watchList=s.watch;if(s.clients)clients=s.clients;sset(KEYS.sched,schedule);sset(KEYS.topics,topicState);sset(KEYS.st,stState);sset(KEYS.streak,streak);sset(KEYS.hero,heroOverrides);sset(KEYS.watch,watchList);sset(KEYS.clients,clients);lastSyncV=s.v||Date.now();syncRerender();}catch(e){}finally{applyingRemote=false;}}
+function syncRerender(){try{if(['fe','ai','media','stocks','work','brand'].indexOf(curView)>=0)renderStation(curView);else if(curView==='cal')setWeek(curWeek);else renderHome();}catch(e){}}
+function startSyncPoll(){if(_pollTimer)clearInterval(_pollTimer);_pollTimer=setInterval(()=>cloudPull(false),15000);}
+async function cloudCreate(){const r=await fetch(JSONBLOB,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(snapshot())});if(!r.ok)throw new Error('create');let id=r.headers.get('X-jsonblob')||((r.headers.get('Location')||'').split('/').pop());if(!id)throw new Error('id');return id;}
+async function syncTurnOn(){const id=await cloudCreate();syncId=id;try{localStorage.setItem(SYNC_ID_K,id)}catch(e){}syncEnabled=true;lastSyncV=Date.now();startSyncPoll();return id;}
+async function syncJoin(code){syncId=String(code||'').trim();try{localStorage.setItem(SYNC_ID_K,syncId)}catch(e){}syncEnabled=true;lastSyncV=0;await cloudPull(true);startSyncPoll();}
+function syncUnlink(){syncEnabled=false;syncId=null;try{localStorage.removeItem(SYNC_ID_K)}catch(e){}if(_pollTimer)clearInterval(_pollTimer);}
+function syncLink(){return syncId?(location.origin+location.pathname+'#sync='+syncId):'';}
+function syncToast(msg){try{let t=document.getElementById('synctoast');if(!t){t=document.createElement('div');t.id='synctoast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3200);}catch(e){}}
 /* AI connection. Priority:
    1. a personal Anthropic API key you paste in-app (stored only in your
       browser) → calls Claude directly with the browser-access header
@@ -1289,6 +1316,21 @@ function openAIModal(){
       <div class="seg ai-modelseg" id="ai-modelseg"><button data-m="haiku" class="${curM==='haiku'?'on':''}">Haiku · economical</button><button data-m="sonnet" class="${curM==='sonnet'?'on':''}">Sonnet · sharper</button></div>
       <p class="hm-hint">With a <b>Gemini</b> key this is ignored — it uses Gemini Flash (free) and the Research Desk gets real Google-grounded search. With an <b>Anthropic</b> key, <b>Haiku</b> is cheapest for everyday use; <b>Sonnet</b> for deeper reasoning.</p>
       <div class="hm-actions"><button class="modal-add" id="ai-save">Save &amp; connect</button>${has?'<button class="hm-reset" id="ai-remove">Remove key</button>':''}</div>
+      <div class="sync-sec">
+      <p class="ml" style="margin-top:2px">📱 Device sync — phone ⇄ desktop</p>
+      ${syncEnabled?
+        `<div class="ai-free" style="background:linear-gradient(180deg,rgba(52,211,153,.13),rgba(52,211,153,.04));border-color:rgba(52,211,153,.34)"><b>✓ Sync is ON.</b> Changes you make here update your other linked devices live — edit a date on your phone and the desktop follows. To link another device, open this link on it:</div>
+         <div class="modal-row"><input class="m-name" id="sync-link" readonly value="${syncLink().replace(/"/g,'&quot;')}" onclick="this.select()"></div>
+         <div class="hm-actions"><button class="modal-add" id="sync-copy" style="--c1:#34d399;--c2:#10b981">Copy link</button><button class="hm-reset" id="sync-unlink">Unlink this device</button></div>
+         <p class="hm-hint">No copy/paste? Enter this sync code on the other device: <code>${syncId||''}</code></p>`
+        :
+        `<div class="ai-free" style="background:linear-gradient(180deg,rgba(52,211,153,.11),rgba(52,211,153,.03));border-color:rgba(52,211,153,.3)"><b>Turn on sync</b> to keep your calendar, tasks, logs and video/settings identical on every device. One tap here gives you a link — open it on your phone and they're joined. Your data still stays saved on each device too.</div>
+         <div class="hm-actions"><button class="modal-add" id="sync-on" style="--c1:#34d399;--c2:#10b981">Turn on sync</button></div>
+         <p class="hm-hint">Already turned it on elsewhere? Paste that device's sync code here:</p>
+         <div class="modal-row"><input class="m-name" id="sync-join" placeholder="paste sync code…" autocomplete="off"></div>
+         <div class="hm-actions"><button class="modal-add" id="sync-join-btn">Link this device</button></div>`
+      }
+      </div>
     </div></div>`;
   wrap.querySelector('.mclose').addEventListener('click',closeAIModal);
   wrap.querySelectorAll('#ai-modelseg button').forEach(b=>b.addEventListener('click',()=>{curM=b.dataset.m;wrap.querySelectorAll('#ai-modelseg button').forEach(x=>x.classList.toggle('on',x===b))}));
@@ -1301,6 +1343,10 @@ function openAIModal(){
     if(['fe','ai','media','stocks','work','brand'].includes(curView))wireStationChat(curView);
   });
   const rm=wrap.querySelector('#ai-remove');if(rm)rm.addEventListener('click',()=>{try{localStorage.removeItem(AI_KEY_K)}catch(e){}closeAIModal();});
+  const sOn=wrap.querySelector('#sync-on');if(sOn)sOn.addEventListener('click',async()=>{sOn.disabled=true;sOn.textContent='Turning on…';try{await syncTurnOn();openAIModal();syncToast('✓ Sync on — open the link on your other device');}catch(e){sOn.disabled=false;sOn.textContent='Turn on sync';alert('Couldn\'t turn on sync right now — check your connection and try again. Your data is safe on this device.');}});
+  const sCopy=wrap.querySelector('#sync-copy');if(sCopy)sCopy.addEventListener('click',()=>{const inp=$('#sync-link');try{inp.select();navigator.clipboard?navigator.clipboard.writeText(inp.value):document.execCommand('copy');sCopy.textContent='Copied ✓';setTimeout(()=>sCopy.textContent='Copy link',1600);}catch(e){document.execCommand&&document.execCommand('copy');}});
+  const sUn=wrap.querySelector('#sync-unlink');if(sUn)sUn.addEventListener('click',()=>{syncUnlink();openAIModal();syncToast('Sync turned off on this device');});
+  const sJoin=wrap.querySelector('#sync-join-btn');if(sJoin)sJoin.addEventListener('click',async()=>{const c=($('#sync-join').value||'').trim();if(!c)return;sJoin.disabled=true;sJoin.textContent='Linking…';try{await syncJoin(c);openAIModal();syncToast('✓ This device is now linked');}catch(e){sJoin.disabled=false;sJoin.textContent='Link this device';alert('Couldn\'t link with that code — double-check it and your connection.');}});
   wrap.classList.add('on');$('#scrim').classList.add('on');
 }
 function openHeroModal(k){
@@ -1718,6 +1764,13 @@ attachMic($('#chatmic'),txt=>{chatin.value=txt});
   Object.keys(STATIONS).forEach(k=>{if(!stState[k])stState[k]={tasks:STATIONS[k].tasks.map(t=>({t,done:false})),logs:[]}});
   renderNav();curWeek=weekOfToday();setEnv('home');go('home');
   proactiveGreeting();fab.classList.add('nudge');
+  /* device sync: a #sync=<code> link joins that space; otherwise resume a saved one */
+  try{
+    const hashSync=(location.hash.match(/sync=([A-Za-z0-9_-]+)/)||[])[1];
+    if(hashSync){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+      syncJoin(hashSync).then(()=>syncToast('✓ This device is now linked')).catch(()=>{});
+    } else if(syncId){lastSyncV=0;cloudPull(true);startSyncPoll();}
+  }catch(e){}
   setInterval(()=>{if(curView==='home')renderHome();else if(curView==='cal'&&curWeek!=='p2'&&curWeek!=='mon')renderGrid(curWeek)},60000);
   if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>{};
   if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
