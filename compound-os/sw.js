@@ -1,6 +1,6 @@
 /* Compound OS service worker — installable PWA + offline app shell.
    Bump CACHE to force clients to pick up a new version. */
-const CACHE = 'compound-os-v1';
+const CACHE = 'compound-os-v2';
 const CORE = [
   './',
   './index.html',

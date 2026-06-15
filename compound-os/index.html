@@ -1576,7 +1576,13 @@ const STATION_AI={
 const stationHistory={},stationSpeak={};
 function appendStation(k,role,text){const b=$('#sa-body-'+k);if(!b)return;const d=document.createElement('div');d.className='msg '+role;d.textContent=text;b.appendChild(d);b.scrollTop=b.scrollHeight;return d}
 function appendStationQuick(k,opts){const b=$('#sa-body-'+k);if(!b||!opts||!opts.length)return;const w=document.createElement('div');w.className='qrep';opts.slice(0,4).forEach(o=>{const btn=document.createElement('button');btn.textContent=o;btn.addEventListener('click',()=>{w.remove();$('#sa-in-'+k).value=o;sendStation(k)});w.appendChild(btn)});b.appendChild(w);b.scrollTop=b.scrollHeight}
-function stationSys(k){const a=STATION_AI[k];return a.sys+'\n\n'+ACTION_PROTOCOL+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\nTHIS STATION ('+k+') open tasks: '+JSON.stringify(stState[k].tasks.filter(t=>!t.done).map(t=>t.t))+' | recent logs: '+JSON.stringify(stState[k].logs.slice(0,3).map(l=>l.t))}
+/* One shared brain: the main assistant and every workspace agent see the SAME
+   live context — full state, the live calendar week, and every workspace's open
+   tasks + recent logs. Edits any agent makes write back to this same data, so
+   updating the calendar (or any station) is reflected everywhere instantly. */
+function workspaceDigest(){const o={};Object.keys(STATIONS).forEach(k=>{o[k]={title:STATIONS[k].title,openTasks:stState[k].tasks.filter(t=>!t.done).map(t=>t.t),recentLogs:stState[k].logs.slice(0,4).map(l=>l.t)}});return o;}
+function liveContext(){return 'STATE: '+JSON.stringify(stateSummary())+'\n\nCALENDAR (this week, editable by any agent): '+JSON.stringify(curWeekData())+'\n\nWORKSPACES (shared across all agents): '+JSON.stringify(workspaceDigest());}
+function stationSys(k){const a=STATION_AI[k];return a.sys+'\n\n'+ACTION_PROTOCOL+'\n\nYou are the '+STATIONS[k].title+' specialist, but you are wired into the same shared brain as every other agent and the calendar — you can read and edit the schedule and any workspace, and the user sees your changes live across the whole app.\n\n'+liveContext()+'\n\nTHIS STATION ('+k+') open tasks: '+JSON.stringify(stState[k].tasks.filter(t=>!t.done).map(t=>t.t))+' | recent logs: '+JSON.stringify(stState[k].logs.slice(0,4).map(l=>l.t))}
 async function sendStation(k,forced){
   const inp=$('#sa-in-'+k);if(!inp)return;const text=(forced!==undefined?forced:inp.value).trim();if(!text)return;if(forced===undefined)inp.value='';
   appendStation(k,'user',text);stationHistory[k].push({role:'user',text});
@@ -1682,7 +1688,7 @@ async function sendMsg(forced){
   if(!aiConfigured()){const a=localAnswer(text);if(a){pushMsg('bot',a);speak(a)}else pushMsg('bot',AI_OFFLINE_MSG);return}
   const typing=document.createElement('div');typing.className='typing';typing.innerHTML='<i></i><i></i><i></i>';chatbody.appendChild(typing);chatbody.scrollTop=chatbody.scrollHeight;chatsend.disabled=true;
   try{
-    const payload={model:aiModel(),max_tokens:1024,system:SYS+'\n\nSTATE: '+JSON.stringify(stateSummary())+'\n\nWEEK: '+JSON.stringify(curWeekData()),messages:[{role:'user',content:text}]};
+    const payload={model:aiModel(),max_tokens:1024,system:SYS+'\n\n'+liveContext(),messages:[{role:'user',content:text}]};
     const res=await callAI(payload);
     const data=await res.json();
     let raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
