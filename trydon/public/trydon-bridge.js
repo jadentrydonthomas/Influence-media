@@ -10,7 +10,7 @@
 
   const readBlob = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || null; } catch (e) { return null; } };
   const writeBlob = (b) => { try { localStorage.setItem(LS_KEY, JSON.stringify(b)); } catch (e) {} };
-  const readSync = () => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || { lastPull: 0 }; } catch (e) { return { lastPull: 0 }; } };
+  const readSync = () => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || { lastPull: 0, epoch: 0 }; } catch (e) { return { lastPull: 0, epoch: 0 }; } };
   const writeSync = (s) => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(s)); } catch (e) {} };
 
   const api = async (path, opts) => {
@@ -46,17 +46,24 @@
     try {
       const res = await api('/api/state');
       state.llm = !!res.llm;
+      const serverEpoch = Number(res.epoch || 0);
+      const prev = readSync();
+      // server was factory-reset since this browser last synced: drop the
+      // local copy instead of re-uploading stale data
+      if (serverEpoch > (prev.epoch || 0)) {
+        localStorage.removeItem(LS_KEY);
+      }
       const serverKeys = res.keys || {};
       const local = readBlob();
       if (Object.keys(serverKeys).length) {
         const plain = {};
         for (const [k, r] of Object.entries(serverKeys)) plain[k] = r.v;
         writeBlob(applyKeysToBlob(local, plain));
-      } else if (local) {
-        // first run against an empty server: migrate everything up
+      } else if (local && serverEpoch === 0) {
+        // genuine first run against a never-reset server: migrate up
         await api('/api/state', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keys: blobToKeys(local) }) }).catch(() => {});
       }
-      writeSync({ lastPull: res.serverTime || Date.now() });
+      writeSync({ lastPull: res.serverTime || Date.now(), epoch: serverEpoch });
       for (const [k, v] of Object.entries(blobToKeys(readBlob() || { state: {} }))) state.lastPushed[k] = JSON.stringify(v);
     } catch (e) {
       state.online = false; // offline boot: run from localStorage
@@ -95,8 +102,17 @@
       const s = readSync();
       const res = await api('/api/state?since=' + s.lastPull);
       state.online = true;
+      // deck was reset from elsewhere (chat command / another device):
+      // drop local state and reboot clean
+      const serverEpoch = Number(res.epoch || 0);
+      if (serverEpoch > (s.epoch || 0)) {
+        localStorage.removeItem(LS_KEY);
+        localStorage.removeItem(SYNC_KEY);
+        location.reload();
+        return;
+      }
       const entries = Object.entries(res.keys || {});
-      writeSync({ lastPull: res.serverTime || Date.now() });
+      writeSync({ lastPull: res.serverTime || Date.now(), epoch: serverEpoch });
       if (!entries.length) return;
       const plain = {};
       for (const [k, r] of entries) { plain[k] = r.v; state.lastPushed[k] = JSON.stringify(r.v); }
