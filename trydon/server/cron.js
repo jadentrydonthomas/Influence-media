@@ -159,21 +159,42 @@ export async function weeklyReview() {
   postAssistantMessage(text);
 }
 
-// ---------- learning digest (Mon + Thu) ----------
-export async function learningDigest() {
-  if (!hasKey()) return; // needs the LLM — silently skip
+// ---------- suggested learning (shared by digest cron + on-demand button) ----------
+export async function suggestLearning() {
+  if (!hasKey()) { const e = new Error('no key'); e.code = 'NO_KEY'; throw e; }
   const aiLog = getKey('aiLog', []).slice(0, 6);
   const courses = getKey('courses', []);
   let signal = [];
   try { signal = (await feeds.aiNewsRanked()).items || []; } catch { /* fine */ }
-  const prompt = `You coach one person learning AI/agents while working a steel mill day job. Based on his recent learning log, course list, and this week's AI news, recommend exactly three things, each 1–2 lines: (1) the next course/topic to push on, (2) one new tool or technique to try this week, (3) one small concrete build idea that compounds his skills. Plain text, numbered, max 110 words total. If a recommended course has a URL from his list, mention it.
+  const prompt = `You coach one person learning AI/agents while working a steel mill day job (also studying for the FE Civil exam, investing, creating content). Based on his learning log, course queue, and this week's AI news, recommend exactly three things: the next course/topic to push on, one tool or technique to test this week, and one small concrete build idea that compounds his skills.
 
 Learning log: ${JSON.stringify(aiLog)}
-Courses (done flag = finished): ${JSON.stringify(courses.map(c => ({ name: c.name, provider: c.provider, done: c.done })))}
-AI news this week: ${signal.map(s => s.head).join(' | ')}`;
+Courses (done = finished): ${JSON.stringify(courses.map(c => ({ name: c.name, provider: c.provider, done: c.done })))}
+AI news this week: ${signal.map(s => s.head).join(' | ') || '(none)'}
+
+Reply ONLY JSON, no markdown:
+{"items":[
+ {"kind":"course","title":"<name>","note":"<why him, why now — under 25 words>","url":"<real URL if you know one, else omit>","provider":"<provider>"},
+ {"kind":"tool","title":"<tool/technique>","note":"<what to test and what he'd learn>"},
+ {"kind":"build","title":"<small build idea>","note":"<what it does + which skill it compounds>"}
+]}`;
+  const txt = await completeText([{ role: 'user', content: prompt }], { maxTokens: 500 });
+  const m = txt.match(/\{[\s\S]*\}/);
+  const items = (JSON.parse(m ? m[0] : txt).items || []).slice(0, 3)
+    .filter(g => g && g.title)
+    .map(g => ({ kind: ['course', 'tool', 'build'].includes(g.kind) ? g.kind : 'build', title: String(g.title).slice(0, 90), note: String(g.note || '').slice(0, 180), url: g.url ? String(g.url).slice(0, 300) : undefined, provider: g.provider ? String(g.provider).slice(0, 40) : undefined }));
+  if (items.length) putKeys({ learnSuggest: items });
+  return items;
+}
+
+// ---------- learning digest (Mon + Thu) ----------
+export async function learningDigest() {
+  if (!hasKey()) return; // needs the LLM — silently skip
   try {
-    const text = await completeText([{ role: 'user', content: prompt }], { maxTokens: 400 });
-    postAssistantMessage('📚 Learning digest\n' + text);
+    const items = await suggestLearning();
+    if (!items.length) return;
+    const lines = items.map(g => `${g.kind === 'course' ? '🎓' : g.kind === 'tool' ? '🧪' : '🔨'} ${g.title} — ${g.note}`);
+    postAssistantMessage('📚 Learning digest — fresh suggestions are waiting on the AI station (LEARN tab):\n' + lines.join('\n'));
   } catch { /* next scheduled run will retry */ }
 }
 

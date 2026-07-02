@@ -147,10 +147,17 @@ export function getBackup(id) {
 }
 
 // Factory reset: snapshot everything into backups (30-day undo) then wipe.
+// Bumps the data epoch — clients see the new epoch and drop their local
+// copies instead of re-uploading stale data.
 export function wipeState() {
   makeBackup();
   db.exec('DELETE FROM state');
   db.exec("DELETE FROM meta WHERE key LIKE 'cron:%' OR key = 'steel_alert_price'");
+  setMeta('data_epoch', Number(getMeta('data_epoch', 0)) + 1);
+}
+
+export function dataEpoch() {
+  return Number(getMeta('data_epoch', 0));
 }
 
 // ---- sidecar files (image-slot state) ----

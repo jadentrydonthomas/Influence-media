@@ -3,7 +3,7 @@
 // route returns changed keys for the client to apply + persist. Receipts
 // ("✓ Added: …") surface in chat as chips.
 import { uid, todayIso, to12 } from './util.js';
-import { saveSource, listSources, addQuote, listQuotes } from './db.js';
+import { saveSource, listSources, addQuote, listQuotes, wipeState } from './db.js';
 import * as feeds from './feeds.js';
 
 const STATIONS = ['calendar', 'nucor', 'fe', 'ai', 'stocks', 'media', 'gym'];
@@ -34,6 +34,7 @@ export const TOOL_DEFS = [
   { name: 'add_media_goal', description: 'Add a content goal to the media station.', input_schema: S({ title: str('goal') }, ['title']) },
   { name: 'add_question', description: 'Add a question to the Nucor mentor (sales) or leadership list.', input_schema: S({ audience: str('mentor|leadership'), q: str('the question') }, ['audience', 'q']) },
   { name: 'add_ai_log', description: 'Add an entry to the AI learning log.', input_schema: S({ title: str('what was learned/built'), note: str('one-line detail') }, ['title']) },
+  { name: 'add_note', description: 'File a note in the Nucor Field Notebook under a topic (e.g. Frames, Connections, Quoting).', input_schema: S({ topic: str('topic to file under'), text: str('the note') }, ['topic', 'text']) },
   { name: 'get_schedule', description: 'Read events + tasks between two dates (inclusive). Use to answer "what does my week look like".', input_schema: S({ from: str('YYYY-MM-DD, default today'), to: str('YYYY-MM-DD, default from+7') }) },
   { name: 'get_station_data', description: 'Read a station\'s data: todos, goals, logs, jobs, questions, gym, nutrition, courses…', input_schema: S({ station: str('station key') }, ['station']) },
   { name: 'get_stock_snapshot', description: 'Live quote + latest headlines + saved thesis/stance/holding for a symbol.', input_schema: S({ sym: str('ticker') }, ['sym']) },
@@ -41,6 +42,7 @@ export const TOOL_DEFS = [
   { name: 'save_quote', description: 'Save the current Quote Helper calculation into the pricing history (call when the user acts on a quote).', input_schema: S({ tons: num('tons'), margin: num('margin %'), note: str('job/customer note') }, ['tons', 'margin']) },
   { name: 'get_quote_history', description: 'Read saved quote history (steel price at quote time vs outcomes).', input_schema: S({}) },
   { name: 'configure_source', description: 'Persist a data-source choice the user just made for a panel (steel|nucor_news|jobs|charts|stock_news|ai_news|media). Never re-ask once configured.', input_schema: S({ panel: str('panel id'), provider: str('chosen provider'), config: { type: 'object', description: 'provider settings: urls, column mapping, channel handles…' } }, ['panel', 'provider']) },
+  { name: 'reset_deck', description: 'Factory-reset the ENTIRE deck: wipes all data (a backup is kept 30 days) and reboots with clean starting state. DESTRUCTIVE — only call after the user explicitly confirmed the wipe in this conversation.', input_schema: S({}) },
 ];
 
 const fuzzy = (list, field, needle = '') => {
@@ -237,6 +239,12 @@ export function createExecutor(snapshot) {
         receipts.push(`✓ Logged: ${a.title}`);
         return 'added';
       }
+      case 'add_note': {
+        st.nucorNotebook = [...(st.nucorNotebook || []), { id: uid('nb'), topic: a.topic, text: a.text, ts: Date.now() }];
+        touch('nucorNotebook');
+        receipts.push(`✓ Note filed under ${a.topic}`);
+        return 'added';
+      }
       case 'get_schedule': {
         const from = a.from || todayIso();
         const to = a.to || todayIso(7);
@@ -304,12 +312,19 @@ export function createExecutor(snapshot) {
         receipts.push(`✓ Source connected: ${a.panel} → ${a.provider}`);
         return 'configured';
       }
+      case 'reset_deck': {
+        wipeState();
+        exec.resetRequested = true;
+        receipts.push('✓ Deck reset — everything wiped (backup kept 30 days). Reloading fresh…');
+        return 'reset complete; the client will reload with clean state';
+      }
       default:
         return `ERROR: unknown tool ${name}`;
     }
   };
 
-  return { run, receipts, changed };
+  const exec = { run, receipts, changed, resetRequested: false };
+  return exec;
 }
 
 function addHour(hm = '10:00') {

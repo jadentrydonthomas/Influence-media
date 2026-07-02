@@ -5,13 +5,13 @@ import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { join, normalize } from 'node:path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getState, putKeys, getKey, listSources, saveSource, addQuote, listQuotes, fileGet, filePut, listBackups, getBackup, wipeState } from './server/db.js';
+import { getState, putKeys, getKey, listSources, saveSource, addQuote, listQuotes, fileGet, filePut, listBackups, getBackup, wipeState, dataEpoch, getMeta, setMeta } from './server/db.js';
 import { checkSession, checkCode, sessionCookie, accessCode } from './server/auth.js';
 import { chat, debate } from './server/assistant.js';
 import { analyzeNews } from './server/analyze.js';
 import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
-import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck } from './server/cron.js';
+import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning } from './server/cron.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -78,7 +78,7 @@ const server = createServer(async (req, res) => {
 
       if (path === '/api/state' && req.method === 'GET') {
         const since = Number(url.searchParams.get('since') || 0);
-        return send(res, 200, { keys: getState(since), serverTime: Date.now(), llm: hasKey() });
+        return send(res, 200, { keys: getState(since), serverTime: Date.now(), llm: hasKey(), epoch: dataEpoch() });
       }
       if (path === '/api/state' && req.method === 'PUT') {
         const body = JSON.parse(await readBody(req) || '{}');
@@ -173,6 +173,15 @@ const server = createServer(async (req, res) => {
       }
       if (path === '/api/quotes' && req.method === 'GET') return send(res, 200, listQuotes());
 
+      if (path === '/api/learn/suggest' && req.method === 'POST') {
+        try {
+          return send(res, 200, { items: await suggestLearning() });
+        } catch (e) {
+          if (e.code === 'NO_KEY') return send(res, 503, { error: 'no_key' });
+          return send(res, 500, { error: String(e.message || e).slice(0, 200) });
+        }
+      }
+
       // manual job trigger — preview a briefing/review on demand
       if (path === '/api/cron/run' && req.method === 'POST') {
         const job = url.searchParams.get('job');
@@ -225,6 +234,17 @@ const server = createServer(async (req, res) => {
     return send(res, 500, { error: 'internal error' });
   }
 });
+
+// One-time ground-zero migration: the pre-v2 data was trial data by the
+// owner's decree — back it up (30-day undo) and clear it so the deck
+// reboots with the real starting state. Runs exactly once per database.
+if (!getMeta('groundzero_v3')) {
+  if (Object.keys(getState()).length > 0) {
+    wipeState();
+    console.log('[migrate] ground-zero v3: trial data backed up and cleared');
+  }
+  setMeta('groundzero_v3', '1');
+}
 
 server.listen(PORT, () => {
   console.log(`TRYDON deck on http://localhost:${PORT}`);

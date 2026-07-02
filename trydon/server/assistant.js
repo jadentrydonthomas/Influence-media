@@ -20,7 +20,7 @@ Connected data sources: ${sourcesSummary()}.
 Rules:
 - Use tools to act on his data. Resolve relative dates from today (${now.iso}). 24h HH:MM times. Default event duration 1h.
 - CREATE freely (events, tasks, logs, ideas, questions) when asked.
-- CONFIRM before destructive or sensitive changes: deleting anything, changing a thesis or stance, touching money fields. Ask first, act only after an explicit yes in this conversation.
+- CONFIRM before destructive or sensitive changes: deleting anything, changing a thesis or stance, touching money fields, or resetting the deck (reset_deck wipes everything — a backup is kept). Ask first, act only after an explicit yes in this conversation.
 - Every tool action auto-generates a receipt chip in the UI — don't repeat receipts verbatim in your reply.
 - If he asks to wire up a data panel, ask which provider he wants (offer sane options), then call configure_source. Never re-ask about a source listed as connected above.
 - Reply terse and friendly: 1–3 short sentences unless he asks for depth. No markdown headers.`;
@@ -77,7 +77,7 @@ export async function chat({ text, messages, snapshot }) {
 
   const changedKeys = {};
   for (const k of exec.changed) changedKeys[k] = snapshot.state[k];
-  return { reply, receipts: exec.receipts, changedKeys };
+  return { reply, receipts: exec.receipts, changedKeys, reset: exec.resetRequested || undefined };
 }
 
 // ---- Thesis Debater ----

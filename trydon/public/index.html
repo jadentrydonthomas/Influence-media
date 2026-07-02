@@ -915,7 +915,7 @@
             <!-- week grid -->
             <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px;">
               <sc-for list="{{ nucorWeekDays }}" as="d" hint-placeholder-count="7">
-                <div style="border-radius:11px; border:1px solid {{ d.border }}; background:rgba(0,0,0,.18); min-height:150px; display:flex; flex-direction:column; overflow:hidden;">
+                <div style="border-radius:11px; border:1px solid {{ d.border }}; background:rgba(0,0,0,.18); min-height:200px; display:flex; flex-direction:column; overflow:hidden;">
                   <div style="display:flex; align-items:baseline; justify-content:space-between; padding:8px 10px; background:{{ d.headBg }}; border-bottom:1px solid rgba(255,255,255,.05);">
                     <span style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.5px; color:{{ d.nameC }};">{{ d.name }}</span>
                     <span style="font-family:'Sora'; font-size:15px; font-weight:700; color:{{ d.numC }};">{{ d.num }}</span>
@@ -953,6 +953,36 @@
               <h3 style="font-size:16px; font-weight:700; margin-bottom:4px;">Handover Notes</h3>
               <div style="font-size:11px; color:#8aa890; margin-bottom:13px;">Issues on the line, follow-ups, notes for next shift</div>
               <textarea value="{{ nucorNotes }}" onchange="{{ setNucorNotes }}" placeholder="Type anything you need to hand off or remember..." style="width:100%; height:150px; resize:none; border-radius:10px; border:1px solid rgba(47,178,76,.2); background:rgba(0,0,0,.3); color:#e8ecf2; padding:12px; font-size:13px; line-height:1.55; outline:none;"></textarea>
+            </div>
+          </div>
+
+          <!-- FIELD NOTEBOOK -->
+          <div style="border-radius:15px; border:1px solid rgba(47,178,76,.28); background:rgba(8,18,11,.42); padding:18px 20px; margin-top:14px;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:700;">Field Notebook</h3>
+                <div style="font-size:11px; color:#8aa890; margin-top:2px;">Notes filed by topic — frames, connections, quoting situations… nothing jumbled</div>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <sc-for list="{{ nbTopicChips }}" as="tc" hint-placeholder-count="3"><button onclick="{{ tc.pick }}" style="padding:6px 12px; border-radius:8px; border:1px solid {{ tc.border }}; background:{{ tc.bg }}; color:{{ tc.c }}; cursor:pointer; font-size:10.5px; font-weight:600; font-family:'JetBrains Mono',monospace;">{{ tc.label }}</button></sc-for>
+              </div>
+            </div>
+            <div style="border-radius:11px; border:1px dashed rgba(47,178,76,.3); background:rgba(47,178,76,.04); padding:12px; margin-bottom:12px; display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+              <input value="{{ nbTopicDraft }}" onchange="{{ setNbTopicDraft }}" placeholder="Topic (e.g. Frames)" style="flex:none; width:170px; padding:9px 11px; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12.5px; outline:none;">
+              <textarea value="{{ nbTextDraft }}" onchange="{{ setNbTextDraft }}" placeholder="The note — situation, what you learned, what to remember next time…" style="flex:1; min-width:220px; height:64px; resize:vertical; padding:9px 11px; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12.5px; line-height:1.5; outline:none;"></textarea>
+              <button onclick="{{ addNbNote }}" style="flex:none; padding:9px 18px; border-radius:8px; border:none; background:linear-gradient(135deg,#2fb24c,#1c8f3a); color:#04140a; cursor:pointer; font-size:12.5px; font-weight:700;">Save note</button>
+            </div>
+            <sc-if value="{{ nbEmpty }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:11.5px; color:#56606e; padding:6px 2px;">No notes here yet — write the first one. Each topic becomes its own tab above.</div>
+            </sc-if>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
+              <sc-for list="{{ nbNotes }}" as="nb" hint-placeholder-count="2">
+                <div style="border-radius:10px; border:1px solid rgba(47,178,76,.18); background:rgba(47,178,76,.04); padding:11px 12px; position:relative;">
+                  <div style="display:flex; align-items:center; gap:7px; margin-bottom:5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#6fdc8c; padding:1px 7px; border-radius:4px; background:rgba(47,178,76,.15);">{{ nb.topic }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ nb.when }}</span></div>
+                  <div style="font-size:12px; color:#dbe4dd; line-height:1.5; white-space:pre-wrap; padding-right:14px;">{{ nb.text }}</div>
+                  <button onclick="{{ nb.remove }}" style="position:absolute; top:8px; right:8px; background:none; border:none; color:#56606e; cursor:pointer; font-size:13px; line-height:1;">×</button>
+                </div>
+              </sc-for>
             </div>
           </div>
 
@@ -1094,26 +1124,8 @@
                   <div style="position:absolute; right:9px; top:8px; font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:1px; color:#fff; background:rgba(0,0,0,.5); padding:2px 6px; border-radius:5px; backdrop-filter:blur(3px);">FEED</div>
                 </div>
           </div>
-          <div style="display:grid; grid-template-columns:1fr 1.25fr; gap:14px; margin-bottom:16px;">
-            <!-- DEEP WORK -->
-            <div style="position:relative; border-radius:16px; border:1px solid rgba(167,139,250,.3); background:linear-gradient(180deg,rgba(167,139,250,.08),rgba(13,10,22,.5)); padding:18px 20px; overflow:hidden;">
-              <div style="position:absolute; left:0; top:0; width:34px; height:2px; background:#a78bfa;"></div>
-              <div style="position:absolute; left:0; top:0; width:2px; height:34px; background:#a78bfa;"></div>
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#c4b5fd;">DEEP WORK</div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ deepSessions }} done today</span>
-              </div>
-              <div style="font-family:'Sora'; font-size:54px; font-weight:800; line-height:1; letter-spacing:1px; text-align:center; color:#e7defc; text-shadow:0 0 28px rgba(167,139,250,.45);">{{ deepClock }}</div>
-              <div style="height:6px; border-radius:4px; background:rgba(255,255,255,.08); overflow:hidden; margin:12px 0 13px;"><div style="height:100%; width:{{ deepPct }}; background:linear-gradient(90deg,#a78bfa,#e7defc); transition:width .9s linear;"></div></div>
-              <div style="display:flex; gap:6px; margin-bottom:11px;">
-                <sc-for list="{{ deepDurs }}" as="d" hint-placeholder-count="3"><button onclick="{{ d.pick }}" style="flex:1; padding:7px; border-radius:8px; border:1px solid {{ d.border }}; background:{{ d.bg }}; color:{{ d.c }}; cursor:pointer; font-size:11.5px; font-weight:600; font-family:'JetBrains Mono',monospace;">{{ d.label }}</button></sc-for>
-              </div>
-              <div style="display:flex; gap:7px;">
-                <sc-if value="{{ deepRunning }}" hint-placeholder-val="{{ false }}"><button onclick="{{ pauseDeep }}" style="flex:1; padding:10px; border-radius:9px; border:none; background:linear-gradient(135deg,#a78bfa,#7c6cf0); color:#0c0716; cursor:pointer; font-size:13px; font-weight:700;">❚❚ Pause</button></sc-if>
-                <sc-if value="{{ deepStopped }}" hint-placeholder-val="{{ true }}"><button onclick="{{ startDeep }}" style="flex:1; padding:10px; border-radius:9px; border:none; background:linear-gradient(135deg,#a78bfa,#7c6cf0); color:#0c0716; cursor:pointer; font-size:13px; font-weight:700;">▶ Focus</button></sc-if>
-                <button onclick="{{ resetDeep }}" style="flex:none; padding:10px 14px; border-radius:9px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:13px;">↺</button>
-              </div>
-            </div>
+          <!-- AI SIGNAL — stay current, always first -->
+          <div style="margin-bottom:14px;">
             <!-- AI NEWS -->
             <div style="border-radius:16px; border:1px solid rgba(167,139,250,.22); background:rgba(13,10,22,.45); padding:18px 20px;">
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;">
@@ -1128,58 +1140,41 @@
                   <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 12px; border-radius:10px; background:rgba(167,139,250,.05); border:1px solid rgba(167,139,250,.12); transition:all .18s;" style-hover="border-color:rgba(167,139,250,.4);">
                     <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.5px; color:#c4b5fd; padding:1px 6px; border-radius:4px; background:rgba(167,139,250,.15);">{{ n.src }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span></div>
                     <div style="font-size:12.5px; font-weight:600; line-height:1.4; color:#e8ecf2;">{{ n.head }}</div>
+                    <div style="display:{{ n.whyDisp }}; font-family:'JetBrains Mono',monospace; font-size:9px; color:#8b7bb8; margin-top:3px;">→ {{ n.why }}</div>
                   </a>
                 </sc-for>
               </div>
             </div>
           </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
-            <sc-for list="{{ aiTools }}" as="tool" hint-placeholder-count="4">
-              <a href="{{ tool.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:flex; align-items:center; gap:13px; padding:15px; border-radius:13px; border:1px solid rgba(167,139,250,.2); background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(15,12,22,.5)); transition:all .18s;" style-hover="border-color:rgba(167,139,250,.5);">
-                <span style="width:42px; height:42px; flex:none; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:21px; background:{{ tool.bg }}; border:1px solid rgba(255,255,255,.08);">{{ tool.icon }}</span>
-                <span style="flex:1;">
-                  <span style="display:block; font-size:14px; font-weight:700; color:#eef1f6;">{{ tool.name }}</span>
-                  <span style="display:block; font-size:11px; color:#9aa4b2; margin-top:2px;">{{ tool.desc }}</span>
-                </span>
-                <span style="color:#a78bfa; font-size:16px;">↗</span>
-              </a>
-            </sc-for>
+          <!-- MODE TABS -->
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <sc-for list="{{ aiTabs }}" as="tb2" hint-placeholder-count="3"><button onclick="{{ tb2.go }}" style="padding:8px 16px; border-radius:9px; border:1px solid {{ tb2.border }}; background:{{ tb2.bg }}; color:{{ tb2.c }}; cursor:pointer; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;">{{ tb2.label }}</button></sc-for>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; margin-left:auto;">LEARN what's next · TEST tools & workflows · BUILD and log it</span>
           </div>
-          <div style="border-radius:14px; border:1px solid {{ aiTodos.accentBorder }}; background:{{ aiTodos.accentSoft }}; padding:16px; margin-bottom:16px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
-              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:{{ aiTodos.accent }};">AI LAB · TO-DO</div>
-              <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#7d8694;">{{ aiTodos.leftLabel }}</span>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:7px;">
-              <sc-for list="{{ aiTodos.items }}" as="t" hint-placeholder-count="2">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <button onclick="{{ t.toggle }}" style="width:19px; height:19px; flex:none; border-radius:6px; border:1.5px solid {{ t.boxBorder }}; background:{{ t.boxBg }}; color:#06120c; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center;">{{ t.check }}</button>
-                  <span style="flex:1; font-size:13px; color:{{ t.textC }}; text-decoration:{{ t.strike }};">{{ t.title }}</span>
-                  <button onclick="{{ t.remove }}" style="background:none; border:none; color:#5b6677; cursor:pointer; font-size:13px;">×</button>
+          <sc-if value="{{ aiTabLearn }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="border-radius:14px; border:1px dashed rgba(167,139,250,.35); background:rgba(167,139,250,.05); padding:16px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#c4b5fd;">SUGGESTED FOR YOU · FROM YOUR LOG + THIS WEEK'S AI NEWS</div>
+                  <button onclick="{{ refreshSuggest }}" style="padding:6px 12px; border-radius:8px; border:1px solid rgba(167,139,250,.4); background:rgba(167,139,250,.1); color:#c4b5fd; cursor:pointer; font-size:10px; font-weight:600; font-family:'JetBrains Mono',monospace;">{{ suggBtnLabel }}</button>
                 </div>
-              </sc-for>
-            </div>
-            <div style="display:flex; gap:7px; margin-top:11px;">
-              <input value="{{ aiTodos.draft }}" onchange="{{ aiTodos.setDraft }}" onkeydown="{{ aiTodos.onKey }}" placeholder="Add a to-do…" style="flex:1; min-width:0; padding:8px 11px; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12.5px; outline:none;">
-              <button onclick="{{ aiTodos.add }}" style="padding:8px 14px; border-radius:9px; border:1px solid {{ aiTodos.accentBorder }}; background:{{ aiTodos.accentSoft }}; color:{{ aiTodos.accent }}; cursor:pointer; font-size:12.5px; font-weight:600;">Add</button>
-            </div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
-            <!-- AI WORKFLOWS -->
-            <div style="border-radius:14px; border:1px solid rgba(167,139,250,.22); background:rgba(15,12,22,.42); padding:17px;">
-              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#c4b5fd; margin-bottom:13px;">AI WORKFLOWS // MY STACK</div>
-              <div style="display:flex; flex-direction:column; gap:9px;">
-                <sc-for list="{{ aiWf }}" as="w" hint-placeholder-count="4">
-                  <div style="display:flex; align-items:flex-start; gap:12px; padding:11px 12px; border-radius:11px; background:rgba(167,139,250,.05); border:1px solid rgba(167,139,250,.12);">
-                    <span style="width:34px; height:34px; flex:none; border-radius:10px; background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.2); display:flex; align-items:center; justify-content:center; font-size:16px; color:#c4b5fd;">{{ w.icon }}</span>
-                    <div style="flex:1; min-width:0;">
-                      <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:13px; font-weight:700; color:#eef1f6;">{{ w.title }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.5px; color:#a78bfa; padding:1px 6px; border-radius:4px; background:rgba(167,139,250,.12);">{{ w.tag }}</span></div>
-                      <div style="font-size:11.5px; color:#9aa4b2; margin-top:3px; line-height:1.4;">{{ w.desc }}</div>
+                <sc-if value="{{ noLearnSuggest }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:11.5px; color:#56606e;">Tap SUGGEST FOR ME and the assistant reads your learning log, course queue and this week's AI signal — then recommends the next course, a tool to test, and one build idea.</div>
+                </sc-if>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ learnSuggest }}" as="g" hint-placeholder-count="0">
+                    <div style="display:flex; align-items:flex-start; gap:11px; padding:11px 12px; border-radius:11px; background:rgba(167,139,250,.06); border:1px solid rgba(167,139,250,.16);">
+                      <span style="width:34px; height:34px; flex:none; border-radius:10px; background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.2); display:flex; align-items:center; justify-content:center; font-size:16px;">{{ g.icon }}</span>
+                      <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:13px; font-weight:700; color:#eef1f6;">{{ g.title }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.5px; color:#a78bfa; padding:1px 6px; border-radius:4px; background:rgba(167,139,250,.12);">{{ g.kindLabel }}</span><a href="{{ g.url }}" target="_blank" rel="noopener" style="display:{{ g.urlDisp }}; text-decoration:none; color:#a78bfa; font-size:13px;">↗</a></div>
+                        <div style="font-size:11.5px; color:#9aa4b2; margin-top:3px; line-height:1.45;">{{ g.note }}</div>
+                      </div>
+                      <button onclick="{{ g.accept }}" style="display:{{ g.acceptDisp }}; flex:none; padding:5px 11px; border-radius:7px; border:1px solid rgba(167,139,250,.4); background:transparent; color:#c4b5fd; cursor:pointer; font-size:10px; font-weight:700;">+ QUEUE</button>
+                      <button onclick="{{ g.dismiss }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:13px;">×</button>
                     </div>
-                  </div>
-                </sc-for>
+                  </sc-for>
+                </div>
               </div>
-            </div>
             <!-- COURSES -->
             <div style="border-radius:14px; border:1px solid rgba(167,139,250,.22); background:rgba(15,12,22,.42); padding:17px;">
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;">
@@ -1208,7 +1203,81 @@
                 </div>
               </div>
             </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ aiTabTest }}" hint-placeholder-val="{{ false }}">
+            <div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+            <sc-for list="{{ aiTools }}" as="tool" hint-placeholder-count="4">
+              <a href="{{ tool.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:flex; align-items:center; gap:13px; padding:15px; border-radius:13px; border:1px solid rgba(167,139,250,.2); background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(15,12,22,.5)); transition:all .18s;" style-hover="border-color:rgba(167,139,250,.5);">
+                <span style="width:42px; height:42px; flex:none; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:21px; background:{{ tool.bg }}; border:1px solid rgba(255,255,255,.08);">{{ tool.icon }}</span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:14px; font-weight:700; color:#eef1f6;">{{ tool.name }}</span>
+                  <span style="display:block; font-size:11px; color:#9aa4b2; margin-top:2px;">{{ tool.desc }}</span>
+                </span>
+                <span style="color:#a78bfa; font-size:16px;">↗</span>
+              </a>
+            </sc-for>
           </div>
+            <!-- AI WORKFLOWS -->
+            <div style="border-radius:14px; border:1px solid rgba(167,139,250,.22); background:rgba(15,12,22,.42); padding:17px;">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#c4b5fd; margin-bottom:13px;">AI WORKFLOWS // MY STACK</div>
+              <div style="display:flex; flex-direction:column; gap:9px;">
+                <sc-for list="{{ aiWf }}" as="w" hint-placeholder-count="4">
+                  <div style="display:flex; align-items:flex-start; gap:12px; padding:11px 12px; border-radius:11px; background:rgba(167,139,250,.05); border:1px solid rgba(167,139,250,.12);">
+                    <span style="width:34px; height:34px; flex:none; border-radius:10px; background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.2); display:flex; align-items:center; justify-content:center; font-size:16px; color:#c4b5fd;">{{ w.icon }}</span>
+                    <div style="flex:1; min-width:0;">
+                      <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:13px; font-weight:700; color:#eef1f6;">{{ w.title }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.5px; color:#a78bfa; padding:1px 6px; border-radius:4px; background:rgba(167,139,250,.12);">{{ w.tag }}</span></div>
+                      <div style="font-size:11.5px; color:#9aa4b2; margin-top:3px; line-height:1.4;">{{ w.desc }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ aiTabBuild }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:grid; grid-template-columns:1fr 1.25fr; gap:14px; margin-bottom:16px;">
+            <!-- DEEP WORK -->
+            <div style="position:relative; border-radius:16px; border:1px solid rgba(167,139,250,.3); background:linear-gradient(180deg,rgba(167,139,250,.08),rgba(13,10,22,.5)); padding:18px 20px; overflow:hidden;">
+              <div style="position:absolute; left:0; top:0; width:34px; height:2px; background:#a78bfa;"></div>
+              <div style="position:absolute; left:0; top:0; width:2px; height:34px; background:#a78bfa;"></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#c4b5fd;">DEEP WORK</div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ deepSessions }} done today</span>
+              </div>
+              <div style="font-family:'Sora'; font-size:54px; font-weight:800; line-height:1; letter-spacing:1px; text-align:center; color:#e7defc; text-shadow:0 0 28px rgba(167,139,250,.45);">{{ deepClock }}</div>
+              <div style="height:6px; border-radius:4px; background:rgba(255,255,255,.08); overflow:hidden; margin:12px 0 13px;"><div style="height:100%; width:{{ deepPct }}; background:linear-gradient(90deg,#a78bfa,#e7defc); transition:width .9s linear;"></div></div>
+              <div style="display:flex; gap:6px; margin-bottom:11px;">
+                <sc-for list="{{ deepDurs }}" as="d" hint-placeholder-count="3"><button onclick="{{ d.pick }}" style="flex:1; padding:7px; border-radius:8px; border:1px solid {{ d.border }}; background:{{ d.bg }}; color:{{ d.c }}; cursor:pointer; font-size:11.5px; font-weight:600; font-family:'JetBrains Mono',monospace;">{{ d.label }}</button></sc-for>
+              </div>
+              <div style="display:flex; gap:7px;">
+                <sc-if value="{{ deepRunning }}" hint-placeholder-val="{{ false }}"><button onclick="{{ pauseDeep }}" style="flex:1; padding:10px; border-radius:9px; border:none; background:linear-gradient(135deg,#a78bfa,#7c6cf0); color:#0c0716; cursor:pointer; font-size:13px; font-weight:700;">❚❚ Pause</button></sc-if>
+                <sc-if value="{{ deepStopped }}" hint-placeholder-val="{{ true }}"><button onclick="{{ startDeep }}" style="flex:1; padding:10px; border-radius:9px; border:none; background:linear-gradient(135deg,#a78bfa,#7c6cf0); color:#0c0716; cursor:pointer; font-size:13px; font-weight:700;">▶ Focus</button></sc-if>
+                <button onclick="{{ resetDeep }}" style="flex:none; padding:10px 14px; border-radius:9px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:13px;">↺</button>
+              </div>
+            </div>
+          <div style="border-radius:14px; border:1px solid {{ aiTodos.accentBorder }}; background:{{ aiTodos.accentSoft }}; padding:16px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:{{ aiTodos.accent }};">AI LAB · TO-DO</div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#7d8694;">{{ aiTodos.leftLabel }}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <sc-for list="{{ aiTodos.items }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <button onclick="{{ t.toggle }}" style="width:19px; height:19px; flex:none; border-radius:6px; border:1.5px solid {{ t.boxBorder }}; background:{{ t.boxBg }}; color:#06120c; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center;">{{ t.check }}</button>
+                  <span style="flex:1; font-size:13px; color:{{ t.textC }}; text-decoration:{{ t.strike }};">{{ t.title }}</span>
+                  <button onclick="{{ t.remove }}" style="background:none; border:none; color:#5b6677; cursor:pointer; font-size:13px;">×</button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; gap:7px; margin-top:11px;">
+              <input value="{{ aiTodos.draft }}" onchange="{{ aiTodos.setDraft }}" onkeydown="{{ aiTodos.onKey }}" placeholder="Add a to-do…" style="flex:1; min-width:0; padding:8px 11px; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12.5px; outline:none;">
+              <button onclick="{{ aiTodos.add }}" style="padding:8px 14px; border-radius:9px; border:1px solid {{ aiTodos.accentBorder }}; background:{{ aiTodos.accentSoft }}; color:{{ aiTodos.accent }}; cursor:pointer; font-size:12.5px; font-weight:600;">Add</button>
+            </div>
+          </div>
+              </div>
           <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:16px;">
             <div style="border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(15,12,22,.4); padding:17px;">
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
@@ -1238,6 +1307,8 @@
               </div>
             </div>
           </div>
+            </div>
+          </sc-if>
         </div>
       </sc-if>
 
@@ -1355,34 +1426,51 @@
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:12px 0 16px;">
                 <sc-for list="{{ sel.stats }}" as="st" hint-placeholder-count="4"><div style="padding:9px 11px; border-radius:9px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);"><div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694; letter-spacing:.5px;">{{ st.k }}</div><div style="font-size:14px; font-weight:700; margin-top:3px; color:#e8ecf2;">{{ st.v }}</div></div></sc-for>
               </div>
-              <div style="display:grid; grid-template-columns:1fr 1.35fr; gap:14px;">
-                <div>
-                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#34d399;">RESEARCH FEED</span><button onclick="{{ connectStockNews }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:4px 9px; border-radius:7px; border:1px dashed rgba(52,211,153,.45); background:rgba(52,211,153,.07); color:#5cd6a0; cursor:pointer; letter-spacing:.5px;" style-hover="background:rgba(52,211,153,.16)">{{ stockNewsSrcChip }}</button></div>
-                  <div style="display:flex; flex-direction:column; gap:8px;">
-                    <sc-for list="{{ sel.news }}" as="n" hint-placeholder-count="3">
-                      <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 11px; border-radius:9px; background:{{ n.bgC }}; border:1px solid {{ n.borderC }}; transition:border-color .18s;" style-hover="border-color:rgba(52,211,153,.5)">
-                        <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:{{ n.tagC }}; padding:1px 6px; border-radius:4px; background:{{ n.tagBg }};">{{ n.sentGlyph }} {{ n.tag }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span><span title="{{ n.pivotTitle }}" style="display:{{ n.pivotDisp }}; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡ PIVOT</span></div>
-                        <div style="font-size:12px; font-weight:600; line-height:1.35; color:#e8ecf2;">{{ n.head }}</div>
-                      </a>
-                    </sc-for>
+              <!-- THESIS COMMAND BOARD -->
+              <div style="border-radius:14px; border:1px solid rgba(52,211,153,.3); background:linear-gradient(180deg,rgba(52,211,153,.05),rgba(6,14,10,.55)); padding:16px 18px; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2px; color:#34d399;">{{ sel.sym }} · THESIS COMMAND BOARD</span>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:{{ tb.signalC }}; border:1px solid {{ tb.signalBorder }}; background:{{ tb.signalBg }}; padding:4px 10px; border-radius:7px;">{{ tb.signalLine }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:{{ sel.stanceC }};">STANCE: {{ sel.stance }}</span>
+                    <button onclick="{{ debateMe }}" style="padding:6px 12px; border-radius:8px; border:1px dashed rgba(52,211,153,.45); background:transparent; color:#5cd6a0; cursor:pointer; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;" style-hover="background:rgba(255,255,255,.04)">⚔ DEBATE ME</button>
                   </div>
                 </div>
-                <div style="border-radius:12px; border:1px solid {{ thesis.border }}; background:{{ thesis.panelBg }}; padding:13px; transition:background .25s ease, border-color .25s ease;">
-                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:{{ thesis.accent }};">{{ sel.sym }} · THESIS</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:{{ thesis.accent }};">{{ thesisSaved }}</span></div>
-                  <div style="display:flex; margin-bottom:11px; border-radius:9px; border:1px solid {{ thesis.border }}; overflow:hidden;">
-                    <button onclick="{{ markBull }}" style="flex:1; padding:9px; border:none; background:{{ thesis.bullBg }}; color:{{ thesis.bullC }}; cursor:pointer; font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; transition:all .2s;">▲ BULL</button>
-                    <button onclick="{{ markBear }}" style="flex:1; padding:9px; border:none; background:{{ thesis.bearBg }}; color:{{ thesis.bearC }}; cursor:pointer; font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; transition:all .2s;">▼ BEAR</button>
+                <div style="font-size:11px; color:#7d8694; margin-bottom:12px;">Write the case both ways. Blind spots get flagged, and market events that hit one of your points get marked ⚡ in the feed below.</div>
+                <sc-if value="{{ tb.hasBlindSpots }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;">
+                    <sc-for list="{{ tb.blindSpots }}" as="b" hint-placeholder-count="1">
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#fbbf24; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.35); padding:5px 10px; border-radius:7px;">◉ BLIND SPOT — {{ b.text }}</span>
+                    </sc-for>
                   </div>
-                  <textarea value="{{ sel.thesis }}" onchange="{{ updateThesis }}" placeholder="{{ thesis.placeholder }}" style="width:100%; height:170px; resize:none; border-radius:10px; border:1px solid {{ thesis.border }}; background:{{ thesis.fieldBg }}; color:#e8ecf2; padding:11px; font-size:12px; line-height:1.5; outline:none; transition:all .25s ease;"></textarea>
-                  <div style="margin-top:12px;">
-                    <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:{{ thesis.accent }}; margin-bottom:7px;">KEY POINTS · CHECK OFF WHEN AN EVENT PIVOTS THEM</div>
-                    <sc-if value="{{ noThesisPoints }}" hint-placeholder-val="{{ true }}">
-                      <div style="font-size:11px; color:#56606e; padding:2px 2px 8px; line-height:1.4;">No points yet — add the load-bearing claims of this thesis. News that confirms or threatens one gets flagged ⚡ in the feed.</div>
-                    </sc-if>
+                </sc-if>
+                <sc-if value="{{ tb.hasSuggestions }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-radius:11px; border:1px dashed rgba(56,189,248,.35); background:rgba(56,189,248,.05); padding:11px 12px; margin-bottom:12px;">
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:#7dd3fc; margin-bottom:8px;">MARKET SIGNALS → SUGGESTED THESIS POINTS</div>
+                    <div style="display:flex; flex-direction:column; gap:7px;">
+                      <sc-for list="{{ tb.suggestions }}" as="g" hint-placeholder-count="2">
+                        <div style="display:flex; align-items:center; gap:9px;">
+                          <span style="flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:{{ g.c }}; border:1px solid {{ g.bd }}; padding:1px 7px; border-radius:4px;">{{ g.sideLabel }}</span>
+                          <span style="flex:1; font-size:11.5px; color:#cbd5e1; line-height:1.35;">{{ g.text }} <span style="color:#56606e; font-size:10px;">— {{ g.why }}</span></span>
+                          <button onclick="{{ g.accept }}" style="flex:none; padding:4px 10px; border-radius:6px; border:1px solid {{ g.bd }}; background:transparent; color:{{ g.c }}; cursor:pointer; font-size:10px; font-weight:700;">+ ADD</button>
+                          <button onclick="{{ g.dismiss }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:12px;">×</button>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                  <div style="border-radius:12px; border:1px solid rgba(52,211,153,.35); background:linear-gradient(180deg,rgba(52,211,153,.07),rgba(6,18,12,.45)); padding:13px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;">
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:1.5px; color:#34d399; font-weight:700;">▲ BULL CASE · upside</span>
+                      <button onclick="{{ markBull }}" style="padding:4px 10px; border-radius:6px; border:1px solid rgba(52,211,153,.4); background:{{ tb.bullStanceBg }}; color:#5cd6a0; cursor:pointer; font-size:9px; font-weight:700; font-family:'JetBrains Mono',monospace;">SET STANCE</button>
+                    </div>
+                    <textarea value="{{ tb.bullText }}" onchange="{{ tb.setBull }}" placeholder="Why this works — catalysts, edge, entry, price target…" style="width:100%; height:150px; resize:vertical; border-radius:10px; border:1px solid rgba(52,211,153,.3); background:rgba(6,18,12,.5); color:#e8ecf2; padding:11px; font-size:12.5px; line-height:1.55; outline:none;"></textarea>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:#34d399; margin:11px 0 7px;">KEY POINTS · CHECK OFF WHEN PLAYED OUT</div>
                     <div style="display:flex; flex-direction:column; gap:6px;">
-                      <sc-for list="{{ thesisPoints }}" as="p" hint-placeholder-count="2">
-                        <div style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:8px; border:1px solid {{ thesis.border }}; background:rgba(255,255,255,.02);">
-                          <button onclick="{{ p.toggle }}" style="width:16px; height:16px; flex:none; border-radius:5px; border:1px solid {{ thesis.accent }}; background:{{ p.boxBg }}; color:#04121c; cursor:pointer; font-size:10px; line-height:1; padding:0;">{{ p.check }}</button>
+                      <sc-for list="{{ tb.bullPoints }}" as="p" hint-placeholder-count="2">
+                        <div style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:8px; border:1px solid rgba(52,211,153,.25); background:rgba(255,255,255,.02);">
+                          <button onclick="{{ p.toggle }}" style="width:16px; height:16px; flex:none; border-radius:5px; border:1px solid #34d399; background:{{ p.boxBg }}; color:#04121c; cursor:pointer; font-size:10px; line-height:1; padding:0;">{{ p.check }}</button>
                           <span style="flex:1; font-size:11.5px; line-height:1.35; color:{{ p.txtC }}; text-decoration:{{ p.strike }};">{{ p.text }}</span>
                           <span title="{{ p.pivotTitle }}" style="display:{{ p.pivotDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡</span>
                           <button onclick="{{ p.remove }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:12px; padding:0 2px;">×</button>
@@ -1390,13 +1478,44 @@
                       </sc-for>
                     </div>
                     <div style="display:flex; gap:7px; margin-top:8px;">
-                      <input value="{{ thesisPointDraft }}" onchange="{{ setThesisPointDraft }}" onkeydown="{{ onThesisPointKey }}" placeholder="Add a key point to this thesis…" style="flex:1; min-width:0; padding:8px 10px; border-radius:8px; border:1px solid {{ thesis.border }}; background:{{ thesis.fieldBg }}; color:#e8ecf2; font-size:11.5px; outline:none;">
-                      <button onclick="{{ addThesisPoint }}" style="padding:8px 12px; border-radius:8px; border:1px solid {{ thesis.border }}; background:transparent; color:{{ thesis.accent }}; cursor:pointer; font-size:11px; font-weight:700;">Add</button>
+                      <input value="{{ tb.bullDraft }}" onchange="{{ tb.setBullDraft }}" onkeydown="{{ tb.onBullKey }}" placeholder="Add a bull point…" style="flex:1; min-width:0; padding:8px 10px; border-radius:8px; border:1px solid rgba(52,211,153,.3); background:rgba(6,18,12,.5); color:#e8ecf2; font-size:11.5px; outline:none;">
+                      <button onclick="{{ tb.addBullPoint }}" style="padding:8px 12px; border-radius:8px; border:1px solid rgba(52,211,153,.4); background:transparent; color:#34d399; cursor:pointer; font-size:11px; font-weight:700;">Add</button>
                     </div>
                   </div>
-                  <div style="text-align:center; margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ thesis.accent }};">{{ thesis.label }}</div>
-                  <div style="text-align:center; margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:9.5px; color:{{ sel.stanceC }};">RECORDED STANCE: {{ sel.stance }}</div>
-                  <button onclick="{{ debateMe }}" style="width:100%; margin-top:9px; padding:8px; border-radius:9px; border:1px dashed {{ thesis.border }}; background:transparent; color:{{ thesis.accent }}; cursor:pointer; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;" style-hover="background:rgba(255,255,255,.04)">⚔ DEBATE ME</button>
+                  <div style="border-radius:12px; border:1px solid rgba(248,113,113,.35); background:linear-gradient(180deg,rgba(248,113,113,.07),rgba(26,8,8,.45)); padding:13px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;">
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:1.5px; color:#f87171; font-weight:700;">▼ BEAR CASE · what breaks it</span>
+                      <button onclick="{{ markBear }}" style="padding:4px 10px; border-radius:6px; border:1px solid rgba(248,113,113,.4); background:{{ tb.bearStanceBg }}; color:#fca5a5; cursor:pointer; font-size:9px; font-weight:700; font-family:'JetBrains Mono',monospace;">SET STANCE</button>
+                    </div>
+                    <textarea value="{{ tb.bearText }}" onchange="{{ tb.setBear }}" placeholder="Risks, red flags, exit triggers — reduce your blind spots…" style="width:100%; height:150px; resize:vertical; border-radius:10px; border:1px solid rgba(248,113,113,.3); background:rgba(28,9,9,.55); color:#e8ecf2; padding:11px; font-size:12.5px; line-height:1.55; outline:none;"></textarea>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:#f87171; margin:11px 0 7px;">KEY POINTS · CHECK OFF WHEN PLAYED OUT</div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                      <sc-for list="{{ tb.bearPoints }}" as="p" hint-placeholder-count="2">
+                        <div style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:8px; border:1px solid rgba(248,113,113,.25); background:rgba(255,255,255,.02);">
+                          <button onclick="{{ p.toggle }}" style="width:16px; height:16px; flex:none; border-radius:5px; border:1px solid #f87171; background:{{ p.boxBg }}; color:#04121c; cursor:pointer; font-size:10px; line-height:1; padding:0;">{{ p.check }}</button>
+                          <span style="flex:1; font-size:11.5px; line-height:1.35; color:{{ p.txtC }}; text-decoration:{{ p.strike }};">{{ p.text }}</span>
+                          <span title="{{ p.pivotTitle }}" style="display:{{ p.pivotDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡</span>
+                          <button onclick="{{ p.remove }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:12px; padding:0 2px;">×</button>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex; gap:7px; margin-top:8px;">
+                      <input value="{{ tb.bearDraft }}" onchange="{{ tb.setBearDraft }}" onkeydown="{{ tb.onBearKey }}" placeholder="Add a bear point…" style="flex:1; min-width:0; padding:8px 10px; border-radius:8px; border:1px solid rgba(248,113,113,.3); background:rgba(28,9,9,.55); color:#e8ecf2; font-size:11.5px; outline:none;">
+                      <button onclick="{{ tb.addBearPoint }}" style="padding:8px 12px; border-radius:8px; border:1px solid rgba(248,113,113,.4); background:transparent; color:#f87171; cursor:pointer; font-size:11px; font-weight:700;">Add</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- RESEARCH FEED -->
+              <div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#34d399;">RESEARCH FEED · GREEN GOOD / RED BAD / ⚡ HITS YOUR THESIS</span><button onclick="{{ connectStockNews }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:4px 9px; border-radius:7px; border:1px dashed rgba(52,211,153,.45); background:rgba(52,211,153,.07); color:#5cd6a0; cursor:pointer; letter-spacing:.5px;" style-hover="background:rgba(52,211,153,.16)">{{ stockNewsSrcChip }}</button></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <sc-for list="{{ sel.news }}" as="n" hint-placeholder-count="4">
+                    <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 11px; border-radius:9px; background:{{ n.bgC }}; border:1px solid {{ n.borderC }}; transition:border-color .18s;" style-hover="border-color:rgba(52,211,153,.5)">
+                      <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:{{ n.tagC }}; padding:1px 6px; border-radius:4px; background:{{ n.tagBg }};">{{ n.sentGlyph }} {{ n.tag }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span><span title="{{ n.pivotTitle }}" style="display:{{ n.pivotDisp }}; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡ PIVOT</span></div>
+                      <div style="font-size:12px; font-weight:600; line-height:1.35; color:#e8ecf2;">{{ n.head }}</div>
+                    </a>
+                  </sc-for>
                 </div>
               </div>
             </div>
@@ -1881,14 +2000,20 @@ class Component extends DCLogic {
         {id:'s2',date:'2026-07-04',label:'Independence Day',type:'holiday'},
       ],
       feTopics:[
-        {id:'f1',title:'Semantic HTML & accessibility',level:'CORE',done:false},
-        {id:'f2',title:'CSS layout: Flexbox & Grid',level:'CORE',done:false},
-        {id:'f3',title:'JS: closures, scope, event loop',level:'CORE',done:false},
-        {id:'f4',title:'Async / promises / fetch',level:'CORE',done:false},
-        {id:'f5',title:'React: state, effects, hooks',level:'INTER',done:false},
-        {id:'f6',title:'TypeScript fundamentals',level:'INTER',done:false},
-        {id:'f7',title:'Performance & rendering',level:'ADV',done:false},
-        {id:'f8',title:'System design for frontend',level:'ADV',done:false},
+        {id:'f1',title:'Mathematics & Statistics',level:'CORE',done:false},
+        {id:'f2',title:'Ethics & Professional Practice',level:'CORE',done:false},
+        {id:'f3',title:'Engineering Economics',level:'CORE',done:false},
+        {id:'f4',title:'Statics',level:'CORE',done:false},
+        {id:'f5',title:'Dynamics',level:'INTER',done:false},
+        {id:'f6',title:'Mechanics of Materials',level:'CORE',done:false},
+        {id:'f7',title:'Materials',level:'INTER',done:false},
+        {id:'f8',title:'Fluid Mechanics',level:'CORE',done:false},
+        {id:'f9',title:'Surveying',level:'INTER',done:false},
+        {id:'f10',title:'Water Resources & Environmental',level:'ADV',done:false},
+        {id:'f11',title:'Structural Engineering',level:'ADV',done:false},
+        {id:'f12',title:'Geotechnical Engineering',level:'ADV',done:false},
+        {id:'f13',title:'Transportation Engineering',level:'ADV',done:false},
+        {id:'f14',title:'Construction Engineering',level:'ADV',done:false},
       ],
       aiTools:[
         {id:'a1',name:'Claude',desc:'Reasoning, agents, code',icon:'✶',url:'https://claude.ai',bg:'rgba(214,140,90,.18)'},
@@ -1903,7 +2028,7 @@ class Component extends DCLogic {
         {sym:'MU',name:'Micron Technology',cap:'LARGE',price:'138.20',chgN:-2.1,base:142},
         {sym:'BULL',name:'Webull Corp',cap:'SMALL',price:'12.85',chgN:9.3,base:11.4},
       ],
-      selSym:'HYLN', range:'1M', thesisMode:'bull', theses:{HYLN:{bull:'',bear:''},NUE:{bull:'',bear:''},MU:{bull:'',bear:''},BULL:{bull:'',bear:''}}, stances:{HYLN:'WATCH',NUE:'WATCH',MU:'WATCH',BULL:'WATCH'}, thesisSaved:'', thesisPoints:{}, thesisPointDraft:'',
+      selSym:'HYLN', range:'1M', thesisMode:'bull', theses:{HYLN:{bull:'',bear:''},NUE:{bull:'',bear:''},MU:{bull:'',bear:''},BULL:{bull:'',bear:''}}, stances:{HYLN:'WATCH',NUE:'WATCH',MU:'WATCH',BULL:'WATCH'}, thesisSaved:'', thesisPoints:{}, thesisPointDraft:'', bullPointDraft:'', bearPointDraft:'', aiTab:'learn', suggLoading:false, learnSuggest:[], nucorNotebook:[], nbTopicDraft:'', nbTextDraft:'', nbFilter:'ALL',
       nucorTasks:[
         {id:'n1',title:'Pre-shift safety check',done:false},
         {id:'n2',title:'Caster line inspection',done:false},
@@ -1983,7 +2108,7 @@ class Component extends DCLogic {
       monthGoalDraft:'',
     };
     // ----- persistence: hydrate saved user data over the defaults -----
-    this._PKEYS=['events','tasks','specialDays','feTopics','examDate','aiTools','aiLog','aiWorkflows','courses','aiNews','watchlist','selSym','range','thesisMode','theses','stances','nucorTasks','nucorNotes','nucorProjects','steel','jobs','quoteTons','quoteMargin','careerStageIdx','careerGoals','salesQs','leaderQs','fin','holdings','stationTodos','mediaGoals','mediaIdeas','todoHistory','gym','nutrition','monthGoals','messages','view','calTab','deep','mediaChannels','sourcesConnected','thesisPoints'];
+    this._PKEYS=['events','tasks','specialDays','feTopics','examDate','aiTools','aiLog','aiWorkflows','courses','aiNews','watchlist','selSym','range','thesisMode','theses','stances','nucorTasks','nucorNotes','nucorProjects','steel','jobs','quoteTons','quoteMargin','careerStageIdx','careerGoals','salesQs','leaderQs','fin','holdings','stationTodos','mediaGoals','mediaIdeas','todoHistory','gym','nutrition','monthGoals','messages','view','calTab','deep','mediaChannels','sourcesConnected','thesisPoints','learnSuggest','nucorNotebook'];
     this._custom=[]; this._removed=[];
     try{
       const raw=localStorage.getItem('trydon.v2');
@@ -2008,6 +2133,28 @@ class Component extends DCLogic {
     this.scrollRef=(el)=>{ this._scrollEl=el; };
   }
 
+  updateThesisSide(side,e){ const v=e.target.value; this.setState(s=>({theses:{...s.theses,[s.selSym]:{...(s.theses[s.selSym]||{bull:'',bear:''}),[side]:v}},thesisSaved:'saved \u2713'})); }
+  setSideDraft(side,e){ this.setState({[side==='bear'?'bearPointDraft':'bullPointDraft']:e.target.value}); }
+  addSidePoint(side){ const key=side==='bear'?'bearPointDraft':'bullPointDraft'; const v=(this.state[key]||'').trim(); if(!v) return;
+    const sym=this.state.selSym;
+    this.setState(s=>({ thesisPoints:{...(s.thesisPoints||{}),[sym]:[...(((s.thesisPoints||{})[sym])||[]),{id:'tp'+Date.now(),side,text:v,done:false}]}, [key]:'' }),()=>{ if(this._tickNews) this._tickNews(); }); }
+  onSidePointKey(side,e){ if(e.key==='Enter'){ e.preventDefault(); this.addSidePoint(side); } }
+  acceptSuggestion(i){ const sym=this.state.selSym; const g=((this._suggest||{})[sym]||[])[i]; if(!g) return;
+    this._suggest[sym]=this._suggest[sym].filter((_,k)=>k!==i);
+    this.setState(s=>({ thesisPoints:{...(s.thesisPoints||{}),[sym]:[...(((s.thesisPoints||{})[sym])||[]),{id:'tp'+Date.now(),side:g.side==='bear'?'bear':'bull',text:g.text,done:false}]} })); }
+  dismissSuggestion(i){ const sym=this.state.selSym; if(this._suggest&&this._suggest[sym]){ this._suggest[sym]=this._suggest[sym].filter((_,k)=>k!==i); this.forceUpdate(); } }
+  pickAiTab(t){ this.setState({aiTab:t}); }
+  async refreshSuggest(){ if(this.state.suggLoading) return; this.setState({suggLoading:true});
+    try{ const r=await fetch('/api/learn/suggest',{method:'POST',credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.items) this.setState({learnSuggest:p.items}); } }catch(e){}
+    this.setState({suggLoading:false}); }
+  acceptLearnSuggest(i){ const g=(this.state.learnSuggest||[])[i]; if(!g) return;
+    this.setState(s=>({ courses:g.kind==='course'?[...s.courses,{id:'c'+Date.now(),name:g.title,provider:g.provider||'Suggested',url:g.url||'#',done:false}]:s.courses, learnSuggest:s.learnSuggest.filter((_,k)=>k!==i) })); }
+  dismissLearnSuggest(i){ this.setState(s=>({learnSuggest:(s.learnSuggest||[]).filter((_,k)=>k!==i)})); }
+  setNbField(k,e){ this.setState({[k]:e.target.value}); }
+  addNbNote(){ const topic=(this.state.nbTopicDraft||'').trim()||'General'; const text=(this.state.nbTextDraft||'').trim(); if(!text) return;
+    this.setState(s=>({ nucorNotebook:[...(s.nucorNotebook||[]),{id:'nb'+Date.now(),topic,text,ts:Date.now()}], nbTextDraft:'', nbFilter:topic })); }
+  removeNbNote(id){ this.setState(s=>({nucorNotebook:(s.nucorNotebook||[]).filter(n=>n.id!==id)})); }
+  pickNbTopic(t){ this.setState({nbFilter:t}); }
   setThesisPointDraft(e){ this.setState({thesisPointDraft:e.target.value}); }
   addThesisPoint(){ const v=(this.state.thesisPointDraft||'').trim(); if(!v) return;
     const sym=this.state.selSym, side=this.state.thesisMode;
@@ -2062,11 +2209,12 @@ class Component extends DCLogic {
       this._news[sym]=items; this._stockNewsLive=true; this.forceUpdate();
       try{
         const points=(((this.state.thesisPoints||{})[sym])||[]).filter(p=>!p.done).map(p=>({id:p.id,side:p.side,text:p.text}));
-        const r=await fetch('/api/analyze/news',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({sym,heads:items.map(x=>x.head),points})});
+        const r=await fetch('/api/analyze/news',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({sym,heads:items.map(x=>x.head),points,theses:(this.state.theses||{})[sym]||{}})});
         if(r.ok){ const an=await r.json();
           this._pivotHits=this._pivotHits||{}; this._pivotHits[sym]={};
           items=items.map((x,i)=>({...x,sent:(an.sent||[])[i]||'neutral'}));
           (an.pivots||[]).forEach(pv=>{ if(items[pv.i]) items[pv.i].pivot={point:pv.point,kind:pv.kind,why:pv.why}; this._pivotHits[sym][pv.point]={kind:pv.kind,why:pv.why}; });
+          this._suggest=this._suggest||{}; this._suggest[sym]=an.suggest||[];
           this._news[sym]=items; this.forceUpdate();
         }
       }catch(e){}
@@ -2082,7 +2230,7 @@ class Component extends DCLogic {
         if(r.ok){ const an=await r.json(); this._nucorNews=items.map((x,i)=>({...x,sent:(an.sent||[])[i]||'neutral'})); this.forceUpdate(); }
       }catch(e){}
     }catch(e){} };
-    const tickAi=async()=>{ try{ const n=await J('/api/feeds/ainews'); if(n.items&&n.items.length){ this._aiNewsLive=true; this.setState({aiNews:n.items.map((x,i)=>({id:'nws'+Date.now()+i,src:(x.tag||'AI').toUpperCase(),time:x.time||'now',head:x.head,url:x.url||'#'}))}); } }catch(e){} };
+    const tickAi=async()=>{ try{ const n=await J('/api/feeds/ainews'); if(n.items&&n.items.length){ this._aiNewsLive=true; this.setState({aiNews:n.items.map((x,i)=>({id:'nws'+Date.now()+i,src:(x.tag||'AI').toUpperCase(),time:x.time||'now',head:x.head,url:x.url||'#',why:x.why||''}))}); } }catch(e){} };
     const tickMedia=async()=>{ try{
       const ch=((this.state.mediaChannels||{}).youtube||'').trim(); if(!ch) return;
       const y=await J('/api/feeds/youtube?channel='+encodeURIComponent(ch));
@@ -2296,6 +2444,7 @@ class Component extends DCLogic {
     let reply='Done.', chips=[], changed=null;
     try{
       const out=await window.TrydonBridge.assistant(text,history);
+      if(out.reset){ try{ localStorage.removeItem('trydon.v2'); localStorage.removeItem('trydon.sync'); }catch(e){} location.reload(); return; }
       reply=out.reply||reply; chips=out.receipts||[]; changed=out.changedKeys||null;
     }catch(err){
       const fb=this._fallback(text); reply=fb.reply; const acts=fb.actions; chips=this._apply(acts);
@@ -2424,7 +2573,7 @@ class Component extends DCLogic {
   // ---------- ai lab ----------
   toggleCourse(id){ this.setState(s=>({courses:s.courses.map(c=>c.id===id?{...c,done:!c.done}:c)})); }
   async refreshAiNews(){ if(this.state.newsLoading) return; this.setState({newsLoading:true});
-    try{ const r=await fetch('/api/feeds/ainews',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.items&&p.items.length){ this._aiNewsLive=true; this.setState({aiNews:p.items.map((n,i)=>({id:'nws'+Date.now()+i,src:(n.tag||'AI').toUpperCase(),time:n.time||'now',head:n.head||'',url:n.url||'#'})),newsLoading:false}); return; } } }catch(e){}
+    try{ const r=await fetch('/api/feeds/ainews',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.items&&p.items.length){ this._aiNewsLive=true; this.setState({aiNews:p.items.map((n,i)=>({id:'nws'+Date.now()+i,src:(n.tag||'AI').toUpperCase(),time:n.time||'now',head:n.head||'',url:n.url||'#',why:n.why||''})),newsLoading:false}); return; } } }catch(e){}
     const prompt='List 4 recent notable AI / machine-learning developments. Reply ONLY with JSON, no markdown: {"news":[{"src":"<SHORT UPPERCASE CATEGORY>","time":"<relative e.g. today, 2d>","head":"<concise headline under 11 words>"}]}';
     try{ const raw=await window.claude.complete({messages:[{role:'user',content:prompt}]}); const m=raw.match(/\{[\s\S]*\}/); const p=JSON.parse(m?m[0]:raw); const news=(p.news||[]).slice(0,5).map((n,i)=>({id:'nws'+Date.now()+i,src:(n.src||'AI').toUpperCase(),time:n.time||'now',head:n.head||'',url:'https://news.google.com/search?q=artificial%20intelligence'})); if(news.length) this.setState({aiNews:news}); }
     catch(e){}
@@ -2537,7 +2686,7 @@ class Component extends DCLogic {
     const heroMeta={
       calendar:{tag:'COMMAND DECK · LIVE',title:'Your day, in motion',sub:'Every workstation, one timeline. Tap Ask Trydon (bottom-right) to schedule anything.'},
       nucor:{tag:'NUCOR · STEEL SHIFT',title:'On the floor',sub:'Production shift 7:00 AM – 3:00 PM. Track your shift, checklist and handover.'},
-      fe:{tag:'FE EXAM · STUDY MODE',title:'Pass the exam',sub:'Frontend certification prep — drill every topic and check it off as you master it.'},
+      fe:{tag:'FE CIVIL · STUDY MODE',title:'Pass the exam',sub:'FE Civil — all 14 NCEES knowledge areas. Drill each until it\u2019s automatic.'},
       ai:{tag:'AI LAB · NEURAL',title:'Learn the machine',sub:'Claude, Copilot, GitHub, Higgsfield — and a log of everything you learn.'},
       stocks:{tag:'TRADING FLOOR · BULL RUN',title:'Run with the bull',sub:'Small-cap research, charts, news and conviction — build your thesis.'},
       media:{tag:'STUDIO · LIGHTS CAMERA ACTION',title:'Make it move',sub:'Your content pipeline and media bay for the brand.'},
@@ -2657,7 +2806,7 @@ class Component extends DCLogic {
     // dashboard imagery (real photos, swappable) with graceful fallback
     const hideImg=(e)=>{ if(e&&e.target){ e.target.style.opacity='0'; } };
     const mkBoard=defs=>defs.map(d=>({src:`https://picsum.photos/seed/${d.s}/360/240`,cap:d.c,onError:hideImg}));
-    const feBoard=mkBoard([{s:'trydonfe11',c:'layout systems'},{s:'trydonfe23',c:'clean code'},{s:'trydonfe37',c:'ship to prod'}]);
+    const feBoard=mkBoard([{s:'trydonfe11',c:'statics & mechanics'},{s:'trydonfe23',c:'fluids & hydraulics'},{s:'trydonfe37',c:'exam strategy'}]);
     const aiBoard=mkBoard([{s:'trydonai14',c:'agents'},{s:'trydonai28',c:'neural nets'},{s:'trydonai41',c:'generative'}]);
     const nucorBoard=mkBoard([{s:'trydonsteel5',c:'the floor'},{s:'trydonsteel9',c:'caster line'},{s:'trydonsteel12',c:'safety first'}]);
     // ---- NUCOR career ----
@@ -2694,7 +2843,7 @@ class Component extends DCLogic {
     const aiWf=s.aiWorkflows.map(w=>({title:w.title,desc:w.desc,icon:w.icon,tag:w.tag}));
     const courses=s.courses.map(c=>({name:c.name,provider:c.provider,url:c.url,toggle:()=>this.toggleCourse(c.id),check:c.done?'✓':'',boxBg:c.done?'#a78bfa':'transparent',boxBorder:c.done?'#a78bfa':'rgba(167,139,250,.5)',textC:c.done?'#9aa4b2':'#e8ecf2',strike:c.done?'line-through':'none'}));
     const coursesDoneLabel=`${s.courses.filter(c=>c.done).length}/${s.courses.length} done`;
-    const aiNews=s.aiNews.map(n=>({src:n.src,time:n.time,head:n.head,url:n.url}));
+    const aiNews=s.aiNews.map(n=>({src:n.src,time:n.time,head:n.head,url:n.url,why:n.why||'',whyDisp:n.why?'block':'none'}));
     const dRem=s.deep.remaining; const deepClock=`${String(Math.floor(dRem/60)).padStart(2,'0')}:${String(dRem%60).padStart(2,'0')}`;
     const deepPct=Math.round((1-s.deep.remaining/s.deep.duration)*100)+'%';
     const deepDurs=[30,60,120].map(m=>({label:m>=60?(m/60)+'h':m+'m',pick:()=>this.setDeepDuration(m),c:s.deep.duration===m*60?'#c4b5fd':'#9aa4b2',bg:s.deep.duration===m*60?'rgba(167,139,250,.15)':'transparent',border:s.deep.duration===m*60?'rgba(167,139,250,.5)':'rgba(255,255,255,.1)'}));
@@ -2822,7 +2971,54 @@ class Component extends DCLogic {
     const chartsSrcChip=connOr(!!this._liveChart,'charts')?'\u25CF LIVE':'\u2295 LIVE';
     const stockNewsSrcChip=connOr(!!this._stockNewsLive,'stock_news')?'\u25CF LIVE':'\u2295 SOURCE';
     const aiNewsSrcChip=connOr(!!this._aiNewsLive,'ai_news')?'\u25CF LIVE':'\u2295 SOURCE';
+    const tpAllSides=(((s.thesisPoints||{})[s.selSym])||[]);
+    const mkSidePoints=(side,acc)=>tpAllSides.filter(p=>p.side===side).map(p=>{ const hit=this._pivotHits&&this._pivotHits[s.selSym]&&this._pivotHits[s.selSym][p.id];
+      return {text:p.text,toggle:()=>this.toggleThesisPoint(p.id),remove:()=>this.removeThesisPoint(p.id),check:p.done?'\u2713':'',boxBg:p.done?acc:'transparent',strike:p.done?'line-through':'none',txtC:p.done?'#9aa4b2':'#e8ecf2',pivotDisp:(hit&&!p.done)?'inline-block':'none',pivotTitle:hit?(hit.kind+': '+hit.why):''}; });
+    const selNewsRaw=this._news[selW.sym]||[];
+    const goodN=selNewsRaw.filter(n=>n.sent==='good').length, badN=selNewsRaw.filter(n=>n.sent==='bad').length, pivN=selNewsRaw.filter(n=>n.pivot).length;
+    const thT=(s.theses[s.selSym]||{bull:'',bear:''});
+    const stanceStr=s.stances[s.selSym]||'WATCH';
+    const blind=[];
+    if(!(((thT.bull||'')+'').trim())&&!(((thT.bear||'')+'').trim())&&tpAllSides.length===0) blind.push({text:'no thesis written for '+s.selSym+' yet \u2014 conviction starts on paper'});
+    else { if(/BULL|BUY/i.test(stanceStr)&&!(((thT.bear||'')+'').trim())&&!tpAllSides.some(p=>p.side==='bear')) blind.push({text:'no bear case \u2014 what kills this trade?'});
+      if(/BEAR|SELL/i.test(stanceStr)&&!(((thT.bull||'')+'').trim())&&!tpAllSides.some(p=>p.side==='bull')) blind.push({text:'no bull case \u2014 what would squeeze you?'});
+      if(tpAllSides.length===0) blind.push({text:'no key points to track \u2014 pivots can\u2019t be detected'}); }
+    if(badN>=2&&/BULL|BUY/i.test(stanceStr)) blind.push({text:'news flow leaning against your bullish stance today'});
+    if(goodN>=2&&/BEAR|SELL/i.test(stanceStr)) blind.push({text:'news flow running against your bearish stance today'});
+    const sugRaw=(this._suggest&&this._suggest[selW.sym])||[];
+    const tb={
+      bullText:thT.bull||'', bearText:thT.bear||'',
+      setBull:e=>this.updateThesisSide('bull',e), setBear:e=>this.updateThesisSide('bear',e),
+      bullPoints:mkSidePoints('bull','#34d399'), bearPoints:mkSidePoints('bear','#f87171'),
+      bullDraft:s.bullPointDraft||'', bearDraft:s.bearPointDraft||'',
+      setBullDraft:e=>this.setSideDraft('bull',e), setBearDraft:e=>this.setSideDraft('bear',e),
+      addBullPoint:()=>this.addSidePoint('bull'), addBearPoint:()=>this.addSidePoint('bear'),
+      onBullKey:e=>this.onSidePointKey('bull',e), onBearKey:e=>this.onSidePointKey('bear',e),
+      bullStanceBg:/BULL|BUY/i.test(stanceStr)?'rgba(52,211,153,.2)':'transparent',
+      bearStanceBg:/BEAR|SELL/i.test(stanceStr)?'rgba(248,113,113,.2)':'transparent',
+      signalLine:(selW.chgN>=0?'\u25B2 +':'\u25BC ')+selW.chgN.toFixed(1)+'% TODAY \u00B7 NEWS '+goodN+'\u25B2/'+badN+'\u25BC'+(pivN?(' \u00B7 '+pivN+' \u26A1'):''),
+      signalC:pivN?'#fbbf24':(selW.chgN>=0?'#34d399':'#f87171'),
+      signalBorder:pivN?'rgba(251,191,36,.4)':(selW.chgN>=0?'rgba(52,211,153,.35)':'rgba(248,113,113,.35)'),
+      signalBg:pivN?'rgba(251,191,36,.08)':(selW.chgN>=0?'rgba(52,211,153,.07)':'rgba(248,113,113,.07)'),
+      hasBlindSpots:blind.length>0, blindSpots:blind.slice(0,3),
+      hasSuggestions:sugRaw.length>0,
+      suggestions:sugRaw.slice(0,3).map((g,i)=>({sideLabel:g.side==='bear'?'\u25BC BEAR':'\u25B2 BULL',c:g.side==='bear'?'#f87171':'#34d399',bd:g.side==='bear'?'rgba(248,113,113,.4)':'rgba(52,211,153,.4)',text:g.text,why:g.why||'',accept:()=>this.acceptSuggestion(i),dismiss:()=>this.dismissSuggestion(i)})),
+    };
+    const nbAll=s.nucorNotebook||[];
+    const nbFilterV=s.nbFilter||'ALL';
+    const nbTopicChips=['ALL',...new Set(nbAll.map(n=>n.topic))].map(t=>({label:t,pick:()=>this.pickNbTopic(t),bg:nbFilterV===t?'rgba(47,178,76,.18)':'rgba(255,255,255,.03)',c:nbFilterV===t?'#6fdc8c':'#9aa4b2',border:nbFilterV===t?'rgba(47,178,76,.5)':'rgba(255,255,255,.1)'}));
+    const nbNotes=nbAll.filter(n=>nbFilterV==='ALL'||n.topic===nbFilterV).slice().reverse().map(n=>({topic:n.topic,when:new Date(n.ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}),text:n.text,remove:()=>this.removeNbNote(n.id)}));
+    const nbEmpty=nbNotes.length===0;
+    const aiTabs=[['learn','\u25C8 LEARN'],['test','\u2699 TEST'],['build','\u2692 BUILD']].map(([k,l])=>({label:l,go:()=>this.pickAiTab(k),bg:s.aiTab===k?'rgba(167,139,250,.16)':'transparent',c:s.aiTab===k?'#c4b5fd':'#7d8694',border:s.aiTab===k?'rgba(167,139,250,.5)':'rgba(255,255,255,.1)'}));
+    const aiTabLearn=s.aiTab!=='test'&&s.aiTab!=='build';
+    const aiTabTest=s.aiTab==='test'; const aiTabBuild=s.aiTab==='build';
+    const learnSuggest=(s.learnSuggest||[]).map((g,i)=>({icon:g.kind==='course'?'\uD83C\uDF93':g.kind==='tool'?'\uD83E\uDDEA':'\uD83D\uDD28',kindLabel:(g.kind||'idea').toUpperCase(),title:g.title||'',note:g.note||'',url:g.url||'#',urlDisp:g.url?'inline':'none',accept:()=>this.acceptLearnSuggest(i),dismiss:()=>this.dismissLearnSuggest(i),acceptDisp:g.kind==='course'?'inline-block':'none'}));
+    const noLearnSuggest=learnSuggest.length===0;
+    const suggBtnLabel=s.suggLoading?'\u2026 thinking':'\u21BB SUGGEST FOR ME';
     return {
+      tb, nbTopicChips, nbNotes, nbEmpty, nbTopicDraft:s.nbTopicDraft||'', nbTextDraft:s.nbTextDraft||'',
+      setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
+      aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),
       debateMe:()=>this.debateMe(), saveQuoteCalc:()=>this.saveQuoteCalc(), quoteSaveLabel:s.quoteSavedFlash||'\u2913 SAVE QUOTE',
       openIG:()=>this.openChannel('instagram'), openTT:()=>this.openChannel('tiktok'), openYT:()=>this.openChannel('youtube'),
       steelSrcChip, nucorNewsSrcChip, chartsSrcChip, stockNewsSrcChip, aiNewsSrcChip,
