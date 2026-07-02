@@ -146,6 +146,13 @@ export function getBackup(id) {
   return r ? JSON.parse(r.blob) : null;
 }
 
+// Factory reset: snapshot everything into backups (30-day undo) then wipe.
+export function wipeState() {
+  makeBackup();
+  db.exec('DELETE FROM state');
+  db.exec("DELETE FROM meta WHERE key LIKE 'cron:%' OR key = 'steel_alert_price'");
+}
+
 // ---- sidecar files (image-slot state) ----
 export function fileGet(name) {
   const r = db.prepare('SELECT content FROM files WHERE name = ?').get(name);

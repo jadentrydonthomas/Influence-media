@@ -6,6 +6,7 @@ import { getKey, putKeys, getMeta, setMeta, makeBackup } from './db.js';
 import { completeText, hasKey } from './anthropic.js';
 import * as feeds from './feeds.js';
 import { todayIso, nowParts, to12, TZ } from './util.js';
+import { analyzeNews } from './analyze.js';
 
 const BRIEFING_TIME = () => process.env.TRYDON_BRIEFING_TIME || '06:30';
 
@@ -42,8 +43,26 @@ export async function morningBriefing() {
   const ai = aiR.status === 'fulfilled' ? (aiR.value.items || [])[0] : null;
   const qs = quotes.filter(q => q.status === 'fulfilled' && q.value.price != null).map(q => q.value);
 
+  // pivot watch: does overnight news hit any of his thesis points?
+  const pivotLines = [];
+  const thesisPoints = getKey('thesisPoints', {});
+  for (const sym of Object.keys(thesisPoints).slice(0, 4)) {
+    const pts = (thesisPoints[sym] || []).filter(p => !p.done);
+    if (!pts.length) continue;
+    try {
+      const news = await feeds.stockNews(sym);
+      const an = await analyzeNews({ sym, heads: (news.items || []).map(x => x.head), points: pts });
+      for (const pv of (an.pivots || []).slice(0, 1)) {
+        const head = news.items[pv.i]?.head;
+        const pt = pts.find(p => p.id === pv.point);
+        if (head && pt) pivotLines.push(`⚡ ${sym} pivot — "${head}" ${pv.kind} your point: ${pt.text}`);
+      }
+    } catch { /* no key / feed down: skip pivots */ }
+  }
+
   const facts = [
     `Today ${nowParts().weekday} ${iso}.`,
+    ...pivotLines,
     events.length ? 'Calendar: ' + events.map(e => `${to12(e.start)} ${e.title}`).join('; ') : 'Calendar: clear.',
     tasks.length ? `Open tasks: ${tasks.map(t => t.title).join('; ')}` : 'No open tasks.',
     steel ? `HRC steel $${steel.hrc}/ton (${steel.hrcChg >= 0 ? '+' : ''}${steel.hrcChg}%).` : '',
@@ -59,7 +78,7 @@ export async function morningBriefing() {
     try {
       text = await completeText([{
         role: 'user',
-        content: `Turn these facts into a tight morning briefing for the deck's owner (steel worker, investor, AI learner). Friendly, direct, max 120 words, plain text with short lines, no markdown symbols. Start with "Morning." Lead with the day's shape, then market/steel, then the one AI item, close with gym/momentum.\n\n${facts}`,
+        content: `Turn these facts into a tight morning briefing for the deck's owner (steel worker, investor, AI learner). Friendly, direct, max 120 words, plain text with short lines, no markdown symbols. Start with "Morning." If any ⚡ pivot line exists, surface it right after the day's shape — it hits one of his investment theses. Then market/steel, the one AI item, close with gym/momentum.\n\n${facts}`,
       }], { maxTokens: 400 });
     } catch { text = 'Morning. Here is today:\n' + facts; }
   } else {
@@ -158,6 +177,18 @@ AI news this week: ${signal.map(s => s.head).join(' | ')}`;
   } catch { /* next scheduled run will retry */ }
 }
 
+// ---------- daily Nucor shift (he works 7:00–15:00 every weekday) ----------
+export function ensureTodayShift() {
+  const { weekday } = nowParts();
+  if (['Saturday', 'Sunday'].includes(weekday)) return;
+  const iso = todayIso();
+  const events = getKey('events', null);
+  if (events === null) return; // nothing synced yet — seed handles first boot
+  if (events.some(e => e.date === iso && e.station === 'nucor' && e.start === '07:00')) return;
+  events.push({ id: 'ns' + iso, date: iso, start: '07:00', end: '15:00', title: 'Nucor — Production shift', station: 'nucor' });
+  putKeys({ events });
+}
+
 // ---------- streak / rollover nudges (once, evening, quiet-hours safe) ----------
 export function eveningNudge() {
   const iso = todayIso();
@@ -179,6 +210,10 @@ export function startCron() {
   const tick = async () => {
     const { hm, weekday } = nowParts();
     try {
+      if (!ranToday('shift')) {
+        markRan('shift');
+        ensureTodayShift();
+      }
       if (hm >= BRIEFING_TIME() && !ranToday('briefing')) {
         markRan('briefing');
         await morningBriefing();

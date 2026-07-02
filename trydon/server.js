@@ -5,9 +5,10 @@ import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { join, normalize } from 'node:path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getState, putKeys, getKey, listSources, saveSource, addQuote, listQuotes, fileGet, filePut, listBackups, getBackup } from './server/db.js';
+import { getState, putKeys, getKey, listSources, saveSource, addQuote, listQuotes, fileGet, filePut, listBackups, getBackup, wipeState } from './server/db.js';
 import { checkSession, checkCode, sessionCookie, accessCode } from './server/auth.js';
 import { chat, debate } from './server/assistant.js';
+import { analyzeNews } from './server/analyze.js';
 import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
 import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck } from './server/cron.js';
@@ -102,6 +103,12 @@ const server = createServer(async (req, res) => {
         putKeys(keys);
         return send(res, 200, { ok: true, imported: Object.keys(keys).length });
       }
+      if (path === '/api/reset' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        if (body.confirm !== 'RESET') return send(res, 400, { error: 'send {"confirm":"RESET"}' });
+        wipeState();
+        return send(res, 200, { ok: true, note: 'state wiped; backup kept 30 days' });
+      }
       if (path === '/api/backups') return send(res, 200, listBackups());
       if (path.startsWith('/api/backups/')) {
         const b = getBackup(Number(path.split('/')[3]));
@@ -122,6 +129,16 @@ const server = createServer(async (req, res) => {
           return send(res, 500, { error: String(e.message || e).slice(0, 300) });
         }
       }
+      if (path === '/api/analyze/news' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        try {
+          return send(res, 200, await analyzeNews(body));
+        } catch (e) {
+          if (e.code === 'NO_KEY') return send(res, 503, { error: 'no_key' });
+          return send(res, 500, { error: String(e.message || e).slice(0, 200) });
+        }
+      }
+
       if (path === '/api/claude' && req.method === 'POST') {
         const body = JSON.parse(await readBody(req) || '{}');
         try {
