@@ -1,0 +1,13 @@
+{
+  "name": "trydon",
+  "version": "1.0.0",
+  "description": "TRYDON — personal command deck (self-hosted backend + assistant)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

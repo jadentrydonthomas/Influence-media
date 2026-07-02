@@ -1,0 +1,27 @@
+# One-click deploy: https://render.com/deploy?repo=https://github.com/jadentrydonthomas/Influence-media
+# Render reads this blueprint, builds the trydon/ service, prompts for the
+# Anthropic key, and gives you a permanent https://…onrender.com link.
+services:
+  - type: web
+    name: trydon
+    runtime: node
+    rootDir: trydon
+    buildCommand: "true"
+    startCommand: node server.js
+    plan: starter
+    disk:
+      name: trydon-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: TRYDON_DATA_DIR
+        value: /var/data
+      - key: TRYDON_TZ
+        value: America/Indiana/Indianapolis
+      - key: TRYDON_BRIEFING_TIME
+        value: "06:30"
+      # paste your Anthropic API key when Render prompts for it
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # optional — set later in the Render dashboard to lock the deck
+      # (TRYDON_ACCESS_CODE) or light up YouTube stats (YOUTUBE_API_KEY)

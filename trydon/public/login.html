@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRYDON — unlock</title>
+<meta name="theme-color" content="#0a0c11">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(1200px 700px at 70% -10%, #0e1a26 0%, #0a0c11 55%);
+    font-family:'Sora',system-ui,sans-serif; color:#e8ecf2; }
+  .card { width:min(360px,90vw); padding:34px 30px; border-radius:18px;
+    background:rgba(13,16,22,.85); border:1px solid rgba(56,189,248,.22);
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.9); text-align:center; }
+  .logo { width:56px; height:56px; margin:0 auto 16px; border-radius:14px;
+    border:2px solid #38bdf8; display:flex; align-items:center; justify-content:center;
+    font-family:ui-monospace,monospace; font-size:28px; font-weight:800; color:#38bdf8; }
+  h1 { font-size:17px; letter-spacing:.5px; margin-bottom:4px; }
+  p { font-size:11px; color:#7d8694; letter-spacing:1.5px; font-family:ui-monospace,monospace; margin-bottom:22px; }
+  input { width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04); color:#e8ecf2; font-size:15px; text-align:center;
+    letter-spacing:3px; outline:none; font-family:ui-monospace,monospace; }
+  input:focus { border-color:rgba(56,189,248,.5); }
+  button { width:100%; margin-top:12px; padding:12px; border-radius:10px; border:0; cursor:pointer;
+    background:#38bdf8; color:#04121c; font-weight:800; font-size:14px; font-family:inherit; }
+  button:hover { filter:brightness(1.1); }
+  .err { color:#f87171; font-size:12px; margin-top:10px; min-height:16px; font-family:ui-monospace,monospace; }
+</style>
+</head>
+<body>
+  <form class="card" id="f">
+    <div class="logo">T</div>
+    <h1>TRYDON</h1>
+    <p>PERSONAL COMMAND DECK</p>
+    <input id="code" type="password" placeholder="access code" autocomplete="current-password" autofocus>
+    <button type="submit">Unlock</button>
+    <div class="err" id="err"></div>
+  </form>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('code').value;
+  const r = await fetch('/api/login', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (r.ok) location.reload();
+  else document.getElementById('err').textContent = 'wrong code — try again';
+});
+</script>
+</body>
+</html>
