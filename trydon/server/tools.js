@@ -27,6 +27,8 @@ export const TOOL_DEFS = [
   { name: 'update_thesis', description: 'Update the bull or bear thesis for a symbol. Only call AFTER the user confirmed the exact text change.', input_schema: S({ sym: str('ticker'), side: str('bull|bear'), text: str('thesis text'), mode: str('replace|append, default append') }, ['sym', 'side', 'text']) },
   { name: 'set_stance', description: 'Set stance for a symbol (WATCH / BULLISH ▲ / BEARISH ▼ / BUY / SELL). Only call AFTER user confirmation.', input_schema: S({ sym: str('ticker'), stance: str('stance') }, ['sym', 'stance']) },
   { name: 'add_watchlist', description: 'Add a ticker to the stocks watchlist.', input_schema: S({ sym: str('ticker'), name: str('company name') }, ['sym']) },
+  { name: 'add_thesis_point', description: 'Add a checkable key point to the bull or bear thesis board for a symbol (e.g. from a news item he wants to track).', input_schema: S({ sym: str('ticker'), side: str('bull|bear'), text: str('the point, one line') }, ['sym', 'side', 'text']) },
+  { name: 'check_thesis_point', description: 'Mark a thesis point as pivoted/played-out (checked off). Find by text match.', input_schema: S({ sym: str('ticker'), text: str('point text (fuzzy ok)') }, ['sym', 'text']) },
   { name: 'add_course', description: 'Add a course to the AI learning list.', input_schema: S({ name: str('course name'), provider: str('provider'), url: str('link') }, ['name']) },
   { name: 'add_media_idea', description: 'Add an idea to the media idea bank.', input_schema: S({ text: str('the idea') }, ['text']) },
   { name: 'add_media_goal', description: 'Add a content goal to the media station.', input_schema: S({ title: str('goal') }, ['title']) },
@@ -182,6 +184,26 @@ export function createExecutor(snapshot) {
         touch('watchlist', 'theses', 'stances');
         receipts.push(`✓ Watching ${sym}`);
         return 'added';
+      }
+      case 'add_thesis_point': {
+        const sym = (a.sym || '').toUpperCase();
+        const side = a.side === 'bear' ? 'bear' : 'bull';
+        const pts = (st.thesisPoints || {})[sym] || [];
+        st.thesisPoints = { ...(st.thesisPoints || {}), [sym]: [...pts, { id: uid('tp'), side, text: a.text, done: false }] };
+        touch('thesisPoints');
+        receipts.push(`✓ ${sym} ${side} point: ${a.text.slice(0, 40)}`);
+        return 'added';
+      }
+      case 'check_thesis_point': {
+        const sym = (a.sym || '').toUpperCase();
+        const pts = (st.thesisPoints || {})[sym] || [];
+        const p = fuzzy(pts, 'text', a.text);
+        if (!p) return 'ERROR: point not found';
+        p.done = true;
+        st.thesisPoints = { ...(st.thesisPoints || {}), [sym]: [...pts] };
+        touch('thesisPoints');
+        receipts.push(`✓ ${sym} point checked: ${p.text.slice(0, 40)}`);
+        return 'checked';
       }
       case 'add_course': {
         st.courses = [...(st.courses || []), { id: uid('c'), name: a.name, provider: a.provider || 'Suggested', url: a.url || '#', done: false }];

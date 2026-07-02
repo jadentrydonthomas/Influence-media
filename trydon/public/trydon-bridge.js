@@ -239,6 +239,13 @@
       };
       f.click();
     }));
+    foot.appendChild(mkBtn('⟲ FRESH START', async () => {
+      if (!window.confirm('Wipe ALL deck data and start clean? A backup is kept on the server for 30 days.')) return;
+      await api('/api/reset', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: 'RESET' }) });
+      localStorage.removeItem(LS_KEY);
+      localStorage.removeItem(SYNC_KEY);
+      location.reload();
+    }));
     const sync = document.createElement('span');
     sync.textContent = state.online ? '● synced' : '○ offline';
     sync.style.cssText = 'margin-left:auto;color:' + (state.online ? '#34d399' : '#f5a524') + ";font-size:10px;font-family:'JetBrains Mono',monospace;align-self:center;";

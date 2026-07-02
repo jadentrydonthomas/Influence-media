@@ -878,8 +878,8 @@
               </div>
               <div style="display:flex; flex-direction:column; gap:8px;">
                 <sc-for list="{{ nucorNews }}" as="n" hint-placeholder-count="3">
-                  <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 12px; border-radius:10px; background:rgba(47,178,76,.05); border:1px solid rgba(47,178,76,.14); transition:border-color .18s;" style-hover="border-color:rgba(47,178,76,.4)">
-                    <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#6fdc8c; padding:1px 6px; border-radius:4px; background:rgba(47,178,76,.15);">{{ n.tag }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span></div>
+                  <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 12px; border-radius:10px; background:rgba(47,178,76,.05); border:1px solid {{ n.bC }}; transition:border-color .18s;" style-hover="border-color:rgba(47,178,76,.5)">
+                    <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:{{ n.tC }}; padding:1px 6px; border-radius:4px; background:{{ n.tBg }};">{{ n.tag }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span></div>
                     <div style="font-size:12.5px; font-weight:600; line-height:1.4; color:#e8ecf2;">{{ n.head }}</div>
                   </a>
                 </sc-for>
@@ -1355,13 +1355,13 @@
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:12px 0 16px;">
                 <sc-for list="{{ sel.stats }}" as="st" hint-placeholder-count="4"><div style="padding:9px 11px; border-radius:9px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);"><div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694; letter-spacing:.5px;">{{ st.k }}</div><div style="font-size:14px; font-weight:700; margin-top:3px; color:#e8ecf2;">{{ st.v }}</div></div></sc-for>
               </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div style="display:grid; grid-template-columns:1fr 1.35fr; gap:14px;">
                 <div>
                   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#34d399;">RESEARCH FEED</span><button onclick="{{ connectStockNews }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:4px 9px; border-radius:7px; border:1px dashed rgba(52,211,153,.45); background:rgba(52,211,153,.07); color:#5cd6a0; cursor:pointer; letter-spacing:.5px;" style-hover="background:rgba(52,211,153,.16)">{{ stockNewsSrcChip }}</button></div>
                   <div style="display:flex; flex-direction:column; gap:8px;">
                     <sc-for list="{{ sel.news }}" as="n" hint-placeholder-count="3">
-                      <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 11px; border-radius:9px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.05); transition:border-color .18s;" style-hover="border-color:rgba(52,211,153,.4)">
-                        <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:{{ n.tagC }}; padding:1px 6px; border-radius:4px; background:{{ n.tagBg }};">{{ n.tag }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span></div>
+                      <a href="{{ n.url }}" target="_blank" rel="noopener" style="text-decoration:none; display:block; padding:10px 11px; border-radius:9px; background:{{ n.bgC }}; border:1px solid {{ n.borderC }}; transition:border-color .18s;" style-hover="border-color:rgba(52,211,153,.5)">
+                        <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:{{ n.tagC }}; padding:1px 6px; border-radius:4px; background:{{ n.tagBg }};">{{ n.sentGlyph }} {{ n.tag }}</span><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694;">{{ n.time }}</span><span title="{{ n.pivotTitle }}" style="display:{{ n.pivotDisp }}; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡ PIVOT</span></div>
                         <div style="font-size:12px; font-weight:600; line-height:1.35; color:#e8ecf2;">{{ n.head }}</div>
                       </a>
                     </sc-for>
@@ -1373,8 +1373,28 @@
                     <button onclick="{{ markBull }}" style="flex:1; padding:9px; border:none; background:{{ thesis.bullBg }}; color:{{ thesis.bullC }}; cursor:pointer; font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; transition:all .2s;">▲ BULL</button>
                     <button onclick="{{ markBear }}" style="flex:1; padding:9px; border:none; background:{{ thesis.bearBg }}; color:{{ thesis.bearC }}; cursor:pointer; font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; transition:all .2s;">▼ BEAR</button>
                   </div>
-                  <textarea value="{{ sel.thesis }}" onchange="{{ updateThesis }}" placeholder="{{ thesis.placeholder }}" style="width:100%; height:116px; resize:none; border-radius:10px; border:1px solid {{ thesis.border }}; background:{{ thesis.fieldBg }}; color:#e8ecf2; padding:11px; font-size:12px; line-height:1.5; outline:none; transition:all .25s ease;"></textarea>
-                  <div style="text-align:center; margin-top:9px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ thesis.accent }};">{{ thesis.label }}</div>
+                  <textarea value="{{ sel.thesis }}" onchange="{{ updateThesis }}" placeholder="{{ thesis.placeholder }}" style="width:100%; height:170px; resize:none; border-radius:10px; border:1px solid {{ thesis.border }}; background:{{ thesis.fieldBg }}; color:#e8ecf2; padding:11px; font-size:12px; line-height:1.5; outline:none; transition:all .25s ease;"></textarea>
+                  <div style="margin-top:12px;">
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:{{ thesis.accent }}; margin-bottom:7px;">KEY POINTS · CHECK OFF WHEN AN EVENT PIVOTS THEM</div>
+                    <sc-if value="{{ noThesisPoints }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-size:11px; color:#56606e; padding:2px 2px 8px; line-height:1.4;">No points yet — add the load-bearing claims of this thesis. News that confirms or threatens one gets flagged ⚡ in the feed.</div>
+                    </sc-if>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                      <sc-for list="{{ thesisPoints }}" as="p" hint-placeholder-count="2">
+                        <div style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:8px; border:1px solid {{ thesis.border }}; background:rgba(255,255,255,.02);">
+                          <button onclick="{{ p.toggle }}" style="width:16px; height:16px; flex:none; border-radius:5px; border:1px solid {{ thesis.accent }}; background:{{ p.boxBg }}; color:#04121c; cursor:pointer; font-size:10px; line-height:1; padding:0;">{{ p.check }}</button>
+                          <span style="flex:1; font-size:11.5px; line-height:1.35; color:{{ p.txtC }}; text-decoration:{{ p.strike }};">{{ p.text }}</span>
+                          <span title="{{ p.pivotTitle }}" style="display:{{ p.pivotDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡</span>
+                          <button onclick="{{ p.remove }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:12px; padding:0 2px;">×</button>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex; gap:7px; margin-top:8px;">
+                      <input value="{{ thesisPointDraft }}" onchange="{{ setThesisPointDraft }}" onkeydown="{{ onThesisPointKey }}" placeholder="Add a key point to this thesis…" style="flex:1; min-width:0; padding:8px 10px; border-radius:8px; border:1px solid {{ thesis.border }}; background:{{ thesis.fieldBg }}; color:#e8ecf2; font-size:11.5px; outline:none;">
+                      <button onclick="{{ addThesisPoint }}" style="padding:8px 12px; border-radius:8px; border:1px solid {{ thesis.border }}; background:transparent; color:{{ thesis.accent }}; cursor:pointer; font-size:11px; font-weight:700;">Add</button>
+                    </div>
+                  </div>
+                  <div style="text-align:center; margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ thesis.accent }};">{{ thesis.label }}</div>
                   <div style="text-align:center; margin-top:4px; font-family:'JetBrains Mono',monospace; font-size:9.5px; color:{{ sel.stanceC }};">RECORDED STANCE: {{ sel.stance }}</div>
                   <button onclick="{{ debateMe }}" style="width:100%; margin-top:9px; padding:8px; border-radius:9px; border:1px dashed {{ thesis.border }}; background:transparent; color:{{ thesis.accent }}; cursor:pointer; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;" style-hover="background:rgba(255,255,255,.04)">⚔ DEBATE ME</button>
                 </div>
@@ -1853,35 +1873,15 @@ class Component extends DCLogic {
       view:'calendar', navCollapsed:false, calTab:'today', weekOffset:0, monthCursor:{y:Y,m:Mo}, selectedDay:null,
       clock:this.fmtClock(new Date()), input:'', thinking:false,
       messages:[{id:'m0',role:'assistant',text:"Hey — I'm Trydon, your life command deck. Tell me what to schedule and I'll place it.\n\nTry: \"FE study tomorrow 9am for 2 hours\" or \"add Mom's birthday June 28\".",chips:[]}],
-      events:[
-        {id:'e1',date:off(0),start:'07:00',end:'15:00',title:'Nucor — Production shift',station:'nucor'},
-        {id:'e2',date:off(0),start:'16:00',end:'17:30',title:'FE: Flexbox & Grid',station:'fe'},
-        {id:'e3',date:off(0),start:'18:00',end:'19:00',title:'Small-cap screen',station:'stocks'},
-        {id:'e4',date:off(0),start:'20:00',end:'21:00',title:'Edit & caption reel',station:'media'},
-        {id:'e5',date:off(1),start:'07:00',end:'15:00',title:'Nucor — Production shift',station:'nucor'},
-        {id:'e6',date:off(1),start:'16:30',end:'18:00',title:'Claude course — agents',station:'ai'},
-        {id:'e7',date:off(-1),start:'15:30',end:'16:30',title:'MU earnings review',station:'stocks'},
-        {id:'e8',date:off(2),start:'07:00',end:'15:00',title:'Nucor — Production shift',station:'nucor'},
-        {id:'e9',date:off(2),start:'16:30',end:'18:00',title:'FE: JS event loop',station:'fe'},
-        {id:'e10',date:off(3),start:'11:00',end:'12:00',title:'IG brand shoot',station:'media'},
-        {id:'g1',date:off(0),start:'05:30',end:'06:30',title:'Gym — Push day',station:'gym'},
-        {id:'g2',date:off(2),start:'05:30',end:'06:30',title:'Gym — Pull day',station:'gym'},
-      ],
-      tasks:[
-        {id:'t1',title:'Caster line inspection',time:'08:00',done:false,station:'nucor'},
-        {id:'t2',title:'Finish CSS Grid module',time:'16:00',done:false,station:'fe'},
-        {id:'t3',title:'Screen 3 small-caps',time:'18:00',done:false,station:'stocks'},
-        {id:'t4',title:'Edit reel + caption',time:'20:00',done:false,station:'media'},
-        {id:'t5',title:'Log AI learning',time:'21:00',done:true,station:'ai'},
-      ],
+      events:(()=>{ const evs=[]; const mon=new Date(today); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
+        for(let i=0;i<5;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); evs.push({id:'ns'+iso(d),date:iso(d),start:'07:00',end:'15:00',title:'Nucor \u2014 Production shift',station:'nucor'}); }
+        return evs; })(),
+      tasks:[],
       specialDays:[
-        {id:'s1',date:off(3),label:"Mom's Birthday",type:'birthday'},
         {id:'s2',date:'2026-07-04',label:'Independence Day',type:'holiday'},
-        {id:'s3',date:off(5),label:'Rent due',type:'special'},
-        {id:'s4',date:off(9),label:'Project demo',type:'special'},
       ],
       feTopics:[
-        {id:'f1',title:'Semantic HTML & accessibility',level:'CORE',done:true},
+        {id:'f1',title:'Semantic HTML & accessibility',level:'CORE',done:false},
         {id:'f2',title:'CSS layout: Flexbox & Grid',level:'CORE',done:false},
         {id:'f3',title:'JS: closures, scope, event loop',level:'CORE',done:false},
         {id:'f4',title:'Async / promises / fetch',level:'CORE',done:false},
@@ -1896,41 +1896,28 @@ class Component extends DCLogic {
         {id:'a3',name:'GitHub',desc:'Repos, actions, projects',icon:'❮❯',url:'https://github.com',bg:'rgba(140,120,200,.18)'},
         {id:'a4',name:'Higgsfield',desc:'Generative video / motion',icon:'◈',url:'https://higgsfield.ai',bg:'rgba(167,139,250,.2)'},
       ],
-      aiLog:[
-        {id:'l1',date:'JUN 24',title:'Built a tool-using agent',note:'Wired function-calling loop with Claude. JSON action parsing working.'},
-        {id:'l2',date:'JUN 22',title:'Copilot workflows',note:'Tab-completion patterns + comment-driven scaffolding.'},
-        {id:'l3',date:'JUN 19',title:'Higgsfield camera motion',note:'Tested orbit + dolly presets for reels.'},
-      ],
+      aiLog:[],
       watchlist:[
         {sym:'HYLN',name:'Hyliion Holdings',cap:'SMALL',price:'4.12',chgN:6.8,base:3.6},
         {sym:'NUE',name:'Nucor Corp',cap:'LARGE',price:'162.40',chgN:1.4,base:158},
         {sym:'MU',name:'Micron Technology',cap:'LARGE',price:'138.20',chgN:-2.1,base:142},
         {sym:'BULL',name:'Webull Corp',cap:'SMALL',price:'12.85',chgN:9.3,base:11.4},
       ],
-      selSym:'HYLN', range:'1M', thesisMode:'bull', theses:{HYLN:{bull:'',bear:''},NUE:{bull:'',bear:''},MU:{bull:'',bear:''},BULL:{bull:'',bear:''}}, stances:{HYLN:'WATCH',NUE:'WATCH',MU:'WATCH',BULL:'WATCH'}, thesisSaved:'',
+      selSym:'HYLN', range:'1M', thesisMode:'bull', theses:{HYLN:{bull:'',bear:''},NUE:{bull:'',bear:''},MU:{bull:'',bear:''},BULL:{bull:'',bear:''}}, stances:{HYLN:'WATCH',NUE:'WATCH',MU:'WATCH',BULL:'WATCH'}, thesisSaved:'', thesisPoints:{}, thesisPointDraft:'',
       nucorTasks:[
-        {id:'n1',title:'Pre-shift safety check',done:true},
+        {id:'n1',title:'Pre-shift safety check',done:false},
         {id:'n2',title:'Caster line inspection',done:false},
         {id:'n3',title:'Log production tonnage',done:false},
         {id:'n4',title:'Handover notes for next shift',done:false},
       ],
       nucorNotes:'',
       // ---- Nucor: projects/meetings, steel market, jobs log ----
-      nucorProjects:[
-        {id:'np1',title:'Q3 capacity review',kind:'Meeting',date:off(1),time:'13:00'},
-        {id:'np2',title:'Joist line requote — Tilt Co.',kind:'Job',date:off(2),time:'09:00'},
-        {id:'np3',title:'Submit Hartman bid',kind:'Task',date:off(0),time:'17:00'},
-        {id:'np4',title:'Ask: margin target on structural jobs?',kind:'Question',date:off(0),time:'10:00'},
-      ],
+      nucorProjects:[],
       nucorWeekOffset:0,
       projTitle:'', projKind:'Meeting', projDate:off(0), projTime:'13:00',
       steel:{ hrc:845, hrcChg:2.3, scrap:412, scrapChg:-1.4, capacity:78, lead:'4–5 wk',
         series:[795,810,802,825,838,830,845,852,840,848,855,845] },
-      jobs:[
-        {id:'jb1',name:'Warehouse mezzanine',customer:'Tilt Co.',tons:42,value:64000,status:'Quoting'},
-        {id:'jb2',name:'Stair & rail package',customer:'Hartman GC',tons:8,value:21500,status:'Sent'},
-        {id:'jb3',name:'Joist + deck — Bldg C',customer:'Vanguard',tons:120,value:198000,status:'Won'},
-      ],
+      jobs:[],
       jobName:'', jobCustomer:'', jobTons:'', jobValue:'',
       quoteTons:40, quoteMargin:18,
       courseName:'', courseProvider:'', courseUrl:'',
@@ -1940,47 +1927,24 @@ class Component extends DCLogic {
       dayPlanTitle:'', dayPlanTime:'14:00', dayPlanStation:'calendar',
       daySpecialLabel:'', daySpecialType:'birthday',
       expandedEvent:null, subDrafts:{},
-      stationTodos:{
-        ai:[{id:'at1',title:'Finish Claude agents module',done:false},{id:'at2',title:'Read MCP spec',done:true}],
-        stocks:[{id:'st1',title:'Update HYLN thesis',done:false},{id:'st2',title:'Set MU earnings alert',done:false}],
-        media:[{id:'mt1',title:'Write reel caption',done:false},{id:'mt2',title:'Export brand teaser',done:true}],
-        fe:[{id:'ft1',title:'Build flexbox demo',done:false}],
-        nucor:[{id:'nt1',title:'Pick up new gloves',done:false}],
-        gym:[{id:'gt1',title:'Refill pre-workout',done:false},{id:'gt2',title:'Book recovery massage',done:true}],
-        calendar:[],
-      },
+      stationTodos:{ ai:[], stocks:[], media:[], fe:[], nucor:[], gym:[], calendar:[] },
       todoDrafts:{},
       // ---- NUCOR career ----
-      careerStageIdx:1,
+      careerStageIdx:0,
       careerGoals:[
-        {id:'cg1',title:'Master blueprint & drawing takeoffs',done:true},
+        {id:'cg1',title:'Master blueprint & drawing takeoffs',done:false},
         {id:'cg2',title:'Shadow a quote engineer (2 weeks)',done:false},
         {id:'cg3',title:'Learn the ERP quoting system end-to-end',done:false},
         {id:'cg4',title:'Own 5 quotes start to finish',done:false},
         {id:'cg5',title:'Sit in on a customer pricing call',done:false},
         {id:'cg6',title:'Earn a commercial / sales mentor',done:false},
       ],
-      salesQs:[
-        {id:'sq1',q:'How do you scope a job from incomplete drawings?',asked:false},
-        {id:'sq2',q:'What margin targets guide a quote?',asked:false},
-        {id:'sq3',q:'How do you handle a customer pushing hard on price?',asked:true},
-        {id:'sq4',q:'Which products have the best win rate, and why?',asked:false},
-        {id:'sq5',q:'What turns a quote into a long-term account?',asked:false},
-      ],
-      leaderQs:[
-        {id:'lq1',q:'What does the path from quote to sales engineer look like?',asked:false},
-        {id:'lq2',q:'What separates your best sales engineers?',asked:false},
-        {id:'lq3',q:'Where is the most growth on the commercial side?',asked:false},
-        {id:'lq4',q:'What should I be learning in my first year to stand out?',asked:true},
-      ],
+      salesQs:[],
+      leaderQs:[],
       salesQDraft:'', leaderQDraft:'',
       // ---- FINANCE / INVEST ----
       fin:{wage:4200, rent:1300, food:600, transport:250, other:400, rate:8, years:20},
-      holdings:[
-        {id:'h1',sym:'NUE',shares:12,cost:150,last:162.40},
-        {id:'h2',sym:'VOO',shares:8,cost:420,last:498.00},
-        {id:'h3',sym:'HYLN',shares:200,cost:3.40,last:4.12},
-      ],
+      holdings:[],
       holdSym:'', holdShares:'', holdCost:'',
       // ---- AI lab ----
       aiWorkflows:[
@@ -1992,7 +1956,7 @@ class Component extends DCLogic {
       courses:[
         {id:'c1',name:'Building with Claude',provider:'Anthropic',url:'https://www.anthropic.com/learn',done:false},
         {id:'c2',name:'ChatGPT Prompt Engineering',provider:'DeepLearning.AI',url:'https://www.deeplearning.ai/short-courses/',done:false},
-        {id:'c3',name:'Practical Deep Learning',provider:'fast.ai',url:'https://course.fast.ai/',done:true},
+        {id:'c3',name:'Practical Deep Learning',provider:'fast.ai',url:'https://course.fast.ai/',done:false},
         {id:'c4',name:'LLM Course',provider:'Hugging Face',url:'https://huggingface.co/learn',done:false},
       ],
       aiNews:[
@@ -2001,50 +1965,25 @@ class Component extends DCLogic {
         {id:'nws3',src:'TOOLING',time:'3d',head:'IDE copilots gain multi-file agent edits',url:'https://github.blog/'},
       ],
       newsLoading:false,
-      deep:{running:false, remaining:30*60, duration:30*60, sessions:3},
+      deep:{running:false, remaining:30*60, duration:30*60, sessions:0},
       // ---- MEDIA ----
-      mediaGoals:[
-        {id:'mg1',title:'Hit 150K followers',done:false},
-        {id:'mg2',title:'Post 3× / week, no misses',done:false},
-        {id:'mg3',title:'Land 1 brand deal / month',done:true},
-      ],
-      mediaIdeas:[
-        {id:'mi1',text:'“A day in 2100” — my command-deck workflow'},
-        {id:'mi2',text:'Steel mill → code: my unconventional path'},
-        {id:'mi3',text:'How I invest on a shift-worker wage'},
-      ],
+      mediaGoals:[],
+      mediaIdeas:[],
       mediaGoalDraft:'', mediaIdeaDraft:'',
       // ---- daily / achievements ----
-      todoHistory:[60,80,40,100,70,90],
+      todoHistory:[],
       // ---- gym ----
-      gym:{ streak:12, best:21, pickType:'Push', pickMin:45,
-        sessions:[
-          {id:'gs1',date:off(-1),type:'Legs',min:55},
-          {id:'gs2',date:off(-2),type:'Pull',min:45},
-          {id:'gs3',date:off(-3),type:'Push',min:50},
-          {id:'gs4',date:off(-5),type:'Cardio',min:30},
-        ],
-        prs:[
-          {id:'pr1',lift:'Bench Press',val:'185 lb',icon:'🏋️'},
-          {id:'pr2',lift:'Back Squat',val:'275 lb',icon:'🦵'},
-          {id:'pr3',lift:'Deadlift',val:'315 lb',icon:'⚡'},
-          {id:'pr4',lift:'5K Run',val:'24:30',icon:'🏃'},
-        ],
-      },
+      gym:{ streak:0, best:0, pickType:'Push', pickMin:45, sessions:[], prs:[] },
       recording:false,
       gymPrName:'', gymPrVal:'',
-      nutrition:{ calGoal:2600, proGoal:180, foods:[
-        {id:'fd1',name:'Oats & whey',cal:420,pro:38},
-        {id:'fd2',name:'Chicken & rice',cal:650,pro:52},
-        {id:'fd3',name:'Greek yogurt + berries',cal:180,pro:20},
-      ] },
+      nutrition:{ calGoal:2600, proGoal:180, foods:[] },
       foodName:'', foodCal:'', foodPro:'',
-      feTopicDraft:'', examDate:'2026-08-15',
-      monthGoals:{ '2026-5':[{id:'mo1',title:'Lock the FE fundamentals',done:false},{id:'mo2',title:'Invest 30% of every check',done:true}] },
+      feTopicDraft:'', examDate:'2026-07-17',
+      monthGoals:{},
       monthGoalDraft:'',
     };
     // ----- persistence: hydrate saved user data over the defaults -----
-    this._PKEYS=['events','tasks','specialDays','feTopics','examDate','aiTools','aiLog','aiWorkflows','courses','aiNews','watchlist','selSym','range','thesisMode','theses','stances','nucorTasks','nucorNotes','nucorProjects','steel','jobs','quoteTons','quoteMargin','careerStageIdx','careerGoals','salesQs','leaderQs','fin','holdings','stationTodos','mediaGoals','mediaIdeas','todoHistory','gym','nutrition','monthGoals','messages','view','calTab','deep','mediaChannels','sourcesConnected'];
+    this._PKEYS=['events','tasks','specialDays','feTopics','examDate','aiTools','aiLog','aiWorkflows','courses','aiNews','watchlist','selSym','range','thesisMode','theses','stances','nucorTasks','nucorNotes','nucorProjects','steel','jobs','quoteTons','quoteMargin','careerStageIdx','careerGoals','salesQs','leaderQs','fin','holdings','stationTodos','mediaGoals','mediaIdeas','todoHistory','gym','nutrition','monthGoals','messages','view','calTab','deep','mediaChannels','sourcesConnected','thesisPoints'];
     this._custom=[]; this._removed=[];
     try{
       const raw=localStorage.getItem('trydon.v2');
@@ -2069,6 +2008,13 @@ class Component extends DCLogic {
     this.scrollRef=(el)=>{ this._scrollEl=el; };
   }
 
+  setThesisPointDraft(e){ this.setState({thesisPointDraft:e.target.value}); }
+  addThesisPoint(){ const v=(this.state.thesisPointDraft||'').trim(); if(!v) return;
+    const sym=this.state.selSym, side=this.state.thesisMode;
+    this.setState(s=>({ thesisPoints:{...(s.thesisPoints||{}),[sym]:[...(((s.thesisPoints||{})[sym])||[]),{id:'tp'+Date.now(),side,text:v,done:false}]}, thesisPointDraft:'' }),()=>{ if(this._tickNews) this._tickNews(); }); }
+  onThesisPointKey(e){ if(e.key==='Enter'){ e.preventDefault(); this.addThesisPoint(); } }
+  toggleThesisPoint(id){ const sym=this.state.selSym; this.setState(s=>({thesisPoints:{...(s.thesisPoints||{}),[sym]:(((s.thesisPoints||{})[sym])||[]).map(p=>p.id===id?{...p,done:!p.done}:p)}})); }
+  removeThesisPoint(id){ const sym=this.state.selSym; this.setState(s=>({thesisPoints:{...(s.thesisPoints||{}),[sym]:(((s.thesisPoints||{})[sym])||[]).filter(p=>p.id!==id)}})); }
   _todayDate(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
   async debateMe(){ const sym=this.state.selSym;
     this.setState(s=>({aiOpen:true,aiUnseen:false,messages:[...s.messages,{id:'u'+Date.now(),role:'user',text:'Debate me on '+sym+'.',chips:[]}],thinking:true}),()=>this._scrollDown());
@@ -2111,13 +2057,31 @@ class Component extends DCLogic {
     const tickNews=async()=>{ try{
       const sym=this.state.selSym;
       const n=await J('/api/feeds/stocknews?sym='+encodeURIComponent(sym));
-      if(n.items&&n.items.length){ this._news[sym]=n.items.map(x=>({tag:x.tag||'NEWS',time:x.time||'',head:x.head,url:x.url})); this._stockNewsLive=true; this.forceUpdate(); }
+      if(!(n.items&&n.items.length)) return;
+      let items=n.items.map(x=>({tag:x.tag||'NEWS',time:x.time||'',head:x.head,url:x.url}));
+      this._news[sym]=items; this._stockNewsLive=true; this.forceUpdate();
+      try{
+        const points=(((this.state.thesisPoints||{})[sym])||[]).filter(p=>!p.done).map(p=>({id:p.id,side:p.side,text:p.text}));
+        const r=await fetch('/api/analyze/news',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({sym,heads:items.map(x=>x.head),points})});
+        if(r.ok){ const an=await r.json();
+          this._pivotHits=this._pivotHits||{}; this._pivotHits[sym]={};
+          items=items.map((x,i)=>({...x,sent:(an.sent||[])[i]||'neutral'}));
+          (an.pivots||[]).forEach(pv=>{ if(items[pv.i]) items[pv.i].pivot={point:pv.point,kind:pv.kind,why:pv.why}; this._pivotHits[sym][pv.point]={kind:pv.kind,why:pv.why}; });
+          this._news[sym]=items; this.forceUpdate();
+        }
+      }catch(e){}
     }catch(e){} };
     const tickSteel=async()=>{ try{
       const st=await J('/api/feeds/steel');
       if(st.hrc){ this.setState(s=>({steel:{...s.steel,hrc:st.hrc,hrcChg:st.hrcChg,series:(st.series&&st.series.length?st.series:s.steel.series),live:true}})); }
     }catch(e){} };
-    const tickNucor=async()=>{ try{ const n=await J('/api/feeds/nucornews'); if(n.items&&n.items.length){ this._nucorNews=n.items.map(x=>({tag:x.tag||'NUCOR',time:x.time||'',head:x.head,url:x.url})); this.forceUpdate(); } }catch(e){} };
+    const tickNucor=async()=>{ try{ const n=await J('/api/feeds/nucornews'); if(!(n.items&&n.items.length)) return;
+      let items=n.items.map(x=>({tag:x.tag||'NUCOR',time:x.time||'',head:x.head,url:x.url}));
+      this._nucorNews=items; this.forceUpdate();
+      try{ const r=await fetch('/api/analyze/news',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({sym:'NUE',context:'company',heads:items.map(x=>x.head)})});
+        if(r.ok){ const an=await r.json(); this._nucorNews=items.map((x,i)=>({...x,sent:(an.sent||[])[i]||'neutral'})); this.forceUpdate(); }
+      }catch(e){}
+    }catch(e){} };
     const tickAi=async()=>{ try{ const n=await J('/api/feeds/ainews'); if(n.items&&n.items.length){ this._aiNewsLive=true; this.setState({aiNews:n.items.map((x,i)=>({id:'nws'+Date.now()+i,src:(x.tag||'AI').toUpperCase(),time:x.time||'now',head:x.head,url:x.url||'#'}))}); } }catch(e){} };
     const tickMedia=async()=>{ try{
       const ch=((this.state.mediaChannels||{}).youtube||'').trim(); if(!ch) return;
@@ -2656,7 +2620,16 @@ class Component extends DCLogic {
     const wl=s.watchlist; const watchlist=wl.map(w=>{ const up=w.chgN>=0; const c=up?'#34d399':'#f87171'; const active=s.selSym===w.sym; return {sym:w.sym,cap:w.cap,price:'$'+w.price,chg:(up?'+':'')+w.chgN.toFixed(1)+'%',c,spark:this._spark(w.sym),select:()=>this.selectStock(w.sym),border:active?hex2rgba(c,0.4):'rgba(255,255,255,.07)',bg:active?hex2rgba(c,0.07):'rgba(13,16,22,.4)'}; });
     const selW=wl.find(w=>w.sym===s.selSym)||wl[0]; const selUp=selW.chgN>=0; const selC=selUp?'#34d399':'#f87171';
     const ranges=['1D','1W','1M','1Y'].map(r=>({label:r,go:()=>this.setRange(r),c:s.range===r?'#34d399':'#9aa4b2',border:s.range===r?'rgba(52,211,153,.5)':'rgba(255,255,255,.1)',bg:s.range===r?'rgba(52,211,153,.12)':'transparent'}));
-    const sel={sym:selW.sym,name:selW.name,price:'$'+selW.price,chg:(selUp?'+':'')+selW.chgN.toFixed(1)+'%',c:selC,stats:(this._liveQ&&this._liveQ[selW.sym])?[{k:'PREV CLOSE',v:'$'+this._liveQ[selW.sym].prev},{k:'VOL',v:this._liveQ[selW.sym].vol},{k:'52W H',v:'$'+this._liveQ[selW.sym].hi},{k:'52W L',v:'$'+this._liveQ[selW.sym].lo}]:[{k:'MKT CAP',v:selW.cap==='SMALL'?'$0.7B':'$48B'},{k:'VOL · SAMPLE',v:(2+Math.random()*8).toFixed(1)+'M'},{k:'52W H',v:'$'+(parseFloat(selW.price)*1.4).toFixed(0)},{k:'52W L',v:'$'+(parseFloat(selW.price)*0.6).toFixed(0)}],news:(this._news[selW.sym]||this._news.HYLN).map(n=>{ const tc={CATALYST:['#34d399','rgba(52,211,153,.15)'],EARNINGS:['#38bdf8','rgba(56,189,248,.15)'],FILING:['#a78bfa','rgba(167,139,250,.15)'],SOCIAL:['#fb5fa3','rgba(251,95,163,.15)'],RISK:['#f87171','rgba(248,113,113,.15)'],MACRO:['#fbbf24','rgba(251,191,36,.15)'],ANALYST:['#34d399','rgba(52,211,153,.15)']}[n.tag]||['#9aa4b2','rgba(255,255,255,.08)']; return {...n,url:n.url||('https://finance.yahoo.com/quote/'+encodeURIComponent(selW.sym)+'/news'),tagC:tc[0],tagBg:tc[1]}; }),thesis:((s.theses[s.selSym]||{})[s.thesisMode])||'',stance:s.stances[s.selSym]||'WATCH',stanceC:(s.stances[s.selSym]||'').includes('BULL')?'#34d399':(s.stances[s.selSym]||'').includes('BEAR')?'#f87171':'#9aa4b2'};
+    const sel={sym:selW.sym,name:selW.name,price:'$'+selW.price,chg:(selUp?'+':'')+selW.chgN.toFixed(1)+'%',c:selC,stats:(this._liveQ&&this._liveQ[selW.sym])?[{k:'PREV CLOSE',v:'$'+this._liveQ[selW.sym].prev},{k:'VOL',v:this._liveQ[selW.sym].vol},{k:'52W H',v:'$'+this._liveQ[selW.sym].hi},{k:'52W L',v:'$'+this._liveQ[selW.sym].lo}]:[{k:'MKT CAP',v:selW.cap==='SMALL'?'$0.7B':'$48B'},{k:'VOL · SAMPLE',v:(2+Math.random()*8).toFixed(1)+'M'},{k:'52W H',v:'$'+(parseFloat(selW.price)*1.4).toFixed(0)},{k:'52W L',v:'$'+(parseFloat(selW.price)*0.6).toFixed(0)}],news:(this._news[selW.sym]||this._news.HYLN).map(n=>{ const tc={CATALYST:['#34d399','rgba(52,211,153,.15)'],EARNINGS:['#38bdf8','rgba(56,189,248,.15)'],FILING:['#a78bfa','rgba(167,139,250,.15)'],SOCIAL:['#fb5fa3','rgba(251,95,163,.15)'],RISK:['#f87171','rgba(248,113,113,.15)'],MACRO:['#fbbf24','rgba(251,191,36,.15)'],ANALYST:['#34d399','rgba(52,211,153,.15)']}[n.tag]||['#9aa4b2','rgba(255,255,255,.08)'];
+      const sc=n.sent==='good'?['#34d399','rgba(52,211,153,.16)','rgba(52,211,153,.32)','rgba(52,211,153,.05)']:n.sent==='bad'?['#f87171','rgba(248,113,113,.16)','rgba(248,113,113,.32)','rgba(248,113,113,.05)']:null;
+      const piv=!!n.pivot;
+      return {...n,url:n.url||('https://finance.yahoo.com/quote/'+encodeURIComponent(selW.sym)+'/news'),
+        tagC:sc?sc[0]:tc[0],tagBg:sc?sc[1]:tc[1],
+        borderC:piv?'rgba(251,191,36,.6)':sc?sc[2]:'rgba(255,255,255,.05)',
+        bgC:piv?'rgba(251,191,36,.06)':sc?sc[3]:'rgba(255,255,255,.025)',
+        sentGlyph:n.sent==='good'?'\u25B2':n.sent==='bad'?'\u25BC':'',
+        sentC:n.sent==='good'?'#34d399':n.sent==='bad'?'#f87171':'#7d8694',
+        pivotDisp:piv?'inline-block':'none',pivotTitle:piv?(n.pivot.kind+': '+n.pivot.why):''}; }),thesis:((s.theses[s.selSym]||{})[s.thesisMode])||'',stance:s.stances[s.selSym]||'WATCH',stanceC:(s.stances[s.selSym]||'').includes('BULL')?'#34d399':(s.stances[s.selSym]||'').includes('BEAR')?'#f87171':'#9aa4b2'};
     const tape=wl.concat(wl).map(w=>({sym:w.sym,price:'$'+w.price,chg:(w.chgN>=0?'▲':'▼')+Math.abs(w.chgN).toFixed(1)+'%',c:w.chgN>=0?'#34d399':'#f87171'}));
     // MEDIA
     const posts=[{title:'AI workflow reel',icon:'🎞️',status:'EDITING',stBg:'rgba(251,191,36,.15)',stC:'#fbbf24',platform:'Instagram',when:'today 8:00pm',reach:'42K',thumb:'linear-gradient(135deg,#fb5fa3,#fb923c)'},{title:'Trading desk tour',icon:'📈',status:'SCHEDULED',stBg:'rgba(52,211,153,.15)',stC:'#34d399',platform:'YouTube',when:'Fri 11am',reach:'18K',thumb:'linear-gradient(135deg,#34d399,#38bdf8)'},{title:'FE study with me',icon:'⌨️',status:'IDEA',stBg:'rgba(255,255,255,.08)',stC:'#9aa4b2',platform:'TikTok',when:'next week',reach:'—',thumb:'linear-gradient(135deg,#f5a524,#fb5fa3)'},{title:'Brand collab teaser',icon:'✨',status:'LIVE',stBg:'rgba(251,95,163,.18)',stC:'#fb5fa3',platform:'Instagram',when:'posted 2h',reach:'67K',thumb:'linear-gradient(135deg,#a78bfa,#fb5fa3)'}];
@@ -2827,11 +2800,21 @@ class Component extends DCLogic {
     const jobStatusC={Quoting:'#f5a524',Sent:'#38bdf8',Won:'#2fb24c',Lost:'#f87171'};
     const jobsArr=s.jobs.map(j=>{ const c=jobStatusC[j.status]||'#9aa4b2'; return {name:j.name,customer:j.customer,tons:j.tons+'t',value:fmt$(j.value),status:j.status,statusC:c,statusBg:hex2rgba(c,0.16),cycle:()=>this.cycleJobStatus(j.id),remove:()=>this.removeJob(j.id)}; });
     const jobsWon=s.jobs.filter(j=>j.status==='Won').reduce((a,j)=>a+j.value,0); const jobsPipe=s.jobs.filter(j=>j.status==='Quoting'||j.status==='Sent').reduce((a,j)=>a+j.value,0);
-    const nucorNews=this._nucorNews||[
+    const nucorNewsRaw=this._nucorNews||[
       {tag:'EARNINGS',time:'today',head:'Nucor guides Q3 above consensus on firm sheet pricing',url:'https://nucor.com/news'},
       {tag:'PRICING',time:'2d',head:'Mills lift HRC base price ~$40/ton effective next week',url:'https://nucor.com/news'},
       {tag:'PROJECT',time:'4d',head:'New rebar micro-mill ramps ahead of schedule',url:'https://nucor.com/news'},
     ];
+    const nucorNews=nucorNewsRaw.map(n=>({...n,
+      bC:n.sent==='good'?'rgba(52,211,153,.4)':n.sent==='bad'?'rgba(248,113,113,.4)':'rgba(47,178,76,.14)',
+      tC:n.sent==='good'?'#34d399':n.sent==='bad'?'#f87171':'#6fdc8c',
+      tBg:n.sent==='good'?'rgba(52,211,153,.15)':n.sent==='bad'?'rgba(248,113,113,.15)':'rgba(47,178,76,.15)'}));
+    const tpAll=(((s.thesisPoints||{})[s.selSym])||[]);
+    const thesisPointsArr=tpAll.filter(p=>p.side===s.thesisMode).map(p=>{ const hit=this._pivotHits&&this._pivotHits[s.selSym]&&this._pivotHits[s.selSym][p.id];
+      return {text:p.text, toggle:()=>this.toggleThesisPoint(p.id), remove:()=>this.removeThesisPoint(p.id),
+        check:p.done?'\u2713':'', boxBg:p.done?((s.thesisMode==='bear')?'#f87171':'#34d399'):'transparent', strike:p.done?'line-through':'none', txtC:p.done?'#9aa4b2':'#e8ecf2',
+        pivotDisp:(hit&&!p.done)?'inline-block':'none', pivotTitle:hit?(hit.kind+': '+hit.why):''}; });
+    const noThesisPoints=thesisPointsArr.length===0;
     const courseAdd={name:s.courseName,provider:s.courseProvider,url:s.courseUrl,setName:e=>this.setCourseField('courseName',e),setProvider:e=>this.setCourseField('courseProvider',e),setUrl:e=>this.setCourseField('courseUrl',e),add:()=>this.addCourse()};
     const connOr=(flag,panel)=>flag||((s.sourcesConnected||[]).includes(panel));
     const steelSrcChip=connOr(!!(s.steel&&s.steel.live),'steel')?'\u25CF LIVE \u00B7 CME':'\u2295 SOURCE';
@@ -2843,6 +2826,8 @@ class Component extends DCLogic {
       debateMe:()=>this.debateMe(), saveQuoteCalc:()=>this.saveQuoteCalc(), quoteSaveLabel:s.quoteSavedFlash||'\u2913 SAVE QUOTE',
       openIG:()=>this.openChannel('instagram'), openTT:()=>this.openChannel('tiktok'), openYT:()=>this.openChannel('youtube'),
       steelSrcChip, nucorNewsSrcChip, chartsSrcChip, stockNewsSrcChip, aiNewsSrcChip,
+      thesisPoints:thesisPointsArr, noThesisPoints, thesisPointDraft:s.thesisPointDraft||'',
+      setThesisPointDraft:e=>this.setThesisPointDraft(e), addThesisPoint:()=>this.addThesisPoint(), onThesisPointKey:e=>this.onThesisPointKey(e),
       navItems, goCreate:()=>this.go('create'), manageStations,
       navCollapsed:s.navCollapsed,
       navCol:s.navCollapsed?'74px':'236px',
