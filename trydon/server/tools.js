@@ -8,7 +8,7 @@ import * as feeds from './feeds.js';
 
 const STATIONS = ['calendar', 'nucor', 'fe', 'ai', 'stocks', 'media', 'gym'];
 
-const S = (type, props, required = []) => ({ type: 'object', properties: props, required });
+const S = (props, required = []) => ({ type: 'object', properties: props, required });
 const str = (description) => ({ type: 'string', description });
 const num = (description) => ({ type: 'number', description });
 

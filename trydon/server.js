@@ -10,7 +10,7 @@ import { checkSession, checkCode, sessionCookie, accessCode } from './server/aut
 import { chat, debate } from './server/assistant.js';
 import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
-import { startCron } from './server/cron.js';
+import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck } from './server/cron.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -155,6 +155,15 @@ const server = createServer(async (req, res) => {
         return send(res, 200, { ok: true });
       }
       if (path === '/api/quotes' && req.method === 'GET') return send(res, 200, listQuotes());
+
+      // manual job trigger — preview a briefing/review on demand
+      if (path === '/api/cron/run' && req.method === 'POST') {
+        const job = url.searchParams.get('job');
+        const jobs = { briefing: morningBriefing, weekly: weeklyReview, digest: learningDigest, nudge: eveningNudge, steel: steelAlertCheck };
+        if (!jobs[job]) return send(res, 400, { error: 'job must be one of ' + Object.keys(jobs).join('|') });
+        await jobs[job]();
+        return send(res, 200, { ok: true, ran: job });
+      }
 
       if (path.startsWith('/api/file/') && req.method === 'PUT') {
         const name = decodeURIComponent(path.slice('/api/file/'.length));

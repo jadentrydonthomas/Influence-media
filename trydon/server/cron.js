@@ -23,7 +23,7 @@ function markRan(job) {
 }
 
 // ---------- morning briefing ----------
-async function morningBriefing() {
+export async function morningBriefing() {
   const state = {};
   for (const k of ['events', 'tasks', 'watchlist', 'holdings', 'gym', 'nutrition', 'quoteTons', 'quoteMargin']) {
     state[k] = getKey(k);
@@ -80,7 +80,7 @@ async function morningBriefing() {
 }
 
 // ---------- steel move alert (>2%) ----------
-async function steelAlertCheck() {
+export async function steelAlertCheck() {
   let s;
   try { s = await feeds.steel(); } catch { return; }
   if (!s.hrc) return;
@@ -101,7 +101,7 @@ async function steelAlertCheck() {
 }
 
 // ---------- weekly review (Sunday evening) ----------
-async function weeklyReview() {
+export async function weeklyReview() {
   const gym = getKey('gym', {});
   const hist = getKey('todoHistory', []);
   const holdings = getKey('holdings', []);
@@ -141,7 +141,7 @@ async function weeklyReview() {
 }
 
 // ---------- learning digest (Mon + Thu) ----------
-async function learningDigest() {
+export async function learningDigest() {
   if (!hasKey()) return; // needs the LLM — silently skip
   const aiLog = getKey('aiLog', []).slice(0, 6);
   const courses = getKey('courses', []);
@@ -156,6 +156,22 @@ AI news this week: ${signal.map(s => s.head).join(' | ')}`;
     const text = await completeText([{ role: 'user', content: prompt }], { maxTokens: 400 });
     postAssistantMessage('📚 Learning digest\n' + text);
   } catch { /* next scheduled run will retry */ }
+}
+
+// ---------- streak / rollover nudges (once, evening, quiet-hours safe) ----------
+export function eveningNudge() {
+  const iso = todayIso();
+  const gym = getKey('gym', null);
+  const tasks = getKey('tasks', []);
+  const lines = [];
+  if (gym && gym.streak > 0 && !(gym.sessions || []).some(x => x.date === iso)) {
+    lines.push(`🔥 Your ${gym.streak}-day gym streak is on the line — nothing logged today yet. Even 20 minutes keeps it alive.`);
+  }
+  const open = tasks.filter(t => !t.done);
+  if (open.length) {
+    lines.push(`📋 ${open.length} task${open.length > 1 ? 's' : ''} would roll over at midnight: ${open.slice(0, 3).map(t => t.title).join(', ')}${open.length > 3 ? '…' : ''}`);
+  }
+  if (lines.length) postAssistantMessage(lines.join('\n'));
 }
 
 // ---------- scheduler ----------
@@ -186,6 +202,10 @@ export function startCron() {
       if (['Monday', 'Thursday'].includes(weekday) && hm >= '17:00' && !ranToday('digest')) {
         markRan('digest');
         await learningDigest();
+      }
+      if (hm >= '20:30' && hm < '22:00' && !ranToday('nudge')) {
+        markRan('nudge');
+        eveningNudge();
       }
     } catch (e) {
       console.error('[cron]', e.message);

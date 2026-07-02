@@ -109,14 +109,49 @@ export function candles(sym, range) {
   });
 }
 
+// Google News items carry their publisher as a " - Publisher" title suffix;
+// use it as the tag so a merged feed shows where each headline came from.
+function splitPublisher(title, fallback = 'NEWS') {
+  const m = /^(.*)\s+-\s+([^-]{2,40})$/.exec(title);
+  if (!m) return { head: title, tag: fallback };
+  return { head: m[1].trim(), tag: m[2].trim().toUpperCase().slice(0, 12) };
+}
+
+function dedupe(items, limit) {
+  const seen = new Set();
+  const out = [];
+  for (const it of items) {
+    const key = it.head.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 42);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(it);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+// Per-ticker news, merged from two independent sources (Yahoo Finance RSS +
+// Google News, which itself aggregates many outlets), deduped by headline.
 export function stockNews(sym) {
   return cached(`n:${sym}`, 30 * MIN, async () => {
-    const xml = await getText(
-      `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(sym)}&region=US&lang=en-US`
-    );
-    const items = parseFeed(xml, 5).map(x => ({
-      tag: 'NEWS', time: relTime(x.date), head: x.title, url: x.link,
-    }));
+    const collected = [];
+    const results = await Promise.allSettled([
+      getText(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(sym)}&region=US&lang=en-US`),
+      getText(`https://news.google.com/rss/search?q=${encodeURIComponent(sym + ' stock')}&hl=en-US&gl=US&ceid=US:en`),
+    ]);
+    if (results[0].status === 'fulfilled') {
+      for (const x of parseFeed(results[0].value, 6)) {
+        collected.push({ tag: 'YAHOO', time: relTime(x.date), head: x.title, url: x.link, t: Date.parse(x.date) || 0 });
+      }
+    }
+    if (results[1].status === 'fulfilled') {
+      for (const x of parseFeed(results[1].value, 6)) {
+        const { head, tag } = splitPublisher(x.title);
+        collected.push({ tag, time: relTime(x.date), head, url: x.link, t: Date.parse(x.date) || 0 });
+      }
+    }
+    collected.sort((a, b) => b.t - a.t);
+    const items = dedupe(collected, 5).map(({ t, ...rest }) => rest);
     if (!items.length) throw new Error('empty feed');
     return { sym, items };
   });
@@ -140,14 +175,29 @@ export function steel() {
   });
 }
 
+// Nucor company news from three angles: Google News on the company, Google
+// News on the steel market, and Yahoo's NUE ticker feed — merged + deduped.
 export function nucorNews() {
   return cached('nucornews', 60 * MIN, async () => {
-    const xml = await getText(
-      'https://news.google.com/rss/search?q=Nucor%20steel&hl=en-US&gl=US&ceid=US:en'
-    );
-    const items = parseFeed(xml, 6).map(x => ({
-      tag: 'NUCOR', time: relTime(x.date), head: x.title, url: x.link,
-    }));
+    const collected = [];
+    const results = await Promise.allSettled([
+      getText('https://news.google.com/rss/search?q=Nucor&hl=en-US&gl=US&ceid=US:en'),
+      getText('https://news.google.com/rss/search?q=%22steel%20prices%22%20OR%20%22HRC%22&hl=en-US&gl=US&ceid=US:en'),
+      getText('https://feeds.finance.yahoo.com/rss/2.0/headline?s=NUE&region=US&lang=en-US'),
+    ]);
+    for (const [i, r] of results.entries()) {
+      if (r.status !== 'fulfilled') continue;
+      for (const x of parseFeed(r.value, 6)) {
+        if (i === 2) {
+          collected.push({ tag: 'YAHOO·NUE', time: relTime(x.date), head: x.title, url: x.link, t: Date.parse(x.date) || 0 });
+        } else {
+          const { head, tag } = splitPublisher(x.title, i === 1 ? 'STEEL MKT' : 'NUCOR');
+          collected.push({ tag, time: relTime(x.date), head, url: x.link, t: Date.parse(x.date) || 0 });
+        }
+      }
+    }
+    collected.sort((a, b) => b.t - a.t);
+    const items = dedupe(collected, 6).map(({ t, ...rest }) => rest);
     if (!items.length) throw new Error('empty feed');
     return { items };
   });

@@ -1,4 +1,4 @@
-export const TZ = () => process.env.TRYDON_TZ || 'America/Chicago';
+export const TZ = () => process.env.TRYDON_TZ || 'America/Indiana/Indianapolis';
 
 // YYYY-MM-DD in the user's timezone
 export function todayIso(offsetDays = 0) {
