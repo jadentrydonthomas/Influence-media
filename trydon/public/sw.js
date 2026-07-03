@@ -1,7 +1,7 @@
 // TRYDON service worker — offline read-only mode.
 // Static assets: cache-first. App shell + /api/state GET: network-first with
 // cache fallback so the deck opens (read-only) with the last synced state.
-const CACHE = 'trydon-v1';
+const CACHE = 'trydon-v2';
 const PRECACHE = [
   '/', '/dc-runtime.js', '/trydon-bridge.js', '/manifest.webmanifest', '/icon.svg',
   '/vendor/react.production.min.js', '/vendor/react-dom.production.min.js',
