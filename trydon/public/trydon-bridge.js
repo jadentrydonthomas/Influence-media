@@ -22,11 +22,17 @@
 
   const state = { lastPushed: {}, llm: false, pushTimer: null, online: true };
 
+  // Keys that describe where he IS, not what he HAS. Never synced: a poll
+  // can bring live data without yanking the screen to another station.
+  const LOCAL_ONLY = new Set(['view', 'calTab', 'selSym', 'range', 'thesisMode']);
+
   // keys ↔ blob translation: server stores each app key as a row; the app's
   // localStorage blob is {state:{...}, custom:[], removed:[]}
   function blobToKeys(blob) {
     const keys = {};
-    for (const [k, v] of Object.entries(blob.state || {})) keys[k] = v;
+    for (const [k, v] of Object.entries(blob.state || {})) {
+      if (!LOCAL_ONLY.has(k)) keys[k] = v;
+    }
     keys.custom = blob.custom || [];
     keys.removed = blob.removed || [];
     return keys;
@@ -57,7 +63,9 @@
       const local = readBlob();
       if (Object.keys(serverKeys).length) {
         const plain = {};
-        for (const [k, r] of Object.entries(serverKeys)) plain[k] = r.v;
+        for (const [k, r] of Object.entries(serverKeys)) {
+          if (!LOCAL_ONLY.has(k)) plain[k] = r.v; // navigation stays this device's
+        }
         writeBlob(applyKeysToBlob(local, plain));
       } else if (local && serverEpoch === 0) {
         // genuine first run against a never-reset server: migrate up
@@ -85,8 +93,10 @@
       if (!Object.keys(changed).length) return;
       try {
         const r = await api('/api/state', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ keys: changed }) });
+        // merge, never overwrite: dropping the epoch here made every poll
+        // after an edit look like a factory reset → constant page reloads
         const s = readSync();
-        if (r.t > s.lastPull) writeSync({ lastPull: r.t });
+        writeSync({ ...s, lastPull: Math.max(s.lastPull || 0, r.t) });
         state.online = true;
       } catch (e) {
         state.online = false; // keys stay dirty in lastPushed? restore so retry happens
@@ -111,7 +121,7 @@
         location.reload();
         return;
       }
-      const entries = Object.entries(res.keys || {});
+      const entries = Object.entries(res.keys || {}).filter(([k]) => !LOCAL_ONLY.has(k));
       writeSync({ lastPull: res.serverTime || Date.now(), epoch: serverEpoch });
       if (!entries.length) return;
       const plain = {};
