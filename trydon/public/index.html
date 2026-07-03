@@ -1343,6 +1343,13 @@
               <sc-for list="{{ tape }}" as="tk" hint-placeholder-count="10"><span style="display:flex; gap:7px; align-items:center; white-space:nowrap;"><b style="color:#e8ecf2;">{{ tk.sym }}</b><span style="color:#9aa4b2;">{{ tk.price }}</span><span style="color:{{ tk.c }};">{{ tk.chg }}</span></span></sc-for>
             </div>
           </div>
+          <!-- STOCKS MODE TABS -->
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <sc-for list="{{ stTabs }}" as="stb" hint-placeholder-count="2"><button onclick="{{ stb.go }}" style="padding:8px 16px; border-radius:9px; border:1px solid {{ stb.border }}; background:{{ stb.bg }}; color:{{ stb.c }}; cursor:pointer; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;">{{ stb.label }}</button></sc-for>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; margin-left:auto;">MARKET — the tape · THESIS DESK — write, track, get challenged</span>
+          </div>
+          <sc-if value="{{ stTabMarket }}" hint-placeholder-val="{{ true }}">
+          <div>
           <!-- PORTFOLIO -->
           <div style="margin-bottom:16px;">
             
@@ -1426,6 +1433,16 @@
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:12px 0 16px;">
                 <sc-for list="{{ sel.stats }}" as="st" hint-placeholder-count="4"><div style="padding:9px 11px; border-radius:9px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);"><div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694; letter-spacing:.5px;">{{ st.k }}</div><div style="font-size:14px; font-weight:700; margin-top:3px; color:#e8ecf2;">{{ st.v }}</div></div></sc-for>
               </div>
+
+            </div>
+          </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ stTabThesis }}" hint-placeholder-val="{{ false }}">
+          <div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+                <sc-for list="{{ symChips }}" as="sc2" hint-placeholder-count="4"><button onclick="{{ sc2.pick }}" style="display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:9px; border:1px solid {{ sc2.border }}; background:{{ sc2.bg }}; cursor:pointer;"><b style="font-size:12.5px; color:{{ sc2.symC }};">{{ sc2.sym }}</b><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:{{ sc2.chgC }};">{{ sc2.chg }}</span></button></sc-for>
+              </div>
               <!-- THESIS COMMAND BOARD -->
               <div style="border-radius:14px; border:1px solid rgba(52,211,153,.3); background:linear-gradient(180deg,rgba(52,211,153,.05),rgba(6,14,10,.55)); padding:16px 18px; margin-bottom:14px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
@@ -1465,7 +1482,7 @@
                       <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:1.5px; color:#34d399; font-weight:700;">▲ BULL CASE · upside</span>
                       <button onclick="{{ markBull }}" style="padding:4px 10px; border-radius:6px; border:1px solid rgba(52,211,153,.4); background:{{ tb.bullStanceBg }}; color:#5cd6a0; cursor:pointer; font-size:9px; font-weight:700; font-family:'JetBrains Mono',monospace;">SET STANCE</button>
                     </div>
-                    <textarea value="{{ tb.bullText }}" onchange="{{ tb.setBull }}" placeholder="Why this works — catalysts, edge, entry, price target…" style="width:100%; height:150px; resize:vertical; border-radius:10px; border:1px solid rgba(52,211,153,.3); background:rgba(6,18,12,.5); color:#e8ecf2; padding:11px; font-size:12.5px; line-height:1.55; outline:none;"></textarea>
+                    <textarea value="{{ tb.bullText }}" onchange="{{ tb.setBull }}" placeholder="Why this works — catalysts, edge, entry, price target…" style="width:100%; height:300px; resize:vertical; border-radius:10px; border:1px solid rgba(52,211,153,.3); background:rgba(6,18,12,.5); color:#e8ecf2; padding:11px; font-size:12.5px; line-height:1.55; outline:none;"></textarea>
                     <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:#34d399; margin:11px 0 7px;">KEY POINTS · CHECK OFF WHEN PLAYED OUT</div>
                     <div style="display:flex; flex-direction:column; gap:6px;">
                       <sc-for list="{{ tb.bullPoints }}" as="p" hint-placeholder-count="2">
@@ -1473,6 +1490,7 @@
                           <button onclick="{{ p.toggle }}" style="width:16px; height:16px; flex:none; border-radius:5px; border:1px solid #34d399; background:{{ p.boxBg }}; color:#04121c; cursor:pointer; font-size:10px; line-height:1; padding:0;">{{ p.check }}</button>
                           <span style="flex:1; font-size:11.5px; line-height:1.35; color:{{ p.txtC }}; text-decoration:{{ p.strike }};">{{ p.text }}</span>
                           <span title="{{ p.pivotTitle }}" style="display:{{ p.pivotDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡</span>
+                          <span title="added by Thesis Watch from live news" style="display:{{ p.aiDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.5px; color:#7dd3fc; background:rgba(56,189,248,.12); border:1px solid rgba(56,189,248,.35); padding:1px 5px; border-radius:4px;">AI</span>
                           <button onclick="{{ p.remove }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:12px; padding:0 2px;">×</button>
                         </div>
                       </sc-for>
@@ -1487,7 +1505,7 @@
                       <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:1.5px; color:#f87171; font-weight:700;">▼ BEAR CASE · what breaks it</span>
                       <button onclick="{{ markBear }}" style="padding:4px 10px; border-radius:6px; border:1px solid rgba(248,113,113,.4); background:{{ tb.bearStanceBg }}; color:#fca5a5; cursor:pointer; font-size:9px; font-weight:700; font-family:'JetBrains Mono',monospace;">SET STANCE</button>
                     </div>
-                    <textarea value="{{ tb.bearText }}" onchange="{{ tb.setBear }}" placeholder="Risks, red flags, exit triggers — reduce your blind spots…" style="width:100%; height:150px; resize:vertical; border-radius:10px; border:1px solid rgba(248,113,113,.3); background:rgba(28,9,9,.55); color:#e8ecf2; padding:11px; font-size:12.5px; line-height:1.55; outline:none;"></textarea>
+                    <textarea value="{{ tb.bearText }}" onchange="{{ tb.setBear }}" placeholder="Risks, red flags, exit triggers — reduce your blind spots…" style="width:100%; height:300px; resize:vertical; border-radius:10px; border:1px solid rgba(248,113,113,.3); background:rgba(28,9,9,.55); color:#e8ecf2; padding:11px; font-size:12.5px; line-height:1.55; outline:none;"></textarea>
                     <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:#f87171; margin:11px 0 7px;">KEY POINTS · CHECK OFF WHEN PLAYED OUT</div>
                     <div style="display:flex; flex-direction:column; gap:6px;">
                       <sc-for list="{{ tb.bearPoints }}" as="p" hint-placeholder-count="2">
@@ -1495,6 +1513,7 @@
                           <button onclick="{{ p.toggle }}" style="width:16px; height:16px; flex:none; border-radius:5px; border:1px solid #f87171; background:{{ p.boxBg }}; color:#04121c; cursor:pointer; font-size:10px; line-height:1; padding:0;">{{ p.check }}</button>
                           <span style="flex:1; font-size:11.5px; line-height:1.35; color:{{ p.txtC }}; text-decoration:{{ p.strike }};">{{ p.text }}</span>
                           <span title="{{ p.pivotTitle }}" style="display:{{ p.pivotDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#fbbf24; background:rgba(251,191,36,.14); border:1px solid rgba(251,191,36,.4); padding:1px 6px; border-radius:4px;">⚡</span>
+                          <span title="added by Thesis Watch from live news" style="display:{{ p.aiDisp }}; flex:none; font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.5px; color:#7dd3fc; background:rgba(56,189,248,.12); border:1px solid rgba(56,189,248,.35); padding:1px 5px; border-radius:4px;">AI</span>
                           <button onclick="{{ p.remove }}" style="flex:none; background:none; border:none; color:#56606e; cursor:pointer; font-size:12px; padding:0 2px;">×</button>
                         </div>
                       </sc-for>
@@ -1518,8 +1537,8 @@
                   </sc-for>
                 </div>
               </div>
-            </div>
           </div>
+          </sc-if>
         </div>
       </sc-if>
 
@@ -2028,7 +2047,7 @@ class Component extends DCLogic {
         {sym:'MU',name:'Micron Technology',cap:'LARGE',price:'138.20',chgN:-2.1,base:142},
         {sym:'BULL',name:'Webull Corp',cap:'SMALL',price:'12.85',chgN:9.3,base:11.4},
       ],
-      selSym:'HYLN', range:'1M', thesisMode:'bull', theses:{HYLN:{bull:'',bear:''},NUE:{bull:'',bear:''},MU:{bull:'',bear:''},BULL:{bull:'',bear:''}}, stances:{HYLN:'WATCH',NUE:'WATCH',MU:'WATCH',BULL:'WATCH'}, thesisSaved:'', thesisPoints:{}, thesisPointDraft:'', bullPointDraft:'', bearPointDraft:'', aiTab:'learn', suggLoading:false, learnSuggest:[], nucorNotebook:[], nbTopicDraft:'', nbTextDraft:'', nbFilter:'ALL',
+      selSym:'HYLN', range:'1M', thesisMode:'bull', theses:{HYLN:{bull:'',bear:''},NUE:{bull:'',bear:''},MU:{bull:'',bear:''},BULL:{bull:'',bear:''}}, stances:{HYLN:'WATCH',NUE:'WATCH',MU:'WATCH',BULL:'WATCH'}, thesisSaved:'', thesisPoints:{}, thesisPointDraft:'', bullPointDraft:'', bearPointDraft:'', aiTab:'learn', stocksTab:'market', suggLoading:false, learnSuggest:[], nucorNotebook:[], nbTopicDraft:'', nbTextDraft:'', nbFilter:'ALL',
       nucorTasks:[
         {id:'n1',title:'Pre-shift safety check',done:false},
         {id:'n2',title:'Caster line inspection',done:false},
@@ -2144,6 +2163,7 @@ class Component extends DCLogic {
     this.setState(s=>({ thesisPoints:{...(s.thesisPoints||{}),[sym]:[...(((s.thesisPoints||{})[sym])||[]),{id:'tp'+Date.now(),side:g.side==='bear'?'bear':'bull',text:g.text,done:false}]} })); }
   dismissSuggestion(i){ const sym=this.state.selSym; if(this._suggest&&this._suggest[sym]){ this._suggest[sym]=this._suggest[sym].filter((_,k)=>k!==i); this.forceUpdate(); } }
   pickAiTab(t){ this.setState({aiTab:t}); }
+  pickStocksTab(t){ this.setState({stocksTab:t},()=>{ try{ this._drawChart(); }catch(e){} }); }
   async refreshSuggest(){ if(this.state.suggLoading) return; this.setState({suggLoading:true});
     try{ const r=await fetch('/api/learn/suggest',{method:'POST',credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.items) this.setState({learnSuggest:p.items}); } }catch(e){}
     this.setState({suggLoading:false}); }
@@ -2973,7 +2993,7 @@ class Component extends DCLogic {
     const aiNewsSrcChip=connOr(!!this._aiNewsLive,'ai_news')?'\u25CF LIVE':'\u2295 SOURCE';
     const tpAllSides=(((s.thesisPoints||{})[s.selSym])||[]);
     const mkSidePoints=(side,acc)=>tpAllSides.filter(p=>p.side===side).map(p=>{ const hit=this._pivotHits&&this._pivotHits[s.selSym]&&this._pivotHits[s.selSym][p.id];
-      return {text:p.text,toggle:()=>this.toggleThesisPoint(p.id),remove:()=>this.removeThesisPoint(p.id),check:p.done?'\u2713':'',boxBg:p.done?acc:'transparent',strike:p.done?'line-through':'none',txtC:p.done?'#9aa4b2':'#e8ecf2',pivotDisp:(hit&&!p.done)?'inline-block':'none',pivotTitle:hit?(hit.kind+': '+hit.why):''}; });
+      return {text:p.text,toggle:()=>this.toggleThesisPoint(p.id),remove:()=>this.removeThesisPoint(p.id),check:p.done?'\u2713':'',boxBg:p.done?acc:'transparent',strike:p.done?'line-through':'none',txtC:p.done?'#9aa4b2':'#e8ecf2',pivotDisp:(hit&&!p.done)?'inline-block':'none',pivotTitle:hit?(hit.kind+': '+hit.why):'',aiDisp:p.auto?'inline-block':'none'}; });
     const selNewsRaw=this._news[selW.sym]||[];
     const goodN=selNewsRaw.filter(n=>n.sent==='good').length, badN=selNewsRaw.filter(n=>n.sent==='bad').length, pivN=selNewsRaw.filter(n=>n.pivot).length;
     const thT=(s.theses[s.selSym]||{bull:'',bear:''});
@@ -3015,10 +3035,16 @@ class Component extends DCLogic {
     const learnSuggest=(s.learnSuggest||[]).map((g,i)=>({icon:g.kind==='course'?'\uD83C\uDF93':g.kind==='tool'?'\uD83E\uDDEA':'\uD83D\uDD28',kindLabel:(g.kind||'idea').toUpperCase(),title:g.title||'',note:g.note||'',url:g.url||'#',urlDisp:g.url?'inline':'none',accept:()=>this.acceptLearnSuggest(i),dismiss:()=>this.dismissLearnSuggest(i),acceptDisp:g.kind==='course'?'inline-block':'none'}));
     const noLearnSuggest=learnSuggest.length===0;
     const suggBtnLabel=s.suggLoading?'\u2026 thinking':'\u21BB SUGGEST FOR ME';
+    const stTabs=[['market','\u25E8 MARKET'],['thesis','\u270E THESIS DESK']].map(([k,l])=>({label:l,go:()=>this.pickStocksTab(k),bg:s.stocksTab===k?'rgba(52,211,153,.14)':'transparent',c:s.stocksTab===k?'#5cd6a0':'#7d8694',border:s.stocksTab===k?'rgba(52,211,153,.5)':'rgba(255,255,255,.1)'}));
+    const stTabMarket=s.stocksTab!=='thesis';
+    const stTabThesis=s.stocksTab==='thesis';
+    const symChips=s.watchlist.map(w=>{ const active=w.sym===s.selSym; const up=w.chgN>=0;
+      return {sym:w.sym,chg:(up?'+':'')+w.chgN.toFixed(1)+'%',pick:()=>this.selectStock(w.sym),symC:active?'#eef1f6':'#9aa4b2',chgC:up?'#34d399':'#f87171',bg:active?'rgba(52,211,153,.12)':'rgba(255,255,255,.02)',border:active?'rgba(52,211,153,.5)':'rgba(255,255,255,.08)'}; });
     return {
       tb, nbTopicChips, nbNotes, nbEmpty, nbTopicDraft:s.nbTopicDraft||'', nbTextDraft:s.nbTextDraft||'',
       setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
       aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),
+      stTabs, stTabMarket, stTabThesis, symChips,
       debateMe:()=>this.debateMe(), saveQuoteCalc:()=>this.saveQuoteCalc(), quoteSaveLabel:s.quoteSavedFlash||'\u2913 SAVE QUOTE',
       openIG:()=>this.openChannel('instagram'), openTT:()=>this.openChannel('tiktok'), openYT:()=>this.openChannel('youtube'),
       steelSrcChip, nucorNewsSrcChip, chartsSrcChip, stockNewsSrcChip, aiNewsSrcChip,

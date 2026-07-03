@@ -5,7 +5,7 @@
 import { getKey, putKeys, getMeta, setMeta, makeBackup } from './db.js';
 import { completeText, hasKey } from './anthropic.js';
 import * as feeds from './feeds.js';
-import { todayIso, nowParts, to12, TZ } from './util.js';
+import { todayIso, nowParts, to12, TZ, uid } from './util.js';
 import { analyzeNews } from './analyze.js';
 
 const BRIEFING_TIME = () => process.env.TRYDON_BRIEFING_TIME || '06:30';
@@ -198,16 +198,130 @@ export async function learningDigest() {
   } catch { /* next scheduled run will retry */ }
 }
 
-// ---------- daily Nucor shift (he works 7:00–15:00 every weekday) ----------
-export function ensureTodayShift() {
-  const { weekday } = nowParts();
-  if (['Saturday', 'Sunday'].includes(weekday)) return;
-  const iso = todayIso();
+// ---------- calendar planner ----------
+// Keeps his real life on the calendar without him touching it:
+//  - weekday 7:00–15:00 Nucor shifts, rolling 28 days ahead
+//  - "out" days (label contains out/off/vacation/holiday) get NO shift;
+//    auto-created shifts on such days are removed (e.g. July 4th weekend)
+//  - an FE Civil study plan: weekday evenings + weekend mornings cycling
+//    his unchecked knowledge areas up to exam day, plus the exam itself
+export function ensureCalendarPlan() {
   const events = getKey('events', null);
-  if (events === null) return; // nothing synced yet — seed handles first boot
-  if (events.some(e => e.date === iso && e.station === 'nucor' && e.start === '07:00')) return;
-  events.push({ id: 'ns' + iso, date: iso, start: '07:00', end: '15:00', title: 'Nucor — Production shift', station: 'nucor' });
-  putKeys({ events });
+  if (events === null) return; // nothing synced yet — seeds handle first boot
+  const specials = getKey('specialDays', []);
+  let evChanged = false, spChanged = false;
+
+  for (const [d, label] of [['2026-07-03', 'Out — 4th of July weekend'], ['2026-07-05', 'Out — 4th of July weekend']]) {
+    if (!specials.some(x => x.date === d)) {
+      specials.push({ id: 'sp' + d, date: d, label, type: 'special' });
+      spChanged = true;
+    }
+  }
+
+  const dow = iso => new Date(iso + 'T12:00:00').getDay();
+  const isOut = iso => specials.some(x => x.date === iso && /(out|off|vacation|holiday)/i.test(x.label + ' ' + x.type));
+  const noShift = iso => dow(iso) === 0 || dow(iso) === 6 || isOut(iso);
+
+  for (let k = 0; k < 28; k++) {
+    const iso = todayIso(k);
+    const shift = events.find(e => e.date === iso && e.station === 'nucor' && e.start === '07:00');
+    if (noShift(iso)) {
+      if (shift && String(shift.id).startsWith('ns')) {
+        events.splice(events.indexOf(shift), 1);
+        evChanged = true;
+      }
+      continue;
+    }
+    if (!shift) {
+      events.push({ id: 'ns' + iso, date: iso, start: '07:00', end: '15:00', title: 'Nucor — Production shift', station: 'nucor' });
+      evChanged = true;
+    }
+  }
+
+  const examDate = getKey('examDate', '');
+  if (examDate && examDate >= todayIso() && !events.some(e => String(e.id).startsWith('fe-plan'))) {
+    const topics = (getKey('feTopics', []) || []).filter(t => !t.done).map(t => t.title);
+    if (topics.length) {
+      let ti = 0;
+      for (let k = 0; k < 60 && ti < topics.length * 2; k++) {
+        const iso = todayIso(k);
+        if (iso >= examDate) break;
+        if (isOut(iso)) continue;
+        const weekend = dow(iso) === 0 || dow(iso) === 6;
+        const [st, en] = weekend ? ['09:00', '11:00'] : ['16:30', '18:30'];
+        events.push({ id: 'fe-plan-' + iso, date: iso, start: st, end: en, title: 'FE Study — ' + topics[ti % topics.length], station: 'fe' });
+        ti++;
+        evChanged = true;
+      }
+      if (!events.some(e => e.id === 'fe-exam')) {
+        events.push({ id: 'fe-exam', date: examDate, start: '08:00', end: '14:00', title: 'FE Civil Exam — go time', station: 'fe' });
+        evChanged = true;
+      }
+      if (!specials.some(x => x.date === examDate)) {
+        specials.push({ id: 'sp-exam', date: examDate, label: 'FE Civil Exam', type: 'special' });
+        spChanged = true;
+      }
+    }
+  }
+
+  const upd = {};
+  if (evChanged) upd.events = events;
+  if (spChanged) upd.specialDays = specials;
+  if (Object.keys(upd).length) putKeys(upd);
+}
+
+// ---------- thesis watch: the deck works his research while he's away ----------
+// Every couple hours: for each watchlist symbol he's actually working
+// (any thesis text or points), read fresh headlines, auto-add up to two
+// genuinely new AI-suggested points per symbol per day (marked auto/AI in
+// the UI — he can check off or delete, the watch never removes anything),
+// and alert once per pivot hit. Everything lands as a chat receipt.
+export async function thesisWatch() {
+  if (!hasKey()) return;
+  const watch = getKey('watchlist', []);
+  const theses = getKey('theses', {});
+  const points = getKey('thesisPoints', {});
+  const norm = t => String(t).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 44);
+  let changed = false;
+  const lines = [];
+
+  for (const w of watch.slice(0, 6)) {
+    const sym = w.sym;
+    const th = theses[sym] || {};
+    const pts = points[sym] || [];
+    if (!((th.bull || '').trim() || (th.bear || '').trim() || pts.length)) continue;
+    let news;
+    try { news = await feeds.stockNews(sym); } catch { continue; }
+    const heads = (news.items || []).map(x => x.head);
+    if (!heads.length) continue;
+    let an;
+    try { an = await analyzeNews({ sym, heads, points: pts.filter(p => !p.done), theses: th }); } catch { continue; }
+
+    const today = todayIso();
+    let room = Math.max(0, 2 - pts.filter(p => p.auto && p.day === today).length);
+    for (const g of (an.suggest || [])) {
+      if (room <= 0) break;
+      if (pts.some(p => norm(p.text) === norm(g.text))) continue;
+      pts.push({ id: uid('tp'), side: g.side, text: g.text, done: false, auto: true, day: today });
+      lines.push(`✓ ${sym} ${g.side === 'bear' ? '▼ bear' : '▲ bull'} board — added: ${g.text}${g.why ? ' (' + g.why + ')' : ''}`);
+      room--;
+      changed = true;
+    }
+    points[sym] = pts;
+
+    for (const pv of (an.pivots || [])) {
+      const pt = pts.find(p => p.id === pv.point);
+      const head = news.items[pv.i]?.head;
+      if (!pt || !head) continue;
+      const seenKey = 'pv:' + sym + ':' + norm(head) + ':' + norm(pt.text);
+      if (getMeta(seenKey)) continue;
+      setMeta(seenKey, todayIso());
+      lines.push(`⚡ ${sym}: "${head}" ${pv.kind} your point — ${pt.text}`);
+    }
+  }
+
+  if (changed) putKeys({ thesisPoints: points });
+  if (lines.length) postAssistantMessage('🤖 Thesis Watch — worked your boards while you were away:\n' + lines.join('\n'));
 }
 
 // ---------- streak / rollover nudges (once, evening, quiet-hours safe) ----------
@@ -231,9 +345,17 @@ export function startCron() {
   const tick = async () => {
     const { hm, weekday } = nowParts();
     try {
-      if (!ranToday('shift')) {
-        markRan('shift');
-        ensureTodayShift();
+      if (!ranToday('calplan')) {
+        markRan('calplan');
+        ensureCalendarPlan();
+      }
+      // thesis watch every 2h, 07:00–21:00, quiet hours respected
+      if (hm >= '07:00' && hm <= '21:00') {
+        const twKey = 'tw:' + String(Math.floor(Number(hm.slice(0, 2)) / 2) * 2).padStart(2, '0');
+        if (getMeta('cron:' + twKey) !== todayIso()) {
+          setMeta('cron:' + twKey, todayIso());
+          await thesisWatch();
+        }
       }
       if (hm >= BRIEFING_TIME() && !ranToday('briefing')) {
         markRan('briefing');

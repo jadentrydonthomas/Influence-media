@@ -11,7 +11,7 @@ import { chat, debate } from './server/assistant.js';
 import { analyzeNews } from './server/analyze.js';
 import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
-import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning } from './server/cron.js';
+import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning, thesisWatch, ensureCalendarPlan } from './server/cron.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -185,7 +185,7 @@ const server = createServer(async (req, res) => {
       // manual job trigger — preview a briefing/review on demand
       if (path === '/api/cron/run' && req.method === 'POST') {
         const job = url.searchParams.get('job');
-        const jobs = { briefing: morningBriefing, weekly: weeklyReview, digest: learningDigest, nudge: eveningNudge, steel: steelAlertCheck };
+        const jobs = { briefing: morningBriefing, weekly: weeklyReview, digest: learningDigest, nudge: eveningNudge, steel: steelAlertCheck, thesiswatch: thesisWatch, calplan: ensureCalendarPlan };
         if (!jobs[job]) return send(res, 400, { error: 'job must be one of ' + Object.keys(jobs).join('|') });
         await jobs[job]();
         return send(res, 200, { ok: true, ran: job });
