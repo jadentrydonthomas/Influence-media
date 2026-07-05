@@ -121,7 +121,7 @@ const server = createServer(async (req, res) => {
         try {
           const out = body.mode === 'debate'
             ? await debate({ sym: body.sym, snapshot })
-            : await chat({ text: body.text, messages: body.messages, snapshot });
+            : await chat({ text: body.text, messages: body.messages, snapshot, station: body.station });
           return send(res, 200, out);
         } catch (e) {
           if (e.code === 'NO_KEY') return send(res, 503, { error: 'no_key' });

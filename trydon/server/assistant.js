@@ -7,11 +7,26 @@ import * as feeds from './feeds.js';
 
 const MAX_TOOL_ROUNDS = 8;
 
-function systemPrompt(snapshot) {
+// Station specialists: the main brain adopts the persona of the desk the
+// user is standing in, so answers carry domain expertise instead of generic
+// help. Same model, focused instructions — cheaper than running separate
+// always-on agents, and it can still act across every station's tools.
+const SPECIALISTS = {
+  nucor: 'STEEL DESK — a commercial steel specialist. You know HRC pricing, scrap, mill lead times, tonnage takeoffs, quote margins, and how tariffs and demand move the market. Sharpen his quoting and his climb toward sales engineer.',
+  stocks: 'RESEARCH DESK — a disciplined equity analyst focused on reducing his blind spots. Push him to write both sides, tie claims to catalysts and data, and flag when news pivots a thesis. Never give buy/sell advice as fact; frame as his own conviction to pressure-test.',
+  fe: 'STUDY COACH — an FE Civil exam tutor. You know all 14 NCEES knowledge areas, the reference handbook, and time-boxed practice. Keep him on a plan that lands before exam day.',
+  ai: 'AI LAB LEAD — an applied-AI mentor. Keep him current, push hands-on building and testing over passive reading, and connect new tools to what he is actually trying to make.',
+  gym: 'TRAINER — a strength and nutrition coach. Protect the streak, progress the lifts, hit calorie/protein targets, program smart around shift work.',
+  media: 'CONTENT PRODUCER — a creator-growth strategist across YouTube/TikTok/Instagram. Turn ideas into a shippable pipeline and consistent posting.',
+  calendar: 'CHIEF OF STAFF — you run his whole timeline: shifts, study, gym, deadlines. Protect focus and keep the week realistic.',
+};
+
+function systemPrompt(snapshot, station) {
   const now = nowParts();
   const custom = (snapshot.custom || []).map(c => `${c.key} ("${c.label}")`).join(', ');
-  return `You are Trydon, the assistant inside a personal life command deck used by one person: a Nucor steel-mill worker (production shift 7:00–15:00) who quotes steel jobs, studies AI/agents, invests (Webull), creates content (YouTube/TikTok/Instagram), trains at the gym, and is prepping for the FE exam.
-
+  const persona = SPECIALISTS[station];
+  return `You are Trydon, the assistant inside a personal life command deck used by one person: a Nucor steel-mill worker (production shift 7:00–15:00) who quotes steel jobs, studies AI/agents, invests (Webull), creates content (YouTube/TikTok/Instagram), trains at the gym, and is prepping for the FE Civil exam.
+${persona ? `\nRight now he is at the ${station.toUpperCase()} station, so answer as his ${persona}\nYou can still use tools that touch any station when he asks.\n` : ''}
 Today is ${now.weekday} ${now.iso}, ${now.hm} (${TZ()}).
 
 Stations: calendar, nucor, fe, ai, stocks, media, gym${custom ? ', plus custom: ' + custom : ''}.
@@ -46,14 +61,14 @@ function mapHistory(messages = [], latest) {
   return out;
 }
 
-export async function chat({ text, messages, snapshot }) {
+export async function chat({ text, messages, snapshot, station }) {
   const exec = createExecutor(snapshot);
   const convo = mapHistory(messages, text);
   let reply = '';
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const res = await askClaude({
-      system: systemPrompt(snapshot),
+      system: systemPrompt(snapshot, station),
       messages: convo,
       tools: TOOL_DEFS,
       maxTokens: 1200,

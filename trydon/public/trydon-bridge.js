@@ -163,7 +163,7 @@
     const r = await fetch('/api/assistant', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text, messages: (messages || []).slice(-20), snapshot: snapshot() }),
+      body: JSON.stringify({ text, messages: (messages || []).slice(-20), snapshot: snapshot(), station: (window.__trydon && window.__trydon.state.view) || null }),
     });
     if (r.status === 503) { const e = new Error('no key'); e.noKey = true; throw e; }
     if (!r.ok) throw new Error('assistant ' + r.status);
@@ -206,15 +206,8 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
 
-  // ---------- phone mode: start with the icon rail so content gets the width ----------
-  if (window.innerWidth < 760) {
-    const collapseNav = () => {
-      const app = window.__trydon;
-      if (!app) { setTimeout(collapseNav, 300); return; }
-      if (!app.state.navCollapsed) app.setState({ navCollapsed: true });
-    };
-    setTimeout(collapseNav, 600);
-  }
+  // phone navigation is the fixed bottom tab bar (#mobtabs); the side rail
+  // is hidden by CSS, so no collapse hack is needed here.
 
   // ---------- global search (⌘K / Ctrl+K) ----------
   let overlay = null;

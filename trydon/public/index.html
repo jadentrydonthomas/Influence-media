@@ -12,35 +12,64 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TRYDON">
 <style id="trydon-mobile">
-/* Phone mode: reflow the deck for small screens. Desktop is untouched —
-   every rule lives behind this media query. Inline styles lose to
-   !important here. Selectors carry both serializations of inline style
-   ("font-size:34px" in source, "font-size: 34px" after React renders). */
+/* ---- MOBILE TAB BAR (always in DOM; shown only on phones) ---- */
+#mobtabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  background: rgba(8,10,14,.96); backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  display: none; gap: 2px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+#mobtabs .mobtab {
+  flex: 1 0 auto; min-width: 60px; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; padding: 5px 4px 3px; background: none;
+  border: 0; border-top: 2px solid transparent; cursor: pointer;
+  border-radius: 0;
+}
+#mobtabs .mt-ic {
+  width: 30px; height: 30px; border-radius: 9px; display: flex;
+  align-items: center; justify-content: center; font-size: 15px;
+}
+#mobtabs .mt-lb {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: .5px; white-space: nowrap;
+}
+
 @media (max-width: 760px) {
-  /* every multi-column grid becomes one column… */
+  nav:not(#mobtabs) { display: none !important; }   /* hide the side rail */
+  #mobtabs { display: flex !important; }            /* show the bottom bar */
+
+  /* content gets the FULL width, and clears the tab bar */
+  section > div { padding: 12px 12px calc(80px + env(safe-area-inset-bottom)) !important; }
+
+  /* one column everywhere… */
   [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
-  /* …stat tiles stay two-up… */
+  /* …stat tiles two-up… */
   [style*="repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; }
-  /* …7-day strips scroll sideways like an agenda… */
-  [style*="repeat(7"] { grid-template-columns: repeat(7, minmax(132px, 1fr)) !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
-  /* …except the month overview (only it has dozens of direct children) */
+  /* …week strips scroll sideways like an agenda… */
+  [style*="repeat(7"] { grid-template-columns: repeat(7, minmax(128px, 1fr)) !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  /* …except the month grid (dozens of cells) which stays 7-wide */
   [style*="repeat(7"]:has(> :nth-child(20)) { grid-template-columns: repeat(7, 1fr) !important; overflow-x: visible !important; }
-  /* breathing room + clearance for the Ask Trydon button */
-  main { padding: 12px 10px 110px !important; }
-  /* iOS zooms the page when a focused field is under 16px */
+
+  /* iOS stops auto-zooming when a field is >=16px */
   input, textarea, select { font-size: 16px !important; }
-  /* Ask Trydon becomes a full-screen sheet */
-  aside { inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; border-radius: 0 !important; }
-  /* hero banner: taller box, smaller display type, full-width subtitle */
-  [style*="height:166px"], [style*="height: 166px"] { height: 205px !important; }
+
+  /* float the Ask Trydon button above the tab bar */
+  #askfab { bottom: calc(74px + env(safe-area-inset-bottom)) !important; right: 14px !important; z-index: 50 !important; }
+  /* Ask Trydon: full-screen sheet, above the tab bar */
+  aside { inset: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; border-radius: 0 !important; z-index: 60 !important; }
+
+  /* hero: taller box, smaller display type, full-width subtitle */
+  [style*="height:166px"], [style*="height: 166px"] { height: 200px !important; }
   h1[style*="font-size:34px"], h1[style*="font-size: 34px"] { font-size: 22px !important; }
   [style*="font-size:30px"], [style*="font-size: 30px"] { font-size: 20px !important; }
   [style*="max-width:60%"], [style*="max-width: 60%"] { max-width: 100% !important; }
-  /* media image slots shrink to strips */
-  [style*="height:118px"], [style*="height: 118px"] { height: 84px !important; }
-  /* big timers / counters step down so they don't clip */
-  [style*="font-size:54px"], [style*="font-size: 54px"] { font-size: 38px !important; }
-  [style*="font-size:52px"], [style*="font-size: 52px"] { font-size: 38px !important; }
+  [style*="height:118px"], [style*="height: 118px"] { height: 92px !important; }
+
+  /* big timers/counters step down so nothing clips */
+  [style*="font-size:54px"], [style*="font-size: 54px"] { font-size: 40px !important; }
+  [style*="font-size:52px"], [style*="font-size: 52px"] { font-size: 40px !important; }
   [style*="font-size:44px"], [style*="font-size: 44px"] { font-size: 34px !important; }
   [style*="font-size:28px"], [style*="font-size: 28px"] { font-size: 22px !important; }
 }
@@ -492,6 +521,20 @@
         <div style="display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:9px; color:#5cd6a0;"><span style="width:6px;height:6px;border-radius:50%;background:#34d399; --pc:rgba(52,211,153,.5); animation:pulsedot 2s infinite;"></span>ONLINE</div>
       </div>
     </div>
+  </nav>
+
+  <!-- ============ MOBILE TAB BAR (phone only) ============ -->
+  <nav id="mobtabs" style="display:none;">
+    <sc-for list="{{ navItems }}" as="station" hint-placeholder-count="7">
+      <button onclick="{{ station.go }}" title="{{ station.label }}" class="mobtab" style="border-top:2px solid {{ station.dotC }};">
+        <span class="mt-ic" style="background:{{ station.iconBg }}; border:1px solid {{ station.iconBorder }};">{{ station.icon }}</span>
+        <span class="mt-lb" style="color:{{ station.textC }};">{{ station.shortLabel }}</span>
+      </button>
+    </sc-for>
+    <button onclick="{{ openSearchM }}" title="Search" class="mobtab" style="border-top:2px solid transparent;">
+      <span class="mt-ic" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);">⌕</span>
+      <span class="mt-lb" style="color:#aeb6c2;">Find</span>
+    </button>
   </nav>
 
   <!-- ============ CENTER ============ -->
@@ -1967,7 +2010,7 @@
 
   <!-- ============ FLOATING AI ============ -->
   <sc-if value="{{ aiClosed }}" hint-placeholder-val="{{ true }}">
-  <button onclick="{{ toggleAi }}" title="Trydon AI" style="position:fixed; right:24px; bottom:24px; z-index:60; display:flex; align-items:center; gap:10px; height:58px; padding:0 20px 0 16px; border-radius:19px; border:1px solid rgba(125,211,252,.55); background:linear-gradient(140deg,#38bdf8,#6366f1); box-shadow:0 18px 44px -12px rgba(56,189,248,.65), inset 0 1px 0 rgba(255,255,255,.35); cursor:pointer; overflow:hidden; animation:breathe 5.5s ease-in-out infinite;">
+  <button id="askfab" onclick="{{ toggleAi }}" title="Trydon AI" style="position:fixed; right:24px; bottom:24px; z-index:60; display:flex; align-items:center; gap:10px; height:58px; padding:0 20px 0 16px; border-radius:19px; border:1px solid rgba(125,211,252,.55); background:linear-gradient(140deg,#38bdf8,#6366f1); box-shadow:0 18px 44px -12px rgba(56,189,248,.65), inset 0 1px 0 rgba(255,255,255,.35); cursor:pointer; overflow:hidden; animation:breathe 5.5s ease-in-out infinite;">
     <span style="position:absolute; top:0; left:0; width:38%; height:100%; pointer-events:none; background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent); animation:sheen 8s ease-in-out infinite;"></span>
     <span style="position:relative; width:30px; height:30px; border-radius:10px; background:rgba(255,255,255,.16); display:flex; align-items:center; justify-content:center; font-size:17px;">{{ aiFabIcon }}</span>
     <span style="position:relative; font-family:'Sora'; font-weight:700; font-size:14px; color:#06121c; letter-spacing:.2px;">Ask Trydon</span>
@@ -2736,7 +2779,7 @@ class Component extends DCLogic {
       {key:'media',label:'Media',sub:'STUDIO',icon:'🎬'},
       {key:'gym',label:'Gym',sub:'TRAINING',icon:'🏋️'},
     ].concat((this._custom||[]).map(c=>({key:c.key,label:c.label,sub:'CUSTOM',icon:c.icon}))).filter(n=>!(this._removed||[]).includes(n.key));
-    const navItems=baseNav.map(n=>{ const active=s.view===n.key; const c=M[n.key]?M[n.key].color:'#38bdf8'; return {...n,go:()=>this.go(n.key),borderC:active?c:'rgba(255,255,255,.07)',bgC:active?hex2rgba(c,0.12):'transparent',textC:active?'#fff':'#aeb6c2',iconBg:active?hex2rgba(c,0.16):'rgba(255,255,255,.04)',iconBorder:active?hex2rgba(c,0.34):'rgba(255,255,255,.07)',subC:active?c:'#56606e',dotC:active?c:'transparent'}; });
+    const navItems=baseNav.map(n=>{ n=({...n,shortLabel:({calendar:'Today',nucor:'Nucor',fe:'FE',ai:'AI',stocks:'Stocks',media:'Media',gym:'Gym'}[n.key])||(n.label||'').split(' ')[0]});  const active=s.view===n.key; const c=M[n.key]?M[n.key].color:'#38bdf8'; return {...n,go:()=>this.go(n.key),borderC:active?c:'rgba(255,255,255,.07)',bgC:active?hex2rgba(c,0.12):'transparent',textC:active?'#fff':'#aeb6c2',iconBg:active?hex2rgba(c,0.16):'rgba(255,255,255,.04)',iconBorder:active?hex2rgba(c,0.34):'rgba(255,255,255,.07)',subC:active?c:'#56606e',dotC:active?c:'transparent'}; });
     const manageStations=baseNav.filter(n=>n.key!=='calendar').map(n=>{ const c=(M[n.key]&&M[n.key].color)||'#38bdf8'; return {key:n.key,label:n.label,icon:n.icon,iconBg:hex2rgba(c,0.16),iconBorder:hex2rgba(c,0.34),remove:()=>this.deleteStation(n.key)}; });
     const removedStations=(this._removed||[]).map(k=>({key:k,label:(M[k]&&M[k].label)||k,restore:()=>this.restoreStation(k)}));
     const hasRemoved=removedStations.length>0;
@@ -3088,7 +3131,7 @@ class Component extends DCLogic {
       steelSrcChip, nucorNewsSrcChip, chartsSrcChip, stockNewsSrcChip, aiNewsSrcChip,
       thesisPoints:thesisPointsArr, noThesisPoints, thesisPointDraft:s.thesisPointDraft||'',
       setThesisPointDraft:e=>this.setThesisPointDraft(e), addThesisPoint:()=>this.addThesisPoint(), onThesisPointKey:e=>this.onThesisPointKey(e),
-      navItems, goCreate:()=>this.go('create'), manageStations,
+      navItems, openSearchM:()=>{ try{ window.TrydonBridge.openSearch(); }catch(e){} }, goCreate:()=>this.go('create'), manageStations,
       navCollapsed:s.navCollapsed,
       navCol:s.navCollapsed?'74px':'236px',
       navPad:s.navCollapsed?'18px 10px':'18px 14px',
