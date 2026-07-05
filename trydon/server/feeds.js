@@ -250,7 +250,7 @@ export function aiNewsRanked() {
     const txt = await completeText([{
       role: 'user',
       content: `You curate an AI-news feed for one person: a steel-industry worker learning AI agents, building side projects with Claude/Copilot, and investing. From the list below pick the 5 items that matter MOST to him (prefer: agent tooling, frontier-lab releases, practical building, big industry shifts; avoid academic minutiae). Rewrite each headline under 11 words, punchy.\nReply ONLY JSON: {"picks":[{"i":<index>,"head":"<rewritten>","why":"<4-6 words>"}]}\n\n${listing}`,
-    }], { maxTokens: 600 });
+    }], { maxTokens: 600, fast: true });
     const m = txt.match(/\{[\s\S]*\}/);
     const picks = JSON.parse(m ? m[0] : txt).picks || [];
     const items = picks.map(p => {

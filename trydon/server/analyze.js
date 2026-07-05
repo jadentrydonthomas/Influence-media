@@ -48,7 +48,7 @@ Reply ONLY JSON, no markdown:
  "suggest":[{"side":"bull"|"bear","text":"<new trackable point, under 15 words>","why":"<from which headline, under 8 words>"}]}
 ${points.length ? '' : 'Use an empty pivots array.'}${thesesTxt ? '' : ' Use an empty suggest array.'}`;
 
-  const txt = await completeText([{ role: 'user', content: prompt }], { maxTokens: 700 });
+  const txt = await completeText([{ role: 'user', content: prompt }], { maxTokens: 700, fast: true });
   const m = txt.match(/\{[\s\S]*\}/);
   const parsed = JSON.parse(m ? m[0] : txt);
   const validIds = new Set(points.map(p => p.id));
