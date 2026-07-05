@@ -206,6 +206,16 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
 
+  // ---------- phone mode: start with the icon rail so content gets the width ----------
+  if (window.innerWidth < 760) {
+    const collapseNav = () => {
+      const app = window.__trydon;
+      if (!app) { setTimeout(collapseNav, 300); return; }
+      if (!app.state.navCollapsed) app.setState({ navCollapsed: true });
+    };
+    setTimeout(collapseNav, 600);
+  }
+
   // ---------- global search (⌘K / Ctrl+K) ----------
   let overlay = null;
   function buildIndex() {

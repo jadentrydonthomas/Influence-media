@@ -7,6 +7,44 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TRYDON">
+<style id="trydon-mobile">
+/* Phone mode: reflow the deck for small screens. Desktop is untouched —
+   every rule lives behind this media query. Inline styles lose to
+   !important here. Selectors carry both serializations of inline style
+   ("font-size:34px" in source, "font-size: 34px" after React renders). */
+@media (max-width: 760px) {
+  /* every multi-column grid becomes one column… */
+  [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  /* …stat tiles stay two-up… */
+  [style*="repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; }
+  /* …7-day strips scroll sideways like an agenda… */
+  [style*="repeat(7"] { grid-template-columns: repeat(7, minmax(132px, 1fr)) !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  /* …except the month overview (only it has dozens of direct children) */
+  [style*="repeat(7"]:has(> :nth-child(20)) { grid-template-columns: repeat(7, 1fr) !important; overflow-x: visible !important; }
+  /* breathing room + clearance for the Ask Trydon button */
+  main { padding: 12px 10px 110px !important; }
+  /* iOS zooms the page when a focused field is under 16px */
+  input, textarea, select { font-size: 16px !important; }
+  /* Ask Trydon becomes a full-screen sheet */
+  aside { inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; border-radius: 0 !important; }
+  /* hero banner: taller box, smaller display type, full-width subtitle */
+  [style*="height:166px"], [style*="height: 166px"] { height: 205px !important; }
+  h1[style*="font-size:34px"], h1[style*="font-size: 34px"] { font-size: 22px !important; }
+  [style*="font-size:30px"], [style*="font-size: 30px"] { font-size: 20px !important; }
+  [style*="max-width:60%"], [style*="max-width: 60%"] { max-width: 100% !important; }
+  /* media image slots shrink to strips */
+  [style*="height:118px"], [style*="height: 118px"] { height: 84px !important; }
+  /* big timers / counters step down so they don't clip */
+  [style*="font-size:54px"], [style*="font-size: 54px"] { font-size: 38px !important; }
+  [style*="font-size:52px"], [style*="font-size: 52px"] { font-size: 38px !important; }
+  [style*="font-size:44px"], [style*="font-size: 44px"] { font-size: 34px !important; }
+  [style*="font-size:28px"], [style*="font-size: 28px"] { font-size: 22px !important; }
+}
+</style>
 <script src="trydon-bridge.js"></script>
 <script src="dc-runtime.js"></script>
 </head>
