@@ -11,6 +11,30 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TRYDON">
+<style id="trydon-boot">
+  html, body { margin: 0; background: #0a0c11; }
+  #trydon-splash {
+    position: fixed; inset: 0; z-index: 99999;
+    background: radial-gradient(1100px 640px at 68% -12%, #0e1a26 0%, #0a0c11 60%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px; transition: opacity .45s ease; font-family: 'Sora', system-ui, sans-serif;
+  }
+  #trydon-splash.gone { opacity: 0; pointer-events: none; }
+  #trydon-splash .mark {
+    width: 78px; height: 78px; border-radius: 20px; border: 2.5px solid #38bdf8;
+    display: flex; align-items: center; justify-content: center;
+    font-family: ui-monospace, monospace; font-size: 40px; font-weight: 800; color: #38bdf8;
+    box-shadow: 0 0 40px rgba(56,189,248,.35), inset 0 0 22px rgba(56,189,248,.12);
+    animation: trydonPulse 2.4s ease-in-out infinite;
+  }
+  #trydon-splash .word { font-size: 15px; font-weight: 800; letter-spacing: 7px; color: #e8ecf2; padding-left: 7px; }
+  #trydon-splash .tag { font-family: ui-monospace, monospace; font-size: 9.5px; letter-spacing: 3px; color: #56606e; margin-top: -12px; }
+  #trydon-splash .bar { width: 132px; height: 3px; border-radius: 2px; background: rgba(56,189,248,.15); overflow: hidden; }
+  #trydon-splash .bar i { display: block; height: 100%; width: 40%; border-radius: 2px; background: linear-gradient(90deg, transparent, #38bdf8, transparent); animation: trydonSlide 1.15s ease-in-out infinite; }
+  @keyframes trydonPulse { 0%,100% { box-shadow: 0 0 34px rgba(56,189,248,.28), inset 0 0 18px rgba(56,189,248,.1); } 50% { box-shadow: 0 0 52px rgba(56,189,248,.5), inset 0 0 26px rgba(56,189,248,.18); } }
+  @keyframes trydonSlide { 0% { transform: translateX(-140%); } 100% { transform: translateX(340%); } }
+  @media (prefers-reduced-motion: reduce) { #trydon-splash .mark, #trydon-splash .bar i { animation: none; } }
+</style>
 <style id="trydon-mobile">
 /* ---- MOBILE TAB BAR (always in DOM; shown only on phones) ---- */
 #mobtabs {
@@ -92,6 +116,12 @@
 <script src="dc-runtime.js"></script>
 </head>
 <body>
+<div id="trydon-splash">
+  <div class="mark">T</div>
+  <div class="word">TRYDON</div>
+  <div class="tag">COMMAND DECK</div>
+  <div class="bar"><i></i></div>
+</div>
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2041,7 +2071,7 @@
       </div>
       <div style="flex:1;">
         <div style="font-family:'Sora'; font-size:14px; font-weight:700;">Trydon Terminal</div>
-        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#5cd6a0; display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;--pc:rgba(52,211,153,.5);animation:pulsedot 2s infinite;"></span>LIVE · runs your whole deck</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#5cd6a0; display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;--pc:rgba(52,211,153,.5);animation:pulsedot 2s infinite;"></span>{{ agentLabel }}</div>
       </div>
       <button onclick="{{ toggleAi }}" title="Close" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:15px;" style-hover="background:rgba(255,255,255,.09); color:#eef1f6;">✕</button>
     </div>
@@ -3136,6 +3166,7 @@ class Component extends DCLogic {
     const symChips=s.watchlist.map(w=>{ const active=w.sym===s.selSym; const up=w.chgN>=0;
       return {sym:w.sym,chg:(up?'+':'')+w.chgN.toFixed(1)+'%',pick:()=>this.selectStock(w.sym),symC:active?'#eef1f6':'#9aa4b2',chgC:up?'#34d399':'#f87171',bg:active?'rgba(52,211,153,.12)':'rgba(255,255,255,.02)',border:active?'rgba(52,211,153,.5)':'rgba(255,255,255,.08)'}; });
     return {
+      agentLabel: ({calendar:'CHIEF OF STAFF · your whole deck', nucor:'STEEL DESK · quoting + market', stocks:'RESEARCH DESK · reduce blind spots', fe:'STUDY COACH · FE Civil', ai:'AI LAB LEAD · stay current, build', gym:'TRAINER · strength + nutrition', media:'CONTENT PRODUCER · grow the brand'}[s.view]) || 'LIVE · runs your whole deck',
       tb, nbTopicChips, nbNotes, nbEmpty, nbTopicDraft:s.nbTopicDraft||'', nbTextDraft:s.nbTextDraft||'',
       setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
       aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),
