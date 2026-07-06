@@ -209,6 +209,54 @@
   // phone navigation is the fixed bottom tab bar (#mobtabs); the side rail
   // is hidden by CSS, so no collapse hack is needed here.
 
+  // ---------- branded splash: fade out once the app has mounted ----------
+  // This bridge runs in <head>, before <body> parses, so the splash element
+  // may not exist yet — poll for it, then poll for the app, then fade.
+  (function () {
+    let killed = false;
+    const done = () => {
+      if (killed) return; killed = true;
+      const splash = document.getElementById('trydon-splash');
+      if (!splash) return;
+      splash.classList.add('gone');
+      setTimeout(() => splash.remove(), 520);
+    };
+    const wait = () => { if (window.__trydon) return done(); setTimeout(wait, 120); };
+    wait();
+    setTimeout(done, 8000); // safety: never trap the user behind the splash
+  })();
+
+  // ---------- device presence: make the laptop↔phone link visible ----------
+  const DEV_KEY = 'trydon.device';
+  function deviceInfo() {
+    let d;
+    try { d = JSON.parse(localStorage.getItem(DEV_KEY)); } catch (e) {}
+    if (!d || !d.id) {
+      const ua = navigator.userAgent;
+      const kind = /iPhone|Android.*Mobile|Mobile/.test(ua) ? 'Phone'
+        : /iPad|Tablet/.test(ua) ? 'Tablet'
+        : /Macintosh|Windows|Linux/.test(ua) ? 'Laptop' : 'Device';
+      d = { id: Math.random().toString(36).slice(2, 10), kind, label: kind };
+      try { localStorage.setItem(DEV_KEY, JSON.stringify(d)); } catch (e) {}
+    }
+    return d;
+  }
+  state.device = deviceInfo();
+  state.devices = [];
+  async function heartbeat() {
+    try {
+      const r = await api('/api/presence', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: state.device.id, kind: state.device.kind, label: state.device.label }),
+      });
+      state.devices = r.devices || [];
+      window.dispatchEvent(new CustomEvent('trydon-devices', { detail: state.devices }));
+    } catch (e) { /* offline: skip */ }
+  }
+  heartbeat();
+  setInterval(heartbeat, 30_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) heartbeat(); });
+
   // ---------- global search (⌘K / Ctrl+K) ----------
   let overlay = null;
   function buildIndex() {
@@ -276,8 +324,19 @@
       location.reload();
     }));
     const sync = document.createElement('span');
-    sync.textContent = state.online ? '● synced' : '○ offline';
-    sync.style.cssText = 'margin-left:auto;color:' + (state.online ? '#34d399' : '#f5a524') + ";font-size:10px;font-family:'JetBrains Mono',monospace;align-self:center;";
+    const paint = () => {
+      const n = (state.devices || []).length;
+      const kinds = [...new Set((state.devices || []).map(d => d.kind))];
+      sync.textContent = state.online
+        ? (n > 1 ? `● ${n} devices live · ${kinds.join(' + ')}` : '● synced · this device')
+        : '○ offline';
+      sync.style.color = state.online ? '#34d399' : '#f5a524';
+    };
+    sync.style.cssText = "margin-left:auto;font-size:10px;font-family:'JetBrains Mono',monospace;align-self:center;";
+    paint();
+    const onDev = () => paint();
+    window.addEventListener('trydon-devices', onDev);
+    overlay._cleanup = () => window.removeEventListener('trydon-devices', onDev);
     foot.appendChild(sync);
 
     const render = (q) => {
@@ -311,7 +370,7 @@
     document.body.appendChild(overlay);
     input.focus();
   }
-  function closeSearch() { if (overlay) { overlay.remove(); overlay = null; } }
+  function closeSearch() { if (overlay) { if (overlay._cleanup) overlay._cleanup(); overlay.remove(); overlay = null; } }
 
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', (e) => {

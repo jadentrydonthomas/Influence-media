@@ -18,6 +18,9 @@ const PUBLIC = join(__dirname, 'public');
 const PORT = Number(process.env.PORT || 8321);
 const ASSET_MIME = JSON.parse(readFileSync(join(PUBLIC, 'asset-mime.json'), 'utf-8'));
 
+// live device presence (in-memory; laptop↔phone "who's connected" indicator)
+const presence = new Map();
+
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
@@ -75,6 +78,16 @@ const server = createServer(async (req, res) => {
     // ---------- API (session required) ----------
     if (path.startsWith('/api/')) {
       if (!authed) return send(res, 401, { error: 'unauthorized' });
+
+      if (path === '/api/presence' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        if (body.id) presence.set(body.id, { id: body.id, kind: body.kind || 'Device', label: body.label || 'Device', at: Date.now() });
+        // prune anything not seen in 90s
+        const cutoff = Date.now() - 90_000;
+        for (const [k, v] of presence) if (v.at < cutoff) presence.delete(k);
+        const devices = [...presence.values()].map(d => ({ kind: d.kind, label: d.label, secsAgo: Math.round((Date.now() - d.at) / 1000) }));
+        return send(res, 200, { devices });
+      }
 
       if (path === '/api/state' && req.method === 'GET') {
         const since = Number(url.searchParams.get('since') || 0);
