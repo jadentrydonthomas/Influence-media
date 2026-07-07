@@ -3,7 +3,8 @@
 // route returns changed keys for the client to apply + persist. Receipts
 // ("✓ Added: …") surface in chat as chips.
 import { uid, todayIso, to12 } from './util.js';
-import { saveSource, listSources, addQuote, listQuotes, wipeState } from './db.js';
+import { saveSource, listSources, addQuote, listQuotes, wipeState, addMemory, forgetMemory } from './db.js';
+import { completeText } from './anthropic.js';
 import * as feeds from './feeds.js';
 
 const STATIONS = ['calendar', 'nucor', 'fe', 'ai', 'stocks', 'media', 'gym'];
@@ -42,6 +43,9 @@ export const TOOL_DEFS = [
   { name: 'save_quote', description: 'Save the current Quote Helper calculation into the pricing history (call when the user acts on a quote).', input_schema: S({ tons: num('tons'), margin: num('margin %'), note: str('job/customer note') }, ['tons', 'margin']) },
   { name: 'get_quote_history', description: 'Read saved quote history (steel price at quote time vs outcomes).', input_schema: S({}) },
   { name: 'configure_source', description: 'Persist a data-source choice the user just made for a panel (steel|nucor_news|jobs|charts|stock_news|ai_news|media). Never re-ask once configured.', input_schema: S({ panel: str('panel id'), provider: str('chosen provider'), config: { type: 'object', description: 'provider settings: urls, column mapping, channel handles…' } }, ['panel', 'provider']) },
+  { name: 'remember', description: "Save a durable fact about the owner into TRYDON's long-term memory (preferences, goals, relationships, commitments, recurring patterns). Use when he says 'remember that…' or reveals something worth keeping for months. Not for one-off tasks.", input_schema: S({ topic: str('work|fe|stocks|media|ai|gym|identity|life'), fact: str('the fact, one plain sentence') }, ['fact']) },
+  { name: 'forget_memory', description: 'Delete one long-term memory by id. Only call AFTER the user explicitly confirmed which memory to forget in this conversation.', input_schema: S({ id: num('memory id') }, ['id']) },
+  { name: 'draft_script', description: 'Write a short-form video script for one of his Influence Media content ideas: hook, timed beats (voiceover + b-roll), CTA, and CapCut edit notes. Finds the idea in the bank by fuzzy match, or scripts the given text directly. IMPORTANT: paste the COMPLETE script verbatim in your reply — chat is the only place he can read it.', input_schema: S({ idea: str('idea text or a fragment to match in the idea bank'), platform: str('tiktok|reels|shorts — default tiktok'), length: str('target length, e.g. 30s or 60s — default 30s') }, ['idea']) },
   { name: 'reset_deck', description: 'Factory-reset the ENTIRE deck: wipes all data (a backup is kept 30 days) and reboots with clean starting state. DESTRUCTIVE — only call after the user explicitly confirmed the wipe in this conversation.', input_schema: S({}) },
 ];
 
@@ -311,6 +315,35 @@ export function createExecutor(snapshot) {
         }
         receipts.push(`✓ Source connected: ${a.panel} → ${a.provider}`);
         return 'configured';
+      }
+      case 'remember': {
+        const id = addMemory(a.topic || 'life', a.fact, 'chat');
+        receipts.push(`🧠 Remembered: ${String(a.fact).slice(0, 48)}`);
+        return 'saved to long-term memory (id ' + id + ')';
+      }
+      case 'forget_memory': {
+        const ok = forgetMemory(a.id);
+        if (ok) receipts.push('🧠 Forgot memory #' + a.id);
+        return ok ? 'forgotten' : 'ERROR: no memory with that id';
+      }
+      case 'draft_script': {
+        const hit = fuzzy(st.mediaIdeas || [], 'text', a.idea);
+        const ideaText = hit ? hit.text : a.idea;
+        const script = await completeText([{
+          role: 'user',
+          content: `Write a ${a.length || '30s'} ${(a.platform || 'TikTok')} script for the Influence Media brand — a Nucor steel-mill worker documenting steel-mill life, learning AI in public, investing on a shift-worker wage, and the FE-exam grind (he has also collaborated with Dr. Spine). Idea: "${ideaText}".
+
+Format exactly:
+HOOK (0-3s): the opening line + what's on screen.
+BEATS: 3-5 timed beats, each one line of voiceover + [b-roll/on-screen note].
+CTA: one line.
+CAPCUT NOTES: 3 quick edit notes (cuts, captions, sound).
+Voice: first-person, plain, confident, zero hype-words. No hashtags.`,
+        }], { maxTokens: 700 });
+        st.mediaScripts = { ...(st.mediaScripts || {}), [hit ? hit.id : uid('scr')]: { idea: ideaText, script, at: Date.now() } };
+        touch('mediaScripts');
+        receipts.push(`🎬 Script drafted: ${String(ideaText).slice(0, 42)}`);
+        return script;
       }
       case 'reset_deck': {
         wipeState();

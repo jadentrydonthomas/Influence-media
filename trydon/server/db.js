@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS assistant_tasks (
   last_run INTEGER,
   enabled INTEGER NOT NULL DEFAULT 1
 );
+CREATE TABLE IF NOT EXISTS memory (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  topic TEXT NOT NULL,
+  fact TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'seed',
+  created_at INTEGER NOT NULL
+);
 `);
 
 // ---- state keys ----
@@ -178,4 +185,28 @@ export function addQuote({ hrc, tons, margin, quote, note = '' }) {
 }
 export function listQuotes(limit = 100) {
   return db.prepare('SELECT * FROM quote_history ORDER BY id DESC LIMIT ?').all(limit);
+}
+
+// ---- long-term memory (the second-brain substrate) ----
+export function addMemory(topic, fact, source = 'chat') {
+  const f = String(fact || '').trim().slice(0, 300);
+  if (!f) return null;
+  // dedupe: skip if an existing fact is a near-match
+  const norm = f.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const rows = db.prepare('SELECT id, fact FROM memory').all();
+  for (const r of rows) {
+    const rn = String(r.fact).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (rn === norm || (norm.length > 24 && (rn.includes(norm) || norm.includes(rn)))) return r.id;
+  }
+  const res = db.prepare('INSERT INTO memory (topic, fact, source, created_at) VALUES (?, ?, ?, ?)')
+    .run(String(topic || 'life').toLowerCase().slice(0, 24), f, source, Date.now());
+  return Number(res.lastInsertRowid);
+}
+export function listMemory(topic = null, limit = 200) {
+  return topic
+    ? db.prepare('SELECT * FROM memory WHERE topic = ? ORDER BY id DESC LIMIT ?').all(topic, limit)
+    : db.prepare('SELECT * FROM memory ORDER BY id DESC LIMIT ?').all(limit);
+}
+export function forgetMemory(id) {
+  return db.prepare('DELETE FROM memory WHERE id = ?').run(Number(id)).changes > 0;
 }
