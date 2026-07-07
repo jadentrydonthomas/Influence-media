@@ -14,6 +14,8 @@ import * as feeds from './server/feeds.js';
 import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning, thesisWatch, ensureCalendarPlan } from './server/cron.js';
 import { listAgents, runAgent, setAgent, addCustomAgent } from './server/agents.js';
 import { brokerStatus, positions as brokerPositions } from './server/broker.js';
+import { seedMemory, memoryDistill } from './server/memory.js';
+import { listMemory, addMemory, forgetMemory } from './server/db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -206,6 +208,25 @@ const server = createServer(async (req, res) => {
         return send(res, 200, { ok: true, ran: job });
       }
 
+      // ---------- long-term memory (the second brain) ----------
+      if (path === '/api/memory' && req.method === 'GET') {
+        return send(res, 200, { memories: listMemory(url.searchParams.get('topic') || null, 200) });
+      }
+      if (path === '/api/memory' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        if (body.action === 'add' && body.fact) {
+          const id = addMemory(body.topic || 'life', body.fact, 'manual');
+          return send(res, 200, { ok: true, id, memories: listMemory(null, 200) });
+        }
+        if (body.action === 'forget' && body.id) {
+          return send(res, 200, { ok: forgetMemory(body.id), memories: listMemory(null, 200) });
+        }
+        if (body.action === 'distill') {
+          return send(res, 200, { ok: true, ...(await memoryDistill()) });
+        }
+        return send(res, 400, { error: 'action must be add|forget|distill' });
+      }
+
       // ---------- broker (Webull-ready adapter) ----------
       if (path === '/api/broker/status' && req.method === 'GET') {
         return send(res, 200, brokerStatus());
@@ -294,6 +315,9 @@ if (!getMeta('groundzero_v3')) {
   }
   setMeta('groundzero_v3', '1');
 }
+
+// Long-term memory: seed the founding profile once per database.
+seedMemory();
 
 // One-time: introduce the Agent Deck in chat the first boot after it ships.
 if (!getMeta('agentdeck_intro')) {

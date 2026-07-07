@@ -10,6 +10,7 @@ import { askClaude } from './anthropic.js';
 import { TOOL_DEFS, createExecutor } from './tools.js';
 import { todayIso, nowParts, TZ } from './util.js';
 import * as feeds from './feeds.js';
+import { relevantMemory } from './memory.js';
 import { postAssistantMessage, thesisWatch, morningBriefing, weeklyReview, learningDigest, eveningNudge } from './cron.js';
 
 // create-only belt — the safe subset an autonomous agent may use
@@ -56,7 +57,7 @@ export const AGENT_DEFS = [
   },
   {
     id: 'producer', station: 'media', icon: '🎬', name: 'Producer',
-    mission: "Mon/Wed/Fri: pitch exactly TWO fresh content ideas for the Influence Media brand — his lanes are steel-mill life, learning AI in public, investing on a shift-worker wage, and the FE exam grind (short-form: TikTok/Reels/Shorts, edited in CapCut). Each idea: a hook line + the beat structure in one sentence. Add them to the idea bank; skip anything close to an existing idea.",
+    mission: "Mon/Wed/Fri: pitch exactly TWO fresh content ideas for the Influence Media brand — his lanes are steel-mill life, learning AI in public, investing on a shift-worker wage, the FE exam grind, and collab formats (he has worked with Dr. Spine) — short-form: TikTok/Reels/Shorts, edited in CapCut. Each idea: a hook line + the beat structure in one sentence. Add them to the idea bank; skip anything close to an existing idea.",
     cadence: 'mwf', llm: true,
   },
 ];
@@ -106,6 +107,10 @@ async function buildContext(agent) {
   const now = nowParts();
   const lines = [`Now: ${now.weekday} ${now.iso} ${now.hm} (${TZ()}).`];
   const st = agent.station;
+  try {
+    const mem = relevantMemory(st);
+    if (mem) lines.push('What you know about him:\n' + mem);
+  } catch { /* memory is best-effort */ }
   try {
     if (st === 'nucor') {
       const s = await feeds.steel().catch(() => null);

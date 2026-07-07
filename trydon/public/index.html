@@ -2330,6 +2330,25 @@ button, a, nav { -webkit-touch-callout: none; }
         <button onclick="{{ createAgentNow }}" style="width:100%; padding:11px; border-radius:11px; border:none; cursor:pointer; background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#0d0618; font-family:'Sora'; font-weight:700; font-size:12.5px; letter-spacing:.3px;">{{ createAgentLabel }}</button>
         <div style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#56606e; margin-top:8px; text-align:center;">agents can only CREATE — notes, tasks, ideas, questions · they never delete or edit</div>
       </div>
+
+      <!-- the second brain: long-term memory -->
+      <sc-if value="{{ hasMem }}" hint-placeholder-val="{{ false }}">
+      <div style="border-radius:14px; border:1px solid rgba(56,189,248,.18); background:rgba(10,16,24,.5); padding:13px 14px; margin-top:4px;">
+        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:4px;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1.5px; color:#7dd3fc;">🧠 WHAT TRYDON KNOWS ABOUT YOU</span>
+        </div>
+        <div style="font-size:10.5px; color:#56606e; margin-bottom:10px;">Long-term memory. It grows on its own — a nightly pass distills durable facts from your chats, and you can say “remember that …” or “forget #id” to Trydon anytime. Every agent and every answer draws on this.</div>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <sc-for list="{{ memView }}" as="mm" hint-placeholder-count="6">
+            <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:9px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.05);">
+              <span style="flex:none; font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.8px; padding:2px 6px; border-radius:5px; margin-top:1px; background:{{ mm.tBg }}; color:{{ mm.tC }}; border:1px solid {{ mm.tBd }};">{{ mm.topic }}</span>
+              <span style="flex:1; min-width:0; font-size:11.5px; color:#aeb6c2; line-height:1.45;">{{ mm.fact }}</span>
+              <span style="flex:none; font-family:'JetBrains Mono',monospace; font-size:7.5px; color:#4a5462; margin-top:2px;">{{ mm.srcLabel }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
     </div>
   </aside>
   </sc-if>
@@ -2354,7 +2373,7 @@ class Component extends DCLogic {
     };
     this.state={
       view:'calendar', navCollapsed:false, calTab:'today', weekOffset:0, monthCursor:{y:Y,m:Mo}, selectedDay:null,
-      agentsOpen:false, agentsList:[], agentsBusy:'', newAgentName:'', newAgentMission:'', newAgentStation:'stocks', newAgentCadence:'daily',
+      agentsOpen:false, agentsList:[], agentsBusy:'', newAgentName:'', newAgentMission:'', newAgentStation:'stocks', newAgentCadence:'daily', memList:[],
       clock:this.fmtClock(new Date()), input:'', thinking:false,
       messages:[{id:'m0',role:'assistant',text:"Hey — I'm Trydon, your life command deck. Tell me what to schedule and I'll place it.\n\nTry: \"FE study tomorrow 9am for 2 hours\" or \"add Mom's birthday June 28\".",chips:[]}],
       events:(()=>{ const evs=[]; const mon=new Date(today); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
@@ -2886,7 +2905,8 @@ class Component extends DCLogic {
   // ---------- nav / chat ----------
   go(v){ this.setState({view:v, navCollapsed:true}); if(v==='stocks') setTimeout(()=>this._drawChart(),60); if(v!==this.state.view) setTimeout(()=>this._sizeHero&&this._sizeHero(),80); }
   toggleAgents(){ const open=!this.state.agentsOpen; this.setState({agentsOpen:open}); if(open) this.fetchAgents(); }
-  async fetchAgents(){ try{ const r=await fetch('/api/agents',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.agents) this.setState({agentsList:p.agents}); } }catch(e){} }
+  async fetchAgents(){ try{ const r=await fetch('/api/agents',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.agents) this.setState({agentsList:p.agents}); } }catch(e){}
+    try{ const m=await fetch('/api/memory',{credentials:'same-origin'}); if(m.ok){ const q=await m.json(); if(q.memories) this.setState({memList:q.memories}); } }catch(e){} }
   async runAgentNow(id){ if(this.state.agentsBusy) return; this.setState({agentsBusy:id});
     try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'run',id})});
       if(r.ok){ const p=await r.json(); this.setState({agentsList:p.agents||this.state.agentsList, aiUnseen:!this.state.aiOpen}); try{ window.TrydonBridge&&window.TrydonBridge.pull&&window.TrydonBridge.pull(); }catch(e){} } }catch(e){}
@@ -3512,6 +3532,10 @@ class Component extends DCLogic {
       newAgentCadences:[['daily','DAILY'],['weekdays','WEEKDAYS'],['mwf','MON·WED·FRI'],['mon-thu','MON+THU']].map(([k,l])=>{ const on=s.newAgentCadence===k;
         return {label:l, pick:()=>this.setState({newAgentCadence:k}), bg:on?'rgba(167,139,250,.16)':'rgba(255,255,255,.02)', c:on?'#c4b5fd':'#7d8694', bd:on?'rgba(167,139,250,.5)':'rgba(255,255,255,.1)'}; }),
       createAgentNow:()=>this.createAgentNow(), createAgentLabel:s.agentsBusy==='__new'?'… HIRING':'⚡ DEPLOY AGENT',
+      hasMem:(s.memList||[]).length>0,
+      memView:(s.memList||[]).slice(0,40).map(m=>{ const tc={work:'#f97316',fe:'#f5a524',stocks:'#34d399',media:'#fb5fa3',ai:'#a78bfa',gym:'#fbbf24',identity:'#38bdf8',life:'#9aa4b2'}[m.topic]||'#9aa4b2';
+        return {fact:m.fact, topic:(m.topic||'life').toUpperCase(), tC:tc, tBg:hex2rgba(tc,0.1), tBd:hex2rgba(tc,0.3),
+          srcLabel:String(m.source||'').startsWith('seed')?'FOUNDING':String(m.source||'').startsWith('distilled')?'LEARNED':String(m.source||'').startsWith('chat')?'FROM CHAT':'MANUAL'}; }),
       tb, nbTopicChips, nbNotes, nbEmpty, nbTopicDraft:s.nbTopicDraft||'', nbTextDraft:s.nbTextDraft||'',
       setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
       aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),

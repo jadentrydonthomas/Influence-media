@@ -5,6 +5,7 @@ import { TOOL_DEFS, createExecutor, sourcesSummary } from './tools.js';
 import { nowParts, TZ } from './util.js';
 import * as feeds from './feeds.js';
 import { brokerStatus } from './broker.js';
+import { memoryBrief } from './memory.js';
 
 const MAX_TOOL_ROUNDS = 8;
 
@@ -52,6 +53,13 @@ async function marketBrief(snapshot) {
           line += ` · 1M ${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%, sitting at ${pos}% of its 1M range`;
         }
       } catch { /* trend gap is fine */ }
+      try {
+        const e = await feeds.earnings(sym);
+        if (e?.earningsDate) {
+          const days = Math.round((Date.parse(e.earningsDate) - Date.now()) / 86400_000);
+          if (days >= 0 && days <= 21) line += ` · ⚠ EARNINGS ${e.earningsDate} (${days}d — binary event)`;
+        }
+      } catch { /* no earnings data is fine */ }
       if (line.length > sym.length + 1) lines.push(line);
     }
     for (const h of (st.holdings || [])) {
@@ -72,8 +80,9 @@ function systemPrompt(snapshot, station, brief = '') {
   const now = nowParts();
   const custom = (snapshot.custom || []).map(c => `${c.key} ("${c.label}")`).join(', ');
   const persona = SPECIALISTS[station];
+  const mem = memoryBrief();
   return `You are Trydon, the assistant inside a personal life command deck used by one person: a Nucor steel-mill worker (production shift 7:00–15:00) who quotes steel jobs, studies AI/agents, invests (Webull), creates content (YouTube/TikTok/Instagram), trains at the gym, and is prepping for the FE Civil exam.
-${persona ? `\nRight now he is at the ${station.toUpperCase()} station, so answer as his ${persona}\nYou can still use tools that touch any station when he asks.\n` : ''}${brief ? `\nLive tape right now:\n${brief}\n` : ''}
+${persona ? `\nRight now he is at the ${station.toUpperCase()} station, so answer as his ${persona}\nYou can still use tools that touch any station when he asks.\n` : ''}${brief ? `\nLive tape right now:\n${brief}\n` : ''}${mem ? `\nLong-term memory — what you know about him (use it to tailor answers; never recite the list; call the remember tool when he shares something durable):\n${mem}\n` : ''}
 Today is ${now.weekday} ${now.iso}, ${now.hm} (${TZ()}).
 
 Stations: calendar, nucor, fe, ai, stocks, media, gym${custom ? ', plus custom: ' + custom : ''}.

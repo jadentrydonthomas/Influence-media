@@ -116,6 +116,16 @@ export function quote(sym) {
   });
 }
 
+// Next earnings date — binary-event awareness for the Research Desk.
+export function earnings(sym) {
+  return cached(`e:${sym}`, 12 * 60 * MIN, async () => {
+    const j = await getJson(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(sym)}?modules=calendarEvents`);
+    const e = j.quoteSummary?.result?.[0]?.calendarEvents?.earnings;
+    const ts = e?.earningsDate?.[0]?.raw;
+    return { sym, earningsDate: ts ? new Date(ts * 1000).toISOString().slice(0, 10) : null };
+  });
+}
+
 export function candles(sym, range) {
   return cached(`c:${sym}:${range}`, range === '1D' ? 2 * MIN : 30 * MIN, async () => {
     const c = await yahooChart(sym, range);

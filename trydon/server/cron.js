@@ -7,6 +7,8 @@ import { completeText, hasKey } from './anthropic.js';
 import * as feeds from './feeds.js';
 import { todayIso, nowParts, to12, TZ, uid } from './util.js';
 import { analyzeNews } from './analyze.js';
+import { notify } from './outbound.js';
+import { memoryDistill } from './memory.js';
 
 const BRIEFING_TIME = () => process.env.TRYDON_BRIEFING_TIME || '06:30';
 
@@ -85,6 +87,7 @@ export async function morningBriefing() {
     text = 'Morning. Here is today:\n' + facts;
   }
   postAssistantMessage(text);
+  notify(text, 'briefing'); // mirrors to TRYDON_WEBHOOK_URL when configured
 
   // refresh the AI Signal + steel panels for wake-up
   const upd = {};
@@ -110,10 +113,10 @@ export async function steelAlertCheck() {
   const tons = getKey('quoteTons', 40), margin = getKey('quoteMargin', 18);
   const oldQ = Math.round(lastAlerted * tons * (1 + margin / 100));
   const newQ = Math.round(s.hrc * tons * (1 + margin / 100));
-  postAssistantMessage(
-    `⚠ Steel moved ${movePct > 0 ? 'up' : 'down'} ${Math.abs(movePct).toFixed(1)}%: HRC $${lastAlerted} → $${s.hrc}/ton.\n` +
-    `At your quote inputs (${tons}t, ${margin}% margin) a quote shifts $${oldQ.toLocaleString()} → $${newQ.toLocaleString()}. Re-check anything you're about to send.`
-  );
+  const alertText = `⚠ Steel moved ${movePct > 0 ? 'up' : 'down'} ${Math.abs(movePct).toFixed(1)}%: HRC $${lastAlerted} → $${s.hrc}/ton.\n` +
+    `At your quote inputs (${tons}t, ${margin}% margin) a quote shifts $${oldQ.toLocaleString()} → $${newQ.toLocaleString()}. Re-check anything you're about to send.`;
+  postAssistantMessage(alertText);
+  notify(alertText, 'steel-alert');
   setMeta('steel_alert_price', s.hrc);
   const saved = getKey('steel', {});
   putKeys({ steel: { ...saved, hrc: s.hrc, hrcChg: s.hrcChg, series: s.series?.length ? s.series : saved.series } });
@@ -157,6 +160,7 @@ export async function weeklyReview() {
     text = 'Weekly review:\n' + facts;
   }
   postAssistantMessage(text);
+  notify(text, 'weekly-review');
 }
 
 // ---------- suggested learning (shared by digest cron + on-demand button) ----------
@@ -384,6 +388,12 @@ export function startCron() {
       if (hm >= '20:30' && hm < '22:00' && !ranToday('nudge')) {
         markRan('nudge');
         eveningNudge();
+      }
+      // nightly memory distill — the deck learns from the day's conversation
+      if (hm >= '22:15' && !ranToday('memdistill')) {
+        markRan('memdistill');
+        const { added } = await memoryDistill();
+        if (added) console.log('[memory] distilled', added, 'new fact(s)');
       }
       // autonomous desk agents (LLM ones — built-ins are scheduled above)
       const { agentTick } = await import('./agents.js');
