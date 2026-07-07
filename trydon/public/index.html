@@ -112,6 +112,77 @@
   [style*="font-size:28px"], [style*="font-size: 28px"] { font-size: 22px !important; }
 }
 </style>
+<style id="trydon-fx">
+/* ============ FX LAYER — living deck: ambient motion + interactivity ============
+   Overlay sits above static content (z 34) and below every drawer/bar
+   (mobtabs 40, chat 55+, agents 59+, fab 60, search 99990). */
+#trydon-fx { position: fixed; inset: 0; z-index: 34; pointer-events: none; overflow: hidden; }
+#trydon-fx .au { position: absolute; border-radius: 50%; mix-blend-mode: screen; will-change: transform; }
+#trydon-fx .a1 { width: 58vmax; height: 58vmax; top: -26vmax; left: -16vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(56,189,248,.14), rgba(56,189,248,.05) 42%, transparent 68%);
+  animation: auD1 44s ease-in-out infinite alternate; }
+#trydon-fx .a2 { width: 62vmax; height: 62vmax; bottom: -30vmax; right: -18vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(167,139,250,.12), rgba(167,139,250,.04) 42%, transparent 68%);
+  animation: auD2 57s ease-in-out infinite alternate; }
+#trydon-fx .a3 { width: 44vmax; height: 44vmax; top: 26%; left: 42%;
+  background: radial-gradient(circle at 50% 50%, rgba(52,211,153,.09), rgba(52,211,153,.03) 40%, transparent 66%);
+  animation: auD3 69s ease-in-out infinite alternate; }
+@keyframes auD1 { to { transform: translate(10vmax, 8vmax) scale(1.16); } }
+@keyframes auD2 { to { transform: translate(-9vmax, -7vmax) scale(1.12); } }
+@keyframes auD3 { to { transform: translate(-7vmax, 6vmax) scale(1.22); } }
+#fxc { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* display-glass texture: faint scanlines drifting upward */
+#trydon-fx .scan { position: absolute; inset: -12px 0; opacity: .5;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, transparent 1px 4px);
+  animation: scanDrift 11s linear infinite; }
+@keyframes scanDrift { to { transform: translateY(-12px); } }
+
+/* HUD frame: corner brackets around the whole deck */
+#trydon-fx .hud { position: absolute; width: 17px; height: 17px; opacity: .5; }
+#trydon-fx .h1 { top: 7px; left: 7px; border-left: 2px solid #38bdf8; border-top: 2px solid #38bdf8; }
+#trydon-fx .h2 { top: 7px; right: 7px; border-right: 2px solid #38bdf8; border-top: 2px solid #38bdf8; }
+#trydon-fx .h3 { bottom: 7px; left: 7px; border-left: 2px solid #38bdf8; border-bottom: 2px solid #38bdf8; }
+#trydon-fx .h4 { bottom: 7px; right: 7px; border-right: 2px solid #38bdf8; border-bottom: 2px solid #38bdf8; }
+@media (max-width: 760px) { #trydon-fx .h3, #trydon-fx .h4 { display: none; } } /* clear of the tab bar */
+
+/* selection + scrollbars — the chrome feels custom, not stock */
+::selection { background: rgba(56,189,248,.35); color: #fff; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(125,211,252,.16); border-radius: 8px; border: 2.5px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background-color: rgba(125,211,252,.34); }
+* { scrollbar-width: thin; scrollbar-color: rgba(125,211,252,.2) transparent; }
+
+/* cards wake up: entrance cascade on view switch + hover lift-and-glow.
+   Inline animations/transitions on an element win over these (by design). */
+@keyframes fxIn { from { opacity: 0; transform: translateY(13px) scale(.988); } to { opacity: 1; transform: none; } }
+section [style*="border-radius: 20px"], section [style*="border-radius:20px"],
+section [style*="border-radius: 16px"], section [style*="border-radius:16px"],
+section [style*="border-radius: 14px"], section [style*="border-radius:14px"] {
+  animation: fxIn .5s cubic-bezier(.2,.75,.25,1) backwards;
+  transition: transform .28s cubic-bezier(.2,.75,.3,1), box-shadow .28s ease;
+}
+section [style*="border-radius: 16px"]:nth-child(even), section [style*="border-radius: 14px"]:nth-child(even) { animation-delay: .07s; }
+section [style*="border-radius: 16px"]:nth-child(3n), section [style*="border-radius: 14px"]:nth-child(3n) { animation-delay: .13s; }
+@media (hover: hover) {
+  section div[style*="border-radius: 20px"]:hover, section div[style*="border-radius: 16px"]:hover, section div[style*="border-radius: 14px"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 44px -18px rgba(56,189,248,.28), 0 8px 28px -16px rgba(0,0,0,.85);
+  }
+  button:hover { filter: brightness(1.14); }
+  a:hover { filter: brightness(1.12); }
+}
+
+/* mobile tab bar: tactile press */
+#mobtabs .mt-ic { transition: transform .16s cubic-bezier(.2,.8,.3,1); }
+#mobtabs .mobtab:active .mt-ic { transform: scale(.82); }
+
+@media (prefers-reduced-motion: reduce) {
+  #trydon-fx { display: none; }
+  section [style*="border-radius"] { animation: none !important; }
+}
+</style>
 <script src="trydon-bridge.js"></script>
 <script src="dc-runtime.js"></script>
 </head>
@@ -122,6 +193,60 @@
   <div class="tag">COMMAND DECK</div>
   <div class="bar"><i></i></div>
 </div>
+<div id="trydon-fx" aria-hidden="true">
+  <div class="au a1"></div><div class="au a2"></div><div class="au a3"></div>
+  <div class="scan"></div>
+  <canvas id="fxc"></canvas>
+  <div class="hud h1"></div><div class="hud h2"></div><div class="hud h3"></div><div class="hud h4"></div>
+</div>
+<script>
+/* Ambient particle field + data streaks. Overlay canvas, ~30fps, pauses when
+   the tab is hidden, halves density on phones, honors reduced-motion. */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var c = document.getElementById('fxc'); if (!c) return;
+  var x = c.getContext('2d'), W, H;
+  var DPR = Math.min(2, window.devicePixelRatio || 1);
+  function size() { W = innerWidth; H = innerHeight; c.width = W * DPR; c.height = H * DPR; x.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  size(); addEventListener('resize', size);
+  var HUES = ['125,211,252', '167,139,250', '52,211,153'];
+  var N = matchMedia('(max-width:760px)').matches ? 14 : 30;
+  function sp(atBottom) {
+    var z = 0.3 + Math.random() * 0.7;
+    return { x: Math.random() * W, y: atBottom ? H + 8 : Math.random() * H, z: z, r: 0.6 + z * 1.35,
+      vy: -(2.2 + z * 7.5) / 60, vx: (Math.random() - 0.5) * 0.008, tw: Math.random() * 6.28,
+      hue: HUES[Math.floor(Math.random() * 3)] };
+  }
+  var P = []; for (var i = 0; i < N; i++) P.push(sp(false));
+  var S = [];
+  var last = 0, acc = 0;
+  function frame(t) {
+    requestAnimationFrame(frame);
+    if (document.hidden) { last = t; return; }
+    var dt = Math.min(50, t - last); last = t; acc += dt;
+    if (acc < 32) return; var step = acc; acc = 0;
+    x.clearRect(0, 0, W, H);
+    for (var i = 0; i < P.length; i++) {
+      var p = P[i];
+      p.y += p.vy * step; p.x += p.vx * step; p.tw += 0.0011 * step;
+      if (p.y < -8) { P[i] = sp(true); continue; }
+      var a = (0.05 + 0.13 * p.z) * (0.72 + 0.28 * Math.sin(p.tw));
+      x.fillStyle = 'rgba(' + p.hue + ',' + a.toFixed(3) + ')';
+      x.beginPath(); x.arc(p.x, p.y, p.r, 0, 6.29); x.fill();
+    }
+    if (Math.random() < 0.005 && S.length < 2) S.push({ x: Math.random() * W, y: -60, len: 46 + Math.random() * 90, v: (7 + Math.random() * 8) / 16 });
+    for (var j = S.length - 1; j >= 0; j--) {
+      var s = S[j]; s.y += s.v * step;
+      var g = x.createLinearGradient(s.x, s.y - s.len, s.x, s.y);
+      g.addColorStop(0, 'rgba(125,211,252,0)'); g.addColorStop(1, 'rgba(125,211,252,0.17)');
+      x.strokeStyle = g; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(s.x, s.y - s.len); x.lineTo(s.x, s.y); x.stroke();
+      if (s.y - s.len > H) S.splice(j, 1);
+    }
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
