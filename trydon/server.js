@@ -13,6 +13,7 @@ import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
 import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning, thesisWatch, ensureCalendarPlan } from './server/cron.js';
 import { listAgents, runAgent, setAgent, addCustomAgent } from './server/agents.js';
+import { brokerStatus, positions as brokerPositions } from './server/broker.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -203,6 +204,14 @@ const server = createServer(async (req, res) => {
         if (!jobs[job]) return send(res, 400, { error: 'job must be one of ' + Object.keys(jobs).join('|') });
         await jobs[job]();
         return send(res, 200, { ok: true, ran: job });
+      }
+
+      // ---------- broker (Webull-ready adapter) ----------
+      if (path === '/api/broker/status' && req.method === 'GET') {
+        return send(res, 200, brokerStatus());
+      }
+      if (path === '/api/broker/positions' && req.method === 'GET') {
+        return send(res, 200, await brokerPositions());
       }
 
       // ---------- autonomous desk agents ----------
