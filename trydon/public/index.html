@@ -1558,7 +1558,7 @@
                   <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="4"><button onclick="{{ r.go }}" style="font-family:'JetBrains Mono',monospace; font-size:10px; padding:5px 9px; border-radius:7px; border:1px solid {{ r.border }}; background:{{ r.bg }}; color:{{ r.c }}; cursor:pointer;">{{ r.label }}</button></sc-for>
                 </div>
               </div>
-              <div style="position:relative; height:170px; margin:10px 0 4px;"><canvas ref="{{ chartRef }}" style="width:100%; height:100%; display:block;"></canvas></div>
+              <div style="position:relative; height:200px; margin:10px 0 4px;"><canvas ref="{{ chartRef }}" style="width:100%; height:100%; display:block; cursor:crosshair; touch-action:pan-y;"></canvas></div>
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:12px 0 16px;">
                 <sc-for list="{{ sel.stats }}" as="st" hint-placeholder-count="4"><div style="padding:9px 11px; border-radius:9px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);"><div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694; letter-spacing:.5px;">{{ st.k }}</div><div style="font-size:14px; font-weight:700; margin-top:3px; color:#e8ecf2;">{{ st.v }}</div></div></sc-for>
               </div>
@@ -2338,7 +2338,17 @@ class Component extends DCLogic {
     this._series={}; this._genSeries();
     this._heroT=0; this._embers=[]; this._aiNodes=null; this._codeCols=null; this._dust=[];
     this.heroRef=(el)=>{ this._heroCanvas=el; };
-    this.chartRef=(el)=>{ this._canvas=el; if(el) this._drawChart(); };
+    this.chartRef=(el)=>{ this._canvas=el; if(!el) return;
+      if(!el._xh){ el._xh=true;
+        const mv=(cx,cy)=>{ const r=el.getBoundingClientRect(); this._cross={x:cx-r.left,y:cy-r.top};
+          if(!this._xhRaf) this._xhRaf=requestAnimationFrame(()=>{ this._xhRaf=0; this._drawChart(); }); };
+        el.addEventListener('mousemove',e=>mv(e.clientX,e.clientY));
+        el.addEventListener('mouseleave',()=>{ this._cross=null; this._drawChart(); });
+        el.addEventListener('touchstart',e=>{ const t=e.touches[0]; if(t) mv(t.clientX,t.clientY); },{passive:true});
+        el.addEventListener('touchmove',e=>{ const t=e.touches[0]; if(t) mv(t.clientX,t.clientY); },{passive:true});
+        el.addEventListener('touchend',()=>{ this._cross=null; this._drawChart(); });
+      }
+      this._drawChart(); };
     this.scrollRef=(el)=>{ this._scrollEl=el; };
   }
 
@@ -2403,7 +2413,10 @@ class Component extends DCLogic {
     const tickCandles=async()=>{ try{
       const sym=this.state.selSym, range=this.state.range;
       const c=await J('/api/feeds/candles?sym='+encodeURIComponent(sym)+'&range='+range);
-      if(c.series&&c.series.length>2){ this._series[sym]=this._series[sym]||{}; this._series[sym][range]=c.series; this._liveChart=true; this._drawChart(); this.forceUpdate(); }
+      if(c.series&&c.series.length>2){ this._series[sym]=this._series[sym]||{}; this._series[sym][range]=c.series;
+        if(c.candles&&c.candles.length>2){ this._candles=this._candles||{}; this._candles[sym]=this._candles[sym]||{}; this._candles[sym][range]=c.candles; }
+        if(c.prevClose!=null){ this._prevClose=this._prevClose||{}; this._prevClose[sym]=c.prevClose; }
+        this._liveChart=true; this._drawChart(); this.forceUpdate(); }
     }catch(e){} };
     const tickSparks=async()=>{ try{
       await Promise.all(this.state.watchlist.map(async w=>{ try{
@@ -2506,15 +2519,90 @@ class Component extends DCLogic {
   _spark(sym){ const a=this._series[sym]['1W']; const min=Math.min(...a),max=Math.max(...a),rng=(max-min)||1; return a.map((v,i)=>`${(i/(a.length-1)*46+1).toFixed(1)},${(18-((v-min)/rng)*16).toFixed(1)}`).join(' '); }
   _drawChart(){
     const c=this._canvas; if(!c) return;
-    const series=(this._series[this.state.selSym]||{})[this.state.range]||[]; if(!series.length) return;
-    const up=(this.state.watchlist.find(w=>w.sym===this.state.selSym)||{}).chgN>=0;
+    const sym=this.state.selSym, range=this.state.range;
+    const candles=((this._candles||{})[sym]||{})[range]||null;
+    const series=(this._series[sym]||{})[range]||[];
+    if((!candles||candles.length<3)&&series.length<2) return;
     const dpr=window.devicePixelRatio||1; const W=c.clientWidth,H=c.clientHeight; c.width=W*dpr; c.height=H*dpr; const ctx=c.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
-    const min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1; const pad=8; const x=i=>pad+i/(series.length-1)*(W-pad*2); const y=v=>H-pad-((v-min)/rng)*(H-pad*2);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; for(let g=0;g<4;g++){ const gy=pad+g/3*(H-pad*2); ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(W-pad,gy); ctx.stroke(); }
-    const col=up?'#34d399':'#f87171'; const grad=ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0,up?'rgba(52,211,153,0.28)':'rgba(248,113,113,0.28)'); grad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.lineTo(x(series.length-1),H-pad); ctx.lineTo(x(0),H-pad); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
-    const ex=x(series.length-1),ey=y(series[series.length-1]); ctx.beginPath(); ctx.arc(ex,ey,3.5,0,7); ctx.fillStyle=col; ctx.fill(); ctx.beginPath(); ctx.arc(ex,ey,7,0,7); ctx.strokeStyle=up?'rgba(52,211,153,0.4)':'rgba(248,113,113,0.4)'; ctx.lineWidth=1.5; ctx.stroke();
+    const up=(this.state.watchlist.find(w=>w.sym===sym)||{}).chgN>=0;
+    const fp=v=>v>=1000?v.toFixed(0):v>=10?v.toFixed(2):v.toFixed(3);
+    const MONO='9px "JetBrains Mono",monospace';
+
+    // ---- fallback: smooth line (no OHLC yet — cache warming or offline seed)
+    if(!candles||candles.length<3){
+      const min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1; const pad=8; const x=i=>pad+i/(series.length-1)*(W-pad*2); const y=v=>H-pad-((v-min)/rng)*(H-pad*2);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; for(let g=0;g<4;g++){ const gy=pad+g/3*(H-pad*2); ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(W-pad,gy); ctx.stroke(); }
+      const col=up?'#34d399':'#f87171'; const grad=ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0,up?'rgba(52,211,153,0.28)':'rgba(248,113,113,0.28)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.lineTo(x(series.length-1),H-pad); ctx.lineTo(x(0),H-pad); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+      const ex=x(series.length-1),ey=y(series[series.length-1]); ctx.beginPath(); ctx.arc(ex,ey,3.5,0,7); ctx.fillStyle=col; ctx.fill(); ctx.beginPath(); ctx.arc(ex,ey,7,0,7); ctx.strokeStyle=up?'rgba(52,211,153,0.4)':'rgba(248,113,113,0.4)'; ctx.lineWidth=1.5; ctx.stroke();
+      return;
+    }
+
+    // ---- candlestick + volume ----
+    const padL=6, padR=48, padT=8, padB=3, volGap=5;
+    const volH=Math.max(20,H*0.15), priceH=H-padT-padB-volH-volGap;
+    const n=candles.length;
+    const lo=Math.min(...candles.map(k=>k.l)), hi=Math.max(...candles.map(k=>k.h)); const rng=(hi-lo)||1;
+    const plotW=W-padL-padR;
+    const x=i=>padL+(i+0.5)/n*plotW;
+    const y=v=>padT+(1-(v-lo)/rng)*priceH;
+    const bw=Math.max(1.6,Math.min(9,plotW/n*0.6));
+
+    // grid + right price axis
+    ctx.font=MONO; ctx.textAlign='left'; ctx.textBaseline='middle';
+    for(let g=0;g<4;g++){ const v=lo+rng*(1-g/3); const gy=y(v);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(W-padR,gy); ctx.stroke();
+      ctx.fillStyle='rgba(154,164,178,0.72)'; ctx.fillText(fp(v), W-padR+7, gy); }
+
+    // volume strip
+    const vmax=Math.max(...candles.map(k=>k.v))||1; const vy0=H-padB;
+    candles.forEach((k,i)=>{ const cup=k.c>=k.o; ctx.fillStyle=cup?'rgba(52,211,153,0.22)':'rgba(248,113,113,0.2)'; const vh=Math.max(1,(k.v/vmax)*volH); ctx.fillRect(x(i)-bw/2, vy0-vh, bw, vh); });
+
+    // candles (wick + body)
+    candles.forEach((k,i)=>{ const cup=k.c>=k.o; const col=cup?'#34d399':'#f87171'; const xi=x(i);
+      ctx.strokeStyle=col; ctx.lineWidth=Math.min(1.4,bw*0.4); ctx.beginPath(); ctx.moveTo(xi,y(k.h)); ctx.lineTo(xi,y(k.l)); ctx.stroke();
+      const oy=y(k.o), cy2=y(k.c); const top=Math.min(oy,cy2), bh=Math.max(1,Math.abs(oy-cy2));
+      ctx.fillStyle=cup?'rgba(52,211,153,0.92)':'rgba(248,113,113,0.92)'; ctx.fillRect(xi-bw/2, top, bw, bh); });
+
+    // prior-close reference (1D only — the day's fight line)
+    const pc=(this._prevClose||{})[sym];
+    if(range==='1D'&&pc>=lo&&pc<=hi){ const py=y(pc); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(154,164,178,0.45)'; ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(W-padR,py); ctx.stroke(); ctx.setLineDash([]); }
+
+    // last price line + tag
+    const last=candles[n-1].c; const ly=y(last); const lcol=up?'#34d399':'#f87171';
+    ctx.setLineDash([4,3]); ctx.strokeStyle=up?'rgba(52,211,153,0.45)':'rgba(248,113,113,0.45)'; ctx.beginPath(); ctx.moveTo(padL,ly); ctx.lineTo(W-padR,ly); ctx.stroke(); ctx.setLineDash([]);
+    const cr=this._cross;
+    const tag=fp(last); const tw=ctx.measureText(tag).width+10;
+    const ty=Math.max(padT+7,Math.min(H-padB-7,ly));
+    // yield the axis slot to the crosshair tag when the two would collide
+    if(!(cr&&cr.y>=padT&&cr.y<=padT+priceH&&Math.abs(cr.y-ty)<17)){
+      ctx.fillStyle=up?'rgba(52,211,153,0.16)':'rgba(248,113,113,0.16)'; ctx.strokeStyle=up?'rgba(52,211,153,0.5)':'rgba(248,113,113,0.5)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(W-padR+3,ty-8,tw,16,4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=lcol; ctx.fillText(tag, W-padR+8, ty);
+    }
+
+    // crosshair + OHLC readout
+    if(cr&&cr.x>=padL&&cr.x<=W-padR&&cr.y>=padT&&cr.y<=H-padB){
+      const i=Math.max(0,Math.min(n-1,Math.floor((cr.x-padL)/plotW*n)));
+      const k=candles[i]; const xi=x(i);
+      ctx.strokeStyle='rgba(125,211,252,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(xi,padT); ctx.lineTo(xi,H-padB); ctx.stroke();
+      if(cr.y<=padT+priceH){ ctx.beginPath(); ctx.moveTo(padL,cr.y); ctx.lineTo(W-padR,cr.y); ctx.stroke();
+        const hv=fp(lo+(1-(cr.y-padT)/priceH)*rng); const hw=ctx.measureText(hv).width+10;
+        ctx.setLineDash([]); ctx.fillStyle='rgba(12,17,26,0.95)'; ctx.strokeStyle='rgba(125,211,252,0.4)';
+        ctx.beginPath(); ctx.roundRect(W-padR+3,cr.y-8,hw,16,4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#7dd3fc'; ctx.fillText(hv, W-padR+8, cr.y); }
+      ctx.setLineDash([]);
+      const d=new Date(k.t*1000);
+      const when=(range==='1D')?d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):(range==='1W')?d.toLocaleDateString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const fv=v=>v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':String(v);
+      const line=`${when}  O ${fp(k.o)}  H ${fp(k.h)}  L ${fp(k.l)}  C ${fp(k.c)}  VOL ${fv(k.v)}`;
+      const lw=ctx.measureText(line).width+14;
+      ctx.fillStyle='rgba(10,14,20,0.92)'; ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(padL+2,padT-2,lw,17,5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=k.c>=k.o?'#5cd6a0':'#fca5a5'; ctx.textAlign='left'; ctx.fillText(line, padL+9, padT+7);
+    }
   }
 
   // ---------- HERO MOTION ----------

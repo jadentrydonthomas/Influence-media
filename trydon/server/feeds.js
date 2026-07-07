@@ -75,7 +75,20 @@ async function yahooChart(sym, range = '1M') {
   const res = j.chart?.result?.[0];
   if (!res) throw new Error('no chart data for ' + sym);
   const meta = res.meta || {};
-  const closes = (res.indicators?.quote?.[0]?.close || []).filter(v => v != null);
+  const q = res.indicators?.quote?.[0] || {};
+  const ts = res.timestamp || [];
+  const closes = (q.close || []).filter(v => v != null);
+  // full OHLCV bars (skip null rows — Yahoo pads gaps) for candlestick charts
+  const candles = [];
+  for (let k = 0; k < ts.length; k++) {
+    const cl = q.close?.[k];
+    if (cl == null) continue;
+    candles.push({
+      t: ts[k],
+      o: q.open?.[k] ?? cl, h: q.high?.[k] ?? cl, l: q.low?.[k] ?? cl, c: cl,
+      v: q.volume?.[k] || 0,
+    });
+  }
   return {
     sym,
     price: meta.regularMarketPrice,
@@ -86,6 +99,7 @@ async function yahooChart(sym, range = '1M') {
     lo52: meta.fiftyTwoWeekLow,
     volume: meta.regularMarketVolume,
     series: closes,
+    candles,
   };
 }
 
@@ -105,7 +119,7 @@ export function quote(sym) {
 export function candles(sym, range) {
   return cached(`c:${sym}:${range}`, range === '1D' ? 2 * MIN : 30 * MIN, async () => {
     const c = await yahooChart(sym, range);
-    return { sym, range, series: c.series, price: c.price };
+    return { sym, range, series: c.series, candles: c.candles, price: c.price, prevClose: c.prevClose };
   });
 }
 
