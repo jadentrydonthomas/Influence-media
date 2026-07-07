@@ -12,6 +12,7 @@ import { analyzeNews } from './server/analyze.js';
 import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
 import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning, thesisWatch, ensureCalendarPlan } from './server/cron.js';
+import { listAgents, runAgent, setAgent, addCustomAgent } from './server/agents.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -202,6 +203,32 @@ const server = createServer(async (req, res) => {
         if (!jobs[job]) return send(res, 400, { error: 'job must be one of ' + Object.keys(jobs).join('|') });
         await jobs[job]();
         return send(res, 200, { ok: true, ran: job });
+      }
+
+      // ---------- autonomous desk agents ----------
+      if (path === '/api/agents' && req.method === 'GET') {
+        return send(res, 200, { agents: listAgents() });
+      }
+      if (path === '/api/agents' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        try {
+          if (body.action === 'run' && body.id) {
+            const out = await runAgent(body.id);
+            return send(res, 200, { ok: true, ...out, agents: listAgents() });
+          }
+          if (body.action === 'toggle' && body.id) {
+            setAgent(body.id, { enabled: !!body.enabled });
+            return send(res, 200, { ok: true, agents: listAgents() });
+          }
+          if (body.action === 'create' && body.name && body.mission) {
+            const id = addCustomAgent(body);
+            return send(res, 200, { ok: true, id, agents: listAgents() });
+          }
+          return send(res, 400, { error: 'action must be run|toggle|create' });
+        } catch (e) {
+          if (e.code === 'NO_KEY') return send(res, 503, { error: 'no_key' });
+          return send(res, 500, { error: String(e.message || e).slice(0, 200) });
+        }
       }
 
       if (path.startsWith('/api/file/') && req.method === 'PUT') {

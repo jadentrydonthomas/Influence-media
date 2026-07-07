@@ -556,6 +556,10 @@
         <span style="width:30px; height:30px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.04); font-size:18px; font-weight:300;">+</span>
         <span style="font-size:13px; font-weight:500; display:{{ navTextDisp }};">New workstation</span>
       </button>
+      <button onclick="{{ toggleAgents }}" title="Agent Deck — autonomous desk workers" style="display:flex; align-items:center; gap:12px; padding:{{ navItemPad }}; justify-content:{{ navItemJustify }}; border-radius:11px; border:1px solid rgba(167,139,250,.2); background:rgba(167,139,250,.05); color:#9aa4b2; cursor:pointer; text-align:left; margin-top:2px;" style-hover="background:rgba(167,139,250,.11); color:#eef1f6;">
+        <span style="width:30px; height:30px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(167,139,250,.13); font-size:14px;">⚙</span>
+        <span style="min-width:0; display:{{ navTextDisp }};"><span style="display:block; font-size:13px; font-weight:600; color:#c4b5fd;">Agent Deck</span><span style="display:block; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; color:#8b83b8; margin-top:2px;">{{ agentDeckSub }}</span></span>
+      </button>
     </div>
 
     <div style="position:relative; margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.07); display:{{ navFooterDisp }}; align-items:center; gap:10px;">
@@ -2073,6 +2077,7 @@
         <div style="font-family:'Sora'; font-size:14px; font-weight:700;">Trydon Terminal</div>
         <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#5cd6a0; display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;--pc:rgba(52,211,153,.5);animation:pulsedot 2s infinite;"></span>{{ agentLabel }}</div>
       </div>
+      <button onclick="{{ toggleAgents }}" title="Agent Deck — your autonomous desk workers" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(167,139,250,.3); background:rgba(167,139,250,.08); color:#c4b5fd; cursor:pointer; font-size:14px;" style-hover="background:rgba(167,139,250,.16);">⚙</button>
       <button onclick="{{ toggleAi }}" title="Close" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:15px;" style-hover="background:rgba(255,255,255,.09); color:#eef1f6;">✕</button>
     </div>
     <div ref="{{ scrollRef }}" style="flex:1; min-height:0; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:13px;">
@@ -2114,6 +2119,65 @@
   </aside>
   </sc-if>
 
+  <!-- ============ AGENT DECK (autonomous desk workers) ============ -->
+  <sc-if value="{{ agentsOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; inset:0; z-index:59; background:rgba(3,4,7,.65); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); animation:fadein .25s ease;" onclick="{{ toggleAgents }}"></div>
+  <aside style="position:fixed; top:0; right:0; z-index:62; width:min(560px,96vw); height:100vh; display:flex; flex-direction:column; min-height:0; background:linear-gradient(180deg,#0d0e17,#08090d); border-left:1px solid rgba(167,139,250,.22); box-shadow:-34px 0 90px -24px rgba(0,0,0,.8); animation:fadein .2s ease;">
+    <div style="flex:none; padding:16px 18px 13px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:11px;">
+      <div style="position:relative; width:34px; height:34px; border-radius:10px; background:radial-gradient(circle at 30% 30%,#a78bfa,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:16px;">⚙</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-family:'Sora'; font-size:14px; font-weight:700;">Agent Deck</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#8b83b8;">AUTONOMOUS DESK WORKERS · CREATE-ONLY · NOTES LAND IN CHAT</div>
+      </div>
+      <button onclick="{{ toggleAgents }}" title="Close" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:15px;" style-hover="background:rgba(255,255,255,.09); color:#eef1f6;">✕</button>
+    </div>
+    <div style="flex:1; min-height:0; overflow-y:auto; padding:14px 16px 20px; display:flex; flex-direction:column; gap:10px;">
+      <sc-if value="{{ noAgents }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:22px; text-align:center; color:#56606e; font-size:12.5px;">Waking the crew…</div>
+      </sc-if>
+      <sc-for list="{{ agentsView }}" as="ag" hint-placeholder-count="7">
+        <div style="border-radius:14px; border:1px solid {{ ag.border }}; background:{{ ag.bg }}; padding:12px 13px;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <span style="width:32px; height:32px; flex:none; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); filter:{{ ag.iconFilter }};">{{ ag.icon }}</span>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+                <span style="font-size:13.5px; font-weight:700; color:{{ ag.nameC }};">{{ ag.name }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.8px; padding:2px 7px; border-radius:6px; background:{{ ag.stBg }}; color:{{ ag.stC }}; border:1px solid {{ ag.stBd }};">{{ ag.stationLabel }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.8px; padding:2px 7px; border-radius:6px; background:rgba(255,255,255,.04); color:#7d8694; border:1px solid rgba(255,255,255,.09);">{{ ag.cadenceLabel }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.8px; padding:2px 7px; border-radius:6px; background:{{ ag.kindBg }}; color:{{ ag.kindC }}; border:1px solid {{ ag.kindBd }};">{{ ag.kindLabel }}</span>
+              </div>
+              <div style="font-size:11.5px; color:#8a93a2; line-height:1.45; margin-top:4px;">{{ ag.mission }}</div>
+            </div>
+          </div>
+          <sc-if value="{{ ag.hasNote }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:9px; padding:8px 10px; border-radius:9px; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.06); font-size:11px; color:#aeb6c2; font-style:italic; line-height:1.45;">“{{ ag.lastNote }}”</div>
+          </sc-if>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; flex:1;">{{ ag.lastRunLabel }}</span>
+            <button onclick="{{ ag.toggle }}" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1px; padding:6px 12px; border-radius:8px; cursor:pointer; background:{{ ag.togBg }}; color:{{ ag.togC }}; border:1px solid {{ ag.togBd }};">{{ ag.togLabel }}</button>
+            <button onclick="{{ ag.runNow }}" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1px; padding:6px 12px; border-radius:8px; cursor:pointer; background:rgba(167,139,250,.12); color:#c4b5fd; border:1px solid rgba(167,139,250,.35);" style-hover="background:rgba(167,139,250,.2);">{{ ag.runLabel }}</button>
+          </div>
+        </div>
+      </sc-for>
+
+      <!-- hire a new agent -->
+      <div style="border-radius:14px; border:1px dashed rgba(167,139,250,.3); background:rgba(167,139,250,.04); padding:13px 14px; margin-top:4px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1.5px; color:#c4b5fd; margin-bottom:10px;">+ HIRE A NEW AGENT</div>
+        <input value="{{ newAgentName }}" onchange="{{ setNewAgentName }}" placeholder="Name — e.g. Deal Scout" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12.5px; outline:none; margin-bottom:8px;" />
+        <textarea value="{{ newAgentMission }}" onchange="{{ setNewAgentMission }}" placeholder="Mission — what should it watch and what may it create? e.g. “Each morning scan my watchlist for anything down 5%+ on the week and add ONE task to review it.”" rows="3" style="width:100%; box-sizing:border-box; resize:vertical; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; line-height:1.45; outline:none; margin-bottom:8px;"></textarea>
+        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;">
+          <sc-for list="{{ newAgentStations }}" as="stc" hint-placeholder-count="7"><button onclick="{{ stc.pick }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.8px; padding:5px 10px; border-radius:7px; cursor:pointer; background:{{ stc.bg }}; color:{{ stc.c }}; border:1px solid {{ stc.bd }};">{{ stc.label }}</button></sc-for>
+        </div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:11px;">
+          <sc-for list="{{ newAgentCadences }}" as="cdc" hint-placeholder-count="4"><button onclick="{{ cdc.pick }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.8px; padding:5px 10px; border-radius:7px; cursor:pointer; background:{{ cdc.bg }}; color:{{ cdc.c }}; border:1px solid {{ cdc.bd }};">{{ cdc.label }}</button></sc-for>
+        </div>
+        <button onclick="{{ createAgentNow }}" style="width:100%; padding:11px; border-radius:11px; border:none; cursor:pointer; background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#0d0618; font-family:'Sora'; font-weight:700; font-size:12.5px; letter-spacing:.3px;">{{ createAgentLabel }}</button>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#56606e; margin-top:8px; text-align:center;">agents can only CREATE — notes, tasks, ideas, questions · they never delete or edit</div>
+      </div>
+    </div>
+  </aside>
+  </sc-if>
+
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script="">
@@ -2134,6 +2198,7 @@ class Component extends DCLogic {
     };
     this.state={
       view:'calendar', navCollapsed:false, calTab:'today', weekOffset:0, monthCursor:{y:Y,m:Mo}, selectedDay:null,
+      agentsOpen:false, agentsList:[], agentsBusy:'', newAgentName:'', newAgentMission:'', newAgentStation:'stocks', newAgentCadence:'daily',
       clock:this.fmtClock(new Date()), input:'', thinking:false,
       messages:[{id:'m0',role:'assistant',text:"Hey — I'm Trydon, your life command deck. Tell me what to schedule and I'll place it.\n\nTry: \"FE study tomorrow 9am for 2 hours\" or \"add Mom's birthday June 28\".",chips:[]}],
       events:(()=>{ const evs=[]; const mon=new Date(today); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
@@ -2323,6 +2388,7 @@ class Component extends DCLogic {
     else { this.connectSource("Drop your "+k+" channel/profile URL here and I'll link this card to it (and pull live stats where the platform allows).",'media'); } }
   _startLive(){
     const J=async u=>{ const r=await fetch(u,{credentials:'same-origin'}); if(!r.ok) throw new Error(u); return r.json(); };
+    this.fetchAgents();
     const tickQuotes=async()=>{ try{
       const syms=[...new Set([...this.state.watchlist.map(w=>w.sym),...this.state.holdings.map(h=>h.sym)])];
       const out={}; await Promise.all(syms.map(async sym=>{ try{ const q=await J('/api/feeds/quote?sym='+encodeURIComponent(sym)); if(q&&q.price!=null) out[sym]=q; }catch(e){} }));
@@ -2575,6 +2641,20 @@ class Component extends DCLogic {
 
   // ---------- nav / chat ----------
   go(v){ this.setState({view:v, navCollapsed:true}); if(v==='stocks') setTimeout(()=>this._drawChart(),60); if(v!==this.state.view) setTimeout(()=>this._sizeHero&&this._sizeHero(),80); }
+  toggleAgents(){ const open=!this.state.agentsOpen; this.setState({agentsOpen:open}); if(open) this.fetchAgents(); }
+  async fetchAgents(){ try{ const r=await fetch('/api/agents',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.agents) this.setState({agentsList:p.agents}); } }catch(e){} }
+  async runAgentNow(id){ if(this.state.agentsBusy) return; this.setState({agentsBusy:id});
+    try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'run',id})});
+      if(r.ok){ const p=await r.json(); this.setState({agentsList:p.agents||this.state.agentsList, aiUnseen:!this.state.aiOpen}); try{ window.TrydonBridge&&window.TrydonBridge.pull&&window.TrydonBridge.pull(); }catch(e){} } }catch(e){}
+    this.setState({agentsBusy:''}); }
+  async toggleAgentEnabled(id,enabled){ this.setState({agentsList:this.state.agentsList.map(a=>a.id===id?{...a,enabled}:a)});
+    try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'toggle',id,enabled})});
+      if(r.ok){ const p=await r.json(); if(p.agents) this.setState({agentsList:p.agents}); } }catch(e){} }
+  async createAgentNow(){ const name=(this.state.newAgentName||'').trim(), mission=(this.state.newAgentMission||'').trim(); if(!name||!mission) return;
+    this.setState({agentsBusy:'__new'});
+    try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'create',name,mission,station:this.state.newAgentStation,cadence:this.state.newAgentCadence})});
+      if(r.ok){ const p=await r.json(); this.setState({agentsList:p.agents||this.state.agentsList,newAgentName:'',newAgentMission:''}); } }catch(e){}
+    this.setState({agentsBusy:''}); }
   toggleNav(){ this.setState(s=>({navCollapsed:!s.navCollapsed}), ()=>setTimeout(()=>this._sizeHero&&this._sizeHero(),260)); }
   toggleAi(){ this.setState(s=>({aiOpen:!s.aiOpen, aiUnseen:s.aiOpen?s.aiUnseen:false}), ()=>{ if(this.state.aiOpen){ this._scrollDown(); const ta=document.querySelector('aside textarea'); if(ta) setTimeout(()=>ta.focus(),120); } }); }
   openAi(){ if(!this.state.aiOpen) this.setState({aiOpen:true,aiUnseen:false},()=>{ this._scrollDown(); const ta=document.querySelector('aside textarea'); if(ta) setTimeout(()=>ta.focus(),120); }); }
@@ -3167,6 +3247,27 @@ class Component extends DCLogic {
       return {sym:w.sym,chg:(up?'+':'')+w.chgN.toFixed(1)+'%',pick:()=>this.selectStock(w.sym),symC:active?'#eef1f6':'#9aa4b2',chgC:up?'#34d399':'#f87171',bg:active?'rgba(52,211,153,.12)':'rgba(255,255,255,.02)',border:active?'rgba(52,211,153,.5)':'rgba(255,255,255,.08)'}; });
     return {
       agentLabel: ({calendar:'CHIEF OF STAFF · your whole deck', nucor:'STEEL DESK · quoting + market', stocks:'RESEARCH DESK · reduce blind spots', fe:'STUDY COACH · FE Civil', ai:'AI LAB LEAD · stay current, build', gym:'TRAINER · strength + nutrition', media:'CONTENT PRODUCER · grow the brand'}[s.view]) || 'LIVE · runs your whole deck',
+      agentsOpen:s.agentsOpen, toggleAgents:()=>this.toggleAgents(),
+      agentDeckSub:(s.agentsList&&s.agentsList.length)?(s.agentsList.filter(a=>a.enabled).length+' ON DUTY'):'AUTONOMOUS CREW',
+      noAgents:(s.agentsList||[]).length===0,
+      agentsView:(s.agentsList||[]).map(a=>{ const M=this.stationMeta[a.station]||{}; const c=M.color||'#a78bfa'; const en=a.enabled!==false;
+        return {icon:a.icon||'◆', name:a.name, nameC:en?'#eef1f6':'#7d8694', iconFilter:en?'none':'grayscale(1) opacity(.5)',
+          border:en?hex2rgba(c,0.26):'rgba(255,255,255,.07)', bg:en?hex2rgba(c,0.05):'rgba(255,255,255,.015)',
+          stationLabel:(M.label||a.station||'').toUpperCase(), stBg:hex2rgba(c,0.12), stC:c, stBd:hex2rgba(c,0.35),
+          cadenceLabel:({'2h':'EVERY 2H','mwf':'MON·WED·FRI','mon-thu':'MON+THU','weekdays':'WEEKDAYS'}[a.cadence]||'DAILY'),
+          kindLabel:a.builtin?'⚡ ROUTINE':'🧠 REASONS', kindBg:a.builtin?'rgba(56,189,248,.08)':'rgba(167,139,250,.1)', kindC:a.builtin?'#7dd3fc':'#c4b5fd', kindBd:a.builtin?'rgba(56,189,248,.3)':'rgba(167,139,250,.32)',
+          mission:a.mission||'', hasNote:!!(a.lastNote&&String(a.lastNote).trim()), lastNote:a.lastNote||'',
+          lastRunLabel:a.lastRun?('LAST RUN '+new Date(Number(a.lastRun)).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).toUpperCase()):'NEVER RUN YET',
+          togLabel:en?'● ON':'○ OFF', togBg:en?'rgba(52,211,153,.1)':'rgba(255,255,255,.03)', togC:en?'#34d399':'#7d8694', togBd:en?'rgba(52,211,153,.35)':'rgba(255,255,255,.12)',
+          toggle:()=>this.toggleAgentEnabled(a.id,!en),
+          runLabel:s.agentsBusy===a.id?'… WORKING':'▸ RUN NOW', runNow:()=>this.runAgentNow(a.id)}; }),
+      newAgentName:s.newAgentName, setNewAgentName:e=>this.setState({newAgentName:e.target.value}),
+      newAgentMission:s.newAgentMission, setNewAgentMission:e=>this.setState({newAgentMission:e.target.value}),
+      newAgentStations:['calendar','nucor','fe','ai','stocks','media','gym'].map(k=>{ const M=this.stationMeta[k]||{}; const on=s.newAgentStation===k; const c=M.color||'#a78bfa';
+        return {label:(M.label||k).toUpperCase(), pick:()=>this.setState({newAgentStation:k}), bg:on?hex2rgba(c,0.16):'rgba(255,255,255,.02)', c:on?c:'#7d8694', bd:on?hex2rgba(c,0.5):'rgba(255,255,255,.1)'}; }),
+      newAgentCadences:[['daily','DAILY'],['weekdays','WEEKDAYS'],['mwf','MON·WED·FRI'],['mon-thu','MON+THU']].map(([k,l])=>{ const on=s.newAgentCadence===k;
+        return {label:l, pick:()=>this.setState({newAgentCadence:k}), bg:on?'rgba(167,139,250,.16)':'rgba(255,255,255,.02)', c:on?'#c4b5fd':'#7d8694', bd:on?'rgba(167,139,250,.5)':'rgba(255,255,255,.1)'}; }),
+      createAgentNow:()=>this.createAgentNow(), createAgentLabel:s.agentsBusy==='__new'?'… HIRING':'⚡ DEPLOY AGENT',
       tb, nbTopicChips, nbNotes, nbEmpty, nbTopicDraft:s.nbTopicDraft||'', nbTextDraft:s.nbTextDraft||'',
       setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
       aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),
