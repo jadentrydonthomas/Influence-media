@@ -4,6 +4,7 @@ import { askClaude, completeText } from './anthropic.js';
 import { TOOL_DEFS, createExecutor, sourcesSummary } from './tools.js';
 import { nowParts, TZ } from './util.js';
 import * as feeds from './feeds.js';
+import { brokerStatus } from './broker.js';
 
 const MAX_TOOL_ROUNDS = 8;
 
@@ -13,7 +14,13 @@ const MAX_TOOL_ROUNDS = 8;
 // always-on agents, and it can still act across every station's tools.
 const SPECIALISTS = {
   nucor: 'STEEL DESK — a commercial steel specialist. You know HRC pricing, scrap, mill lead times, tonnage takeoffs, quote margins, and how tariffs and demand move the market. Sharpen his quoting and his climb toward sales engineer.',
-  stocks: 'RESEARCH DESK — a disciplined equity analyst focused on reducing his blind spots. Push him to write both sides, tie claims to catalysts and data, and flag when news pivots a thesis. Never give buy/sell advice as fact; frame as his own conviction to pressure-test.',
+  stocks: `RESEARCH DESK — his personal portfolio manager and devil's advocate rolled into one. You behave like a disciplined buy-side analyst reviewing a colleague's book:
+- Ground every take in the live tape below (prices, trend, news sentiment) and in HIS OWN thesis boards — quote his thesis points back at him when they conflict with the data.
+- Always work both sides: when he leans bullish, give the strongest bear read of the same facts, and vice versa. One side stated alone is a blind spot.
+- Think in his reality: steel-mill wages, small position sizes, no margin for hero trades. Talk position sizing, invalidation levels ("what price/event proves this wrong?"), and time horizon — not hot takes.
+- When a headline or move genuinely pivots one of his tracked thesis points, say so and offer to check it off or add the counter-point (add_thesis_point).
+- When the conversation deepens on one name, end with ONE sharp question that forces a decision or a written commitment — the way a PM closes a review.
+- Never state buy/sell advice as fact; every conclusion is framed as his conviction to pressure-test. You make him a sharper investor, not a follower.`,
   fe: 'STUDY COACH — an FE Civil exam tutor. You know all 14 NCEES knowledge areas, the reference handbook, and time-boxed practice. Keep him on a plan that lands before exam day.',
   ai: 'AI LAB LEAD — an applied-AI mentor. Keep him current, push hands-on building and testing over passive reading, and connect new tools to what he is actually trying to make.',
   gym: 'TRAINER — a strength and nutrition coach. Protect the streak, progress the lifts, hit calorie/protein targets, program smart around shift work.',
@@ -21,12 +28,52 @@ const SPECIALISTS = {
   calendar: 'CHIEF OF STAFF — you run his whole timeline: shifts, study, gym, deadlines. Protect focus and keep the week realistic.',
 };
 
-function systemPrompt(snapshot, station) {
+// Compact live tape for the Research Desk: watchlist quotes + 1M trend,
+// holdings P/L, broker link state. Cached feeds make this near-free; any
+// failure degrades to "(tape unavailable)" rather than blocking the chat.
+async function marketBrief(snapshot) {
+  try {
+    const st = snapshot.state || {};
+    const syms = [...new Set([...(st.watchlist || []).map(w => w.sym), ...(st.holdings || []).map(h => h.sym)])].slice(0, 8);
+    const lines = [];
+    for (const sym of syms) {
+      let line = sym + ':';
+      try {
+        const q = await feeds.quote(sym);
+        if (q?.price != null) line += ` $${q.price} (${q.chgN >= 0 ? '+' : ''}${q.chgN}% today)`;
+      } catch { /* quote gap is fine */ }
+      try {
+        const c = await feeds.candles(sym, '1M');
+        const s = c?.series || [];
+        if (s.length > 5) {
+          const chg = ((s[s.length - 1] - s[0]) / s[0]) * 100;
+          const hi = Math.max(...s), lo = Math.min(...s);
+          const pos = Math.round(((s[s.length - 1] - lo) / ((hi - lo) || 1)) * 100);
+          line += ` · 1M ${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%, sitting at ${pos}% of its 1M range`;
+        }
+      } catch { /* trend gap is fine */ }
+      if (line.length > sym.length + 1) lines.push(line);
+    }
+    for (const h of (st.holdings || [])) {
+      if (h.shares && h.cost && h.last) {
+        const pl = ((h.last - h.cost) / h.cost) * 100;
+        lines.push(`POSITION ${h.sym}: ${h.shares} sh @ $${h.cost}, now $${h.last} (${pl >= 0 ? '+' : ''}${pl.toFixed(1)}%)`);
+      }
+    }
+    const b = brokerStatus();
+    lines.push(b.connected ? 'Broker: Webull LIVE.' : 'Broker: not linked yet — holdings above are hand-tracked. ' + (b.credsPresent ? 'Webull keys present, wiring pending.' : ''));
+    return lines.join('\n');
+  } catch {
+    return '(tape unavailable)';
+  }
+}
+
+function systemPrompt(snapshot, station, brief = '') {
   const now = nowParts();
   const custom = (snapshot.custom || []).map(c => `${c.key} ("${c.label}")`).join(', ');
   const persona = SPECIALISTS[station];
   return `You are Trydon, the assistant inside a personal life command deck used by one person: a Nucor steel-mill worker (production shift 7:00–15:00) who quotes steel jobs, studies AI/agents, invests (Webull), creates content (YouTube/TikTok/Instagram), trains at the gym, and is prepping for the FE Civil exam.
-${persona ? `\nRight now he is at the ${station.toUpperCase()} station, so answer as his ${persona}\nYou can still use tools that touch any station when he asks.\n` : ''}
+${persona ? `\nRight now he is at the ${station.toUpperCase()} station, so answer as his ${persona}\nYou can still use tools that touch any station when he asks.\n` : ''}${brief ? `\nLive tape right now:\n${brief}\n` : ''}
 Today is ${now.weekday} ${now.iso}, ${now.hm} (${TZ()}).
 
 Stations: calendar, nucor, fe, ai, stocks, media, gym${custom ? ', plus custom: ' + custom : ''}.
@@ -64,11 +111,12 @@ function mapHistory(messages = [], latest) {
 export async function chat({ text, messages, snapshot, station }) {
   const exec = createExecutor(snapshot);
   const convo = mapHistory(messages, text);
+  const brief = station === 'stocks' ? await marketBrief(snapshot) : '';
   let reply = '';
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const res = await askClaude({
-      system: systemPrompt(snapshot, station),
+      system: systemPrompt(snapshot, station, brief),
       messages: convo,
       tools: TOOL_DEFS,
       maxTokens: 1200,
@@ -106,18 +154,30 @@ export async function debate({ sym, snapshot }) {
   try { live = await feeds.quote(sym); } catch { /* debate on saved data */ }
   try { news = (await feeds.stockNews(sym)).items || []; } catch { /* no headlines */ }
 
+  const points = ((st.thesisPoints || {})[sym] || []);
+  const ptLines = points.map(p => `- [${p.side.toUpperCase()}${p.done ? ' · PLAYED OUT' : ''}] ${p.text}`).join('\n');
+  let trend = '';
+  try {
+    const c = await feeds.candles(sym, '1M');
+    const s = c?.series || [];
+    if (s.length > 5) {
+      const chg = ((s[s.length - 1] - s[0]) / s[0]) * 100;
+      trend = ` 1M trend ${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%.`;
+    }
+  } catch { /* debate without trend */ }
+
   const bearish = /bear|sell/i.test(stance);
   const sideToArgue = bearish ? 'BULL' : 'BEAR';
   const prompt = `You are the Thesis Debater inside Trydon, a personal trading research deck. The user's current stance on ${sym} is ${stance}${holding ? ` and he holds ${holding.shares} shares @ $${holding.cost}` : ''}.
 
 His BULL thesis: ${thesis.bull || '(empty)'}
 His BEAR thesis: ${thesis.bear || '(empty)'}
-
-Live data: ${live ? `price $${live.price} (${live.chgN >= 0 ? '+' : ''}${live.chgN}% today)` : 'quote unavailable'}.
+${ptLines ? `His tracked key points:\n${ptLines}\n` : ''}
+Live data: ${live ? `price $${live.price} (${live.chgN >= 0 ? '+' : ''}${live.chgN}% today).` : 'quote unavailable.'}${trend}
 Latest headlines:
 ${news.slice(0, 5).map(n => `- ${n.head}`).join('\n') || '- (none available)'}
 
-Steelman the ${sideToArgue} case AGAINST his current stance in 3–5 sharp numbered points. Tie every point to a concrete data point or headline above, or to a specific weakness in his own thesis text (quote his words back where possible). Be direct, no hedging, no disclaimers. End with exactly one question starting "What would change your mind" and offer to save any concession he makes into his ${sideToArgue.toLowerCase()} thesis.`;
+Steelman the ${sideToArgue} case AGAINST his current stance in 3–5 sharp numbered points. Tie every point to a concrete data point or headline above, or to a specific weakness in his own thesis text or tracked key points (quote his words back where possible). If one of his tracked points looks already played out or contradicted by the tape, call it out by name. Be direct, no hedging, no disclaimers. End with exactly one question starting "What would change your mind" and offer to save any concession he makes into his ${sideToArgue.toLowerCase()} thesis.`;
 
   const reply = await completeText([{ role: 'user', content: prompt }], { maxTokens: 900 });
   return { reply };

@@ -385,6 +385,9 @@ export function startCron() {
         markRan('nudge');
         eveningNudge();
       }
+      // autonomous desk agents (LLM ones — built-ins are scheduled above)
+      const { agentTick } = await import('./agents.js');
+      await agentTick();
     } catch (e) {
       console.error('[cron]', e.message);
     }

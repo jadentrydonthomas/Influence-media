@@ -12,6 +12,8 @@ import { analyzeNews } from './server/analyze.js';
 import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
 import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning, thesisWatch, ensureCalendarPlan } from './server/cron.js';
+import { listAgents, runAgent, setAgent, addCustomAgent } from './server/agents.js';
+import { brokerStatus, positions as brokerPositions } from './server/broker.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -204,6 +206,40 @@ const server = createServer(async (req, res) => {
         return send(res, 200, { ok: true, ran: job });
       }
 
+      // ---------- broker (Webull-ready adapter) ----------
+      if (path === '/api/broker/status' && req.method === 'GET') {
+        return send(res, 200, brokerStatus());
+      }
+      if (path === '/api/broker/positions' && req.method === 'GET') {
+        return send(res, 200, await brokerPositions());
+      }
+
+      // ---------- autonomous desk agents ----------
+      if (path === '/api/agents' && req.method === 'GET') {
+        return send(res, 200, { agents: listAgents() });
+      }
+      if (path === '/api/agents' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        try {
+          if (body.action === 'run' && body.id) {
+            const out = await runAgent(body.id);
+            return send(res, 200, { ok: true, ...out, agents: listAgents() });
+          }
+          if (body.action === 'toggle' && body.id) {
+            setAgent(body.id, { enabled: !!body.enabled });
+            return send(res, 200, { ok: true, agents: listAgents() });
+          }
+          if (body.action === 'create' && body.name && body.mission) {
+            const id = addCustomAgent(body);
+            return send(res, 200, { ok: true, id, agents: listAgents() });
+          }
+          return send(res, 400, { error: 'action must be run|toggle|create' });
+        } catch (e) {
+          if (e.code === 'NO_KEY') return send(res, 503, { error: 'no_key' });
+          return send(res, 500, { error: String(e.message || e).slice(0, 200) });
+        }
+      }
+
       if (path.startsWith('/api/file/') && req.method === 'PUT') {
         const name = decodeURIComponent(path.slice('/api/file/'.length));
         if (!/^[.\w-]+\.state\.json$/.test(name)) return send(res, 400, { error: 'only *.state.json sidecars' });
@@ -257,6 +293,14 @@ if (!getMeta('groundzero_v3')) {
     console.log('[migrate] ground-zero v3: trial data backed up and cleared');
   }
   setMeta('groundzero_v3', '1');
+}
+
+// One-time: introduce the Agent Deck in chat the first boot after it ships.
+if (!getMeta('agentdeck_intro')) {
+  setMeta('agentdeck_intro', '1');
+  import('./server/cron.js').then(({ postAssistantMessage }) => {
+    postAssistantMessage('⚙ AGENT DECK IS LIVE — your deck now runs a crew of autonomous desk workers: Chief of Staff, Steel Desk, Research Desk, Study Coach, AI Lab Lead, Trainer and Producer. Each one watches its station on its own schedule and leaves short notes here when something is genuinely worth your time — most days they stay quiet on purpose. Open the ⚙ Agent Deck (sidebar, or the gear up top in this chat) to see them, run one now, switch one off, or hire a new one with its own mission. They can only CREATE — notes, tasks, ideas, questions — never delete or change your positions.');
+  }).catch(() => {});
 }
 
 server.listen(PORT, () => {

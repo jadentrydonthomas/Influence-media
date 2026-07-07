@@ -556,6 +556,10 @@
         <span style="width:30px; height:30px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.04); font-size:18px; font-weight:300;">+</span>
         <span style="font-size:13px; font-weight:500; display:{{ navTextDisp }};">New workstation</span>
       </button>
+      <button onclick="{{ toggleAgents }}" title="Agent Deck — autonomous desk workers" style="display:flex; align-items:center; gap:12px; padding:{{ navItemPad }}; justify-content:{{ navItemJustify }}; border-radius:11px; border:1px solid rgba(167,139,250,.2); background:rgba(167,139,250,.05); color:#9aa4b2; cursor:pointer; text-align:left; margin-top:2px;" style-hover="background:rgba(167,139,250,.11); color:#eef1f6;">
+        <span style="width:30px; height:30px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(167,139,250,.13); font-size:14px;">⚙</span>
+        <span style="min-width:0; display:{{ navTextDisp }};"><span style="display:block; font-size:13px; font-weight:600; color:#c4b5fd;">Agent Deck</span><span style="display:block; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; color:#8b83b8; margin-top:2px;">{{ agentDeckSub }}</span></span>
+      </button>
     </div>
 
     <div style="position:relative; margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.07); display:{{ navFooterDisp }}; align-items:center; gap:10px;">
@@ -1554,7 +1558,7 @@
                   <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="4"><button onclick="{{ r.go }}" style="font-family:'JetBrains Mono',monospace; font-size:10px; padding:5px 9px; border-radius:7px; border:1px solid {{ r.border }}; background:{{ r.bg }}; color:{{ r.c }}; cursor:pointer;">{{ r.label }}</button></sc-for>
                 </div>
               </div>
-              <div style="position:relative; height:170px; margin:10px 0 4px;"><canvas ref="{{ chartRef }}" style="width:100%; height:100%; display:block;"></canvas></div>
+              <div style="position:relative; height:200px; margin:10px 0 4px;"><canvas ref="{{ chartRef }}" style="width:100%; height:100%; display:block; cursor:crosshair; touch-action:pan-y;"></canvas></div>
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:12px 0 16px;">
                 <sc-for list="{{ sel.stats }}" as="st" hint-placeholder-count="4"><div style="padding:9px 11px; border-radius:9px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);"><div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7d8694; letter-spacing:.5px;">{{ st.k }}</div><div style="font-size:14px; font-weight:700; margin-top:3px; color:#e8ecf2;">{{ st.v }}</div></div></sc-for>
               </div>
@@ -2073,6 +2077,7 @@
         <div style="font-family:'Sora'; font-size:14px; font-weight:700;">Trydon Terminal</div>
         <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#5cd6a0; display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;--pc:rgba(52,211,153,.5);animation:pulsedot 2s infinite;"></span>{{ agentLabel }}</div>
       </div>
+      <button onclick="{{ toggleAgents }}" title="Agent Deck — your autonomous desk workers" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(167,139,250,.3); background:rgba(167,139,250,.08); color:#c4b5fd; cursor:pointer; font-size:14px;" style-hover="background:rgba(167,139,250,.16);">⚙</button>
       <button onclick="{{ toggleAi }}" title="Close" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:15px;" style-hover="background:rgba(255,255,255,.09); color:#eef1f6;">✕</button>
     </div>
     <div ref="{{ scrollRef }}" style="flex:1; min-height:0; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:13px;">
@@ -2114,6 +2119,65 @@
   </aside>
   </sc-if>
 
+  <!-- ============ AGENT DECK (autonomous desk workers) ============ -->
+  <sc-if value="{{ agentsOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; inset:0; z-index:59; background:rgba(3,4,7,.65); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); animation:fadein .25s ease;" onclick="{{ toggleAgents }}"></div>
+  <aside style="position:fixed; top:0; right:0; z-index:62; width:min(560px,96vw); height:100vh; display:flex; flex-direction:column; min-height:0; background:linear-gradient(180deg,#0d0e17,#08090d); border-left:1px solid rgba(167,139,250,.22); box-shadow:-34px 0 90px -24px rgba(0,0,0,.8); animation:fadein .2s ease;">
+    <div style="flex:none; padding:16px 18px 13px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:11px;">
+      <div style="position:relative; width:34px; height:34px; border-radius:10px; background:radial-gradient(circle at 30% 30%,#a78bfa,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:16px;">⚙</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-family:'Sora'; font-size:14px; font-weight:700;">Agent Deck</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#8b83b8;">AUTONOMOUS DESK WORKERS · CREATE-ONLY · NOTES LAND IN CHAT</div>
+      </div>
+      <button onclick="{{ toggleAgents }}" title="Close" style="width:33px; height:33px; flex:none; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#9aa4b2; cursor:pointer; font-size:15px;" style-hover="background:rgba(255,255,255,.09); color:#eef1f6;">✕</button>
+    </div>
+    <div style="flex:1; min-height:0; overflow-y:auto; padding:14px 16px 20px; display:flex; flex-direction:column; gap:10px;">
+      <sc-if value="{{ noAgents }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:22px; text-align:center; color:#56606e; font-size:12.5px;">Waking the crew…</div>
+      </sc-if>
+      <sc-for list="{{ agentsView }}" as="ag" hint-placeholder-count="7">
+        <div style="border-radius:14px; border:1px solid {{ ag.border }}; background:{{ ag.bg }}; padding:12px 13px;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <span style="width:32px; height:32px; flex:none; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); filter:{{ ag.iconFilter }};">{{ ag.icon }}</span>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+                <span style="font-size:13.5px; font-weight:700; color:{{ ag.nameC }};">{{ ag.name }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.8px; padding:2px 7px; border-radius:6px; background:{{ ag.stBg }}; color:{{ ag.stC }}; border:1px solid {{ ag.stBd }};">{{ ag.stationLabel }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.8px; padding:2px 7px; border-radius:6px; background:rgba(255,255,255,.04); color:#7d8694; border:1px solid rgba(255,255,255,.09);">{{ ag.cadenceLabel }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.8px; padding:2px 7px; border-radius:6px; background:{{ ag.kindBg }}; color:{{ ag.kindC }}; border:1px solid {{ ag.kindBd }};">{{ ag.kindLabel }}</span>
+              </div>
+              <div style="font-size:11.5px; color:#8a93a2; line-height:1.45; margin-top:4px;">{{ ag.mission }}</div>
+            </div>
+          </div>
+          <sc-if value="{{ ag.hasNote }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:9px; padding:8px 10px; border-radius:9px; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.06); font-size:11px; color:#aeb6c2; font-style:italic; line-height:1.45;">“{{ ag.lastNote }}”</div>
+          </sc-if>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; flex:1;">{{ ag.lastRunLabel }}</span>
+            <button onclick="{{ ag.toggle }}" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1px; padding:6px 12px; border-radius:8px; cursor:pointer; background:{{ ag.togBg }}; color:{{ ag.togC }}; border:1px solid {{ ag.togBd }};">{{ ag.togLabel }}</button>
+            <button onclick="{{ ag.runNow }}" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1px; padding:6px 12px; border-radius:8px; cursor:pointer; background:rgba(167,139,250,.12); color:#c4b5fd; border:1px solid rgba(167,139,250,.35);" style-hover="background:rgba(167,139,250,.2);">{{ ag.runLabel }}</button>
+          </div>
+        </div>
+      </sc-for>
+
+      <!-- hire a new agent -->
+      <div style="border-radius:14px; border:1px dashed rgba(167,139,250,.3); background:rgba(167,139,250,.04); padding:13px 14px; margin-top:4px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1.5px; color:#c4b5fd; margin-bottom:10px;">+ HIRE A NEW AGENT</div>
+        <input value="{{ newAgentName }}" onchange="{{ setNewAgentName }}" placeholder="Name — e.g. Deal Scout" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12.5px; outline:none; margin-bottom:8px;" />
+        <textarea value="{{ newAgentMission }}" onchange="{{ setNewAgentMission }}" placeholder="Mission — what should it watch and what may it create? e.g. “Each morning scan my watchlist for anything down 5%+ on the week and add ONE task to review it.”" rows="3" style="width:100%; box-sizing:border-box; resize:vertical; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; line-height:1.45; outline:none; margin-bottom:8px;"></textarea>
+        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;">
+          <sc-for list="{{ newAgentStations }}" as="stc" hint-placeholder-count="7"><button onclick="{{ stc.pick }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.8px; padding:5px 10px; border-radius:7px; cursor:pointer; background:{{ stc.bg }}; color:{{ stc.c }}; border:1px solid {{ stc.bd }};">{{ stc.label }}</button></sc-for>
+        </div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:11px;">
+          <sc-for list="{{ newAgentCadences }}" as="cdc" hint-placeholder-count="4"><button onclick="{{ cdc.pick }}" style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.8px; padding:5px 10px; border-radius:7px; cursor:pointer; background:{{ cdc.bg }}; color:{{ cdc.c }}; border:1px solid {{ cdc.bd }};">{{ cdc.label }}</button></sc-for>
+        </div>
+        <button onclick="{{ createAgentNow }}" style="width:100%; padding:11px; border-radius:11px; border:none; cursor:pointer; background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#0d0618; font-family:'Sora'; font-weight:700; font-size:12.5px; letter-spacing:.3px;">{{ createAgentLabel }}</button>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:#56606e; margin-top:8px; text-align:center;">agents can only CREATE — notes, tasks, ideas, questions · they never delete or edit</div>
+      </div>
+    </div>
+  </aside>
+  </sc-if>
+
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script="">
@@ -2134,6 +2198,7 @@ class Component extends DCLogic {
     };
     this.state={
       view:'calendar', navCollapsed:false, calTab:'today', weekOffset:0, monthCursor:{y:Y,m:Mo}, selectedDay:null,
+      agentsOpen:false, agentsList:[], agentsBusy:'', newAgentName:'', newAgentMission:'', newAgentStation:'stocks', newAgentCadence:'daily',
       clock:this.fmtClock(new Date()), input:'', thinking:false,
       messages:[{id:'m0',role:'assistant',text:"Hey — I'm Trydon, your life command deck. Tell me what to schedule and I'll place it.\n\nTry: \"FE study tomorrow 9am for 2 hours\" or \"add Mom's birthday June 28\".",chips:[]}],
       events:(()=>{ const evs=[]; const mon=new Date(today); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
@@ -2273,7 +2338,17 @@ class Component extends DCLogic {
     this._series={}; this._genSeries();
     this._heroT=0; this._embers=[]; this._aiNodes=null; this._codeCols=null; this._dust=[];
     this.heroRef=(el)=>{ this._heroCanvas=el; };
-    this.chartRef=(el)=>{ this._canvas=el; if(el) this._drawChart(); };
+    this.chartRef=(el)=>{ this._canvas=el; if(!el) return;
+      if(!el._xh){ el._xh=true;
+        const mv=(cx,cy)=>{ const r=el.getBoundingClientRect(); this._cross={x:cx-r.left,y:cy-r.top};
+          if(!this._xhRaf) this._xhRaf=requestAnimationFrame(()=>{ this._xhRaf=0; this._drawChart(); }); };
+        el.addEventListener('mousemove',e=>mv(e.clientX,e.clientY));
+        el.addEventListener('mouseleave',()=>{ this._cross=null; this._drawChart(); });
+        el.addEventListener('touchstart',e=>{ const t=e.touches[0]; if(t) mv(t.clientX,t.clientY); },{passive:true});
+        el.addEventListener('touchmove',e=>{ const t=e.touches[0]; if(t) mv(t.clientX,t.clientY); },{passive:true});
+        el.addEventListener('touchend',()=>{ this._cross=null; this._drawChart(); });
+      }
+      this._drawChart(); };
     this.scrollRef=(el)=>{ this._scrollEl=el; };
   }
 
@@ -2323,6 +2398,7 @@ class Component extends DCLogic {
     else { this.connectSource("Drop your "+k+" channel/profile URL here and I'll link this card to it (and pull live stats where the platform allows).",'media'); } }
   _startLive(){
     const J=async u=>{ const r=await fetch(u,{credentials:'same-origin'}); if(!r.ok) throw new Error(u); return r.json(); };
+    this.fetchAgents();
     const tickQuotes=async()=>{ try{
       const syms=[...new Set([...this.state.watchlist.map(w=>w.sym),...this.state.holdings.map(h=>h.sym)])];
       const out={}; await Promise.all(syms.map(async sym=>{ try{ const q=await J('/api/feeds/quote?sym='+encodeURIComponent(sym)); if(q&&q.price!=null) out[sym]=q; }catch(e){} }));
@@ -2337,7 +2413,10 @@ class Component extends DCLogic {
     const tickCandles=async()=>{ try{
       const sym=this.state.selSym, range=this.state.range;
       const c=await J('/api/feeds/candles?sym='+encodeURIComponent(sym)+'&range='+range);
-      if(c.series&&c.series.length>2){ this._series[sym]=this._series[sym]||{}; this._series[sym][range]=c.series; this._liveChart=true; this._drawChart(); this.forceUpdate(); }
+      if(c.series&&c.series.length>2){ this._series[sym]=this._series[sym]||{}; this._series[sym][range]=c.series;
+        if(c.candles&&c.candles.length>2){ this._candles=this._candles||{}; this._candles[sym]=this._candles[sym]||{}; this._candles[sym][range]=c.candles; }
+        if(c.prevClose!=null){ this._prevClose=this._prevClose||{}; this._prevClose[sym]=c.prevClose; }
+        this._liveChart=true; this._drawChart(); this.forceUpdate(); }
     }catch(e){} };
     const tickSparks=async()=>{ try{
       await Promise.all(this.state.watchlist.map(async w=>{ try{
@@ -2440,15 +2519,90 @@ class Component extends DCLogic {
   _spark(sym){ const a=this._series[sym]['1W']; const min=Math.min(...a),max=Math.max(...a),rng=(max-min)||1; return a.map((v,i)=>`${(i/(a.length-1)*46+1).toFixed(1)},${(18-((v-min)/rng)*16).toFixed(1)}`).join(' '); }
   _drawChart(){
     const c=this._canvas; if(!c) return;
-    const series=(this._series[this.state.selSym]||{})[this.state.range]||[]; if(!series.length) return;
-    const up=(this.state.watchlist.find(w=>w.sym===this.state.selSym)||{}).chgN>=0;
+    const sym=this.state.selSym, range=this.state.range;
+    const candles=((this._candles||{})[sym]||{})[range]||null;
+    const series=(this._series[sym]||{})[range]||[];
+    if((!candles||candles.length<3)&&series.length<2) return;
     const dpr=window.devicePixelRatio||1; const W=c.clientWidth,H=c.clientHeight; c.width=W*dpr; c.height=H*dpr; const ctx=c.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
-    const min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1; const pad=8; const x=i=>pad+i/(series.length-1)*(W-pad*2); const y=v=>H-pad-((v-min)/rng)*(H-pad*2);
-    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; for(let g=0;g<4;g++){ const gy=pad+g/3*(H-pad*2); ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(W-pad,gy); ctx.stroke(); }
-    const col=up?'#34d399':'#f87171'; const grad=ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0,up?'rgba(52,211,153,0.28)':'rgba(248,113,113,0.28)'); grad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.lineTo(x(series.length-1),H-pad); ctx.lineTo(x(0),H-pad); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
-    const ex=x(series.length-1),ey=y(series[series.length-1]); ctx.beginPath(); ctx.arc(ex,ey,3.5,0,7); ctx.fillStyle=col; ctx.fill(); ctx.beginPath(); ctx.arc(ex,ey,7,0,7); ctx.strokeStyle=up?'rgba(52,211,153,0.4)':'rgba(248,113,113,0.4)'; ctx.lineWidth=1.5; ctx.stroke();
+    const up=(this.state.watchlist.find(w=>w.sym===sym)||{}).chgN>=0;
+    const fp=v=>v>=1000?v.toFixed(0):v>=10?v.toFixed(2):v.toFixed(3);
+    const MONO='9px "JetBrains Mono",monospace';
+
+    // ---- fallback: smooth line (no OHLC yet — cache warming or offline seed)
+    if(!candles||candles.length<3){
+      const min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1; const pad=8; const x=i=>pad+i/(series.length-1)*(W-pad*2); const y=v=>H-pad-((v-min)/rng)*(H-pad*2);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; for(let g=0;g<4;g++){ const gy=pad+g/3*(H-pad*2); ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(W-pad,gy); ctx.stroke(); }
+      const col=up?'#34d399':'#f87171'; const grad=ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0,up?'rgba(52,211,153,0.28)':'rgba(248,113,113,0.28)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.lineTo(x(series.length-1),H-pad); ctx.lineTo(x(0),H-pad); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x(0),y(series[0])); series.forEach((v,i)=>ctx.lineTo(x(i),y(v))); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+      const ex=x(series.length-1),ey=y(series[series.length-1]); ctx.beginPath(); ctx.arc(ex,ey,3.5,0,7); ctx.fillStyle=col; ctx.fill(); ctx.beginPath(); ctx.arc(ex,ey,7,0,7); ctx.strokeStyle=up?'rgba(52,211,153,0.4)':'rgba(248,113,113,0.4)'; ctx.lineWidth=1.5; ctx.stroke();
+      return;
+    }
+
+    // ---- candlestick + volume ----
+    const padL=6, padR=48, padT=8, padB=3, volGap=5;
+    const volH=Math.max(20,H*0.15), priceH=H-padT-padB-volH-volGap;
+    const n=candles.length;
+    const lo=Math.min(...candles.map(k=>k.l)), hi=Math.max(...candles.map(k=>k.h)); const rng=(hi-lo)||1;
+    const plotW=W-padL-padR;
+    const x=i=>padL+(i+0.5)/n*plotW;
+    const y=v=>padT+(1-(v-lo)/rng)*priceH;
+    const bw=Math.max(1.6,Math.min(9,plotW/n*0.6));
+
+    // grid + right price axis
+    ctx.font=MONO; ctx.textAlign='left'; ctx.textBaseline='middle';
+    for(let g=0;g<4;g++){ const v=lo+rng*(1-g/3); const gy=y(v);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(W-padR,gy); ctx.stroke();
+      ctx.fillStyle='rgba(154,164,178,0.72)'; ctx.fillText(fp(v), W-padR+7, gy); }
+
+    // volume strip
+    const vmax=Math.max(...candles.map(k=>k.v))||1; const vy0=H-padB;
+    candles.forEach((k,i)=>{ const cup=k.c>=k.o; ctx.fillStyle=cup?'rgba(52,211,153,0.22)':'rgba(248,113,113,0.2)'; const vh=Math.max(1,(k.v/vmax)*volH); ctx.fillRect(x(i)-bw/2, vy0-vh, bw, vh); });
+
+    // candles (wick + body)
+    candles.forEach((k,i)=>{ const cup=k.c>=k.o; const col=cup?'#34d399':'#f87171'; const xi=x(i);
+      ctx.strokeStyle=col; ctx.lineWidth=Math.min(1.4,bw*0.4); ctx.beginPath(); ctx.moveTo(xi,y(k.h)); ctx.lineTo(xi,y(k.l)); ctx.stroke();
+      const oy=y(k.o), cy2=y(k.c); const top=Math.min(oy,cy2), bh=Math.max(1,Math.abs(oy-cy2));
+      ctx.fillStyle=cup?'rgba(52,211,153,0.92)':'rgba(248,113,113,0.92)'; ctx.fillRect(xi-bw/2, top, bw, bh); });
+
+    // prior-close reference (1D only — the day's fight line)
+    const pc=(this._prevClose||{})[sym];
+    if(range==='1D'&&pc>=lo&&pc<=hi){ const py=y(pc); ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(154,164,178,0.45)'; ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(W-padR,py); ctx.stroke(); ctx.setLineDash([]); }
+
+    // last price line + tag
+    const last=candles[n-1].c; const ly=y(last); const lcol=up?'#34d399':'#f87171';
+    ctx.setLineDash([4,3]); ctx.strokeStyle=up?'rgba(52,211,153,0.45)':'rgba(248,113,113,0.45)'; ctx.beginPath(); ctx.moveTo(padL,ly); ctx.lineTo(W-padR,ly); ctx.stroke(); ctx.setLineDash([]);
+    const cr=this._cross;
+    const tag=fp(last); const tw=ctx.measureText(tag).width+10;
+    const ty=Math.max(padT+7,Math.min(H-padB-7,ly));
+    // yield the axis slot to the crosshair tag when the two would collide
+    if(!(cr&&cr.y>=padT&&cr.y<=padT+priceH&&Math.abs(cr.y-ty)<17)){
+      ctx.fillStyle=up?'rgba(52,211,153,0.16)':'rgba(248,113,113,0.16)'; ctx.strokeStyle=up?'rgba(52,211,153,0.5)':'rgba(248,113,113,0.5)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(W-padR+3,ty-8,tw,16,4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=lcol; ctx.fillText(tag, W-padR+8, ty);
+    }
+
+    // crosshair + OHLC readout
+    if(cr&&cr.x>=padL&&cr.x<=W-padR&&cr.y>=padT&&cr.y<=H-padB){
+      const i=Math.max(0,Math.min(n-1,Math.floor((cr.x-padL)/plotW*n)));
+      const k=candles[i]; const xi=x(i);
+      ctx.strokeStyle='rgba(125,211,252,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(xi,padT); ctx.lineTo(xi,H-padB); ctx.stroke();
+      if(cr.y<=padT+priceH){ ctx.beginPath(); ctx.moveTo(padL,cr.y); ctx.lineTo(W-padR,cr.y); ctx.stroke();
+        const hv=fp(lo+(1-(cr.y-padT)/priceH)*rng); const hw=ctx.measureText(hv).width+10;
+        ctx.setLineDash([]); ctx.fillStyle='rgba(12,17,26,0.95)'; ctx.strokeStyle='rgba(125,211,252,0.4)';
+        ctx.beginPath(); ctx.roundRect(W-padR+3,cr.y-8,hw,16,4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#7dd3fc'; ctx.fillText(hv, W-padR+8, cr.y); }
+      ctx.setLineDash([]);
+      const d=new Date(k.t*1000);
+      const when=(range==='1D')?d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):(range==='1W')?d.toLocaleDateString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const fv=v=>v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':String(v);
+      const line=`${when}  O ${fp(k.o)}  H ${fp(k.h)}  L ${fp(k.l)}  C ${fp(k.c)}  VOL ${fv(k.v)}`;
+      const lw=ctx.measureText(line).width+14;
+      ctx.fillStyle='rgba(10,14,20,0.92)'; ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(padL+2,padT-2,lw,17,5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=k.c>=k.o?'#5cd6a0':'#fca5a5'; ctx.textAlign='left'; ctx.fillText(line, padL+9, padT+7);
+    }
   }
 
   // ---------- HERO MOTION ----------
@@ -2575,6 +2729,20 @@ class Component extends DCLogic {
 
   // ---------- nav / chat ----------
   go(v){ this.setState({view:v, navCollapsed:true}); if(v==='stocks') setTimeout(()=>this._drawChart(),60); if(v!==this.state.view) setTimeout(()=>this._sizeHero&&this._sizeHero(),80); }
+  toggleAgents(){ const open=!this.state.agentsOpen; this.setState({agentsOpen:open}); if(open) this.fetchAgents(); }
+  async fetchAgents(){ try{ const r=await fetch('/api/agents',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.agents) this.setState({agentsList:p.agents}); } }catch(e){} }
+  async runAgentNow(id){ if(this.state.agentsBusy) return; this.setState({agentsBusy:id});
+    try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'run',id})});
+      if(r.ok){ const p=await r.json(); this.setState({agentsList:p.agents||this.state.agentsList, aiUnseen:!this.state.aiOpen}); try{ window.TrydonBridge&&window.TrydonBridge.pull&&window.TrydonBridge.pull(); }catch(e){} } }catch(e){}
+    this.setState({agentsBusy:''}); }
+  async toggleAgentEnabled(id,enabled){ this.setState({agentsList:this.state.agentsList.map(a=>a.id===id?{...a,enabled}:a)});
+    try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'toggle',id,enabled})});
+      if(r.ok){ const p=await r.json(); if(p.agents) this.setState({agentsList:p.agents}); } }catch(e){} }
+  async createAgentNow(){ const name=(this.state.newAgentName||'').trim(), mission=(this.state.newAgentMission||'').trim(); if(!name||!mission) return;
+    this.setState({agentsBusy:'__new'});
+    try{ const r=await fetch('/api/agents',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'create',name,mission,station:this.state.newAgentStation,cadence:this.state.newAgentCadence})});
+      if(r.ok){ const p=await r.json(); this.setState({agentsList:p.agents||this.state.agentsList,newAgentName:'',newAgentMission:''}); } }catch(e){}
+    this.setState({agentsBusy:''}); }
   toggleNav(){ this.setState(s=>({navCollapsed:!s.navCollapsed}), ()=>setTimeout(()=>this._sizeHero&&this._sizeHero(),260)); }
   toggleAi(){ this.setState(s=>({aiOpen:!s.aiOpen, aiUnseen:s.aiOpen?s.aiUnseen:false}), ()=>{ if(this.state.aiOpen){ this._scrollDown(); const ta=document.querySelector('aside textarea'); if(ta) setTimeout(()=>ta.focus(),120); } }); }
   openAi(){ if(!this.state.aiOpen) this.setState({aiOpen:true,aiUnseen:false},()=>{ this._scrollDown(); const ta=document.querySelector('aside textarea'); if(ta) setTimeout(()=>ta.focus(),120); }); }
@@ -3167,6 +3335,27 @@ class Component extends DCLogic {
       return {sym:w.sym,chg:(up?'+':'')+w.chgN.toFixed(1)+'%',pick:()=>this.selectStock(w.sym),symC:active?'#eef1f6':'#9aa4b2',chgC:up?'#34d399':'#f87171',bg:active?'rgba(52,211,153,.12)':'rgba(255,255,255,.02)',border:active?'rgba(52,211,153,.5)':'rgba(255,255,255,.08)'}; });
     return {
       agentLabel: ({calendar:'CHIEF OF STAFF · your whole deck', nucor:'STEEL DESK · quoting + market', stocks:'RESEARCH DESK · reduce blind spots', fe:'STUDY COACH · FE Civil', ai:'AI LAB LEAD · stay current, build', gym:'TRAINER · strength + nutrition', media:'CONTENT PRODUCER · grow the brand'}[s.view]) || 'LIVE · runs your whole deck',
+      agentsOpen:s.agentsOpen, toggleAgents:()=>this.toggleAgents(),
+      agentDeckSub:(s.agentsList&&s.agentsList.length)?(s.agentsList.filter(a=>a.enabled).length+' ON DUTY'):'AUTONOMOUS CREW',
+      noAgents:(s.agentsList||[]).length===0,
+      agentsView:(s.agentsList||[]).map(a=>{ const M=this.stationMeta[a.station]||{}; const c=M.color||'#a78bfa'; const en=a.enabled!==false;
+        return {icon:a.icon||'◆', name:a.name, nameC:en?'#eef1f6':'#7d8694', iconFilter:en?'none':'grayscale(1) opacity(.5)',
+          border:en?hex2rgba(c,0.26):'rgba(255,255,255,.07)', bg:en?hex2rgba(c,0.05):'rgba(255,255,255,.015)',
+          stationLabel:(M.label||a.station||'').toUpperCase(), stBg:hex2rgba(c,0.12), stC:c, stBd:hex2rgba(c,0.35),
+          cadenceLabel:({'2h':'EVERY 2H','mwf':'MON·WED·FRI','mon-thu':'MON+THU','weekdays':'WEEKDAYS'}[a.cadence]||'DAILY'),
+          kindLabel:a.builtin?'⚡ ROUTINE':'🧠 REASONS', kindBg:a.builtin?'rgba(56,189,248,.08)':'rgba(167,139,250,.1)', kindC:a.builtin?'#7dd3fc':'#c4b5fd', kindBd:a.builtin?'rgba(56,189,248,.3)':'rgba(167,139,250,.32)',
+          mission:a.mission||'', hasNote:!!(a.lastNote&&String(a.lastNote).trim()), lastNote:a.lastNote||'',
+          lastRunLabel:a.lastRun?('LAST RUN '+new Date(Number(a.lastRun)).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).toUpperCase()):'NEVER RUN YET',
+          togLabel:en?'● ON':'○ OFF', togBg:en?'rgba(52,211,153,.1)':'rgba(255,255,255,.03)', togC:en?'#34d399':'#7d8694', togBd:en?'rgba(52,211,153,.35)':'rgba(255,255,255,.12)',
+          toggle:()=>this.toggleAgentEnabled(a.id,!en),
+          runLabel:s.agentsBusy===a.id?'… WORKING':'▸ RUN NOW', runNow:()=>this.runAgentNow(a.id)}; }),
+      newAgentName:s.newAgentName, setNewAgentName:e=>this.setState({newAgentName:e.target.value}),
+      newAgentMission:s.newAgentMission, setNewAgentMission:e=>this.setState({newAgentMission:e.target.value}),
+      newAgentStations:['calendar','nucor','fe','ai','stocks','media','gym'].map(k=>{ const M=this.stationMeta[k]||{}; const on=s.newAgentStation===k; const c=M.color||'#a78bfa';
+        return {label:(M.label||k).toUpperCase(), pick:()=>this.setState({newAgentStation:k}), bg:on?hex2rgba(c,0.16):'rgba(255,255,255,.02)', c:on?c:'#7d8694', bd:on?hex2rgba(c,0.5):'rgba(255,255,255,.1)'}; }),
+      newAgentCadences:[['daily','DAILY'],['weekdays','WEEKDAYS'],['mwf','MON·WED·FRI'],['mon-thu','MON+THU']].map(([k,l])=>{ const on=s.newAgentCadence===k;
+        return {label:l, pick:()=>this.setState({newAgentCadence:k}), bg:on?'rgba(167,139,250,.16)':'rgba(255,255,255,.02)', c:on?'#c4b5fd':'#7d8694', bd:on?'rgba(167,139,250,.5)':'rgba(255,255,255,.1)'}; }),
+      createAgentNow:()=>this.createAgentNow(), createAgentLabel:s.agentsBusy==='__new'?'… HIRING':'⚡ DEPLOY AGENT',
       tb, nbTopicChips, nbNotes, nbEmpty, nbTopicDraft:s.nbTopicDraft||'', nbTextDraft:s.nbTextDraft||'',
       setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
       aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),
