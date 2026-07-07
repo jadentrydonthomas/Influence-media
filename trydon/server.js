@@ -295,6 +295,14 @@ if (!getMeta('groundzero_v3')) {
   setMeta('groundzero_v3', '1');
 }
 
+// One-time: introduce the Agent Deck in chat the first boot after it ships.
+if (!getMeta('agentdeck_intro')) {
+  setMeta('agentdeck_intro', '1');
+  import('./server/cron.js').then(({ postAssistantMessage }) => {
+    postAssistantMessage('⚙ AGENT DECK IS LIVE — your deck now runs a crew of autonomous desk workers: Chief of Staff, Steel Desk, Research Desk, Study Coach, AI Lab Lead, Trainer and Producer. Each one watches its station on its own schedule and leaves short notes here when something is genuinely worth your time — most days they stay quiet on purpose. Open the ⚙ Agent Deck (sidebar, or the gear up top in this chat) to see them, run one now, switch one off, or hire a new one with its own mission. They can only CREATE — notes, tasks, ideas, questions — never delete or change your positions.');
+  }).catch(() => {});
+}
+
 server.listen(PORT, () => {
   console.log(`TRYDON deck on http://localhost:${PORT}`);
   console.log(`  auth: ${accessCode() ? 'access code required' : 'OPEN (set TRYDON_ACCESS_CODE)'}`);
