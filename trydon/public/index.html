@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>TRYDON — Command Deck</title>
 <meta name="theme-color" content="#0a0c11">
 <link rel="manifest" href="manifest.webmanifest">
@@ -181,6 +181,32 @@ section [style*="border-radius: 16px"]:nth-child(3n), section [style*="border-ra
 @media (prefers-reduced-motion: reduce) {
   #trydon-fx { display: none; }
   section [style*="border-radius"] { animation: none !important; }
+}
+
+/* ============ APP FEEL — scroll and touch like a native app ============ */
+html, body { overscroll-behavior: none; height: 100%; }
+* { -webkit-tap-highlight-color: transparent; }
+button, a, nav { -webkit-touch-callout: none; }
+@media (max-width: 760px) {
+  body { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  /* text you'd actually copy stays selectable: fields + chat bubbles + notes */
+  input, textarea, [contenteditable], [style*="white-space: pre-wrap"], [style*="white-space:pre-wrap"] { user-select: text; -webkit-user-select: text; }
+}
+/* every internal scroll area gets momentum and stops chaining to the page —
+   no rubber-banding the whole app when a list hits its end */
+[style*="overflow-y: auto"], [style*="overflow-y:auto"], [style*="overflow-x: auto"], [style*="overflow-x:auto"], .weekscroll, #mobtabs {
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+
+/* phones: drop the compositing-heavy pieces so scrolling stays 60fps —
+   blend-mode layers repaint on every scroll frame on mobile GPUs */
+@media (max-width: 760px) {
+  #trydon-fx .au { mix-blend-mode: normal; }
+  #trydon-fx .a3, #trydon-fx .scan { display: none; }
+  section [style*="border-radius"] { transition: none; }
+  /* dynamic viewport: the deck ends at the visible edge, not behind the
+     browser toolbar — kills the classic mobile-web dead strip */
+  [style*="height: 100vh"], [style*="height:100vh"] { height: 100dvh !important; }
 }
 </style>
 <script src="trydon-bridge.js"></script>
@@ -704,6 +730,10 @@ section [style*="border-radius: 16px"]:nth-child(3n), section [style*="border-ra
         <span class="mt-lb" style="color:{{ station.textC }};">{{ station.shortLabel }}</span>
       </button>
     </sc-for>
+    <button onclick="{{ toggleAgents }}" title="Agent Deck — your autonomous crew" class="mobtab" style="border-top:2px solid transparent;">
+      <span class="mt-ic" style="background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.4);">⚙</span>
+      <span class="mt-lb" style="color:#c4b5fd;">Agents</span>
+    </button>
     <button onclick="{{ openSearchM }}" title="Search" class="mobtab" style="border-top:2px solid transparent;">
       <span class="mt-ic" style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);">⌕</span>
       <span class="mt-lb" style="color:#aeb6c2;">Find</span>
