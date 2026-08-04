@@ -14,7 +14,20 @@ regenerate `beam-designer.html`).
 Beam analysis + automatic W-shape selection per the **AISC Steel Construction
 Manual, 16th Edition (AISC 360-22)**. Light/dark themed, interactive
 diagrams with a hover probe (V / M / δ at any x), beam schematic with load
-and support glyphs, and a printable check report.
+and support glyphs, and a printable calculation report.
+
+**Layout:** inputs across the top — Beam & Supports (left), Loads (double
+width, one labeled panel per load type), then a Design Criteria bar —
+with results below. `Run design` re-selects the lightest adequate section.
+
+**Saving:** `Save` downloads the whole beam (geometry, loads, criteria,
+combinations, project info) as a `.json` file; `Open` restores it; work is
+also auto-saved in the browser and restored on refresh. `Reset` clears it.
+
+**Input validation:** out-of-range or incomplete entries (a load past the
+end of the beam, a line load with x2 ≤ x1, a support off the member) are
+listed in a warning banner and excluded from the analysis rather than
+silently freezing the results.
 
 ### Analysis
 - Any support layout: simple span, multi-span continuous, cantilever,
@@ -58,11 +71,24 @@ and support glyphs, and a printable check report.
   the full 289-shape database. When no stocked section works, the lightest
   non-stock alternative is suggested; manually checked non-stock shapes are
   tagged NON-STOCK.
-- Selection scans all 289 W-shapes (AISC Shapes Database properties, sorted
-  lightest first) and reports the lightest adequate shape, the top candidates
-  with unity ratios, the lightest adequate shape per depth series, and a full
-  printable check report (section properties, Mp/Lp/Lr, governing limit
-  state, Cv1, deflection table) for any shape you pick.
+- Selection scans the section pool in ascending weight order and reports the
+  lightest adequate shape, the passing candidates with unity ratios, and the
+  lightest adequate shape per depth series.
+
+### Calculation report
+A separate report view (and the only thing that prints) documenting the run:
+project fields, geometry and load echo, the combination table, reactions and
+member results for every combination, the selection narrative, the full
+member check, a **References Used** table, and notes & assumptions. Every
+check box carries a *Source:* line citing the governing specification
+section, equation numbers, and the equivalent AISC Manual table — e.g.
+§F2 Eq. F2-1…F2-6 with Manual Part 3 Tables 3-2 and 3-10 for flexure,
+§G2.1 Eq. G2-1 for shear, §E3/§E4/§E7 and §H1.1 Eq. H1-1a/H1-1b with Part 4
+Table 4-1 for axial and combined loading, Part 1 Table 1-1 for section
+properties, Part 3 Table 3-23 for the beam formulas used to verify the
+engine, and IBC Table 1604.3 for deflection limits. References are given by
+section / equation / table number rather than page number, since those
+identifiers stay valid across printings.
 
 ### Files
 | File | Purpose |
