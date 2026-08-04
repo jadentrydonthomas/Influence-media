@@ -227,6 +227,63 @@ console.log("\n[12] ASD 0.6D combo scaling (matches 0.60DL member results style)
 })();
 
 // ---------------------------------------------------------------------------
+console.log("\n[13] Axial compression - AISC Ch. E");
+(function () {
+  // W14X43, KL = 10 ft both axes, Fy = 50: KL/ry = 63.5, Fe = 71.0 ksi,
+  // Fcr = 0.658^(50/71)*50 = 37.2 ksi, Pn = 469 k, phi*Pn = 422 k (Table 4-1)
+  var c = Engine.compressionCapacity(shape("W14X43"), { Fy: 50, E: 29000, KLxFt: 10, KLyFt: 10, method: "LRFD" });
+  approx("W14X43 phi*Pn @ KL=10 ft", c.capacity, 422, 1.0);
+  approx("KL/r max", c.slMax, 63.5, 1.0);
+  var ca = Engine.compressionCapacity(shape("W14X43"), { Fy: 50, E: 29000, KLxFt: 10, KLyFt: 10, method: "ASD" });
+  approx("W14X43 Pn/Omega @ KL=10 ft", ca.capacity, 469 / 1.67, 1.0);
+  // W21X44 in pure compression has a slender web (h/tw = 53.7 > 35.9): E7 must reduce Ae
+  var c2 = Engine.compressionCapacity(shape("W21X44"), { Fy: 50, E: 29000, KLxFt: 6, KLyFt: 6, method: "LRFD" });
+  if (c2.slender && c2.Ae < c2.A) { nPass++; console.log("  PASS  W21X44 slender web reduced: Ae = " + c2.Ae.toFixed(2) + " < A = " + c2.A); }
+  else { nFail++; console.log("  FAIL  E7 reduction not applied", c2.Ae, c2.A); }
+  // slenderness flag
+  var c3 = Engine.compressionCapacity(shape("W8X10"), { Fy: 50, E: 29000, KLxFt: 30, KLyFt: 30, method: "LRFD" });
+  if (!c3.slenderOK && c3.slMax > 200) { nPass++; console.log("  PASS  KL/r > 200 flagged (" + c3.slMax.toFixed(0) + ")"); }
+  else { nFail++; console.log("  FAIL  slenderness flag", c3.slMax); }
+})();
+
+// ---------------------------------------------------------------------------
+console.log("\n[14] Combined axial + flexure - H1-1 interaction (mezzanine beam case)");
+(function () {
+  // 25.6667 ft simple span, DL+CL+LL area loads * 4 ft trib (mezzanine
+  // workbook pattern) + 10 kip axial drag load, ASD
+  var model = {
+    lengthFt: 25.6667,
+    supports: [{ x: 0, type: "pin" }, { x: 25.6667, type: "pin" }],
+    loads: {
+      uniform: [{ case: "D", w: 4 * 35 / 1000 }, { case: "L", w: 4 * 125 / 1000 }],
+      axial: [{ case: "D", P: 4 }, { case: "L", P: 6 }]
+    }
+  };
+  var combos = [
+    { name: "D", f: { D: 1 }, strength: true },
+    { name: "D+L", f: { D: 1, L: 1 }, strength: true, defl: true, deflLimit: 240 }
+  ];
+  var opts = { Fy: 50, E: 29000, method: "ASD", LbFt: 0, Cb: 1, selfWeight: false, KLxFt: 25.6667, KLyFt: 5 };
+  var d = Engine.runDesign(model, combos, opts, SHAPES);
+  var c = d.checks.find(function (x) { return x.shape.name === "W12X26"; });
+  // independent check of the wiring: recompute H1 from returned capacities
+  var P = 10, M = (4 * 160 / 1000) * 25.6667 * 25.6667 / 8;
+  approx("M demand (D+L)", c.MdemAtH, M, 0.5);
+  approx("P demand (D+L)", c.PdemAtH, P, 0.1);
+  var pr = P / c.comp.capacity, mr = M / c.flex.capacity;
+  var expected = pr >= 0.2 ? pr + 8 / 9 * mr : pr / 2 + mr;
+  approx("H1 ratio wiring (" + c.Heq + ")", c.ratioH, expected, 0.3);
+  if (c.governs.indexOf("Combined") === 0 || c.governs === "Deflection" || c.governs === "Shear") { nPass++; console.log("  PASS  governs = " + c.governs); }
+  else { nFail++; console.log("  FAIL  governs = " + c.governs); }
+  // without axial, ratioH must equal worst per-combo flexure ratio
+  var model2 = JSON.parse(JSON.stringify(model));
+  delete model2.loads.axial;
+  var d2 = Engine.runDesign(model2, combos, opts, SHAPES);
+  var c2 = d2.checks.find(function (x) { return x.shape.name === "W12X26"; });
+  approx("no axial: ratioH == ratioM", c2.ratioH, c2.ratioM, 0.05);
+})();
+
+// ---------------------------------------------------------------------------
 console.log("\n=========================================");
 console.log(nPass + " passed, " + nFail + " failed");
 if (nFail > 0) process.exit(1);

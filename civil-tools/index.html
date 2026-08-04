@@ -5,38 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Civil Engineering Tools</title>
 <style>
-  body { margin: 0; font: 15px/1.5 "Segoe UI", system-ui, Arial, sans-serif; color: #1a1d21; background: #f2f4f7; }
-  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 20px; }
-  h1 { font-size: 26px; margin-bottom: 4px; }
-  .sub { color: #5b6470; margin-top: 0; }
-  .card { display: block; background: #fff; border: 1px solid #c9ced6; border-radius: 8px; padding: 18px 20px;
-          margin: 14px 0; text-decoration: none; color: inherit; }
-  .card:hover { border-color: #0b4ea2; box-shadow: 0 2px 8px rgba(11,78,162,.12); }
-  .card h2 { margin: 0 0 4px; font-size: 18px; color: #0b4ea2; }
-  .card p { margin: 0; color: #5b6470; font-size: 13.5px; }
-  .soon { opacity: .55; pointer-events: none; }
-  .tag { display: inline-block; font-size: 11px; background: #e3e8ef; border-radius: 10px; padding: 1px 9px; margin-left: 8px; color: #5b6470; }
+  :root {
+    --bg: #F4F6F9; --panel: #FFFFFF; --line: #D5DBE6; --ink: #1A2334;
+    --mut: #5D6A80; --accent: #B97A10; --accent-soft: rgba(185,122,16,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0D131F; --panel: #151D2C; --line: #26324A; --ink: #E9EEF7;
+            --mut: #8B97AD; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.12); }
+  }
+  :root[data-theme="dark"] { --bg: #0D131F; --panel: #151D2C; --line: #26324A; --ink: #E9EEF7;
+            --mut: #8B97AD; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.12); }
+  :root[data-theme="light"] { --bg: #F4F6F9; --panel: #FFFFFF; --line: #D5DBE6; --ink: #1A2334;
+            --mut: #5D6A80; --accent: #B97A10; --accent-soft: rgba(185,122,16,.12); }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 "Segoe UI", system-ui, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 44px 20px; }
+  header { border: 1px solid var(--line); background: var(--panel); padding: 18px 22px; margin-bottom: 22px; }
+  h1 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .sub { color: var(--mut); font-size: 12.5px; margin-top: 3px; }
+  a.card, div.card { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 18px 20px; margin: 14px 0; text-decoration: none; color: inherit; }
+  a.card:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .card h2 { margin: 0 0 5px; font-size: 16.5px; color: var(--accent); }
+  .card p { margin: 0; color: var(--mut); font-size: 13px; }
+  .soon { opacity: .55; }
+  .tag { display: inline-block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
+         border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; margin-left: 8px; color: var(--mut); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Civil Engineering Tools</h1>
-  <p class="sub">Quote-engineering calculators. Built around the AISC Steel Construction Manual, 16th Ed.</p>
+  <header>
+    <h1>Civil Engineering Tools</h1>
+    <div class="sub">Quote-engineering calculators &middot; AISC Steel Construction Manual, 16th Edition</div>
+  </header>
 
   <a class="card" href="beam-designer.html">
     <h2>Steel Beam Designer</h2>
-    <p>Beam analysis (simple span, continuous, cantilever, overhangs — point, line &amp; uniform loads by load case with
-       ASD/LRFD combinations) plus automatic W-shape selection per AISC 360-22: flexure with LTB, shear, and deflection limits.
-       Shear/moment/deflection diagrams, reactions, and a printable check report.</p>
+    <p>Beam analysis (simple span, continuous, cantilever, overhangs; area&nbsp;&times;&nbsp;tributary, uniform, line,
+       point, moment, and axial loads by load case with ASD/LRFD combinations) plus automatic W-shape selection per
+       AISC 360-22 — Ch.&nbsp;F flexure with LTB, Ch.&nbsp;G shear, Ch.&nbsp;E axial with H1-1 interaction, and L/n
+       deflection limits. Interactive diagrams, reactions, printable check report.</p>
   </a>
 
   <div class="card soon">
-    <h2>Column / Compression Member Designer <span class="tag">planned</span></h2>
-    <p>KL/r, Ch. E flexural buckling, combined loading (Ch. H).</p>
+    <h2>Column / Base Plate Designer <span class="tag">planned</span></h2>
+    <p>Full-height columns (Ch. E), base plates &amp; anchor rods (Ch. J, ACI 318 anchorage).</p>
   </div>
   <div class="card soon">
-    <h2>Base Plate &amp; Anchor Rod Sizing <span class="tag">planned</span></h2>
-    <p>Ch. J bearing, ACI 318 anchorage.</p>
+    <h2>Joist &amp; Deck Selector <span class="tag">planned</span></h2>
+    <p>Vulcraft joist economy picks and deck spans from mezzanine area loads.</p>
   </div>
 </div>
 </body>

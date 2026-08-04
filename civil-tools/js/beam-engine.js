@@ -443,6 +443,60 @@ function flexureCapacity(shape, opts) {
   };
 }
 
+// Axial compression per AISC 360-22 Ch. E (E3 flexural buckling about both
+// axes, E4 torsional buckling, E7 slender-element reduction) for rolled
+// W-shapes. KLx/KLy/KLz in ft (0 = buckling about that axis restrained).
+function compressionCapacity(shape, opts) {
+  var Fy = opts.Fy, E = opts.E, G = opts.G || 11200;
+  var KLx = (opts.KLxFt || 0) * FT, KLy = (opts.KLyFt || 0) * FT;
+  var KLz = (opts.KLzFt !== undefined ? opts.KLzFt : (opts.KLyFt || 0)) * FT;
+  var A = shape.A;
+  var slx = KLx > 0 ? KLx / shape.rx : 0;
+  var sly = KLy > 0 ? KLy / shape.ry : 0;
+  var slMax = Math.max(slx, sly);
+  var Fes = [];
+  if (slx > 0) Fes.push(Math.PI * Math.PI * E / (slx * slx));
+  if (sly > 0) Fes.push(Math.PI * Math.PI * E / (sly * sly));
+  if (KLz > 0) { // (E4-2) doubly symmetric torsional buckling
+    Fes.push((Math.PI * Math.PI * E * shape.Cw / (KLz * KLz) + G * shape.J) / (shape.Ix + shape.Iy));
+  }
+  var Fe = Fes.length ? Math.min.apply(null, Fes) : Infinity;
+  var Fcr = Fe === Infinity ? Fy
+    : (Fy / Fe <= 2.25 ? Math.pow(0.658, Fy / Fe) * Fy : 0.877 * Fe); // (E3-2)/(E3-3)
+
+  // E7 slender-element reduction at stress Fcr
+  var Ae = A, webRed = 0, flgRed = 0;
+  // web: stiffened element, lam_r = 1.49 sqrt(E/Fy), c1 = 0.18, c2 = 1.31
+  var lamW = shape.htw, lamrW = 1.49 * Math.sqrt(E / Fy);
+  if (lamW > lamrW * Math.sqrt(Fy / Fcr)) {
+    var FelW = Math.pow(1.31 * lamrW / lamW, 2) * Fy; // (E7-5)
+    var h = shape.htw * shape.tw;
+    var be = h * (1 - 0.18 * Math.sqrt(FelW / Fcr)) * Math.sqrt(FelW / Fcr); // (E7-3)
+    if (be < h) { webRed = (h - be) * shape.tw; Ae -= webRed; }
+  }
+  // flange outstands: unstiffened, lam_r = 0.56 sqrt(E/Fy), c1 = 0.22, c2 = 1.49
+  var lamF = shape.bf2tf, lamrF = 0.56 * Math.sqrt(E / Fy);
+  if (lamF > lamrF * Math.sqrt(Fy / Fcr)) {
+    var FelF = Math.pow(1.49 * lamrF / lamF, 2) * Fy;
+    var b = shape.bf / 2;
+    var bef = b * (1 - 0.22 * Math.sqrt(FelF / Fcr)) * Math.sqrt(FelF / Fcr);
+    if (bef < b) { flgRed = 4 * (b - bef) * shape.tf; Ae -= flgRed; }
+  }
+  var Pn = Fcr * Ae; // (E7-1)
+  var cap = opts.method === "ASD" ? Pn / 1.67 : 0.90 * Pn;
+  return {
+    Pn: Pn, capacity: cap, Fe: Fe, Fcr: Fcr, Ae: Ae, A: A,
+    slx: slx, sly: sly, slMax: slMax, slenderOK: slMax <= 200,
+    slender: (webRed > 0 || flgRed > 0)
+  };
+}
+
+// Axial tension, gross-section yielding only (D2-1). Holes/net section not checked.
+function tensionCapacity(shape, opts) {
+  var Pn = opts.Fy * shape.A;
+  return { Pn: Pn, capacity: opts.method === "ASD" ? Pn / 1.67 : 0.90 * Pn };
+}
+
 function shearCapacity(shape, opts) {
   var Fy = opts.Fy, E = opts.E;
   var Aw = shape.d * shape.tw;
@@ -492,21 +546,46 @@ function runDesign(model, combos, opts, shapes) {
     if (c.defl) deflIdx.push(i);
   });
 
+  // axial load totals per case (kips, compression positive)
+  var PbyCase = {};
+  ((model.loads && model.loads.axial) || []).forEach(function (a) {
+    if (a.P) PbyCase[a.case] = (PbyCase[a.case] || 0) + a.P;
+  });
+  var hasAxial = Object.keys(PbyCase).some(function (k) { return PbyCase[k] !== 0; });
+
   var checks = shapes.map(function (sh) {
     if (opts.maxDepthIn && sh.d > opts.maxDepthIn + 1e-9) return null;
     if (opts.minDepthIn && sh.d < opts.minDepthIn - 1e-9) return null;
     var sw = opts.selfWeight ? sh.wt / 1000 : 0; // kip/ft
     var flex = flexureCapacity(sh, opts);
     var shear = shearCapacity(sh, opts);
+    var comp = hasAxial ? compressionCapacity(sh, opts) : null;
+    var ten = hasAxial ? tensionCapacity(sh, opts) : null;
 
     var Mdem = 0, MdemX = 0, MdemCombo = "", Vdem = 0, VdemCombo = "";
+    var ratioH = 0, HCombo = "", Heq = "", PdemAtH = 0, MdemAtH = 0;
     strengthIdx.forEach(function (ci) {
       var st = combineStations(base.results[ci], unit && unit.results[ci], sw);
+      var mMax = 0, mX = 0;
       st.forEach(function (s) {
         var aM = Math.abs(s.M), aV = Math.abs(s.V);
+        if (aM > mMax) { mMax = aM; mX = s.x; }
         if (aM > Mdem) { Mdem = aM; MdemX = s.x; MdemCombo = combos[ci].name; }
         if (aV > Vdem) { Vdem = aV; VdemCombo = combos[ci].name; }
       });
+      // combined axial + flexure per combo (AISC H1-1); with P = 0 this
+      // reduces to the plain flexure ratio Mr/Mc
+      var P = 0;
+      Object.keys(combos[ci].f || {}).forEach(function (cs) {
+        if (PbyCase[cs]) P += combos[ci].f[cs] * PbyCase[cs];
+      });
+      var Pc = P >= 0 ? (comp ? comp.capacity : Infinity) : (ten ? ten.capacity : Infinity);
+      var pRat = Pc > 0 && Pc !== Infinity ? Math.abs(P) / Pc : 0;
+      var mRat = flex.capacity > 0 ? mMax / flex.capacity : (mMax > 0 ? Infinity : 0);
+      var r, eq;
+      if (pRat >= 0.2) { r = pRat + (8 / 9) * mRat; eq = "H1-1a"; }
+      else { r = pRat / 2 + mRat; eq = "H1-1b"; }
+      if (r > ratioH) { ratioH = r; HCombo = combos[ci].name; Heq = eq; PdemAtH = P; MdemAtH = mMax; }
     });
 
     var scale = I_REF / sh.Ix;
@@ -536,19 +615,24 @@ function runDesign(model, combos, opts, shapes) {
       };
     }
 
-    var rM = flex.capacity > 0 ? Mdem / flex.capacity : Infinity;
-    var rV = shear.capacity > 0 ? Vdem / shear.capacity : Infinity;
+    var rM = flex.capacity > 0 ? Mdem / flex.capacity : (Mdem > 0 ? Infinity : 0);
+    var rV = shear.capacity > 0 ? Vdem / shear.capacity : (Vdem > 0 ? Infinity : 0);
     var rD = 0;
     deflChecks.forEach(function (d) { if (d.ratio > rD) rD = d.ratio; });
-    var pass = rM <= 1.0 + 1e-9 && rV <= 1.0 + 1e-9 && deflChecks.every(function (d) { return d.pass; });
-    var governs = rM >= rV && rM >= rD ? "Flexure" : (rV >= rD ? "Shear" : "Deflection");
+    // ratioH already equals the worst per-combo flexure ratio when no axial
+    var pass = ratioH <= 1.0 + 1e-9 && rV <= 1.0 + 1e-9 && deflChecks.every(function (d) { return d.pass; });
+    var governs = ratioH >= rV && ratioH >= rD
+      ? (hasAxial ? "Combined (H1)" : "Flexure")
+      : (rV >= rD ? "Shear" : "Deflection");
     return {
-      shape: sh, flex: flex, shear: shear,
+      shape: sh, flex: flex, shear: shear, comp: comp, ten: ten,
+      hasAxial: hasAxial,
       Mdem: Mdem, MdemX: MdemX, MdemCombo: MdemCombo,
       Vdem: Vdem, VdemCombo: VdemCombo,
       deflChecks: deflChecks,
       ratioM: rM, ratioV: rV, ratioD: rD,
-      maxRatio: Math.max(rM, rV, rD),
+      ratioH: ratioH, HCombo: HCombo, Heq: Heq, PdemAtH: PdemAtH, MdemAtH: MdemAtH,
+      maxRatio: Math.max(ratioH, rV, rD),
       pass: pass, governs: governs
     };
   }).filter(Boolean);
@@ -606,6 +690,8 @@ return {
   analyzeForShape: analyzeForShape,
   flexureCapacity: flexureCapacity,
   shearCapacity: shearCapacity,
+  compressionCapacity: compressionCapacity,
+  tensionCapacity: tensionCapacity,
   runDesign: runDesign,
   spanMap: spanMap,
   I_REF: I_REF

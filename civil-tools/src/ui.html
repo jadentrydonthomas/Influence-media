@@ -1,0 +1,1104 @@
+<title>Steel Beam Designer</title>
+<style>
+  :root {
+    --bg: #F4F6F9; --panel: #FFFFFF; --panel2: #EDF0F5; --line: #D5DBE6;
+    --ink: #1A2334; --mut: #5D6A80; --accent: #B97A10; --accent-soft: rgba(185,122,16,.14);
+    --ok: #1F9D57; --bad: #C4373F; --shear: #2563D9; --mom: #1F9D57; --defl: #66707F;
+    --focus: #B97A10;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0D131F; --panel: #151D2C; --panel2: #1B2536; --line: #26324A;
+      --ink: #E9EEF7; --mut: #8B97AD; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.13);
+      --ok: #45C97E; --bad: #F0616D; --shear: #5C9BFF; --mom: #45C97E; --defl: #97A3B6;
+      --focus: #F2A63B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D131F; --panel: #151D2C; --panel2: #1B2536; --line: #26324A;
+    --ink: #E9EEF7; --mut: #8B97AD; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.13);
+    --ok: #45C97E; --bad: #F0616D; --shear: #5C9BFF; --mom: #45C97E; --defl: #97A3B6;
+    --focus: #F2A63B;
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F6F9; --panel: #FFFFFF; --panel2: #EDF0F5; --line: #D5DBE6;
+    --ink: #1A2334; --mut: #5D6A80; --accent: #B97A10; --accent-soft: rgba(185,122,16,.14);
+    --ok: #1F9D57; --bad: #C4373F; --shear: #2563D9; --mom: #1F9D57; --defl: #66707F;
+    --focus: #B97A10;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font: 13.5px/1.5 "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    color: var(--ink); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono, td.n, input[type=number] {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, Menlo, monospace;
+    font-variant-numeric: tabular-nums; font-size: 12.5px;
+  }
+  .shell { max-width: 1320px; margin: 0 auto; padding: 18px 20px 70px; }
+
+  /* ---------- masthead: drawing title block ---------- */
+  .mast { display: flex; align-items: stretch; gap: 0; border: 1px solid var(--line);
+          background: var(--panel); margin-bottom: 16px; }
+  .mast .block { padding: 12px 18px; border-right: 1px solid var(--line); }
+  .mast h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .mast .sub { color: var(--mut); font-size: 11.5px; letter-spacing: .02em; margin-top: 2px; }
+  .mast .grow { flex: 1; }
+  .mast .actions { display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+  .kv { display: flex; flex-direction: column; justify-content: center; min-width: 110px; }
+  .kv b { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--mut); font-weight: 600; }
+  .kv span { font-weight: 600; }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 12px;
+          font-size: 11.5px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+  .pill.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+  .pill.bad { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+  .pill.idle { background: var(--panel2); color: var(--mut); }
+
+  .btn { border: 1px solid var(--line); background: var(--panel2); color: var(--ink);
+         padding: 6px 14px; font: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer; border-radius: 4px; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .btn.sm { padding: 2px 9px; font-size: 11.5px; }
+  .btn.chip { border-radius: 999px; }
+  .x { color: var(--bad); background: none; border: none; font-size: 14px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .x:hover { color: var(--ink); }
+
+  /* ---------- layout ---------- */
+  .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+  .rail, .out { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  .card > .hd { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line);
+                font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--mut);
+                cursor: pointer; user-select: none; }
+  .card > .hd::after { content: "–"; margin-left: auto; color: var(--mut); }
+  .card.closed > .hd::after { content: "+"; }
+  .card.closed > .bd { display: none; }
+  .card > .hd .tag { margin-left: 6px; letter-spacing: 0; text-transform: none; font-weight: 600; color: var(--accent); }
+  .card > .bd { padding: 13px 14px; }
+
+  .frow { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; }
+  .fld { display: flex; flex-direction: column; gap: 3px; }
+  .fld > label { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut); font-weight: 600; }
+  input[type=number], input[type=text], select {
+    border: 1px solid var(--line); border-radius: 3px; padding: 5px 7px; font: inherit;
+    background: var(--panel2); color: var(--ink);
+  }
+  input[type=number] { width: 88px; text-align: right; }
+  input[type=checkbox] { accent-color: var(--accent); }
+  select { font-size: 12.5px; }
+
+  table { border-collapse: collapse; width: auto; }
+  th { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--mut);
+       text-align: center; padding: 3px 6px; font-weight: 600; }
+  td { padding: 2px 4px; text-align: center; }
+  td.n { text-align: right; }
+  .grid td, .grid th { border-bottom: 1px solid var(--line); padding: 4px 8px; }
+  .grid tbody tr:last-child td { border-bottom: none; }
+  .scroll { overflow-x: auto; }
+
+  .ldgrp { margin-bottom: 12px; }
+  .ldgrp:last-child { margin-bottom: 0; }
+  .ldgrp h3 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut);
+              margin: 0 0 4px; font-weight: 700; }
+  .ldgrp input[type=number] { width: 64px; padding: 3px 5px; }
+
+  .tip { color: var(--mut); cursor: help; border-bottom: 1px dotted var(--mut); font-style: normal; }
+  .note { color: var(--mut); font-size: 11.5px; }
+
+  /* ---------- section stamp ---------- */
+  .stamp { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .stamp .xsec { flex: 0 0 auto; }
+  .stamp .name { font-size: 36px; font-weight: 800; letter-spacing: -.01em; line-height: 1.05; }
+  .stamp .meta { color: var(--mut); font-size: 12px; margin-top: 2px; }
+  .stamp .who { flex: 1 1 220px; min-width: 200px; }
+  .ratios { flex: 1 1 250px; min-width: 230px; display: flex; flex-direction: column; gap: 8px; }
+  .ratio-row { display: grid; grid-template-columns: 74px 1fr 92px; gap: 10px; align-items: center; font-size: 11.5px; }
+  .ratio-row .lbl { color: var(--mut); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; font-size: 10px; }
+  .bar { height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 3px; background: var(--ok); }
+  .bar i.hot { background: var(--bad); }
+  .stamp .verdict { flex-basis: 100%; }
+
+  /* ---------- diagrams ---------- */
+  .diag-head { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; margin-bottom: 8px; }
+  .probe { font-family: ui-monospace, Consolas, Menlo, monospace; font-variant-numeric: tabular-nums;
+           font-size: 12px; color: var(--mut); background: var(--panel2); border-radius: 4px;
+           padding: 4px 10px; margin: 6px 0 8px; min-height: 24px; }
+  .probe b { color: var(--ink); font-weight: 600; }
+  svg.plot, svg.schem { display: block; width: 100%; background: var(--panel);
+      border: 1px solid var(--line); border-radius: 4px; margin-bottom: 8px; }
+  svg text { fill: var(--ink); }
+  svg .mutt { fill: var(--mut); }
+
+  .cand tbody tr { cursor: pointer; }
+  .cand tbody tr:hover td { background: var(--accent-soft); }
+  .cand tr.sel td { background: var(--accent-soft); }
+  .cand td:first-child { font-weight: 700; text-align: left; }
+  .util { position: relative; min-width: 90px; }
+  .util .bar { margin-top: 3px; }
+
+  .passing { color: var(--ok); font-weight: 700; }
+  .failing { color: var(--bad); font-weight: 700; }
+
+  .sumtbl td { text-align: right; padding: 2px 10px; }
+  .sumtbl td.lbl { font-weight: 700; }
+  .sumtbl td.unit { text-align: left; color: var(--mut); }
+  h3.blk { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--mut); margin: 16px 0 4px; }
+
+  .rptgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; }
+  .rptbox { border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; background: var(--panel); }
+  .rptbox h4 { margin: 0 0 6px; font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--mut); }
+  .rptbox table { width: 100%; }
+  .rptbox td { text-align: left; padding: 1.5px 8px 1.5px 0; }
+  .rptbox td:last-child { text-align: right; font-family: ui-monospace, Consolas, Menlo, monospace;
+                          font-variant-numeric: tabular-nums; font-size: 12px; }
+
+  .combo-tbl input[type=number] { width: 52px; padding: 3px 4px; }
+  .combo-tbl input[type=text] { width: 178px; font-size: 12px; }
+
+  .foot { color: var(--mut); font-size: 11px; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 10px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .bar i { transition: width .35s ease; }
+    .btn, .cand tbody td { transition: background .15s ease, border-color .15s ease; }
+  }
+  @media print {
+    :root, :root[data-theme="dark"] {
+      --bg: #fff; --panel: #fff; --panel2: #f2f2f2; --line: #999; --ink: #000; --mut: #444;
+      --accent: #7a5200; --accent-soft: #eee; --ok: #1F7a45; --bad: #a02020;
+      --shear: #1a3f9d; --mom: #17663a; --defl: #555;
+    }
+    .btn, .x, .actions, .probe { display: none !important; }
+    .layout { grid-template-columns: 1fr; }
+    .card { break-inside: avoid; }
+    .card.closed > .bd { display: block; }
+    body { font-size: 12px; }
+  }
+</style>
+
+<div class="shell">
+  <header class="mast">
+    <div class="block grow">
+      <h1>Steel Beam Designer</h1>
+      <div class="sub">AISC Steel Construction Manual &middot; 16th Edition &middot; AISC 360-22 &mdash; analysis &amp; W-shape selection</div>
+    </div>
+    <div class="block kv"><b>Method</b><span id="mastMethod">ASD</span></div>
+    <div class="block kv"><b>Selected</b><span id="mastShape" class="mono">&mdash;</span></div>
+    <div class="actions">
+      <span id="status" class="pill idle">ready</span>
+      <button id="btnRun" class="btn primary" onclick="run()">Run</button>
+      <button class="btn" onclick="window.print()">Print report</button>
+      <button id="btnTheme" class="btn" title="Toggle light / dark" aria-label="Toggle theme">&#9681;</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- ============ INPUT RAIL ============ -->
+    <aside class="rail">
+      <section class="card" id="pGeom">
+        <div class="hd" onclick="togglePanel(this)">Beam &amp; Supports</div>
+        <div class="bd">
+          <div class="frow" style="margin-bottom:10px">
+            <div class="fld">
+              <label>Length (ft) <i class="tip" title="Total member length, including overhangs">&#9432;</i></label>
+              <input type="number" id="lenFt" step="any" value="25.6667">
+            </div>
+            <div class="fld">
+              <label>Preset</label>
+              <div>
+                <button class="btn sm chip" onclick="preset('simple')">Simple</button>
+                <button class="btn sm chip" onclick="preset('cant')">Cantilever</button>
+                <button class="btn sm chip" onclick="preset('2span')">2-Span</button>
+                <button class="btn sm chip" onclick="preset('3span')">3-Span</button>
+              </div>
+            </div>
+          </div>
+          <div class="fld">
+            <label>Supports <i class="tip" title="Pinned = vertical restraint. Fixed = vertical + rotational. A beam end without a support is an overhang / cantilever tip.">&#9432;</i></label>
+            <table id="supTbl"><thead><tr><th>x (ft)</th><th>Type</th><th></th></tr></thead><tbody></tbody></table>
+            <div style="margin-top:4px"><button class="btn sm" onclick="addSupport()">+ Support</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="pLoads">
+        <div class="hd" onclick="togglePanel(this)">Loads <span class="tag">+ down, x from left</span></div>
+        <div class="bd">
+          <div class="ldgrp">
+            <h3>Area &times; Tributary <i class="tip" title="Mezzanine-style input: area load (psf) x tributary width (ft) is applied as a full-length uniform load = psf x trib / 1000 kip/ft">&#9432;</i></h3>
+            <table id="areaTbl"><thead><tr><th>Case</th><th>psf</th><th>Trib (ft)</th><th>= k/ft</th><th></th></tr></thead><tbody></tbody></table>
+            <button class="btn sm" onclick="addRow('area')">+ Add</button>
+          </div>
+          <div class="ldgrp">
+            <h3>Uniform <i class="tip" title="Full-length uniform load, kip/ft">&#9432;</i></h3>
+            <table id="uniTbl"><thead><tr><th>Case</th><th>w (k/ft)</th><th></th></tr></thead><tbody></tbody></table>
+            <button class="btn sm" onclick="addRow('uni')">+ Add</button>
+          </div>
+          <div class="ldgrp">
+            <h3>Line <i class="tip" title="Partial trapezoidal load: w1 at x1 varying to w2 at x2, kip/ft">&#9432;</i></h3>
+            <table id="lineTbl"><thead><tr><th>Case</th><th>w1</th><th>w2</th><th>x1</th><th>x2</th><th></th></tr></thead><tbody></tbody></table>
+            <button class="btn sm" onclick="addRow('line')">+ Add</button>
+          </div>
+          <div class="ldgrp">
+            <h3>Point <i class="tip" title="Concentrated load, kips, at x ft from left end">&#9432;</i></h3>
+            <table id="ptTbl"><thead><tr><th>Case</th><th>x (ft)</th><th>kips</th><th></th></tr></thead><tbody></tbody></table>
+            <button class="btn sm" onclick="addRow('pt')">+ Add</button>
+          </div>
+          <div class="ldgrp">
+            <h3>Moment <i class="tip" title="Concentrated moment, kip-ft, positive counterclockwise">&#9432;</i></h3>
+            <table id="momTbl"><thead><tr><th>Case</th><th>x (ft)</th><th>k-ft</th><th></th></tr></thead><tbody></tbody></table>
+            <button class="btn sm" onclick="addRow('mom')">+ Add</button>
+          </div>
+          <div class="ldgrp">
+            <h3>Axial <i class="tip" title="Member axial load, kips: + compression, - tension (e.g. mezzanine drag/brace force). Checked per AISC Ch. E and combined with flexure per H1-1 in each strength combo. First-order (no amplification).">&#9432;</i></h3>
+            <table id="axTbl"><thead><tr><th>Case</th><th>P (kips)</th><th></th></tr></thead><tbody></tbody></table>
+            <button class="btn sm" onclick="addRow('ax')">+ Add</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="pCrit">
+        <div class="hd" onclick="togglePanel(this)">Design Criteria</div>
+        <div class="bd">
+          <div class="frow">
+            <div class="fld">
+              <label>Method</label>
+              <select id="method"><option value="ASD" selected>ASD</option><option value="LRFD">LRFD</option></select>
+            </div>
+            <div class="fld">
+              <label>Fy (ksi) <i class="tip" title="A992 W-shapes: 50 ksi">&#9432;</i></label>
+              <input type="number" id="fy" step="any" value="50" style="width:64px">
+            </div>
+            <div class="fld">
+              <label>E (ksi)</label>
+              <input type="number" id="emod" step="any" value="29000" style="width:74px">
+            </div>
+            <div class="fld">
+              <label>Cb <i class="tip" title="LTB modification factor (AISC F1-1); 1.0 is conservative">&#9432;</i></label>
+              <input type="number" id="cb" step="any" value="1.0" style="width:56px">
+            </div>
+          </div>
+          <div class="frow" style="margin-top:10px">
+            <div class="fld">
+              <label>Flange bracing</label>
+              <div>
+                <label style="text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--ink);font-weight:400">
+                  <input type="checkbox" id="braced" checked onchange="syncBraced()"> Fully braced
+                </label>
+                &nbsp;Lb (ft): <input type="number" id="lb" step="any" value="0" disabled style="width:60px">
+              </div>
+            </div>
+          </div>
+          <div class="frow" style="margin-top:10px">
+            <div class="fld">
+              <label>Self-weight</label>
+              <label style="text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--ink);font-weight:400">
+                <input type="checkbox" id="selfwt" checked> Include beam self-weight (as DL)
+              </label>
+            </div>
+            <div class="fld">
+              <label>Depth (in, optional)</label>
+              <div>min <input type="number" id="minD" step="any" style="width:56px">
+                   max <input type="number" id="maxD" step="any" style="width:56px"></div>
+            </div>
+            <div class="fld">
+              <label>Axial buckling KL (ft) <i class="tip" title="Effective lengths for Ch. E column buckling when an axial load is entered. Blank KLx = full span; blank KLy = Lb (0 when fully braced). K = 1.0 assumed unless you enter K*L directly.">&#9432;</i></label>
+              <div>KLx <input type="number" id="klx" step="any" style="width:56px" placeholder="span">
+                   KLy <input type="number" id="kly" step="any" style="width:56px" placeholder="= Lb"></div>
+            </div>
+          </div>
+          <p class="note" style="margin:10px 0 0">Load combinations are edited in the panel below the results.</p>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ============ RESULTS ============ -->
+    <main class="out">
+      <section class="card" id="pStamp">
+        <div class="hd" onclick="togglePanel(this)">Beam Selection</div>
+        <div class="bd" id="stampOut"><p class="note">Waiting for first run&hellip;</p></div>
+      </section>
+
+      <section class="card" id="pDiag">
+        <div class="hd" onclick="togglePanel(this)">Shear &amp; Moment Diagrams</div>
+        <div class="bd">
+          <div class="diag-head">
+            <div class="fld"><label>Load combo</label><select id="diagCombo" onchange="drawAll()"></select></div>
+            <div class="fld">
+              <label>Section for diagrams / check <i class="tip" title="AUTO uses the lightest passing shape; type any shape (e.g. W16X26) to check it instead">&#9432;</i></label>
+              <input type="text" id="shapePick" list="shapeList" value="AUTO (lightest passing)" onchange="run()" style="width:210px">
+              <datalist id="shapeList"></datalist>
+            </div>
+          </div>
+          <div class="probe" id="probe">move the cursor across a diagram to probe V / M / &delta; at x</div>
+          <div id="diagArea"></div>
+        </div>
+      </section>
+
+      <section class="card" id="pCand">
+        <div class="hd" onclick="togglePanel(this)">Candidates</div>
+        <div class="bd" id="candOut"></div>
+      </section>
+
+      <section class="card" id="pSummary">
+        <div class="hd" onclick="togglePanel(this)">Result Summary</div>
+        <div class="bd" id="summaryOut"></div>
+      </section>
+
+      <section class="card" id="pReport">
+        <div class="hd" onclick="togglePanel(this)">Detailed Check</div>
+        <div class="bd" id="reportOut"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ COMBOS (full width) ============ -->
+  <section class="card" id="pCombos" style="margin-top:16px">
+    <div class="hd" onclick="togglePanel(this)">Load Combinations</div>
+    <div class="bd">
+      <p class="note" style="margin-top:0">Strength &check; = used for flexure/shear demand. Defl &check; = checked against its own L/n limit
+        (span between supports; 2&times;length for cantilevers and overhangs). Collateral CL is factored with dead load.</p>
+      <div style="margin-bottom:8px">
+        <button class="btn sm" id="btnTemplate" onclick="loadTemplate()">Reset to IBC / ASCE 7 defaults for current method</button>
+        <button class="btn sm" onclick="addCombo()">+ Custom combo</button>
+      </div>
+      <div class="scroll">
+        <table class="grid combo-tbl" id="comboTbl">
+          <thead><tr><th style="text-align:left">Combination</th><th>DL</th><th>CL</th><th>LL</th><th>RLL</th><th>SL</th><th>WL</th><th>EL</th>
+            <th>Strength</th><th>Defl</th><th>L / n</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Section properties: AISC Shapes Database (289 W-shapes). Strength: AISC 360-22 &mdash; Ch. F flexure
+    (&phi;<sub>b</sub>=0.90 / &Omega;<sub>b</sub>=1.67, LTB per F2 with Lb &amp; Cb, noncompact flange per F3),
+    Ch. G shear. Analysis: Euler&ndash;Bernoulli finite-element stiffness method.
+    Design aid only &mdash; results must be reviewed and sealed by a licensed professional engineer.
+  </footer>
+</div>
+
+<script>
+/*__SHAPES__*/
+</script>
+<script>
+/*__ENGINE__*/
+</script>
+<script>
+"use strict";
+var CASES = ["DL", "CL", "LL", "RLL", "SL", "WL", "EL"];
+var CASE_TIP = { DL: "Dead", CL: "Collateral", LL: "Live", RLL: "Roof Live", SL: "Snow", WL: "Wind", EL: "Seismic" };
+var $ = function (id) { return document.getElementById(id); };
+var combos = [];
+var lastRun = null;
+
+function Engine() { return window.BeamEngine; }
+function W_SHAPES() { return window.AISC_W_SHAPES; }
+function fmt(v, dp) { return isFinite(v) ? v.toFixed(dp === undefined ? 2 : dp) : "—"; }
+function num(v, dflt) { var n = parseFloat(v); return isFinite(n) ? n : (dflt || 0); }
+function togglePanel(hd) { hd.parentElement.classList.toggle("closed"); }
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#888"; }
+
+/* ---------------- theme ---------------- */
+(function () {
+  var root = document.documentElement;
+  try {
+    var saved = localStorage.getItem("bd-theme");
+    if (saved && !root.getAttribute("data-theme")) root.setAttribute("data-theme", saved);
+  } catch (e) {}
+  $("btnTheme").addEventListener("click", function () {
+    var cur = root.getAttribute("data-theme");
+    if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    var next = cur === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("bd-theme", next); } catch (e) {}
+    if (lastRun) { drawAll(); }
+  });
+})();
+
+/* ---------------- status pill ---------------- */
+function setStatus(kind, text) {
+  var s = $("status");
+  s.className = "pill " + kind;
+  s.textContent = text;
+}
+function err(msg) {
+  if (msg) setStatus("bad", msg);
+}
+
+/* ---------------- input rows ---------------- */
+function caseSel(val) {
+  return '<select class="cs">' + CASES.map(function (c) {
+    return '<option value="' + c + '"' + (c === val ? " selected" : "") + ' title="' + CASE_TIP[c] + '">' + c + "</option>";
+  }).join("") + "</select>";
+}
+function numCell(val, w) {
+  return '<input type="number" step="any" value="' + (val !== undefined && val !== null ? val : "") + '"' + (w ? ' style="width:' + w + 'px"' : "") + ">";
+}
+function delBtn() { return '<button class="x" title="Remove" onclick="this.closest(\'tr\').remove(); run()">&#10005;</button>'; }
+
+function addSupport(x, type) {
+  var tr = document.createElement("tr");
+  tr.innerHTML = "<td>" + numCell(x !== undefined ? x : "", 76) + '</td><td><select><option value="pin"' +
+    (type !== "fix" ? " selected" : "") + '>Pinned</option><option value="fix"' + (type === "fix" ? " selected" : "") +
+    ">Fixed</option></select></td><td>" + delBtn() + "</td>";
+  $("supTbl").tBodies[0].appendChild(tr);
+  hookInputs(tr);
+}
+function addRow(kind, vals) {
+  vals = vals || {};
+  var tb, html;
+  if (kind === "uni") { tb = $("uniTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.w) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "area") { tb = $("areaTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.psf) + "</td><td>" + numCell(vals.trib) + '</td><td class="n eq mono">&mdash;</td><td>' + delBtn() + "</td>"; }
+  if (kind === "ax") { tb = $("axTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.P) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "line") { tb = $("lineTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.w1) + "</td><td>" + numCell(vals.w2) + "</td><td>" + numCell(vals.x1) + "</td><td>" + numCell(vals.x2) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "pt") { tb = $("ptTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.x) + "</td><td>" + numCell(vals.P) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "mom") { tb = $("momTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.x) + "</td><td>" + numCell(vals.M) + "</td><td>" + delBtn() + "</td>"; }
+  var tr = document.createElement("tr");
+  tr.innerHTML = html;
+  tb.appendChild(tr);
+  hookInputs(tr);
+}
+function preset(kind) {
+  var L = num($("lenFt").value, 30);
+  $("supTbl").tBodies[0].innerHTML = "";
+  if (kind === "simple") { addSupport(0, "pin"); addSupport(L, "pin"); }
+  if (kind === "cant") { addSupport(0, "fix"); }
+  if (kind === "2span") { addSupport(0, "pin"); addSupport(L / 2, "pin"); addSupport(L, "pin"); }
+  if (kind === "3span") { addSupport(0, "pin"); addSupport(L / 3, "pin"); addSupport(2 * L / 3, "pin"); addSupport(L, "pin"); }
+  run();
+}
+function syncBraced() { $("lb").disabled = $("braced").checked; run(); }
+
+var prevLen = 25.6667;
+function onLenChange() {
+  var L = num($("lenFt").value, prevLen);
+  var rows = $("supTbl").tBodies[0].rows;
+  for (var i = 0; i < rows.length; i++) {
+    var inp = rows[i].querySelector("input");
+    if (Math.abs(num(inp.value) - prevLen) < 1e-9) inp.value = L;
+  }
+  prevLen = L;
+}
+
+/* ---------------- combos ---------------- */
+function comboRow(c) {
+  var tr = document.createElement("tr");
+  var cells = '<td style="text-align:left"><input type="text" value="' + c.name + '"></td>';
+  CASES.forEach(function (cs) {
+    cells += "<td>" + '<input type="number" step="any" value="' + (c.f[cs] || "") + '"></td>';
+  });
+  cells += '<td><input type="checkbox" class="chkS"' + (c.s ? " checked" : "") + "></td>";
+  cells += '<td><input type="checkbox" class="chkD"' + (c.d ? " checked" : "") + "></td>";
+  cells += "<td>" + '<input type="number" step="1" value="' + (c.lim || "") + '" style="width:56px"></td>';
+  cells += "<td>" + delBtn() + "</td>";
+  tr.innerHTML = cells;
+  $("comboTbl").tBodies[0].appendChild(tr);
+  hookInputs(tr);
+}
+function addCombo() { comboRow({ name: "Custom", f: {}, s: true, d: false, lim: 240 }); }
+function loadTemplate() {
+  var m = $("method").value;
+  var t;
+  if (m === "ASD") {
+    t = [
+      { name: "DL", f: { DL: 1, CL: 1 }, s: 1 },
+      { name: "DL+LL", f: { DL: 1, CL: 1, LL: 1 }, s: 1 },
+      { name: "DL+RLL", f: { DL: 1, CL: 1, RLL: 1 }, s: 1 },
+      { name: "DL+SL", f: { DL: 1, CL: 1, SL: 1 }, s: 1 },
+      { name: "DL+0.75LL+0.75SL", f: { DL: 1, CL: 1, LL: 0.75, SL: 0.75 }, s: 1 },
+      { name: "DL+0.75LL+0.75RLL", f: { DL: 1, CL: 1, LL: 0.75, RLL: 0.75 }, s: 1 },
+      { name: "DL+0.6WL", f: { DL: 1, CL: 1, WL: 0.6 }, s: 1 },
+      { name: "DL+0.75LL+0.75SL+0.45WL", f: { DL: 1, CL: 1, LL: 0.75, SL: 0.75, WL: 0.45 }, s: 1 },
+      { name: "0.60DL+0.6WL", f: { DL: 0.6, CL: 0.6, WL: 0.6 }, s: 1 },
+      { name: "DL+0.7EL", f: { DL: 1, CL: 1, EL: 0.7 }, s: 1 },
+      { name: "0.60DL+0.7EL", f: { DL: 0.6, CL: 0.6, EL: 0.7 }, s: 1 }
+    ];
+  } else {
+    t = [
+      { name: "1.4DL", f: { DL: 1.4, CL: 1.4 }, s: 1 },
+      { name: "1.2DL+1.6LL+0.5SL", f: { DL: 1.2, CL: 1.2, LL: 1.6, SL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.6LL+0.5RLL", f: { DL: 1.2, CL: 1.2, LL: 1.6, RLL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.6SL+LL", f: { DL: 1.2, CL: 1.2, SL: 1.6, LL: 1 }, s: 1 },
+      { name: "1.2DL+1.6SL+0.5WL", f: { DL: 1.2, CL: 1.2, SL: 1.6, WL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.6RLL+LL", f: { DL: 1.2, CL: 1.2, RLL: 1.6, LL: 1 }, s: 1 },
+      { name: "1.2DL+1.6RLL+0.5WL", f: { DL: 1.2, CL: 1.2, RLL: 1.6, WL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.0WL+LL+0.5SL", f: { DL: 1.2, CL: 1.2, WL: 1, LL: 1, SL: 0.5 }, s: 1 },
+      { name: "0.9DL+1.0WL", f: { DL: 0.9, CL: 0.9, WL: 1 }, s: 1 },
+      { name: "1.2DL+1.0EL+LL+0.2SL", f: { DL: 1.2, CL: 1.2, EL: 1, LL: 1, SL: 0.2 }, s: 1 },
+      { name: "0.9DL+1.0EL", f: { DL: 0.9, CL: 0.9, EL: 1 }, s: 1 }
+    ];
+  }
+  t.push({ name: "Total Load Defl (D+C+L+S)", f: { DL: 1, CL: 1, LL: 1, RLL: 1, SL: 1 }, d: 1, lim: 240 });
+  t.push({ name: "Live Load Defl (L+S)", f: { LL: 1, RLL: 1, SL: 1 }, d: 1, lim: 360 });
+  $("comboTbl").tBodies[0].innerHTML = "";
+  t.forEach(comboRow);
+  run();
+}
+function readCombos() {
+  var out = [];
+  var rows = $("comboTbl").tBodies[0].rows;
+  for (var i = 0; i < rows.length; i++) {
+    var tds = rows[i].cells;
+    var f = {};
+    CASES.forEach(function (cs, j) {
+      var v = num(tds[1 + j].querySelector("input").value);
+      if (v) f[cs] = v;
+    });
+    out.push({
+      name: tds[0].querySelector("input").value || ("Combo " + (i + 1)),
+      f: f,
+      strength: tds[8].querySelector("input").checked,
+      defl: tds[9].querySelector("input").checked,
+      deflLimit: num(tds[10].querySelector("input").value, 240) || 240
+    });
+  }
+  return out;
+}
+
+/* ---------------- model ---------------- */
+function readModel() {
+  var model = { lengthFt: num($("lenFt").value, 0), supports: [], loads: { uniform: [], line: [], point: [], moment: [] } };
+  var rows = $("supTbl").tBodies[0].rows, i, td;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    var x = num(td[0].querySelector("input").value, NaN);
+    if (isFinite(x)) model.supports.push({ x: x, type: td[1].querySelector("select").value });
+  }
+  rows = $("uniTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.uniform.push({ case: td[0].querySelector("select").value, w: num(td[1].querySelector("input").value) });
+  }
+  rows = $("areaTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    var psf = num(td[1].querySelector("input").value), trib = num(td[2].querySelector("input").value);
+    var wEq = psf * trib / 1000;
+    td[3].innerHTML = wEq ? wEq.toFixed(3) : "&mdash;";
+    if (wEq) model.loads.uniform.push({ case: td[0].querySelector("select").value, w: wEq });
+  }
+  model.loads.axial = [];
+  rows = $("axTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    var Pax = num(td[1].querySelector("input").value);
+    if (Pax) model.loads.axial.push({ case: td[0].querySelector("select").value, P: Pax });
+  }
+  rows = $("lineTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.line.push({
+      case: td[0].querySelector("select").value,
+      w1: num(td[1].querySelector("input").value), w2: num(td[2].querySelector("input").value),
+      x1: num(td[3].querySelector("input").value), x2: num(td[4].querySelector("input").value)
+    });
+  }
+  rows = $("ptTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.point.push({ case: td[0].querySelector("select").value, x: num(td[1].querySelector("input").value), P: num(td[2].querySelector("input").value) });
+  }
+  rows = $("momTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.moment.push({ case: td[0].querySelector("select").value, x: num(td[1].querySelector("input").value), M: num(td[2].querySelector("input").value) });
+  }
+  return model;
+}
+function readOpts() {
+  var span = num($("lenFt").value, 0);
+  var LbFt = $("braced").checked ? 0 : num($("lb").value, 0);
+  var klxRaw = $("klx").value.trim(), klyRaw = $("kly").value.trim();
+  return {
+    Fy: num($("fy").value, 50), E: num($("emod").value, 29000),
+    method: $("method").value,
+    LbFt: LbFt,
+    Cb: num($("cb").value, 1) || 1,
+    selfWeight: $("selfwt").checked, swCase: "DL",
+    maxDepthIn: num($("maxD").value, 0) || null,
+    minDepthIn: num($("minD").value, 0) || null,
+    KLxFt: klxRaw === "" ? span : num(klxRaw),
+    KLyFt: klyRaw === "" ? LbFt : num(klyRaw)
+  };
+}
+
+/* ---------------- run ---------------- */
+function run() {
+  try {
+    var model = readModel();
+    combos = readCombos();
+    if (!combos.length) { loadTemplate(); return; }
+    var opts = readOpts();
+    var design = Engine().runDesign(model, combos, opts, W_SHAPES());
+
+    var pickTxt = $("shapePick").value.trim().toUpperCase().replace(/\s+/g, "");
+    var shape = null, pickMiss = false;
+    if (pickTxt && pickTxt.indexOf("AUTO") !== 0) {
+      shape = W_SHAPES().find(function (s) { return s.name === pickTxt; }) || null;
+      if (!shape) pickMiss = true;
+    }
+    if (!shape) shape = design.best ? design.best.shape : null;
+
+    var dispCheck = shape ? design.checks.find(function (c) { return c.shape.name === shape.name; }) : null;
+    var dispAnalysis = shape ? Engine().analyzeForShape(model, combos, opts, shape)
+                             : Engine().analyze(model, combos, opts.E, Engine().I_REF);
+
+    lastRun = { design: design, shape: shape, dispCheck: dispCheck, dispAnalysis: dispAnalysis, opts: opts, model: model };
+
+    $("mastMethod").textContent = opts.method + " · Fy " + opts.Fy;
+    $("mastShape").textContent = shape ? shape.name : "—";
+    if (pickMiss) setStatus("bad", 'shape "' + $("shapePick").value + '" not found — using auto');
+    else if (dispCheck) setStatus(dispCheck.pass ? "ok" : "bad", (dispCheck.pass ? "ADEQUATE" : "N.G.") + " · " + shape.name + " · " + stamp());
+    else if (!design.best) setStatus("bad", "no adequate W-shape · " + stamp());
+    else setStatus("ok", "updated " + stamp());
+
+    renderStamp();
+    renderCandidates();
+    fillComboSelect();
+    drawAll();
+    renderSummary();
+    renderReport();
+  } catch (e) {
+    setStatus("bad", e.message);
+  }
+}
+function stamp() { var d = new Date(); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2); }
+
+/* ---------------- section stamp card ---------------- */
+function sectionSVG(s, targetH) {
+  var sc = targetH / s.d;
+  var W = Math.max(s.bf * sc, 22), H = targetH, tf = Math.max(s.tf * sc, 2), tw = Math.max(s.tw * sc, 1.6);
+  var cx = W / 2, pad = 14;
+  var p = "M0 0 H" + W + " V" + tf + " H" + (cx + tw / 2) + " V" + (H - tf) + " H" + W + " V" + H +
+          " H0 V" + (H - tf) + " H" + (cx - tw / 2) + " V" + tf + " H0 Z";
+  return '<svg class="xsec" width="' + (W + 2 * pad) + '" height="' + (H + 26) + '" viewBox="' + (-pad) + ' -6 ' + (W + 2 * pad) + " " + (H + 26) + '" aria-hidden="true">' +
+    '<path d="' + p + '" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/>' +
+    '<line x1="' + cx + '" y1="-5" x2="' + cx + '" y2="' + (H + 5) + '" stroke="var(--mut)" stroke-width=".6" stroke-dasharray="7 3 1.5 3"/>' +
+    '<line x1="-9" y1="' + (H / 2) + '" x2="' + (W + 9) + '" y2="' + (H / 2) + '" stroke="var(--mut)" stroke-width=".6" stroke-dasharray="7 3 1.5 3"/>' +
+    '<text x="' + cx + '" y="' + (H + 17) + '" text-anchor="middle" font-size="9.5" class="mutt" font-family="ui-monospace,Consolas,monospace">' +
+      fmt(s.d, 1) + '" × ' + fmt(s.bf, 1) + '"</text></svg>';
+}
+function ratioRow(lbl, ratio, txt) {
+  var pct = Math.min(ratio, 1.15) / 1.15 * 100;
+  return '<div class="ratio-row"><span class="lbl">' + lbl + '</span>' +
+    '<span class="bar"><i class="' + (ratio > 1.0001 ? "hot" : "") + '" style="width:' + pct.toFixed(1) + '%"></i></span>' +
+    '<span class="mono" style="text-align:right">' + txt + "</span></div>";
+}
+function renderStamp() {
+  var d = lastRun.design, o = lastRun.opts, c = lastRun.dispCheck, out = [];
+  if (!c) {
+    out.push('<p class="failing">No W-shape in the database satisfies all checks' +
+      (o.maxDepthIn || o.minDepthIn ? " within the depth limits" : "") +
+      '.</p><p class="note">Deflections shown below use a reference I = 1000 in&#8308;. Review loads, bracing, combos, or depth limits.</p>');
+    $("stampOut").innerHTML = out.join("");
+    return;
+  }
+  var s = c.shape;
+  var isBest = d.best && d.best.shape.name === s.name;
+  out.push('<div class="stamp">');
+  out.push(sectionSVG(s, 92));
+  out.push('<div class="who"><div class="name">' + s.name + "</div>" +
+    '<div class="meta">' + fmt(s.wt, 1) + " plf &middot; d " + fmt(s.d, 2) + '" &middot; Ix ' + fmt(s.Ix, 0) + " in&#8308; &middot; Zx " + fmt(s.Zx, 1) + " in&sup3;</div>" +
+    '<div class="meta">' + (isBest ? "lightest adequate section" : (d.best ? "checked section &middot; lightest adequate is " + d.best.shape.name : "checked section")) + "</div>" +
+    '<div style="margin-top:8px"><span class="pill ' + (c.pass ? "ok" : "bad") + '">' + (c.pass ? "ADEQUATE" : "N.G.") + "</span>" +
+    ' <span class="note">governs: ' + c.governs.toLowerCase() + "</span></div></div>");
+  var mCap = o.method === "ASD" ? "Mn/Ω" : "φMn";
+  var vCap = o.method === "ASD" ? "Vn/Ω" : "φVn";
+  out.push('<div class="ratios">' +
+    ratioRow("Flexure", c.ratioM, fmt(c.Mdem, 1) + " / " + fmt(c.flex.capacity, 1) + " k-ft") +
+    ratioRow("Shear", c.ratioV, fmt(c.Vdem, 1) + " / " + fmt(c.shear.capacity, 1) + " k") +
+    ratioRow("Deflection", c.ratioD, c.deflChecks.length ? ("worst L/" + (isFinite(worstDefl(c).LoverN) ? Math.round(worstDefl(c).LoverN) : "∞")) : "—") +
+    (c.hasAxial ? ratioRow("Combined", c.ratioH, c.Heq + " · CSR " + fmt(c.ratioH)) : "") +
+    '<div class="note">' + mCap + " = " + fmt(c.flex.capacity, 1) + " k-ft &middot; " + vCap + " = " + fmt(c.shear.capacity, 1) + " k" +
+    (c.hasAxial && c.comp ? " &middot; " + (o.method === "ASD" ? "Pn/Ω" : "φPn") + " = " + fmt(c.comp.capacity, 1) + " k" : "") +
+    " &middot; unity max " + fmt(c.maxRatio) + "</div>" +
+    (c.hasAxial && c.comp && !c.comp.slenderOK ? '<div class="failing" style="font-size:11.5px">KL/r = ' + fmt(c.comp.slMax, 0) + " &gt; 200 — exceeds recommended slenderness for compression members</div>" : "") +
+    "</div>");
+  out.push("</div>");
+  $("stampOut").innerHTML = out.join("");
+}
+function worstDefl(c) {
+  var w = { LoverN: Infinity, ratio: 0 };
+  c.deflChecks.forEach(function (dc) { if (dc.ratio > w.ratio) w = dc; });
+  return w;
+}
+
+/* ---------------- candidates ---------------- */
+function renderCandidates() {
+  var d = lastRun.design, o = lastRun.opts, out = [];
+  var passing = d.passing.slice(0, 15);
+  if (!passing.length) { $("candOut").innerHTML = '<p class="note">No passing candidates.</p>'; return; }
+  var hasAx = passing[0].hasAxial;
+  out.push('<div class="scroll"><table class="grid cand"><thead><tr><th style="text-align:left">Shape</th><th>wt (plf)</th><th>d (in)</th>' +
+    "<th>" + (o.method === "ASD" ? "Mn/Ω" : "φMn") + " (k-ft)</th><th>M</th><th>V</th><th>Defl</th>" +
+    (hasAx ? "<th>CSR</th>" : "") + "<th>Governs</th><th>Utilization</th></tr></thead><tbody>");
+  passing.forEach(function (c) {
+    var sel = lastRun.shape && c.shape.name === lastRun.shape.name;
+    var pct = Math.min(c.maxRatio, 1) * 100;
+    out.push('<tr class="' + (sel ? "sel" : "") + '" onclick="pickShape(\'' + c.shape.name + "')\">" +
+      "<td>" + c.shape.name + '</td><td class="n">' + fmt(c.shape.wt, 1) + '</td><td class="n">' + fmt(c.shape.d, 1) + "</td>" +
+      '<td class="n">' + fmt(c.flex.capacity, 1) + '</td><td class="n">' + fmt(c.ratioM) + '</td><td class="n">' + fmt(c.ratioV) + "</td>" +
+      '<td class="n">' + fmt(c.ratioD) + "</td>" + (hasAx ? '<td class="n">' + fmt(c.ratioH) + "</td>" : "") +
+      "<td>" + c.governs + '</td>' +
+      '<td class="util"><span class="bar"><i style="width:' + pct.toFixed(0) + '%"></i></span></td></tr>');
+  });
+  out.push("</tbody></table></div>");
+  var byDepth = {};
+  d.passing.forEach(function (c) {
+    var series = c.shape.name.split("X")[0];
+    if (!byDepth[series]) byDepth[series] = c;
+  });
+  var keys = Object.keys(byDepth).sort(function (a, b) { return parseFloat(a.slice(1)) - parseFloat(b.slice(1)); });
+  out.push('<h3 class="blk">Lightest adequate per depth series</h3><p class="mono" style="margin:2px 0 0">' +
+    keys.map(function (k) { return '<a href="#" style="color:var(--accent);text-decoration:none" onclick="pickShape(\'' + byDepth[k].shape.name + '\');return false">' + byDepth[k].shape.name + "</a>"; }).join(" &nbsp;·&nbsp; ") + "</p>");
+  $("candOut").innerHTML = out.join("");
+}
+function pickShape(name) { $("shapePick").value = name; run(); }
+
+/* ---------------- detailed report ---------------- */
+function renderReport() {
+  var c = lastRun.dispCheck, o = lastRun.opts;
+  if (!c) { $("reportOut").innerHTML = '<p class="note">Select or auto-design a shape to see the full AISC check.</p>'; return; }
+  var s = c.shape, f = c.flex, v = c.shear;
+  var dm = o.method === "ASD" ? "Ma" : "Mu", dv = o.method === "ASD" ? "Va" : "Vu";
+  var h = ['<p style="margin:0 0 10px"><b>' + s.name + "</b> — " + o.method + ", Fy = " + o.Fy + " ksi " +
+    (c.pass ? '<span class="pill ok">ADEQUATE</span>' : '<span class="pill bad">N.G.</span>') + "</p>"];
+  h.push('<div class="rptgrid">');
+  h.push('<div class="rptbox"><h4>Section Properties</h4><table>' +
+    "<tr><td>Weight</td><td>" + fmt(s.wt, 1) + " plf</td></tr>" +
+    "<tr><td>A</td><td>" + fmt(s.A) + " in²</td></tr>" +
+    "<tr><td>d × bf</td><td>" + fmt(s.d, 2) + " × " + fmt(s.bf, 2) + " in</td></tr>" +
+    "<tr><td>tw / tf</td><td>" + fmt(s.tw, 3) + " / " + fmt(s.tf, 3) + " in</td></tr>" +
+    "<tr><td>Ix / Sx / Zx</td><td>" + fmt(s.Ix, 0) + " / " + fmt(s.Sx, 1) + " / " + fmt(s.Zx, 1) + "</td></tr>" +
+    "<tr><td>ry / rts</td><td>" + fmt(s.ry) + " / " + fmt(s.rts) + " in</td></tr>" +
+    "<tr><td>bf/2tf , h/tw</td><td>" + fmt(s.bf2tf) + " , " + fmt(s.htw, 1) + "</td></tr></table></div>");
+  h.push('<div class="rptbox"><h4>Flexure — AISC 360-22 Ch. F</h4><table>' +
+    "<tr><td>Mp = Fy·Zx</td><td>" + fmt(f.Mp, 1) + " k-ft</td></tr>" +
+    "<tr><td>Lb / Cb</td><td>" + fmt(o.LbFt, 2) + " ft / " + fmt(o.Cb, 2) + "</td></tr>" +
+    "<tr><td>Lp (F2-5)</td><td>" + fmt(f.Lp, 2) + " ft</td></tr>" +
+    "<tr><td>Lr (F2-6)</td><td>" + fmt(f.Lr, 2) + " ft</td></tr>" +
+    "<tr><td>LTB case</td><td>" + f.ltbCase + "</td></tr>" +
+    "<tr><td>Flange</td><td>" + f.flbCase + "</td></tr>" +
+    "<tr><td>Mn (" + f.governing + ")</td><td>" + fmt(f.Mn, 1) + " k-ft</td></tr>" +
+    "<tr><td><b>" + (o.method === "ASD" ? "Mn/Ω" : "φMn") + "</b></td><td><b>" + fmt(f.capacity, 1) + " k-ft</b></td></tr>" +
+    "<tr><td>" + dm + " (" + c.MdemCombo + " @ " + fmt(c.MdemX, 2) + "')</td><td>" + fmt(c.Mdem, 2) + " k-ft</td></tr>" +
+    '<tr><td>Ratio</td><td class="' + (c.ratioM <= 1 ? "passing" : "failing") + '">' + fmt(c.ratioM) + "</td></tr></table></div>");
+  h.push('<div class="rptbox"><h4>Shear — AISC 360-22 Ch. G</h4><table>' +
+    "<tr><td>Aw = d·tw</td><td>" + fmt(v.Aw) + " in²</td></tr>" +
+    "<tr><td>Cv1</td><td>" + fmt(v.Cv1, 3) + "</td></tr>" +
+    "<tr><td>Vn = 0.6·Fy·Aw·Cv1</td><td>" + fmt(v.Vn, 1) + " k</td></tr>" +
+    "<tr><td><b>" + (o.method === "ASD" ? "Vn/Ω" : "φVn") + "</b></td><td><b>" + fmt(v.capacity, 1) + " k</b></td></tr>" +
+    "<tr><td>" + dv + " (" + c.VdemCombo + ")</td><td>" + fmt(c.Vdem, 2) + " k</td></tr>" +
+    '<tr><td>Ratio</td><td class="' + (c.ratioV <= 1 ? "passing" : "failing") + '">' + fmt(c.ratioV) + "</td></tr></table></div>");
+  if (c.hasAxial && c.comp) {
+    var cm = c.comp;
+    h.push('<div class="rptbox"><h4>Axial &amp; Interaction — Ch. E / H1</h4><table>' +
+      "<tr><td>KLx/rx , KLy/ry</td><td>" + fmt(cm.slx, 1) + " , " + fmt(cm.sly, 1) + "</td></tr>" +
+      "<tr><td>Fe / Fcr</td><td>" + (cm.Fe === Infinity ? "—" : fmt(cm.Fe, 1)) + " / " + fmt(cm.Fcr, 1) + " ksi</td></tr>" +
+      "<tr><td>Ae" + (cm.slender ? " (E7 slender reduction)" : "") + "</td><td>" + fmt(cm.Ae) + " in²</td></tr>" +
+      "<tr><td>Pn = Fcr·Ae</td><td>" + fmt(cm.Pn, 1) + " k</td></tr>" +
+      "<tr><td><b>" + (o.method === "ASD" ? "Pn/Ω" : "φPn") + "</b></td><td><b>" + fmt(cm.capacity, 1) + " k</b></td></tr>" +
+      "<tr><td>Pr , Mr (" + c.HCombo + ")</td><td>" + fmt(c.PdemAtH, 1) + " k , " + fmt(c.MdemAtH, 1) + " k-ft</td></tr>" +
+      "<tr><td>Interaction (" + c.Heq + ")</td><td class=\"" + (c.ratioH <= 1 ? "passing" : "failing") + "\">" + fmt(c.ratioH) + "</td></tr>" +
+      (cm.slenderOK ? "" : '<tr><td colspan="2" class="failing">KL/r = ' + fmt(cm.slMax, 0) + " &gt; 200 recommended limit</td></tr>") +
+      "</table></div>");
+  }
+  if (c.deflChecks.length) {
+    var rows = c.deflChecks.map(function (dc) {
+      return "<tr><td>" + dc.combo + "</td><td>" + fmt(dc.actualIn) + '" @ ' + fmt(dc.x, 1) + "' · L/" +
+        (isFinite(dc.LoverN) ? Math.round(dc.LoverN) : "∞") + " vs L/" + dc.limit + '</td><td class="' +
+        (dc.pass ? "passing" : "failing") + '">' + (dc.pass ? "OK" : "N.G.") + "</td></tr>";
+    }).join("");
+    h.push('<div class="rptbox"><h4>Deflection</h4><table>' + rows + "</table></div>");
+  }
+  h.push("</div>");
+  $("reportOut").innerHTML = h.join("");
+}
+
+/* ---------------- diagrams ---------------- */
+function fillComboSelect() {
+  var sel = $("diagCombo"), cur = sel.value;
+  sel.innerHTML = combos.map(function (c, i) { return '<option value="' + i + '">' + c.name + "</option>"; }).join("");
+  if (cur && cur < combos.length) sel.value = cur;
+}
+var curStations = null;
+function drawAll() {
+  if (!lastRun) return;
+  var idx = parseInt($("diagCombo").value || "0", 10) || 0;
+  var res = lastRun.dispAnalysis.results[idx];
+  if (!res) return;
+  curStations = res.stations;
+  var area = $("diagArea");
+  area.innerHTML = "";
+  area.appendChild(schematic());
+  var noShape = !lastRun.shape;
+  area.appendChild(plot(res, "V", "SHEAR · kips", css("--shear"), 1));
+  area.appendChild(plot(res, "M", "MOMENT · kip-ft", css("--mom"), 1));
+  area.appendChild(plot(res, "D", "DEFLECTION · in" + (noShape ? " (ref I=1000)" : " · " + lastRun.shape.name), css("--defl"), 2));
+}
+
+var PW = 860, PADL = 16, PADR = 16;
+function xScale(xft) { return PADL + (xft / lastRun.model.lengthFt) * (PW - PADL - PADR); }
+
+function schematic() {
+  var ns = "http://www.w3.org/2000/svg";
+  var model = lastRun.model, L = model.lengthFt;
+  var H = 108, yb = 62;
+  var svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 " + PW + " " + H);
+  svg.setAttribute("class", "schem");
+  function el(tag, attrs, text) {
+    var e = document.createElementNS(ns, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  // beam
+  el("line", { x1: xScale(0), x2: xScale(L), y1: yb, y2: yb, stroke: "var(--ink)", "stroke-width": 3 });
+  // supports
+  (model.supports || []).forEach(function (s) {
+    var x = xScale(s.x);
+    if (s.type === "fix") {
+      el("line", { x1: x, x2: x, y1: yb - 14, y2: yb + 14, stroke: "var(--ink)", "stroke-width": 2.5 });
+      for (var i = -12; i <= 10; i += 5)
+        el("line", { x1: x, x2: x - 6, y1: yb + i, y2: yb + i + 5, stroke: "var(--mut)", "stroke-width": 1 });
+    } else {
+      el("path", { d: "M" + x + " " + (yb + 1.5) + " l-7 11 h14 Z", fill: "none", stroke: "var(--ink)", "stroke-width": 1.8 });
+      for (var j = -8; j <= 8; j += 4)
+        el("line", { x1: x + j, x2: x + j - 4, y1: yb + 13, y2: yb + 17, stroke: "var(--mut)", "stroke-width": 1 });
+    }
+  });
+  // distributed loads
+  var lds = model.loads || {};
+  var dist = [];
+  (lds.uniform || []).forEach(function (u) { if (u.w) dist.push({ x1: 0, x2: L, w1: u.w, w2: u.w, c: u.case }); });
+  (lds.line || []).forEach(function (l) { if ((l.w1 || l.w2) && l.x2 > l.x1) dist.push({ x1: l.x1, x2: l.x2, w1: l.w1, w2: l.w2, c: l.case }); });
+  var wmax = 0.001;
+  dist.forEach(function (d) { wmax = Math.max(wmax, Math.abs(d.w1), Math.abs(d.w2)); });
+  dist.forEach(function (d) {
+    var x1 = xScale(d.x1), x2 = xScale(d.x2);
+    var h1 = 8 + 16 * Math.abs(d.w1) / wmax, h2 = 8 + 16 * Math.abs(d.w2) / wmax;
+    el("path", { d: "M" + x1 + " " + (yb - 4) + " L" + x1 + " " + (yb - 4 - h1) + " L" + x2 + " " + (yb - 4 - h2) + " L" + x2 + " " + (yb - 4) + " Z",
+                 fill: "var(--accent-soft)", stroke: "var(--accent)", "stroke-width": 1.2 });
+    for (var xx = x1 + 9; xx < x2 - 3; xx += 26)
+      el("path", { d: "M" + xx + " " + (yb - 12) + " V" + (yb - 5) + " l-2.6 -4 h5.2 l-2.6 4 Z", stroke: "var(--accent)", fill: "var(--accent)", "stroke-width": 1 });
+    el("text", { x: (x1 + x2) / 2, y: yb - 8 - Math.max(h1, h2), "text-anchor": "middle", "font-size": 10,
+                 "font-family": "ui-monospace,Consolas,monospace" },
+       (d.w1 === d.w2 ? fmt(d.w1, 2) : fmt(d.w1, 2) + "→" + fmt(d.w2, 2)) + " k/ft " + d.c);
+  });
+  // point loads
+  (lds.point || []).forEach(function (p) {
+    if (!p.P) return;
+    var x = xScale(p.x);
+    el("line", { x1: x, x2: x, y1: yb - 34, y2: yb - 8, stroke: "var(--accent)", "stroke-width": 2 });
+    el("path", { d: "M" + x + " " + (yb - 3) + " l-4.5 -8 h9 Z", fill: "var(--accent)" });
+    el("text", { x: x, y: yb - 39, "text-anchor": "middle", "font-size": 10, "font-family": "ui-monospace,Consolas,monospace" },
+       fmt(p.P, 2) + "k " + p.case);
+  });
+  // applied moments
+  (lds.moment || []).forEach(function (m) {
+    if (!m.M) return;
+    var x = xScale(m.x);
+    el("path", { d: "M" + (x + 9) + " " + yb + " A9 9 0 1 1 " + (x - 2) + " " + (yb - 8.5), fill: "none", stroke: "var(--accent)", "stroke-width": 1.8 });
+    el("path", { d: "M" + (x - 2) + " " + (yb - 8.5) + " l-4 -4.5 l6.5 -.5 Z", fill: "var(--accent)" });
+    el("text", { x: x, y: yb - 18, "text-anchor": "middle", "font-size": 10, "font-family": "ui-monospace,Consolas,monospace" },
+       fmt(m.M, 1) + "k-ft " + m.case);
+  });
+  // dimension line between supports and ends
+  var pts = [0].concat((model.supports || []).map(function (s) { return s.x; })).concat([L]);
+  pts = pts.filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
+  var yd = yb + 30;
+  el("line", { x1: xScale(0), x2: xScale(L), y1: yd, y2: yd, stroke: "var(--mut)", "stroke-width": 1 });
+  pts.forEach(function (p) {
+    el("line", { x1: xScale(p), x2: xScale(p), y1: yd - 4, y2: yd + 4, stroke: "var(--mut)", "stroke-width": 1 });
+  });
+  for (var i = 0; i < pts.length - 1; i++) {
+    if (pts[i + 1] - pts[i] < L / 40) continue;
+    el("text", { x: (xScale(pts[i]) + xScale(pts[i + 1])) / 2, y: yd - 6, "text-anchor": "middle", "font-size": 10,
+                 class: "mutt", "font-family": "ui-monospace,Consolas,monospace" }, fmt(pts[i + 1] - pts[i], 2) + "'");
+  }
+  attachProbe(svg, null);
+  return svg;
+}
+
+function plot(res, field, title, color, dp) {
+  var ns = "http://www.w3.org/2000/svg";
+  var H = 150, padT = 24, padB = 14;
+  var st = res.stations, L = lastRun.model.lengthFt;
+  var vals = st.map(function (s) { return s[field]; });
+  var vmax = Math.max.apply(null, vals), vmin = Math.min.apply(null, vals);
+  if (vmax === vmin) { vmax += 1; vmin -= 1; }
+  var span = vmax - vmin;
+  vmax += span * 0.14; vmin -= span * 0.14;
+  function Y(v) { return padT + (vmax - v) / (vmax - vmin) * (H - padT - padB); }
+  var svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 " + PW + " " + H);
+  svg.setAttribute("class", "plot");
+  function el(tag, attrs, text) {
+    var e = document.createElementNS(ns, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  // faint grid
+  [0.25, 0.5, 0.75].forEach(function (f) {
+    var y = padT + f * (H - padT - padB);
+    el("line", { x1: PADL, x2: PW - PADR, y1: y, y2: y, stroke: "var(--line)", "stroke-width": 0.6 });
+  });
+  el("text", { x: PADL, y: 15, "font-size": 10.5, "font-weight": 700, "letter-spacing": "1.2", class: "mutt" }, title);
+  // baseline
+  el("line", { x1: xScale(0), x2: xScale(L), y1: Y(0), y2: Y(0), stroke: "var(--ink)", "stroke-width": 1.3 });
+  (lastRun.model.supports || []).forEach(function (s) {
+    el("circle", { cx: xScale(s.x), cy: Y(0), r: 3, fill: "var(--ink)" });
+  });
+  // area + line
+  var dFill = "M " + xScale(st[0].x) + " " + Y(0) + " ";
+  var dLine = "";
+  st.forEach(function (s, i) {
+    dFill += "L " + xScale(s.x) + " " + Y(s[field]) + " ";
+    dLine += (i ? "L " : "M ") + xScale(s.x) + " " + Y(s[field]) + " ";
+  });
+  dFill += "L " + xScale(st[st.length - 1].x) + " " + Y(0) + " Z";
+  el("path", { d: dFill, fill: color, "fill-opacity": 0.13, stroke: "none" });
+  el("path", { d: dLine, fill: "none", stroke: color, "stroke-width": 2 });
+  // extremes
+  var exMax = { v: -Infinity }, exMin = { v: Infinity };
+  st.forEach(function (s) {
+    if (s[field] > exMax.v) exMax = { v: s[field], x: s.x };
+    if (s[field] < exMin.v) exMin = { v: s[field], x: s.x };
+  });
+  [exMax, exMin].forEach(function (ex) {
+    if (!isFinite(ex.v) || Math.abs(ex.v) < 1e-9) return;
+    el("circle", { cx: xScale(ex.x), cy: Y(ex.v), r: 2.6, fill: color });
+    var lx = Math.min(Math.max(xScale(ex.x) + 6, PADL + 30), PW - 120);
+    el("text", { x: lx, y: ex.v >= 0 ? Math.max(Y(ex.v) - 6, 22) : Math.min(Y(ex.v) + 14, H - 4),
+                 "font-size": 11, "font-family": "ui-monospace,Consolas,monospace" },
+       fmt(ex.v, dp) + " @ " + fmt(ex.x, 2) + "'");
+  });
+  // crosshair
+  var xh = el("line", { x1: -10, x2: -10, y1: padT, y2: H - padB, stroke: "var(--mut)", "stroke-width": 1, "stroke-dasharray": "3 3", visibility: "hidden" });
+  svg.__xh = xh;
+  attachProbe(svg, field);
+  return svg;
+}
+
+/* synced hover probe */
+var probeSvgs = [];
+function attachProbe(svg, field) {
+  probeSvgs.push(svg);
+  svg.addEventListener("mousemove", function (ev) {
+    var r = svg.getBoundingClientRect();
+    var px = (ev.clientX - r.left) / r.width * PW;
+    var L = lastRun.model.lengthFt;
+    var xft = (px - PADL) / (PW - PADL - PADR) * L;
+    if (xft < 0 || xft > L) { probeClear(); return; }
+    probeAt(xft);
+  });
+  svg.addEventListener("mouseleave", probeClear);
+}
+function probeAt(xft) {
+  if (!curStations || !curStations.length) return;
+  var st = curStations, lo = 0, hi = st.length - 1;
+  while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (st[mid].x <= xft) lo = mid; else hi = mid; }
+  var a = st[lo], b = st[hi], f = b.x > a.x ? (xft - a.x) / (b.x - a.x) : 0;
+  var V = a.V + f * (b.V - a.V), M = a.M + f * (b.M - a.M), D = a.D + f * (b.D - a.D);
+  $("probe").innerHTML = "x = <b>" + fmt(xft, 2) + " ft</b> &nbsp;·&nbsp; V = <b>" + fmt(V, 2) +
+    " k</b> &nbsp;·&nbsp; M = <b>" + fmt(M, 2) + " k-ft</b> &nbsp;·&nbsp; δ = <b>" + fmt(D, 3) + ' in</b>';
+  var px = xScale(xft);
+  probeSvgs.forEach(function (s) {
+    if (s.__xh) { s.__xh.setAttribute("x1", px); s.__xh.setAttribute("x2", px); s.__xh.setAttribute("visibility", "visible"); }
+  });
+}
+function probeClear() {
+  $("probe").innerHTML = "move the cursor across a diagram to probe V / M / δ at x";
+  probeSvgs.forEach(function (s) { if (s.__xh) s.__xh.setAttribute("visibility", "hidden"); });
+}
+
+/* ---------------- summary ---------------- */
+function renderSummary() {
+  var an = lastRun.dispAnalysis, out = [];
+  var noShape = !lastRun.shape;
+  var gV = { v: 0, c: "" }, gM = { v: 0, c: "" }, gD = { v: 0, c: "", x: 0, Ln: Infinity };
+  an.results.forEach(function (r) {
+    var av = Math.max(Math.abs(r.Vmax.v), Math.abs(r.Vmin.v));
+    if (av > Math.abs(gV.v)) gV = { v: av, c: r.name };
+    var am = Math.abs(r.Mmax.v) >= Math.abs(r.Mmin.v) ? r.Mmax.v : r.Mmin.v;
+    if (Math.abs(am) > Math.abs(gM.v)) gM = { v: am, c: r.name };
+    var ad = Math.abs(r.Dmax.v) >= Math.abs(r.Dmin.v) ? r.Dmax : r.Dmin;
+    if (Math.abs(ad.v) > Math.abs(gD.v)) gD = { v: ad.v, c: r.name, x: ad.x, Ln: r.deflNorm > 0 ? 1 / r.deflNorm : Infinity };
+  });
+  out.push('<table class="sumtbl">' +
+    '<tr><td class="lbl">Maximum Shear</td><td class="n">' + fmt(gV.v) + '</td><td class="unit">kips &nbsp;(' + gV.c + ")</td></tr>" +
+    '<tr><td class="lbl">Maximum Moment</td><td class="n">' + fmt(gM.v) + '</td><td class="unit">kip-ft &nbsp;(' + gM.c + ")</td></tr>" +
+    '<tr><td class="lbl">Maximum Deflection</td><td class="n">' + (noShape ? "—" : fmt(gD.v)) + '</td><td class="unit">in &nbsp;(' + gD.c + ")</td></tr>" +
+    '<tr><td class="lbl">Deflection Ratio</td><td class="n">' + (noShape || !isFinite(gD.Ln) ? "—" : "L / " + Math.round(gD.Ln)) + '</td><td class="unit"></td></tr></table>');
+
+  var sup = an.results.length ? an.results[0].reactions : [];
+  if (sup.length) {
+    out.push('<h3 class="blk">Reactions for All Load Combinations <span class="note" style="text-transform:none;letter-spacing:0">(kips, positive up' +
+      (sup.some(function (s) { return s.Mr !== null; }) ? "; fixed-end moments kip-ft, ccw+" : "") + ")</span></h3>");
+    out.push('<div class="scroll"><table class="grid"><thead><tr><th style="text-align:left">Load Combination</th>' +
+      sup.map(function (s, i) { return "<th>S" + (i + 1) + " @ " + fmt(s.x, 2) + "'</th>"; }).join("") + "</tr></thead><tbody>");
+    an.results.forEach(function (r) {
+      out.push('<tr><td style="text-align:left">' + r.name + "</td>" + r.reactions.map(function (s) {
+        return '<td class="n">' + fmt(s.R) + (s.Mr !== null ? ' <span class="note">(M=' + fmt(s.Mr) + ")</span>" : "") + "</td>";
+      }).join("") + "</tr>");
+    });
+    out.push("</tbody></table></div>");
+  }
+
+  out.push('<h3 class="blk">Member Results for All Load Combinations</h3>');
+  out.push('<div class="scroll"><table class="grid"><thead><tr><th style="text-align:left">Load Combination</th><th>Left Shear (k)</th><th>Right Shear (k)</th>' +
+    "<th>Max Moment (k-ft)</th><th>Max Deflection (in)</th><th>Defl Ratio</th></tr></thead><tbody>");
+  an.results.forEach(function (r) {
+    var am = Math.abs(r.Mmax.v) >= Math.abs(r.Mmin.v) ? r.Mmax : r.Mmin;
+    var ad = Math.abs(r.Dmax.v) >= Math.abs(r.Dmin.v) ? r.Dmax : r.Dmin;
+    var Ln = r.deflNorm > 0 ? 1 / r.deflNorm : Infinity;
+    out.push('<tr><td style="text-align:left">' + r.name + '</td><td class="n">' + fmt(r.Vleft) + '</td><td class="n">' + fmt(r.Vright) + "</td>" +
+      '<td class="n">' + fmt(am.v) + " @ " + fmt(am.x, 1) + "'</td>" +
+      '<td class="n">' + (noShape ? "—" : fmt(ad.v) + " @ " + fmt(ad.x, 1) + "'") + "</td>" +
+      '<td class="n">' + (noShape || !isFinite(Ln) ? "—" : "L / " + Math.round(Ln)) + "</td></tr>");
+  });
+  out.push("</tbody></table></div>");
+  $("summaryOut").innerHTML = out.join("");
+}
+
+/* ---------------- wiring ---------------- */
+var runTimer = null;
+function hookInputs(scope) {
+  (scope || document).querySelectorAll("input, select").forEach(function (el) {
+    if (el.dataset.hooked) return;
+    el.dataset.hooked = "1";
+    el.addEventListener("change", function () {
+      if (el.id === "lenFt") onLenChange();
+      clearTimeout(runTimer);
+      runTimer = setTimeout(run, 150);
+    });
+  });
+}
+
+(function init() {
+  if (!window.BeamEngine || !window.AISC_W_SHAPES) {
+    setStatus("bad", "engine failed to load — refresh the page");
+    return;
+  }
+  var dl = $("shapeList");
+  var opts = '<option value="AUTO (lightest passing)"></option>';
+  window.AISC_W_SHAPES.forEach(function (s) { opts += '<option value="' + s.name + '"></option>'; });
+  dl.innerHTML = opts;
+  addSupport(0, "pin");
+  addSupport(25.6667, "pin");
+  addRow("pt", { c: "DL", x: 6.3, P: 1.0 });
+  loadTemplate();
+  hookInputs(document);
+})();
+</script>
