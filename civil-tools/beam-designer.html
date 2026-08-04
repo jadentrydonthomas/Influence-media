@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steel Beam Designer — AISC 16th Ed.</title>
+<style>
+  :root {
+    --ink: #1a1d21; --mut: #5b6470; --line: #c9ced6; --bg: #f2f4f7;
+    --panel: #ffffff; --hdr: #d5d9df; --accent: #0b4ea2; --ok: #0a7d33;
+    --bad: #c22525; --shear: #1f4fd8; --mom: #0e8a2f; --defl: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.45 "Segoe UI", system-ui, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 14px 16px 60px; }
+  h1 { font-size: 19px; margin: 4px 0 2px; }
+  .sub { color: var(--mut); margin: 0 0 14px; font-size: 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 14px; overflow: hidden; }
+  .panel > .hd { background: var(--hdr); padding: 6px 12px; font-weight: 600; cursor: pointer; user-select: none; }
+  .panel > .hd::before { content: "▾ "; color: var(--mut); }
+  .panel.closed > .hd::before { content: "▸ "; }
+  .panel.closed > .bd { display: none; }
+  .panel > .bd { padding: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+  .fld { display: flex; flex-direction: column; gap: 2px; }
+  .fld > label { font-size: 11px; color: var(--mut); font-weight: 600; }
+  input[type=number], input[type=text], select {
+    border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px; font: inherit; color: var(--accent); background: #fff;
+  }
+  input[type=number] { width: 92px; text-align: right; }
+  table { border-collapse: collapse; }
+  th { font-size: 11px; color: var(--mut); text-align: center; padding: 2px 6px; font-weight: 600; }
+  td { padding: 2px 4px; text-align: center; }
+  .grid td, .grid th { border-bottom: 1px solid #e7eaee; }
+  .btn { display: inline-block; border: 1px solid var(--accent); color: var(--accent); background: #fff; border-radius: 3px;
+         padding: 3px 10px; font: inherit; cursor: pointer; }
+  .btn:hover { background: #eaf1fb; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.sm { padding: 1px 7px; font-size: 12px; }
+  .x { color: #fff; background: var(--bad); border: none; border-radius: 50%; width: 18px; height: 18px; line-height: 16px;
+       font-size: 11px; cursor: pointer; padding: 0; }
+  .loadcols { display: flex; flex-wrap: wrap; gap: 26px; }
+  .loadcols h3 { font-size: 12.5px; margin: 0 0 4px; text-align: center; }
+  .status { padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; display: none; }
+  .status.err { display: block; background: #fde8e8; color: var(--bad); border: 1px solid #f5b5b5; }
+  .bigpick { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .passing  { color: var(--ok); font-weight: 600; }
+  .failing  { color: var(--bad); font-weight: 600; }
+  .diag { border: 1px solid var(--ink); margin: 6px 0 10px; display: block; background: #fff; }
+  .diaghd { font-weight: 600; font-size: 12px; margin: 8px 0 0; }
+  .sumtbl td { text-align: right; padding: 1px 10px; }
+  .sumtbl td.lbl { font-weight: 600; text-align: right; }
+  .sumtbl td.unit { text-align: left; color: var(--mut); }
+  .cand tr.sel { background: #eaf1fb; }
+  .cand tbody tr { cursor: pointer; }
+  .cand tbody tr:hover { background: #f2f6fc; }
+  .mono { font-family: Consolas, Menlo, monospace; font-size: 12px; }
+  .note { color: var(--mut); font-size: 11.5px; }
+  details.rpt { margin-top: 10px; }
+  details.rpt summary { cursor: pointer; font-weight: 600; }
+  .rptgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 8px; }
+  .rptbox { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; }
+  .rptbox h4 { margin: 0 0 6px; font-size: 12.5px; }
+  .rptbox table td { text-align: left; padding: 1px 8px 1px 0; }
+  .rptbox table td:last-child { text-align: right; font-family: Consolas, Menlo, monospace; font-size: 12px; }
+  .tip { color: var(--mut); cursor: help; border-bottom: 1px dotted var(--mut); }
+  .combo-tbl input[type=number] { width: 52px; }
+  .combo-tbl input[type=text] { width: 170px; font-size: 12px; }
+  .footer-note { color: var(--mut); font-size: 11px; margin-top: 20px; border-top: 1px solid var(--line); padding-top: 8px; }
+  @media print {
+    body { background: #fff; }
+    .no-print, .x, .btn { display: none !important; }
+    .panel { break-inside: avoid; border-color: #999; }
+    .panel.closed > .bd { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Steel Beam Designer</h1>
+  <p class="sub">Analysis &amp; W-shape selection per AISC <i>Steel Construction Manual</i>, 16th Ed. (AISC 360-22) —
+     Ch.&nbsp;F flexure (yielding, LTB, flange local buckling), Ch.&nbsp;G shear, serviceability deflection checks.
+     Loads positive downward &middot; x measured from left end &middot; k = kips.</p>
+
+  <div id="status" class="status err"></div>
+
+  <!-- ================= GEOMETRY ================= -->
+  <div class="panel" id="pGeom">
+    <div class="hd" onclick="togglePanel(this)">Beam &amp; Supports</div>
+    <div class="bd">
+      <div class="row" style="margin-bottom:10px">
+        <div class="fld">
+          <label>Beam Length (ft) <span class="tip" title="Total length of the member, including any overhangs">&#9432;</span></label>
+          <input type="number" id="lenFt" step="any" value="25.6667">
+        </div>
+        <div class="fld">
+          <label>Preset</label>
+          <div>
+            <button class="btn sm" onclick="preset('simple')">Simple Span</button>
+            <button class="btn sm" onclick="preset('cant')">Cantilever</button>
+            <button class="btn sm" onclick="preset('2span')">2-Span</button>
+            <button class="btn sm" onclick="preset('3span')">3-Span</button>
+          </div>
+        </div>
+        <div class="fld">
+          <label>Supports <span class="tip" title="Pinned = vertical restraint. Fixed = vertical + rotational restraint. A beam end with no support is an overhang/cantilever tip.">&#9432;</span></label>
+          <table id="supTbl"><thead><tr><th>X (ft)</th><th>Type</th><th></th></tr></thead><tbody></tbody></table>
+          <div><button class="btn sm" onclick="addSupport()">Add Support</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOADS ================= -->
+  <div class="panel" id="pLoads">
+    <div class="hd" onclick="togglePanel(this)">Loads</div>
+    <div class="bd">
+      <div class="loadcols">
+        <div>
+          <h3>Uniform Loads <span class="tip" title="Full-length uniform load, kip/ft, positive down">&#9432;</span></h3>
+          <table id="uniTbl"><thead><tr><th>Load Case</th><th>w (k/ft)</th><th></th></tr></thead><tbody></tbody></table>
+          <button class="btn sm" onclick="addRow('uni')">Add</button>
+        </div>
+        <div>
+          <h3>Line Loads <span class="tip" title="Partial-length trapezoidal load: intensity w1 at x1 to w2 at x2 (kip/ft)">&#9432;</span></h3>
+          <table id="lineTbl"><thead><tr><th>Load Case</th><th>w1 (k/ft)</th><th>w2 (k/ft)</th><th>x1 (ft)</th><th>x2 (ft)</th><th></th></tr></thead><tbody></tbody></table>
+          <button class="btn sm" onclick="addRow('line')">Add</button>
+        </div>
+        <div>
+          <h3>Point Loads <span class="tip" title="Concentrated load, kips, positive down, at X ft from the left end">&#9432;</span></h3>
+          <table id="ptTbl"><thead><tr><th>Load Case</th><th>X (ft)</th><th>Kips</th><th></th></tr></thead><tbody></tbody></table>
+          <button class="btn sm" onclick="addRow('pt')">Add</button>
+        </div>
+        <div>
+          <h3>Applied Moments <span class="tip" title="Concentrated moment, kip-ft, positive counterclockwise">&#9432;</span></h3>
+          <table id="momTbl"><thead><tr><th>Load Case</th><th>X (ft)</th><th>kip-ft</th><th></th></tr></thead><tbody></tbody></table>
+          <button class="btn sm" onclick="addRow('mom')">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DESIGN CRITERIA ================= -->
+  <div class="panel" id="pCrit">
+    <div class="hd" onclick="togglePanel(this)">Design Criteria</div>
+    <div class="bd">
+      <div class="row">
+        <div class="fld">
+          <label>Design Method</label>
+          <select id="method"><option value="ASD" selected>ASD</option><option value="LRFD">LRFD</option></select>
+        </div>
+        <div class="fld">
+          <label>Fy (ksi) <span class="tip" title="Yield stress. A992 W-shapes: 50 ksi">&#9432;</span></label>
+          <input type="number" id="fy" step="any" value="50">
+        </div>
+        <div class="fld">
+          <label>E (ksi)</label>
+          <input type="number" id="emod" step="any" value="29000">
+        </div>
+        <div class="fld">
+          <label>Compression flange bracing</label>
+          <div>
+            <label style="font-weight:400"><input type="checkbox" id="braced" checked onchange="syncBraced()"> Fully braced</label>
+            &nbsp; Lb (ft): <input type="number" id="lb" step="any" value="0" disabled style="width:70px">
+          </div>
+        </div>
+        <div class="fld">
+          <label>Cb <span class="tip" title="Lateral-torsional buckling modification factor (AISC F1-1). 1.0 is conservative.">&#9432;</span></label>
+          <input type="number" id="cb" step="any" value="1.0">
+        </div>
+        <div class="fld">
+          <label>Self-weight</label>
+          <label style="font-weight:400"><input type="checkbox" id="selfwt" checked> Include beam self-weight (as DL)</label>
+        </div>
+        <div class="fld">
+          <label>Depth limits (in, optional)</label>
+          <div>min <input type="number" id="minD" step="any" style="width:64px"> &nbsp; max <input type="number" id="maxD" step="any" style="width:64px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= COMBOS ================= -->
+  <div class="panel" id="pCombos">
+    <div class="hd" onclick="togglePanel(this)">Load Combinations</div>
+    <div class="bd">
+      <p class="note">Strength ✓ = combo used for flexure/shear demand. Defl ✓ = combo checked against its L/n deflection limit
+        (span between supports; 2&times;length for cantilevers/overhangs). Collateral (CL) is factored with dead load.</p>
+      <div class="no-print" style="margin-bottom:8px">
+        <button class="btn sm" onclick="loadTemplate()">Reset to IBC / ASCE 7 defaults for current method</button>
+        <button class="btn sm" onclick="addCombo()">Add Combo</button>
+      </div>
+      <table class="grid combo-tbl" id="comboTbl">
+        <thead><tr><th style="text-align:left">Combination</th><th>DL</th><th>CL</th><th>LL</th><th>RLL</th><th>SL</th><th>WL</th><th>EL</th>
+          <th>Strength</th><th>Defl</th><th>L / n</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="no-print" style="margin: 2px 0 14px">
+    <button class="btn primary" onclick="run()">Run Analysis &amp; Design</button>
+    <button class="btn" onclick="window.print()">Print Report</button>
+  </div>
+
+  <!-- ================= DESIGN RESULT ================= -->
+  <div class="panel" id="pDesign">
+    <div class="hd" onclick="togglePanel(this)">Beam Selection</div>
+    <div class="bd" id="designOut"><p class="note">Run the analysis to see results.</p></div>
+  </div>
+
+  <!-- ================= DIAGRAMS ================= -->
+  <div class="panel" id="pDiag">
+    <div class="hd" onclick="togglePanel(this)">Shear And Moment Diagrams</div>
+    <div class="bd">
+      <div class="row" style="align-items:center; margin-bottom:6px">
+        <div class="fld"><label>Load Combo</label><select id="diagCombo" onchange="drawAll()"></select></div>
+        <div class="fld"><label>Section for diagrams / check <span class="tip" title="Auto uses the lightest passing shape. Pick any shape to check it instead.">&#9432;</span></label>
+          <input type="text" id="shapePick" list="shapeList" value="AUTO (lightest passing)" onchange="run()" style="width:200px">
+          <datalist id="shapeList"></datalist>
+        </div>
+      </div>
+      <div id="diagArea"></div>
+    </div>
+  </div>
+
+  <!-- ================= RESULT SUMMARY ================= -->
+  <div class="panel" id="pSummary">
+    <div class="hd" onclick="togglePanel(this)">Result Summary</div>
+    <div class="bd" id="summaryOut"></div>
+  </div>
+
+  <p class="footer-note">
+    Section properties: AISC Shapes Database (W-shapes). Strength: AISC 360-22 — F2/F3 flexure with
+    &phi;<sub>b</sub>=0.90 / &Omega;<sub>b</sub>=1.67, G2.1 shear. Analysis: Euler-Bernoulli stiffness method.
+    This tool is a design aid; results must be reviewed and sealed by a licensed professional engineer.
+  </p>
+</div>
+
+<script src="js/aisc-shapes.js"></script>
+<script src="js/beam-engine.js"></script>
+<script>
+"use strict";
+var CASES = ["DL", "CL", "LL", "RLL", "SL", "WL", "EL"];
+var CASE_TIP = { DL: "Dead", CL: "Collateral", LL: "Live", RLL: "Roof Live", SL: "Snow", WL: "Wind", EL: "Seismic" };
+var $ = function (id) { return document.getElementById(id); };
+var combos = [];      // {name, f:{}, s:bool, d:bool, lim:number}
+var lastRun = null;   // {design, dispCheck, dispAnalysis, shape}
+
+function togglePanel(hd) { hd.parentElement.classList.toggle("closed"); }
+
+// ---------------- input tables ----------------
+function caseSel(val) {
+  return '<select class="cs">' + CASES.map(function (c) {
+    return '<option value="' + c + '"' + (c === val ? " selected" : "") + ' title="' + CASE_TIP[c] + '">' + c + "</option>";
+  }).join("") + "</select>";
+}
+function numCell(val, w) {
+  return '<input type="number" step="any" value="' + (val !== undefined && val !== null ? val : "") + '" style="width:' + (w || 76) + 'px">';
+}
+function delBtn() { return '<button class="x" onclick="this.closest(\'tr\').remove(); run()">&times;</button>'; }
+
+function addSupport(x, type) {
+  var tb = $("supTbl").tBodies[0];
+  var tr = document.createElement("tr");
+  tr.innerHTML = "<td>" + numCell(x !== undefined ? x : "", 80) + '</td><td><select><option value="pin"' +
+    (type !== "fix" ? " selected" : "") + '>Pinned</option><option value="fix"' + (type === "fix" ? " selected" : "") +
+    ">Fixed</option></select></td><td>" + delBtn() + "</td>";
+  tb.appendChild(tr);
+  hookInputs(tr);
+}
+function addRow(kind, vals) {
+  vals = vals || {};
+  var tb, html;
+  if (kind === "uni") { tb = $("uniTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.w) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "line") { tb = $("lineTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.w1, 62) + "</td><td>" + numCell(vals.w2, 62) + "</td><td>" + numCell(vals.x1, 62) + "</td><td>" + numCell(vals.x2, 62) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "pt") { tb = $("ptTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.x) + "</td><td>" + numCell(vals.P) + "</td><td>" + delBtn() + "</td>"; }
+  if (kind === "mom") { tb = $("momTbl").tBodies[0]; html = "<td>" + caseSel(vals.c || "DL") + "</td><td>" + numCell(vals.x) + "</td><td>" + numCell(vals.M) + "</td><td>" + delBtn() + "</td>"; }
+  var tr = document.createElement("tr");
+  tr.innerHTML = html;
+  tb.appendChild(tr);
+  hookInputs(tr);
+}
+function preset(kind) {
+  var L = num($("lenFt").value, 30);
+  var tb = $("supTbl").tBodies[0];
+  tb.innerHTML = "";
+  if (kind === "simple") { addSupport(0, "pin"); addSupport(L, "pin"); }
+  if (kind === "cant") { addSupport(0, "fix"); }
+  if (kind === "2span") { addSupport(0, "pin"); addSupport(L / 2, "pin"); addSupport(L, "pin"); }
+  if (kind === "3span") { addSupport(0, "pin"); addSupport(L / 3, "pin"); addSupport(2 * L / 3, "pin"); addSupport(L, "pin"); }
+  run();
+}
+function syncBraced() { $("lb").disabled = $("braced").checked; run(); }
+function num(v, dflt) { var n = parseFloat(v); return isFinite(n) ? n : (dflt || 0); }
+
+// keep last support glued to beam end when length changes
+var prevLen = 25.6667;
+function onLenChange() {
+  var L = num($("lenFt").value, prevLen);
+  var rows = $("supTbl").tBodies[0].rows;
+  for (var i = 0; i < rows.length; i++) {
+    var inp = rows[i].querySelector("input");
+    if (Math.abs(num(inp.value) - prevLen) < 1e-9) inp.value = L;
+  }
+  prevLen = L;
+}
+
+// ---------------- combos ----------------
+function comboRow(c) {
+  var tr = document.createElement("tr");
+  var cells = '<td style="text-align:left"><input type="text" value="' + c.name + '"></td>';
+  CASES.forEach(function (cs) {
+    cells += "<td>" + '<input type="number" step="any" value="' + (c.f[cs] || "") + '"></td>';
+  });
+  cells += '<td><input type="checkbox" class="chkS"' + (c.s ? " checked" : "") + "></td>";
+  cells += '<td><input type="checkbox" class="chkD"' + (c.d ? " checked" : "") + "></td>";
+  cells += "<td>" + '<input type="number" step="1" value="' + (c.lim || "") + '" style="width:56px"></td>';
+  cells += "<td>" + delBtn() + "</td>";
+  tr.innerHTML = cells;
+  $("comboTbl").tBodies[0].appendChild(tr);
+  hookInputs(tr);
+}
+function addCombo() { comboRow({ name: "Custom", f: {}, s: true, d: false, lim: 240 }); }
+function loadTemplate() {
+  var m = $("method").value;
+  var t;
+  if (m === "ASD") {
+    t = [
+      { name: "DL", f: { DL: 1, CL: 1 }, s: 1 },
+      { name: "DL+LL", f: { DL: 1, CL: 1, LL: 1 }, s: 1 },
+      { name: "DL+RLL", f: { DL: 1, CL: 1, RLL: 1 }, s: 1 },
+      { name: "DL+SL", f: { DL: 1, CL: 1, SL: 1 }, s: 1 },
+      { name: "DL+0.75LL+0.75SL", f: { DL: 1, CL: 1, LL: 0.75, SL: 0.75 }, s: 1 },
+      { name: "DL+0.75LL+0.75RLL", f: { DL: 1, CL: 1, LL: 0.75, RLL: 0.75 }, s: 1 },
+      { name: "DL+0.6WL", f: { DL: 1, CL: 1, WL: 0.6 }, s: 1 },
+      { name: "DL+0.75LL+0.75SL+0.45WL", f: { DL: 1, CL: 1, LL: 0.75, SL: 0.75, WL: 0.45 }, s: 1 },
+      { name: "0.60DL+0.6WL", f: { DL: 0.6, CL: 0.6, WL: 0.6 }, s: 1 },
+      { name: "DL+0.7EL", f: { DL: 1, CL: 1, EL: 0.7 }, s: 1 },
+      { name: "0.60DL+0.7EL", f: { DL: 0.6, CL: 0.6, EL: 0.7 }, s: 1 }
+    ];
+  } else {
+    t = [
+      { name: "1.4DL", f: { DL: 1.4, CL: 1.4 }, s: 1 },
+      { name: "1.2DL+1.6LL+0.5SL", f: { DL: 1.2, CL: 1.2, LL: 1.6, SL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.6LL+0.5RLL", f: { DL: 1.2, CL: 1.2, LL: 1.6, RLL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.6SL+LL", f: { DL: 1.2, CL: 1.2, SL: 1.6, LL: 1 }, s: 1 },
+      { name: "1.2DL+1.6SL+0.5WL", f: { DL: 1.2, CL: 1.2, SL: 1.6, WL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.6RLL+LL", f: { DL: 1.2, CL: 1.2, RLL: 1.6, LL: 1 }, s: 1 },
+      { name: "1.2DL+1.6RLL+0.5WL", f: { DL: 1.2, CL: 1.2, RLL: 1.6, WL: 0.5 }, s: 1 },
+      { name: "1.2DL+1.0WL+LL+0.5SL", f: { DL: 1.2, CL: 1.2, WL: 1, LL: 1, SL: 0.5 }, s: 1 },
+      { name: "0.9DL+1.0WL", f: { DL: 0.9, CL: 0.9, WL: 1 }, s: 1 },
+      { name: "1.2DL+1.0EL+LL+0.2SL", f: { DL: 1.2, CL: 1.2, EL: 1, LL: 1, SL: 0.2 }, s: 1 },
+      { name: "0.9DL+1.0EL", f: { DL: 0.9, CL: 0.9, EL: 1 }, s: 1 }
+    ];
+  }
+  t.push({ name: "Total Load Defl (D+C+L+S)", f: { DL: 1, CL: 1, LL: 1, RLL: 1, SL: 1 }, d: 1, lim: 240 });
+  t.push({ name: "Live Load Defl (L+S)", f: { LL: 1, RLL: 1, SL: 1 }, d: 1, lim: 360 });
+  $("comboTbl").tBodies[0].innerHTML = "";
+  t.forEach(comboRow);
+  run();
+}
+function readCombos() {
+  var out = [];
+  var rows = $("comboTbl").tBodies[0].rows;
+  for (var i = 0; i < rows.length; i++) {
+    var tds = rows[i].cells;
+    var f = {};
+    CASES.forEach(function (cs, j) {
+      var v = num(tds[1 + j].querySelector("input").value);
+      if (v) f[cs] = v;
+    });
+    var lim = num(tds[9 + 1].querySelector("input").value, 240);
+    out.push({
+      name: tds[0].querySelector("input").value || ("Combo " + (i + 1)),
+      f: f,
+      strength: tds[8].querySelector("input").checked,
+      defl: tds[9].querySelector("input").checked,
+      deflLimit: lim || 240
+    });
+  }
+  return out;
+}
+
+// ---------------- model from DOM ----------------
+function readModel() {
+  var model = { lengthFt: num($("lenFt").value, 0), supports: [], loads: { uniform: [], line: [], point: [], moment: [] } };
+  var rows = $("supTbl").tBodies[0].rows, i, td;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    var x = num(td[0].querySelector("input").value, NaN);
+    if (isFinite(x)) model.supports.push({ x: x, type: td[1].querySelector("select").value });
+  }
+  rows = $("uniTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.uniform.push({ case: td[0].querySelector("select").value, w: num(td[1].querySelector("input").value) });
+  }
+  rows = $("lineTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.line.push({
+      case: td[0].querySelector("select").value,
+      w1: num(td[1].querySelector("input").value), w2: num(td[2].querySelector("input").value),
+      x1: num(td[3].querySelector("input").value), x2: num(td[4].querySelector("input").value)
+    });
+  }
+  rows = $("ptTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.point.push({ case: td[0].querySelector("select").value, x: num(td[1].querySelector("input").value), P: num(td[2].querySelector("input").value) });
+  }
+  rows = $("momTbl").tBodies[0].rows;
+  for (i = 0; i < rows.length; i++) {
+    td = rows[i].cells;
+    model.loads.moment.push({ case: td[0].querySelector("select").value, x: num(td[1].querySelector("input").value), M: num(td[2].querySelector("input").value) });
+  }
+  return model;
+}
+function readOpts() {
+  return {
+    Fy: num($("fy").value, 50), E: num($("emod").value, 29000),
+    method: $("method").value,
+    LbFt: $("braced").checked ? 0 : num($("lb").value, 0),
+    Cb: num($("cb").value, 1) || 1,
+    selfWeight: $("selfwt").checked, swCase: "DL",
+    maxDepthIn: num($("maxD").value, 0) || null,
+    minDepthIn: num($("minD").value, 0) || null
+  };
+}
+
+// ---------------- run ----------------
+function fmt(v, dp) { return isFinite(v) ? v.toFixed(dp === undefined ? 2 : dp) : "—"; }
+function err(msg) { var s = $("status"); if (msg) { s.textContent = msg; s.classList.add("err"); s.style.display = "block"; } else { s.style.display = "none"; } }
+
+function run() {
+  try {
+    err(null);
+    var model = readModel();
+    combos = readCombos();
+    if (!combos.length) { loadTemplate(); return; }
+    var opts = readOpts();
+    var design = Engine().runDesign(model, combos, opts, W_SHAPES());
+
+    // resolve display shape
+    var pickTxt = $("shapePick").value.trim().toUpperCase().replace(/\s+/g, "");
+    var shape = null;
+    if (pickTxt && pickTxt.indexOf("AUTO") !== 0) {
+      shape = W_SHAPES().find(function (s) { return s.name === pickTxt || s.name === pickTxt.replace("X", "X"); }) || null;
+      if (!shape) { err('Shape "' + $("shapePick").value + '" not found — using lightest passing.'); }
+    }
+    if (!shape) shape = design.best ? design.best.shape : null;
+
+    var dispCheck = shape ? design.checks.find(function (c) { return c.shape.name === shape.name; }) : null;
+    var dispAnalysis = shape ? Engine().analyzeForShape(model, combos, opts, shape) : Engine().analyze(model, combos, opts.E, Engine().I_REF);
+
+    lastRun = { design: design, shape: shape, dispCheck: dispCheck, dispAnalysis: dispAnalysis, opts: opts, model: model };
+    renderDesign();
+    fillComboSelect();
+    drawAll();
+    renderSummary();
+  } catch (e) {
+    err(e.message);
+  }
+}
+function Engine() { return window.BeamEngine; }
+function W_SHAPES() { return window.AISC_W_SHAPES; }
+
+// ---------------- design output ----------------
+function capLbl(o) { return o.method === "ASD" ? "Mn/Ω (k-ft)" : "φMn (k-ft)"; }
+function renderDesign() {
+  var d = lastRun.design, o = lastRun.opts, out = [];
+  if (!d.best) {
+    out.push('<p class="failing">No W-shape in the database satisfies all checks' +
+      (o.maxDepthIn || o.minDepthIn ? " within the depth limits" : "") + ". Review loads, bracing, or limits.</p>");
+  } else {
+    var b = d.best;
+    out.push('<p>Lightest adequate section: <span class="bigpick">' + b.shape.name + "</span>" +
+      ' <span class="note">(' + fmt(b.shape.wt, 1) + " plf &middot; d = " + fmt(b.shape.d, 1) + '")</span>' +
+      (lastRun.shape && lastRun.shape.name !== b.shape.name
+        ? ' &nbsp; <span class="note">— diagrams/check below shown for <b>' + lastRun.shape.name + "</b></span>" : "") + "</p>");
+  }
+  var passing = d.passing.slice(0, 15);
+  if (passing.length) {
+    out.push('<table class="grid cand" id="candTbl"><thead><tr><th>Shape</th><th>Wt (plf)</th><th>d (in)</th>' +
+      "<th>" + capLbl(o) + "</th><th>M ratio</th><th>V ratio</th><th>Defl ratio</th><th>Governs</th></tr></thead><tbody>");
+    passing.forEach(function (c) {
+      var sel = lastRun.shape && c.shape.name === lastRun.shape.name;
+      out.push('<tr class="' + (sel ? "sel" : "") + '" onclick="pickShape(\'' + c.shape.name + "')\">" +
+        "<td><b>" + c.shape.name + "</b></td><td>" + fmt(c.shape.wt, 1) + "</td><td>" + fmt(c.shape.d, 1) + "</td>" +
+        "<td>" + fmt(c.flex.capacity, 1) + "</td><td>" + fmt(c.ratioM) + "</td><td>" + fmt(c.ratioV) + "</td>" +
+        "<td>" + fmt(c.ratioD) + "</td><td>" + c.governs + "</td></tr>");
+    });
+    out.push("</tbody></table>");
+    // lightest per depth series
+    var byDepth = {};
+    d.passing.forEach(function (c) {
+      var series = c.shape.name.split("X")[0];
+      if (!byDepth[series]) byDepth[series] = c;
+    });
+    var keys = Object.keys(byDepth).sort(function (a, b) { return parseFloat(a.slice(1)) - parseFloat(b.slice(1)); });
+    out.push('<p class="note" style="margin-bottom:2px">Lightest adequate per depth series:</p><p class="mono">' +
+      keys.map(function (k) { return byDepth[k].shape.name; }).join(" &nbsp;&middot;&nbsp; ") + "</p>");
+  }
+  if (lastRun.dispCheck) out.push(detailReport(lastRun.dispCheck, o));
+  else if (lastRun.shape === null) out.push('<p class="note">Deflections below use a reference I = 1000 in&#8308; until a shape is available.</p>');
+  $("designOut").innerHTML = out.join("");
+}
+function pickShape(name) { $("shapePick").value = name; run(); }
+
+function detailReport(c, o) {
+  var s = c.shape, f = c.flex, v = c.shear;
+  var dm = o.method === "ASD" ? "Ma" : "Mu", dv = o.method === "ASD" ? "Va" : "Vu";
+  var h = ['<details class="rpt" open><summary>Detailed check — ' + s.name + " (" + o.method + ", Fy = " + o.Fy + " ksi)" +
+    (c.pass ? ' <span class="passing">ADEQUATE</span>' : ' <span class="failing">N.G.</span>') + "</summary>"];
+  h.push('<div class="rptgrid">');
+  h.push('<div class="rptbox"><h4>Section Properties</h4><table>' +
+    "<tr><td>Weight</td><td>" + fmt(s.wt, 1) + " plf</td></tr>" +
+    "<tr><td>A</td><td>" + fmt(s.A) + " in²</td></tr>" +
+    "<tr><td>d &times; bf</td><td>" + fmt(s.d, 2) + " &times; " + fmt(s.bf, 2) + " in</td></tr>" +
+    "<tr><td>tw / tf</td><td>" + fmt(s.tw, 3) + " / " + fmt(s.tf, 3) + " in</td></tr>" +
+    "<tr><td>Ix / Sx / Zx</td><td>" + fmt(s.Ix, 0) + " / " + fmt(s.Sx, 1) + " / " + fmt(s.Zx, 1) + "</td></tr>" +
+    "<tr><td>ry / rts</td><td>" + fmt(s.ry) + " / " + fmt(s.rts) + " in</td></tr>" +
+    "<tr><td>bf/2tf , h/tw</td><td>" + fmt(s.bf2tf) + " , " + fmt(s.htw, 1) + "</td></tr></table></div>");
+  h.push('<div class="rptbox"><h4>Flexure — AISC 360-22 Ch. F</h4><table>' +
+    "<tr><td>Mp = Fy·Zx</td><td>" + fmt(f.Mp, 1) + " k-ft</td></tr>" +
+    "<tr><td>Lb / Cb</td><td>" + fmt(o.LbFt, 2) + " ft / " + fmt(o.Cb, 2) + "</td></tr>" +
+    "<tr><td>Lp (F2-5)</td><td>" + fmt(f.Lp, 2) + " ft</td></tr>" +
+    "<tr><td>Lr (F2-6)</td><td>" + fmt(f.Lr, 2) + " ft</td></tr>" +
+    "<tr><td>LTB case</td><td>" + f.ltbCase + "</td></tr>" +
+    "<tr><td>Flange</td><td>" + f.flbCase + "</td></tr>" +
+    "<tr><td>Mn (governing: " + f.governing + ")</td><td>" + fmt(f.Mn, 1) + " k-ft</td></tr>" +
+    "<tr><td><b>" + (o.method === "ASD" ? "Mn/Ω" : "φMn") + "</b></td><td><b>" + fmt(f.capacity, 1) + " k-ft</b></td></tr>" +
+    "<tr><td>" + dm + " (" + c.MdemCombo + " @ " + fmt(c.MdemX, 2) + "')</td><td>" + fmt(c.Mdem, 2) + " k-ft</td></tr>" +
+    '<tr><td>Ratio</td><td class="' + (c.ratioM <= 1 ? "passing" : "failing") + '">' + fmt(c.ratioM) + "</td></tr></table></div>");
+  h.push('<div class="rptbox"><h4>Shear — AISC 360-22 Ch. G</h4><table>' +
+    "<tr><td>Aw = d·tw</td><td>" + fmt(v.Aw) + " in²</td></tr>" +
+    "<tr><td>Cv1</td><td>" + fmt(v.Cv1, 3) + "</td></tr>" +
+    "<tr><td>Vn = 0.6·Fy·Aw·Cv1</td><td>" + fmt(v.Vn, 1) + " k</td></tr>" +
+    "<tr><td><b>" + (o.method === "ASD" ? "Vn/Ω" : "φVn") + "</b></td><td><b>" + fmt(v.capacity, 1) + " k</b></td></tr>" +
+    "<tr><td>" + dv + " (" + c.VdemCombo + ")</td><td>" + fmt(c.Vdem, 2) + " k</td></tr>" +
+    '<tr><td>Ratio</td><td class="' + (c.ratioV <= 1 ? "passing" : "failing") + '">' + fmt(c.ratioV) + "</td></tr></table></div>");
+  if (c.deflChecks.length) {
+    var rows = c.deflChecks.map(function (dc) {
+      return "<tr><td>" + dc.combo + "</td><td>" + fmt(dc.actualIn) + '" @ ' + fmt(dc.x, 1) + "'</td><td>L / " +
+        (isFinite(dc.LoverN) ? Math.round(dc.LoverN) : "∞") + "</td><td>L / " + dc.limit + '</td><td class="' +
+        (dc.pass ? "passing" : "failing") + '">' + (dc.pass ? "OK" : "N.G.") + "</td></tr>";
+    }).join("");
+    h.push('<div class="rptbox"><h4>Deflection</h4><table><tr><td><i>Combo</i></td><td><i>&delta;</i></td><td><i>Actual</i></td><td><i>Limit</i></td><td></td></tr>' + rows + "</table></div>");
+  }
+  h.push("</div></details>");
+  return h.join("");
+}
+
+// ---------------- diagrams ----------------
+function fillComboSelect() {
+  var sel = $("diagCombo"), cur = sel.value;
+  sel.innerHTML = combos.map(function (c, i) { return '<option value="' + i + '">' + c.name + "</option>"; }).join("");
+  if (cur && cur < combos.length) sel.value = cur;
+}
+function drawAll() {
+  if (!lastRun) return;
+  var idx = parseInt($("diagCombo").value || "0", 10) || 0;
+  var res = lastRun.dispAnalysis.results[idx];
+  if (!res) return;
+  var area = $("diagArea");
+  area.innerHTML = "";
+  var noShape = !lastRun.shape;
+  area.appendChild(diagram(res, "V", "Shear (kips)", getCss("--shear"), 1));
+  area.appendChild(diagram(res, "M", "Moment (kip-ft)", getCss("--mom"), 1));
+  area.appendChild(diagram(res, "D", "Deflection (inches)" + (noShape ? " — reference I=1000 in⁴" : " — " + lastRun.shape.name), getCss("--defl"), 2));
+}
+function getCss(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#333"; }
+function diagram(res, field, title, color, dp) {
+  var W = 740, H = 150, padL = 14, padR = 14, padT = 26, padB = 16;
+  var st = res.stations;
+  var L = lastRun.model.lengthFt;
+  var vals = st.map(function (s) { return s[field]; });
+  var vmax = Math.max.apply(null, vals), vmin = Math.min.apply(null, vals);
+  if (vmax === vmin) { vmax += 1; vmin -= 1; }
+  var span = vmax - vmin;
+  vmax += span * 0.12; vmin -= span * 0.12;
+  function X(x) { return padL + (x / L) * (W - padL - padR); }
+  function Y(v) { return padT + (vmax - v) / (vmax - vmin) * (H - padT - padB); }
+  var ns = "http://www.w3.org/2000/svg";
+  var wrap = document.createElement("div");
+  var svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("class", "diag");
+  svg.setAttribute("style", "width:100%;max-width:" + W + "px");
+  // title
+  var t = document.createElementNS(ns, "text");
+  t.setAttribute("x", padL); t.setAttribute("y", 16);
+  t.setAttribute("font-size", "12"); t.setAttribute("font-weight", "600");
+  t.textContent = title;
+  svg.appendChild(t);
+  // baseline
+  var base = document.createElementNS(ns, "line");
+  base.setAttribute("x1", X(0)); base.setAttribute("x2", X(L));
+  base.setAttribute("y1", Y(0)); base.setAttribute("y2", Y(0));
+  base.setAttribute("stroke", "#222"); base.setAttribute("stroke-width", "1.4");
+  svg.appendChild(base);
+  // support markers
+  (lastRun.model.supports || []).forEach(function (s) {
+    var c = document.createElementNS(ns, "circle");
+    c.setAttribute("cx", X(s.x)); c.setAttribute("cy", Y(0)); c.setAttribute("r", 3.4);
+    c.setAttribute("fill", "#111");
+    svg.appendChild(c);
+  });
+  // filled curve
+  var pts = "M " + X(st[0].x) + " " + Y(0) + " ";
+  st.forEach(function (s) { pts += "L " + X(s.x) + " " + Y(s[field]) + " "; });
+  pts += "L " + X(st[st.length - 1].x) + " " + Y(0) + " Z";
+  var fill = document.createElementNS(ns, "path");
+  fill.setAttribute("d", pts); fill.setAttribute("fill", color); fill.setAttribute("fill-opacity", "0.12"); fill.setAttribute("stroke", "none");
+  svg.appendChild(fill);
+  var line = document.createElementNS(ns, "path");
+  var d2 = "";
+  st.forEach(function (s, i) { d2 += (i ? "L " : "M ") + X(s.x) + " " + Y(s[field]) + " "; });
+  line.setAttribute("d", d2); line.setAttribute("fill", "none"); line.setAttribute("stroke", color); line.setAttribute("stroke-width", "2");
+  svg.appendChild(line);
+  // extreme labels
+  var exMax = { v: -Infinity }, exMin = { v: Infinity };
+  st.forEach(function (s) {
+    if (s[field] > exMax.v) exMax = { v: s[field], x: s.x };
+    if (s[field] < exMin.v) exMin = { v: s[field], x: s.x };
+  });
+  [exMax, exMin].forEach(function (ex) {
+    if (!isFinite(ex.v) || Math.abs(ex.v) < 1e-9) return;
+    var lbl = document.createElementNS(ns, "text");
+    var lx = Math.min(Math.max(X(ex.x), padL + 30), W - 110);
+    lbl.setAttribute("x", lx);
+    lbl.setAttribute("y", ex.v >= 0 ? Math.max(Y(ex.v) - 5, 24) : Math.min(Y(ex.v) + 13, H - 4));
+    lbl.setAttribute("font-size", "11"); lbl.setAttribute("fill", "#111");
+    lbl.textContent = fmt(ex.v, dp) + " @ " + fmt(ex.x, 2) + "'";
+    svg.appendChild(lbl);
+  });
+  wrap.appendChild(svg);
+  return wrap;
+}
+
+// ---------------- result summary ----------------
+function renderSummary() {
+  var an = lastRun.dispAnalysis, out = [];
+  var noShape = !lastRun.shape;
+  // global maxima across combos
+  var gV = { v: 0, c: "" }, gM = { v: 0, c: "" }, gD = { v: 0, c: "", x: 0, Ln: Infinity };
+  an.results.forEach(function (r) {
+    var av = Math.max(Math.abs(r.Vmax.v), Math.abs(r.Vmin.v));
+    if (av > Math.abs(gV.v)) gV = { v: av, c: r.name };
+    var am = Math.abs(r.Mmax.v) >= Math.abs(r.Mmin.v) ? r.Mmax.v : r.Mmin.v;
+    if (Math.abs(am) > Math.abs(gM.v)) gM = { v: am, c: r.name };
+    var ad = Math.abs(r.Dmax.v) >= Math.abs(r.Dmin.v) ? r.Dmax : r.Dmin;
+    if (Math.abs(ad.v) > Math.abs(gD.v)) gD = { v: ad.v, c: r.name, x: ad.x, Ln: r.deflNorm > 0 ? 1 / r.deflNorm : Infinity };
+  });
+  out.push('<table class="sumtbl">' +
+    '<tr><td class="lbl">Maximum Shear</td><td>' + fmt(gV.v) + '</td><td class="unit">kips &nbsp;(' + gV.c + ")</td></tr>" +
+    '<tr><td class="lbl">Maximum Moment</td><td>' + fmt(gM.v) + '</td><td class="unit">kip-ft &nbsp;(' + gM.c + ")</td></tr>" +
+    '<tr><td class="lbl">Maximum Deflection</td><td>' + (noShape ? "—" : fmt(gD.v)) + '</td><td class="unit">in &nbsp;(' + gD.c + ")</td></tr>" +
+    '<tr><td class="lbl">Deflection Ratio</td><td>' + (noShape || !isFinite(gD.Ln) ? "—" : "L / " + Math.round(gD.Ln)) + "</td><td class=\"unit\"></td></tr></table>");
+
+  // reactions for all combos
+  var sup = an.results.length ? an.results[0].reactions : [];
+  if (sup.length) {
+    out.push("<h3 style='font-size:13px;margin:14px 0 2px'>Reactions for All Load Combinations <span class='note'>(kips, positive up" +
+      (sup.some(function (s) { return s.Mr !== null; }) ? "; fixed-end moments in kip-ft, ccw+" : "") + ")</span></h3>");
+    out.push('<table class="grid"><thead><tr><th style="text-align:left">Load Combination</th>' +
+      sup.map(function (s, i) { return "<th>Support " + (i + 1) + " @ " + fmt(s.x, 2) + "'</th>"; }).join("") + "</tr></thead><tbody>");
+    an.results.forEach(function (r) {
+      out.push('<tr><td style="text-align:left">' + r.name + "</td>" + r.reactions.map(function (s) {
+        return "<td>" + fmt(s.R) + (s.Mr !== null ? " <span class='note'>(M=" + fmt(s.Mr) + ")</span>" : "") + "</td>";
+      }).join("") + "</tr>");
+    });
+    out.push("</tbody></table>");
+  }
+
+  // member results per combo
+  out.push("<h3 style='font-size:13px;margin:14px 0 2px'>Member Results For All Load Combinations</h3>");
+  out.push('<table class="grid"><thead><tr><th style="text-align:left">Load Combination</th><th>Left Shear (k)</th><th>Right Shear (k)</th>' +
+    "<th>Max. Moment (k-ft)</th><th>Max. Deflection (in)</th><th>Deflection Ratio</th></tr></thead><tbody>");
+  an.results.forEach(function (r) {
+    var am = Math.abs(r.Mmax.v) >= Math.abs(r.Mmin.v) ? r.Mmax : r.Mmin;
+    var ad = Math.abs(r.Dmax.v) >= Math.abs(r.Dmin.v) ? r.Dmax : r.Dmin;
+    var Ln = r.deflNorm > 0 ? 1 / r.deflNorm : Infinity;
+    out.push('<tr><td style="text-align:left">' + r.name + "</td><td>" + fmt(r.Vleft) + "</td><td>" + fmt(r.Vright) + "</td>" +
+      "<td>" + fmt(am.v) + " @ " + fmt(am.x, 1) + "'</td>" +
+      "<td>" + (noShape ? "—" : fmt(ad.v) + " @ " + fmt(ad.x, 1) + "'") + "</td>" +
+      "<td>" + (noShape || !isFinite(Ln) ? "—" : "L / " + Math.round(Ln)) + "</td></tr>");
+  });
+  out.push("</tbody></table>");
+  $("summaryOut").innerHTML = out.join("");
+}
+
+// ---------------- wiring ----------------
+var runTimer = null;
+function hookInputs(scope) {
+  (scope || document).querySelectorAll("input, select").forEach(function (el) {
+    if (el.dataset.hooked) return;
+    el.dataset.hooked = "1";
+    el.addEventListener("change", function () {
+      if (el.id === "lenFt") onLenChange();
+      clearTimeout(runTimer);
+      runTimer = setTimeout(run, 150);
+    });
+  });
+}
+
+// datalist of shapes
+(function () {
+  var dl = $("shapeList");
+  var opts = '<option value="AUTO (lightest passing)"></option>';
+  window.AISC_W_SHAPES.forEach(function (s) { opts += '<option value="' + s.name + '"></option>'; });
+  dl.innerHTML = opts;
+})();
+
+// initial state: the Nucor screenshot example
+addSupport(0, "pin");
+addSupport(25.6667, "pin");
+addRow("pt", { c: "DL", x: 6.3, P: 1.0 });
+loadTemplate();
+hookInputs(document);
+</script>
+</body>
+</html>

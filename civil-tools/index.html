@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Civil Engineering Tools</title>
+<style>
+  body { margin: 0; font: 15px/1.5 "Segoe UI", system-ui, Arial, sans-serif; color: #1a1d21; background: #f2f4f7; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .sub { color: #5b6470; margin-top: 0; }
+  .card { display: block; background: #fff; border: 1px solid #c9ced6; border-radius: 8px; padding: 18px 20px;
+          margin: 14px 0; text-decoration: none; color: inherit; }
+  .card:hover { border-color: #0b4ea2; box-shadow: 0 2px 8px rgba(11,78,162,.12); }
+  .card h2 { margin: 0 0 4px; font-size: 18px; color: #0b4ea2; }
+  .card p { margin: 0; color: #5b6470; font-size: 13.5px; }
+  .soon { opacity: .55; pointer-events: none; }
+  .tag { display: inline-block; font-size: 11px; background: #e3e8ef; border-radius: 10px; padding: 1px 9px; margin-left: 8px; color: #5b6470; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Civil Engineering Tools</h1>
+  <p class="sub">Quote-engineering calculators. Built around the AISC Steel Construction Manual, 16th Ed.</p>
+
+  <a class="card" href="beam-designer.html">
+    <h2>Steel Beam Designer</h2>
+    <p>Beam analysis (simple span, continuous, cantilever, overhangs — point, line &amp; uniform loads by load case with
+       ASD/LRFD combinations) plus automatic W-shape selection per AISC 360-22: flexure with LTB, shear, and deflection limits.
+       Shear/moment/deflection diagrams, reactions, and a printable check report.</p>
+  </a>
+
+  <div class="card soon">
+    <h2>Column / Compression Member Designer <span class="tag">planned</span></h2>
+    <p>KL/r, Ch. E flexural buckling, combined loading (Ch. H).</p>
+  </div>
+  <div class="card soon">
+    <h2>Base Plate &amp; Anchor Rod Sizing <span class="tag">planned</span></h2>
+    <p>Ch. J bearing, ACI 318 anchorage.</p>
+  </div>
+</div>
+</body>
+</html>
