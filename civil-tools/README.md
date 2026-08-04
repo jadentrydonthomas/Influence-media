@@ -52,6 +52,12 @@ and support glyphs, and a printable check report.
   2× the overhang length for cantilevers/overhangs.
 - Optional beam self-weight (superposed into DL), max/min depth limits,
   editable Fy and E, ASD or LRFD.
+- **Section pool:** defaults to the NBG stock wide-flange inventory
+  (NBG Design Manual §5.1.5.1.1 — W8X10, W8X18, W8X24, W10X12, W10X15,
+  W10X22, W12X14, W12X26, with per-division availability), switchable to
+  the full 289-shape database. When no stocked section works, the lightest
+  non-stock alternative is suggested; manually checked non-stock shapes are
+  tagged NON-STOCK.
 - Selection scans all 289 W-shapes (AISC Shapes Database properties, sorted
   lightest first) and reports the lightest adequate shape, the top candidates
   with unity ratios, the lightest adequate shape per depth series, and a full

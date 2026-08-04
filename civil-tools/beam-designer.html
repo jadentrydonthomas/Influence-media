@@ -8,30 +8,34 @@
 <body>
 <style>
   :root {
-    --bg: #F4F6F9; --panel: #FFFFFF; --panel2: #EDF0F5; --line: #D5DBE6;
-    --ink: #1A2334; --mut: #5D6A80; --accent: #B97A10; --accent-soft: rgba(185,122,16,.14);
-    --ok: #1F9D57; --bad: #C4373F; --shear: #2563D9; --mom: #1F9D57; --defl: #66707F;
-    --focus: #B97A10;
+    --bg: #EEF1F6; --panel: #FFFFFF; --panel2: #E4E9F1; --line: #C4CCDA;
+    --hdband: #E7EBF2; --field: #FFFFFF; --fieldbr: #94A1B6;
+    --ink: #16203A; --mut: #46536C; --accent: #A96E0B; --accent-soft: rgba(185,122,16,.15);
+    --ok: #197F47; --bad: #C4373F; --shear: #2563D9; --mom: #1F9D57; --defl: #5A6474;
+    --focus: #A96E0B;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0D131F; --panel: #151D2C; --panel2: #1B2536; --line: #26324A;
-      --ink: #E9EEF7; --mut: #8B97AD; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.13);
+      --bg: #0D131F; --panel: #151D2C; --panel2: #1B2536; --line: #2C3A57;
+      --hdband: #1C2740; --field: #0F1726; --fieldbr: #415272;
+      --ink: #E9EEF7; --mut: #93A0B8; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.13);
       --ok: #45C97E; --bad: #F0616D; --shear: #5C9BFF; --mom: #45C97E; --defl: #97A3B6;
       --focus: #F2A63B;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0D131F; --panel: #151D2C; --panel2: #1B2536; --line: #26324A;
-    --ink: #E9EEF7; --mut: #8B97AD; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.13);
+    --bg: #0D131F; --panel: #151D2C; --panel2: #1B2536; --line: #2C3A57;
+    --hdband: #1C2740; --field: #0F1726; --fieldbr: #415272;
+    --ink: #E9EEF7; --mut: #93A0B8; --accent: #F2A63B; --accent-soft: rgba(242,166,59,.13);
     --ok: #45C97E; --bad: #F0616D; --shear: #5C9BFF; --mom: #45C97E; --defl: #97A3B6;
     --focus: #F2A63B;
   }
   :root[data-theme="light"] {
-    --bg: #F4F6F9; --panel: #FFFFFF; --panel2: #EDF0F5; --line: #D5DBE6;
-    --ink: #1A2334; --mut: #5D6A80; --accent: #B97A10; --accent-soft: rgba(185,122,16,.14);
-    --ok: #1F9D57; --bad: #C4373F; --shear: #2563D9; --mom: #1F9D57; --defl: #66707F;
-    --focus: #B97A10;
+    --bg: #EEF1F6; --panel: #FFFFFF; --panel2: #E4E9F1; --line: #C4CCDA;
+    --hdband: #E7EBF2; --field: #FFFFFF; --fieldbr: #94A1B6;
+    --ink: #16203A; --mut: #46536C; --accent: #A96E0B; --accent-soft: rgba(185,122,16,.15);
+    --ok: #197F47; --bad: #C4373F; --shear: #2563D9; --mom: #1F9D57; --defl: #5A6474;
+    --focus: #A96E0B;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -68,15 +72,23 @@
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
   .btn.sm { padding: 5px 12px; min-height: 32px; font-size: 12.5px; }
   .btn.chip { border-radius: 999px; }
+  .btn.chip.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .btn.reportbtn { border: 2px solid var(--accent); color: var(--accent); background: var(--panel); font-weight: 700; }
+  .btn.reportbtn:hover { background: var(--accent-soft); }
+  .banner { display: block; width: 100%; text-align: center; border: 2px dashed var(--accent); color: var(--accent);
+            background: var(--accent-soft); border-radius: 6px; padding: 14px; font: inherit; font-weight: 700;
+            font-size: 14px; cursor: pointer; }
+  .banner:hover { background: var(--panel); }
   .x { color: var(--bad); background: none; border: none; font-size: 16px; cursor: pointer; padding: 2px 8px;
        line-height: 1; min-height: 30px; }
   .x:hover { color: var(--ink); }
 
   /* ---------- input band on top ---------- */
   .inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; margin-bottom: 14px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
   .card > .hd { display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-bottom: 1px solid var(--line);
-                font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--mut);
+                background: var(--hdband);
+                font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--ink);
                 cursor: pointer; user-select: none; }
   .card > .hd::after { content: "–"; margin-left: auto; color: var(--mut); }
   .card.closed > .hd::after { content: "+"; }
@@ -86,11 +98,12 @@
 
   .frow { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; }
   .fld { display: flex; flex-direction: column; gap: 4px; }
-  .fld > label { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut); font-weight: 600; }
+  .fld > label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
   input[type=number], input[type=text], select {
-    border: 1px solid var(--line); border-radius: 5px; padding: 8px 9px; font: inherit;
-    background: var(--panel2); color: var(--ink); min-height: 36px;
+    border: 1.5px solid var(--fieldbr); border-radius: 5px; padding: 8px 9px; font: inherit;
+    background: var(--field); color: var(--ink); min-height: 38px;
   }
+  input:hover, select:hover { border-color: var(--accent); }
   input[type=number] { width: 96px; text-align: right; }
   input[type=checkbox] { accent-color: var(--accent); width: 17px; height: 17px; }
   select { font-size: 13px; }
@@ -208,7 +221,7 @@
     <div class="actions">
       <span id="status" class="pill idle">ready</span>
       <button id="btnRun" class="btn primary" onclick="run()">Run</button>
-      <button id="btnReport" class="btn" onclick="toggleReport()">View calc report</button>
+      <button id="btnReport" class="btn reportbtn" onclick="toggleReport()">View calc report</button>
       <button class="btn" onclick="printReport()">Print</button>
       <button id="btnTheme" class="btn" title="Toggle light / dark" aria-label="Toggle theme">&#9681;</button>
     </div>
@@ -226,11 +239,11 @@
           </div>
           <div class="fld">
             <label>Preset</label>
-            <div>
-              <button class="btn sm chip" onclick="preset('simple')">Simple</button>
-              <button class="btn sm chip" onclick="preset('cant')">Cantilever</button>
-              <button class="btn sm chip" onclick="preset('2span')">2-Span</button>
-              <button class="btn sm chip" onclick="preset('3span')">3-Span</button>
+            <div id="presetBtns">
+              <button class="btn sm chip" data-preset="simple" onclick="preset('simple')">Simple</button>
+              <button class="btn sm chip" data-preset="cant" onclick="preset('cant')">Cantilever</button>
+              <button class="btn sm chip" data-preset="2span" onclick="preset('2span')">2-Span</button>
+              <button class="btn sm chip" data-preset="3span" onclick="preset('3span')">3-Span</button>
             </div>
           </div>
         </div>
@@ -283,6 +296,22 @@
     <div class="card" id="pCrit">
       <div class="hd" onclick="togglePanel(this)">3 &middot; Design Criteria</div>
       <div class="bd">
+        <div class="frow" style="margin-bottom:12px">
+          <div class="fld">
+            <label>Section pool <i class="tip" title="NBG stock = the 8 wide-flange sections stocked per NBG Design Manual 5.1.5.1.1 (W8X10, W8X18, W8X24, W10X12, W10X15, W10X22, W12X14, W12X26). All = the full 289-shape AISC database.">&#9432;</i></label>
+            <select id="pool" style="min-width:180px">
+              <option value="stock" selected>NBG stock W-sections (DM 5.1)</option>
+              <option value="all">All AISC W-shapes (289)</option>
+            </select>
+          </div>
+          <div class="fld">
+            <label>Division <i class="tip" title="Limits stock to sections carried by that division per DM 5.1.5.1.1. 'Any' = stocked at any division.">&#9432;</i></label>
+            <select id="division">
+              <option value="ANY" selected>Any</option>
+              <option>IL</option><option>TN</option><option>IN</option><option>SC</option><option>TX</option><option>West</option>
+            </select>
+          </div>
+        </div>
         <div class="frow">
           <div class="fld">
             <label>Method</label>
@@ -358,9 +387,16 @@
   <!-- ============ RESULTS ============ -->
   <main class="out">
     <section class="card" id="pStamp">
-      <div class="hd" onclick="togglePanel(this)">Selected Beam <span class="tag">auto &middot; lightest adequate</span></div>
-      <div class="bd" id="stampOut"><p class="note">Waiting for first run&hellip;</p></div>
+      <div class="hd" onclick="togglePanel(this)">Selected Beam <span class="tag" id="poolTag">auto &middot; lightest stocked</span></div>
+      <div class="bd">
+        <div id="stampOut"><p class="note">Waiting for first run&hellip;</p></div>
+        <div id="candOut" style="margin-top:14px"></div>
+      </div>
     </section>
+
+    <button class="banner" onclick="if(!document.getElementById('reportView').classList.contains('open'))toggleReport();else document.getElementById('reportView').scrollIntoView({behavior:'smooth'})">
+      View the full calculation report &mdash; AISC 360-22 equation references, reactions &amp; member results for every load combination &darr;
+    </button>
 
     <section class="card" id="pDiag">
       <div class="hd" onclick="togglePanel(this)">Diagrams</div>
@@ -379,10 +415,6 @@
       </div>
     </section>
 
-    <section class="card" id="pCand">
-      <div class="hd" onclick="togglePanel(this)">Other Sections That Work <span class="tag">click to check one</span></div>
-      <div class="bd" id="candOut"></div>
-    </section>
   </main>
 
   <!-- ============ CALCULATION REPORT ============ -->
@@ -1409,6 +1441,25 @@ return {
 "use strict";
 var CASES = ["DL", "CL", "LL", "RLL", "SL", "WL", "EL"];
 var CASE_TIP = { DL: "Dead", CL: "Collateral", LL: "Live", RLL: "Roof Live", SL: "Snow", WL: "Wind", EL: "Seismic" };
+
+// NBG Design Manual 5.1.5.1.1 — Wide Flange Material Stocked by Division
+// (Fy = 50 ksi). WF designations mapped to AISC names; value = divisions
+// that stock the section.
+var STOCK_W = {
+  "W8X10":  ["IL", "TN", "IN", "TX", "West"],
+  "W8X18":  ["IL", "TN", "IN", "SC", "TX", "West"],
+  "W8X24":  ["IL", "TN", "IN", "SC", "TX", "West"],
+  "W10X12": ["TN"],
+  "W10X15": ["TX"],
+  "W10X22": ["IL", "TN", "IN", "SC", "TX", "West"],
+  "W12X14": ["IL", "TN", "West"],
+  "W12X26": ["IL", "TN", "IN", "SC", "TX", "West"]
+};
+function stockedNames(division) {
+  return Object.keys(STOCK_W).filter(function (n) {
+    return division === "ANY" || STOCK_W[n].indexOf(division) >= 0;
+  });
+}
 var $ = function (id) { return document.getElementById(id); };
 var combos = [];
 var lastRun = null;
@@ -1484,6 +1535,13 @@ function addRow(kind, vals) {
   tb.appendChild(tr);
   hookInputs(tr);
 }
+var activePreset = null;
+function markPreset(kind) {
+  activePreset = kind;
+  document.querySelectorAll("#presetBtns .chip").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.preset === kind);
+  });
+}
 function preset(kind) {
   var L = num($("lenFt").value, 30);
   $("supTbl").tBodies[0].innerHTML = "";
@@ -1491,6 +1549,7 @@ function preset(kind) {
   if (kind === "cant") { addSupport(0, "fix"); }
   if (kind === "2span") { addSupport(0, "pin"); addSupport(L / 2, "pin"); addSupport(L, "pin"); }
   if (kind === "3span") { addSupport(0, "pin"); addSupport(L / 3, "pin"); addSupport(2 * L / 3, "pin"); addSupport(L, "pin"); }
+  markPreset(kind);
   run();
 }
 function syncBraced() { $("lb").disabled = $("braced").checked; run(); }
@@ -1660,7 +1719,24 @@ function run() {
     if (!combos.length) { loadTemplate(); return; }
     $("comboCount").textContent = combos.length + " combos loaded";
     var opts = readOpts();
-    var design = Engine().runDesign(model, combos, opts, W_SHAPES());
+
+    // section pool: NBG stock inventory (DM 5.1.5.1.1) or full database
+    var poolMode = $("pool").value, division = $("division").value;
+    var poolShapes = W_SHAPES();
+    if (poolMode === "stock") {
+      var names = stockedNames(division);
+      poolShapes = W_SHAPES().filter(function (s) { return names.indexOf(s.name) >= 0; });
+    }
+    $("poolTag").textContent = poolMode === "stock"
+      ? "auto · lightest stocked (DM 5.1" + (division !== "ANY" ? " · " + division : "") + ")"
+      : "auto · lightest of 289 W-shapes";
+    var design = Engine().runDesign(model, combos, opts, poolShapes);
+
+    // if nothing in stock works, find what would work from the full database
+    var fallbackBest = null;
+    if (poolMode === "stock" && !design.best) {
+      fallbackBest = Engine().runDesign(model, combos, opts, W_SHAPES()).best;
+    }
 
     var pickTxt = $("shapePick").value.trim().toUpperCase().replace(/\s+/g, "");
     var shape = null, pickMiss = false;
@@ -1671,10 +1747,16 @@ function run() {
     if (!shape) shape = design.best ? design.best.shape : null;
 
     var dispCheck = shape ? design.checks.find(function (c) { return c.shape.name === shape.name; }) : null;
+    if (shape && !dispCheck) {
+      // manually picked shape outside the pool: check it on its own
+      dispCheck = Engine().runDesign(model, combos, opts, [shape]).checks[0] || null;
+    }
     var dispAnalysis = shape ? Engine().analyzeForShape(model, combos, opts, shape)
                              : Engine().analyze(model, combos, opts.E, Engine().I_REF);
 
-    lastRun = { design: design, shape: shape, dispCheck: dispCheck, dispAnalysis: dispAnalysis, opts: opts, model: model };
+    lastRun = { design: design, shape: shape, dispCheck: dispCheck, dispAnalysis: dispAnalysis, opts: opts, model: model,
+                poolMode: poolMode, division: division, fallbackBest: fallbackBest,
+                poolNames: poolShapes.map(function (s) { return s.name; }) };
 
     if (pickMiss) setStatus("bad", 'shape "' + $("shapePick").value + '" not found — using auto');
     else if (dispCheck) setStatus(dispCheck.pass ? "ok" : "bad", (dispCheck.pass ? "ADEQUATE" : "N.G.") + " · " + shape.name);
@@ -1719,21 +1801,34 @@ function worstDefl(c) {
 }
 function renderStamp() {
   var d = lastRun.design, o = lastRun.opts, c = lastRun.dispCheck, out = [];
+  var stockPool = lastRun.poolMode === "stock";
+  var poolDesc = stockPool
+    ? "NBG stock inventory (DM 5.1" + (lastRun.division !== "ANY" ? " · " + lastRun.division : "") + ")"
+    : "289 W-shapes";
   if (!c) {
-    out.push('<p class="failing">No W-shape satisfies all checks' +
-      (o.maxDepthIn || o.minDepthIn ? " within the depth limits" : "") +
-      '.</p><p class="note">Review loads, bracing, combinations, or depth limits. Deflection diagrams below use a reference I = 1000 in&#8308;.</p>');
+    out.push('<p class="failing">No ' + (stockPool ? "stocked W-section" : "W-shape") + " satisfies all checks" +
+      (o.maxDepthIn || o.minDepthIn ? " within the depth limits" : "") + ".</p>");
+    if (lastRun.fallbackBest) {
+      out.push('<p class="note">Lightest adequate from the full AISC database: <a href="#" style="color:var(--accent);font-weight:700" onclick="pickShape(\'' +
+        lastRun.fallbackBest.shape.name + '\');return false">' + lastRun.fallbackBest.shape.name +
+        "</a> (non-stock — special order). Click it to check, or switch the Section pool to all W-shapes.</p>");
+    } else {
+      out.push('<p class="note">Review loads, bracing, combinations, or depth limits. Deflection diagrams below use a reference I = 1000 in&#8308;.</p>');
+    }
     $("stampOut").innerHTML = out.join("");
     return;
   }
   var s = c.shape;
   var isBest = d.best && d.best.shape.name === s.name;
+  var inStock = !stockPool || lastRun.poolNames.indexOf(s.name) >= 0;
   out.push('<div class="stamp">');
   out.push(sectionSVG(s, 96));
-  out.push('<div class="who"><div class="name">' + s.name + "</div>" +
+  out.push('<div class="who"><div class="name">' + s.name +
+    (inStock ? "" : ' <span class="pill bad" style="vertical-align:middle;font-size:11px">NON-STOCK</span>') + "</div>" +
     '<div class="meta">' + fmt(s.wt, 1) + " plf &middot; d " + fmt(s.d, 2) + '" &middot; ' +
     "&asymp; " + fmt(s.wt * lastRun.model.lengthFt, 0) + " lb total</div>" +
-    '<div class="meta">' + (isBest ? "lightest adequate of 289 W-shapes" : (d.best ? "your pick &middot; lightest adequate is " + d.best.shape.name : "your pick")) + "</div>" +
+    '<div class="meta">' + (isBest ? "lightest adequate from " + poolDesc
+      : (d.best ? "your pick &middot; lightest adequate is " + d.best.shape.name : "your pick (outside current pool)")) + "</div>" +
     '<div style="margin-top:9px"><span class="pill ' + (c.pass ? "ok" : "bad") + '">' + (c.pass ? "ADEQUATE" : "N.G.") + "</span>" +
     ' <span class="note">governs: ' + c.governs.toLowerCase() + "</span></div></div>");
   out.push('<div class="ratios">' +
@@ -1751,7 +1846,8 @@ function renderStamp() {
 function renderCandidates() {
   var d = lastRun.design, o = lastRun.opts, out = [];
   var passing = d.passing.slice(0, 12);
-  if (!passing.length) { $("candOut").innerHTML = '<p class="note">No passing candidates.</p>'; return; }
+  if (!passing.length) { $("candOut").innerHTML = ""; return; }
+  out.push('<h3 class="blk" style="margin-top:0">Other sections that work <span style="letter-spacing:0;text-transform:none;color:var(--accent)">— click a row to check it instead</span></h3>');
   out.push('<div class="scroll"><table class="grid cand"><thead><tr><th style="text-align:left">Shape</th><th>wt (plf)</th><th>d (in)</th>' +
     "<th>" + (o.method === "ASD" ? "Mn/Ω" : "φMn") + " (k-ft)</th><th>Unity</th><th>Governs</th><th>Utilization</th></tr></thead><tbody>");
   passing.forEach(function (c) {
@@ -1770,8 +1866,10 @@ function renderCandidates() {
     if (!byDepth[series]) byDepth[series] = c;
   });
   var keys = Object.keys(byDepth).sort(function (a, b) { return parseFloat(a.slice(1)) - parseFloat(b.slice(1)); });
-  out.push('<h3 class="blk">Lightest per depth series</h3><p class="mono" style="margin:2px 0 0">' +
-    keys.map(function (k) { return '<a href="#" style="color:var(--accent);text-decoration:none" onclick="pickShape(\'' + byDepth[k].shape.name + '\');return false">' + byDepth[k].shape.name + "</a>"; }).join(" &nbsp;·&nbsp; ") + "</p>");
+  if (keys.length > 1) {
+    out.push('<h3 class="blk">Lightest per depth series</h3><p class="mono" style="margin:2px 0 0">' +
+      keys.map(function (k) { return '<a href="#" style="color:var(--accent);text-decoration:none" onclick="pickShape(\'' + byDepth[k].shape.name + '\');return false">' + byDepth[k].shape.name + "</a>"; }).join(" &nbsp;·&nbsp; ") + "</p>");
+  }
   $("candOut").innerHTML = out.join("");
 }
 function pickShape(name) { $("shapePick").value = name; run(); }
@@ -1905,13 +2003,18 @@ function plot(res, field, title, color, dp) {
   (lastRun.model.supports || []).forEach(function (s) {
     el("circle", { cx: xScale(s.x), cy: Y(0), r: 3, fill: "var(--ink)" });
   });
+  // shear & moment drawn textbook-style: closed to the zero axis at the ends
+  // (vertical jumps at reactions/point loads); deflection is left open since
+  // free ends genuinely displace
+  var closed = field === "V" || field === "M";
   var dFill = "M " + xScale(st[0].x) + " " + Y(0) + " ";
-  var dLine = "";
+  var dLine = closed ? "M " + xScale(st[0].x) + " " + Y(0) + " " : "";
   st.forEach(function (s, i) {
     dFill += "L " + xScale(s.x) + " " + Y(s[field]) + " ";
-    dLine += (i ? "L " : "M ") + xScale(s.x) + " " + Y(s[field]) + " ";
+    dLine += (i || closed ? "L " : "M ") + xScale(s.x) + " " + Y(s[field]) + " ";
   });
   dFill += "L " + xScale(st[st.length - 1].x) + " " + Y(0) + " Z";
+  if (closed) dLine += "L " + xScale(st[st.length - 1].x) + " " + Y(0) + " ";
   el("path", { d: dFill, fill: color, "fill-opacity": 0.13, stroke: "none" });
   el("path", { d: dLine, fill: "none", stroke: color, "stroke-width": 2 });
   var exMax = { v: -Infinity }, exMin = { v: Infinity };
@@ -2080,11 +2183,17 @@ function buildReport() {
 
   // 4 selection
   out.push("<h3>4 &middot; Section Selection</h3>");
+  var poolTxt = lastRun.poolMode === "stock"
+    ? "the NBG stock wide-flange inventory per NBG Design Manual §5.1.5.1.1" +
+      (lastRun.division !== "ANY" ? " (division " + lastRun.division + ")" : "") +
+      " — " + lastRun.poolNames.join(", ") + " (" + lastRun.poolNames.length + " sections)"
+    : "all 289 W-shapes in the AISC Shapes Database";
   if (d.best) {
-    out.push("<p>All 289 W-shapes in the AISC Shapes Database were checked in ascending weight order against every strength combination (flexure" +
+    out.push("<p>Selection pool: " + poolTxt + ". Each candidate was checked in ascending weight order against every strength combination (flexure" +
       (d.checks.length && d.checks[0].hasAxial ? ", shear, and combined axial + flexure" : " and shear") +
       ") and every deflection combination. The lightest section passing all checks is <b>" + d.best.shape.name + "</b>" +
-      (lastRun.shape && lastRun.shape.name !== d.best.shape.name ? "; this report documents the user-selected <b>" + lastRun.shape.name + "</b>" : "") + ".</p>");
+      (lastRun.shape && lastRun.shape.name !== d.best.shape.name ? "; this report documents the user-selected <b>" + lastRun.shape.name + "</b>" +
+        (lastRun.poolMode === "stock" && lastRun.poolNames.indexOf(lastRun.shape.name) < 0 ? " (NON-STOCK — special order)" : "") : "") + ".</p>");
     var top = d.passing.slice(0, 10);
     var hasAx = top.length && top[0].hasAxial;
     out.push('<div class="scroll"><table class="grid"><thead><tr><th style="text-align:left">Shape</th><th>wt (plf)</th><th>d (in)</th>' +
@@ -2097,7 +2206,8 @@ function buildReport() {
           "<td>" + cc.governs + "</td></tr>";
       }).join("") + "</tbody></table></div>");
   } else {
-    out.push('<p class="failing">No W-shape satisfied all checks with the current inputs.</p>');
+    out.push('<p class="failing">No section in ' + poolTxt + " satisfied all checks with the current inputs." +
+      (lastRun.fallbackBest ? " Lightest adequate from the full AISC database: <b>" + lastRun.fallbackBest.shape.name + "</b> (non-stock)." : "") + "</p>");
   }
 
   // 5 detailed check
@@ -2163,6 +2273,8 @@ function buildReport() {
   // 6 notes
   out.push("<h3>" + (c ? "6" : "5") + " &middot; Notes &amp; Assumptions</h3>");
   out.push('<ul style="margin:4px 0 0 18px; padding:0">' +
+    "<li>All member strength provisions are per ANSI/AISC 360-22 as published in the <i>AISC Steel Construction Manual, 16th Edition</i>: Ch. F (flexure), Ch. G (shear), Ch. E and Ch. H (axial and combined). Section properties are from the AISC Shapes Database (Manual Part 1); results are consistent with the Manual Part 3 and Part 4 design tables (Tables 3-2, 3-23, 4-1).</li>" +
+    (lastRun.poolMode === "stock" ? "<li>Section selection is limited to the NBG stock wide-flange inventory, NBG Design Manual §5.1.5.1.1 (Fy = 50 ksi).</li>" : "") +
     "<li>Prismatic member, small-displacement elastic analysis; axial load applied without second-order amplification.</li>" +
     "<li>Tension capacity is gross-section yielding only — connection net-section, block shear, and bolt checks are not performed.</li>" +
     "<li>Web crippling / local bearing at reactions and stiffener requirements are not checked.</li>" +
@@ -2181,6 +2293,7 @@ function hookInputs(scope) {
     el.dataset.hooked = "1";
     el.addEventListener("change", function () {
       if (el.id === "lenFt") onLenChange();
+      if (el.closest && el.closest("#supTbl")) markPreset(null); // custom support layout
       clearTimeout(runTimer);
       runTimer = setTimeout(run, 150);
     });
@@ -2199,6 +2312,7 @@ function hookInputs(scope) {
   addSupport(0, "pin");
   addSupport(25.6667, "pin");
   addRow("pt", { c: "DL", x: 6.3, P: 1.0 });
+  markPreset("simple");
   loadTemplate();
   hookInputs(document);
 })();
