@@ -3856,8 +3856,25 @@
           const canUseNucorWorkflow = state.intake.quoteFiles.every(file => spreadsheetTypes.indexOf(sourceFileType(file)) > -1) && state.intake.orderFiles.every(file => spreadsheetTypes.indexOf(sourceFileType(file)) > -1);
           if (canUseNucorWorkflow) {
             const quoteWorkbooks = await Promise.all(state.intake.quoteFiles.map(file => parseSpreadsheetWorkbook(file)));
-            const weekdayWorkbookCount = quoteWorkbooks.filter(workbook => nucorWeekdays.every(day => findSheet(workbook, day))).length;
-            if (weekdayWorkbookCount && weekdayWorkbookCount !== quoteWorkbooks.length) throw new Error("Every selected quote source must contain Monday through Friday. Remove the non-weekly workbook and run again.");
+            // A selected workbook that carries no weekday sheets is not a quote
+            // book. Falling through to the generic importer here used to accept
+            // an order log as a quote week and report one confirmed order per
+            // row - a confident 100% conversion built from the wrong file.
+            // Spreadsheet sources must resolve as Nucor quote books or stop.
+            const nonWeekly = quoteWorkbooks
+              .map((workbook, index) => ({ workbook: workbook, file: state.intake.quoteFiles[index] }))
+              .filter(entry => !nucorWeekdays.every(day => findSheet(entry.workbook, day)));
+            if (nonWeekly.length) {
+              const detail = nonWeekly.slice(0, 3).map(entry => {
+                const sheets = (entry.workbook.sheets || []).map(sheet => sheet.name).slice(0, 4).join(", ");
+                const missing = nucorWeekdays.filter(day => !findSheet(entry.workbook, day));
+                return entry.file.name + " (missing " + missing.join(", ") + "; it contains " + (sheets || "no readable sheets") + ")";
+              }).join("; ");
+              throw new Error("A weekly quote book must contain the Monday through Friday sheets. " + detail
+                + (nonWeekly.length > 3 ? " and " + (nonWeekly.length - 3) + " more" : "")
+                + ". The run stopped rather than read this file as quote records. If this is an order-log export, add it under Order log exports instead.");
+            }
+            const weekdayWorkbookCount = quoteWorkbooks.length;
             if (weekdayWorkbookCount === quoteWorkbooks.length) {
               const weekSources = quoteWorkbooks.map((workbook, index) => parseNucorWeekWorkbook(workbook, state.intake.quoteFiles[index], index));
               const orderWorkbooks = await Promise.all(state.intake.orderFiles.map(file => parseSpreadsheetWorkbook(file)));
