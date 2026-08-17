@@ -298,6 +298,18 @@
     .analysis-tab { padding: 6px 8px; border: 1px solid transparent; color: var(--ink-muted); background: transparent; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .analysis-tab[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
     .analysis-body { padding: 16px 19px 19px; }
+    .segment-list { display: grid; gap: 9px; }
+    .segment-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 52px; grid-template-areas: "label track value" "note note note"; align-items: center; gap: 3px 11px; }
+    .segment-row > span { grid-area: label; color: var(--ink); font-size: 11px; font-weight: 600; }
+    .segment-track { grid-area: track; position: relative; height: 11px; overflow: hidden; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); border-radius: 6px; }
+    .segment-track i { display: block; width: var(--segment, 0); height: 100%; border-radius: 6px; background: var(--green); transition: width .6s cubic-bezier(.2,.7,.3,1); }
+    .segment-row.is-zero .segment-track i { background: var(--red); }
+    .segment-row > b { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; }
+    .segment-row.is-zero > b { color: var(--red-deep); }
+    .segment-row > small { grid-area: note; color: var(--ink-faint); font-size: 9px; }
+    .segment-split { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .segment-split h4 { margin: 0 0 10px; color: var(--ink-muted); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    @media (prefers-reduced-motion: reduce) { .segment-track i { transition: none; } }
     .donut-layout { display: grid; grid-template-columns: 146px minmax(0,1fr); align-items: center; gap: 17px; min-height: 198px; }
     .donut { position: relative; display: grid; width: 142px; height: 142px; place-items: center; border-radius: 50%; background: conic-gradient(var(--green) calc(var(--donut-value) * 1%), var(--red) 0); }
     .donut::after { content: ""; position: absolute; inset: 19px; border-radius: 50%; background: var(--surface); }
@@ -686,6 +698,8 @@
             <button class="control-button" type="button" data-analysis="value" aria-pressed="false">Value</button>
             <button class="control-button" type="button" data-analysis="ontime" aria-pressed="false">On time</button>
             <button class="control-button" type="button" data-analysis="tons" aria-pressed="false">Booked tons</button>
+            <button class="control-button" type="button" data-analysis="bands" aria-pressed="false">Value bands</button>
+            <button class="control-button" type="button" data-analysis="districts" aria-pressed="false">Districts</button>
             <button class="control-button" type="button" data-analysis="customers" aria-pressed="false">Customers</button>
           </div>
         </div>
@@ -760,6 +774,8 @@
               <button class="analysis-tab" type="button" data-analysis="value" aria-pressed="false">Value bridge</button>
               <button class="analysis-tab" type="button" data-analysis="ontime" aria-pressed="false">SLA pulse</button>
               <button class="analysis-tab" type="button" data-analysis="tons" aria-pressed="false">Booked tons</button>
+              <button class="analysis-tab" type="button" data-analysis="bands" aria-pressed="false">Value bands</button>
+              <button class="analysis-tab" type="button" data-analysis="districts" aria-pressed="false">District mix</button>
               <button class="analysis-tab" type="button" data-analysis="customers" aria-pressed="false">Customer signals</button>
             </div>
             <div class="analysis-body" id="analysisBody"></div>
@@ -1247,6 +1263,38 @@
             });
             html += '</div><div class="analysis-foot"><strong>90% is the reference.</strong> The view uses the weekly source\'s EARLY / LATE result, independent of whether the quote ultimately converts.</div>';
           }
+        } else if (state.analysis === "bands") {
+          title = "Conversion by quoted value";
+          description = "Whether wins are concentrated in small routine work or in the large quotes that carry the value.";
+          const bandData = deckValueBands(data.records || []);
+          const sizeData = deckSizeBands(data.records || []);
+          const bandRow = (band, unit) => {
+            const share = bandData.scored ? band.quotes / bandData.scored * 100 : 0;
+            return '<div class="segment-row' + (band.wins === 0 ? " is-zero" : "") + '"><span>' + escape(band.label) + '</span>'
+              + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
+              + '<b>' + pct(band.conversion) + '</b>'
+              + '<small>' + band.quotes + " quotes" + (unit ? " · " + money(band.value / 1000000) : "") + " · " + band.wins + " won</small></div>";
+          };
+          html = bandData.bands.length
+            ? '<div class="segment-list">' + bandData.bands.map(band => bandRow(band, true)).join("") + "</div>"
+              + '<div class="segment-split"><h4>By building size</h4><div class="segment-list">' + (sizeData.bands.length ? sizeData.bands.map(band => bandRow(band, false)).join("") : '<div class="analysis-foot">Square-foot values are not populated in this source set.</div>') + "</div></div>"
+              + '<div class="analysis-foot"><strong>Read the bar and the number separately:</strong> the bar is how much of the book sits in that band; the number beside it is how much of that band came back. ' + bandData.scored + " of " + data.quotes + ' records carry a price and are scored here.</div>'
+            : '<div class="analysis-foot"><strong>No priced quote records in this cohort.</strong> Value banding needs the weekly Price field.</div>';
+        } else if (state.analysis === "districts") {
+          title = "District mix";
+          description = "Quote-number prefixes read straight off the quote key, so no district result depends on a roster guess.";
+          const districtData = deckDistricts(data.records || []).slice(0, 10);
+          const maxDistrictValue = districtData.length ? Math.max.apply(null, districtData.map(item => item.value)) : 0;
+          html = districtData.length
+            ? '<div class="segment-list">' + districtData.map(district => {
+                const share = maxDistrictValue ? district.value / maxDistrictValue * 100 : 0;
+                return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '"><span>' + escape(district.code) + '</span>'
+                  + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
+                  + '<b>' + pct(district.conversion) + '</b>'
+                  + '<small>' + district.quotes + " quotes · " + money(district.value / 1000000) + " quoted · " + district.wins + " won</small></div>";
+              }).join("") + "</div>"
+              + '<div class="analysis-foot"><strong>Bar length is quoted value, not quote count.</strong> A district with few large quotes outranks one with many small ones. Prefixes are shown as they appear in the quote number; no salesperson name is inferred from them.</div>'
+            : '<div class="analysis-foot"><strong>No district prefixes available.</strong> District is derived from the quote-number prefix.</div>';
         } else if (state.analysis === "tons") {
           title = "Booked tons by order-entry week";
           description = "Operational volume from the matched order log, kept separate from the quote-week performance pulse.";

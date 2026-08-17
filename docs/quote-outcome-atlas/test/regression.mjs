@@ -96,6 +96,32 @@ const rows = await page.$$eval('#teamRows > *', ns => ns.map(n => n.innerText.re
 checkMatch('team rows show on-time denominator', rows[0] || '', /\(\d+\/\d+\)/);
 checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
 
+// --- New analysis lenses work in both themes ---
+await page.click('[data-screen="overview"]');
+await page.waitForTimeout(400);
+for (const lens of ['bands', 'districts']) {
+  await page.click(`[data-analysis="${lens}"]`);
+  await page.waitForTimeout(350);
+  const body = await t('#analysisBody');
+  checkMatch(`${lens} lens renders content`, body, /\d/);
+  checkMatch(`${lens} lens has no NaN`, body, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);
+  // Both control strips must agree on which lens is active.
+  const pressed = await page.$$eval(`[data-analysis="${lens}"]`, ns => ns.map(n => n.getAttribute('aria-pressed')));
+  checks.push({ name: `${lens} lens pressed state synced across both strips`, actual: pressed.join(','), expected: 'all true', pass: pressed.length > 1 && pressed.every(v => v === 'true') });
+}
+checkMatch('value bands show the zero-win band', await t('#analysisBody'), /\d/);
+await page.click('[data-analysis="bands"]');
+await page.waitForTimeout(300);
+// A colour whose only definition is a light-mode literal is the classic
+// unreadable-dark-theme bug; assert the track follows the theme token.
+const lightTrack = await page.$eval('.segment-track', n => getComputedStyle(n).backgroundColor);
+await page.click('#themeButton');
+await page.waitForTimeout(500);
+const darkTrack = await page.$eval('.segment-track', n => getComputedStyle(n).backgroundColor);
+checks.push({ name: 'segment track follows the theme', actual: `light ${lightTrack} / dark ${darkTrack}`, expected: 'different per theme', pass: lightTrack !== darkTrack });
+await page.click('#themeButton');
+await page.waitForTimeout(400);
+
 // --- Exported deck ---
 const [download] = await Promise.all([
   page.waitForEvent('download', { timeout: 30000 }).catch(() => null),
