@@ -1,0 +1,133 @@
+// Regression test for the Quote Outcome Atlas dashboard.
+//
+// Drives the real single-file dashboard in Chromium against the checked-in
+// Week 1-3 / OrderLog fixtures and asserts the figures the spec's §12 baseline
+// depends on. Any parser, join, ownership, exposure, or metric change must keep
+// these green (spec T-16).
+//
+//   node test/regression.mjs
+//
+import { chromium } from 'playwright';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const FIX = path.join(root, 'fixtures');
+const APP = path.join(root, 'app', 'quote-conversion-atlas-shareable.html');
+const CHROME = process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+
+// Fixtures are real quote books and order logs. They carry customer names,
+// prices and staff emails, so they are gitignored and must be placed here by
+// hand. Nothing in this repository ships that data.
+const REQUIRED = ['Week 1 - 2026.xlsm', 'Week 2 - 2026.xlsm', 'Week 3 - 2026.xlsm', 'OrderLog_1-10.xlsx'];
+{
+  const fs = await import('fs');
+  const missing = REQUIRED.filter(f => !fs.existsSync(path.join(FIX, f)));
+  if (missing.length) {
+    console.error('Missing fixture file(s) in ' + FIX + ':\n  ' + missing.join('\n  ') +
+      '\n\nCopy the real Week N and OrderLog exports into fixtures/ to run this suite.' +
+      '\nThey are intentionally not committed - this repository is public.');
+    process.exit(2);
+  }
+}
+
+const checks = [];
+const check = (name, actual, expected) => {
+  const pass = String(actual) === String(expected);
+  checks.push({ name, actual, expected, pass });
+};
+const checkMatch = (name, actual, re) => {
+  const pass = re.test(String(actual));
+  checks.push({ name, actual, expected: String(re), pass });
+};
+
+const browser = await chromium.launch({ executablePath: CHROME });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const jsErrors = [];
+page.on('pageerror', e => jsErrors.push(e.message));
+
+await page.goto('file://' + APP);
+await page.click('[data-screen="data"]');
+await page.setInputFiles('#quoteFiles', ['Week 1 - 2026.xlsm', 'Week 2 - 2026.xlsm', 'Week 3 - 2026.xlsm'].map(f => path.join(FIX, f)));
+await page.setInputFiles('#orderFiles', [path.join(FIX, 'OrderLog_1-10.xlsx')]);
+await page.click('#runDashboard');
+await page.waitForFunction(() => /refreshed/i.test(document.getElementById('runStatusTitle').textContent), null, { timeout: 90000 });
+await page.waitForTimeout(600);
+
+const t = async sel => (await page.$eval(sel, n => n.textContent.trim()));
+
+// --- Core outcome figures (30+ day exposure, the dashboard default) ---
+check('opportunities', await t('#railQuoted'), '174');
+check('quote wins', await t('#railOrders'), '23');
+check('conversion', await t('#railConversion'), '13.2%');
+check('quoted value', await t('#railQuoteValue'), '$150.1M');
+check('unconverted', await t('#unconvertedCount'), '151');
+checkMatch('booked jobs in caption', await t('#conversionCaption'), /24 booked jobs/);
+
+// --- Data-quality exceptions must stay visible, never silently absorbed ---
+check('order rows without a quote #', await t('#missingOrderQuoteCount'), '72');
+check('non-standard quote references', await t('#invalidOrderQuoteCount'), '1');
+check('order quotes outside window', await t('#outsideWindowCount'), '64');
+check('duplicate order rows', await t('#duplicateOrderCount'), '0');
+check('corrected week dates (W2 says 2025)', await t('#dateCorrectionCount'), '1');
+check('roster codes without a name', await t('#unmappedRosterCount'), '3');
+
+// The offending values are named, not just counted.
+checkMatch('non-standard reference is named', await t('#invalidOrderQuoteDetail'), /P-0287-025-2/);
+checkMatch('unmapped roster codes named', await t('#unmappedRosterDetail'), /DNQ.*JMR.*NPM/);
+
+// Critical attribution fields resolve by header label, not column position.
+const fallbackDetail = await t('#headerFallbackDetail');
+checkMatch('no quote-side header falls back', fallbackDetail, /^(?!.*quote:).*$/);
+check('header fallback count', await t('#headerFallbackCount'), '3');
+
+// --- Coverage must travel with every partial-coverage rate ---
+const kpis = await page.$$eval('#metricRings > *', ns => ns.map(n => n.innerText.replace(/\s+/g, ' ')));
+const onTimeKpi = kpis.find(k => /RELEASE ON TIME/i.test(k)) || '';
+checkMatch('on-time KPI states its denominator', onTimeKpi, /48\/174 scored/);
+checkMatch('on-time KPI states target', onTimeKpi, /target 90%/);
+checkMatch('rail carries on-time denominator', await t('#railOnTimeCoverage'), /48\/174 scored/);
+checkMatch('confidence KPI has no leaked CSS var', kpis.join(' '), /^(?!.*var\(--).*$/);
+
+await page.click('[data-screen="people"]');
+await page.waitForTimeout(400);
+checkMatch('team summary states on-time coverage', await t('#teamSummary'), /of 174 scored/);
+const rows = await page.$$eval('#teamRows > *', ns => ns.map(n => n.innerText.replace(/\s+/g, ' ')));
+checkMatch('team rows show on-time denominator', rows[0] || '', /\(\d+\/\d+\)/);
+checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
+
+// --- Exported deck ---
+const [download] = await Promise.all([
+  page.waitForEvent('download', { timeout: 30000 }).catch(() => null),
+  page.click('#reviewMode'),
+]);
+if (!download) {
+  checks.push({ name: 'deck export produced a file', actual: 'no download', expected: 'download', pass: false });
+} else {
+  const fs = await import('fs');
+  const out = path.join(root, 'test', 'deck-out.html');
+  await download.saveAs(out);
+  const deck = fs.readFileSync(out, 'utf8');
+  check('deck slide count', (deck.match(/class="deck-slide"/g) || []).length, 6);
+  checkMatch('deck counter reads 1 / 6', deck, /id="deckPage"[^>]*>1 \/ 6</);
+  checkMatch('deck on-time carries coverage', deck, /48 of 174 scored/);
+  checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
+  // Continuity bars must encode the same measure their label prints.
+  const contRows = [...deck.matchAll(/<div class="timing-row"[^>]*><span>[^<]*<\/span><i><b style="width:([\d.]+)%"><\/b><\/i><strong>(\d+) wks</g)]
+    .map(m => ({ width: Number(m[1]), weeks: Number(m[2]) }));
+  const monotonic = contRows.every((r, i) => i === 0 || (contRows[i - 1].weeks >= r.weeks) === (contRows[i - 1].width >= r.width));
+  checks.push({ name: 'continuity bar length matches its week label', actual: JSON.stringify(contRows), expected: 'monotonic with weeks', pass: contRows.length > 0 && monotonic });
+}
+
+checks.push({ name: 'no uncaught JS errors', actual: jsErrors.length ? jsErrors.join('; ') : 'none', expected: 'none', pass: jsErrors.length === 0 });
+
+await browser.close();
+
+let failed = 0;
+for (const c of checks) {
+  if (!c.pass) failed += 1;
+  const mark = c.pass ? 'PASS' : 'FAIL';
+  console.log(`${mark}  ${c.name}` + (c.pass ? '' : `\n        expected: ${c.expected}\n        actual:   ${c.actual}`));
+}
+console.log(`\n${checks.length - failed}/${checks.length} passed`);
+process.exit(failed ? 1 : 0);

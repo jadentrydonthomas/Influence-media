@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+test/*.png
+test/deck-out.html
+
+# Real quote books and order logs contain customer names, prices and staff
+# emails. This repository is public - fixtures stay local, never committed.
+fixtures/
