@@ -259,7 +259,7 @@
     .readout-bar p strong { color: var(--ink); font-weight: 700; }
     .readout-bar small { color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; white-space: nowrap; }
 
-    .chart-grid { display: grid; grid-template-columns: minmax(0,1.18fr) minmax(330px,.82fr); gap: 23px; }
+    .chart-grid { display: grid; grid-template-columns: minmax(0,1.18fr) minmax(330px,.82fr); gap: 23px; align-items: start; }
     .panel { overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
     .panel-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 18px 19px 14px; border-bottom: 1px solid var(--line); }
     .panel-head h2, .panel-head h3 { margin: 0; color: var(--ink); font-family: var(--display); font-size: 21px; letter-spacing: .03em; line-height: .95; text-transform: uppercase; }
@@ -294,7 +294,8 @@
     .chart-legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; background: var(--legend); vertical-align: 1px; }
 
     .analysis-panel { min-height: 354px; }
-    .analysis-tabs { display: flex; flex-wrap: wrap; gap: 5px; padding: 13px 17px 0; }
+    .analysis-tabs { display: flex; flex-wrap: wrap; gap: 5px 4px; padding: 13px 17px 0; }
+    .analysis-tab { white-space: nowrap; }
     .analysis-tab { padding: 6px 8px; border: 1px solid transparent; color: var(--ink-muted); background: transparent; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .analysis-tab[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
     .analysis-body { padding: 16px 19px 19px; }
@@ -1251,7 +1252,7 @@
         const deltaLabel = Math.abs(delta).toFixed(1) + ' points ' + (delta >= 0 ? 'above' : 'below') + ' the selected-book average';
         const latestOnTime = latest.onTimeScored === false ? "—" : latest.onTime + "%";
         const timelinessReading = latest.onTimeScored === false ? "No sent-date and requested-due-date pairs were available to score release timing." : latest.quotes + ' quotes were issued at ' + latestOnTime + ' on-time release, so the latest result can be read alongside both workload and delivery discipline.';
-        $("#weeklyReading").innerHTML = '<div><span>Peak quote release</span><strong>' + peak.week + ' / ' + peak.quotes + '</strong><small>quotes issued</small></div><div><span>Latest conversion</span><strong>' + latest.week + ' / ' + pct(latest.rate) + '</strong><small>confirmed order rate</small></div><div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>selected cohort</small></div>';
+        $("#weeklyReading").innerHTML = '<div><span>Peak quote release</span><strong>' + peak.week + ' / ' + peak.quotes + '</strong><small>quotes issued</small></div><div><span>Latest conversion</span><strong>' + latest.week + ' / ' + pct(latest.rate) + '</strong><small>confirmed order rate</small></div><div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div>';
         $("#weeklyInsights").innerHTML = '<strong>' + latest.week + ' is ' + deltaLabel + '.</strong> ' + timelinessReading;
       }
 
