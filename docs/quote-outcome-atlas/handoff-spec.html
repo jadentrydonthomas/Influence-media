@@ -1,0 +1,1063 @@
+<title>Quote Outcome Atlas Spec</title>
+<style>
+:root{
+  --paper:#e9edeb;
+  --sheet:#fbfcfb;
+  --sheet-2:#f3f6f4;
+  --ink:#16211d;
+  --ink-2:#4a5b54;
+  --ink-3:#78877f;
+  --rule:#c9d3ce;
+  --rule-hard:#8c9b94;
+  --blue:#1f4f6b;
+  --blue-soft:#e3edf2;
+  --green:#0f7a41;
+  --green-soft:#e0f0e6;
+  --copper:#a8532c;
+  --copper-soft:#f6e6de;
+  --amber:#8a6410;
+  --amber-soft:#f6edd8;
+  --shadow:0 1px 0 rgba(22,33,29,.05), 0 12px 28px -18px rgba(22,33,29,.45);
+  --display:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1412;
+    --sheet:#161d1a;
+    --sheet-2:#1c2521;
+    --ink:#e3eae5;
+    --ink-2:#a3b2ab;
+    --ink-3:#7c8b84;
+    --rule:#2c3833;
+    --rule-hard:#4d5d56;
+    --blue:#79b9dc;
+    --blue-soft:#16303e;
+    --green:#5cc98a;
+    --green-soft:#12301f;
+    --copper:#e0906a;
+    --copper-soft:#33190f;
+    --amber:#d9b064;
+    --amber-soft:#2e2410;
+    --shadow:0 1px 0 rgba(0,0,0,.35), 0 14px 32px -20px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1412;
+  --sheet:#161d1a;
+  --sheet-2:#1c2521;
+  --ink:#e3eae5;
+  --ink-2:#a3b2ab;
+  --ink-3:#7c8b84;
+  --rule:#2c3833;
+  --rule-hard:#4d5d56;
+  --blue:#79b9dc;
+  --blue-soft:#16303e;
+  --green:#5cc98a;
+  --green-soft:#12301f;
+  --copper:#e0906a;
+  --copper-soft:#33190f;
+  --amber:#d9b064;
+  --amber-soft:#2e2410;
+  --shadow:0 1px 0 rgba(0,0,0,.35), 0 14px 32px -20px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.sheet{
+  max-width:1360px;
+  margin:0 auto;
+  padding:clamp(16px,3vw,40px) clamp(14px,3vw,40px) 120px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:clamp(20px,3vw,34px);
+}
+@media (min-width:1080px){
+  .sheet{grid-template-columns:236px minmax(0,1fr)}
+  .titleblock,.doc{grid-column:1/-1}
+}
+
+/* ---- title block: borrowed from a drawing sheet ---- */
+.titleblock{
+  background:var(--sheet);
+  border:1.5px solid var(--rule-hard);
+  box-shadow:var(--shadow);
+}
+.tb-head{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 28px;
+  padding:clamp(20px,3vw,34px);
+  border-bottom:1.5px solid var(--rule-hard);
+}
+.tb-head h1{
+  font-family:var(--display);
+  font-size:clamp(30px,4.4vw,54px);
+  line-height:.98;
+  letter-spacing:-.035em;
+  font-weight:800;
+  margin:0;
+  text-wrap:balance;
+  max-width:16ch;
+}
+.tb-head h1 span{display:block;color:var(--blue)}
+.tb-sub{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin:0 0 auto;
+  padding-bottom:6px;
+}
+.tb-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+}
+.tb-cell{
+  padding:14px 18px;
+  border-right:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+}
+.tb-cell:last-child{border-right:0}
+.tb-cell dt{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin:0 0 5px;
+}
+.tb-cell dd{margin:0;font-size:14px;font-weight:600;line-height:1.35}
+.tb-note{
+  padding:clamp(16px,2.4vw,22px) clamp(18px,3vw,28px);
+  background:var(--blue-soft);
+  color:var(--ink);
+  font-size:15px;
+}
+.tb-note b{color:var(--blue)}
+
+/* ---- side rail ---- */
+.rail{min-width:0}
+@media (min-width:1080px){
+  .rail{position:sticky;top:clamp(16px,3vw,40px);align-self:start;max-height:calc(100vh - 80px);overflow-y:auto}
+}
+.rail h2{
+  font-family:var(--mono);
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 10px;font-weight:700;
+}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rail li{border-top:1px solid var(--rule)}
+.rail li:last-child{border-bottom:1px solid var(--rule)}
+.rail a{
+  display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:baseline;
+  padding:7px 4px;color:var(--ink-2);text-decoration:none;font-size:13.5px;line-height:1.3;
+}
+.rail a span{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.rail a:hover{color:var(--blue);background:var(--sheet-2)}
+.rail a:hover span{color:var(--blue)}
+.rail a:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+
+/* ---- document body ---- */
+.doc{min-width:0;display:flex;flex-direction:column;gap:clamp(26px,3.6vw,44px)}
+section{
+  background:var(--sheet);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--blue);
+  box-shadow:var(--shadow);
+  padding:clamp(20px,3vw,34px);
+  scroll-margin-top:20px;
+  display:flex;flex-direction:column;gap:16px;
+}
+section > *{margin:0}
+.sec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.sec-num{
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.08em;
+  color:var(--blue);background:var(--blue-soft);
+  padding:3px 8px;flex:none;
+}
+h2.sec-title{
+  font-family:var(--display);font-size:clamp(22px,2.7vw,32px);
+  letter-spacing:-.02em;font-weight:800;line-height:1.05;margin:0;text-wrap:balance;
+}
+h3{
+  font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.005em;
+  margin:10px 0 0;padding-left:10px;border-left:3px solid var(--rule-hard);
+}
+h4{font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 0;font-weight:700}
+p{margin:0;max-width:74ch}
+ul,ol.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;max-width:74ch}
+li{margin:0}
+strong{font-weight:700}
+a{color:var(--blue)}
+code{
+  font-family:var(--mono);font-size:.88em;background:var(--sheet-2);
+  border:1px solid var(--rule);padding:1px 5px;color:var(--ink);
+}
+pre{
+  margin:0;padding:16px 18px;background:var(--sheet-2);border:1px solid var(--rule);
+  border-left:3px solid var(--rule-hard);overflow-x:auto;
+}
+pre code{background:none;border:0;padding:0;font-size:13px;line-height:1.65;display:block;white-space:pre}
+
+/* ---- callouts ---- */
+.note{
+  padding:14px 18px;background:var(--sheet-2);
+  border-left:3px solid var(--blue);font-size:15px;max-width:78ch;
+}
+.note.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.note.new{border-left-color:var(--green);background:var(--green-soft)}
+.note strong:first-child{color:var(--blue)}
+.note.warn strong:first-child{color:var(--amber)}
+.note.new strong:first-child{color:var(--green)}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;border:1px solid var(--rule);background:var(--sheet)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14.5px}
+caption{
+  text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);padding:10px 14px;border-bottom:1px solid var(--rule);
+  background:var(--sheet-2);
+}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
+thead th{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:700;background:var(--sheet-2);
+  border-bottom:1.5px solid var(--rule-hard);position:sticky;top:0;
+}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--sheet-2)}
+td.num,.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:13.5px;white-space:nowrap}
+
+/* requirement id chip */
+.rid{
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.02em;
+  color:var(--blue);white-space:nowrap;
+}
+td .rid{display:inline-block}
+
+/* severity + status pills */
+.pill{
+  display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;white-space:nowrap;
+  border:1px solid currentColor;
+}
+.pill.block{color:var(--copper);background:var(--copper-soft)}
+.pill.warn{color:var(--amber);background:var(--amber-soft)}
+.pill.note{color:var(--ink-3);background:var(--sheet-2)}
+.pill.ok{color:var(--green);background:var(--green-soft)}
+.pill.open{color:var(--copper);background:var(--copper-soft)}
+
+.never{color:var(--copper);text-decoration:line-through;text-decoration-thickness:1px}
+
+/* checklist */
+.check{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;max-width:none}
+.check li{
+  display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:baseline;
+  padding:9px 2px;border-bottom:1px solid var(--rule);font-size:14.5px;
+}
+.check li:last-child{border-bottom:0}
+.check li:before{
+  content:"";width:13px;height:13px;border:1.5px solid var(--rule-hard);
+  display:block;align-self:center;
+}
+.check .refs{font-family:var(--mono);font-size:11.5px;color:var(--blue);white-space:nowrap}
+@media (max-width:640px){
+  .check li{grid-template-columns:22px minmax(0,1fr)}
+  .check .refs{grid-column:2;white-space:normal}
+}
+
+/* pipeline diagram */
+.flow{overflow-x:auto;padding:4px 0}
+.flow svg{display:block;min-width:660px;width:100%;height:auto}
+.flow .fbox{fill:var(--sheet-2);stroke:var(--rule-hard);stroke-width:1.25}
+.flow .fbox.src{fill:var(--blue-soft);stroke:var(--blue)}
+.flow .fbox.out{fill:var(--green-soft);stroke:var(--green)}
+.flow .fbox.qa{fill:var(--amber-soft);stroke:var(--amber)}
+.flow .flabel{fill:var(--ink);font-family:var(--body);font-size:12.5px;font-weight:600}
+.flow .fsub{fill:var(--ink-3);font-family:var(--mono);font-size:10px}
+.flow .farrow{stroke:var(--rule-hard);stroke-width:1.5;fill:none}
+.flow .farrow.dash{stroke:var(--amber);stroke-dasharray:4 4}
+
+footer.colophon{
+  grid-column:1/-1;border-top:1.5px solid var(--rule-hard);padding-top:16px;
+  display:flex;flex-wrap:wrap;gap:10px 26px;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+}
+::selection{background:var(--blue);color:var(--sheet)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="sheet">
+
+<div class="titleblock">
+  <div class="tb-head">
+    <h1>Quote Outcome<span>Atlas</span></h1>
+    <p class="tb-sub">Product &amp; engineering<br />handoff specification</p>
+  </div>
+  <dl class="tb-grid">
+    <div class="tb-cell"><dt>Product owner</dt><dd>Nucor Building Systems — Estimating</dd></div>
+    <div class="tb-cell"><dt>Primary deliverable</dt><dd><code>quote-conversion-atlas-shareable.html</code></dd></div>
+    <div class="tb-cell"><dt>Companion refs</dt><dd><code>DATA-EXTRACTION-MAP.md</code><br /><code>SHARE-README.md</code></dd></div>
+    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.0</dd></div>
+    <div class="tb-cell"><dt>Last revised</dt><dd class="num">17 Aug 2026</dd></div>
+    <div class="tb-cell"><dt>Status</dt><dd><span class="pill ok">Active — source of truth</span></dd></div>
+  </dl>
+  <p class="tb-note"><b>This document is the contract.</b> It defines what the dashboard is for, what it must do, how data must be handled, and how future code and design changes are verified. Where this document and any older brief disagree, this document wins — except where <a href="#s13">§13 Open questions</a> says a decision is still outstanding.</p>
+</div>
+
+<nav class="rail" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s0"><span>00</span>Conventions</a></li>
+    <li><a href="#s1"><span>01</span>Product purpose</a></li>
+    <li><a href="#s2"><span>02</span>Product requirements</a></li>
+    <li><a href="#s3"><span>03</span>Canonical vocabulary</a></li>
+    <li><a href="#s4"><span>04</span>Metrics &amp; formulas</a></li>
+    <li><a href="#s5"><span>05</span>User workflow</a></li>
+    <li><a href="#s6"><span>06</span>Input contract</a></li>
+    <li><a href="#s7"><span>07</span>Matching &amp; ownership</a></li>
+    <li><a href="#s8"><span>08</span>Calculations</a></li>
+    <li><a href="#s9"><span>09</span>Visual &amp; interaction</a></li>
+    <li><a href="#s10"><span>10</span>Report deck</a></li>
+    <li><a href="#s11"><span>11</span>Architecture</a></li>
+    <li><a href="#s12"><span>12</span>Verification baseline</a></li>
+    <li><a href="#s13"><span>13</span>Open questions</a></li>
+    <li><a href="#s14"><span>14</span>Definition of done</a></li>
+    <li><a href="#s15"><span>15</span>Handoff instruction</a></li>
+    <li><a href="#sa"><span>A</span>Known defects</a></li>
+    <li><a href="#sb"><span>B</span>Change log</a></li>
+  </ol>
+</nav>
+
+<div class="doc">
+
+<section id="s0">
+  <div class="sec-head"><span class="sec-num">00</span><h2 class="sec-title">Conventions</h2></div>
+  <p>Requirement keywords follow RFC 2119.</p>
+  <ul>
+    <li><strong>MUST / MUST NOT</strong> — non-negotiable. A build that violates one is not shippable.</li>
+    <li><strong>SHOULD</strong> — strong default. Deviation requires a written reason in the change notes.</li>
+    <li><strong>MAY</strong> — genuinely optional.</li>
+  </ul>
+  <p>Requirement IDs are stable and referenced from the <a href="#s14">Definition of done</a>. Never renumber an existing ID — retire it and add a new one.</p>
+  <div class="tw"><table>
+    <caption>Requirement ID prefixes</caption>
+    <thead><tr><th style="width:90px">Prefix</th><th>Domain</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">P-n</span></td><td>Product / behavior</td></tr>
+      <tr><td><span class="rid">D-n</span></td><td>Data intake, parsing, matching</td></tr>
+      <tr><td><span class="rid">M-n</span></td><td>Metric definitions and calculations</td></tr>
+      <tr><td><span class="rid">V-n</span></td><td>Visual and interaction</td></tr>
+      <tr><td><span class="rid">K-n</span></td><td>Team report deck</td></tr>
+      <tr><td><span class="rid">T-n</span></td><td>Technical architecture and code quality</td></tr>
+    </tbody>
+  </table></div>
+  <p>Severity on validation rules: <span class="pill block">Block</span> halts the run with a specific error. <span class="pill warn">Warn</span> renders results with a visible, countable flag. <span class="pill note">Note</span> is recorded in the data-quality log only.</p>
+</section>
+
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">01</span><h2 class="sec-title">Product purpose</h2></div>
+  <p>Quote Outcome Atlas is an offline, laptop-first management dashboard that turns weekly quote books and order logs into a clear answer to four questions:</p>
+  <ol class="plain">
+    <li><strong>How much work was quoted?</strong></li>
+    <li><strong>How much quoted work returned as a confirmed order?</strong></li>
+    <li><strong>How much work is still unconverted and needs a current seller-owned outcome?</strong></li>
+    <li><strong>What operational, people, timing, customer, and booked-ton signals sit behind that outcome?</strong></li>
+  </ol>
+  <p>It exists to make a management review more useful, more visual, and easier to understand than reviewing raw Excel files. It must be polished enough to show a boss, practical enough to use every week, and accurate enough that <strong>no person is credited or blamed using the wrong source data</strong>.</p>
+
+  <h3>1.1 The pipeline in one view</h3>
+  <div class="flow">
+    <svg viewBox="0 0 980 250" role="img" aria-label="Pipeline: weekly quote books and order logs are parsed, normalized, collapsed, joined, turned into metrics, and rendered as dashboard views and a report deck, with a data-quality log branching off normalize and join.">
+      <g class="farrow">
+        <path d="M150 52 h34 q8 0 8 8 v52 q0 8 8 8 h22" />
+        <path d="M150 172 h34 q8 0 8 -8 v-52 q0 -8 8 -8 h22" />
+        <path d="M292 120 h30" /><path d="M452 120 h30" /><path d="M612 120 h30" />
+        <path d="M772 120 h22 q8 0 8 -8 v-32 q0 -8 8 -8 h22" />
+        <path d="M772 120 h22 q8 0 8 8 v32 q0 8 8 8 h22" />
+      </g>
+      <g class="farrow"><path d="M436 148 v46 q0 8 8 8 h130" /><path d="M596 148 v46" /></g>
+      <g class="farrow dash"><path d="M700 202 h40" /></g>
+
+      <rect class="fbox src" x="8" y="24" width="142" height="56" rx="2" />
+      <text class="flabel" x="24" y="48">Weekly quote books</text>
+      <text class="fsub" x="24" y="66">Week N - YYYY.xlsm</text>
+
+      <rect class="fbox src" x="8" y="144" width="142" height="56" rx="2" />
+      <text class="flabel" x="24" y="168">Order log exports</text>
+      <text class="fsub" x="24" y="186">OrderLog N-M.xlsx</text>
+
+      <rect class="fbox" x="222" y="96" width="70" height="48" rx="2" />
+      <text class="flabel" x="240" y="125">Parse</text>
+
+      <rect class="fbox" x="322" y="90" width="130" height="60" rx="2" />
+      <text class="flabel" x="338" y="114">Normalize</text>
+      <text class="fsub" x="338" y="132">key · dates · headers</text>
+
+      <rect class="fbox" x="482" y="90" width="130" height="60" rx="2" />
+      <text class="flabel" x="498" y="114">Collapse</text>
+      <text class="fsub" x="498" y="132">rows → opportunities</text>
+
+      <rect class="fbox" x="642" y="90" width="130" height="60" rx="2" />
+      <text class="flabel" x="658" y="114">Join + metrics</text>
+      <text class="fsub" x="658" y="132">Quote No. → Quote #</text>
+
+      <rect class="fbox out" x="826" y="48" width="146" height="48" rx="2" />
+      <text class="flabel" x="842" y="77">Dashboard views</text>
+
+      <rect class="fbox out" x="826" y="144" width="146" height="48" rx="2" />
+      <text class="flabel" x="842" y="173">Team report deck</text>
+
+      <rect class="fbox qa" x="574" y="180" width="126" height="46" rx="2" />
+      <text class="flabel" x="590" y="200">Quality log</text>
+      <text class="fsub" x="590" y="216">block / warn / note</text>
+    </svg>
+  </div>
+
+  <h3>1.2 Non-goals</h3>
+  <p>Stating these prevents well-meant scope drift.</p>
+  <ul>
+    <li><strong>Not a sample mock-up.</strong> It MUST calculate from the files the user selects. Demo data MUST NOT ship in the distributed file.</li>
+    <li><strong>Not a CRM or forecast tool.</strong> It reports what the source files say; it does not predict, score, or assign probability to open work.</li>
+    <li><strong>Not an individual ranking pack.</strong> People views inform coaching conversations, not a league table. Deck exports are team-level by default.</li>
+    <li><strong>Not a system of record.</strong> It never writes back to Excel and never becomes the authoritative quote history.</li>
+    <li><strong>Not a loss report.</strong> An unmatched quote is unconverted, not lost.</li>
+  </ul>
+</section>
+
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">02</span><h2 class="sec-title">Non-negotiable product requirements</h2></div>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th style="width:180px">Requirement</th><th>Required behavior</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">P-1</span></td><td>Portable handoff</td><td>One self-contained HTML file that can be emailed, opened by double-click in Edge/Chrome, and uploaded to Claude for technical edits.</td></tr>
+      <tr><td><span class="rid">P-2</span></td><td>No installation</td><td>MUST run on a locked-down corporate laptop with no server, Python, Node, database, IT ticket, or internet connection.</td></tr>
+      <tr><td><span class="rid">P-3</span></td><td>Any reporting span</td><td>The user can load 4 weeks, 20 weeks, or another reasonable count. The build MUST NOT assume a fixed 10-week layout anywhere in code, layout, or copy.</td></tr>
+      <tr><td><span class="rid">P-4</span></td><td>Direct import workflow</td><td>Select weekly quote books, select one or more order logs, press one prominent <strong>Run dashboard</strong> button.</td></tr>
+      <tr><td><span class="rid">P-5</span></td><td>Correct attribution</td><td>Order log <code>Quote #</code> matches weekly <code>Quote No.</code> after normalization. Ownership comes from the quote book, never from a post-order job role.</td></tr>
+      <tr><td><span class="rid">P-6</span></td><td>Clear business language</td><td>Use the canonical terms in <a href="#s3">§3</a>. Unmatched work MUST NOT be called a loss.</td></tr>
+      <tr><td><span class="rid">P-7</span></td><td>Conversion is the hero</td><td>Quote-to-order conversion is the primary seller view. The percentage MUST be the largest single value on the overview, and the quoted → confirmed → unconverted story MUST be readable in seconds.</td></tr>
+      <tr><td><span class="rid">P-8</span></td><td>Visual quality</td><td>Deliberate and modern: strong type hierarchy, clean charts, meaningful motion, clear values. No collisions, crossing flow lines, or decorative fluff.</td></tr>
+      <tr><td><span class="rid">P-9</span></td><td>Laptop readability</td><td>Text, chart labels, names, cards, and deck slides MUST be readable at normal laptop distance. No tiny low-contrast body text.</td></tr>
+      <tr><td><span class="rid">P-10</span></td><td>Accurate team views</td><td>Engineers, estimators, and schedulers MUST be mapped from the selected files — roster name where available, initials otherwise.</td></tr>
+      <tr><td><span class="rid">P-11</span></td><td>Useful export</td><td>The deck button MUST produce a real, readable, team-level HTML report that prints to PDF. It MUST NOT be a copy of the dashboard front page.</td></tr>
+      <tr><td><span class="rid">P-12</span></td><td>Theme integrity</td><td>Light and dark themes MUST both work, preserve contrast, and have no broken states.</td></tr>
+      <tr><td><span class="rid">P-13</span></td><td>Brand continuity</td><td>The embedded Nucor mark MUST remain in the portable file, embedded — no external image dependency.</td></tr>
+      <tr><td><span class="rid">P-14</span></td><td>Honest coverage</td><td>Any metric computed over a subset of records MUST display its denominator and coverage percentage next to the value. See <span class="rid">M-8</span>.</td></tr>
+      <tr><td><span class="rid">P-15</span></td><td>Trustworthy intake</td><td>The opening import screen MUST be blank. It MUST NOT display a previous run, a cached dataset, or sample figures as if current. Restoring a cache MUST be an explicit, labeled action showing the cached run's date and file list.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note new"><strong>New in v2.0 —</strong> <span class="rid">P-14</span> closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See <a href="#sa">A-1</a>.</p>
+</section>
+
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">03</span><h2 class="sec-title">Canonical vocabulary</h2></div>
+  <p>These labels are required everywhere — UI, deck, tooltips, exports, and code identifiers. A future developer or AI MUST NOT reinterpret them.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:190px">Use this</th><th style="width:170px">Never use</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Quote opportunity</strong> / quoted work</td><td class="never">quote · bid · lead</td><td>One distinct normalized quote record after revisions are collapsed.</td></tr>
+      <tr><td><strong>Quote win</strong> / confirmed order</td><td class="never">sale · closed-won</td><td>A quote opportunity whose normalized key appears in an order log <code>Quote #</code>.</td></tr>
+      <tr><td><strong>Booked job</strong></td><td class="never">order · win</td><td>One matching job row in the order log. One quote win MAY create several booked jobs.</td></tr>
+      <tr><td><strong>Unconverted opportunity</strong></td><td class="never">loss · lost quote · dead</td><td>A quote with no linked order in the selected logs. May be open, lost, awaiting decision, or missing a link.</td></tr>
+      <tr><td><strong>Quote conversion</strong></td><td class="never">win rate · hit rate</td><td>Distinct quote wins ÷ distinct quote opportunities.</td></tr>
+      <tr><td><strong>Won-value capture</strong></td><td class="never">revenue rate</td><td>Value of quote opportunities with a linked order ÷ all quoted value.</td></tr>
+      <tr><td><strong>Exposure lens (30+ / 50+ days)</strong></td><td class="never">aged · stale</td><td>Restricts the cohort to quotes old enough to have had a fair decision window.</td></tr>
+      <tr><td><strong>On-time release</strong></td><td class="never">performance · SLA</td><td>Share of <em>scored</em> quote records marked <code>EARLY</code> rather than <code>LATE</code>. Independent of conversion.</td></tr>
+      <tr><td><strong>First seen in loaded book</strong></td><td class="never">new customer</td><td>A customer appearing in exactly one selected quote week. Does <strong>not</strong> prove the customer is new to Nucor.</td></tr>
+      <tr><td><strong>Repeat customer</strong></td><td class="never">existing account</td><td>A customer appearing in two or more selected quote weeks.</td></tr>
+      <tr><td><strong>Repeat / no linked win</strong></td><td class="never">losing account</td><td>A repeat customer with quote activity but no matching win in the cohort. A follow-up queue, not a loss list.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">04</span><h2 class="sec-title">Metric definitions and formulas</h2></div>
+  <p>Every formula below MUST be implemented once, in a shared module, and referenced everywhere. Duplicated business arithmetic is a defect.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th style="width:170px">Metric</th><th>Formula / rule</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">M-1</span></td><td>Quote conversion</td><td><code>distinct quote wins ÷ distinct quote opportunities</code> in the active cohort. MUST NOT divide booked jobs by quotes.</td></tr>
+      <tr><td><span class="rid">M-2</span></td><td>Won-value capture</td><td><code>Σ quoted value of opportunities with a linked order ÷ Σ all quoted value</code> in the active cohort.</td></tr>
+      <tr><td><span class="rid">M-3</span></td><td>Exposure days</td><td><code>exposure = cutoff_date − quote_date</code>, both floored to calendar date, no time component, no timezone conversion. <code>exposure ≥ 30</code> qualifies for the 30+ lens; <code>≥ 50</code> for 50+.</td></tr>
+      <tr><td><span class="rid">M-4</span></td><td>Order-log cutoff</td><td>The latest <em>valid</em> <code>Order Entry</code> date across all selected order logs. A single implausible future date MUST NOT set the cutoff — see <span class="rid">D-13</span> row 10.</td></tr>
+      <tr><td><span class="rid">M-5</span></td><td>On-time release</td><td><code>count(EARLY) ÷ count(scored records)</code>, where a scored record has a non-blank <code>On-time</code> value resolving to <code>EARLY</code> or <code>LATE</code>. Blank or unrecognized values are <strong>excluded from both numerator and denominator</strong> and reported as unscored.</td></tr>
+      <tr><td><span class="rid">M-6</span></td><td>Quote-to-order lag</td><td><code>Order Entry date − quote date</code> for matched pairs. Report median, p10, p90. Negative lags are invalid and MUST be flagged, not clamped.</td></tr>
+      <tr><td><span class="rid">M-7</span></td><td>Wilson 95% interval</td><td>For <code>p̂ = x/n</code>, <code>z = 1.959964</code>:<br /><code>centre = (p̂ + z²/2n) / (1 + z²/n)</code><br /><code>half = z·√(p̂(1−p̂)/n + z²/4n²) / (1 + z²/n)</code><br />Display as <code>centre ± half</code>. When <code>n = 0</code>, display "no records", never <code>0%</code>.</td></tr>
+      <tr><td><span class="rid">M-8</span></td><td>Coverage</td><td>Where a denominator is smaller than the active cohort, <code>coverage = scored ÷ cohort</code>. The UI MUST show <code>value (n of N, coverage%)</code>.</td></tr>
+      <tr><td><span class="rid">M-9</span></td><td>Thin-sample marking</td><td>Any rate with <code>n &lt; 10</code> MUST render visibly neutral / de-emphasized and MUST NOT be ranked as proof of performance.</td></tr>
+      <tr><td><span class="rid">M-10</span></td><td>Rate targets</td><td>On-time release target <strong>90%</strong>. Quote conversion reference line <strong>10%</strong>. Display references only — defined in one constants block, labeled in the UI, never hardcoded per chart.</td></tr>
+      <tr><td><span class="rid">M-15</span></td><td>Account reconciliation</td><td><code>repeat customers + first-seen customers = total customer accounts</code>. A required property test.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note new"><strong>New in v2.0 —</strong> <span class="rid">M-10</span>. The previous spec never defined these two numbers, yet both appear in the shipped deck. They are now stated once, here.</p>
+</section>
+
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">05</span><h2 class="sec-title">Required user workflow</h2></div>
+  <ol class="plain">
+    <li>Open <code>quote-conversion-atlas-shareable.html</code> in current Microsoft Edge or Google Chrome.</li>
+    <li>Go to <strong>Data Mapping</strong>.</li>
+    <li>Use <strong>Add quote weeks</strong> to select any number of <code>Week N - YYYY.xlsm</code> / <code>.xlsx</code> files.</li>
+    <li>Use <strong>Add order logs</strong> to select <strong>every applicable</strong> export together — e.g. <code>OrderLog 1-10.xlsx</code> <em>and</em> <code>OrderLog 11-20.xlsx</code>.</li>
+    <li>Press <strong>Run dashboard</strong>.</li>
+    <li>Review at the default <strong>30+ day exposure</strong> lens, then switch to All Quotes or 50+ days as needed.</li>
+    <li>Use the overview, people, quotes, customer, timing, and booked-ton views to guide the team conversation.</li>
+    <li>Export the team report deck when a presentation-ready update is needed.</li>
+  </ol>
+  <p class="note"><strong>P-15 —</strong> the opening import screen must be a blank, trustworthy intake workflow. It must never quietly show a previous run as if it were current source data.</p>
+</section>
+
+<section id="s6">
+  <div class="sec-head"><span class="sec-num">06</span><h2 class="sec-title">Input contract and extraction rules</h2></div>
+  <p class="note warn"><strong>Column letters below are hints, not the contract.</strong> Per <span class="rid">T-4</span>, critical fields MUST be resolved by scanning header labels. Letters are a documented fallback and sanity check only. A shifted column MUST NOT silently reassign a person or a price.</p>
+
+  <h3>6.1 Weekly quote workbooks</h3>
+  <p>Accepted files follow a tolerant form of <code>Week N - YYYY.xlsm</code> / <code>.xlsx</code>. Upload prefixes are allowed as long as a week number can be recognized.</p>
+  <p><strong>Read only:</strong> Monday, Tuesday, Wednesday, Thursday, Friday.<br />
+  <strong>Do not read:</strong> <code>End of Week Totals</code> (aggregates, not records) and <code>Scheduler</code> (not a roster). Read <code>Inventory</code> separately for employee names.</p>
+  <p>Data starts at <strong>row 6</strong>. A weekday row is a quote record <strong>only when <code>Quote No.</code> is populated</strong>. The second row of a two-row entry block MUST NOT become a second opportunity.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:150px">Weekly field</th><th style="width:60px">Hint</th><th>Required use</th></tr></thead>
+    <tbody>
+      <tr><td>Quote No.</td><td class="num">B</td><td>Primary quote identity and order-log join key.</td></tr>
+      <tr><td>Version</td><td class="num">C</td><td>Revision reconciliation.</td></tr>
+      <tr><td>Project</td><td class="num">D</td><td>Quote-side project context.</td></tr>
+      <tr><td>Customer</td><td class="num">E</td><td>Customer signals and quote explorer.</td></tr>
+      <tr><td>Square feet</td><td class="num">H</td><td>Size / volume context.</td></tr>
+      <tr><td>Date In</td><td class="num">I</td><td>Turnaround diagnostics, only after validation.</td></tr>
+      <tr><td>Due</td><td class="num">J</td><td>Timing diagnostics where supplied.</td></tr>
+      <tr><td>Done</td><td class="num">P</td><td>Timing diagnostics where supplied.</td></tr>
+      <tr><td>Scheduler</td><td class="num">L</td><td>Quote responsibility and team performance.</td></tr>
+      <tr><td>Quote Engineer</td><td class="num">M</td><td>Quote responsibility and team performance.</td></tr>
+      <tr><td>Estimator</td><td class="num">N</td><td>Quote responsibility and team performance.</td></tr>
+      <tr><td>Actual Hours</td><td class="num">O</td><td>Productivity measures.</td></tr>
+      <tr><td>On-time</td><td class="num">Q</td><td><code>EARLY</code> / <code>LATE</code> release-rate metric.</td></tr>
+      <tr><td>Price</td><td class="num">S</td><td>Quoted value and value capture.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>6.2 Inventory roster</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:150px">Inventory field</th><th style="width:60px">Hint</th><th>Required use</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td class="num">A</td><td>Full label in People and quote-detail views.</td></tr>
+      <tr><td>Initials</td><td class="num">B</td><td>Match to weekly Scheduler / Engineer / Estimator codes.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table>
+    <caption>Roster rules</caption>
+    <thead><tr><th style="width:64px">ID</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">D-1</span></td><td>Quote Engineer and Estimator lists MUST include every relevant person found in the selected roster, even with zero quotes in the active cohort.</td></tr>
+      <tr><td><span class="rid">D-2</span></td><td>Scheduler rows are seeded from the weekday Scheduler field unless a dedicated scheduler roster is supplied.</td></tr>
+      <tr><td><span class="rid">D-3</span></td><td>An initials code with no roster name MUST display the initials plus the label <code>roster name not supplied</code>.</td></tr>
+      <tr><td><span class="rid">D-4</span></td><td>A quote with no initials MUST display <code>No initials supplied</code>. The build MUST NOT fabricate a person or show a generic <code>Unassigned</code> team member.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>6.3 Order-log exports</h3>
+  <p>Read <code>Sheet1</code>; data starts at <strong>row 3</strong>. A row is a booked job <strong>only when Job Prefix is present</strong>.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:210px">Order-log field</th><th style="width:70px">Hint</th><th>Required use</th></tr></thead>
+    <tbody>
+      <tr><td>Job Prefix / Number / Name</td><td class="num">A / B / C</td><td>Booked-job identity and readable linked-job context.</td></tr>
+      <tr><td>Customer / CSR</td><td class="num">D / E</td><td>Job-side audit context.</td></tr>
+      <tr><td>Order Entry</td><td class="num">H</td><td>Reporting cutoff and quote-to-order lag.</td></tr>
+      <tr><td>Total Tons</td><td class="num">M</td><td>Booked tons by order-entry week.</td></tr>
+      <tr><td>Total Engineering Hours</td><td class="num">N</td><td>Post-order operating context.</td></tr>
+      <tr><td>Post-order assignments</td><td class="num">Q / R / S</td><td>Job context only.</td></tr>
+      <tr><td>Quote #</td><td class="num">Z</td><td><strong>The only allowed quote-attribution join field.</strong></td></tr>
+      <tr><td>Sales Engineer</td><td class="num">AA</td><td>Job context only — never quote credit.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s7">
+  <div class="sec-head"><span class="sec-num">07</span><h2 class="sec-title">Matching, ownership, and data quality</h2></div>
+
+  <h3>7.1 Quote key normalization</h3>
+  <p><span class="rid">D-5</span> — Normalize both quote-side <code>Quote No.</code> and order-side <code>Quote #</code> with a single shared function before matching:</p>
+<pre><code>1. Coerce to string; trim; collapse internal whitespace; upper-case.
+2. Reject empty results and results with no digits  -&gt; unparsable.
+3. Split on "-".
+4. If the LAST segment matches /^R\d+$/  -&gt; drop it (revision suffix).
+   Repeat once; do not strip more than one revision suffix.
+5. Rejoin the remaining segments unchanged.
+6. The result is the normalized key.
+   Its segment count is NOT constrained to two.</code></pre>
+  <p><code>W1V-25035-R2</code> and <code>W1V-25035</code> both resolve to <code>W1V-25035</code>.</p>
+  <p class="note warn"><strong>This replaces the v1.0 rule "keep PREFIX-SERIAL."</strong> That wording was ambiguous for keys with three or more segments and is the likely reason <code>P-0287-025-2</code> was dropped from attribution. Under the rule above it normalizes to itself and becomes matchable. Whether it <em>should</em> match is <a href="#s13">OQ-3</a> — do not change the shipped baseline until that is decided and fixtured.</p>
+
+  <h3>7.2 Revision collapse</h3>
+  <p><span class="rid">D-6</span> — All rows sharing the same normalized key are <strong>one quote opportunity</strong>.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:250px">Derived property</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td>Quote date and quote week</td><td>First quote row.</td></tr>
+      <tr><td>Engineer / Estimator / Scheduler</td><td>First quote row — opening ownership receives quote credit.</td></tr>
+      <tr><td>Actual hours</td><td>Sum across revisions.</td></tr>
+      <tr><td>Price / square feet</td><td>Last non-blank supplied value.</td></tr>
+      <tr><td>Revision count</td><td>Number of quote rows in the group.</td></tr>
+      <tr><td>On-time result</td><td>Last non-blank supplied result.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note new"><strong>Ordering is now explicit.</strong> "First" and "last" are by source order: weekly file week number, then weekday sheet order, then row index. This MUST be explicit in code, not incidental to object-key iteration.</p>
+
+  <h3>7.3 Quote-to-order join</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">D-7</span></td><td>Merge all selected order-log files <strong>before</strong> matching.</td></tr>
+      <tr><td><span class="rid">D-8</span></td><td>Remove exact repeated order rows using <code>job identity + quoted reference + Order Entry date</code>.</td></tr>
+      <tr><td><span class="rid">D-9</span></td><td>A distinct matched quote is one <strong>quote win</strong>. Every matching order row is one <strong>booked job</strong>.</td></tr>
+      <tr><td><span class="rid">D-10</span></td><td>Retain job name, customer, and post-order roles for audit context in the quote inspector.</td></tr>
+      <tr><td><span class="rid">D-11</span></td><td>Job Name, Sales Engineer, and the Q/R/S roles MUST NOT be used as a join key or as a substitute for quote ownership.</td></tr>
+      <tr><td><span class="rid">D-12</span></td><td>Quote credit always originates in the weekly quote book: Scheduler (L), Quote Engineer (M), Estimator (N). Post-order job roles MAY supplement linked-job detail but MUST NOT overwrite, guess, or reassign quote ownership or conversion credit.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>7.4 Required validation behavior</h3>
+  <p><span class="rid">D-13</span> — The build MUST surface each condition below rather than silently producing a wrong metric. <strong>No exception may be counted as a lost quote or attributed to an employee by guesswork.</strong></p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:44px">#</th><th style="width:230px">Condition</th><th style="width:90px">Severity</th><th>Required response</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Critical header missing or shifted</td><td><span class="pill block">Block</span></td><td>Halt with the file name, sheet, and the header that could not be resolved.</td></tr>
+      <tr><td class="num">2</td><td>Wrong Monday year in a weekly file</td><td><span class="pill warn">Warn</span></td><td>Recover the year from the <code>Week N</code> filename sequence and record the correction.</td></tr>
+      <tr><td class="num">3</td><td>Blank quote engineer</td><td><span class="pill note">Note</span></td><td>Keep as a meaningful no-initials record (<span class="rid">D-4</span>).</td></tr>
+      <tr><td class="num">4</td><td><code>Date In</code> outside the quote-week range</td><td><span class="pill warn">Warn</span></td><td>Exclude from turnaround diagnostics; keep the quote.</td></tr>
+      <tr><td class="num">5</td><td>Missing or non-standard order <code>Quote #</code></td><td><span class="pill warn">Warn</span></td><td>Count as unparsable, list the raw values, exclude from attribution.</td></tr>
+      <tr><td class="num">6</td><td>Order quote outside the loaded quote window</td><td><span class="pill note">Note</span></td><td>Report the count; expected, not an error.</td></tr>
+      <tr><td class="num">7</td><td>Exact duplicate order rows across exports</td><td><span class="pill warn">Warn</span></td><td>De-duplicate per <span class="rid">D-8</span> and report how many were removed.</td></tr>
+      <tr><td class="num">8</td><td>Roster code not found in <code>Inventory</code></td><td><span class="pill warn">Warn</span></td><td>Show initials with <code>roster name not supplied</code>.</td></tr>
+      <tr><td class="num">9</td><td>Repeated reporting week</td><td><span class="pill warn">Warn</span></td><td>Use the last selected file for that week and flag the duplicate selection.</td></tr>
+      <tr><td class="num">10</td><td><code>Order Entry</code> implausibly in the future</td><td><span class="pill warn">Warn</span></td><td>Exclude from the cutoff calculation (<span class="rid">M-4</span>) and flag it.</td></tr>
+      <tr><td class="num">11</td><td>Negative quote-to-order lag</td><td><span class="pill warn">Warn</span></td><td>Flag the pair; do not clamp to zero.</td></tr>
+      <tr><td class="num">12</td><td>On-time coverage below 50% of cohort</td><td><span class="pill warn">Warn</span></td><td>Render the metric with its coverage badge per <span class="rid">P-14</span>.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note new"><strong>New in v2.0 —</strong> rows 10–12, and severities assigned to all twelve.</p>
+</section>
+
+<section id="s8">
+  <div class="sec-head"><span class="sec-num">08</span><h2 class="sec-title">Required calculations and analytics</h2></div>
+
+  <h4>Core outcome metrics</h4>
+  <p>Distinct quote opportunities · quoted value · quote wins · booked jobs · confirmed value · unconverted count and value · quote conversion (<span class="rid">M-1</span>) · won-value capture (<span class="rid">M-2</span>) · Wilson 95% interval on every displayed conversion rate (<span class="rid">M-7</span>) · quote-to-order lag median / p10 / p90 (<span class="rid">M-6</span>).</p>
+
+  <h4>Exposure</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">M-11</span></td><td>Default the dashboard to <strong>30+ days</strong>.</td></tr>
+      <tr><td><span class="rid">M-12</span></td><td>Support All Quotes, 30+ days, and 50+ days.</td></tr>
+      <tr><td><span class="rid">M-13</span></td><td>Explain the active filter in plain language beside the control.</td></tr>
+      <tr><td><span class="rid">M-14</span></td><td>Every people and team conversion comparison MUST use the active exposure cohort. Mixing cohorts within one comparison is a defect.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Operational and timing</h4>
+  <p>On-time release (<span class="rid">M-5</span>) · quote volume by quoted week · confirmed conversion by quoted week · booked tons by order-entry week from matched jobs with valid <code>Total Tons</code> · quote hours, hours per quote, dollars quoted per hour, revisions per quote, and turnaround <strong>where source values are available</strong> — each carrying its coverage badge per <span class="rid">P-14</span>.</p>
+
+  <h4>Customer insights</h4>
+  <p>Use the <strong>quote-side</strong> Customer field, not only the job-side field. The customer section MUST show:</p>
+  <ul>
+    <li>Total customer accounts in the active cohort.</li>
+    <li>Repeat customers, and customers seen in 3+ quote weeks.</li>
+    <li>Customers with the highest count of confirmed quote wins.</li>
+    <li>Quoted value and returned/won value per customer row.</li>
+    <li>Repeat customers with no linked win, framed as a follow-up queue.</li>
+    <li>First-seen-in-loaded-book context, explicitly limited to the files selected for this run.</li>
+  </ul>
+  <p><span class="rid">M-15</span> — account totals MUST reconcile: <code>repeat + first-seen = total accounts</code>.</p>
+
+  <h4>Team insights</h4>
+  <p>The People view MUST support Quote Engineers, Estimators, and Schedulers, showing name or initials, quote volume, conversion, on-time signal, relative scale, and won value. It MUST stay readable with long names at laptop resolution. Small samples MUST be marked per <span class="rid">M-9</span>.</p>
+</section>
+
+<section id="s9">
+  <div class="sec-head"><span class="sec-num">09</span><h2 class="sec-title">Visual and interaction specification</h2></div>
+
+  <h3>9.1 Primary outcome overview</h3>
+  <p>The strongest design on the page.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">V-1</span></td><td>The conversion percentage sits in a large central visual anchor.</td></tr>
+      <tr><td><span class="rid">V-2</span></td><td>The left-to-right story is obvious: quoted work → confirmed quote wins → unconverted follow-up work.</td></tr>
+      <tr><td><span class="rid">V-3</span></td><td>No thick crossing flow lines, no generic Sankey, no outcome boxes that compete with the conversion percentage.</td></tr>
+      <tr><td><span class="rid">V-4</span></td><td>Use a real record-level field, not a decorative dot cloud.</td></tr>
+      <tr><td><span class="rid">V-5</span></td><td>Group record markers into quoted-week cards showing week, quote wins, conversion percentage, actual quote markers, and an explicit no-win treatment for weeks that returned none.</td></tr>
+      <tr><td><span class="rid">V-6</span></td><td>Green for confirmed order links, copper/red for unconverted follow-up. Contrast maintained in both themes.</td></tr>
+      <tr><td><span class="rid">V-7</span></td><td>Motion reinforces the story on render. It MUST NOT be a manual replay gimmick or delay comprehension.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.2 Weekly pulse</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">V-8</span></td><td>Bars: quote opportunities issued by quote week. Line/points: confirmed conversion rate for the same week. The two scales stay on separate lanes.</td></tr>
+      <tr><td><span class="rid">V-9</span></td><td>Timing is a distinct signal, never visually blended into conversion.</td></tr>
+      <tr><td><span class="rid">V-10</span></td><td>Labels, axes, values, and the reference line stay readable whether 4 or 20 weeks are loaded.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.3 Encoding integrity</h3>
+  <p class="note new"><strong>V-11 — new in v2.0.</strong> A bar's length and the value printed beside it MUST encode the <em>same quantity</em>. If a row reads "7 wks", the bar MUST be proportional to 7 weeks. Mixing one measure in the bar and another in the label is a correctness defect, not a style choice. See <a href="#sa">A-2</a>.</p>
+  <p class="note new"><strong>V-12 — new in v2.0.</strong> Semantic color is reserved. Green means <em>confirmed order</em>. Copper/red means <em>unconverted</em>. Neutral metrics — customer counts, tonnage, headcount — MUST use the neutral accent, never the win color. See <a href="#sa">A-3</a>.</p>
+
+  <h3>9.4 Customer, team, and detail views</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">V-13</span></td><td>Clear cards, readable table rows, visible labels, no overlapping values.</td></tr>
+      <tr><td><span class="rid">V-14</span></td><td>Customer names MAY truncate visually but MUST carry the full label in a <code>title</code> attribute or equivalent accessible tooltip.</td></tr>
+      <tr><td><span class="rid">V-15</span></td><td>The quote inspector shows quote number, customer, owner, quote value, exposure, release status, linked jobs, and next-action language.</td></tr>
+      <tr><td><span class="rid">V-16</span></td><td>No employee appears as a nameless blank row or a generic <code>Unassigned</code> entry.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.5 Type, color, and spacing</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">V-17</span></td><td>Strong standard/system fonts for body copy and deck slides. Display or condensed type only where it improves hierarchy — never for running text, data labels, or values.</td></tr>
+      <tr><td><span class="rid">V-18</span></td><td>Bold labels and high-contrast numeric values over faint monospaced text in management-facing content. Monospace is permitted for aligned numeric columns, at full contrast.</td></tr>
+      <tr><td><span class="rid">V-19</span></td><td>Preserve a modern technical edge without trading away quick comprehension.</td></tr>
+      <tr><td><span class="rid">V-20</span></td><td>Responsive grid rules so layout reflows rather than overlaps at laptop and smaller widths.</td></tr>
+      <tr><td><span class="rid">V-21</span></td><td>Respect <code>prefers-reduced-motion</code>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9.6 Themes and accessibility</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">V-22</span></td><td>Both dark and light themes are required and MUST be re-checked after every design change.</td></tr>
+      <tr><td><span class="rid">V-23</span></td><td>AA contrast where practical, visible focus states, keyboard operation, descriptive chart text, and meaningful button labels.</td></tr>
+      <tr><td><span class="rid">V-24</span></td><td>Color MUST NOT be the only outcome cue. Because green/copper is a red-green-deficiency risk, every outcome marker MUST also carry a label, a value, or a distinct shape.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s10">
+  <div class="sec-head"><span class="sec-num">10</span><h2 class="sec-title">Team report deck requirements</h2></div>
+  <p>The export creates a separate, self-contained HTML slide report presented with arrow keys or printed to PDF. It is a <strong>team-level</strong> report — not a screenshot of the main page, and not an employee ranking pack by default.</p>
+  <div class="tw"><table>
+    <caption>Required slides</caption>
+    <thead><tr><th style="width:44px">#</th><th style="width:220px">Slide</th><th>Content</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Executive outcome</td><td>Conversion, quoted value, confirmed value.</td></tr>
+      <tr><td class="num">2</td><td>Quote outcome</td><td>Confirmed vs unconverted opportunities and value.</td></tr>
+      <tr><td class="num">3</td><td>Weekly performance pulse</td><td>Quote volume and conversion on separate lanes.</td></tr>
+      <tr><td class="num">4</td><td>Quote release timing</td><td>On-time definition, result, <strong>and coverage</strong>.</td></tr>
+      <tr><td class="num">5</td><td>Commercial continuity</td><td>Booked tons, customer continuity, top quote-win customer, repeat/no-linked-win signal.</td></tr>
+      <tr><td class="num">6</td><td>Management focus</td><td>Concise actions for outcome follow-up, delivery signal, next refresh.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table>
+    <caption>Deck requirements</caption>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">K-1</span></td><td>Six slides. The counter MUST read <code>1 / 6</code> and update correctly. The counter's initial markup MUST be <em>generated</em> from the slide count, never hardcoded. See <a href="#sa">A-4</a>.</td></tr>
+      <tr><td><span class="rid">K-2</span></td><td>Slide 5 MUST include the top quote-win customer and the repeat/no-linked-win signal. Both are currently missing. See <a href="#sa">A-5</a>.</td></tr>
+      <tr><td><span class="rid">K-3</span></td><td>Standard, bold, readable fonts; large headings and clear body text. Condensed display faces for headlines only, per <span class="rid">V-17</span>.</td></tr>
+      <tr><td><span class="rid">K-4</span></td><td>Enough spacing around charts and cards that printing and laptop presentation stay legible.</td></tr>
+      <tr><td><span class="rid">K-5</span></td><td>No small faint labels, no condensed unreadable text, no text overlapping decorative treatment.</td></tr>
+      <tr><td><span class="rid">K-6</span></td><td>Identical definitions to the dashboard. No slide may imply an unmatched quote is lost.</td></tr>
+      <tr><td><span class="rid">K-7</span></td><td>Every figure MUST carry the same coverage and thin-sample treatment as the dashboard (<span class="rid">P-14</span>, <span class="rid">M-9</span>). A slide MUST NOT label a partial-coverage metric as covering the full quote book.</td></tr>
+      <tr><td><span class="rid">K-8</span></td><td>The deck MUST render correctly with any week count the dashboard accepts (<span class="rid">P-3</span>).</td></tr>
+      <tr><td><span class="rid">K-9</span></td><td>Print styles MUST force every slide visible and page-break between slides.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s11">
+  <div class="sec-head"><span class="sec-num">11</span><h2 class="sec-title">Technical architecture and code quality</h2></div>
+
+  <h3>11.1 Distribution architecture</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">T-1</span></td><td>Final distribution remains one self-contained <code>.html</code> file with the Nucor mark, CSS, JavaScript, workbook parser, and deck generator embedded.</td></tr>
+      <tr><td><span class="rid">T-2</span></td><td>No runtime CDN, web-font URL, API call, server, authentication, or external asset. The file MUST keep working offline after being copied to another laptop.</td></tr>
+      <tr><td><span class="rid">T-3</span></td><td>Browser storage MAY cache a parsed dataset in IndexedDB. All storage access MUST be wrapped in <code>try/catch</code> and MUST degrade safely when blocked by policy.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>11.2 Preferred development architecture</h3>
+  <p>The distribution file may be large, but engineering MUST NOT be performed as one unstructured block. Develop in modules, test there, then bundle and inline for distribution.</p>
+<pre><code>src/
+  parse/       workbook detection, weekday extraction, order-log extraction
+  normalize/   quote key, date repair, header validation, source defects
+  model/       revision collapse, joins, metrics, customer/team aggregation
+  ui/          overview, people, quotes, data mapping, report deck
+  styles/      tokens, themes, responsive layout
+test/          fixtures, unit tests, regression tests
+build/         single-file bundling / inlining</code></pre>
+
+  <h3>11.3 Code rules</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">T-4</span></td><td>Resolve critical attribution fields by scanning header labels. Column positions are a fallback and cross-check only.</td></tr>
+      <tr><td><span class="rid">T-5</span></td><td>Stop the run with a specific, actionable error when a critical header cannot be resolved safely.</td></tr>
+      <tr><td><span class="rid">T-6</span></td><td>Keep parsing and model functions pure and free of DOM references so they are independently testable.</td></tr>
+      <tr><td><span class="rid">T-7</span></td><td>Centralize quote-key normalization, exposure calculation, roster resolution, ownership, and every formula in <a href="#s4">§4</a>. Business rules MUST NOT be duplicated across components.</td></tr>
+      <tr><td><span class="rid">T-8</span></td><td>Semantic function names, small focused functions, descriptive variables. Comment business rules and known defects, not obvious syntax.</td></tr>
+      <tr><td><span class="rid">T-9</span></td><td>Escape all source text before inserting it into generated HTML — dashboard and deck alike. Customer, project, and job names are untrusted input.</td></tr>
+      <tr><td><span class="rid">T-10</span></td><td>No <code>eval</code>, no fabricated placeholder owners, no silent coercion that changes data meaning, no destructive write-back to Excel.</td></tr>
+      <tr><td><span class="rid">T-11</span></td><td>Retain visible error and quality counters rather than swallowing bad rows.</td></tr>
+      <tr><td><span class="rid">T-12</span></td><td>Keep rendering efficient. 4–20 weekly files MUST feel immediate, and a larger future dataset MUST NOT freeze the interface.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note new"><strong>New in v2.0 —</strong> <span class="rid">T-9</span>. Customer, project, and job names arrive from spreadsheets and are rendered into generated HTML; they must be escaped.</p>
+
+  <h3>11.4 Sharing and editability</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">T-13</span></td><td>A recipient receives the HTML plus this specification and <code>DATA-EXTRACTION-MAP.md</code> — no hidden context required.</td></tr>
+      <tr><td><span class="rid">T-14</span></td><td>Technical changes MUST preserve the offline, single-file workflow.</td></tr>
+      <tr><td><span class="rid">T-15</span></td><td>The embedded brand asset MUST NOT be removed or replaced with an external URL.</td></tr>
+      <tr><td><span class="rid">T-16</span></td><td>Any change affecting parsing, joins, ownership, exposure, or calculated metrics REQUIRES regression testing against the supplied fixtures and the <a href="#s12">§12 baseline</a>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>11.5 Build-stage expansion backlog</h3>
+  <p>These come from the engineering brief. They are an explicit future-build backlog — <strong>not</strong> a claim that every item is complete in the current portable HTML. A rework or replatform MUST account for them rather than dropping them.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:190px">Area</th><th>Required future behavior</th></tr></thead>
+    <tbody>
+      <tr><td>File intake</td><td>Drag/drop and click-to-browse; auto-detect quote vs order files from sheet/header evidence; report filename, detected type/week, rows found, and specific errors per file.</td></tr>
+      <tr><td>Performance</td><td>Parse larger source sets off the UI thread where possible; show progress; never block the page.</td></tr>
+      <tr><td>Incremental loading</td><td>Adding Week 11 after Weeks 1–10 merges intelligently rather than forcing a full replacement; duplicate base keys need an explicit newest-source rule.</td></tr>
+      <tr><td>Filter system</td><td>Week range, exposure, role, person, size band, customer search, and free text compose into one dismissible active-filter bar.</td></tr>
+      <tr><td>Cross-filtering</td><td>Clicking a bar, line point, person, customer, or outcome segment applies a reversible filter — not decoration.</td></tr>
+      <tr><td>Segmentation</td><td>Quote engineer, estimator, scheduler, quote-number prefix/district, customer, quote week, and size bands, all derived from loaded data rather than hardcoded.</td></tr>
+      <tr><td>Exports</td><td>CSV of the active filtered view; overview image; clean print/PDF path; uncluttered presentation mode.</td></tr>
+      <tr><td>Shareable state</td><td>A filtered view MAY be stored in the URL hash where this stays compatible with offline file use.</td></tr>
+      <tr><td>Sensitive performance data</td><td>A consistent anonymize mode replacing people with neutral identifiers across every applicable view.</td></tr>
+      <tr><td>Accessibility</td><td>Keyboard reachability, focus visibility, accessible chart data/table alternatives, reduced motion, and contrast remain release requirements.</td></tr>
+      <tr><td>Testability</td><td>Fixture tests, unit tests for business rules, a shifted-header failure test, and property checks that group totals reconcile to ungrouped totals.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table>
+    <caption>Operating targets for a future production build</caption>
+    <thead><tr><th style="width:70%">Target</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Parse time, 10 weeks + order logs, mid-range laptop</td><td class="num">~3 s</td></tr>
+      <tr><td>Filter re-render</td><td class="num">~100 ms</td></tr>
+      <tr><td>Practical model size</td><td class="num">≥ 10,000 records</td></tr>
+      <tr><td>Table virtualization threshold</td><td class="num">~500 rows</td></tr>
+      <tr><td>Bundle size</td><td>Emailable, with no loss of offline reliability</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s12">
+  <div class="sec-head"><span class="sec-num">12</span><h2 class="sec-title">Verification baseline</h2></div>
+  <p>The current Week 1–10 source run produces this working baseline. These are the <strong>immediate regression checks</strong> after any parser or model change.</p>
+
+  <h3>12.1 Locked figures</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:60%">Check</th><th>Expected result</th></tr></thead>
+    <tbody>
+      <tr><td>Raw weekday quote lines</td><td class="num">727</td></tr>
+      <tr><td>Distinct quote opportunities</td><td class="num">614</td></tr>
+      <tr><td>Selected order-log rows</td><td class="num">160</td></tr>
+      <tr><td>Matched quote wins</td><td class="num">40</td></tr>
+      <tr><td>Matched booked jobs</td><td class="num">41</td></tr>
+      <tr><td>Full-book conversion</td><td class="num">6.51%</td></tr>
+      <tr><td>30+ day exposure</td><td class="num">36 / 345 = 10.43%</td></tr>
+      <tr><td>50+ day exposure</td><td class="num">22 / 157 = 14.01%</td></tr>
+      <tr><td>Total quoted value</td><td class="num">$458,324,589</td></tr>
+      <tr><td>Confirmed value</td><td class="num">$25.0M (5.46%)</td></tr>
+      <tr><td>Quote hours</td><td class="num">907.8</td></tr>
+      <tr><td>Booked tons</td><td class="num">4,383.8 / 10 wks</td></tr>
+      <tr><td>Parsable order-log <code>Quote #</code> rows</td><td class="num">87</td></tr>
+      <tr><td>Distinct parsable order quote references</td><td class="num">86</td></tr>
+      <tr><td>Order-log cutoff</td><td class="num">13 Mar 2026</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>12.2 Derived checks</h3>
+  <p class="note new"><strong>New in v2.0.</strong> These follow arithmetically from the locked figures and are cheap, high-signal assertions.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:52%">Derived check</th><th>Expected</th></tr></thead>
+    <tbody>
+      <tr><td>Revision rows collapsed</td><td class="num">727 − 614 = 113</td></tr>
+      <tr><td>Order rows with no usable <code>Quote #</code></td><td class="num">160 − 87 = 73</td></tr>
+      <tr><td>Parsable refs with no matching quote</td><td class="num">86 − 40 = 46</td></tr>
+      <tr><td>Booked jobs per quote win</td><td class="num">41 ÷ 40 → one win made two jobs</td></tr>
+      <tr><td>Weekly quote volume W1–W10</td><td class="num">51, 67, 56, 83, 53, 57, 55, 53, 69, 70 → sums to 614</td></tr>
+      <tr><td>Conversion identity</td><td class="num">40 ÷ 614 = 6.5147% → 6.51%</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>12.3 Figures that do not currently reconcile</h3>
+  <p class="note warn"><strong>These MUST be resolved before they are treated as a baseline.</strong> Do not pick one silently.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:210px">Figure</th><th style="width:120px">Spec v1.0</th><th style="width:130px">Shipped deck</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Quote-side customer accounts</td><td class="num">290</td><td class="num">291</td><td>88 repeat + 203 first-seen = 291, so 291 is the internally consistent value. Confirm against a re-run.</td></tr>
+      <tr><td>Customers in 3+ quote weeks</td><td class="num">46</td><td class="num">47</td><td>Same one-record discrepancy; likely the same root cause.</td></tr>
+      <tr><td>On-time release</td><td class="num">35%</td><td class="num">35% "full quote book"</td><td>The weekly rates imply roughly 110–155 scored records — about <strong>18–25% coverage</strong>, not the full 614. See <a href="#sa">A-1</a>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>12.4 Reconciliation note</h3>
+  <p>An earlier engineering brief lists a different quoted-dollar total and a different count of parsable order-log quote references. The figures in §12.1 are the <strong>current implemented baseline</strong>. One non-standard order quote value (<code>P-0287-025-2</code>) is visibly excluded from attribution. Before any replatform or parser rewrite, lock the intended quoted-dollar rule in a test fixture. <strong>Do not silently substitute the older brief's dollar total for the current implemented baseline.</strong></p>
+</section>
+
+<section id="s13">
+  <div class="sec-head"><span class="sec-num">13</span><h2 class="sec-title">Open questions — resolve before replatform</h2></div>
+  <div class="tw"><table>
+    <thead><tr><th style="width:64px">ID</th><th style="width:34%">Question</th><th>Why it matters</th><th style="width:120px">Owner</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">OQ-1</span></td><td>Is the customer-account total 290 or 291 (and 46 or 47 in 3+ weeks)?</td><td>Two shipped surfaces disagree by one record. Fix the source, then fixture it.</td><td>Estimating + Eng</td></tr>
+      <tr><td><span class="rid">OQ-2</span></td><td>What is the true on-time scored coverage, and should the metric be reported at all below 50% coverage?</td><td>The current 35% is labeled full-book but scored on a small minority of records.</td><td>Estimating</td></tr>
+      <tr><td><span class="rid">OQ-3</span></td><td>Should <code>P-0287-025-2</code> match, or is it genuinely a non-quote reference?</td><td>Determines whether the <span class="rid">D-5</span> normalization change moves the matched-wins baseline.</td><td>Eng</td></tr>
+      <tr><td><span class="rid">OQ-4</span></td><td>Are the 87 parsable rows inclusive or exclusive of the excluded non-standard value?</td><td>87 rows → 86 distinct implies one duplicate; the exclusion's position in that count is unstated.</td><td>Eng</td></tr>
+      <tr><td><span class="rid">OQ-5</span></td><td>Which quoted-dollar rule is authoritative — this baseline's $458,324,589 or the older brief's total?</td><td>Blocks any parser rewrite.</td><td>Estimating + Eng</td></tr>
+      <tr><td><span class="rid">OQ-6</span></td><td>907.8 quote hours across 614 opportunities implies ~1.48 h/quote and ~$505k quoted per hour. Is <code>Actual Hours</code> sparsely populated?</td><td>If so, every hours-derived rate needs a coverage badge and MUST NOT be presented as a full-book productivity figure.</td><td>Estimating</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note warn"><strong>Until an item is resolved, the shipped baseline stands.</strong> Resolving one means: fix the source rule, add a fixture, update <a href="#s12">§12</a>, and strike the row here.</p>
+</section>
+
+<section id="s14">
+  <div class="sec-head"><span class="sec-num">14</span><h2 class="sec-title">Definition of done</h2></div>
+  <p>Each item references the requirement it verifies — replacing the duplicated restatement of §2 in v1.0.</p>
+
+  <h3>Data correctness</h3>
+  <ul class="check">
+    <li><span>Weekly and order-log files can be selected together in any practical count</span><span class="refs">P-3 · P-4</span></li>
+    <li><span>Normalization and revision collapse match the rules, including keys with 3+ segments</span><span class="refs">D-5 · D-6</span></li>
+    <li><span>Quote owner / engineer / estimator / scheduler come from weekly quote fields only</span><span class="refs">D-12</span></li>
+    <li><span>One quote with multiple order rows reports one quote win and multiple booked jobs</span><span class="refs">D-9</span></li>
+    <li><span>Exposure uses the latest valid order-entry date and is plainly explained</span><span class="refs">M-3 · M-4 · M-13</span></li>
+    <li><span>Every validation condition produces its stated severity and message</span><span class="refs">D-13</span></li>
+    <li><span>Data exceptions are visible and never become assumed losses or guessed ownership</span><span class="refs">P-6 · D-4</span></li>
+    <li><span>The §12.1 and §12.2 figures still reconcile after parser/model changes</span><span class="refs">T-16</span></li>
+    <li><span>Repeat + first-seen = total accounts holds as a property test</span><span class="refs">M-15</span></li>
+  </ul>
+
+  <h3>Visual and product quality</h3>
+  <ul class="check">
+    <li><span>The outcome overview makes quoted work, confirmed orders, unconverted work, and conversion clear in seconds</span><span class="refs">P-7 · V-1 · V-2</span></li>
+    <li><span>Quoted-week record cards use real imported records and expose no-win weeks</span><span class="refs">V-5</span></li>
+    <li><span>No text, chart, card, label, or control overlaps at normal laptop width</span><span class="refs">P-9 · V-20</span></li>
+    <li><span>Every bar's length matches the value printed beside it</span><span class="refs">V-11</span></li>
+    <li><span>Win color is used only for wins</span><span class="refs">V-12</span></li>
+    <li><span>Partial-coverage metrics display their denominator and coverage</span><span class="refs">P-14 · M-8</span></li>
+    <li><span>Thin samples render neutrally and are not ranked</span><span class="refs">M-9</span></li>
+    <li><span>Team performance shows real roster names or initials; no generic Unassigned</span><span class="refs">D-3 · D-4 · V-16</span></li>
+    <li><span>Truncated customer names retain a full accessible label</span><span class="refs">V-14</span></li>
+    <li><span>Light and dark themes both pass visual review</span><span class="refs">P-12 · V-22</span></li>
+    <li><span>Outcome state is never conveyed by color alone</span><span class="refs">V-24</span></li>
+    <li><span>Animation aids comprehension and respects reduced motion</span><span class="refs">V-7 · V-21</span></li>
+  </ul>
+
+  <h3>Sharing and report deck</h3>
+  <ul class="check">
+    <li><span>No external scripts, fonts, stylesheets, image URLs, or server dependency</span><span class="refs">T-1 · T-2</span></li>
+    <li><span>The Nucor mark is visible after the file is copied to another laptop</span><span class="refs">P-13 · T-15</span></li>
+    <li><span>The deck exports six readable team-level slides with a correct, generated counter</span><span class="refs">K-1</span></li>
+    <li><span>Slide 5 includes top quote-win customer and repeat/no-linked-win</span><span class="refs">K-2</span></li>
+    <li><span>No slide labels a partial-coverage metric as full-book</span><span class="refs">K-7</span></li>
+    <li><span>The deck renders correctly at 4 weeks and at 20 weeks</span><span class="refs">K-8</span></li>
+    <li><span>Print / Save PDF works from the exported deck</span><span class="refs">K-9</span></li>
+    <li><span>HTML + this spec + the extraction map hand off with no hidden context</span><span class="refs">T-13</span></li>
+  </ul>
+
+  <h3>Code quality</h3>
+  <ul class="check">
+    <li><span>Changes made in organized modules or well-separated sections, then bundled cleanly</span><span class="refs">§11.2</span></li>
+    <li><span>Business rules live in one place</span><span class="refs">T-7</span></li>
+    <li><span>Headers resolved by label, with a shifted-header failure test</span><span class="refs">T-4 · T-5</span></li>
+    <li><span>Source text escaped before HTML insertion in dashboard and deck</span><span class="refs">T-9</span></li>
+    <li><span>Parser/model changes carry unit and fixture regression coverage</span><span class="refs">T-16</span></li>
+    <li><span>Errors are specific, actionable, and safe</span><span class="refs">T-5 · T-11</span></li>
+    <li><span>No undocumented fixed week count, ownership shortcut, or external runtime dependency</span><span class="refs">P-3 · T-2</span></li>
+  </ul>
+</section>
+
+<section id="s15">
+  <div class="sec-head"><span class="sec-num">15</span><h2 class="sec-title">Handoff instruction</h2></div>
+  <p>Use this framing verbatim when handing off to Claude or an engineer:</p>
+  <p class="note">Preserve the single-file, offline browser workflow. Treat <code>Quote No.</code> → <code>Quote #</code> as the only attribution join. Retain quote ownership from the weekly Scheduler / Engineer / Estimator fields. Validate every change against the Week 1–10 baseline in §12 and the data-quality rules in §7. Do not resolve any item in §13 by guessing — fix the source rule, add a fixture, then update the baseline. Improve the design only where it makes the quote-to-order story clearer, keeps conversion prominent, and preserves laptop readability in both themes.</p>
+  <p><strong>Do not replace accurate source rules with a prettier but less trustworthy visualization.</strong></p>
+</section>
+
+<section id="sa">
+  <div class="sec-head"><span class="sec-num">A</span><h2 class="sec-title">Known defects in the current build</h2></div>
+  <p>Observed in the shipped deck export dated 17 Aug 2026. Each is a concrete, reproducible gap against this specification.</p>
+  <div class="tw"><table>
+    <thead><tr><th style="width:56px">ID</th><th style="width:34%">Defect</th><th style="width:130px">Violates</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rid">A-1</span></td><td>On-time release is presented as <code>35% — full quote book</code>. The published weekly rates (75, 45, 20, 12.5, 45.5, 54.5, 25, 12.5, 38.1, 31.6%) resolve to small denominators implying roughly 110–155 scored records — about 18–25% of the 614 opportunities.</td><td><span class="rid">P-14 · M-5 · M-8 · K-7</span></td><td>Relabel as <code>35% of N scored records (N of 614)</code> and add the coverage badge. See <a href="#s13">OQ-2</a>.</td></tr>
+      <tr><td><span class="rid">A-2</span></td><td>On the continuity slide, bar lengths do not match the week counts beside them: 8 wks → 100%, 4 wks → 68%, 7 wks → 65%, 2 wks → 64%, 2 wks → 56%. A 4-week account renders a longer bar than a 7-week account.</td><td><span class="rid">V-11</span></td><td>Drive the bar from the same measure as the label, or label the bar with the measure it actually encodes.</td></tr>
+      <tr><td><span class="rid">A-3</span></td><td>The "First-seen accounts" and "Customer accounts" cards use the win (green) accent, which the spec reserves for confirmed orders.</td><td><span class="rid">V-12</span></td><td>Apply the neutral accent to non-outcome metrics.</td></tr>
+      <tr><td><span class="rid">A-4</span></td><td>The deck nav counter is hardcoded as <code>1 / 5</code> in markup while six slides exist. Script overwrites it on load, so it is cosmetic — but it is a hardcoded slide count.</td><td><span class="rid">K-1 · P-3</span></td><td>Generate the counter from <code>slides.length</code>.</td></tr>
+      <tr><td><span class="rid">A-5</span></td><td>Slide 5 omits the top quote-win customer and the repeat/no-linked-win signal, both required deck content.</td><td><span class="rid">K-2</span></td><td>Add both to the continuity slide.</td></tr>
+      <tr><td><span class="rid">A-6</span></td><td>Truncated customer labels (<code>POWERHOUSE MANAGEMENT</code>, <code>COMMERCIAL CONTRACTING</code>) carry no <code>title</code> attribute.</td><td><span class="rid">V-14</span></td><td>Add full-text <code>title</code> on every truncated label.</td></tr>
+      <tr><td><span class="rid">A-7</span></td><td>Headings use a condensed face (<code>Arial Narrow</code>) and all numeric values use a monospaced face at reduced weight, against the readability rules.</td><td><span class="rid">V-17 · V-18 · K-3</span></td><td>Condensed type for headlines only; values in a bold standard face at full contrast.</td></tr>
+      <tr><td><span class="rid">A-8</span></td><td>Slide 6 references a "90% reference" for release discipline while the weekly chart draws a "10% REFERENCE" line for conversion. Neither target was defined anywhere in spec v1.0.</td><td><span class="rid">M-10</span></td><td>Both are now defined in M-10; source them from one constants block.</td></tr>
+      <tr><td><span class="rid">A-9</span></td><td>The deck's page-count control is a <code>&lt;button&gt;</code> with <code>aria-label="Current slide"</code> but no action, announcing as an interactive control that does nothing.</td><td><span class="rid">V-23</span></td><td>Render it as a non-interactive element with <code>aria-live="polite"</code>.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="sb">
+  <div class="sec-head"><span class="sec-num">B</span><h2 class="sec-title">Change log</h2></div>
+  <h3>v2.0 — 17 Aug 2026</h3>
+  <h4>Structure</h4>
+  <ul>
+    <li>Added document control block, RFC 2119 conventions, stable requirement IDs, and a contents rail.</li>
+    <li>Added the §1.1 pipeline diagram and §1.2 explicit non-goals.</li>
+    <li>Split metric <em>definitions</em> (§3, §4) from metric <em>requirements</em> (§8); the two were previously interleaved and partly duplicated.</li>
+    <li>Rewrote the Definition of done so every item links to the requirement it verifies, removing the duplicate restatement of §2.</li>
+    <li>Added §13 Open questions and Appendix A so unresolved items and live defects are tracked rather than buried in prose.</li>
+  </ul>
+  <h4>Corrections and additions</h4>
+  <ul>
+    <li><strong>Normalization rule rewritten</strong> (<span class="rid">D-5</span>): "keep PREFIX-SERIAL" was ambiguous for keys with three or more segments and likely caused <code>P-0287-025-2</code> to be dropped. Replaced with explicit, testable pseudocode.</li>
+    <li><strong>Coverage requirement added</strong> (<span class="rid">P-14 · M-8</span>): partial-coverage metrics must show their denominator. Closes A-1.</li>
+    <li><strong>On-time denominator defined</strong> (<span class="rid">M-5</span>): blanks and unrecognized values excluded from both numerator and denominator, and reported.</li>
+    <li><strong>Wilson interval formula supplied</strong> (<span class="rid">M-7</span>); previously named but never specified, and <code>n = 0</code> behavior was undefined.</li>
+    <li><strong>Exposure arithmetic pinned</strong> (<span class="rid">M-3</span>): date-only, no timezone conversion.</li>
+    <li><strong>Rate targets defined</strong> (<span class="rid">M-10</span>): the 90% on-time and 10% conversion references appear in the shipped deck but were never specified.</li>
+    <li><strong>Encoding integrity and semantic-color rules added</strong> (<span class="rid">V-11 · V-12</span>); closes A-2 and A-3.</li>
+    <li><strong>Collapse ordering made explicit</strong> (<span class="rid">D-6</span>): "first" and "last" now have a defined sort order.</li>
+    <li><strong>Three validation conditions added</strong> (<span class="rid">D-13</span> rows 10–12) and severities assigned to all.</li>
+    <li><strong>HTML escaping requirement added</strong> (<span class="rid">T-9</span>) — customer, project, and job names are untrusted input rendered into generated HTML.</li>
+    <li><strong>Account-reconciliation property test added</strong> (<span class="rid">M-15</span>).</li>
+    <li><strong>Derived regression checks added</strong> (§12.2) and non-reconciling figures separated out (§12.3) rather than presented as settled baseline.</li>
+    <li><strong>Column letters demoted to hints</strong> (§6), matching <span class="rid">T-4</span>, which the v1.0 tables contradicted by labeling them "Typical source" in a required-use table.</li>
+    <li>Split the combined <code>Due / Done</code> and <code>Scheduler / Engineer / Estimator</code> rows into one row per field so each maps to exactly one column.</li>
+    <li>Corrected the deck slide-count requirement to state that the counter must be <em>generated</em>, not merely display <code>1 / 6</code>.</li>
+  </ul>
+  <h3>v1.0</h3>
+  <p>Original handoff specification.</p>
+</section>
+
+</div>
+
+<footer class="colophon">
+  <span>Quote Outcome Atlas · Handoff specification v2.0</span>
+  <span>Nucor Building Systems — Estimating</span>
+  <span>Revised 17 Aug 2026</span>
+</footer>
+
+</div>
