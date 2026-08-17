@@ -335,6 +335,19 @@
     .segment-split { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); }
     .segment-split h4 { margin: 0 0 10px; color: var(--ink-muted); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     @media (prefers-reduced-motion: reduce) { .segment-track i { transition: none; } }
+    /* The dashboard's entrance and replay animations are decorative; the data
+       reads identically without them. Honour the operating-system setting
+       across the whole app rather than a handful of components. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        animation-delay: 0ms !important;
+        transition-duration: 1ms !important;
+        transition-delay: 0ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
     .donut-layout { display: grid; grid-template-columns: 146px minmax(0,1fr); align-items: center; gap: 17px; min-height: 198px; }
     .donut { position: relative; display: grid; width: 142px; height: 142px; place-items: center; border-radius: 50%; background: conic-gradient(var(--green) calc(var(--donut-value) * 1%), var(--red) 0); }
     .donut::after { content: ""; position: absolute; inset: 19px; border-radius: 50%; background: var(--surface); }

@@ -14,6 +14,10 @@ quote books and order-log exports into a quote-to-order outcome view.
 | `test/scale-check.mjs` | Renders the weekly chart at 1, 4, 12, 26 and 52 weeks and checks no axis labels collide. |
 | `test/deck-shots.mjs` | Regenerates the deck, screenshots every slide, audits for overflow and text under the nav. |
 | `test/print-check.mjs` | Confirms every slide prints and produces a PDF. |
+| `test/error-paths.mjs` | Five ways to pick the wrong file; each must stop with a specific message. |
+| `test/boss-scenario.mjs` | Copy to another folder, clean profile, offline, four consecutive runs. |
+| `test/audit.py` | Recomputes every figure from the workbooks with openpyxl and compares. |
+| `test/a11y.mjs` | Accessible names, keyboard reach, focus rings, reduced motion. |
 
 ## Running the regression suite
 
@@ -36,6 +40,8 @@ node test/print-check.mjs   # print / PDF path
 node test/error-paths.mjs   # what happens when the wrong file is picked
 node test/boss-scenario.mjs # copy to another folder, clean profile, offline, repeat runs
 node test/dump-figures.mjs && python3 test/audit.py   # independent recomputation
+node test/a11y.mjs          # keyboard, focus, labelling, reduced motion
+node test/first-run.mjs     # what a first-time recipient lands on
 ```
 
 `audit.py` reads the workbooks with openpyxl and recomputes every headline figure
