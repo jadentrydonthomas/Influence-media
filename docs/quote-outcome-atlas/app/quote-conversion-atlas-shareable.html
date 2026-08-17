@@ -298,6 +298,20 @@
     .analysis-tab { padding: 6px 8px; border: 1px solid transparent; color: var(--ink-muted); background: transparent; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .analysis-tab[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
     .analysis-body { padding: 16px 19px 19px; }
+    .ci-scale { display: flex; justify-content: space-between; margin: 0 0 8px; padding-left: 194px; color: var(--ink-faint); font-family: var(--mono); font-size: 9px; }
+    .ci-row { display: grid; grid-template-columns: 186px minmax(0, 1fr) 62px; grid-template-areas: "name track value" "name track note"; align-items: center; gap: 2px 8px; padding: 7px 0; border-top: 1px solid var(--line); }
+    .ci-row > span { grid-area: name; overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .ci-track { grid-area: track; position: relative; height: 22px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .ci-track::after { content: ""; position: absolute; top: 2px; bottom: 2px; left: var(--ci-average, 0); width: 2px; background: var(--amber, #bd7b21); }
+    .ci-band { position: absolute; top: 9px; height: 4px; border-radius: 2px; background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green); }
+    .ci-point { position: absolute; top: 6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--green); }
+    .ci-row.is-thin .ci-band { background: transparent; }
+    .ci-row.is-thin .ci-point { background: var(--steel); }
+    .ci-row.is-unscored { opacity: .55; }
+    .ci-row > strong { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 600; text-align: right; }
+    .ci-row > small { grid-area: note; color: var(--ink-faint); font-family: var(--mono); font-size: 8.5px; text-align: right; }
+    /* The detail panel is short and the roster is long; let it follow the list. */
+    @media (min-width: 1100px) { .person-card { position: sticky; top: 18px; } }
     .quote-head button { display: block; width: 100%; padding: 0; border: 0; color: inherit; background: none; font: inherit; letter-spacing: inherit; text-align: left; text-transform: inherit; cursor: pointer; }
     .quote-head button:hover { color: var(--green-dark); }
     .quote-head button.is-sorted { color: var(--green-dark); }
@@ -1413,7 +1427,12 @@
         sorted.forEach(item => {
           const person = item.person;
           const isSelected = item.index === state.selectedPerson;
-          const bar = metric.key === "onTime" && person.onTimeScored === false ? 0 : Math.max(5, Math.min(100, metricNumber(person, metric) / metric.max * 100));
+          const barValue = metricNumber(person, metric);
+          // A zero must draw as zero. The old floor of 5% gave people with no
+          // quotes a visible bar, which read as volume they do not have.
+          const bar = (metric.key === "onTime" && person.onTimeScored === false) || !(barValue > 0)
+            ? 0
+            : Math.max(4, Math.min(100, barValue / metric.max * 100));
           // Show the scored denominator beside every on-time rate. A person scored
           // on 8 of 9 records reads very differently from one scored on 40.
           const personOnTime = person.onTimeScored === false
@@ -1459,9 +1478,53 @@
       }
 
       function renderTeamChart(people, metric, average) {
+        // For a rate, a bar repeats what the list already shows. What the list
+        // cannot show is how certain the rate is. Plot the rate as a point with
+        // its 95% interval so a thin sample reads as a wide, uncertain band
+        // rather than a confident-looking bar.
+        const rateMetric = metric.key === "conversion" ? "conversion" : metric.key === "onTime" ? "onTime" : "";
+        if (rateMetric) {
+          const interval = person => rateMetric === "conversion"
+            ? (person.ci || { low: 0, high: 0 })
+            : wilsonInterval(Number(person.onTimeHits) || 0, Number(person.onTimeScoredCount) || 0);
+          const scored = person => rateMetric === "conversion" ? Number(person.quotes) || 0 : Number(person.onTimeScoredCount) || 0;
+          const ceiling = Math.max(20, Math.min(100, Math.ceil(Math.max.apply(null, people.map(person => interval(person).high).concat([average, 20])) / 10) * 10));
+          const averageX = Math.max(0, Math.min(100, average / ceiling * 100));
+          let intervalRows = "";
+          // Most-scored first: the rows a manager can actually act on sit at the
+          // top, and the one-or-two-record rates fall to the bottom where their
+          // wide intervals are read as the caveat they are.
+          const ordered = people.slice().sort((a, b) => scored(b) - scored(a) || metricNumber(b, metric) - metricNumber(a, metric));
+          ordered.forEach(person => {
+            const n = scored(person);
+            const ci = interval(person);
+            const value = metricNumber(person, metric);
+            const low = Math.max(0, Math.min(100, ci.low / ceiling * 100));
+            const high = Math.max(0, Math.min(100, ci.high / ceiling * 100));
+            const point = Math.max(0, Math.min(100, value / ceiling * 100));
+            const unscored = !n;
+            intervalRows += '<div class="ci-row' + (unscored ? " is-unscored" : "") + (n && n < 10 ? " is-thin" : "") + '">'
+              + '<span title="' + escape(person.name) + '">' + escape(person.name) + "</span>"
+              + '<div class="ci-track" style="--ci-average:' + averageX.toFixed(1) + '%">'
+              + (unscored ? "" : '<i class="ci-band" style="left:' + low.toFixed(1) + '%;width:' + Math.max(1, high - low).toFixed(1) + '%"></i><b class="ci-point" style="left:' + point.toFixed(1) + '%"></b>')
+              + "</div>"
+              + '<strong>' + (unscored ? "—" : metricValue(person, metric)) + "</strong>"
+              + '<small>' + (unscored ? "not scored" : n + " scored · " + ci.low.toFixed(1) + "–" + ci.high.toFixed(1) + "%") + "</small>"
+              + "</div>";
+          });
+          $("#teamChart").innerHTML = '<div class="ci-scale"><span>0%</span><span>' + ceiling + '%</span></div>' + intervalRows;
+          setText("#teamChartTitle", metric.label + " with 95% confidence");
+          setText("#teamChartDescription", "The dot is the measured rate; the bar around it is the 95% interval. Wide bars mean a small sample, not a clear result. The amber marker is the group average, and a person whose interval crosses it is not distinguishable from the group.");
+          return;
+        }
         let rows = "";
         people.forEach(person => {
-          const bar = metric.key === "onTime" && person.onTimeScored === false ? 0 : Math.max(5, Math.min(100, metricNumber(person, metric) / metric.max * 100));
+          const barValue = metricNumber(person, metric);
+          // A zero must draw as zero. The old floor of 5% gave people with no
+          // quotes a visible bar, which read as volume they do not have.
+          const bar = (metric.key === "onTime" && person.onTimeScored === false) || !(barValue > 0)
+            ? 0
+            : Math.max(4, Math.min(100, barValue / metric.max * 100));
           const averagePosition = Math.min(100, average / metric.max * 100);
           rows += '<div class="team-chart-row"><span>' + escape(person.name) + '</span><div class="team-chart-track" style="--team-average:' + averagePosition + '%"><i style="--team-bar:' + bar + '%"></i></div><strong>' + metricValue(person, metric) + "</strong></div>";
         });
@@ -2717,6 +2780,7 @@
             onTime: onTime,
             onTimeScored: onTimeScored,
             onTimeScoredCount: group.onTimeScored,
+            onTimeHits: group.onTimeHits,
             onTimeThin: isThinSample(group.onTimeScored, 10),
             value: group.value,
             hours: group.hours,
