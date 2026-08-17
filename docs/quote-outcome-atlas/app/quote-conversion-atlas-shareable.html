@@ -76,7 +76,7 @@
     .eyebrow { color: var(--green); font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
-    .app { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); background: linear-gradient(to right, var(--rail) 0 244px, transparent 244px); }
     .rail { position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh; padding: 26px 22px 23px; overflow: hidden; color: #fff6f7; background: var(--rail); }
     .rail::after { content: ""; position: absolute; right: -85px; bottom: -94px; width: 238px; height: 238px; border: 1px solid rgba(132, 214, 150, .18); border-radius: 50%; box-shadow: 0 0 0 38px rgba(132,214,150,.04), 0 0 0 76px rgba(132,214,150,.018); pointer-events: none; }
     .brand { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 151px; min-height: 42px; padding: 6px 8px; background: #fff; }
@@ -298,6 +298,16 @@
     .analysis-tab { padding: 6px 8px; border: 1px solid transparent; color: var(--ink-muted); background: transparent; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .analysis-tab[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
     .analysis-body { padding: 16px 19px 19px; }
+    .quote-head button { display: block; width: 100%; padding: 0; border: 0; color: inherit; background: none; font: inherit; letter-spacing: inherit; text-align: left; text-transform: inherit; cursor: pointer; }
+    .quote-head button:hover { color: var(--green-dark); }
+    .quote-head button.is-sorted { color: var(--green-dark); }
+    .quote-head button.is-sorted::after { content: " \2193"; }
+    .quote-head button.is-sorted[aria-sort="ascending"]::after { content: " \2191"; }
+    .quote-head button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    /* 174 rows rendered flat made this screen ten thousand pixels tall. Bound
+       the list so the page stays scannable and the inspector stays in view. */
+    .quote-scroll { max-height: min(58vh, 560px); overflow-y: auto; overscroll-behavior: contain; }
+    .quote-count { margin: 0; padding: 10px 17px 13px; border-top: 1px solid var(--line); color: var(--ink-muted); font-size: 10px; }
     .segment-list { display: grid; gap: 9px; }
     .segment-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 52px; grid-template-areas: "label track value" "note note note"; align-items: center; gap: 3px 11px; }
     .segment-row > span { grid-area: label; color: var(--ink); font-size: 11px; font-weight: 600; }
@@ -418,8 +428,8 @@
     .quote-tools { display: flex; gap: 8px; padding: 13px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
     .quote-search { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid var(--line-strong); color: var(--ink); background: var(--surface); font-size: 11px; }
     .quote-filter { padding: 8px 9px; border: 1px solid var(--line-strong); color: var(--ink); background: var(--surface); font-size: 11px; }
-    .quote-head, .quote-row { display: grid; grid-template-columns: 1.05fr .42fr 1.25fr .75fr .63fr .72fr; gap: 9px; align-items: center; }
-    .quote-head { padding: 11px 14px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .quote-head, .quote-row { display: grid; grid-template-columns: .95fr .34fr 1.15fr 1.05fr .6fr .7fr; gap: 10px; align-items: center; }
+    .quote-head { display: grid; grid-template-columns: .95fr .34fr 1.15fr 1.05fr .6fr .7fr; gap: 10px; position: sticky; top: 0; z-index: 2; padding: 11px 14px; border-bottom: 1px solid var(--line); color: var(--ink-faint); background: var(--surface); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .quote-head span:nth-child(n+5) { text-align: right; }
     .quote-row { position: relative; min-height: 57px; width: 100%; padding: 8px 14px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--surface); text-align: left; transition: background 180ms var(--ease); }
     .quote-row:hover, .quote-row[aria-pressed="true"] { background: var(--surface-soft); }
@@ -475,7 +485,7 @@
     .linked-jobs.is-empty .linked-jobs-head { padding-bottom: 5px; }
     .linked-jobs.is-empty p { margin: 0; padding: 0 0 2px; color: var(--ink-muted); font-size: 10px; line-height: 1.45; }
 
-    .data-layout { display: grid; grid-template-columns: minmax(0,1.18fr) minmax(320px,.82fr); gap: 23px; }
+    .data-layout { display: grid; grid-template-columns: minmax(0,1.18fr) minmax(320px,.82fr); gap: 23px; align-items: start; }
     .data-intake { position: relative; overflow: hidden; min-height: 412px; padding: 25px; color: #eff8f0; border: 1px solid rgba(222,247,228,.34); background: linear-gradient(145deg, #0a1e11, #07140c); box-shadow: var(--shadow); }
     .data-intake::after { content: ""; position: absolute; top: -120px; right: -112px; width: 305px; height: 305px; border: 1px solid rgba(150,222,167,.16); border-radius: 50%; box-shadow: 0 0 0 34px rgba(150,222,167,.035), 0 0 0 68px rgba(150,222,167,.016); pointer-events: none; }
     .intake-head { position: relative; z-index: 1; display: flex; align-items: end; justify-content: space-between; gap: 18px; }
@@ -483,7 +493,7 @@
     .intake-head h3 { max-width: 360px; margin: 7px 0 0; color: #fff; font-family: var(--display); font-size: 37px; letter-spacing: -.02em; line-height: .87; text-transform: uppercase; }
     .intake-head p { max-width: 265px; margin: 0; color: rgba(239,248,240,.62); font-size: 10px; line-height: 1.45; text-align: right; }
     .intake-steps { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) 38px minmax(0,1fr); gap: 0; align-items: stretch; margin-top: 22px; }
-    .intake-step { position: relative; min-height: 185px; padding: 15px; border: 1px dashed rgba(222,247,228,.27); background: rgba(255,255,255,.028); transition: border-color 180ms var(--ease), background 180ms var(--ease), transform 180ms var(--ease); }
+    .intake-step { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 185px; padding: 15px; border: 1px dashed rgba(222,247,228,.27); background: rgba(255,255,255,.028); transition: border-color 180ms var(--ease), background 180ms var(--ease), transform 180ms var(--ease); }
     .intake-step[data-state="drag"] { border-color: var(--green-bright); background: rgba(0,189,87,.12); transform: translateY(-2px); }
     .intake-step[data-state="ready"] { border-style: solid; border-color: rgba(83,231,142,.6); background: rgba(0,189,87,.09); }
     .intake-step[data-state="parsing"] { border-style: solid; border-color: rgba(168,222,198,.72); background: rgba(116,193,153,.1); }
@@ -493,10 +503,10 @@
     .intake-step-head span:last-child { color: rgba(238,248,240,.59); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .intake-step h4 { margin: 14px 0 0; color: #fff; font-family: var(--display); font-size: 21px; letter-spacing: .04em; line-height: .93; text-transform: uppercase; }
     .intake-step p { margin: 7px 0 0; color: rgba(238,248,240,.6); font-size: 9px; line-height: 1.43; }
-    .source-add { display: inline-block; margin-top: 14px; padding: 8px 9px; border: 1px solid rgba(225,247,229,.4); color: #fff; background: rgba(255,255,255,.05); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background 180ms var(--ease), border-color 180ms var(--ease); }
+    .source-add { display: inline-block; align-self: flex-start; margin: 10px 0 4px; padding: 8px 9px; border: 1px solid rgba(225,247,229,.4); color: #fff; background: rgba(255,255,255,.05); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background 180ms var(--ease), border-color 180ms var(--ease); }
     .source-add:hover { border-color: var(--green-bright); background: rgba(0,189,87,.12); }
     .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-    .source-status { position: absolute; right: 14px; bottom: 14px; left: 14px; padding-top: 9px; border-top: 1px solid rgba(225,247,229,.14); }
+    .source-status { margin-top: auto; padding-top: 9px; border-top: 1px solid rgba(225,247,229,.14); }
     .source-status strong { display: block; color: #c8ecd0; font-family: var(--mono); font-size: 9px; font-weight: 500; }
     .source-status span { display: block; overflow: hidden; margin-top: 4px; color: rgba(238,248,240,.47); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
     .intake-divider { position: relative; display: grid; place-items: center; }
@@ -830,8 +840,9 @@
         <div class="quotes-layout">
           <section class="quote-table-panel" aria-labelledby="quoteHeadTitle">
             <div class="quote-tools"><label class="sr-only" for="quoteSearch">Search quote records</label><input class="quote-search" id="quoteSearch" type="search" placeholder="Search quote, customer, or owner" /><label class="sr-only" for="quoteFilter">Filter records</label><select class="quote-filter" id="quoteFilter"><option value="all">All outcomes</option><option value="confirmed">Confirmed orders</option><option value="unconverted">Unconverted</option><option value="active">Still active</option></select></div>
-            <div class="quote-head" id="quoteHeadTitle"><span>Quote number</span><span>Week</span><span>Customer</span><span>Owner</span><span>Value</span><span>Outcome</span></div>
-            <div id="quoteRows"></div>
+            <div class="quote-head" id="quoteHeadTitle"><button type="button" data-sort="id">Quote number</button><button type="button" data-sort="week">Week</button><button type="button" data-sort="customer">Customer</button><button type="button" data-sort="owner">Owner</button><button type="button" data-sort="value">Value</button><button type="button" data-sort="status">Outcome</button></div>
+            <div class="quote-scroll"><div id="quoteRows"></div></div>
+            <p class="quote-count" id="quoteCount" aria-live="polite"></p>
           </section>
           <aside class="quote-inspector" id="quoteInspector" aria-live="polite"></aside>
         </div>
@@ -1517,6 +1528,10 @@
         if (inspectorBody) inspectorBody.insertAdjacentHTML("beforeend", quoteRolesMarkup(row) + linkedJobsMarkup(row));
       }
 
+      // Default to the largest quoted value: on a records screen the first
+      // question is almost always "what is the biggest thing without an order".
+      const quoteSort = { key: "value", dir: -1, pending: true };
+
       function renderQuotes() {
         const text = $("#quoteSearch").value.trim().toLowerCase();
         const filter = $("#quoteFilter").value;
@@ -1526,15 +1541,39 @@
           const matchesFilter = filter === "all" || row.status === filter;
           return matchesText && matchesFilter;
         });
-        if (!filtered.some(row => row.id === state.selectedQuote)) state.selectedQuote = filtered.length ? filtered[0].id : "";
+        const sortValue = row => {
+          if (quoteSort.key === "value") return Number(row.valueRaw) || 0;
+          if (quoteSort.key === "week") return Number(row.weekRaw) || 0;
+          if (quoteSort.key === "status") return row.status === "confirmed" ? 1 : 0;
+          return String(row[quoteSort.key] || row.id || "").toLowerCase();
+        };
+        filtered.sort((a, b) => {
+          const left = sortValue(a);
+          const right = sortValue(b);
+          if (left === right) return String(a.id).localeCompare(String(b.id));
+          if (typeof left === "string") return quoteSort.dir * left.localeCompare(right);
+          return quoteSort.dir * (left - right);
+        });
+        $$("[data-sort]").forEach(button => {
+          const active = button.dataset.sort === quoteSort.key;
+          button.setAttribute("aria-sort", active ? (quoteSort.dir === 1 ? "ascending" : "descending") : "none");
+          button.classList.toggle("is-sorted", active);
+        });
+        const totalValue = filtered.reduce((sum, row) => sum + (Number(row.valueRaw) || 0), 0);
+        setText("#quoteCount", filtered.length === quotes.length
+          ? "Showing all " + filtered.length + " quote opportunities · " + money(totalValue / 1000000) + " quoted"
+          : "Showing " + filtered.length + " of " + quotes.length + " quote opportunities · " + money(totalValue / 1000000) + " quoted");
+        if (!filtered.some(row => row.id === state.selectedQuote) || quoteSort.pending) state.selectedQuote = filtered.length ? filtered[0].id : "";
+        quoteSort.pending = false;
         if (!filtered.length) {
           $("#quoteRows").innerHTML = '<div class="quote-empty">No quote records match this view.</div>';
+          setText("#quoteCount", "No quote records match this view. Clear the search or change the outcome filter.");
           renderInspector(null);
           return;
         }
         let html = "";
         filtered.forEach(row => {
-          html += '<button class="quote-row" type="button" data-quote="' + row.id + '" aria-pressed="' + String(row.id === state.selectedQuote) + '"><span class="quote-id">' + escape(row.id) + '</span><span class="quote-week">' + escape(row.week) + '</span><span class="quote-customer">' + escape(row.customer) + '</span><span class="quote-owner">' + escape(row.owner) + '</span><span class="quote-value">' + escape(row.value) + '</span><span class="quote-status ' + row.status + '">' + outcomeLabel(row.status) + "</span></button>";
+          html += '<button class="quote-row" type="button" data-quote="' + row.id + '" aria-pressed="' + String(row.id === state.selectedQuote) + '"><span class="quote-id">' + escape(row.id) + '</span><span class="quote-week">' + escape(row.week) + '</span><span class="quote-customer">' + escape(row.customer) + '</span><span class="quote-owner" title="' + escape(row.owner) + '">' + escape(row.ownerName || row.owner) + '</span><span class="quote-value">' + escape(row.value) + '</span><span class="quote-status ' + row.status + '">' + outcomeLabel(row.status) + "</span></button>";
         });
         $("#quoteRows").innerHTML = html;
         $$("[data-quote]", $("#quoteRows")).forEach(button => button.addEventListener("click", () => { state.selectedQuote = button.dataset.quote; renderQuotes(); }));
@@ -2705,6 +2744,7 @@
           project: record.project || "",
           customer: record.customer || "Customer not supplied",
           owner: engineer.label,
+          ownerName: engineer.name,
           ownerCode: engineer.code,
           roles: [
             { label: "Quote engineer", name: engineer.name, code: engineer.code, matched: engineer.matched },
@@ -2712,6 +2752,9 @@
             { label: "Scheduler", name: scheduler.name, code: scheduler.code, matched: scheduler.matched }
           ],
           value: money((Number(record.price) || 0) / 1000000),
+          valueRaw: Number(record.price) || 0,
+          weekRaw: Number(record.week) || 0,
+          ageRaw: Number.isFinite(record.exposure) ? record.exposure : -1,
           status: record.won ? "confirmed" : "unconverted",
           onTime: record.onTime === "EARLY" ? "Early" : record.onTime === "LATE" ? "Late" : "Not scored",
           age: record.exposure === null ? "—" : record.exposure + "d",
@@ -3809,7 +3852,30 @@
         renderPeople();
         renderQuotes();
       }));
-      $$("[data-analysis]").forEach(button => button.addEventListener("click", () => { state.analysis = button.dataset.analysis; renderAnalysis(currentScope()); }));
+      $$("[data-sort]").forEach(button => button.addEventListener("click", () => {
+        const key = button.dataset.sort;
+        // Same column toggles direction; a new column starts descending for
+        // numbers (biggest first) and ascending for text.
+        if (quoteSort.key === key) quoteSort.dir = -quoteSort.dir;
+        else { quoteSort.key = key; quoteSort.dir = key === "value" || key === "week" || key === "status" ? -1 : 1; }
+        quoteSort.pending = true;
+        renderQuotes();
+      }));
+
+      $$("[data-analysis]").forEach(button => button.addEventListener("click", () => {
+        state.analysis = button.dataset.analysis;
+        renderAnalysis(currentScope());
+        // The lens strip sits in the header while the panel it drives is far
+        // below the fold, so pressing a lens there looked like it did nothing.
+        // Bring the panel to the reader when the press came from the header.
+        if (button.closest(".comparison-switch")) {
+          const panel = $(".analysis-panel");
+          if (panel) {
+            const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            panel.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
+          }
+        }
+      }));
       $$("[data-flow-focus]").forEach(button => button.addEventListener("click", () => setFlowFocus(button.dataset.flowFocus)));
       $$("[data-screen]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.screen)));
       $(".brand").addEventListener("click", event => { event.preventDefault(); setScreen("overview"); });
