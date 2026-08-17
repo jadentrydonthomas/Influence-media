@@ -84,9 +84,14 @@ check('header fallback count', await t('#headerFallbackCount'), '3');
 // --- Coverage must travel with every partial-coverage rate ---
 const kpis = await page.$$eval('#metricRings > *', ns => ns.map(n => n.innerText.replace(/\s+/g, ' ')));
 const onTimeKpi = kpis.find(k => /RELEASE ON TIME/i.test(k)) || '';
-checkMatch('on-time KPI states its denominator', onTimeKpi, /48\/174 scored/);
+checkMatch('on-time KPI states its denominator', onTimeKpi, /174\/174 scored/);
 checkMatch('on-time KPI states target', onTimeKpi, /target 90%/);
-checkMatch('rail carries on-time denominator', await t('#railOnTimeCoverage'), /48\/174 scored/);
+checkMatch('rail carries on-time denominator', await t('#railOnTimeCoverage'), /174\/174 scored/);
+// N/A in the On-Time column means delivered on the due date, verified
+// against Due and Done on every fixture row. Reading it as missing data
+// discarded 132 of 184 records.
+checkMatch('on-time counts delivery on the due date', await t('#railOnTime'), /8[0-9](\.[0-9])?%/);
+check('release results agreeing with their dates', await t('#onTimeConflictCount'), '0');
 checkMatch('confidence KPI has no leaked CSS var', kpis.join(' '), /^(?!.*var\(--).*$/);
 
 await page.click('[data-screen="people"]');
@@ -140,7 +145,7 @@ if (!download) {
   checkMatch('deck agenda lists real quote numbers', deck, /class="quote">[A-Z0-9]+-\d+</);
   checkMatch('deck value-band chart present', deck, /conversion by quoted value band/i);
   checkMatch('deck lag chart present', deck, /lag distribution/i);
-  checkMatch('deck on-time carries coverage', deck, /48 of 174 scored/);
+  checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
   // Continuity bars must encode the same measure their label prints.
   // Each <g class="deck-bar-row"> carries a fill width and a value label; where

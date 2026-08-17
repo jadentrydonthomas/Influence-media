@@ -1,0 +1,107 @@
+{
+  "scopes": {
+    "all": {
+      "quotes": "174",
+      "wins": "23",
+      "conv": "13.2%",
+      "value": "$150.1M",
+      "onTime": "86.2%",
+      "onTimeCoverage": "174/174 scored",
+      "unconverted": "151",
+      "kpis": [
+        "13.2% QUOTE CONVERSION 13.2% 23 quote wins",
+        "9.0–19.1% 95% CONFIDENCE based on 174 opportunities Wilson interval on the active cohort",
+        "86.2% QUOTE RELEASE ON TIME 86.2% 174/174 scored · target 90%",
+        "12.0% WON VALUE CAPTURE $18.0M 24 jobs booked from $150.1M"
+      ]
+    },
+    "mature": {
+      "quotes": "174",
+      "wins": "23",
+      "conv": "13.2%",
+      "value": "$150.1M",
+      "onTime": "86.2%",
+      "onTimeCoverage": "174/174 scored",
+      "unconverted": "151",
+      "kpis": [
+        "13.2% QUOTE CONVERSION 13.2% 23 quote wins",
+        "9.0–19.1% 95% CONFIDENCE based on 174 opportunities Wilson interval on the active cohort",
+        "86.2% QUOTE RELEASE ON TIME 86.2% 174/174 scored · target 90%",
+        "12.0% WON VALUE CAPTURE $18.0M 24 jobs booked from $150.1M"
+      ]
+    },
+    "high": {
+      "quotes": "157",
+      "wins": "22",
+      "conv": "14.0%",
+      "value": "$129.4M",
+      "onTime": "85.4%",
+      "onTimeCoverage": "157/157 scored",
+      "unconverted": "135",
+      "kpis": [
+        "14.0% QUOTE CONVERSION 14.0% 22 quote wins",
+        "9.4–20.3% 95% CONFIDENCE based on 157 opportunities Wilson interval on the active cohort",
+        "85.4% QUOTE RELEASE ON TIME 85.4% 157/157 scored · target 90%",
+        "12.8% WON VALUE CAPTURE $16.6M 23 jobs booked from $129.4M"
+      ]
+    }
+  },
+  "lenses": {
+    "outcomes": "12.0% VALUE CAPTURED Confirmed order value $18.0M Unconverted quote value $132.1M Total quoted value $150.1M Professional read: unconverted opportunities remain open, lost, or not yet fully linked until a confirmed order or outcome is recorded.",
+    "value": "Quoted value $150.1M Confirmed value $18.0M Unconverted value $132.1M Seller lens: focus follow-up on high-value unconverted records, then use current status to separate active work from losses.",
+    "ontime": "W1 94.1% W2 79.1% W3 87.5% 90% is the reference. A quote delivered before or on its requested due date counts as on time; only late does not. Independent of whether the quote converts.",
+    "tons": "BOOKED TONS 3,605.2 t from matched order rows BOOKED JOBS 24 linked to quote wins ORDER-ENTRY WEEKS 9 with matched booked tons Jan 5, 26 65.3 t Jan 12, 26 585 t Jan 19, 26 761.5 t Jan 26, 26 64.6 t Feb 2, 26 1,116.7 t Feb 9, 26 5.4 t Feb 16, 26 612.4 t Feb 23, 26 209.5 t Mar 2, 26 184.8 t Read it correctly: bars use the Order Log Order Entry date and Total Tons field. They show booked operating volume for the selected quote cohort, not quote volume.",
+    "bands": "Under $250k 18.0% 50 quotes · $7.2M · 9 won $250k – $1M 8.5% 82 quotes · $41.9M · 7 won $1M – $5M 20.0% 35 quotes · $71.3M · 7 won $5M and above 0.0% 4 quotes · $29.7M · 0 won BY BUILDING SIZE Under 25k sq ft 9.8% 112 quotes · 11 won 25k – 75k 16.7% 42 quotes · 7 won 75k – 150k 33.3% 15 quotes · 5 won 150k and above 0.0% 5 quotes · 0 won Read the bar and the number separately: the bar is how much of the book sits in that band; the number beside it is how much of that band came back. 171 of 174 records carry a price and are scored here.",
+    "districts": "W2J 0.0% 4 quotes · $13.3M quoted · 0 won W1H 20.0% 10 quotes · $12.5M quoted · 2 won W0K 25.0% 4 quotes · $11.6M quoted · 1 won U1K 0.0% 8 quotes · $11.1M quoted · 0 won W2V 0.0% 3 quotes · $10.2M quoted · 0 won W0B 20.0% 5 quotes · $8.7M quoted · 1 won W1E 33.3% 3 quotes · $7.5M quoted · 1 won W1N 0.0% 7 quotes · $6.4M quoted · 0 won W1D 8.3% 12 quotes · $5.6M quoted · 1 won W1J 0.0% 9 quotes · $5.5M quoted · 0 won Bar length is quoted value, not quote count. A district with few large quotes outranks one with many small ones. Prefixes are shown as they appear in the quote number; no salesperson name is inferred from them.",
+    "customers": "CUSTOMER ACCOUNTS 113 94 first seen in this loaded quote book REPEAT QUOTE CUSTOMERS 19 2 appeared in 3+ quote weeks REPEAT / NO LINKED WIN 14 $32.7M quoted value needs an outcome REPEAT RELATIONSHIPS quoted value WEIGAND 2 quoted weeks · 2 quotes · 0 wins $8.7M quoted No linked win FERGUSON 3 quoted weeks · 4 quotes · 0 wins $5.9M quoted No linked win BRECKNOCK BUILDERS, LLC 2 quoted weeks · 2 quotes · 0 wins $3.3M quoted No linked win COASTAL STEEL STRUCTURES 3 quoted weeks · 3 quotes · 0 wins $3.3M quoted No linked win JJ JIMMO DEVELOPMENT 2 quoted weeks · 2 quotes · 0 wins $3.0M quoted No linked win MOST QUOTE WINS wins / value DESIGN BUILDERS 1 quoted weeks · 3 quotes · 2 wins $1.6M quoted $1.2M won / 66.7% AMERICAN STRUCTURES 1 quoted weeks · 3 quotes · 2 wins $0.8M quoted $0.3M won / 66.7% WELCH BROTHERS 1 quoted weeks · 1 quotes · 1 wins $2.5M quoted $2.5M won / 100.0% BAYLAND 1 quoted weeks · 2 quotes · 1 wins $2.3M quoted $2.1M won / 50.0% MORKEN CONST 1 quoted weeks · 1 quotes · 1 wins $1.9M quoted $1.9M won / 100.0% REPEAT ACTIVITY / NO WIN follow-up value WEIGAND 2 quoted weeks · 2 quotes · 0 wins $8.7M quoted No linked win FERGUSON 3 quoted weeks · 4 quotes · 0 wins $5.9M quoted No linked win BRECKNOCK BUILDERS, LLC 2 quoted weeks · 2 quotes · 0 wins $3.3M quoted No linked win COASTAL STEEL STRUCTURES 3 quoted weeks · 3 quotes · 0 wins $3.3M quoted No linked win JJ JIMMO DEVELOPMENT 2 quoted weeks · 2 quotes · 0 wins $3.0M quoted No linked win Important definition: repeat means the customer appears in two or more selected quote weeks. No linked win means no matching Order Log Quote # was found - it is a follow-up signal, not an automatic loss label."
+  },
+  "people": {
+    "engineers": [
+      "WRL Wayne Lehrman 41 opportunities · 2 quote wins · 2 booked jobs 41 78% (41/41) on time $0.5M",
+      "DNM Danielle Miles-Schwaberow 37 opportunities · 4 quote wins · 5 booked jobs 37 86.5% (37/37) on time $4.0M",
+      "— No initials supplied 33 opportunities · 4 quote wins · 4 booked jobs 33 97% (33/33) on time $1.7M",
+      "ANM Andrew Marvin 26 opportunities · 6 quote wins · 6 booked jobs 26 73.1% (26/26) on time $6.0M",
+      "JWR Jeff Reese 11 opportunities · 3 quote wins · 3 booked jobs 11 100% (11/11) on time $3.8M",
+      "EJS Eric Shilling 10 opportunities · 1 quote wins · 1 booked jobs 10 100% (10/10) on time $0.2M",
+      "NPM NPM 10 opportunities · 0 quote wins · 0 booked jobs 10 90% (10/10) on time $0.0M",
+      "JW John Watson 2 opportunities · 2 quote wins · 2 booked jobs 2 100% (2/2) thin on time $0.4M",
+      "JMR JMR 2 opportunities · 0 quote wins · 0 booked jobs 2 50% (2/2) thin on time $0.0M",
+      "DNQ DNQ 1 opportunities · 0 quote wins · 0 booked jobs 1 100% (1/1) thin on time $0.0M",
+      "JOE Joe Favre 1 opportunities · 1 quote wins · 1 booked jobs 1 100% (1/1) thin on time $1.4M",
+      "RGA Bob Adkins 0 opportunities · 0 quote wins · 0 booked jobs 0 — on time $0.0M",
+      "CNS Chelsea Sellers 0 opportunities · 0 quote wins · 0 booked jobs 0 — on time $0.0M"
+    ],
+    "estimators": [
+      "KRF Kaylie Fingerle 23 opportunities · 0 quote wins · 0 booked jobs 23 91.3% (23/23) on time $0.0M",
+      "JR John Rohr 20 opportunities · 2 quote wins · 2 booked jobs 20 65% (20/20) on time $1.1M",
+      "ANH Ashton Huff 18 opportunities · 3 quote wins · 3 booked jobs 18 77.8% (18/18) on time $1.4M",
+      "CSS Clay Shultz 18 opportunities · 3 quote wins · 3 booked jobs 18 94.4% (18/18) on time $3.7M",
+      "JW John Watson 18 opportunities · 4 quote wins · 4 booked jobs 18 77.8% (18/18) on time $1.8M",
+      "EWE Ed Elliott 15 opportunities · 2 quote wins · 2 booked jobs 15 100% (15/15) on time $0.8M",
+      "RGA Bob Adkins 14 opportunities · 1 quote wins · 2 booked jobs 14 92.9% (14/14) on time $1.9M",
+      "DLC Dan Carey 11 opportunities · 2 quote wins · 2 booked jobs 11 72.7% (11/11) on time $0.9M",
+      "RAH Ryan Hewson 10 opportunities · 2 quote wins · 2 booked jobs 10 100% (10/10) on time $1.2M",
+      "JOE Joe Favre 9 opportunities · 2 quote wins · 2 booked jobs 9 100% (9/9) thin on time $2.9M",
+      "DML Doug Loraine 8 opportunities · 1 quote wins · 1 booked jobs 8 100% (8/8) thin on time $2.1M",
+      "JLD Jeff Delagrange 8 opportunities · 1 quote wins · 1 booked jobs 8 75% (8/8) thin on time $0.1M",
+      "DNQ DNQ 2 opportunities · 0 quote wins · 0 booked jobs 2 100% (2/2) thin on time $0.0M",
+      "BA Brad Anderson 0 opportunities · 0 quote wins · 0 booked jobs 0 — on time $0.0M",
+      "EJS Eric Shilling 0 opportunities · 0 quote wins · 0 booked jobs 0 — on time $0.0M",
+      "PAS Piper Smith 0 opportunities · 0 quote wins · 0 booked jobs 0 — on time $0.0M"
+    ],
+    "schedulers": [
+      "KRF Kaylie Fingerle 24 opportunities · 0 quote wins · 0 booked jobs 24 87.5% (24/24) on time $0.0M",
+      "CSS Clay Shultz 20 opportunities · 3 quote wins · 3 booked jobs 20 95% (20/20) on time $3.7M",
+      "JR John Rohr 20 opportunities · 2 quote wins · 2 booked jobs 20 65% (20/20) on time $1.1M",
+      "ANH Ashton Huff 18 opportunities · 4 quote wins · 4 booked jobs 18 83.3% (18/18) on time $2.3M",
+      "JW John Watson 17 opportunities · 4 quote wins · 4 booked jobs 17 82.4% (17/17) on time $1.8M",
+      "RGA Bob Adkins 15 opportunities · 1 quote wins · 2 booked jobs 15 93.3% (15/15) on time $1.9M",
+      "EWE Ed Elliott 15 opportunities · 2 quote wins · 2 booked jobs 15 100% (15/15) on time $0.8M",
+      "JLD Jeff Delagrange 11 opportunities · 2 quote wins · 2 booked jobs 11 63.6% (11/11) on time $0.3M",
+      "DML Doug Loraine 10 opportunities · 1 quote wins · 1 booked jobs 10 100% (10/10) on time $2.1M",
+      "DLC Dan Carey 10 opportunities · 1 quote wins · 1 booked jobs 10 80% (10/10) on time $0.7M",
+      "JOE Joe Favre 9 opportunities · 2 quote wins · 2 booked jobs 9 100% (9/9) thin on time $2.9M",
+      "RAH Ryan Hewson 5 opportunities · 1 quote wins · 1 booked jobs 5 100% (5/5) thin on time $0.3M"
+    ]
+  }
+}

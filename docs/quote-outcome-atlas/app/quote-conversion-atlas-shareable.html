@@ -895,7 +895,7 @@
             <section class="mapping-card"><h3>Weekly quote fields</h3><p>Five weekday sheets are read. Column B Quote No. creates the opportunity key; columns M Engineer and N Estimator own the team credit. Revisions collapse to one opportunity.</p><div class="field-chips"><span class="field-chip">quote no.</span><span class="field-chip">ver.</span><span class="field-chip">customer</span><span class="field-chip">schr</span><span class="field-chip">engr.</span><span class="field-chip">est</span><span class="field-chip">act hrs</span><span class="field-chip">on-time</span><span class="field-chip">price</span></div></section>
             <section class="mapping-card"><h3>Employee roster</h3><p>Every selected weekly workbook contributes its Inventory roster. Every listed quote engineer and estimator appears in the matching team tab, including people with zero quotes in the selected cohort; a missing match remains a visible exception.</p><div class="field-chips"><span class="field-chip">Inventory</span><span class="field-chip">Estimator List</span><span class="field-chip">Engineer List</span><span class="field-chip">name</span><span class="field-chip">initials</span></div></section>
             <section class="mapping-card"><h3>Order-log fields</h3><p>Order Log Quote # is normalized and joined to weekly Quote No. Each matched job keeps its job name, customer, entry date, Total Tons, and post-order context; those names never overwrite weekly quote ownership.</p><div class="field-chips"><span class="field-chip">job #</span><span class="field-chip">job name</span><span class="field-chip">customer</span><span class="field-chip">total tons</span><span class="field-chip">quote #</span><span class="field-chip">sales eng</span></div></section>
-            <section class="quality-list"><h3>Visible data exceptions</h3><p>These stay outside the confident management read until resolved.</p><div class="quality-row"><div><strong>Order rows without a quote #</strong><span>Cannot be attributed to a quote opportunity</span></div><b id="missingOrderQuoteCount">0</b></div><div class="quality-row"><div><strong>Order quotes outside this window</strong><span>Do not count as unmatched failures</span></div><b id="outsideWindowCount">0</b></div><div class="quality-row"><div><strong>Non-standard quote references</strong><span id="invalidOrderQuoteDetail">Kept visible but not used for quote attribution</span></div><b id="invalidOrderQuoteCount">0</b></div><div class="quality-row"><div><strong>Repeated order rows removed</strong><span>Exact repeat across selected exports; excluded before attribution</span></div><b id="duplicateOrderCount">0</b></div><div class="quality-row"><div><strong>Non-critical header fallbacks</strong><span id="headerFallbackDetail">Critical ownership fields stop the run instead of falling back</span></div><b id="headerFallbackCount">0</b></div><div class="quality-row"><div><strong>Role codes without a roster name</strong><span id="unmappedRosterDetail">Resolved automatically from the selected workbook Inventory sheets</span></div><b id="unmappedRosterCount">0</b></div><div class="quality-row"><div><strong>Quotes with no engineer</strong><span>Estimator-only quick quotes remain visible as (none)</span></div><b id="missingEngineerCount">0</b></div><div class="quality-row"><div><strong>Corrected source dates</strong><span>Week date recovered from the filename sequence</span></div><b id="dateCorrectionCount">0</b></div><div class="quality-row"><div><strong>Stray Date In values</strong><span>Excluded from lag and turnaround calculations</span></div><b id="invalidDateCount">0</b></div></section>
+            <section class="quality-list"><h3>Visible data exceptions</h3><p>These stay outside the confident management read until resolved.</p><div class="quality-row"><div><strong>Order rows without a quote #</strong><span>Cannot be attributed to a quote opportunity</span></div><b id="missingOrderQuoteCount">0</b></div><div class="quality-row"><div><strong>Order quotes outside this window</strong><span>Do not count as unmatched failures</span></div><b id="outsideWindowCount">0</b></div><div class="quality-row"><div><strong>Non-standard quote references</strong><span id="invalidOrderQuoteDetail">Kept visible but not used for quote attribution</span></div><b id="invalidOrderQuoteCount">0</b></div><div class="quality-row"><div><strong>Repeated order rows removed</strong><span>Exact repeat across selected exports; excluded before attribution</span></div><b id="duplicateOrderCount">0</b></div><div class="quality-row"><div><strong>Non-critical header fallbacks</strong><span id="headerFallbackDetail">Critical ownership fields stop the run instead of falling back</span></div><b id="headerFallbackCount">0</b></div><div class="quality-row"><div><strong>Role codes without a roster name</strong><span id="unmappedRosterDetail">Resolved automatically from the selected workbook Inventory sheets</span></div><b id="unmappedRosterCount">0</b></div><div class="quality-row"><div><strong>Quotes with no engineer</strong><span>Estimator-only quick quotes remain visible as (none)</span></div><b id="missingEngineerCount">0</b></div><div class="quality-row"><div><strong>Corrected source dates</strong><span>Week date recovered from the filename sequence</span></div><b id="dateCorrectionCount">0</b></div><div class="quality-row"><div><strong>Stray Date In values</strong><span>Excluded from lag and turnaround calculations</span></div><b id="invalidDateCount">0</b></div><div class="quality-row"><div><strong>Release results that disagree with their dates</strong><span id="onTimeConflictDetail">EARLY / LATE / N-A is checked against Due and Done on every row</span></div><b id="onTimeConflictCount">0</b></div></section>
           </aside>
         </div>
       </section>
@@ -1046,7 +1046,7 @@
       };
       const onTimeCoverageNote = data => onTimeAvailable(data)
         ? coverageNote(Number(data.onTimeScoredCount) || 0, Number(data.quotes) || 0)
-        : "needs EARLY / LATE values";
+        : "needs a release result";
       const isThinSample = (scored, minimum) => Number(scored || 0) < (minimum || 10);
 
       function currentScope() {
@@ -1074,7 +1074,7 @@
         const html = [
           kpiMarkup("Quote conversion", data.conversion, pct(data.conversion), pct(data.conversion), data.orders + " quote wins", "var(--green)"),
           kpiMarkup("95% confidence", data.conversion, confidence, "based on " + data.quotes + " opportunities", "Wilson interval on the active cohort", "var(--steel)"),
-          kpiMarkup("Quote release on time", timingAvailable ? data.onTime : 0, timingAvailable ? data.onTime + "%" : "—", timingAvailable ? data.onTime + "%" : "Not scored", timingAvailable ? (Number(data.onTimeScoredCount) || 0) + "/" + (Number(data.quotes) || 0) + " scored · target 90%" : "needs EARLY / LATE values", "var(--green)"),
+          kpiMarkup("Quote release on time", timingAvailable ? data.onTime : 0, timingAvailable ? data.onTime + "%" : "—", timingAvailable ? data.onTime + "%" : "Not scored", timingAvailable ? (Number(data.onTimeScoredCount) || 0) + "/" + (Number(data.quotes) || 0) + " scored · target 90%" : "needs a release result", "var(--green)"),
           kpiMarkup("Won value capture", data.valueCapture, pct(data.valueCapture), money(data.orderValue), jobs + " jobs booked from " + money(data.quoteValue), "var(--amber)")
         ];
         $("#metricRings").innerHTML = html.join("");
@@ -1279,7 +1279,7 @@
           title = "On-time quote release";
           description = "The quote flow should show not just what converted, but whether the source marked the release EARLY or LATE.";
           if (!onTimeAvailable(data)) {
-            html = '<div class="analysis-foot"><strong>On-time release is not scored yet.</strong> Add an EARLY or LATE result in the weekly On-Time field to turn this panel into a release-performance read.</div>';
+            html = '<div class="analysis-foot"><strong>On-time release is not scored yet.</strong> Add a release result in the weekly On-Time field to turn this panel into a release-performance read.</div>';
           } else {
             html = '<div class="timeliness">';
             data.weekly.forEach(item => {
@@ -1287,7 +1287,7 @@
               const itemLabel = item.onTimeScored === false ? "—" : item.onTime + "%";
               html += '<div class="timeliness-row"><span>' + item.week + '</span><div class="timeliness-track"><i style="--timely:' + itemOnTime + '%"></i></div><b>' + itemLabel + "</b></div>";
             });
-            html += '</div><div class="analysis-foot"><strong>90% is the reference.</strong> The view uses the weekly source\'s EARLY / LATE result, independent of whether the quote ultimately converts.</div>';
+            html += '</div><div class="analysis-foot"><strong>90% is the reference.</strong> A quote delivered before or on its requested due date counts as on time; only late does not. Independent of whether the quote converts.</div>';
           }
         } else if (state.analysis === "bands") {
           title = "Conversion by quoted value";
@@ -2135,6 +2135,7 @@
         let headerFallbacks = 0;
         const fallbackFields = [];
         let invalidDateIn = 0;
+        let onTimeConflicts = 0;
         let droppedRows = 0;
         const records = [];
         nucorWeekdays.forEach((day, dayIndex) => {
@@ -2153,6 +2154,14 @@
               continue;
             }
             sequence += 1;
+            const dueDate = spreadsheetDate(matrixCell(sheet.matrix, row, columns.map.due));
+            const doneDate = spreadsheetDate(matrixCell(sheet.matrix, row, columns.map.done));
+            const writtenResult = normalisedOnTime(matrixCell(sheet.matrix, row, columns.map.onTime));
+            if (writtenResult && dueDate && doneDate) {
+              const gap = daysApart(dueDate, doneDate);
+              const impliedResult = gap < 0 ? "EARLY" : gap > 0 ? "LATE" : "ONTIME";
+              if (impliedResult !== writtenResult) onTimeConflicts += 1;
+            }
             let dateIn = spreadsheetDate(matrixCell(sheet.matrix, row, columns.map.dateIn));
             const dateInOffset = dateIn ? daysApart(sheetDate, dateIn) : null;
             if (dateIn && (dateInOffset > 30 || dateInOffset < -60)) {
@@ -2188,7 +2197,7 @@
           week: week,
           records: records,
           roster: roster,
-          quality: { correctedDate: correctedDate ? 1 : 0, headerFallbacks: headerFallbacks, fallbackFields: fallbackFields, invalidDateIn: invalidDateIn, droppedRows: droppedRows },
+          quality: { correctedDate: correctedDate ? 1 : 0, headerFallbacks: headerFallbacks, fallbackFields: fallbackFields, invalidDateIn: invalidDateIn, droppedRows: droppedRows, onTimeConflicts: onTimeConflicts },
           warning: correctedDate ? "Week " + week + " Monday date corrected from " + dayKey(declaredMonday) + " to " + dayKey(expected) + "." : ""
         };
       }
@@ -2286,10 +2295,21 @@
         return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower);
       }
 
+      // Three-state release result from the weekly On-Time column.
+      //   EARLY  = delivered before the requested due date
+      //   ONTIME = delivered on the due date (the workbook writes this "N/A")
+      //   LATE   = delivered after the due date
+      // Anything else is genuinely unscored and stays out of both halves of the
+      // rate. EARLY and ONTIME both count as meeting the date.
       function normalisedOnTime(value) {
-        const label = String(value || "").trim().toUpperCase();
-        return label === "EARLY" || label === "LATE" ? label : "";
+        const label = String(value || "").trim().toUpperCase().replace(/[\s.]/g, "");
+        if (label === "EARLY") return "EARLY";
+        if (label === "LATE") return "LATE";
+        if (label === "N/A" || label === "NA" || label === "N\\A" || label === "ONTIME") return "ONTIME";
+        return "";
       }
+      const onTimeIsScored = value => value === "EARLY" || value === "LATE" || value === "ONTIME";
+      const onTimeMetDate = value => value === "EARLY" || value === "ONTIME";
 
       function sumNucor(records, selector) {
         return records.reduce((sum, record) => sum + (Number(selector(record)) || 0), 0);
@@ -2307,9 +2327,9 @@
           const group = groups.get(key);
           group.quotes += 1;
           group.orders += record.won ? 1 : 0;
-          if (record.onTime === "EARLY" || record.onTime === "LATE") {
+          if (onTimeIsScored(record.onTime)) {
             group.onTimeScored += 1;
-            if (record.onTime === "EARLY") group.onTimeHits += 1;
+            if (onTimeMetDate(record.onTime)) group.onTimeHits += 1;
           }
         });
         return Array.from(groups.values()).sort((a, b) => a.sort - b.sort).map(group => ({
@@ -2467,12 +2487,12 @@
         const winners = records.filter(record => record.won);
         const bookedJobs = winners.reduce((all, record) => all.concat(record.jobsDetail || []), []);
         const tonsScored = bookedJobs.filter(job => typeof job.tons === "number" && Number.isFinite(job.tons));
-        const timingRecords = records.filter(record => record.onTime === "EARLY" || record.onTime === "LATE");
+        const timingRecords = records.filter(record => onTimeIsScored(record.onTime));
         const quoteValue = sumNucor(records, record => record.price);
         const wonValue = sumNucor(winners, record => record.price);
         const lags = winners.map(record => record.lag).filter(value => Number.isFinite(value) && value >= -60 && value <= 200);
         const turnarounds = records.map(record => record.turnaround).filter(value => Number.isFinite(value));
-        const onTime = timingRecords.length ? percentage(timingRecords.filter(record => record.onTime === "EARLY").length, timingRecords.length) : 0;
+        const onTime = timingRecords.length ? percentage(timingRecords.filter(record => onTimeMetDate(record.onTime)).length, timingRecords.length) : 0;
         return {
           quotes: records.length,
           orders: winners.length,
@@ -2583,8 +2603,9 @@
           headerFallbacks: total.headerFallbacks + source.quality.headerFallbacks,
           invalidDateIn: total.invalidDateIn + source.quality.invalidDateIn,
           droppedRows: total.droppedRows + source.quality.droppedRows,
+          onTimeConflicts: total.onTimeConflicts + (Number(source.quality.onTimeConflicts) || 0),
           fallbackFields: total.fallbackFields.concat((source.quality.fallbackFields || []).filter(field => total.fallbackFields.indexOf(field) === -1))
-        }), { correctedDates: 0, headerFallbacks: 0, invalidDateIn: 0, droppedRows: 0, fallbackFields: [] });
+        }), { correctedDates: 0, headerFallbacks: 0, invalidDateIn: 0, droppedRows: 0, onTimeConflicts: 0, fallbackFields: [] });
         const usedRosterCodes = Array.from(new Set(records.reduce((all, record) => all.concat([record.engineer, record.estimator, record.scheduler].map(normaliseRosterCode)), []).filter(code => code !== "(none)")));
         const unmappedRosterCodes = usedRosterCodes.filter(code => !roster.names[code]).sort();
         const quality = {
@@ -2597,6 +2618,7 @@
           correctedDates: weekQuality.correctedDates,
           headerFallbacks: weekQuality.headerFallbacks + orderSource.quality.headerFallbacks,
           invalidDateIn: weekQuality.invalidDateIn,
+          onTimeConflicts: weekQuality.onTimeConflicts,
           droppedRows: weekQuality.droppedRows,
           missingOrderQuote: orderSource.quality.missingQuoteNumber,
           invalidOrderQuote: orderSource.quality.invalidQuoteKey,
@@ -2739,9 +2761,9 @@
           group.jobs += record.jobs || 0;
           group.value += record.won ? (Number(record.price) || 0) / 1000000 : 0;
           group.hours += Number(record.hours) || 0;
-          if (record.onTime === "EARLY" || record.onTime === "LATE") {
+          if (onTimeIsScored(record.onTime)) {
             group.onTimeScored += 1;
-            if (record.onTime === "EARLY") group.onTimeHits += 1;
+            if (onTimeMetDate(record.onTime)) group.onTimeHits += 1;
           }
         });
         return Array.from(groups.values()).map(group => {
@@ -2821,7 +2843,7 @@
           weekRaw: Number(record.week) || 0,
           ageRaw: Number.isFinite(record.exposure) ? record.exposure : -1,
           status: record.won ? "confirmed" : "unconverted",
-          onTime: record.onTime === "EARLY" ? "Early" : record.onTime === "LATE" ? "Late" : "Not scored",
+          onTime: record.onTime === "EARLY" ? "Early" : record.onTime === "ONTIME" ? "On the due date" : record.onTime === "LATE" ? "Late" : "Not scored",
           age: record.exposure === null ? "—" : record.exposure + "d",
           next: record.won ? "Quote win is linked to " + record.jobs + " booked job" + (record.jobs === 1 ? "." : "s.") : "No booked job is linked. Confirm the current seller-owned outcome or follow-up action.",
           jobs: record.jobsDetail || []
@@ -2862,6 +2884,11 @@
         setText("#missingEngineerCount", model.quality.blankEngineer);
         setText("#dateCorrectionCount", model.quality.correctedDates);
         setText("#invalidDateCount", model.quality.invalidDateIn);
+        const onTimeConflicts = Number(model.quality.onTimeConflicts) || 0;
+        setText("#onTimeConflictCount", onTimeConflicts);
+        setText("#onTimeConflictDetail", onTimeConflicts
+          ? onTimeConflicts + " row" + (onTimeConflicts === 1 ? "" : "s") + " label a release result that the Due and Done dates do not support. Check the source before trusting the release rate."
+          : "Every written result agrees with its Due and Done dates. N/A means delivered on the due date, which counts as on time.");
         setText("#unmappedRosterCount", model.quality.unmappedRoster || 0);
         setText("#unmappedRosterDetail", model.quality.unmappedRoster ? model.quality.unmappedRosterCodes.join(", ") + " do not have a full-name entry in the selected Inventory rosters." : "Every used role code resolved to a supplied full name.");
         setText("#dataStamp", "Imported " + model.scopes.all.period + " · " + rosterText + " · order cutoff " + cutoffText);
@@ -3680,12 +3707,12 @@
               value_label: item.onTimeScored === false ? "not scored" : item.onTime + "%",
               tone: item.onTimeScored === false ? "copper" : item.onTime >= 90 ? "green" : "deep"
             })), { label: "On-time release rate by quoted week" })
-          : '<div class="deck-empty">Release timing is not scored in this source set. The <b>On-Time</b> column needs EARLY or LATE values; rows reading N/A are excluded from both halves of the rate.</div>';
+          : '<div class="deck-empty">Release timing is not scored in this source set. The <b>On-Time</b> column needs a release result against the requested due date.</div>';
         const timing = '<div class="timing-layout"><div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>on-time<br />release</span></div>'
           + '<div class="timing-copy"><span class="section-label">Release discipline</span>'
           + '<h2>Speed, measured only where it was scored.</h2>'
           + '<p>On-time release compares each requested due date with its sent quote date. It is independent of conversion — a late quote can still win, and an early one can still go unanswered.</p>'
-          + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Rows without an EARLY or LATE result are excluded from both the numerator and the denominator, so this rate never stands in for the full quote book.</span></div>'
+          + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Delivered on the due date counts as on time; the workbook writes that result as N/A. Only rows with no release result at all are excluded from both halves of the rate.</span></div>'
           + "</div></div>" + timingRows;
 
         // ---- 06 Commercial continuity ----------------------------------------
