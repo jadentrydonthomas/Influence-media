@@ -3303,7 +3303,10 @@
       window.__reportWeeklySvg = reportWeeklySvg;
 
       function deckMetric(label, value, note) {
-        return '<div class="deck-metric"><span>' + label + '</span><strong>' + value + '</strong><small>' + note + "</small></div>";
+        // Long values (a confidence range, a big dollar figure) get a step down
+        // so they stay on one line instead of breaking mid-number.
+        const compact = String(value).length > 8 ? " is-compact" : "";
+        return '<div class="deck-metric"><span>' + label + '</span><strong class="' + compact.trim() + '">' + value + '</strong><small>' + note + "</small></div>";
       }
       function deckSlide(number, eyebrow, title, body, dense) {
         return '<section class="deck-slide' + (dense ? " is-dense" : "") + '" data-slide="' + number + '"><header><span>' + eyebrow + '</span><b>TEAM OUTCOME REPORT · ' + String(number).padStart(2, "0") + '</b></header><div class="deck-content"><h1>' + title + "</h1>" + body + '</div><footer><span>Quote outcome dashboard</span><span>Use ← → to move · P to print / save PDF</span></footer></section>';
@@ -3327,6 +3330,8 @@
           + '.deck-content>*{min-width:0}'
           + '.deck-metrics{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}'
           + '.deck-metric strong{overflow-wrap:anywhere}'
+          + '.deck-metric strong.is-compact{font-size:23px;letter-spacing:-.03em}'
+          + '.deck-metric{display:flex;flex-direction:column;justify-content:flex-start}'
           + '.source-chip{overflow-wrap:anywhere;max-width:100%}'
           /* charts */
           + '.deck-chart{display:block;width:100%;height:auto;margin:6px 0 2px;overflow:visible}'
@@ -3383,6 +3388,10 @@
           + '.coverage-band b{display:block;color:#8a5a12;font-size:14px;font-weight:900}'
           + '.coverage-band span{display:block;margin-top:5px;color:#6b6353;font-size:12px;line-height:1.5}'
           + '.timing-layout{align-items:center;margin-bottom:6px}'
+          + '.timing-disc{box-shadow:0 22px 45px rgba(6,39,18,.12)}'
+          + '.timing-disc:before{inset:24px}'
+          + '.timing-disc strong{font-size:clamp(30px,3.4vw,46px)}'
+
           /* agenda table */
           + '.agenda-grid{display:grid;grid-template-columns:minmax(0,1.66fr) minmax(216px,.34fr);gap:20px;align-items:start}'
           + '.agenda-table-wrap{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff;overflow-x:auto}'

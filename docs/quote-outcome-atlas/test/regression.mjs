@@ -145,6 +145,10 @@ if (!download) {
   // Continuity bars must encode the same measure their label prints.
   // Each <g class="deck-bar-row"> carries a fill width and a value label; where
   // the label reads "N wks", the width must order the same way N does.
+  // The timing disc's conic arc used to be painted over from both sides by an
+  // inset shadow and an inner disc, so it always rendered solid. Guard that.
+  checkMatch('timing disc arc is not covered by an inset shadow', deck, /\.timing-disc\{box-shadow:0 22px 45px/);
+  checkMatch('timing disc inner circle leaves a visible ring', deck, /\.timing-disc:before\{inset:24px\}/);
   const barRows = [...deck.matchAll(/<rect class="deck-bar-fill"[^>]*?width="([\d.]+)"[\s\S]*?class="deck-bar-value"[^>]*>([^<]*)<\/text>/g)]
     .map(m => ({ width: Number(m[1]), label: m[2] }))
     .filter(r => /\d+\s*wks/.test(r.label))

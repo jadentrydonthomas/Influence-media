@@ -54,7 +54,7 @@
 13. [Open questions — must be resolved before replatform](#13-open-questions--must-be-resolved-before-replatform)
 14. [Definition of done](#14-definition-of-done)
 15. [Handoff instruction](#15-handoff-instruction)
-- [Appendix A — Known defects in the current build](#appendix-a--known-defects-in-the-current-build)
+- [Appendix A — Defect log](#appendix-a--defect-log)
 - [Appendix B — Change log](#appendix-b--change-log)
 
 ---
@@ -117,7 +117,7 @@ Stating these prevents well-meant scope drift:
 | **P-13** | Brand continuity | The embedded Nucor mark MUST remain in the portable file, embedded — no external image dependency. |
 | **P-14** | Honest coverage | Any metric computed over a subset of records MUST display its denominator and coverage percentage next to the value. See [M-8](#4-metric-definitions-and-formulas). |
 
-> **P-14 is new in v2.0** and closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See [Appendix A, A-1](#appendix-a--known-defects-in-the-current-build).
+> **P-14 is new in v2.0** and closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See [Appendix A, A-1](#appendix-a--defect-log).
 
 ---
 
@@ -369,9 +369,9 @@ The strongest design on the page.
 
 ### 9.3 Encoding integrity
 
-**V-11 (new in v2.0)** — **A bar's length and the value printed beside it MUST encode the same quantity.** If a row reads "7 wks", the bar MUST be proportional to 7 weeks. Mixing one measure in the bar and another in the label is a correctness defect, not a style choice. See [Appendix A, A-2](#appendix-a--known-defects-in-the-current-build).
+**V-11 (new in v2.0)** — **A bar's length and the value printed beside it MUST encode the same quantity.** If a row reads "7 wks", the bar MUST be proportional to 7 weeks. Mixing one measure in the bar and another in the label is a correctness defect, not a style choice. See [Appendix A, A-2](#appendix-a--defect-log).
 
-**V-12 (new in v2.0)** — Semantic color is reserved. Green means *confirmed order*. Copper/red means *unconverted*. Neutral metrics — customer counts, tonnage, headcount — MUST use the neutral accent, never the win color. See [Appendix A, A-3](#appendix-a--known-defects-in-the-current-build).
+**V-12 (new in v2.0)** — Semantic color is reserved. Green means *confirmed order*. Copper/red means *unconverted*. Neutral metrics — customer counts, tonnage, headcount — MUST use the neutral accent, never the win color. See [Appendix A, A-3](#appendix-a--defect-log).
 
 ### 9.4 Customer, team, and detail views
 
@@ -413,8 +413,8 @@ The export creates a separate, self-contained HTML slide report presented with a
 
 **Deck requirements**
 
-- **K-1** — Six slides. The counter MUST read `1 / 6` and update correctly. The counter's initial markup MUST be generated from the slide count, never hardcoded. See [Appendix A, A-4](#appendix-a--known-defects-in-the-current-build).
-- **K-2** — Slide 5 MUST include the top quote-win customer and the repeat/no-linked-win signal. Both are currently missing. See [Appendix A, A-5](#appendix-a--known-defects-in-the-current-build).
+- **K-1** — Six slides. The counter MUST read `1 / 6` and update correctly. The counter's initial markup MUST be generated from the slide count, never hardcoded. See [Appendix A, A-4](#appendix-a--defect-log).
+- **K-2** — Slide 5 MUST include the top quote-win customer and the repeat/no-linked-win signal. Both are currently missing. See [Appendix A, A-5](#appendix-a--defect-log).
 - **K-3** — Standard, bold, readable fonts; large headings and clear body text. Condensed display faces are permitted for headlines only, per [V-17](#95-type-color-and-spacing).
 - **K-4** — Enough spacing around charts and cards that printing and laptop presentation stay legible.
 - **K-5** — No small faint labels, no condensed unreadable text, no text overlapping decorative treatment.
@@ -542,7 +542,7 @@ These follow arithmetically from the locked figures and are cheap, high-signal a
 | --- | --- | --- | --- |
 | Quote-side customer accounts | 290 | **291** | 88 repeat + 203 first-seen = 291, so 291 is the internally consistent value. Confirm against a re-run. |
 | Customers in 3+ quote weeks | 46 | **47** | Same one-record discrepancy; likely the same root cause. |
-| On-time release | "35%" | "35% — full quote book" | The weekly on-time rates imply roughly 110–155 scored records, i.e. **~18–25% coverage**, not the full 614. See [Appendix A, A-1](#appendix-a--known-defects-in-the-current-build). |
+| On-time release | "35%" | "35% — full quote book" | The weekly on-time rates imply roughly 110–155 scored records, i.e. **~18–25% coverage**, not the full 614. See [Appendix A, A-1](#appendix-a--defect-log). |
 
 ### 12.4 Reconciliation note
 
@@ -631,23 +631,36 @@ Use this framing verbatim when handing off to Claude or an engineer:
 
 ---
 
-## Appendix A — Known defects in the current build
+## Appendix A — Defect log
 
-Observed in the shipped deck export dated 17 Aug 2026. Each is a concrete, reproducible gap against this specification.
+Found by driving the dashboard against the real Week 1–3 2026 quote books and
+`OrderLog_1-10.xlsx` in Chromium. All are now fixed and covered by
+`test/regression.mjs`.
 
-| ID | Defect | Violates | Fix |
+| ID | Defect | Violated | Status |
 | --- | --- | --- | --- |
-| **A-1** | On-time release is presented as `35% — full quote book`. The published weekly rates (75%, 45%, 20%, 12.5%, 45.5%, 54.5%, 25%, 12.5%, 38.1%, 31.6%) resolve to small denominators implying roughly 110–155 scored records — about 18–25% of the 614 opportunities. | [P-14](#2-non-negotiable-product-requirements), [M-5](#4-metric-definitions-and-formulas), [M-8](#4-metric-definitions-and-formulas), [K-7](#10-team-report-deck-requirements) | Change the label to `35% of N scored records (N of 614)` and add the coverage badge. Also see [OQ-2](#13-open-questions--must-be-resolved-before-replatform). |
-| **A-2** | On the continuity slide, bar lengths do not match the week counts printed beside them: 8 wks → 100%, 4 wks → 68%, 7 wks → 65%, 2 wks → 64%, 2 wks → 56%. A 4-week account renders a longer bar than a 7-week account. | [V-11](#93-encoding-integrity) | Drive the bar from the same measure as the label, or label the bar with the measure it actually encodes. |
-| **A-3** | The "First-seen accounts" and "Customer accounts" cards use the win (green) accent, which the spec reserves for confirmed orders. | [V-12](#93-encoding-integrity) | Apply the neutral accent to non-outcome metrics. |
-| **A-4** | The deck nav counter is hardcoded as `1 / 5` in markup while six slides exist. Script overwrites it on load, so it is cosmetic — but it is a hardcoded slide count. | [K-1](#10-team-report-deck-requirements), [P-3](#2-non-negotiable-product-requirements) | Generate the counter from `slides.length`. |
-| **A-5** | Slide 5 omits the top quote-win customer and the repeat/no-linked-win signal, both of which are required deck content. | [K-2](#10-team-report-deck-requirements) | Add both to the continuity slide. |
-| **A-6** | Truncated customer labels (`POWERHOUSE MANAGEMENT `, `COMMERCIAL CONTRACTING`) carry no `title` attribute. | [V-14](#94-customer-team-and-detail-views) | Add full-text `title` on every truncated label. |
-| **A-7** | Headings use a condensed face (`Arial Narrow`) and all numeric values use a monospaced face at reduced weight, against the readability rules. | [V-17](#95-type-color-and-spacing), [V-18](#95-type-color-and-spacing), [K-3](#10-team-report-deck-requirements) | Keep condensed type for headlines only; set values in a bold standard face at full contrast. |
-| **A-8** | Slide 6 references a "90% reference" for release discipline while the weekly chart draws a "10% REFERENCE" line for conversion. Neither target was defined anywhere in spec v1.0. | [M-10](#4-metric-definitions-and-formulas) | Both are now defined in M-10; source them from one constants block. |
-| **A-9** | The deck's nav page-count control is a `<button>` with `aria-label="Current slide"` but no action, announcing as an interactive control that does nothing. | [V-23](#96-themes-and-accessibility) | Render it as a non-interactive element with `aria-live="polite"`. |
+| **A-1** | On-time release was shown as a bare percentage everywhere. It is scored only on rows carrying `EARLY`/`LATE` — 48 of 174 records (28%) in the sample. A person scored 1-of-10 read as "100% on time". | [P-14](#2-non-negotiable-product-requirements), [M-5](#4-metric-definitions-and-formulas), [M-8](#4-metric-definitions-and-formulas), [K-7](#10-team-report-deck-requirements) | **Fixed** — denominator now travels with the rate on the rail, KPI card, team summary, per-person rows and the deck. |
+| **A-2** | Deck continuity bars were scaled by quoted value while their labels printed quoted weeks, so a 4-week account drew a longer bar than a 7-week one. | [V-11](#93-encoding-integrity) | **Fixed** — bar and label encode the same measure. |
+| **A-3** | Non-outcome cards used the win (green) accent reserved for confirmed orders. | [V-12](#93-encoding-integrity) | **Fixed** — neutral accent for neutral metrics. |
+| **A-4** | The deck slide counter was hardcoded. | [K-1](#10-team-report-deck-requirements), [P-3](#2-non-negotiable-product-requirements) | **Fixed** — derived from the slide count. |
+| **A-5** | Slide 5 omitted the top quote-win customer and the repeat/no-linked-win signal. | [K-2](#10-team-report-deck-requirements) | **Fixed** — both present. |
+| **A-6** | Truncated customer labels carried no full-text fallback. | [V-14](#94-customer-team-and-detail-views) | **Fixed** — labels truncate to their measured column with full text in an SVG `<title>`. |
+| **A-8** | The deck referenced a 90% on-time target and a 10% conversion line that the spec never defined. | [M-10](#4-metric-definitions-and-formulas) | **Fixed** — both defined in M-10. |
+| **A-9** | The page-count control was a `<button>` that did nothing. | [V-23](#96-themes-and-accessibility) | **Fixed** — non-interactive `aria-live` region. |
+| **A-10** | The 95% confidence KPI called its render helper with one argument too few, so the colour token `var(--steel)` rendered as visible body text and the ring drew with an undefined colour. | [P-8](#2-non-negotiable-product-requirements) | **Fixed** — missing note argument supplied. |
+| **A-11** | The weekly `project` field never resolved by header label because the workbook header reads `NAME`, so it fell back to a fixed column on every sheet (18 fallbacks). | [T-4](#113-code-rules) | **Fixed** — alias added; fallbacks down to 3, all non-critical order-log fields, with identical output. |
+| **A-12** | Data-quality rows reported counts with no way to act on them. | [T-11](#113-code-rules) | **Fixed** — offending values are named (e.g. `P-0287-025-2`) and fallback fields listed. |
+| **A-13** | The deck's on-time disc had its conic arc painted over from both sides — a 15px inset paper shadow from the rim and a `:before` disc from 15px inward — so it always rendered solid and never showed its value. | [V-11](#93-encoding-integrity) | **Fixed** — inset shadow dropped, inner disc pushed to 24px. |
+| **A-14** | New segment panels declared their bar track as `var(--surface-2, #eef2ef)`; `--surface-2` does not exist, so the light literal always won and painted a bright track on the dark panel. | [P-12](#2-non-negotiable-product-requirements), [V-22](#96-themes-and-accessibility) | **Fixed** — uses `--surface-soft`; regression asserts the colour differs per theme. |
 
----
+### Confirmed by the real data
+
+| Observation | Detail |
+| --- | --- |
+| `Week 2 - 2026.xlsm` carries a wrong Monday year (2025) | Recovered from the filename sequence and reported. [D-13](#75-required-validation-behavior) row 2 works as specified. |
+| 72 of 160 order rows have a blank `Quote #` | 45% of the order log cannot be attributed to any quote. A source-data issue that caps measurable conversion. |
+| `Inventory` holds four blocks, not one | Only `Estimator List` and `Engineer List` are Name/Initials. The top block is Name/**Territory** and must never be read as initials. |
+| Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
 
@@ -659,18 +672,18 @@ Observed in the shipped deck export dated 17 Aug 2026. Each is a concrete, repro
 - Added [§1.1](#11-the-pipeline-in-one-view) pipeline diagram and [§1.2](#12-non-goals) explicit non-goals.
 - Split metric *definitions* ([§3](#3-canonical-vocabulary), [§4](#4-metric-definitions-and-formulas)) from metric *requirements* ([§8](#8-required-calculations-and-analytics)); the two were previously interleaved and partly duplicated.
 - Rewrote the [Definition of done](#14-definition-of-done) so every item links to the requirement it verifies, removing the duplicate restatement of §2.
-- Added [§13 Open questions](#13-open-questions--must-be-resolved-before-replatform) and [Appendix A](#appendix-a--known-defects-in-the-current-build) so unresolved items and live defects are tracked rather than buried in prose.
+- Added [§13 Open questions](#13-open-questions--must-be-resolved-before-replatform) and [Appendix A](#appendix-a--defect-log) so unresolved items and live defects are tracked rather than buried in prose.
 - Added [Appendix B](#appendix-b--change-log).
 
 **Corrections and additions**
 
 - **Normalization rule rewritten** ([D-5](#71-quote-key-normalization)): "keep PREFIX-SERIAL" was ambiguous for keys with three or more segments and likely caused `P-0287-025-2` to be dropped. Replaced with explicit, testable pseudocode.
-- **Coverage requirement added** ([P-14](#2-non-negotiable-product-requirements), [M-8](#4-metric-definitions-and-formulas)): partial-coverage metrics must show their denominator. Closes [A-1](#appendix-a--known-defects-in-the-current-build).
+- **Coverage requirement added** ([P-14](#2-non-negotiable-product-requirements), [M-8](#4-metric-definitions-and-formulas)): partial-coverage metrics must show their denominator. Closes [A-1](#appendix-a--defect-log).
 - **On-time denominator defined** ([M-5](#4-metric-definitions-and-formulas)): blanks and unrecognized values are excluded from both numerator and denominator, and reported.
 - **Wilson interval formula supplied** ([M-7](#4-metric-definitions-and-formulas)); previously named but never specified, and `n = 0` behavior was undefined.
 - **Exposure arithmetic pinned** ([M-3](#4-metric-definitions-and-formulas)): date-only, no timezone conversion.
 - **Rate targets defined** ([M-10](#4-metric-definitions-and-formulas)): the 90% on-time and 10% conversion references appear in the shipped deck but were never specified.
-- **Encoding integrity and semantic-color rules added** ([V-11](#93-encoding-integrity), [V-12](#93-encoding-integrity)); closes [A-2](#appendix-a--known-defects-in-the-current-build) and [A-3](#appendix-a--known-defects-in-the-current-build).
+- **Encoding integrity and semantic-color rules added** ([V-11](#93-encoding-integrity), [V-12](#93-encoding-integrity)); closes [A-2](#appendix-a--defect-log) and [A-3](#appendix-a--defect-log).
 - **Collapse ordering made explicit** ([D-6](#72-revision-collapse)): "first" and "last" now have a defined sort order.
 - **Three validation conditions added** ([D-13](#75-required-validation-behavior) rows 10–12) and severities assigned to all.
 - **HTML escaping requirement added** ([T-9](#113-code-rules)) — customer, project, and job names are untrusted input rendered into generated HTML.
