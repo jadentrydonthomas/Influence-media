@@ -2990,77 +2990,602 @@
         setScreen("overview");
       }
 
+      // ---- Deck analysis helpers -------------------------------------------
+      // Everything below derives from the active exposure cohort's own records,
+      // so the deck never shows a figure the dashboard cannot also justify.
+
+      function deckOwnerLabel(code) {
+        const roster = state.model && state.model.roster ? state.model.roster : null;
+        const resolved = resolvedNucorPerson(code, roster);
+        return resolved.matched ? resolved.name : resolved.code === "(none)" ? "No initials supplied" : resolved.code;
+      }
+
+      // Conversion split by quoted value. This is the single most useful cut in
+      // the source data: it shows whether the wins are concentrated in small,
+      // routine work while the large quotes go unanswered.
+      function deckValueBands(records) {
+        const bands = [
+          { label: "Under $250k", min: 0, max: 250000 },
+          { label: "$250k – $1M", min: 250000, max: 1000000 },
+          { label: "$1M – $5M", min: 1000000, max: 5000000 },
+          { label: "$5M and above", min: 5000000, max: Infinity }
+        ].map(band => Object.assign({}, band, { quotes: 0, wins: 0, value: 0, wonValue: 0 }));
+        let unpriced = 0;
+        records.forEach(record => {
+          const price = Number(record.price);
+          if (!Number.isFinite(price) || price <= 0) { unpriced += 1; return; }
+          const band = bands.find(item => price >= item.min && price < item.max);
+          if (!band) return;
+          band.quotes += 1;
+          band.value += price;
+          if (record.won) { band.wins += 1; band.wonValue += price; }
+        });
+        bands.forEach(band => { band.conversion = band.quotes ? percentage(band.wins, band.quotes) : 0; });
+        return { bands: bands.filter(band => band.quotes > 0), unpriced: unpriced, scored: records.length - unpriced };
+      }
+
+      function deckSizeBands(records) {
+        const bands = [
+          { label: "Under 25k sq ft", min: 0, max: 25000 },
+          { label: "25k – 75k", min: 25000, max: 75000 },
+          { label: "75k – 150k", min: 75000, max: 150000 },
+          { label: "150k and above", min: 150000, max: Infinity }
+        ].map(band => Object.assign({}, band, { quotes: 0, wins: 0 }));
+        let unsized = 0;
+        records.forEach(record => {
+          const sqft = Number(record.sqft);
+          if (!Number.isFinite(sqft) || sqft <= 0) { unsized += 1; return; }
+          const band = bands.find(item => sqft >= item.min && sqft < item.max);
+          if (!band) return;
+          band.quotes += 1;
+          if (record.won) band.wins += 1;
+        });
+        bands.forEach(band => { band.conversion = band.quotes ? percentage(band.wins, band.quotes) : 0; });
+        return { bands: bands.filter(band => band.quotes > 0), unsized: unsized, scored: records.length - unsized };
+      }
+
+      // District is the quote-number prefix. It is read straight off the quote
+      // key, so it needs no roster inference and cannot misattribute a person.
+      function deckDistricts(records) {
+        const groups = new Map();
+        records.forEach(record => {
+          const prefix = String(record.key || "").split("-")[0];
+          if (!prefix) return;
+          if (!groups.has(prefix)) groups.set(prefix, { code: prefix, quotes: 0, wins: 0, value: 0, wonValue: 0 });
+          const group = groups.get(prefix);
+          group.quotes += 1;
+          group.value += Number(record.price) || 0;
+          if (record.won) { group.wins += 1; group.wonValue += Number(record.price) || 0; }
+        });
+        return Array.from(groups.values())
+          .map(group => Object.assign(group, { conversion: group.quotes ? percentage(group.wins, group.quotes) : 0 }))
+          .sort((a, b) => b.value - a.value);
+      }
+
+      function deckRevisionSplit(records) {
+        const single = records.filter(record => (Number(record.versions) || 1) <= 1);
+        const revised = records.filter(record => (Number(record.versions) || 1) > 1);
+        const rate = group => group.length ? percentage(group.filter(record => record.won).length, group.length) : 0;
+        return {
+          single: { quotes: single.length, wins: single.filter(record => record.won).length, conversion: rate(single) },
+          revised: { quotes: revised.length, wins: revised.filter(record => record.won).length, conversion: rate(revised) }
+        };
+      }
+
+      // The highest-value work with no linked order, which is the actual agenda
+      // for a management review. Sorted by quoted value, not by age.
+      function deckFollowUp(records, limit) {
+        return records
+          .filter(record => !record.won && Number(record.price) > 0)
+          .sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0))
+          .slice(0, limit || 6)
+          .map(record => ({
+            quote: record.quoteNumber || record.key,
+            customer: String(record.customer || "Customer not supplied"),
+            owner: deckOwnerLabel(record.engineer),
+            value: Number(record.price) || 0,
+            week: nucorWeekLabel(record.week),
+            exposure: Number.isFinite(record.exposure) ? record.exposure : null
+          }));
+      }
+
+      function deckLagBuckets(records) {
+        const lags = records.filter(record => record.won && Number.isFinite(record.lag) && record.lag >= 0 && record.lag <= 400).map(record => record.lag);
+        const buckets = [
+          { label: "0–14 d", min: 0, max: 15 },
+          { label: "15–30 d", min: 15, max: 31 },
+          { label: "31–60 d", min: 31, max: 61 },
+          { label: "61–90 d", min: 61, max: 91 },
+          { label: "90+ d", min: 91, max: Infinity }
+        ].map(bucket => Object.assign({}, bucket, { count: 0 }));
+        lags.forEach(lag => { const bucket = buckets.find(item => lag >= item.min && lag < item.max); if (bucket) bucket.count += 1; });
+        return { buckets: buckets, scored: lags.length, median: numericQuantile(lags, .5), p10: numericQuantile(lags, .1), p90: numericQuantile(lags, .9) };
+      }
+
+      // ---- Deck chart builders ---------------------------------------------
+      // Charts are plain inline SVG sized from the data, so a 4-week and a
+      // 30-week source set both stay legible. Animation is layered on top of a
+      // correct static state, never required for the chart to read.
+
+      function deckBarChart(rows, options) {
+        const config = options || {};
+        if (!rows.length) return '<div class="deck-empty">' + escape(config.empty || "No data in this source set yet.") + "</div>";
+        const rowHeight = 38;
+        const labelWidth = Number(config.labelWidth) || 168;
+        const valueWidth = Number(config.valueWidth) || 132;
+        // Roughly 7.6px per uppercase character at 13px bold Arial. Truncating
+        // here rather than at the call site keeps every caller collision-free.
+        const maxLabelChars = Math.max(6, Math.floor((labelWidth - 12) / 7.6));
+        const clip = text => { const value = String(text == null ? "" : text); return value.length > maxLabelChars ? value.slice(0, maxLabelChars - 1) + "\u2026" : value; };
+        const width = 860;
+        const height = rows.length * rowHeight + 18;
+        const plot = width - labelWidth - valueWidth;
+        const max = Math.max.apply(null, rows.concat([{ value: 0 }]).map(row => Number(row.value) || 0)) || 1;
+        const bars = rows.map((row, index) => {
+          const y = index * rowHeight + 8;
+          const barWidth = Math.max(2, plot * (Number(row.value) || 0) / max);
+          const tone = row.tone === "copper" ? "var(--copper)" : row.tone === "deep" ? "var(--green-deep)" : "var(--green)";
+          return '<g class="deck-bar-row" style="--deck-bar-delay:' + (index * 90) + 'ms">'
+            + '<text class="deck-bar-label" x="0" y="' + (y + 17) + '">' + escape(clip(row.label)) + "<title>" + escape(row.label) + "</title></text>"
+            + '<rect class="deck-bar-track" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + plot + '" height="14" rx="7"></rect>'
+            + '<rect class="deck-bar-fill" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + barWidth.toFixed(1) + '" height="14" rx="7" fill="' + tone + '"></rect>'
+            + '<text class="deck-bar-value" x="' + width + '" y="' + (y + 17) + '" text-anchor="end">' + escape(row.value_label || "") + "</text>"
+            + "</g>";
+        }).join("");
+        return '<svg class="deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Bar chart") + '">' + bars + "</svg>";
+      }
+
+      // Paired chart: a count bar and a conversion marker on the same row, so a
+      // segment's size and its performance are never confused for each other.
+      function deckSegmentChart(segments, options) {
+        const config = options || {};
+        if (!segments.length) return '<div class="deck-empty">' + escape(config.empty || "No scored records in this source set yet.") + "</div>";
+        const width = 860;
+        const rowHeight = 62;
+        const labelWidth = 176;
+        const right = 150;
+        const height = segments.length * rowHeight + 34;
+        const plot = width - labelWidth - right;
+        const maxQuotes = Math.max.apply(null, segments.map(item => item.quotes)) || 1;
+        const maxRate = Math.max(20, Math.ceil(Math.max.apply(null, segments.map(item => item.conversion)) / 5) * 5);
+        const rows = segments.map((segment, index) => {
+          const y = index * rowHeight + 26;
+          const barWidth = Math.max(2, plot * segment.quotes / maxQuotes);
+          const markerX = labelWidth + plot * Math.min(1, segment.conversion / maxRate);
+          const zero = segment.wins === 0;
+          return '<g class="deck-seg-row" style="--deck-bar-delay:' + (index * 110) + 'ms">'
+            + '<text class="deck-seg-label" x="0" y="' + (y + 4) + '">' + escape(segment.label) + "</text>"
+            + '<text class="deck-seg-sub" x="0" y="' + (y + 20) + '">' + segment.quotes + " quotes · " + escape(money(segment.value / 1000000)) + "</text>"
+            + '<rect class="deck-bar-track" x="' + labelWidth + '" y="' + (y - 6) + '" width="' + plot + '" height="16" rx="8"></rect>'
+            + '<rect class="deck-bar-fill" x="' + labelWidth + '" y="' + (y - 6) + '" width="' + barWidth.toFixed(1) + '" height="16" rx="8" fill="' + (zero ? "var(--copper)" : "var(--green)") + '"></rect>'
+            + '<g class="deck-seg-marker"><line x1="' + markerX.toFixed(1) + '" x2="' + markerX.toFixed(1) + '" y1="' + (y - 14) + '" y2="' + (y + 18) + '"></line>'
+            + '<circle cx="' + markerX.toFixed(1) + '" cy="' + (y + 2) + '" r="5"></circle></g>'
+            + '<text class="deck-seg-rate ' + (zero ? "is-zero" : "") + '" x="' + width + '" y="' + (y + 8) + '" text-anchor="end">' + pct(segment.conversion) + "</text>"
+            + "</g>";
+        }).join("");
+        return '<svg class="deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Segment conversion") + '">'
+          + '<text class="deck-axis-note" x="' + labelWidth + '" y="12">BAR: QUOTE VOLUME</text>'
+          + '<text class="deck-axis-note" x="' + width + '" y="12" text-anchor="end">MARKER + VALUE: CONVERSION</text>'
+          + rows + "</svg>";
+      }
+
+      function deckColumnChart(items, options) {
+        const config = options || {};
+        if (!items.length) return '<div class="deck-empty">' + escape(config.empty || "Nothing to plot yet.") + "</div>";
+        const width = 860;
+        const height = 210;
+        const left = 44;
+        const right = 20;
+        const top = 26;
+        const bottom = 168;
+        const plot = width - left - right;
+        const step = plot / items.length;
+        const barWidth = Math.min(46, step * .6);
+        const max = Math.max.apply(null, items.map(item => Number(item.value) || 0)) || 1;
+        const bars = items.map((item, index) => {
+          const x = left + step * (index + .5);
+          const barHeight = (bottom - top) * (Number(item.value) || 0) / max;
+          return '<g class="deck-col" style="--deck-bar-delay:' + (index * 80) + 'ms">'
+            + '<rect class="deck-col-fill" x="' + (x - barWidth / 2).toFixed(1) + '" y="' + (bottom - barHeight).toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + Math.max(1, barHeight).toFixed(1) + '" rx="3"></rect>'
+            + '<text class="deck-col-value" x="' + x.toFixed(1) + '" y="' + (bottom - barHeight - 7).toFixed(1) + '" text-anchor="middle">' + escape(item.value_label || String(item.value)) + "</text>"
+            + '<text class="deck-col-label" x="' + x.toFixed(1) + '" y="' + (bottom + 20) + '" text-anchor="middle">' + escape(item.label) + "</text>"
+            + "</g>";
+        }).join("");
+        return '<svg class="deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Column chart") + '">'
+          + '<line class="grid" x1="' + left + '" x2="' + (width - right) + '" y1="' + bottom + '" y2="' + bottom + '"></line>'
+          + (config.caption ? '<text class="deck-axis-note" x="' + left + '" y="12">' + escape(config.caption) + "</text>" : "")
+          + bars + "</svg>";
+      }
+
+      // Weekly pulse. Volume columns above, conversion line below, on-time as a
+      // separate muted row so three different scales never share one axis.
       function reportWeeklySvg(weekly) {
         if (!weekly.length) return '<div class="deck-empty">No weekly quote data is available in this source set.</div>';
-        const width = Math.max(860, weekly.length * 48 + 118);
-        const height = 252;
-        const left = 46;
+        const dense = weekly.length > 16;
+        const width = Math.max(860, weekly.length * (dense ? 34 : 48) + 130);
+        const height = 262;
+        const left = 52;
         const right = 26;
-        const volumeTop = 30;
-        const volumeBottom = 113;
-        const rateTop = 155;
-        const rateBottom = 220;
+        const volumeTop = 32;
+        const volumeBottom = 118;
+        const rateTop = 158;
+        const rateBottom = 224;
         const plot = width - left - right;
         const step = plot / weekly.length;
         const barWidth = Math.min(27, step * .56);
         const maxQuotes = Math.max(10, Math.ceil(Math.max.apply(null, weekly.map(item => item.quotes)) / 10) * 10);
         const maxRate = Math.max(15, Math.ceil(Math.max.apply(null, weekly.map(item => item.rate)) / 5) * 5);
+        // With many weeks, print every other label so they cannot collide.
+        const labelEvery = weekly.length > 26 ? 4 : weekly.length > 14 ? 2 : 1;
         const bars = [];
         const points = [];
         const labels = [];
+        const counts = [];
         weekly.forEach((item, index) => {
           const x = left + step * (index + .5);
           const barHeight = (volumeBottom - volumeTop) * item.quotes / maxQuotes;
           const y = volumeBottom - barHeight;
-          const pointY = rateBottom - (rateBottom - rateTop) * item.rate / maxRate;
-          bars.push('<rect x="' + (x - barWidth / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '" rx="2" fill="#8fa5ad"></rect>');
+          const pointY = rateBottom - (rateBottom - rateTop) * Math.min(item.rate, maxRate) / maxRate;
+          bars.push('<rect class="deck-week-bar" style="--deck-bar-delay:' + (index * 45) + 'ms" x="' + (x - barWidth / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + Math.max(1, barHeight).toFixed(1) + '" rx="2"></rect>');
+          if (!dense) counts.push('<text class="week-count" x="' + x.toFixed(1) + '" y="' + (y - 6).toFixed(1) + '" text-anchor="middle">' + item.quotes + "</text>");
           points.push(x.toFixed(1) + "," + pointY.toFixed(1));
-          labels.push('<text x="' + x.toFixed(1) + '" y="242" text-anchor="middle" class="week">' + escape(item.week) + "</text>");
+          if (index % labelEvery === 0) labels.push('<text x="' + x.toFixed(1) + '" y="252" text-anchor="middle" class="week">' + escape(item.week) + "</text>");
         });
-        const referenceY = rateBottom - (rateBottom - rateTop) * 10 / maxRate;
-        return '<svg class="weekly-deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Weekly quotes issued and confirmed conversion"><defs><linearGradient id="deckArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4bea8c" stop-opacity=".42"></stop><stop offset="1" stop-color="#4bea8c" stop-opacity="0"></stop></linearGradient></defs><text x="' + left + '" y="16" class="lane">QUOTES ISSUED</text><text x="' + left + '" y="142" class="lane">CONFIRMED CONVERSION</text><line x1="' + left + '" x2="' + (width - right) + '" y1="' + volumeBottom + '" y2="' + volumeBottom + '" class="grid"></line><line x1="' + left + '" x2="' + (width - right) + '" y1="' + rateBottom + '" y2="' + rateBottom + '" class="grid"></line><line x1="' + left + '" x2="' + (width - right) + '" y1="' + referenceY.toFixed(1) + '" y2="' + referenceY.toFixed(1) + '" class="reference"></line><text x="' + (width - right) + '" y="' + (referenceY - 5).toFixed(1) + '" text-anchor="end" class="reference-label">10% REFERENCE</text>' + bars.join("") + '<polyline points="' + points.join(" ") + '" fill="none" stroke="#4bea8c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>' + points.map(point => { const pair = point.split(","); return '<circle cx="' + pair[0] + '" cy="' + pair[1] + '" r="4" fill="#4bea8c" stroke="#102019" stroke-width="2"></circle>'; }).join("") + labels.join("") + "</svg>";
+        const referenceY = rateBottom - (rateBottom - rateTop) * Math.min(10, maxRate) / maxRate;
+        const dots = points.map((point, index) => {
+          const pair = point.split(",");
+          return '<circle class="deck-week-dot" style="--deck-bar-delay:' + (index * 45 + 260) + 'ms" cx="' + pair[0] + '" cy="' + pair[1] + '" r="4"></circle>';
+        }).join("");
+        return '<svg class="weekly-deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Weekly quotes issued and confirmed conversion across ' + weekly.length + ' quoted weeks">'
+          + '<text x="' + left + '" y="16" class="lane">QUOTES ISSUED</text>'
+          + '<text x="' + left + '" y="146" class="lane">CONFIRMED CONVERSION</text>'
+          + '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + volumeBottom + '" y2="' + volumeBottom + '" class="grid"></line>'
+          + '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + rateBottom + '" y2="' + rateBottom + '" class="grid"></line>'
+          + '<text class="axis-max" x="' + (left - 8) + '" y="' + (volumeTop + 8) + '" text-anchor="end">' + maxQuotes + "</text>"
+          + '<text class="axis-max" x="' + (left - 8) + '" y="' + (rateTop + 8) + '" text-anchor="end">' + maxRate + "%</text>"
+          + '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + referenceY.toFixed(1) + '" y2="' + referenceY.toFixed(1) + '" class="reference"></line>'
+          + '<text x="' + (width - right) + '" y="' + (referenceY - 6).toFixed(1) + '" text-anchor="end" class="reference-label">10% REFERENCE</text>'
+          + bars.join("") + counts.join("")
+          + '<polyline class="deck-week-line" points="' + points.join(" ") + '" fill="none" stroke="var(--green)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>'
+          + dots + labels.join("") + "</svg>";
       }
+
+      // Exposed so the scale test can render the weekly chart at 1, 12 and 52
+      // weeks without needing 52 real workbooks. Read-only; nothing depends on it.
+      window.__reportWeeklySvg = reportWeeklySvg;
 
       function deckMetric(label, value, note) {
         return '<div class="deck-metric"><span>' + label + '</span><strong>' + value + '</strong><small>' + note + "</small></div>";
       }
+      function deckSlide(number, eyebrow, title, body, dense) {
+        return '<section class="deck-slide' + (dense ? " is-dense" : "") + '" data-slide="' + number + '"><header><span>' + eyebrow + '</span><b>TEAM OUTCOME REPORT · ' + String(number).padStart(2, "0") + '</b></header><div class="deck-content"><h1>' + title + "</h1>" + body + '</div><footer><span>Quote outcome dashboard</span><span>Use ← → to move · P to print / save PDF</span></footer></section>';
+      }
 
-      function deckSlide(number, eyebrow, title, body) {
-        return '<section class="deck-slide" data-slide="' + number + '"><header><span>' + eyebrow + '</span><b>TEAM OUTCOME REPORT · ' + String(number).padStart(2, "0") + '</b></header><div class="deck-content"><h1>' + title + "</h1>" + body + '</div><footer><span>Quote outcome dashboard</span><span>Use ← → to move · P to print / save PDF</span></footer></section>';
+      function deckStyles() {
+        return '<style>:root{--ink:#102019;--muted:#607268;--green:#00bd57;--green-deep:#007338;--copper:#c87656;--line:#dbe6de;--paper:#f4f7f2}*{box-sizing:border-box}html,body{margin:0;min-width:320px;background:#08120b;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}button{font:inherit}.deck-slide{display:none;position:relative;min-height:100vh;padding:38px clamp(28px,7vw,112px) 76px;background:radial-gradient(circle at 84% 16%,rgba(0,189,87,.11),transparent 25%),var(--paper);overflow:hidden}.deck-slide.is-active{display:flex;flex-direction:column}.deck-slide:after{content:"";position:absolute;right:-80px;bottom:-80px;width:310px;height:310px;border:1px solid rgba(0,115,56,.13);border-radius:50%;box-shadow:0 0 0 34px rgba(0,115,56,.035),0 0 0 68px rgba(0,115,56,.018);pointer-events:none}.deck-slide header,.deck-slide footer{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}.deck-slide header span{color:var(--green-deep)}.deck-slide header b{color:#899a8e;font-size:9px}.deck-content{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;max-width:1220px;margin:0 auto;width:100%}.deck-content h1{max-width:740px;margin:0 0 30px;font-family:"Arial Narrow",Arial,sans-serif;font-size:clamp(46px,6.5vw,86px);letter-spacing:-.06em;line-height:.86;text-transform:uppercase}.deck-content h1 em{color:var(--green-deep);font-style:normal}.deck-slide footer{color:#718277;font-size:9px}.deck-slide footer span:last-child{color:#9baaa0;text-transform:none;letter-spacing:0}.hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(240px,.85fr);gap:62px;align-items:center}.lead{max-width:620px;margin:0;color:var(--muted);font-size:16px;line-height:1.65}.deck-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:32px;border-top:1px solid var(--line);border-left:1px solid var(--line)}.deck-metric{min-height:112px;padding:17px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}.deck-metric span,.section-label,.outcome-card span,.weekly-summary span,.action-grid span{display:block;color:#799084;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.deck-metric strong{display:block;margin-top:10px;font-family:Consolas,monospace;font-size:27px;font-weight:500;letter-spacing:-.08em}.deck-metric small{display:block;margin-top:6px;color:var(--muted);font-size:10px}.source-chip{display:inline-flex;align-items:center;gap:8px;margin-top:18px;color:#64776b;font-family:Consolas,monospace;font-size:10px}.source-chip i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(0,189,87,.12)}.hero-disc,.timing-disc{--deck-conversion:0%;display:grid;place-items:center;justify-self:center;width:min(30vw,300px);aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--green) var(--deck-conversion),#dce7df 0);box-shadow:inset 0 0 0 15px var(--paper),0 22px 45px rgba(6,39,18,.12)}.hero-disc>div,.timing-disc{position:relative}.hero-disc>div{display:grid;place-items:center;width:72%;aspect-ratio:1;border-radius:50%;background:#0b1d12;color:#f2fff5;text-align:center}.hero-disc strong,.timing-disc strong{display:block;font-family:Consolas,monospace;font-size:clamp(33px,4vw,52px);font-weight:500;letter-spacing:-.1em}.hero-disc span,.timing-disc span{display:block;margin-top:5px;color:rgba(239,255,242,.6);font-size:10px;line-height:1.3;text-transform:uppercase;letter-spacing:.1em}.outcome-layout{display:grid;grid-template-columns:1.1fr .8fr .8fr;gap:16px;align-items:stretch}.outcome-intro,.outcome-card{padding:27px;background:#fff;border:1px solid var(--line)}.outcome-intro p{max-width:390px;margin:15px 0 24px;color:var(--muted);font-size:15px;line-height:1.55}.outcome-strip{display:flex;height:16px;border-radius:9px;overflow:hidden;background:#f1ddd4}.outcome-strip i{display:block;min-width:6px;background:var(--green)}.strip-labels{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:#62766a;font-family:Consolas,monospace;font-size:10px}.outcome-card{position:relative;overflow:hidden}.outcome-card:before{content:"";position:absolute;top:0;bottom:0;left:0;width:5px;background:var(--green)}.outcome-card.open:before{background:var(--copper)}.outcome-card strong{display:block;margin-top:30px;font-family:Consolas,monospace;font-size:66px;font-weight:500;letter-spacing:-.12em;line-height:.8}.outcome-card b{display:block;margin-top:17px;font-family:Consolas,monospace;font-size:15px;font-weight:500}.outcome-card p{margin:9px 0 0;color:var(--muted);font-size:11px;line-height:1.45}.deck-callout{margin-top:18px;padding:15px 18px;border-left:4px solid var(--green);color:#466052;background:#e9f4ed;font-size:13px;line-height:1.55}.deck-callout strong{color:#173c24}.weekly-summary{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:20px;border:1px solid var(--line);background:#fff}.weekly-summary>div{padding:15px 18px;border-right:1px solid var(--line)}.weekly-summary>div:last-child{border:0}.weekly-summary strong{display:block;margin-top:7px;font-family:Consolas,monospace;font-size:25px;font-weight:500;letter-spacing:-.08em}.weekly-summary small{display:block;margin-top:5px;color:var(--muted);font-size:10px}.weekly-deck-chart{display:block;width:100%;height:auto;padding:10px 0}.weekly-deck-chart .lane{fill:#6c8174;font-size:9px;font-weight:700;letter-spacing:1.4px}.weekly-deck-chart .week{fill:#718277;font-family:Consolas,monospace;font-size:10px}.weekly-deck-chart .grid{stroke:#dce5de;stroke-width:1}.weekly-deck-chart .reference{stroke:#bd7b21;stroke-width:1.5;stroke-dasharray:5 5}.weekly-deck-chart .reference-label{fill:#a66917;font-size:9px;font-weight:700;letter-spacing:1px}.chart-note{margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.5}.timing-layout{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.28fr);gap:62px;align-items:center}.timing-disc{--deck-timing:0%;width:min(27vw,270px);background:conic-gradient(var(--green) var(--deck-timing),#dce7df 0);text-align:center}.timing-disc:before{content:"";position:absolute;inset:15px;border-radius:50%;background:#0b1d12}.timing-disc strong,.timing-disc span{position:relative;z-index:1;color:#f1fff3}.timing-copy h2{max-width:520px;margin:13px 0 0;font-family:"Arial Narrow",Arial,sans-serif;font-size:45px;letter-spacing:-.05em;line-height:.93;text-transform:uppercase}.timing-copy p{max-width:610px;margin:18px 0;color:var(--muted);font-size:14px;line-height:1.6}.timing-list{display:grid;gap:8px}.timing-row{display:grid;grid-template-columns:48px minmax(0,1fr) 45px;align-items:center;gap:10px;color:#6c8174;font-family:Consolas,monospace;font-size:10px}.timing-row i{display:block;height:9px;background:#dce7df}.timing-row i b{display:block;height:100%;background:var(--green)}.timing-row strong{text-align:right;color:#244a31;font-weight:500}.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.action-grid article{min-height:206px;padding:23px;border:1px solid var(--line);background:#fff}.action-grid article:nth-child(2){background:#0b1d12;color:#effff2;border-color:#0b1d12}.action-grid article:nth-child(2) span{color:#93e5ad}.action-grid strong{display:block;margin-top:24px;font-family:"Arial Narrow",Arial,sans-serif;font-size:29px;letter-spacing:-.03em;line-height:.94;text-transform:uppercase}.action-grid p{margin:14px 0 0;color:var(--muted);font-size:12px;line-height:1.55}.action-grid article:nth-child(2) p{color:rgba(239,255,242,.62)}.deck-empty{padding:20px;border:1px dashed #b9c9bd;color:#607268;background:#fff;font-size:13px;line-height:1.55}.deck-nav{position:fixed;right:20px;bottom:20px;z-index:8;display:flex;gap:7px;padding:7px;border:1px solid rgba(255,255,255,.18);background:rgba(8,18,11,.88);box-shadow:0 12px 28px rgba(0,0,0,.28)}.deck-nav button{padding:9px 11px;border:1px solid rgba(255,255,255,.25);color:#ecfff0;background:transparent;font-size:11px;font-weight:700;cursor:pointer}.deck-nav button:hover{border-color:#4bea8c;color:#4bea8c}@media(max-width:720px){.deck-slide{padding:25px 20px 74px}.deck-slide header b{display:none}.hero-grid,.timing-layout{grid-template-columns:1fr;gap:27px}.hero-disc,.timing-disc{width:min(67vw,260px)}.deck-metrics,.outcome-layout,.action-grid{grid-template-columns:1fr}.deck-metric{min-height:0}.weekly-summary{grid-template-columns:1fr}.weekly-summary>div{border-right:0;border-bottom:1px solid var(--line)}.weekly-deck-chart{width:860px;max-width:none}.deck-content{overflow:hidden}.timing-copy h2{font-size:38px}}@media print{html,body{background:#fff}.deck-slide{display:flex!important;min-height:100vh;break-after:page;padding:38px 64px 58px}.deck-nav{display:none}}</style>';
+      }
+
+      function deckReadabilityStyles() {
+        return '<style>.deck-slide{padding:46px clamp(36px,7vw,112px) 88px}.deck-slide header,.deck-slide footer{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:800;letter-spacing:.11em}.deck-slide header b{font-size:10px;font-weight:800}.deck-content h1{font-family:Arial,Helvetica,sans-serif;font-size:clamp(50px,6.4vw,84px);font-weight:900;letter-spacing:-.055em;line-height:.91}.lead{font-size:18px;font-weight:500;line-height:1.62}.deck-metric{min-height:126px;padding:20px}.deck-metric span,.section-label,.outcome-card span,.weekly-summary span,.action-grid span{font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:800;letter-spacing:.1em}.deck-metric strong,.weekly-summary strong,.outcome-card strong,.hero-disc strong,.timing-disc strong{font-family:Arial,Helvetica,sans-serif;font-weight:900;letter-spacing:-.06em}.deck-metric strong{font-size:31px}.deck-metric small,.weekly-summary small{font-size:12px;line-height:1.4}.source-chip{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.hero-disc span,.timing-disc span{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:800}.outcome-intro,.outcome-card{padding:29px}.outcome-intro p{font-size:16px;line-height:1.6}.strip-labels{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.outcome-card strong{font-size:66px}.outcome-card b{font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:800;line-height:1.3}.outcome-card p{font-size:13px;line-height:1.55}.deck-callout{font-size:15px;font-weight:500;line-height:1.6}.weekly-summary>div{min-height:115px;padding:19px}.weekly-summary strong{font-size:29px}.weekly-deck-chart .lane{font-size:10px;font-weight:800}.weekly-deck-chart .week{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.weekly-deck-chart .reference-label{font-size:10px;font-weight:800}.chart-note{font-size:14px;line-height:1.58}.timing-copy h2{font-family:Arial,Helvetica,sans-serif;font-size:48px;font-weight:900;letter-spacing:-.055em;line-height:.94}.timing-copy p{font-size:15px;line-height:1.65}.timing-row{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.timing-row strong{font-weight:800}.action-grid article{min-height:220px;padding:26px}.action-grid strong{font-family:Arial,Helvetica,sans-serif;font-size:31px;font-weight:900;letter-spacing:-.04em;line-height:.98}.action-grid p{font-size:14px;line-height:1.6}.deck-empty{font-size:14px;line-height:1.6}.deck-nav button{font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800}.deck-metric small,.weekly-summary small,.outcome-card b,.outcome-card p,.action-grid p,.deck-callout{overflow-wrap:anywhere}@media(max-width:720px){.deck-slide{padding:28px 21px 78px}.deck-content h1{font-size:clamp(43px,13vw,62px)}.lead{font-size:16px}.deck-metric{min-height:0}.timing-copy h2{font-size:39px}.outcome-intro,.outcome-card{padding:22px}.outcome-card strong{font-size:58px}.action-grid article{min-height:0}}</style>';
+      }
+
+      // Styles added on top of the existing deck look: same palette, same heavy
+      // Arial, same circle motif. These cover the new charts, the layout fixes
+      // for overlapping text, and the entrance motion.
+      function deckExtraStyles() {
+        return '<style>'
+          + ':root{--steel:#8fa5ad}'
+          + '.deck-content h1{margin-bottom:22px}'
+          + '.deck-content>*{min-width:0}'
+          + '.deck-metrics{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}'
+          + '.deck-metric strong{overflow-wrap:anywhere}'
+          + '.source-chip{overflow-wrap:anywhere;max-width:100%}'
+          /* charts */
+          + '.deck-chart{display:block;width:100%;height:auto;margin:6px 0 2px;overflow:visible}'
+          + '.deck-chart text{font-family:Arial,Helvetica,sans-serif}'
+          + '.deck-bar-track{fill:#e4ede7}'
+          + '.deck-bar-label{fill:#2b4034;font-size:13px;font-weight:700}'
+          + '.deck-bar-value{fill:#5d7266;font-size:12px;font-weight:700}'
+          + '.deck-seg-label{fill:#16281e;font-size:15px;font-weight:800}'
+          + '.deck-seg-sub{fill:#77897e;font-size:11px;font-weight:600}'
+          + '.deck-seg-rate{fill:#12301f;font-size:19px;font-weight:900}'
+          + '.deck-seg-rate.is-zero{fill:#a8472168}'
+          + '.deck-seg-rate.is-zero{fill:#a34a21}'
+          + '.deck-seg-marker line{stroke:#0b1d12;stroke-width:2}'
+          + '.deck-seg-marker circle{fill:#0b1d12}'
+          + '.deck-axis-note{fill:#8b9c91;font-size:9px;font-weight:800;letter-spacing:.12em}'
+          + '.deck-col-fill{fill:var(--green-deep)}'
+          + '.deck-col-value{fill:#2b4034;font-size:12px;font-weight:800}'
+          + '.deck-col-label{fill:#6c8174;font-size:11px;font-weight:700}'
+          + '.deck-chart .grid{stroke:#d2ded6;stroke-width:1}'
+          + '.weekly-deck-chart .axis-max{fill:#9aaba0;font-size:9px;font-weight:700}'
+          + '.weekly-deck-chart .week-count{fill:#7c8f84;font-size:10px;font-weight:700}'
+          + '.deck-week-bar{fill:var(--steel)}'
+          + '.dual-charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}'
+          + '.dual-charts>div{min-width:0;padding:14px 16px;border:1px solid var(--line);background:#fff}'
+          /* outcome split */
+          + '.split-layout{display:grid;gap:18px}'
+          + '.split-bar{display:flex;height:26px;border-radius:13px;overflow:hidden;background:#f1ddd4}'
+          + '.split-bar i{display:block;min-width:3px}'
+          + '.split-won{background:var(--green)}.split-open{background:var(--copper)}'
+          + '.split-legend{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:10px;color:#54695c;font-size:13px;font-weight:700}'
+          + '.split-legend span{display:inline-flex;align-items:center;gap:8px}'
+          + '.split-legend b{width:11px;height:11px;border-radius:50%;display:block}'
+          + '.dot-won{background:var(--green)}.dot-open{background:var(--copper)}'
+          + '.outcome-layout{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}'
+          + '.outcome-card.neutral:before{background:var(--steel)}'
+          + '.outcome-card strong{font-size:52px;margin-top:22px}'
+          /* analysis + agenda layouts */
+          + '.analysis-grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(210px,.38fr);gap:20px;align-items:start}'
+          + '.analysis-main{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff}'
+          + '.analysis-side{min-width:0;padding:19px;border:1px solid var(--line);background:#fff}'
+          + '.analysis-side p{margin:10px 0 14px;color:var(--muted);font-size:13px;line-height:1.55}'
+          + '.side-stat{padding:10px 0;border-top:1px solid var(--line)}'
+          + '.side-stat span{display:block;color:#7d8f84;font-size:9px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}'
+          + '.side-stat strong{display:block;margin-top:4px;font-size:22px;font-weight:900;letter-spacing:-.04em}'
+          + '.side-stat small{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45}'
+          + '.district-list{display:grid;gap:2px}'
+          + '.district-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line)}'
+          + '.district-row span{grid-column:1/-1}'
+          + '.district-row b{font-size:13px;font-weight:900}'
+          + '.district-row span{color:var(--muted);font-size:11px;line-height:1.4}'
+          + '.district-row strong{font-size:14px;font-weight:900}'
+          + '.district-row strong.is-zero{color:#a34a21}'
+          + '.coverage-band{margin:14px 0 0;padding:13px 16px;border-left:4px solid #bd7b21;background:#f8f0e2}'
+          + '.coverage-band b{display:block;color:#8a5a12;font-size:14px;font-weight:900}'
+          + '.coverage-band span{display:block;margin-top:5px;color:#6b6353;font-size:12px;line-height:1.5}'
+          + '.timing-layout{align-items:center;margin-bottom:6px}'
+          /* agenda table */
+          + '.agenda-grid{display:grid;grid-template-columns:minmax(0,1.66fr) minmax(216px,.34fr);gap:20px;align-items:start}'
+          + '.agenda-table-wrap{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff;overflow-x:auto}'
+          + '.agenda-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:10px}'
+          + '.agenda-head b{font-size:15px;font-weight:900;color:var(--green-deep)}'
+          + '.agenda-table{width:100%;min-width:560px;border-collapse:collapse;font-size:12.5px}'
+          + '.agenda-table th{padding:7px 8px;border-bottom:1.5px solid #c8d6cd;color:#7d8f84;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;text-align:left}'
+          + '.agenda-table td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}'
+          + '.agenda-table tr:last-child td{border-bottom:0}'
+          + '.agenda-table .rank{width:22px;color:#a4b3a9;font-weight:900}'
+          + '.agenda-table .quote{font-weight:800;white-space:nowrap}'
+          + '.agenda-table .cust{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+          + '.agenda-table .week,.agenda-table .age{color:var(--muted);white-space:nowrap}'
+          + '.agenda-table .val{text-align:right;font-weight:900;white-space:nowrap;color:var(--green-deep)}'
+          + '.agenda-table .empty-row{padding:18px 8px;color:var(--muted);text-align:center}'
+          + '.agenda-side{min-width:0;padding:19px;border:1px solid var(--line);background:#0b1d12;color:#effff2}'
+          + '.agenda-side .section-label{color:#93e5ad}'
+          + '.agenda-point{display:grid;grid-template-columns:26px minmax(0,1fr);gap:9px;padding:12px 0;border-top:1px solid rgba(147,229,173,.2)}'
+          + '.agenda-point b{color:#93e5ad;font-size:12px;font-weight:900}'
+          + '.agenda-point p{margin:0;color:rgba(239,255,242,.76);font-size:12.5px;line-height:1.55}'
+          /* ---- motion: layered on top of an already-correct static state ---- */
+          + '@keyframes deckRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}'
+          + '@keyframes deckWipe{from{transform:scaleX(0)}to{transform:scaleX(1)}}'
+          + '@keyframes deckGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}'
+          + '@keyframes deckPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}'
+          + '@keyframes deckDraw{from{stroke-dashoffset:var(--deck-len,2000)}to{stroke-dashoffset:0}}'
+          + '@keyframes deckDial{from{--deck-conversion:0%}}'
+          + '.deck-slide.is-active .deck-content>*{animation:deckRise .52s cubic-bezier(.2,.7,.3,1) both}'
+          + '.deck-slide.is-active .deck-content>*:nth-child(2){animation-delay:.07s}'
+          + '.deck-slide.is-active .deck-content>*:nth-child(3){animation-delay:.14s}'
+          + '.deck-slide.is-active .deck-content>*:nth-child(4){animation-delay:.2s}'
+          + '.deck-slide.is-active .hero-disc,.deck-slide.is-active .timing-disc{animation:deckPop .6s cubic-bezier(.2,.8,.3,1) both .12s}'
+          + '.deck-slide.is-active .split-bar i{transform-origin:left center;animation:deckWipe .7s cubic-bezier(.2,.7,.3,1) both .2s}'
+          + '.deck-slide.is-active .deck-bar-fill{transform-box:fill-box;transform-origin:left center;animation:deckWipe .6s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--deck-bar-delay,0ms)}'
+          + '.deck-slide.is-active .deck-col-fill{transform-box:fill-box;transform-origin:bottom center;animation:deckGrow .55s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--deck-bar-delay,0ms)}'
+          + '.deck-slide.is-active .deck-week-bar{transform-box:fill-box;transform-origin:bottom center;animation:deckGrow .5s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--deck-bar-delay,0ms)}'
+          + '.deck-slide.is-active .deck-week-dot{transform-box:fill-box;transform-origin:center;animation:deckPop .34s cubic-bezier(.2,.8,.3,1) both;animation-delay:var(--deck-bar-delay,0ms)}'
+          + '.deck-slide.is-active .deck-week-line{stroke-dasharray:var(--deck-len,2600);animation:deckDraw 1.05s cubic-bezier(.3,.6,.3,1) both .22s}'
+          + '.deck-slide.is-active .deck-seg-marker{transform-box:fill-box;transform-origin:center;animation:deckPop .4s cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--deck-bar-delay,0ms) + 260ms)}'
+          + '.deck-slide.is-active .agenda-table tbody tr{animation:deckRise .42s ease-out both}'
+          + '.deck-slide.is-active .agenda-table tbody tr:nth-child(2){animation-delay:.06s}'
+          + '.deck-slide.is-active .agenda-table tbody tr:nth-child(3){animation-delay:.12s}'
+          + '.deck-slide.is-active .agenda-table tbody tr:nth-child(4){animation-delay:.18s}'
+          + '.deck-slide.is-active .agenda-table tbody tr:nth-child(5){animation-delay:.24s}'
+          + '.deck-slide.is-active .agenda-table tbody tr:nth-child(6){animation-delay:.3s}'
+          + '.deck-progress{position:fixed;left:0;top:0;height:3px;background:var(--green);z-index:9;transition:width .35s cubic-bezier(.2,.7,.3,1)}'
++ '.weekly-summary{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}'
+          + '.weekly-summary>div{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}'
+          + '.weekly-summary strong{overflow-wrap:anywhere}'
+          + '.deck-col-label{font-size:10px}'
+          + '.deck-slide.is-dense .deck-content h1{font-size:clamp(28px,3.5vw,48px);max-width:900px;margin-bottom:20px;line-height:.94}'
+          + '.deck-slide.is-dense .deck-content{justify-content:center;padding-top:6px;padding-bottom:18px}'
+          + '.deck-slide.is-dense header{margin-bottom:14px}'
+          + '.deck-slide footer{padding-right:340px}'
+          + '@media(max-width:900px){.deck-slide footer{padding-right:0}.deck-slide footer span:last-child{display:none}}'
+          + '.deck-page{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid rgba(255,255,255,.25);color:#ecfff0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800;letter-spacing:.04em}'
+          + '.deck-nav{align-items:stretch}'
+          + '@media(max-width:900px){.analysis-grid,.agenda-grid,.dual-charts{grid-template-columns:1fr}.deck-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}'
+          + '@media(max-width:720px){.outcome-card strong{font-size:44px}.split-legend{font-size:12px}}'
+          + '@media(prefers-reduced-motion:reduce){.deck-slide *{animation:none!important;transition:none!important}}'
+          + '@media print{.deck-slide *{animation:none!important}.deck-progress{display:none}.dual-charts{grid-template-columns:1fr 1fr}.analysis-grid,.agenda-grid{grid-template-columns:minmax(0,1.6fr) minmax(0,.4fr)}}'
+          + "</style>";
+      }
+
+      function deckDocument(slides) {
+        const script = '<scr' + 'ipt>(function(){'
+          + 'var slides=Array.prototype.slice.call(document.querySelectorAll(".deck-slide"));'
+          + 'var page=document.getElementById("deckPage");'
+          + 'var bar=document.getElementById("deckProgress");'
+          + 'var current=0;'
+          // Measure each polyline so the draw animation starts fully hidden
+          // regardless of how many weeks the chart ended up spanning.
+          + 'function measure(slide){Array.prototype.forEach.call(slide.querySelectorAll(".deck-week-line"),function(line){try{line.style.setProperty("--deck-len",Math.ceil(line.getTotalLength())+1)}catch(e){}})}'
+          + 'function show(index){current=(index+slides.length)%slides.length;'
+          + 'slides.forEach(function(slide,i){slide.classList.remove("is-active")});'
+          + 'var active=slides[current];measure(active);'
+          // Reflow between removing and adding the class so entrance animations
+          // replay every time a slide is revisited.
+          + 'void active.offsetWidth;active.classList.add("is-active");'
+          + 'if(page)page.textContent=(current+1)+" / "+slides.length;'
+          + 'if(bar)bar.style.width=((current+1)/slides.length*100)+"%";}'
+          + 'var next=document.getElementById("next");if(next)next.addEventListener("click",function(){show(current+1)});'
+          + 'var prev=document.getElementById("prev");if(prev)prev.addEventListener("click",function(){show(current-1)});'
+          + 'var print=document.getElementById("print");if(print)print.addEventListener("click",function(){window.print()});'
+          + 'document.addEventListener("keydown",function(event){'
+          + 'if(event.key==="ArrowRight"||event.key===" "||event.key==="PageDown"){event.preventDefault();show(current+1)}'
+          + 'if(event.key==="ArrowLeft"||event.key==="PageUp"){event.preventDefault();show(current-1)}'
+          + 'if(event.key==="Home"){event.preventDefault();show(0)}'
+          + 'if(event.key==="End"){event.preventDefault();show(slides.length-1)}'
+          + 'if(String(event.key).toLowerCase()==="p"){window.print()}});'
+          + 'window.addEventListener("beforeprint",function(){slides.forEach(function(s){s.classList.add("is-active")})});'
+          + 'window.addEventListener("afterprint",function(){show(current)});'
+          + 'show(0)})()</scr' + "ipt>";
+        // The counter is generated from the slide count, never hardcoded.
+        const count = (slides.match(/class="deck-slide[ "]/g) || []).length;
+        return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quote outcome team report</title>'
+          + deckStyles() + deckReadabilityStyles() + deckExtraStyles() + "</head><body>"
+          + '<div class="deck-progress" id="deckProgress" style="width:' + (count ? (100 / count).toFixed(2) : 0) + '%"></div>'
+          + "<main>" + slides + "</main>"
+          + '<nav class="deck-nav" aria-label="Report controls"><button id="prev" type="button">← Previous</button><button id="next" type="button">Next →</button><button id="print" type="button">Print / Save PDF</button><span id="deckPage" class="deck-page" aria-live="polite">1 / ' + count + "</span></nav>"
+          + script + "</body></html>";
       }
 
       function reportDeckHtml() {
         const data = currentScope();
-        const captureArc = Math.max(0, Math.min(100, data.valueCapture));
+        const records = Array.isArray(data.records) ? data.records : [];
         const timingText = onTimeAvailable(data) ? data.onTime + "%" : "Not scored";
         const exportDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date());
         const sourceState = state.intake.hasRun ? "Imported source set" : "Design preview";
         const customerSignals = data.customers || blankCustomerSignals();
         const topWinCustomer = Array.isArray(customerSignals.topWinAccounts) && customerSignals.topWinAccounts.length ? customerSignals.topWinAccounts[0] : null;
-        const topWinCustomerName = topWinCustomer ? escape(String(topWinCustomer.name || "Customer").slice(0, 26)) : "No linked customer win yet";
+        const topWinCustomerName = topWinCustomer ? String(topWinCustomer.name || "Customer").slice(0, 26) : "No linked customer win yet";
         const bookedWeeks = Array.isArray(data.bookedWeekly) ? data.bookedWeekly : [];
         const recurringAccounts = Array.isArray(customerSignals.multiWeekAccounts) ? customerSignals.multiWeekAccounts.slice(0, 5) : [];
-        const maxRecurringWeeks = recurringAccounts.length ? Math.max.apply(null, recurringAccounts.map(account => Number(account.loadedWeeks) || 0)) : 0;
-        const recurringRows = recurringAccounts.length ? recurringAccounts.map(account => {
-          const width = maxRecurringWeeks ? Math.max(8, Math.round((Number(account.loadedWeeks) || 0) / maxRecurringWeeks * 100)) : 8;
-          return '<div class="timing-row" title="' + escape(String(account.name || "Customer")) + ' · ' + account.loadedWeeks + ' quoted weeks · ' + money(account.quoteValue) + ' quoted"><span>' + escape(String(account.name || "Customer").slice(0, 22)) + '</span><i><b style="width:' + width + '%"></b></i><strong>' + account.loadedWeeks + ' wks</strong></div>';
-        }).join("") : '<div class="deck-empty">No multi-week customer pattern is available in this source set yet.</div>';
-        const timingRows = onTimeAvailable(data) ? data.weekly.map(item => {
-          const score = item.onTimeScored === false ? 0 : item.onTime;
-          const label = item.onTimeScored === false ? "—" : item.onTime + "%";
-          return '<div class="timing-row"><span>' + escape(item.week) + '</span><i><b style="width:' + score + '%"></b></i><strong>' + label + "</strong></div>";
-        }).join("") : '<div class="deck-empty">Timing is not yet scored. Include both <b>requested_due_date</b> and <b>sent_date</b> in the weekly quote files to populate this slide.</div>';
-        const opening = '<div class="hero-grid"><div class="hero-copy"><p class="lead">A concise, team-level management report built from the full quote book. It keeps the seller conversation focused on the outcome, release discipline, and the next best action.</p><div class="deck-metrics">' + deckMetric("Quote conversion", pct(data.conversion), data.orders + " confirmed order links") + deckMetric("Quoted work", money(data.quoteValue), data.quotes + " quote records") + deckMetric("Confirmed value", money(data.orderValue), pct(data.valueCapture) + " value capture") + '</div><div class="source-chip"><i></i>' + sourceState + " · " + escape(data.period) + " · exported " + exportDate + '</div></div><div class="hero-disc" style="--deck-conversion:' + data.conversion + '%"><div><strong>' + pct(data.conversion) + '</strong><span>confirmed<br />conversion</span></div></div></div>';
-        const outcomes = '<div class="outcome-layout"><div class="outcome-intro"><span class="section-label">The decision field</span><p>Every quote is classified in one clear team view: work that returned as a confirmed order, and work that still needs a current outcome.</p><div class="outcome-strip"><i style="width:' + data.conversion + '%"></i></div><div class="strip-labels"><span>' + data.orders + ' confirmed / ' + pct(data.conversion) + '</span><span>' + data.unconverted + ' unconverted / ' + pct(100 - data.conversion) + '</span></div></div><div class="outcome-card won"><span>Confirmed orders</span><strong>' + data.orders + '</strong><b>' + money(data.orderValue) + ' returned value</b><p>Linked to their originating quote record.</p></div><div class="outcome-card open"><span>Unconverted opportunities</span><strong>' + data.unconverted + '</strong><b>' + money(data.unconvertedValue) + ' quoted value</b><p>Open, lost, or awaiting an owner-confirmed current status.</p></div></div><div class="deck-callout"><strong>Management read:</strong> ' + data.unconverted + ' quote records remain visible as professional follow-up work—not assumed losses—until a confirmed order or named outcome is recorded.</div>';
-        const weekly = '<div class="weekly-summary"><div><span>Peak release</span><strong>' + escape(data.weekly.reduce((best, item) => item.quotes > best.quotes ? item : best, data.weekly[0]).week) + ' / ' + data.weekly.reduce((best, item) => item.quotes > best.quotes ? item : best, data.weekly[0]).quotes + '</strong><small>quotes issued</small></div><div><span>Latest conversion</span><strong>' + escape(data.weekly[data.weekly.length - 1].week) + ' / ' + pct(data.weekly[data.weekly.length - 1].rate) + '</strong><small>confirmed order rate</small></div><div><span>Release on time</span><strong>' + timingText + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div></div>' + reportWeeklySvg(data.weekly) + '<p class="chart-note">Quote volume and conversion remain on separate lanes so the team can compare workload with performance without blending scales. The view expands with however many weekly files are loaded.</p>';
-        const timing = '<div class="timing-layout"><div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>on-time<br />release</span></div><div class="timing-copy"><span class="section-label">Release discipline</span><h2>' + (onTimeAvailable(data) ? "Measure speed without losing the outcome." : "Make timing visible in the next source run.") + '</h2><p>' + (onTimeAvailable(data) ? "On-time release compares each requested due date with its sent quote date, scored only on records that carry an EARLY or LATE result (' + escape(onTimeCoverageNote(data)) + '). It is independent from conversion, making it a clean operating signal for the full team." : "The quote-to-order outcome is available now. Add the two timing fields to score the team's release performance in the next exported report.") + '</p><div class="timing-list">' + timingRows + "</div></div></div>";
-        const operations = '<div class="weekly-summary"><div><span>Booked volume</span><strong>' + (data.tonsScored ? tons(data.bookedTons) : "Not scored") + '</strong><small>' + (data.tonsScored ? "tons on matched booked jobs" : "Total Tons not supplied") + '</small></div><div><span>Repeat / no linked win</span><strong>' + customerSignals.repeatNoWin + '</strong><small>' + money(customerSignals.repeatNoWinValue) + ' quoted value needs an outcome</small></div><div><span>Most quote wins</span><strong>' + (topWinCustomer ? topWinCustomer.wins : "-") + '</strong><small>' + topWinCustomerName + '</small></div></div><div class="outcome-layout"><div class="outcome-intro"><span class="section-label">Customer continuity</span><p>Recurring customer demand, top quote wins, and repeat activity without a linked win stay visible alongside the conversion result.</p><div class="timing-list">' + recurringRows + '</div></div><div class="outcome-card won"><span>Customer accounts</span><strong>' + customerSignals.total + '</strong><b>' + customerSignals.multiWeek + ' repeat relationships</b><p>' + customerSignals.firstSeen + ' accounts are first seen in this selected quote book.</p></div><div class="outcome-card won"><span>Most quote wins</span><strong>' + (topWinCustomer ? topWinCustomer.wins : "-") + '</strong><b>' + topWinCustomerName + '</b><p>' + (topWinCustomer ? money(topWinCustomer.wonValue) + ' returned value from linked orders.' : 'A matching Order Log Quote # makes this customer signal available.') + '</p></div></div><div class="deck-callout"><strong>Operating read:</strong> ' + customerSignals.repeatNoWin + ' recurring accounts have no linked win in the selected logs. Treat ' + money(customerSignals.repeatNoWinValue) + ' of quoted value as a follow-up signal - not an automatic loss - while booked tons and top-win customers show where the commercial momentum is returning.</div>';
-        const actions = '<div class="action-grid"><article><span>01 / OUTCOME FIELD</span><strong>' + data.unconverted + ' records need a current answer.</strong><p>Prioritize high-value unconverted work, then document win, loss, or an owner-held next step.</p></article><article><span>02 / DELIVERY SIGNAL</span><strong>' + timingText + ' release discipline.</strong><p>' + (onTimeAvailable(data) ? "Scored on ' + escape(onTimeCoverageNote(data)) + '. Keep the 90% reference visible beside quote workload as new weeks are loaded." : "Add requested due and sent dates to make the next report a delivery-performance read.") + '</p></article><article><span>03 / REVIEW RHYTHM</span><strong>Refresh the same deck every source run.</strong><p>Load the weekly quote exports and every applicable order-log export, run the dashboard, then share this team summary.</p></article></div><div class="deck-callout"><strong>Next management review:</strong> start with the conversion dial, investigate the unconverted opportunity field, then use the weekly, timing, and commercial-continuity slides to decide where the operating conversation belongs.</div>';
-        const slides = deckSlide(1, "Executive outcome", "See the quote book<br /><em>through to outcome.</em>", opening) + deckSlide(2, "Quote outcome overview", "One quote book.<br /><em>Two visible outcomes.</em>", outcomes) + deckSlide(3, "Weekly performance pulse", "Volume above.<br /><em>Conversion below.</em>", weekly) + deckSlide(4, "Quote release timing", "Work delivered<br /><em>when it was needed.</em>", timing) + deckSlide(5, "Commercial continuity", "See the operating<br /><em>depth behind outcome.</em>", operations) + deckSlide(6, "Management focus", "Turn the view<br /><em>into action.</em>", actions);
-        const deckStyles = '<style>:root{--ink:#102019;--muted:#607268;--green:#00bd57;--green-deep:#007338;--copper:#c87656;--line:#dbe6de;--paper:#f4f7f2}*{box-sizing:border-box}html,body{margin:0;min-width:320px;background:#08120b;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}button{font:inherit}.deck-slide{display:none;position:relative;min-height:100vh;padding:38px clamp(28px,7vw,112px) 76px;background:radial-gradient(circle at 84% 16%,rgba(0,189,87,.11),transparent 25%),var(--paper);overflow:hidden}.deck-slide.is-active{display:flex;flex-direction:column}.deck-slide:after{content:"";position:absolute;right:-80px;bottom:-80px;width:310px;height:310px;border:1px solid rgba(0,115,56,.13);border-radius:50%;box-shadow:0 0 0 34px rgba(0,115,56,.035),0 0 0 68px rgba(0,115,56,.018);pointer-events:none}.deck-slide header,.deck-slide footer{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}.deck-slide header span{color:var(--green-deep)}.deck-slide header b{color:#899a8e;font-size:9px}.deck-content{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;max-width:1220px;margin:0 auto;width:100%}.deck-content h1{max-width:740px;margin:0 0 30px;font-family:"Arial Narrow",Arial,sans-serif;font-size:clamp(46px,6.5vw,86px);letter-spacing:-.06em;line-height:.86;text-transform:uppercase}.deck-content h1 em{color:var(--green-deep);font-style:normal}.deck-slide footer{color:#718277;font-size:9px}.deck-slide footer span:last-child{color:#9baaa0;text-transform:none;letter-spacing:0}.hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(240px,.85fr);gap:62px;align-items:center}.lead{max-width:620px;margin:0;color:var(--muted);font-size:16px;line-height:1.65}.deck-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:32px;border-top:1px solid var(--line);border-left:1px solid var(--line)}.deck-metric{min-height:112px;padding:17px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}.deck-metric span,.section-label,.outcome-card span,.weekly-summary span,.action-grid span{display:block;color:#799084;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.deck-metric strong{display:block;margin-top:10px;font-family:Consolas,monospace;font-size:27px;font-weight:500;letter-spacing:-.08em}.deck-metric small{display:block;margin-top:6px;color:var(--muted);font-size:10px}.source-chip{display:inline-flex;align-items:center;gap:8px;margin-top:18px;color:#64776b;font-family:Consolas,monospace;font-size:10px}.source-chip i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(0,189,87,.12)}.hero-disc,.timing-disc{--deck-conversion:0%;display:grid;place-items:center;justify-self:center;width:min(30vw,300px);aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--green) var(--deck-conversion),#dce7df 0);box-shadow:inset 0 0 0 15px var(--paper),0 22px 45px rgba(6,39,18,.12)}.hero-disc>div,.timing-disc{position:relative}.hero-disc>div{display:grid;place-items:center;width:72%;aspect-ratio:1;border-radius:50%;background:#0b1d12;color:#f2fff5;text-align:center}.hero-disc strong,.timing-disc strong{display:block;font-family:Consolas,monospace;font-size:clamp(33px,4vw,52px);font-weight:500;letter-spacing:-.1em}.hero-disc span,.timing-disc span{display:block;margin-top:5px;color:rgba(239,255,242,.6);font-size:10px;line-height:1.3;text-transform:uppercase;letter-spacing:.1em}.outcome-layout{display:grid;grid-template-columns:1.1fr .8fr .8fr;gap:16px;align-items:stretch}.outcome-intro,.outcome-card{padding:27px;background:#fff;border:1px solid var(--line)}.outcome-intro p{max-width:390px;margin:15px 0 24px;color:var(--muted);font-size:15px;line-height:1.55}.outcome-strip{display:flex;height:16px;border-radius:9px;overflow:hidden;background:#f1ddd4}.outcome-strip i{display:block;min-width:6px;background:var(--green)}.strip-labels{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:#62766a;font-family:Consolas,monospace;font-size:10px}.outcome-card{position:relative;overflow:hidden}.outcome-card:before{content:"";position:absolute;top:0;bottom:0;left:0;width:5px;background:var(--green)}.outcome-card.open:before{background:var(--copper)}.outcome-card strong{display:block;margin-top:30px;font-family:Consolas,monospace;font-size:66px;font-weight:500;letter-spacing:-.12em;line-height:.8}.outcome-card b{display:block;margin-top:17px;font-family:Consolas,monospace;font-size:15px;font-weight:500}.outcome-card p{margin:9px 0 0;color:var(--muted);font-size:11px;line-height:1.45}.deck-callout{margin-top:18px;padding:15px 18px;border-left:4px solid var(--green);color:#466052;background:#e9f4ed;font-size:13px;line-height:1.55}.deck-callout strong{color:#173c24}.weekly-summary{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:20px;border:1px solid var(--line);background:#fff}.weekly-summary>div{padding:15px 18px;border-right:1px solid var(--line)}.weekly-summary>div:last-child{border:0}.weekly-summary strong{display:block;margin-top:7px;font-family:Consolas,monospace;font-size:25px;font-weight:500;letter-spacing:-.08em}.weekly-summary small{display:block;margin-top:5px;color:var(--muted);font-size:10px}.weekly-deck-chart{display:block;width:100%;height:auto;padding:10px 0}.weekly-deck-chart .lane{fill:#6c8174;font-size:9px;font-weight:700;letter-spacing:1.4px}.weekly-deck-chart .week{fill:#718277;font-family:Consolas,monospace;font-size:10px}.weekly-deck-chart .grid{stroke:#dce5de;stroke-width:1}.weekly-deck-chart .reference{stroke:#bd7b21;stroke-width:1.5;stroke-dasharray:5 5}.weekly-deck-chart .reference-label{fill:#a66917;font-size:9px;font-weight:700;letter-spacing:1px}.chart-note{margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.5}.timing-layout{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.28fr);gap:62px;align-items:center}.timing-disc{--deck-timing:0%;width:min(27vw,270px);background:conic-gradient(var(--green) var(--deck-timing),#dce7df 0);text-align:center}.timing-disc:before{content:"";position:absolute;inset:15px;border-radius:50%;background:#0b1d12}.timing-disc strong,.timing-disc span{position:relative;z-index:1;color:#f1fff3}.timing-copy h2{max-width:520px;margin:13px 0 0;font-family:"Arial Narrow",Arial,sans-serif;font-size:45px;letter-spacing:-.05em;line-height:.93;text-transform:uppercase}.timing-copy p{max-width:610px;margin:18px 0;color:var(--muted);font-size:14px;line-height:1.6}.timing-list{display:grid;gap:8px}.timing-row{display:grid;grid-template-columns:48px minmax(0,1fr) 45px;align-items:center;gap:10px;color:#6c8174;font-family:Consolas,monospace;font-size:10px}.timing-row i{display:block;height:9px;background:#dce7df}.timing-row i b{display:block;height:100%;background:var(--green)}.timing-row strong{text-align:right;color:#244a31;font-weight:500}.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.action-grid article{min-height:206px;padding:23px;border:1px solid var(--line);background:#fff}.action-grid article:nth-child(2){background:#0b1d12;color:#effff2;border-color:#0b1d12}.action-grid article:nth-child(2) span{color:#93e5ad}.action-grid strong{display:block;margin-top:24px;font-family:"Arial Narrow",Arial,sans-serif;font-size:29px;letter-spacing:-.03em;line-height:.94;text-transform:uppercase}.action-grid p{margin:14px 0 0;color:var(--muted);font-size:12px;line-height:1.55}.action-grid article:nth-child(2) p{color:rgba(239,255,242,.62)}.deck-empty{padding:20px;border:1px dashed #b9c9bd;color:#607268;background:#fff;font-size:13px;line-height:1.55}.deck-nav{position:fixed;right:20px;bottom:20px;z-index:8;display:flex;gap:7px;padding:7px;border:1px solid rgba(255,255,255,.18);background:rgba(8,18,11,.88);box-shadow:0 12px 28px rgba(0,0,0,.28)}.deck-nav button{padding:9px 11px;border:1px solid rgba(255,255,255,.25);color:#ecfff0;background:transparent;font-size:11px;font-weight:700;cursor:pointer}.deck-nav button:hover{border-color:#4bea8c;color:#4bea8c}@media(max-width:720px){.deck-slide{padding:25px 20px 74px}.deck-slide header b{display:none}.hero-grid,.timing-layout{grid-template-columns:1fr;gap:27px}.hero-disc,.timing-disc{width:min(67vw,260px)}.deck-metrics,.outcome-layout,.action-grid{grid-template-columns:1fr}.deck-metric{min-height:0}.weekly-summary{grid-template-columns:1fr}.weekly-summary>div{border-right:0;border-bottom:1px solid var(--line)}.weekly-deck-chart{width:860px;max-width:none}.deck-content{overflow:hidden}.timing-copy h2{font-size:38px}}@media print{html,body{background:#fff}.deck-slide{display:flex!important;min-height:100vh;break-after:page;padding:38px 64px 58px}.deck-nav{display:none}}</style>';
-        const deckReadabilityStyles = '<style>.deck-slide{padding:46px clamp(36px,7vw,112px) 88px}.deck-slide header,.deck-slide footer{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:800;letter-spacing:.11em}.deck-slide header b{font-size:10px;font-weight:800}.deck-content h1{font-family:Arial,Helvetica,sans-serif;font-size:clamp(50px,6.4vw,84px);font-weight:900;letter-spacing:-.055em;line-height:.91}.lead{font-size:18px;font-weight:500;line-height:1.62}.deck-metric{min-height:126px;padding:20px}.deck-metric span,.section-label,.outcome-card span,.weekly-summary span,.action-grid span{font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:800;letter-spacing:.1em}.deck-metric strong,.weekly-summary strong,.outcome-card strong,.hero-disc strong,.timing-disc strong{font-family:Arial,Helvetica,sans-serif;font-weight:900;letter-spacing:-.06em}.deck-metric strong{font-size:31px}.deck-metric small,.weekly-summary small{font-size:12px;line-height:1.4}.source-chip{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.hero-disc span,.timing-disc span{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:800}.outcome-intro,.outcome-card{padding:29px}.outcome-intro p{font-size:16px;line-height:1.6}.strip-labels{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.outcome-card strong{font-size:66px}.outcome-card b{font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:800;line-height:1.3}.outcome-card p{font-size:13px;line-height:1.55}.deck-callout{font-size:15px;font-weight:500;line-height:1.6}.weekly-summary>div{min-height:115px;padding:19px}.weekly-summary strong{font-size:29px}.weekly-deck-chart .lane{font-size:10px;font-weight:800}.weekly-deck-chart .week{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.weekly-deck-chart .reference-label{font-size:10px;font-weight:800}.chart-note{font-size:14px;line-height:1.58}.timing-copy h2{font-family:Arial,Helvetica,sans-serif;font-size:48px;font-weight:900;letter-spacing:-.055em;line-height:.94}.timing-copy p{font-size:15px;line-height:1.65}.timing-row{font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700}.timing-row strong{font-weight:800}.action-grid article{min-height:220px;padding:26px}.action-grid strong{font-family:Arial,Helvetica,sans-serif;font-size:31px;font-weight:900;letter-spacing:-.04em;line-height:.98}.action-grid p{font-size:14px;line-height:1.6}.deck-empty{font-size:14px;line-height:1.6}.deck-nav button{font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800}.deck-metric small,.weekly-summary small,.outcome-card b,.outcome-card p,.action-grid p,.deck-callout{overflow-wrap:anywhere}@media(max-width:720px){.deck-slide{padding:28px 21px 78px}.deck-content h1{font-size:clamp(43px,13vw,62px)}.lead{font-size:16px}.deck-metric{min-height:0}.timing-copy h2{font-size:39px}.outcome-intro,.outcome-card{padding:22px}.outcome-card strong{font-size:58px}.action-grid article{min-height:0}}</style>';
-        const deckScript = '<scr' + 'ipt>(function(){var slides=Array.prototype.slice.call(document.querySelectorAll(".deck-slide"));var page=document.getElementById("deckPage");var current=0;function show(index){current=(index+slides.length)%slides.length;slides.forEach(function(slide,i){slide.classList.toggle("is-active",i===current)});page.textContent=(current+1)+" / "+slides.length}document.getElementById("next").addEventListener("click",function(){show(current+1)});document.getElementById("prev").addEventListener("click",function(){show(current-1)});document.getElementById("print").addEventListener("click",function(){window.print()});document.addEventListener("keydown",function(event){if(event.key==="ArrowRight"||event.key===" "){event.preventDefault();show(current+1)}if(event.key==="ArrowLeft"){event.preventDefault();show(current-1)}if(event.key.toLowerCase()==="p"){window.print()}});show(0)})()</scr' + "ipt>";
-        return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quote outcome team report</title>' + deckStyles + deckReadabilityStyles + "</head><body><main>" + slides + '</main><nav class="deck-nav" aria-label="Report controls"><button id="prev" type="button">← Previous</button><button id="next" type="button">Next →</button><button id="print" type="button">Print / Save PDF</button><button id="deckPage" type="button" aria-label="Current slide">1 / 6</button></nav>' + deckScript + "</body></html>";
+        const valueBands = deckValueBands(records);
+        const sizeBands = deckSizeBands(records);
+        const districts = deckDistricts(records);
+        const revisions = deckRevisionSplit(records);
+        const lag = deckLagBuckets(records);
+        const followUp = deckFollowUp(records, 6);
+        const coverage = onTimeCoverageNote(data);
+
+        // ---- 01 Executive outcome -------------------------------------------
+        const confidence = data.ci ? data.ci.low.toFixed(1) + "–" + data.ci.high.toFixed(1) + "%" : "—";
+        const opening = '<div class="hero-grid"><div class="hero-copy">'
+          + '<p class="lead">Every quote in the selected source set, followed through to a confirmed order or an outcome that still needs an owner. Figures come from the weekly quote books joined to the order logs on quote number.</p>'
+          + '<div class="deck-metrics">'
+          + deckMetric("Quote conversion", pct(data.conversion), data.orders + " confirmed order links")
+          + deckMetric("Quoted work", money(data.quoteValue), data.quotes + " quote opportunities")
+          + deckMetric("Confirmed value", money(data.orderValue), pct(data.valueCapture) + " value capture")
+          + deckMetric("95% confidence", confidence, "Wilson interval on " + data.quotes + " records")
+          + '</div><div class="source-chip"><i></i>' + escape(sourceState) + " · " + escape(data.period) + " · " + escape(data.label) + " · exported " + escape(exportDate) + "</div></div>"
+          + '<div class="hero-disc" style="--deck-conversion:' + data.conversion + '%"><div><strong>' + pct(data.conversion) + '</strong><span>confirmed<br />conversion</span></div></div></div>';
+
+        // ---- 02 Outcome split ------------------------------------------------
+        const outcomes = '<div class="split-layout">'
+          + '<div class="split-bar-wrap"><div class="split-bar"><i class="split-won" style="width:' + data.conversion + '%"></i><i class="split-open" style="width:' + (100 - data.conversion) + '%"></i></div>'
+          + '<div class="split-legend"><span><b class="dot-won"></b>' + data.orders + ' confirmed orders · ' + pct(data.conversion) + '</span><span><b class="dot-open"></b>' + data.unconverted + ' unconverted · ' + pct(100 - data.conversion) + '</span></div></div>'
+          + '<div class="outcome-layout"><div class="outcome-card won"><span>Confirmed orders</span><strong>' + data.orders + '</strong><b>' + money(data.orderValue) + ' returned value</b><p>' + data.jobs + ' booked jobs are linked to these quote opportunities.</p></div>'
+          + '<div class="outcome-card open"><span>Unconverted opportunities</span><strong>' + data.unconverted + '</strong><b>' + money(data.unconvertedValue) + ' quoted value</b><p>Open, lost, or awaiting an owner-confirmed status. Not counted as losses.</p></div>'
+          + '<div class="outcome-card neutral"><span>Value concentration</span><strong>' + pct(data.valueCapture) + '</strong><b>of quoted value returned</b><p>Conversion counts records; value capture weights them by price.</p></div></div>'
+          + "</div>"
+          + '<div class="deck-callout"><strong>Management read:</strong> ' + data.unconverted + ' quote records remain visible as follow-up work — not assumed losses — until a confirmed order or a named outcome is recorded against them.</div>';
+
+        // ---- 03 Weekly pulse -------------------------------------------------
+        const peakWeek = data.weekly.length ? data.weekly.reduce((best, item) => item.quotes > best.quotes ? item : best, data.weekly[0]) : null;
+        const bestWeek = data.weekly.length ? data.weekly.reduce((best, item) => item.rate > best.rate ? item : best, data.weekly[0]) : null;
+        const weekly = '<div class="weekly-summary">'
+          + '<div><span>Quoted weeks loaded</span><strong>' + data.weekly.length + '</strong><small>the chart scales to the set</small></div>'
+          + '<div><span>Peak release</span><strong>' + (peakWeek ? escape(peakWeek.week) + " / " + peakWeek.quotes : "—") + '</strong><small>quotes issued</small></div>'
+          + '<div><span>Strongest conversion</span><strong>' + (bestWeek ? escape(bestWeek.week) + " / " + pct(bestWeek.rate) : "—") + '</strong><small>confirmed order rate</small></div>'
+          + '<div><span>Release on time</span><strong>' + timingText + '</strong><small>' + escape(coverage) + '</small></div></div>'
+          + reportWeeklySvg(data.weekly)
+          + '<p class="chart-note">Volume and conversion stay on separate lanes so workload is never mistaken for performance. Recent weeks sit below the 10% reference because their decision window is still open — that is what the exposure lens is for.</p>';
+
+        // ---- 04 Where the value sits (new) -----------------------------------
+        const worstBand = valueBands.bands.filter(band => band.quotes >= 3).sort((a, b) => a.conversion - b.conversion)[0];
+        const bigBand = valueBands.bands.length ? valueBands.bands[valueBands.bands.length - 1] : null;
+        const valueRead = bigBand && bigBand.wins === 0
+          ? "The largest band — " + bigBand.quotes + " quotes carrying " + money(bigBand.value / 1000000) + " — has returned no linked order in this cohort. That single row is worth more than every confirmed win combined."
+          : worstBand
+            ? worstBand.label + " converts at " + pct(worstBand.conversion) + ", the weakest scored band, across " + money(worstBand.value / 1000000) + " of quoted work."
+            : "Quoted value is spread evenly enough that no band stands out as the constraint.";
+        const valueSlide = '<div class="analysis-grid"><div class="analysis-main">'
+          + deckSegmentChart(valueBands.bands, { label: "Quote conversion by quoted value band", empty: "No priced quote records in this cohort yet." })
+          + '</div><aside class="analysis-side"><span class="section-label">Read the split</span>'
+          + '<p>' + escape(valueRead) + '</p>'
+          + '<div class="side-stat"><span>Priced records scored</span><strong>' + valueBands.scored + " / " + data.quotes + '</strong></div>'
+          + '<div class="side-stat"><span>Revised quotes convert at</span><strong>' + pct(revisions.revised.conversion) + '</strong><small>' + revisions.revised.quotes + ' revised vs ' + pct(revisions.single.conversion) + ' on ' + revisions.single.quotes + ' single-pass' + (revisions.revised.quotes < 10 ? ' · thin sample' : '') + '</small></div>'
+          + "</aside></div>"
+          + '<div class="deck-callout"><strong>Where to look first:</strong> conversion is a rate, but the follow-up list should be ordered by value. The bands above show which size of work is actually returning, and which is quoted heavily but rarely booked.</div>';
+
+        // ---- 05 Release timing -----------------------------------------------
+        const timingRows = onTimeAvailable(data)
+          ? deckBarChart(data.weekly.map(item => ({
+              label: item.week,
+              value: item.onTimeScored === false ? 0 : item.onTime,
+              value_label: item.onTimeScored === false ? "not scored" : item.onTime + "%",
+              tone: item.onTimeScored === false ? "copper" : item.onTime >= 90 ? "green" : "deep"
+            })), { label: "On-time release rate by quoted week" })
+          : '<div class="deck-empty">Release timing is not scored in this source set. The <b>On-Time</b> column needs EARLY or LATE values; rows reading N/A are excluded from both halves of the rate.</div>';
+        const timing = '<div class="timing-layout"><div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>on-time<br />release</span></div>'
+          + '<div class="timing-copy"><span class="section-label">Release discipline</span>'
+          + '<h2>Speed, measured only where it was scored.</h2>'
+          + '<p>On-time release compares each requested due date with its sent quote date. It is independent of conversion — a late quote can still win, and an early one can still go unanswered.</p>'
+          + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Rows without an EARLY or LATE result are excluded from both the numerator and the denominator, so this rate never stands in for the full quote book.</span></div>'
+          + "</div></div>" + timingRows;
+
+        // ---- 06 Commercial continuity ----------------------------------------
+        const recurringChart = deckBarChart(recurringAccounts.map(account => ({
+          label: String(account.name || "Customer"),
+          value: Number(account.loadedWeeks) || 0,
+          value_label: (Number(account.loadedWeeks) || 0) + " wks · " + money(account.quoteValue),
+          tone: account.wins ? "green" : "copper"
+        })), { label: "Customers by quoted weeks present", empty: "No multi-week customer pattern in this source set yet.", labelWidth: 232, valueWidth: 150 });
+        const operations = '<div class="weekly-summary">'
+          + '<div><span>Customer accounts</span><strong>' + customerSignals.total + '</strong><small>' + customerSignals.multiWeek + ' repeat · ' + customerSignals.firstSeen + ' first seen</small></div>'
+          + '<div><span>Booked volume</span><strong>' + (data.tonsScored ? tons(data.bookedTons) : "Not scored") + '</strong><small>' + (data.tonsScored ? data.tonsScored + " jobs with Total Tons" : "Total Tons not supplied") + '</small></div>'
+          + '<div><span>Most quote wins</span><strong>' + (topWinCustomer ? topWinCustomer.wins : "—") + '</strong><small>' + escape(topWinCustomerName) + '</small></div>'
+          + '<div><span>Repeat, no linked win</span><strong>' + customerSignals.repeatNoWin + '</strong><small>' + money(customerSignals.repeatNoWinValue) + ' quoted</small></div></div>'
+          + '<div class="analysis-grid"><div class="analysis-main">' + recurringChart + '</div>'
+          + '<aside class="analysis-side"><span class="section-label">District mix</span>'
+          + '<p>Quote-number prefixes, read straight off the quote key. No roster inference is applied, so no district result can misattribute a person.</p>'
+          + '<div class="district-list">' + (districts.length ? districts.slice(0, 5).map(district =>
+              '<div class="district-row"><b>' + escape(district.code) + '</b><strong class="' + (district.wins ? "" : "is-zero") + '">' + pct(district.conversion) + '</strong><span>' + district.quotes + ' quotes · ' + money(district.value / 1000000) + ' quoted</span></div>'
+            ).join("") : '<div class="deck-empty">No district prefixes available.</div>') + "</div></aside></div>"
+          + '<div class="deck-callout"><strong>Operating read:</strong> ' + customerSignals.repeatNoWin + ' recurring accounts carry ' + money(customerSignals.repeatNoWinValue) + ' of quoted value with no linked win. Treat that as a follow-up queue, not a loss list — a repeat customer quoting again is a relationship still in play.</div>';
+
+        // ---- 07 Speed to order (new) -----------------------------------------
+        const lagChart = lag.scored
+          ? deckColumnChart(lag.buckets.map(bucket => ({ label: bucket.label, value: bucket.count, value_label: String(bucket.count) })), { label: "Quote-to-order lag distribution", caption: "BOOKED ORDERS BY DAYS FROM QUOTE" })
+          : '<div class="deck-empty">No dated quote-to-order pairs in this cohort yet. Lag needs both a quote date and an Order Entry date.</div>';
+        const tonsChart = bookedWeeks.length
+          ? deckColumnChart(bookedWeeks.slice(-12).map(item => ({ label: item.week, value: Number(item.tons) || 0, value_label: Math.round(Number(item.tons) || 0) })), { label: "Booked tons by order-entry week", caption: "BOOKED TONS BY ORDER-ENTRY WEEK" })
+          : '<div class="deck-empty">Total Tons is not populated on the matched jobs in this source set.</div>';
+        const speed = '<div class="weekly-summary">'
+          + '<div><span>Median lag</span><strong>' + (lag.median === null ? "—" : Math.round(lag.median) + " d") + '</strong><small>quote sent to order entry</small></div>'
+          + '<div><span>Fast decisions (p10)</span><strong>' + (lag.p10 === null ? "—" : Math.round(lag.p10) + " d") + '</strong><small>quickest tenth of wins</small></div>'
+          + '<div><span>Slow decisions (p90)</span><strong>' + (lag.p90 === null ? "—" : Math.round(lag.p90) + " d") + '</strong><small>slowest tenth of wins</small></div>'
+          + '<div><span>Scored pairs</span><strong>' + lag.scored + '</strong><small>of ' + data.orders + ' confirmed orders</small></div></div>'
+          + '<div class="dual-charts"><div>' + lagChart + "</div><div>" + tonsChart + "</div></div>"
+          + '<div class="deck-callout"><strong>Why the exposure lens exists:</strong> half of the wins in this cohort landed within ' + (lag.median === null ? "the median lag" : Math.round(lag.median) + " days") + ', and the slowest tenth took ' + (lag.p90 === null ? "considerably longer" : Math.round(lag.p90) + " days") + '. A quote issued last week has not lost — it has not been decided.</div>';
+
+        // ---- 08 Review agenda (replaces the old generic action cards) ---------
+        const followUpRows = followUp.length ? followUp.map((item, index) =>
+          '<tr><td class="rank">' + (index + 1) + '</td><td class="quote">' + escape(item.quote) + '</td><td class="cust" title="' + escape(item.customer) + '">' + escape(item.customer.slice(0, 30)) + '</td><td>' + escape(item.owner) + '</td><td class="week">' + escape(item.week) + '</td><td class="age">' + (item.exposure === null ? "—" : item.exposure + " d") + '</td><td class="val">' + money(item.value / 1000000) + "</td></tr>"
+        ).join("") : '<tr><td colspan="7" class="empty-row">Every priced opportunity in this cohort has a linked order.</td></tr>';
+        const followUpValue = followUp.reduce((sum, item) => sum + item.value, 0);
+        const weakSize = sizeBands.bands.filter(band => band.quotes >= 3).sort((a, b) => a.conversion - b.conversion)[0];
+        const agenda = '<div class="agenda-grid"><div class="agenda-table-wrap">'
+          + '<div class="agenda-head"><span class="section-label">Highest-value work with no linked order</span><b>' + money(followUpValue / 1000000) + ' across the top ' + followUp.length + '</b></div>'
+          + '<table class="agenda-table"><thead><tr><th></th><th>Quote</th><th>Customer</th><th>Quote owner</th><th>Week</th><th>Open</th><th>Value</th></tr></thead><tbody>' + followUpRows + "</tbody></table>"
+          + '<p class="chart-note">Ordered by quoted value, not by age. Each row needs one of three answers at the review: still live, lost with a reason, or an owner-held next step and a date.</p>'
+          + "</div>"
+          + '<aside class="agenda-side"><span class="section-label">Three things this data says</span>'
+          + '<div class="agenda-point"><b>01</b><p>' + escape(valueRead) + '</p></div>'
+          + '<div class="agenda-point"><b>02</b><p>' + (weakSize ? escape(weakSize.label + " converts at " + pct(weakSize.conversion) + " across " + weakSize.quotes + " quotes — the weakest scored size band.") : "Size banding needs square-foot values to produce a read.") + '</p></div>'
+          + '<div class="agenda-point"><b>03</b><p>' + escape(onTimeAvailable(data)
+              ? "Release timing is scored on " + coverage + ". Widening that coverage would make delivery discipline a usable operating measure rather than a partial one."
+              : "Release timing is unscored in this set. Populating the On-Time column would add a delivery measure that is independent of conversion.") + '</p></div>'
+          + "</aside></div>";
+
+        const slides = deckSlide(1, "Executive outcome", "See the quote book<br /><em>through to outcome.</em>", opening)
+          + deckSlide(2, "Quote outcome overview", "One quote book.<br /><em>Two visible outcomes.</em>", outcomes)
+          + deckSlide(3, "Weekly performance pulse", "Volume above.<br /><em>Conversion below.</em>", weekly, true)
+          + deckSlide(4, "Value band analysis", "Not all quoted work<br /><em>behaves the same.</em>", valueSlide, true)
+          + deckSlide(5, "Quote release timing", "Work delivered<br /><em>when it was needed.</em>", timing, true)
+          + deckSlide(6, "Commercial continuity", "See the operating<br /><em>depth behind outcome.</em>", operations, true)
+          + deckSlide(7, "Speed to order", "How long a decision<br /><em>actually takes.</em>", speed, true)
+          + deckSlide(8, "Review agenda", "The next review,<br /><em>already prioritised.</em>", agenda, true);
+        return deckDocument(slides);
       }
 
       function exportTeamReport() {

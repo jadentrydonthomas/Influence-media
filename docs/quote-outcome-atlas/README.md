@@ -10,6 +10,10 @@ quote books and order-log exports into a quote-to-order outcome view.
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
+| `test/edge-cases.mjs` | Runs seven awkward source combinations (single week, gaps, duplicates, out-of-order, 20 weeks). |
+| `test/scale-check.mjs` | Renders the weekly chart at 1, 4, 12, 26 and 52 weeks and checks no axis labels collide. |
+| `test/deck-shots.mjs` | Regenerates the deck, screenshots every slide, audits for overflow and text under the nav. |
+| `test/print-check.mjs` | Confirms every slide prints and produces a PDF. |
 
 ## Running the regression suite
 
@@ -18,11 +22,35 @@ npm install
 node test/regression.mjs
 ```
 
-29 assertions cover the core outcome figures, the data-quality exceptions, coverage
+33 assertions cover the core outcome figures, the data-quality exceptions, coverage
 labelling, and the exported deck. Spec `T-16` requires these to stay green after any
 change to parsing, joins, ownership, exposure, or metrics.
 
 Set `CHROME_PATH` if your Chromium lives somewhere other than the default.
+
+```bash
+node test/edge-cases.mjs    # 7 source combinations
+node test/scale-check.mjs   # weekly chart from 1 to 52 weeks
+node test/deck-shots.mjs    # deck screenshots + overflow audit
+node test/print-check.mjs   # print / PDF path
+```
+
+## The exported deck
+
+Eight slides, generated from the active exposure cohort:
+
+1. Executive outcome — conversion, quoted value, confirmed value, Wilson interval
+2. Quote outcome — confirmed vs unconverted, proportional split
+3. Weekly pulse — volume columns above, conversion line below, scales to any span
+4. **Value band analysis** — conversion by quoted value band
+5. Release timing — on-time rate with its scored denominator
+6. Commercial continuity — customers, booked tons, district mix
+7. **Speed to order** — quote-to-order lag distribution and booked tons by entry week
+8. **Review agenda** — highest-value work with no linked order, by quote, owner and value
+
+Charts are inline SVG sized from the data. Entrance motion is layered on top of an
+already-correct static state, so a chart still reads if animation never runs, and is
+disabled under `prefers-reduced-motion` and when printing.
 
 ## Fixture baseline (Weeks 1–3 + OrderLog 1-10, 30+ day exposure)
 

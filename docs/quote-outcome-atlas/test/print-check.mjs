@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+import path from 'path'; import fs from 'fs'; import { fileURLToPath } from 'url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const p = await b.newPage();
+await p.goto('file://'+path.join(root,'test','deck-out.html'));
+await p.emulateMedia({media:'print'});
+await p.waitForTimeout(500);
+const vis = await p.$$eval('.deck-slide', ns => ns.map(n => getComputedStyle(n).display));
+console.log('print: slides displayed =', vis.filter(d=>d!=='none').length, 'of', vis.length);
+const pdf = path.join(root,'test','deck.pdf');
+await p.pdf({path:pdf, format:'Letter', landscape:true, printBackground:true});
+console.log('PDF bytes:', fs.statSync(pdf).size);
+await b.close();

@@ -108,15 +108,23 @@ if (!download) {
   const out = path.join(root, 'test', 'deck-out.html');
   await download.saveAs(out);
   const deck = fs.readFileSync(out, 'utf8');
-  check('deck slide count', (deck.match(/class="deck-slide"/g) || []).length, 6);
-  checkMatch('deck counter reads 1 / 6', deck, /id="deckPage"[^>]*>1 \/ 6</);
+  check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 8);
+  checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 8</);
+  checkMatch('deck has no NaN or undefined', deck, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);
+  checkMatch('deck agenda lists real quote numbers', deck, /class="quote">[A-Z0-9]+-\d+</);
+  checkMatch('deck value-band chart present', deck, /conversion by quoted value band/i);
+  checkMatch('deck lag chart present', deck, /lag distribution/i);
   checkMatch('deck on-time carries coverage', deck, /48 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
   // Continuity bars must encode the same measure their label prints.
-  const contRows = [...deck.matchAll(/<div class="timing-row"[^>]*><span>[^<]*<\/span><i><b style="width:([\d.]+)%"><\/b><\/i><strong>(\d+) wks</g)]
-    .map(m => ({ width: Number(m[1]), weeks: Number(m[2]) }));
-  const monotonic = contRows.every((r, i) => i === 0 || (contRows[i - 1].weeks >= r.weeks) === (contRows[i - 1].width >= r.width));
-  checks.push({ name: 'continuity bar length matches its week label', actual: JSON.stringify(contRows), expected: 'monotonic with weeks', pass: contRows.length > 0 && monotonic });
+  // Each <g class="deck-bar-row"> carries a fill width and a value label; where
+  // the label reads "N wks", the width must order the same way N does.
+  const barRows = [...deck.matchAll(/<rect class="deck-bar-fill"[^>]*?width="([\d.]+)"[\s\S]*?class="deck-bar-value"[^>]*>([^<]*)<\/text>/g)]
+    .map(m => ({ width: Number(m[1]), label: m[2] }))
+    .filter(r => /\d+\s*wks/.test(r.label))
+    .map(r => ({ width: r.width, weeks: Number((r.label.match(/(\d+)\s*wks/) || [0, 0])[1]) }));
+  const monotonic = barRows.every((r, i) => i === 0 || (barRows[i - 1].weeks >= r.weeks) === (barRows[i - 1].width >= r.width));
+  checks.push({ name: 'continuity bar length matches its week label', actual: JSON.stringify(barRows), expected: 'ordering matches weeks', pass: barRows.length > 0 && monotonic });
 }
 
 checks.push({ name: 'no uncaught JS errors', actual: jsErrors.length ? jsErrors.join('; ') : 'none', expected: 'none', pass: jsErrors.length === 0 });
