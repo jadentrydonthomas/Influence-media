@@ -1063,7 +1063,7 @@
           $("#metricRings").innerHTML = [
             kpiMarkup("Quote conversion", 0, "-", "Awaiting source run", "Quote No. to Quote #", "var(--green)"),
             kpiMarkup("Evidence range", 0, "-", "No cohort yet", "Needs quote opportunities", "var(--steel)"),
-            kpiMarkup("Quote release on time", 0, "-", "Not scored", "Needs EARLY / LATE", "var(--green)"),
+            kpiMarkup("Quote release on time", 0, "-", "Not scored", "Needs a release result", "var(--green)"),
             kpiMarkup("Won value capture", 0, "-", "No booked value", "Needs a linked order", "var(--amber)")
           ].join("");
           return;
@@ -4016,6 +4016,9 @@
       renderPeople();
       renderQuotes();
       refreshIntake();
+      // Nothing is loaded yet, so open on Data Mapping where the files are
+      // chosen and the run button lives, rather than on an empty dashboard.
+      setScreen("data");
     })();
   </script>
 </body>

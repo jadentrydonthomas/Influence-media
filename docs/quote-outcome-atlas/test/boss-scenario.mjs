@@ -43,7 +43,14 @@ const firstOpen = await p.evaluate(() => ({
   stamp: document.getElementById('dataStamp').textContent.trim(),
   status: document.getElementById('runStatusTitle').textContent.trim(),
 }));
-console.log('first open:', JSON.stringify(firstOpen));
+const landing = await p.evaluate(() => {
+  const active = document.querySelector('.screen.is-active');
+  const box = document.querySelector('#runDashboard').getBoundingClientRect();
+  return { screen: active ? active.id : '(none)', runVisible: box.height > 0 && box.top < window.innerHeight };
+});
+console.log('first open:', JSON.stringify(firstOpen), '· lands on', landing.screen, '· run button visible:', landing.runVisible);
+if (landing.screen !== 'data') fail.push('first open does not land on Data Mapping, it lands on ' + landing.screen);
+if (!landing.runVisible) fail.push('the run button is not visible on first open');
 if (!/awaiting|import|preview|incomplete/i.test(firstOpen.stamp + ' ' + firstOpen.status)) {
   fail.push('first open does not present as a blank intake: ' + JSON.stringify(firstOpen));
 }
@@ -68,6 +75,9 @@ async function run(weeks, label) {
 }
 
 const a = await run([w(1), w(2), w(3)], 'run 1  (W1-W3)          ');
+const afterRun = await p.evaluate(() => (document.querySelector('.screen.is-active') || {}).id);
+console.log('after a successful run it moves to:', afterRun);
+if (afterRun !== 'overview') fail.push('a successful run does not land on the Outcome dashboard, it lands on ' + afterRun);
 const b = await run([w(1), w(2), w(3)], 'run 2  same files       ');
 if (a.quotes !== b.quotes || a.conv !== b.conv) fail.push('a repeated run gave a different answer');
 const c = await run([w(1), w(2)], 'run 3  fewer weeks      ');
