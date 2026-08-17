@@ -33,7 +33,14 @@ node test/edge-cases.mjs    # 7 source combinations
 node test/scale-check.mjs   # weekly chart from 1 to 52 weeks
 node test/deck-shots.mjs    # deck screenshots + overflow audit
 node test/print-check.mjs   # print / PDF path
+node test/error-paths.mjs   # what happens when the wrong file is picked
+node test/boss-scenario.mjs # copy to another folder, clean profile, offline, repeat runs
+node test/dump-figures.mjs && python3 test/audit.py   # independent recomputation
 ```
+
+`audit.py` reads the workbooks with openpyxl and recomputes every headline figure
+from scratch, sharing no code with the dashboard, then compares against what the
+dashboard actually displayed. 28/28 agree across all three exposure lenses.
 
 ## The exported deck
 
@@ -62,7 +69,7 @@ disabled under `prefers-reduced-motion` and when printing.
 | Quoted value | $150.1M |
 | Order rows | 160 (72 blank `Quote #`, 1 non-standard, 87 parsable) |
 | Order-log cutoff | 13 Mar 2026 |
-| On-time scored | 48 of 174 (28% coverage) |
+| On-time (met the due date) | 86.2% across 174 of 174 |
 
 These reproduce the full Week 1–10 baseline behaviour in §12 of the spec: the same
 72/1/87 split of order rows and the same single non-standard reference
@@ -78,5 +85,7 @@ These reproduce the full Week 1–10 baseline behaviour in §12 of the spec: the
 - The `Inventory` sheet holds four separate blocks. Only `Estimator List` and
   `Engineer List` are Name/Initials. The top block is Name/**Territory** and must not be
   read as initials.
-- On-time release is scored on a minority of records. Any new surface that shows it
-  must carry the denominator.
+- The `On-Time` column is three-state. `N/A` means delivered **on** the due date, which
+  counts as on time — it is not missing data. Verified against `Due`/`Done` on every
+  fixture row. Any surface showing the rate must carry its denominator, and the parser
+  cross-checks each written result against its own dates.
