@@ -139,8 +139,8 @@ if (!download) {
   const out = path.join(root, 'test', 'deck-out.html');
   await download.saveAs(out);
   const deck = fs.readFileSync(out, 'utf8');
-  check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 8);
-  checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 8</);
+  check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 9);
+  checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 9</);
   checkMatch('deck has no NaN or undefined', deck, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);
   checkMatch('deck agenda lists real quote numbers', deck, /class="quote">[A-Z0-9]+-\d+</);
   checkMatch('deck value-band chart present', deck, /conversion by quoted value band/i);

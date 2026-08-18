@@ -79,7 +79,7 @@ for (const c of CASES) {
   } catch (e) {
     errs.push('HARNESS: ' + e.message);
   }
-  const bad = errs.length > 0 || result.deckSlides !== 8 || result.deckNaN;
+  const bad = errs.length > 0 || result.deckSlides !== 9 || result.deckNaN;
   if (bad) failures += 1;
   console.log(`${bad ? 'FAIL' : 'ok  '}  ${c.name}`);
   console.log(`        ${JSON.stringify(result)}`);

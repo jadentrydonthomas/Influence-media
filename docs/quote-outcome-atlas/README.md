@@ -50,7 +50,7 @@ dashboard actually displayed. 28/28 agree across all three exposure lenses.
 
 ## The exported deck
 
-Eight slides, generated from the active exposure cohort:
+Nine slides, generated from the active exposure cohort:
 
 1. Executive outcome — conversion, quoted value, confirmed value, Wilson interval
 2. Quote outcome — confirmed vs unconverted, proportional split
@@ -59,7 +59,8 @@ Eight slides, generated from the active exposure cohort:
 5. Release timing — on-time rate with its scored denominator
 6. Commercial continuity — customers, booked tons, district mix
 7. **Speed to order** — quote-to-order lag distribution and booked tons by entry week
-8. **Review agenda** — highest-value work with no linked order, by quote, owner and value
+8. **Estimating capacity** — scheduled vs actual engineering hours by engineer, with turnaround
+9. **Review agenda** — highest-value work with no linked order, by quote, owner and value
 
 Charts are inline SVG sized from the data. Entrance motion is layered on top of an
 already-correct static state, so a chart still reads if animation never runs, and is
@@ -76,10 +77,29 @@ disabled under `prefers-reduced-motion` and when printing.
 | Order rows | 160 (72 blank `Quote #`, 1 non-standard, 87 parsable) |
 | Order-log cutoff | 13 Mar 2026 |
 | On-time (met the due date) | 86.2% across 174 of 174 |
+| Alternates | 112 (0.64 per quote) |
+| Average turnaround | 5.1 days · 37% inside three days |
+| Engineering hours | 256 actual vs 229 scheduled · 11.6% over plan |
 
 These reproduce the full Week 1–10 baseline behaviour in §12 of the spec: the same
 72/1/87 split of order rows and the same single non-standard reference
 (`P-0287-025-2`).
+
+## Estimating operations
+
+A fourth screen carries what the estimating group's own reporting tracks, drawn from
+weekly columns that were parsed but never shown:
+
+- **Alternates** (column G) — quoted work with no separate quote number. 112 sit behind
+  174 quotes in the fixtures, so ~39% of what was priced never appears in a quote count.
+- **Turnaround** (Date In → Done) split 1 / 2-3 / 4-5 / 6+ days, using the same
+  "under 15 days" bound their reports apply, with the excluded count stated.
+- **Scheduled vs actual engineering hours** (columns K and O) — whether a quote consumed
+  the time set aside for it. This has no equivalent in the outcome view: conversion says
+  whether work came back, this says what it cost to produce.
+
+Engineering hours belong to the quote **engineer**; quotes and alternates belong to the
+**estimator**. The source workbook and the estimating group both treat the roles that way.
 
 ## Notes for the next engineer
 

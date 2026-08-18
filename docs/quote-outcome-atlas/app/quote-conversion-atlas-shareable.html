@@ -4156,6 +4156,40 @@
               : "Release timing is unscored in this set. Populating the On-Time column would add a delivery measure that is independent of conversion.") + '</p></div>'
           + "</aside></div>";
 
+        // ---- 08 Estimating capacity (new) -------------------------------------
+        const eng = data.engineering || { byEngineer: [], totalHours: 0, scheduledHours: 0, perQuote: 0, fivePlus: 0 };
+        const turnData = data.turn || { average: null, scored: 0, oneDay: 0, threeDay: 0, fourFive: 0, sixPlus: 0, withinThree: 0, excluded: 0 };
+        const capVariance = eng.scheduledHours - eng.totalHours;
+        const capPct = eng.scheduledHours ? capVariance / eng.scheduledHours * 100 : null;
+        const capEngineers = (eng.byEngineer || []).filter(item => item.hours > 0 && item.code !== "(none)").slice(0, 8);
+        const capacityBody = '<div class="weekly-summary">'
+          + '<div><span>Scheduled hours</span><strong>' + eng.scheduledHours.toFixed(0) + '</strong><small>set aside for this work</small></div>'
+          + '<div><span>Actual hours</span><strong>' + eng.totalHours.toFixed(0) + '</strong><small>' + eng.perQuote.toFixed(2) + ' per quote</small></div>'
+          + '<div><span>' + (capVariance >= 0 ? "Under plan by" : "Over plan by") + '</span><strong>' + Math.abs(capVariance).toFixed(0) + ' hrs</strong><small>' + (capPct === null ? "\u2014" : (capPct > 0 ? "+" : "") + capPct.toFixed(1) + "% against plan") + '</small></div>'
+          + '<div><span>Average turnaround</span><strong>' + (turnData.average === null ? "\u2014" : turnData.average.toFixed(1) + " d") + '</strong><small>' + pct(percentage(turnData.withinThree, turnData.scored)) + ' inside three days</small></div></div>'
+          + '<div class="analysis-grid"><div class="analysis-main">'
+          + (capEngineers.length
+              ? '<p class="chart-note" style="margin:0 0 10px">Scheduled engineering time against the hours actually spent. Green came in under the time set aside; copper ran over.</p>'
+                + deckBarChart(capEngineers.map(item => ({
+                    label: item.code,
+                    value: Math.abs(item.variance),
+                    value_label: (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + " hrs \u00b7 " + item.scheduled.toFixed(0) + " sched / " + item.hours.toFixed(0) + " act",
+                    tone: item.variance >= 0 ? "green" : "copper"
+                  })), { label: "Engineering hours against schedule, by engineer", labelWidth: 96, valueWidth: 244 })
+              : '<div class="deck-empty">Scheduled engineering hours are not populated in this source set.</div>')
+          + '</div><aside class="analysis-side"><span class="section-label">Turnaround</span>'
+          + '<div class="timing-list">'
+          + [["\u22641 day", turnData.oneDay], ["2\u20133 days", turnData.threeDay], ["4\u20135 days", turnData.fourFive], ["6+ days", turnData.sixPlus]]
+              .map(pair => '<div class="timing-row"><span>' + escape(pair[0]) + '</span><i><b style="width:'
+                + (turnData.scored ? Math.max(3, pair[1] / turnData.scored * 100) : 0).toFixed(1) + '%"></b></i><strong>' + pair[1] + "</strong></div>").join("")
+          + '</div><div class="side-stat"><span>Quotes at 5+ engineering hours</span><strong>' + eng.fivePlus + '</strong><small>of ' + data.quotes + ' in this cohort</small></div>'
+          + "</aside></div>"
+          + '<div class="deck-callout"><strong>Why this sits beside conversion:</strong> conversion says whether quoted work came back. This says what it cost to produce. '
+          + (capVariance >= 0
+              ? "Engineering came in under the scheduled time across this run."
+              : "Engineering ran " + Math.abs(capVariance).toFixed(0) + " hours over the time set aside, " + Math.abs(capPct).toFixed(1) + "% above plan.")
+          + ' A single engineer well over the line is a scheduling question, not a performance one \u2014 the hours were booked against an estimate made before the work started.</div>';
+
         const slides = deckSlide(1, "Executive outcome", "See the quote book<br /><em>through to outcome.</em>", opening)
           + deckSlide(2, "Quote outcome overview", "One quote book.<br /><em>Two visible outcomes.</em>", outcomes)
           + deckSlide(3, "Weekly performance pulse", "Volume above.<br /><em>Conversion below.</em>", weekly, true)
@@ -4163,7 +4197,8 @@
           + deckSlide(5, "Quote release timing", "Work delivered<br /><em>when it was needed.</em>", timing, true)
           + deckSlide(6, "Commercial continuity", "See the operating<br /><em>depth behind outcome.</em>", operations, true)
           + deckSlide(7, "Speed to order", "How long a decision<br /><em>actually takes.</em>", speed, true)
-          + deckSlide(8, "Review agenda", "The next review,<br /><em>already prioritised.</em>", agenda, true);
+          + deckSlide(8, "Estimating capacity", "What the work cost<br /><em>to produce.</em>", capacityBody, true)
+          + deckSlide(9, "Review agenda", "The next review,<br /><em>already prioritised.</em>", agenda, true);
         return deckDocument(slides);
       }
 
