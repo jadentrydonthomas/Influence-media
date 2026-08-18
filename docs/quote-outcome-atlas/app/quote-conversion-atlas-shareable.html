@@ -314,6 +314,31 @@
     /* The detail panel is short and the roster is long; let it follow the list. */
     @media (min-width: 1100px) { .person-card { position: sticky; top: 18px; } }
     .screen-heading h2.is-compact { font-size: clamp(30px, 3.6vw, 48px); }
+    .ops-week { padding: 0 17px 15px; }
+    .week-head, .week-row { display: grid; grid-template-columns: 46px minmax(76px,1fr) minmax(90px,1.15fr) 40px minmax(76px,.9fr) 52px 42px; align-items: center; gap: 10px; }
+    .week-head { padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .week-head .num, .week-row .num { text-align: right; }
+    .week-rows { max-height: min(46vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
+    .week-row { padding: 6px 0; border-bottom: 1px solid var(--line); }
+    .week-row:hover { background: var(--surface-soft); }
+    .week-id { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+    .week-vol, .week-eng { position: relative; display: flex; align-items: center; gap: 7px; }
+    .week-vol i, .week-eng i { display: block; height: 9px; min-width: 2px; border-radius: 5px; }
+    .week-vol i { background: var(--steel); }
+    .week-eng i { background: var(--green-dark); }
+    .week-vol b, .week-eng b { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+    .week-turn { display: flex; height: 11px; overflow: hidden; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line); }
+    .week-turn i { display: block; min-width: 2px; }
+    .week-turn i.is-empty { background: var(--surface-soft); }
+    .week-avg, .week-alts { font-family: var(--mono); font-size: 11px; }
+    .week-var { font-family: var(--mono); font-size: 11px; }
+    .week-var.is-good { color: var(--green-dark); }
+    .week-var.is-bad { color: var(--red-deep); }
+    .week-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 11px; color: var(--ink-muted); font-size: 10px; }
+    .week-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .week-legend b { width: 9px; height: 9px; border-radius: 2px; }
+    .week-legend-note { margin-left: auto; color: var(--ink-faint); font-size: 9.5px; }
+    @media (max-width: 820px) { .week-head, .week-row { grid-template-columns: 40px minmax(60px,1fr) minmax(70px,1fr) 34px; } .week-eng, .week-var, .week-alts, .week-head span:nth-child(n+5) { display: none; } }
     .ops-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; margin-bottom: 20px; }
     .ops-body.is-wide { display: grid; grid-template-columns: minmax(250px, .72fr) minmax(0, 1.28fr); gap: 24px; align-items: start; }
     .cap-side .cap-hero { grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 0; padding: 16px; }
@@ -987,6 +1012,10 @@
           <div class="panel-head"><span class="ops-step">03 / Capacity</span><h2 id="opsCapTitle">Whether it cost what was planned</h2><p>Scheduled engineering time against the hours actually spent. Green means the work came in under the time set aside for it; copper means it ran over.</p></div>
           <div class="ops-body is-wide" id="opsCapacity"></div>
         </section>
+        <section class="panel" aria-labelledby="opsWeekTitle">
+          <div class="panel-head"><h2 id="opsWeekTitle">Week by week</h2><p id="opsWeekNote">Volume, turnaround mix and engineering load on one row per week, so a long span stays readable instead of stacking series on top of each other.</p></div>
+          <div class="ops-week" id="opsWeek"></div>
+        </section>
         <section class="panel" aria-labelledby="opsEstTitle">
           <div class="panel-head"><h2 id="opsEstTitle">Load by estimator</h2><p>The estimator owns the quote and its alternates; engineering hours belong to the quote engineer, so the two are kept apart.</p></div>
           <div class="ops-table-wrap"><table class="ops-table" id="opsEstTable"></table></div>
@@ -1447,7 +1476,9 @@
                 return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '"><span>' + escape(district.code) + '</span>'
                   + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
                   + '<b>' + pct(district.conversion) + '</b>'
-                  + '<small>' + district.quotes + " quotes · " + money(district.value / 1000000) + " quoted · " + district.wins + " won</small></div>";
+                  + '<small>' + district.quotes + " quotes · " + money(district.value / 1000000) + " quoted · " + district.wins + " won · "
+                  + (district.turnAverage === null ? "turn n/a" : district.turnAverage.toFixed(1) + "d turn") + " · " + district.alts + " alts · "
+                  + district.hoursPerQuote.toFixed(2) + " eng hrs/quote</small></div>";
               }).join("") + "</div>"
               + '<div class="analysis-foot"><strong>Bar length is quoted value, not quote count.</strong> A district with few large quotes outranks one with many small ones. Prefixes are shown as they appear in the quote number; no salesperson name is inferred from them.</div>'
             : '<div class="analysis-foot"><strong>No district prefixes available.</strong> District is derived from the quote-number prefix.</div>';
@@ -1469,7 +1500,7 @@
           title = "Customer relationship signals";
           description = "Quote-side customer patterns: repeat relationships, the accounts returning the most quote wins, and recurring activity with no linked win yet.";
           const signals = data.customers || blankCustomerSignals();
-          const customerRows = (accounts, emptyTitle, emptyCopy) => accounts.length ? accounts.slice(0, 5).map(account => '<div class="customer-row"><div><strong title="' + escape(account.name) + '">' + escape(account.name) + '</strong><span>' + account.loadedWeeks + ' quoted weeks &middot; ' + account.quotes + ' quotes &middot; ' + account.wins + ' wins</span></div><div><b>' + money(account.quoteValue) + ' quoted</b><small>' + (account.wins ? money(account.wonValue) + ' won / ' + pct(account.conversion) : 'No linked win') + '</small></div></div>').join("") : '<div class="customer-row"><div><strong>' + escape(emptyTitle) + '</strong><span>' + escape(emptyCopy) + '</span></div></div>';
+          const customerRows = (accounts, emptyTitle, emptyCopy) => accounts.length ? accounts.slice(0, 5).map(account => '<div class="customer-row"><div><strong title="' + escape(account.name) + '">' + escape(account.name) + '</strong><span>' + account.loadedWeeks + ' quoted weeks &middot; ' + account.quotes + ' quotes &middot; ' + (account.alts || 0) + ' alts &middot; ' + (account.large || 0) + ' over $1M &middot; ' + account.wins + ' wins</span></div><div><b>' + money(account.quoteValue) + ' quoted</b><small>' + (account.wins ? money(account.wonValue) + ' won / ' + pct(account.conversion) : 'No linked win') + '</small></div></div>').join("") : '<div class="customer-row"><div><strong>' + escape(emptyTitle) + '</strong><span>' + escape(emptyCopy) + '</span></div></div>';
           html = '<div class="customer-signal-grid"><div><span>Customer accounts</span><strong>' + signals.total + '</strong><small>' + signals.firstSeen + ' first seen in this loaded quote book</small></div><div><span>Repeat quote customers</span><strong>' + signals.multiWeek + '</strong><small>' + signals.consistent + ' appeared in 3+ quote weeks</small></div><div><span>Repeat / no linked win</span><strong>' + signals.repeatNoWin + '</strong><small>' + money(signals.repeatNoWinValue) + ' quoted value needs an outcome</small></div></div><div class="customer-lists"><section class="customer-list"><div class="customer-list-head"><span>Repeat relationships</span><b>quoted value</b></div>' + customerRows(signals.multiWeekAccounts || [], "No repeat customer yet", "A customer needs quotes in at least two selected weeks to appear here.") + '</section><section class="customer-list"><div class="customer-list-head"><span>Most quote wins</span><b>wins / value</b></div>' + customerRows(signals.topWinAccounts || [], "No linked customer win yet", "A matched Order Log Quote # creates this view.") + '</section><section class="customer-list"><div class="customer-list-head"><span>Repeat activity / no win</span><b>follow-up value</b></div>' + customerRows(signals.repeatNoWinAccounts || [], "No repeat no-win pattern", "This list stays empty when repeat customers have a linked win.") + '</section></div><div class="analysis-foot"><strong>Important definition:</strong> repeat means the customer appears in two or more selected quote weeks. No linked win means no matching Order Log Quote # was found - it is a follow-up signal, not an automatic loss label.</div>';
         }
         setText("#analysisTitle", title);
@@ -1600,6 +1631,36 @@
                 + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</b>"
                 + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + item.quotes + " quotes</small></div>";
             }).join("") + "</div>";
+
+        // ---- Week by week ------------------------------------------------------
+        const weekly = data.weekly || [];
+        const maxWeekQuotes = Math.max(1, ...weekly.map(item => item.quotes));
+        const maxWeekHours = Math.max(1, ...weekly.map(item => item.hours));
+        $("#opsWeek").innerHTML = weekly.length
+          ? '<div class="week-head"><span>Week</span><span>Quotes issued</span><span>Turnaround mix</span><span class="num">Avg</span><span>Engineering</span><span class="num">vs plan</span><span class="num">Alts</span></div>'
+            + '<div class="week-rows">' + weekly.map(item => {
+                const turnParts = [
+                  { value: item.turn.oneDay, tone: "green" },
+                  { value: item.turn.threeDay, tone: "green-soft" },
+                  { value: item.turn.fourFive, tone: "steel" },
+                  { value: item.turn.sixPlus, tone: "copper" }
+                ].filter(part => part.value > 0);
+                const good = item.variance >= 0;
+                return '<div class="week-row"><span class="week-id">' + escape(item.week) + "</span>"
+                  + '<span class="week-vol"><i style="width:' + (item.quotes / maxWeekQuotes * 100).toFixed(1) + '%"></i><b>' + item.quotes + "</b></span>"
+                  + '<span class="week-turn" title="' + item.turn.oneDay + " at 1 day, " + item.turn.threeDay + " at 2-3, " + item.turn.fourFive + " at 4-5, " + item.turn.sixPlus + ' at 6+">'
+                  + (turnParts.length ? turnParts.map(part => '<i class="is-' + part.tone + '" style="flex:' + part.value + '"></i>').join("") : '<i class="is-empty" style="flex:1"></i>')
+                  + "</span>"
+                  + '<span class="num week-avg">' + (item.turn.average === null ? "—" : item.turn.average.toFixed(1)) + "</span>"
+                  + '<span class="week-eng"><i style="width:' + (item.hours / maxWeekHours * 100).toFixed(1) + '%"></i><b>' + item.hours.toFixed(0) + "</b></span>"
+                  + '<span class="num week-var ' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</span>"
+                  + '<span class="num week-alts">' + item.alts + "</span></div>";
+              }).join("") + "</div>"
+            + '<div class="week-legend"><span><b class="is-green"></b>1 day</span><span><b class="is-green-soft"></b>2–3</span><span><b class="is-steel"></b>4–5</span><span><b class="is-copper"></b>6+</span>'
+            + '<span class="week-legend-note">' + weekly.length + ' week' + (weekly.length === 1 ? "" : "s") + ' · engineering bar is actual hours, "vs plan" is scheduled minus actual</span></div>'
+          : '<p class="ops-note">No weekly detail in this source set.</p>';
+        setText("#opsWeekNote", "Volume, turnaround mix and engineering load on one row per week. "
+          + pct(eng.engagementRate) + " of quotes in this cohort needed engineering time at all.");
 
         // ---- Estimator detail --------------------------------------------------
         const byEstimator = new Map();
@@ -2632,6 +2693,7 @@
         return {
           totalHours: total,
           scheduledHours: records.reduce((sum, record) => sum + (Number(record.schedHours) || 0), 0),
+          engagementRate: records.length ? percentage(withHours, records.length) : 0,
           perQuote: records.length ? total / records.length : 0,
           withHours: withHours,
           fivePlus: fivePlus,
@@ -2691,7 +2753,7 @@
         const groups = new Map();
         records.forEach(record => {
           const key = nucorWeekLabel(record.week);
-          if (!groups.has(key)) groups.set(key, { week: key, sort: Number(record.week || 0), quotes: 0, orders: 0, onTimeHits: 0, onTimeScored: 0 });
+          if (!groups.has(key)) groups.set(key, { week: key, sort: Number(record.week || 0), quotes: 0, orders: 0, onTimeHits: 0, onTimeScored: 0, records: [] });
           const group = groups.get(key);
           group.quotes += 1;
           group.orders += record.won ? 1 : 0;
@@ -2699,14 +2761,29 @@
             group.onTimeScored += 1;
             if (onTimeMetDate(record.onTime)) group.onTimeHits += 1;
           }
+          group.records.push(record);
         });
-        return Array.from(groups.values()).sort((a, b) => a.sort - b.sort).map(group => ({
-          week: group.week,
-          quotes: group.quotes,
-          rate: percentage(group.orders, group.quotes),
-          onTime: group.onTimeScored ? percentage(group.onTimeHits, group.onTimeScored) : 0,
-          onTimeScored: Boolean(group.onTimeScored)
-        }));
+        return Array.from(groups.values()).sort((a, b) => a.sort - b.sort).map(group => {
+          // Turnaround, alternates and engineering load per week, so the weekly
+          // read is operational and not only volume against conversion.
+          const turn = nucorTurnaround(group.records);
+          const hours = group.records.reduce((sum, record) => sum + (Number(record.hours) || 0), 0);
+          const scheduled = group.records.reduce((sum, record) => sum + (Number(record.schedHours) || 0), 0);
+          return {
+            week: group.week,
+            quotes: group.quotes,
+            wins: group.orders,
+            rate: percentage(group.orders, group.quotes),
+            onTime: group.onTimeScored ? percentage(group.onTimeHits, group.onTimeScored) : 0,
+            onTimeScored: Boolean(group.onTimeScored),
+            alts: group.records.reduce((sum, record) => sum + (Number(record.alts) || 0), 0),
+            turn: turn,
+            hours: hours,
+            scheduledHours: scheduled,
+            variance: scheduled - hours,
+            withEngineering: group.records.filter(record => (Number(record.hours) || 0) > 0).length
+          };
+        });
       }
 
       function orderEntryWeekStart(value) {
@@ -2735,10 +2812,14 @@
           const name = customerName(record.customer);
           const key = customerKey(name);
           if (!key) return;
-          if (!groups.has(key)) groups.set(key, { key: key, name: name, quotes: 0, wins: 0, jobs: 0, quoteValue: 0, wonValue: 0, tons: 0, weeks: new Set() });
+          if (!groups.has(key)) groups.set(key, { key: key, name: name, quotes: 0, wins: 0, jobs: 0, quoteValue: 0, wonValue: 0, tons: 0, alts: 0, large: 0, weeks: new Set() });
           const group = groups.get(key);
           group.weeks.add(String(record.week || ""));
           group.quotes += 1;
+          group.alts += Number(record.alts) || 0;
+          // Quotes above $1M, the point where a single account's mix starts to
+          // matter more than its count.
+          if ((Number(record.price) || 0) > 1000000) group.large += 1;
           group.wins += record.won ? 1 : 0;
           group.jobs += Number(record.jobs) || 0;
           group.quoteValue += Number(record.price) || 0;
@@ -2751,6 +2832,8 @@
             key: group.key,
             name: group.name,
             quotes: group.quotes,
+            alts: group.alts,
+            large: group.large,
             wins: group.wins,
             jobs: group.jobs,
             tons: group.tons,
@@ -3612,14 +3695,27 @@
         records.forEach(record => {
           const prefix = String(record.key || "").split("-")[0];
           if (!prefix) return;
-          if (!groups.has(prefix)) groups.set(prefix, { code: prefix, quotes: 0, wins: 0, value: 0, wonValue: 0 });
+          if (!groups.has(prefix)) groups.set(prefix, { code: prefix, quotes: 0, wins: 0, value: 0, wonValue: 0, alts: 0, hours: 0, withEng: 0, records: [] });
           const group = groups.get(prefix);
           group.quotes += 1;
           group.value += Number(record.price) || 0;
+          group.alts += Number(record.alts) || 0;
+          group.hours += Number(record.hours) || 0;
+          if ((Number(record.hours) || 0) > 0) group.withEng += 1;
+          group.records.push(record);
           if (record.won) { group.wins += 1; group.wonValue += Number(record.price) || 0; }
         });
         return Array.from(groups.values())
-          .map(group => Object.assign(group, { conversion: group.quotes ? percentage(group.wins, group.quotes) : 0 }))
+          .map(group => {
+            const turn = nucorTurnaround(group.records);
+            return Object.assign(group, {
+              conversion: group.quotes ? percentage(group.wins, group.quotes) : 0,
+              turnAverage: turn.average,
+              withinThree: turn.scored ? percentage(turn.withinThree, turn.scored) : 0,
+              hoursPerQuote: group.quotes ? group.hours / group.quotes : 0,
+              engagement: group.quotes ? percentage(group.withEng, group.quotes) : 0
+            });
+          })
           .sort((a, b) => b.value - a.value);
       }
 
