@@ -28,7 +28,8 @@ const snap = () => p.evaluate(() => ({
   conv: document.getElementById('railConversion').textContent.trim(),
   value: document.getElementById('railQuoteValue').textContent.trim(),
   people: document.querySelectorAll('#teamRows > *').length,
-  quoteRows: document.querySelectorAll('#quoteRows > *').length,
+  accounts: document.querySelectorAll('#custRows .account-row').length,
+  profileQuotes: document.querySelectorAll('#custProfile .profile-table tbody tr').length,
   barHidden: document.getElementById('filterBar').hidden,
   chips: [...document.querySelectorAll('.filter-chip')].map(n => n.innerText.replace(/\s+/g, ' ').trim()),
 }));
@@ -48,12 +49,19 @@ console.log(`district ${firstDistrict}:`, JSON.stringify(byDistrict));
 check('district filter narrows the cohort', byDistrict.quotes > 0 && byDistrict.quotes < base.quotes, `${byDistrict.quotes} of ${base.quotes}`);
 check('filter bar appears', byDistrict.barHidden === false);
 check('a chip names the filter', byDistrict.chips.length === 1 && /DISTRICT/i.test(byDistrict.chips[0]), byDistrict.chips.join(' | '));
-check('quote records follow the filter', byDistrict.quoteRows === byDistrict.quotes, `${byDistrict.quoteRows} rows vs ${byDistrict.quotes} quotes`);
+check('the account list narrows with the filter', byDistrict.accounts > 0 && byDistrict.accounts < base.accounts,
+  `${byDistrict.accounts} of ${base.accounts} accounts`);
 
-// Every quote row shown must actually belong to that district.
-const rowsMatch = await p.evaluate(prefix => [...document.querySelectorAll('#quoteRows .quote-id')]
-  .every(n => n.textContent.trim().startsWith(prefix)), firstDistrict);
-check('every listed quote belongs to the district', rowsMatch);
+// Every quote listed in the open account must belong to that district.
+await p.click('[data-screen="customers"]');
+await p.waitForTimeout(600);
+const rowsMatch = await p.evaluate(prefix => {
+  const table = document.querySelector('#custProfile .profile-block:last-child .profile-table tbody');
+  if (!table) return false;
+  const ids = [...table.querySelectorAll('td b')].map(n => n.textContent.trim());
+  return ids.length > 0 && ids.every(id => id.startsWith(prefix));
+}, firstDistrict);
+check('every quote in the open account belongs to the district', rowsMatch);
 
 // --- Clearing restores exactly ------------------------------------------------
 await p.click('#clearFilters');
@@ -64,7 +72,9 @@ check('clearing restores the original cohort', restored.quotes === base.quotes &
 check('filter bar hides again', restored.barHidden === true);
 
 // --- Filter by estimator on the operations screen ------------------------------
-await p.click('[data-screen="ops"]');
+await p.click('[data-screen="people"]');
+await p.waitForTimeout(300);
+await p.click('[data-role="estimators"]');
 await p.waitForTimeout(600);
 const est = await p.$eval('[data-filter="estimator"]', n => n.dataset.filterValue);
 await p.click(`[data-filter="estimator"][data-filter-value="${est}"]`);

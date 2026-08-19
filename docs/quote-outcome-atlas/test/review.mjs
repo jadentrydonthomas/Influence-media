@@ -14,7 +14,7 @@ const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('file://'+path.join(root,'app','quote-conversion-atlas-shareable.html'));
 
 // --- Before a run, every screen must explain itself rather than show blanks.
-for (const screen of ['customers','timeline','ops']) {
+for (const screen of ['customers','timeline']) {
   await p.click(`[data-screen="${screen}"]`); await p.waitForTimeout(250);
   const text = await p.$eval(`#${screen}`, n=>n.innerText.replace(/\s+/g,' ').trim());
   check(`${screen} says something before a run`, /no .*(yet|records)|awaiting|run the weekly/i.test(text), text.slice(0,60));
@@ -50,8 +50,8 @@ check('lifecycle track follows the theme', darkStage!==lightStage, `${lightStage
 
 // --- Selecting an account must narrow every screen, not just this one.
 await p.click('[data-screen="customers"]'); await p.waitForTimeout(400);
-const account = await p.$eval('#custTable tbody tr', n=>n.dataset.filterValue);
-await p.click(`#custTable tbody tr[data-filter-value="${account}"]`); await p.waitForTimeout(700);
+await p.click('#custRows .account-row'); await p.waitForTimeout(500);
+await p.click('#custProfile .profile-filter'); await p.waitForTimeout(700);
 const railAfter = await p.$eval('#railQuoted', n=>n.textContent.trim());
 const barText = await p.$eval('#filterBar', n=>n.innerText.replace(/\s+/g,' ').trim());
 check('an account row sets a filter', /customer/i.test(barText), barText.slice(0,70));
@@ -64,7 +64,7 @@ await p.$eval('#filterBar button', n=>n.click()); await p.waitForTimeout(600);
 check('clearing restores the book', (await p.$eval('#railQuoted', n=>n.textContent.trim()))==='174');
 
 // --- No horizontal scroll on a 1366-wide laptop, on any screen.
-for (const screen of ['overview','people','quotes','customers','timeline','ops','data']) {
+for (const screen of ['overview','people','customers','timeline','data']) {
   await p.click(`[data-screen="${screen}"]`); await p.waitForTimeout(350);
   const over = await p.evaluate(()=>document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check(`${screen} does not scroll sideways at 1366px`, over<=0, 'overflow '+over);

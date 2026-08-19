@@ -459,6 +459,59 @@
     .turn-legend small { width: 44px; color: var(--ink-faint); font-family: var(--mono); font-size: 10px; text-align: right; }
     .is-red { background: var(--red-deep); }
 
+    /* ---- Customers: account list beside the account record ---------------
+       The quote list used to be its own screen. A quote only means something
+       beside the account that sent it and the job that came back, so the three
+       are read together here. */
+    .account-layout { display: grid; grid-template-columns: minmax(300px, .8fr) minmax(0, 1.2fr); gap: 20px; align-items: start; margin-bottom: 20px; }
+    @media (max-width: 1080px) { .account-layout { grid-template-columns: 1fr; } }
+    .account-list-panel { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); background: var(--surface); }
+    .account-tools { padding: 14px 16px 0; }
+    .account-tools .quote-search { width: 100%; }
+    .account-head { display: grid; grid-template-columns: minmax(0,1fr) 96px 74px; gap: 12px; padding: 10px 16px; border-bottom: 1.5px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .account-head .num { text-align: right; }
+    .account-scroll { max-height: 560px; overflow: auto; }
+    .account-row { display: grid; grid-template-columns: minmax(0,1fr) 96px 74px; align-items: center; gap: 12px; width: 100%; padding: 11px 16px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; font: inherit; cursor: pointer; transition: background 160ms var(--ease); }
+    .account-row:hover { background: var(--surface-soft); }
+    .account-row[aria-pressed="true"] { background: var(--green-soft); box-shadow: inset 3px 0 0 var(--green); }
+    .account-name { min-width: 0; }
+    .account-name strong { display: block; overflow: hidden; color: var(--ink); font-size: 13.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .account-name span { display: block; margin-top: 3px; color: var(--ink-muted); font-size: 11.5px; }
+    .account-value { color: var(--ink); font-family: var(--mono); font-size: 13px; text-align: right; }
+
+    .account-profile { min-width: 0; padding: 22px 24px 24px; border: 1px solid var(--line); background: var(--surface); }
+    .profile-top h3 { margin: 7px 0 0; overflow: hidden; color: var(--ink); font-family: var(--display); font-size: 27px; letter-spacing: -.01em; line-height: 1.02; text-overflow: ellipsis; }
+    .profile-top p { margin: 8px 0 0; color: var(--ink-muted); font-size: 13px; line-height: 1.5; }
+    .profile-filter { margin-top: 13px; padding: 8px 13px; border: 1px solid var(--line); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; cursor: pointer; }
+    .profile-filter:hover { border-color: var(--ink); color: var(--ink); }
+    .profile-filter[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
+    .profile-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 20px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+    .profile-stats > div { padding: 11px 13px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .profile-stats span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .profile-stats strong { display: block; margin-top: 6px; color: var(--ink); font-family: var(--mono); font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
+    .profile-stats small { display: block; margin-top: 4px; color: var(--ink-muted); font-size: 10.5px; line-height: 1.35; }
+    @media (max-width: 720px) { .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .profile-block { margin-top: 22px; }
+    .profile-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 9px; border-bottom: 1.5px solid var(--line); }
+    .profile-block-head span { color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .profile-block-head b { color: var(--green-dark); font-family: var(--mono); font-size: 12px; font-weight: 600; }
+    .profile-table-wrap { max-height: 330px; overflow: auto; }
+    .profile-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .profile-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
+    .profile-table td { padding: 9px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
+    .profile-table tr:last-child td { border-bottom: 0; }
+    .profile-table .num { font-family: var(--mono); text-align: right; white-space: nowrap; }
+    .profile-table .date { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+    .profile-table b { display: block; font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+    .profile-table .job-name { display: block; margin-top: 3px; max-width: 210px; overflow: hidden; color: var(--ink-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-table .quote-ref { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; }
+    .profile-table .quote-ref span { display: block; margin-top: 2px; color: var(--ink-faint); font-size: 10px; }
+    .outcome-pill { display: inline-block; padding: 2px 7px; border-radius: 9px; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+    .outcome-pill.is-won { color: var(--green-dark); background: var(--green-soft); }
+    .outcome-pill.is-open { color: var(--red-deep); background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .profile-table tr.is-won b { color: var(--green-dark); }
+    .cap-full { grid-column: 1 / -1; margin-top: 18px; }
+
     /* Definitions drawer. Available from every screen, because the question
        "what is this number" is asked in front of whichever screen raised it. */
     /* display:flex on .glossary outranks the user-agent [hidden] rule, so the
@@ -984,11 +1037,9 @@
       <nav class="rail-nav">
         <button type="button" data-screen="overview" data-number="01" aria-current="page">Outcome dashboard</button>
         <button type="button" data-screen="people" data-number="02" aria-current="false">Team performance</button>
-        <button type="button" data-screen="quotes" data-number="03" aria-current="false">Quote records</button>
-        <button type="button" data-screen="customers" data-number="04" aria-current="false">Customers</button>
-        <button type="button" data-screen="timeline" data-number="05" aria-current="false">Timelines</button>
-        <button type="button" data-screen="ops" data-number="06" aria-current="false">Estimating operations</button>
-        <button type="button" data-screen="data" data-number="07" aria-current="false">Data mapping</button>
+        <button type="button" data-screen="customers" data-number="03" aria-current="false">Customers</button>
+        <button type="button" data-screen="timeline" data-number="04" aria-current="false">Timelines</button>
+        <button type="button" data-screen="data" data-number="05" aria-current="false">Data mapping</button>
       </nav>
       <div class="rail-bottom">
         <button class="review-mode" id="reviewMode" type="button">Export team report deck</button>
@@ -1146,38 +1197,34 @@
           <div class="panel-head"><h2 id="teamChartTitle">Team comparison</h2><p id="teamChartDescription">Each bar keeps the current selected metric visible across the full group. The amber marker is the group average.</p></div>
           <div class="team-chart" id="teamChart"></div>
         </section>
-      </section>
-
-      <section class="screen" id="quotes" aria-labelledby="quotesTitle">
-        <div class="screen-heading">
-          <div><div class="eyebrow">Quote records</div><h2 id="quotesTitle">Every result has<br />a <em>record behind it.</em></h2></div>
-          <p>Move from the dashboard to a specific quote, current status, on-time signal, and next seller action without changing visual language.</p>
-        </div>
-        <div class="quotes-layout">
-          <section class="quote-table-panel" aria-labelledby="quoteHeadTitle">
-            <div class="quote-tools"><label class="sr-only" for="quoteSearch">Search quote records</label><input class="quote-search" id="quoteSearch" type="search" placeholder="Search quote, customer, or owner" /><label class="sr-only" for="quoteFilter">Filter records</label><select class="quote-filter" id="quoteFilter"><option value="all">All outcomes</option><option value="confirmed">Confirmed orders</option><option value="unconverted">Unconverted</option><option value="active">Still active</option></select></div>
-            <div class="quote-head" id="quoteHeadTitle"><button type="button" data-sort="id">Quote number</button><button type="button" data-sort="week">Week</button><button type="button" data-sort="customer">Customer</button><button type="button" data-sort="owner">Owner</button><button type="button" data-sort="value">Value</button><button type="button" data-sort="status">Outcome</button></div>
-            <div class="quote-scroll"><div id="quoteRows"></div></div>
-            <p class="quote-count" id="quoteCount" aria-live="polite"></p>
-          </section>
-          <aside class="quote-inspector" id="quoteInspector" aria-live="polite"></aside>
-        </div>
+        <section class="panel ops-panel is-feature" aria-labelledby="teamLoadTitle">
+          <div class="panel-head"><span class="ops-step" id="teamLoadStep">Capacity</span><h2 id="teamLoadTitle">Whether it cost what was planned</h2><p id="teamLoadNote"></p></div>
+          <div class="ops-body is-wide" id="teamLoad"></div>
+        </section>
       </section>
 
       <section class="screen" id="customers" aria-labelledby="custTitle">
         <div class="screen-heading">
           <div><div class="eyebrow">Customer demand</div><h2 id="custTitle" class="is-compact">Who asks, and who <em>actually books.</em></h2></div>
-          <p>Every account in the loaded quote book, measured by what it asked for and what came back. Sort to change the question; select an account to narrow the whole dashboard to it.</p>
+          <p>Every account in the loaded quote book, measured by what it asked for against what came back. Choose an account to open its full record &mdash; every quote it sent, and every job that came back with its entry date, tonnage and value.</p>
         </div>
         <section class="ops-kpis" id="custKpis" aria-label="Customer headline figures"></section>
+        <div class="account-layout">
+          <section class="account-list-panel" aria-labelledby="custListTitle">
+            <div class="account-tools">
+              <label class="sr-only" for="custSearch">Search accounts, quote numbers, or job numbers</label>
+              <input class="quote-search" id="custSearch" type="search" placeholder="Search account, quote number, or job number" />
+            </div>
+            <div class="cust-sort" id="custSort" role="group" aria-label="Sort accounts"></div>
+            <div class="account-head" id="custListTitle"><span>Account</span><span>Asked vs booked</span><span class="num">Quoted</span></div>
+            <div class="account-scroll"><div id="custRows"></div></div>
+            <p class="quote-count" id="custTableNote" aria-live="polite"></p>
+          </section>
+          <aside class="account-profile" id="custProfile" aria-live="polite"></aside>
+        </div>
         <section class="panel" aria-labelledby="custDiagTitle">
           <div class="panel-head"><span class="ops-step">The question worth asking</span><h2 id="custDiagTitle">Repeat demand that returned nothing</h2></div>
           <div class="ops-body" id="custDiagnostic"></div>
-        </section>
-        <section class="panel" aria-labelledby="custTableTitle">
-          <div class="panel-head"><h2 id="custTableTitle">All accounts</h2><p id="custTableNote"></p></div>
-          <div class="cust-sort" id="custSort" role="group" aria-label="Sort accounts"></div>
-          <div class="ops-table-wrap is-tall"><table class="ops-table is-wide" id="custTable"></table></div>
         </section>
       </section>
 
@@ -1203,35 +1250,19 @@
           <div class="panel-head"><span class="ops-step">04 &middot; Calendar</span><h2 id="cumulativeTitle">Quotes issued against orders booked</h2><p id="cumulativeNote"></p></div>
           <div class="ops-body" id="cumulativeChart"></div>
         </section>
-      </section>
-
-      <section class="screen" id="ops" aria-labelledby="opsTitle">
-        <div class="screen-heading">
-          <div><div class="eyebrow">Estimating operations</div><h2 id="opsTitle" class="is-compact">What the work cost to <em>put out the door.</em></h2></div>
-          <p>The outcome view answers whether quoted work came back. This one answers what it took to produce: how much arrived, how fast it left, and whether it consumed the engineering time set aside for it.</p>
-        </div>
-        <section class="ops-kpis" id="opsKpis" aria-label="Estimating headline figures"></section>
         <div class="ops-pair">
-          <section class="panel ops-panel" aria-labelledby="opsDemandTitle">
-            <div class="panel-head"><span class="ops-step">01 / Demand</span><h2 id="opsDemandTitle">What arrived</h2></div>
-            <div class="ops-body" id="opsDemand"></div>
+          <section class="panel ops-panel" aria-labelledby="tlArrivalTitle">
+            <div class="panel-head"><span class="ops-step">05 &middot; Arrivals</span><h2 id="tlArrivalTitle">What arrived, and when</h2></div>
+            <div class="ops-body" id="tlArrivals"></div>
           </section>
-          <section class="panel ops-panel" aria-labelledby="opsSpeedTitle">
-            <div class="panel-head"><span class="ops-step">02 / Speed</span><h2 id="opsSpeedTitle">How fast it left</h2></div>
-            <div class="ops-body" id="opsSpeed"></div>
+          <section class="panel ops-panel" aria-labelledby="tlTurnTitle">
+            <div class="panel-head"><span class="ops-step">06 &middot; Production speed</span><h2 id="tlTurnTitle">How fast it left</h2></div>
+            <div class="ops-body" id="tlTurn"></div>
           </section>
         </div>
-        <section class="panel ops-panel is-feature" aria-labelledby="opsCapTitle">
-          <div class="panel-head"><span class="ops-step">03 / Capacity</span><h2 id="opsCapTitle">Whether it cost what was planned</h2><p>Scheduled engineering time against the hours actually spent. Green means the work came in under the time set aside for it; copper means it ran over.</p></div>
-          <div class="ops-body is-wide" id="opsCapacity"></div>
-        </section>
-        <section class="panel" aria-labelledby="opsWeekTitle">
-          <div class="panel-head"><h2 id="opsWeekTitle">Week by week</h2><p id="opsWeekNote">Volume, turnaround mix and engineering load on one row per week, so a long span stays readable instead of stacking series on top of each other.</p></div>
+        <section class="panel" aria-labelledby="tlWeekTitle">
+          <div class="panel-head"><h2 id="tlWeekTitle">Week by week</h2><p id="tlWeekNote">Volume, turnaround mix, release timing and engineering load on one row per week, so a long span stays readable instead of stacking series on top of each other.</p></div>
           <div class="ops-week" id="opsWeek"></div>
-        </section>
-        <section class="panel" aria-labelledby="opsEstTitle">
-          <div class="panel-head"><h2 id="opsEstTitle">Load by estimator</h2><p>The estimator owns the quote and its alternates; engineering hours belong to the quote engineer, so the two are kept apart.</p></div>
-          <div class="ops-table-wrap"><table class="ops-table" id="opsEstTable"></table></div>
         </section>
       </section>
 
@@ -1518,10 +1549,9 @@
       function renderAll() {
         renderOverview();
         renderPeople();
-        renderQuotes();
-        renderOps();
         renderCustomers();
         renderTimeline();
+        renderTeamLoad();
         renderFilterBar();
       }
 
@@ -1586,6 +1616,25 @@
         let priorRecords;
         try { priorRecords = filterRecords(prior.records); } finally { state.filters.week = week; }
         if (!priorRecords.length) return { baseline: true, empty: true, priorLabel: baseline.label };
+
+        // Like weeks against like weeks. Loading ten prior weeks against three
+        // live ones and comparing the totals would report a collapse in demand
+        // that is really a difference in how much was uploaded. Where the two
+        // sides share week numbers, both are narrowed to the shared set and the
+        // view says which weeks it matched on.
+        let liveRecords = data.records || [];
+        const weekOf = record => Number(record.week) || 0;
+        const liveWeeks = new Set(liveRecords.map(weekOf).filter(Boolean));
+        const priorWeeks = new Set(priorRecords.map(weekOf).filter(Boolean));
+        const shared = Array.from(liveWeeks).filter(number => priorWeeks.has(number)).sort((a, b) => a - b);
+        const aligned = shared.length > 0 && (shared.length < liveWeeks.size || shared.length < priorWeeks.size);
+        if (aligned) {
+          const keep = new Set(shared);
+          liveRecords = liveRecords.filter(record => keep.has(weekOf(record)));
+          priorRecords = priorRecords.filter(record => keep.has(weekOf(record)));
+        }
+        const weekSpan = numbers => numbers.length === 1 ? "week " + numbers[0]
+          : "weeks " + numbers[0] + "–" + numbers[numbers.length - 1];
         return {
           baseline: true,
           weekFilterIgnored: Boolean(week),
@@ -1593,7 +1642,13 @@
           currentLabel: data.period,
           priorLabel: baseline.label,
           periods: 2,
-          current: periodMeasure(data.records || []),
+          aligned: aligned,
+          alignedOn: shared.length ? weekSpan(shared) : "",
+          alignedCount: shared.length,
+          liveExcluded: liveWeeks.size - (aligned ? shared.length : liveWeeks.size),
+          priorExcluded: priorWeeks.size - (aligned ? shared.length : priorWeeks.size),
+          noOverlap: shared.length === 0,
+          current: periodMeasure(liveRecords),
           prior: periodMeasure(priorRecords)
         };
       }
@@ -1897,7 +1952,15 @@
               + '<div class="analysis-foot"><strong>Direction is judged, not just signed.</strong> More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. '
               + (cmp.baseline
                   ? 'This compares the live book (' + escape(cmp.currentLabel) + ') against the separately loaded ' + escape(cmp.priorLabel)
-                    + '. The prior period is never added to the live conversion figures — it exists only here.'
+                    + '. The prior period is never added to the live conversion figures — it exists only here. '
+                    + (cmp.noOverlap
+                        ? 'The two sets share no week numbers, so this compares whole period against whole period. Load the matching weeks from each year for a like-for-like read.'
+                        : cmp.aligned
+                          ? 'Matched on ' + escape(cmp.alignedOn) + ', present in both sets'
+                            + (cmp.priorExcluded ? ' — ' + cmp.priorExcluded + ' prior week' + (cmp.priorExcluded === 1 ? '' : 's') + ' outside the match ' + (cmp.priorExcluded === 1 ? 'was' : 'were') + ' left out' : '')
+                            + (cmp.liveExcluded ? (cmp.priorExcluded ? ', and ' : ' — ') + cmp.liveExcluded + ' live week' + (cmp.liveExcluded === 1 ? '' : 's') + ' likewise' : '')
+                            + '. Comparing ten prior weeks against three live ones would report a collapse in demand that is really a difference in how much was uploaded.'
+                          : 'Both sets cover ' + escape(cmp.alignedOn) + ', so the two sides are already like for like.')
                     + (cmp.weekFilterIgnored ? ' The quoted-week filter narrows the live side only, since a week number has no counterpart in another period.' : '')
                   : cmp.periods + ' ' + cmp.granularity + 's are loaded, so this compares ' + escape(cmp.currentLabel) + ' against ' + escape(cmp.priorLabel) + '.')
               + '</div>';
@@ -1973,7 +2036,6 @@
         renderFlow(data);
         renderWeekly(data);
         renderAnalysis(data);
-        renderOps();
       }
 
       // ---- Estimating operations -------------------------------------------
@@ -1987,90 +2049,79 @@
       const opsNumber = value => Number.isFinite(value) ? value.toLocaleString("en-US") : "—";
       const opsTurnText = value => Number.isFinite(value) ? value.toFixed(1) : "—";
 
-      function renderOps() {
+      // ---- Load and capacity, on the team screen -----------------------------
+      // Estimating operations used to be a screen of its own. Its demand and
+      // speed panels were time series and moved to Timelines; what was left was
+      // per-person, which is what this screen is already for.
+      function renderTeamLoad() {
+        const panel = $("#teamLoad");
+        if (!panel) return;
         const data = currentScope();
         if (data.empty || !data.records || !data.records.length) {
-          $("#opsKpis").innerHTML = '<div class="analysis-empty"><div><b>No estimating figures yet</b><span>Run the weekly quote books and an order log to populate demand, turnaround and engineering capacity.</span></div></div>';
-          ["#opsDemand", "#opsSpeed", "#opsCapacity", "#opsEstTable"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          panel.innerHTML = '<p class="ops-note">Run the weekly quote books to see how the work was distributed and what it cost to produce.</p>';
+          setText("#teamLoadNote", "");
           return;
         }
         const weeks = Math.max(1, (data.weekly || []).length);
-        const turn = data.turn;
+        const roleField = state.role === "estimators" ? "estimator" : state.role === "schedulers" ? "scheduler" : "engineer";
+        const roleWord = state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer";
         const eng = data.engineering;
         const variance = eng.scheduledHours - eng.totalHours;
         const variancePct = eng.scheduledHours ? variance / eng.scheduledHours * 100 : null;
 
-        // ---- Headline figures -------------------------------------------------
-        $("#opsKpis").innerHTML = [
-          { label: "Quote load", value: (data.quotes / weeks).toFixed(1), note: "quotes per week, whole group · " + opsNumber(data.quotes) + " across " + weeks + " week" + (weeks === 1 ? "" : "s") },
-          { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · unpriced rework" },
-          { label: "Average turnaround", value: opsTurnText(turn.average) + "d", note: pct(percentage(turn.withinThree, turn.scored)) + " inside three days" },
-          { label: "Engineering hours", value: eng.totalHours.toFixed(0), note: eng.perQuote.toFixed(2) + " per quote · " + eng.fivePlus + " quotes at 5+" },
-          { label: variance >= 0 ? "Under the time set aside" : "Over the time set aside", value: (variancePct === null ? "—" : Math.abs(variancePct).toFixed(1) + "%"),
-            note: eng.scheduledHours.toFixed(0) + " scheduled vs " + eng.totalHours.toFixed(0) + " actual", tone: variance >= 0 ? "good" : "bad" },
-          { label: "Quoted value", value: money(data.quoteValue), note: money(data.quoteValue / data.quotes) + " average quote" }
-        ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
+        // One load table for any role: the same records grouped by whichever
+        // code owns them, so no role gets a view the others do not.
+        const groups = new Map();
+        data.records.forEach(record => {
+          const code = normaliseRosterCode(record[roleField]);
+          if (!groups.has(code)) groups.set(code, { code: code, records: [], quotes: 0, alts: 0, value: 0, wins: 0 });
+          const group = groups.get(code);
+          group.records.push(record);
+          group.quotes += 1;
+          group.alts += Number(record.alts) || 0;
+          group.value += Number(record.price) || 0;
+          if (record.won) group.wins += 1;
+        });
+        const rows = Array.from(groups.values()).map(group => Object.assign(group, {
+          name: resolvedNucorPerson(group.code, state.model && state.model.roster).name,
+          perWeek: group.quotes / weeks,
+          turn: nucorTurnaround(group.records)
+        })).sort((a, b) => b.quotes - a.quotes);
+        const maxLoad = Math.max(1, ...rows.map(item => item.perWeek));
+        const loadTable = '<div class="ops-table-wrap"><table class="ops-table">'
+          + '<thead><tr><th>' + escape(roleWord) + '</th><th class="num">Quotes</th><th class="num">Per week</th><th>Relative load</th><th class="num">Alts</th><th class="num">Avg turn</th><th class="num">6+ days</th><th class="num">Quoted $</th><th class="num">Conversion</th></tr></thead><tbody>'
+          + rows.map(item => '<tr data-filter="' + roleField + '" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters[roleField] === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.name) + '</span></td>'
+              + '<td class="num">' + item.quotes + '</td><td class="num">' + item.perWeek.toFixed(1) + '</td>'
+              + '<td class="load"><i style="width:' + (item.perWeek / maxLoad * 100).toFixed(1) + '%"></i></td>'
+              + '<td class="num">' + item.alts + '</td><td class="num">' + opsTurnText(item.turn.average) + '</td>'
+              + '<td class="num">' + pct(percentage(item.turn.sixPlus, item.turn.scored)) + '</td>'
+              + '<td class="num">' + money(item.value / 1000000) + '</td><td class="num">' + pct(percentage(item.wins, item.quotes)) + "</td></tr>").join("")
+          + '<tr class="is-total"><td>Total</td><td class="num">' + data.quotes + '</td><td class="num">' + (data.quotes / weeks).toFixed(1) + '</td><td></td><td class="num">' + data.alts
+          + '</td><td class="num">' + opsTurnText(data.turn.average) + '</td><td class="num">' + pct(percentage(data.turn.sixPlus, data.turn.scored))
+          + '</td><td class="num">' + money(data.quoteValue) + '</td><td class="num">' + pct(data.conversion) + "</td></tr></tbody></table></div>";
 
-        // ---- 01 Demand --------------------------------------------------------
-        const months = data.monthly || [];
-        // With several months, compare months. With one, the same shape by week,
-        // so the panel always shows how arrivals moved rather than a note.
-        const arrivals = months.length > 1
-          ? months.map(month => ({ label: month.label, quotes: month.quotes, alts: month.alts, value: month.value, change: month.quoteChange }))
-          : (data.weekly || []).map((item, index, all) => ({
-              label: item.week, quotes: item.quotes, alts: item.alts,
-              value: item.records ? 0 : 0,
-              change: index > 0 && all[index - 1].quotes ? (item.quotes - all[index - 1].quotes) / all[index - 1].quotes * 100 : null
-            }));
-        const arrivalMax = Math.max(1, ...arrivals.map(item => item.quotes));
-        const monthRows = arrivals.length
-          ? '<div class="ops-subhead">' + (months.length > 1 ? "By month" : "By quoted week") + "</div>"
-            + arrivals.map(item => '<div class="trend-row"><span>' + escape(item.label) + '</span>'
-                + '<div class="trend-track"><i style="width:' + Math.max(2, item.quotes / arrivalMax * 100).toFixed(1) + '%"></i></div>'
-                + '<b>' + item.quotes + '</b>' + opsChange(item.change)
-                + '<small>' + item.alts + " alternates</small></div>").join("")
-          : '<p class="ops-note">No dated quote records in this cohort.</p>';
-        // The headline strip already carries quotes, alternates and value; this
-        // panel shows how they moved, not the same three numbers again.
-        $("#opsDemand").innerHTML = monthRows
-          + (Array.isArray(data.bookedWeekly) && data.bookedWeekly.length
-              ? '<div class="ops-split is-tight"><div><span>Booked tons</span><strong>' + tons(data.bookedTons) + '</strong><small>from ' + data.tonsScored + ' matched jobs</small></div>'
-                + '<div><span>Tons per job</span><strong>' + (data.tonsScored ? (data.bookedTons / data.tonsScored).toFixed(1) : "\u2014") + '</strong><small>average</small></div>'
-                + '<div><span>Entry weeks</span><strong>' + data.bookedWeekly.length + '</strong><small>with tonnage</small></div></div>'
-              : "")
-          + '<p class="ops-note"><b>Alternates are quoted work that carries no separate quote number.</b> ' + opsNumber(data.alts)
-          + ' of them sit behind ' + opsNumber(data.quotes) + ' quotes here, so roughly ' + pct(percentage(data.alts, data.quotes + data.alts))
-          + ' of what the group actually priced never appears in a quote count.</p>';
+        if (state.role !== "engineers") {
+          panel.classList.remove("is-wide");
+          setText("#teamLoadStep", "Load");
+          setText("#teamLoadTitle", "How the work was distributed");
+          setText("#teamLoadNote", "The " + roleWord.toLowerCase() + " owns the quote and its alternates. Engineering hours belong to the quote engineer, so the two are kept apart — switch to Quote engineers for hours against plan.");
+          panel.innerHTML = loadTable;
+          return;
+        }
 
-        // ---- 02 Speed ---------------------------------------------------------
-        const turnRows = [
-          { label: "1 day or less", value: turn.oneDay, tone: "green" },
-          { label: "2 to 3 days", value: turn.threeDay, tone: "green-soft" },
-          { label: "4 to 5 days", value: turn.fourFive, tone: "steel" },
-          { label: "6 days or more", value: turn.sixPlus, tone: "copper" }
-        ];
-        $("#opsSpeed").innerHTML =
-          '<div class="turn-band" role="img" aria-label="Turnaround distribution across ' + turn.scored + ' scored quotes">'
-          + turnRows.map(row => row.value ? '<i class="is-' + row.tone + '" style="flex:' + row.value + '" title="' + escape(row.label) + ': ' + row.value + '"></i>' : "").join("")
-          + "</div>"
-          + '<div class="turn-legend">' + turnRows.map(row => '<span><b class="is-' + row.tone + '"></b>' + escape(row.label) + ' <strong>' + row.value + '</strong> <small>' + pct(percentage(row.value, turn.scored)) + "</small></span>").join("") + "</div>"
-          + '<div class="ops-split is-tight"><div><span>Average</span><strong>' + opsTurnText(turn.average) + 'd</strong></div>'
-          + '<div><span>Inside 3 days</span><strong>' + pct(percentage(turn.withinThree, turn.scored)) + '</strong></div>'
-          + '<div><span>6 days or more</span><strong>' + pct(percentage(turn.sixPlus, turn.scored)) + '</strong></div></div>'
-          + '<p class="ops-note">Date In to Done, on ' + turn.scored + ' of ' + data.quotes + ' quotes. ' + turn.excluded
-          + ' excluded at or beyond ' + TURN_LIMIT + ' days, which reads as a stale date rather than a slow quote. Turnaround is independent of whether the quote converts.</p>';
-
-        // ---- 03 Capacity: scheduled against actual ----------------------------
         // An engineer with no recorded hours has no capacity story; showing a
         // "gain" for the unassigned bucket would read as performance.
         const engineers = eng.byEngineer.filter(item => item.hours > 0 && item.code !== "(none)");
         const worst = Math.max(1, ...engineers.map(item => Math.abs(item.variance)));
-        $("#opsCapacity").innerHTML =
+        panel.classList.add("is-wide");
+        setText("#teamLoadStep", "Capacity");
+        setText("#teamLoadTitle", "Whether it cost what was planned");
+        setText("#teamLoadNote", "Scheduled engineering time against the hours actually spent. Green came in under the time set aside; copper ran over. "
+          + pct(eng.engagementRate) + " of quotes in this cohort needed engineering time at all.");
+        panel.innerHTML =
           '<div class="cap-side"><div class="cap-hero' + (variance >= 0 ? " is-good" : " is-bad") + '"><div><span>Scheduled</span><strong>' + eng.scheduledHours.toFixed(0) + '</strong></div>'
           + '<div><span>Actual</span><strong>' + eng.totalHours.toFixed(0) + '</strong></div>'
           + '<div><span>' + (variance >= 0 ? "Under by" : "Over by") + '</span><strong>' + Math.abs(variance).toFixed(0) + ' hrs</strong></div>'
-          // The headline strip above already carries the percentage against plan.
-          // This cell says something it does not.
           + '<div><span>Hours per quote</span><strong>' + eng.perQuote.toFixed(2) + '</strong></div></div>'
           + '<p class="ops-note"><b>This is the measure the outcome view cannot give you.</b> Conversion says whether the work came back; this says whether it cost what the group set aside for it. '
           + (variance >= 0
@@ -2086,68 +2137,8 @@
                 + '<div class="cap-track"><i class="' + (good ? "is-good" : "is-bad") + '" style="' + (good ? "left:50%;" : "right:50%;") + "width:" + width.toFixed(1) + '%"></i></div>'
                 + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</b>"
                 + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + item.quotes + " quotes</small></div>";
-            }).join("") + "</div>";
-
-        // ---- Week by week ------------------------------------------------------
-        const weekly = data.weekly || [];
-        const maxWeekQuotes = Math.max(1, ...weekly.map(item => item.quotes));
-        const maxWeekHours = Math.max(1, ...weekly.map(item => item.hours));
-        $("#opsWeek").innerHTML = weekly.length
-          ? '<div class="week-head"><span>Week</span><span>Quotes issued</span><span>Turnaround mix</span><span class="num">Avg</span><span class="num">On time</span><span>Engineering</span><span class="num">vs plan</span><span class="num">Alts</span></div>'
-            + '<div class="week-rows">' + weekly.map(item => {
-                const turnParts = [
-                  { value: item.turn.oneDay, tone: "green" },
-                  { value: item.turn.threeDay, tone: "green-soft" },
-                  { value: item.turn.fourFive, tone: "steel" },
-                  { value: item.turn.sixPlus, tone: "copper" }
-                ].filter(part => part.value > 0);
-                const good = item.variance >= 0;
-                return '<div class="week-row" data-filter="week" data-filter-value="' + escape(item.week) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.week === item.week) + '"><span class="week-id">' + escape(item.week) + "</span>"
-                  + '<span class="week-vol"><i style="width:' + (item.quotes / maxWeekQuotes * 100).toFixed(1) + '%"></i><b>' + item.quotes + "</b></span>"
-                  + '<span class="week-turn" title="' + item.turn.oneDay + " at 1 day, " + item.turn.threeDay + " at 2-3, " + item.turn.fourFive + " at 4-5, " + item.turn.sixPlus + ' at 6+">'
-                  + (turnParts.length ? turnParts.map(part => '<i class="is-' + part.tone + '" style="flex:' + part.value + '"></i>').join("") : '<i class="is-empty" style="flex:1"></i>')
-                  + "</span>"
-                  + '<span class="num week-avg">' + (item.turn.average === null ? "—" : item.turn.average.toFixed(1)) + "</span>"
-                  + '<span class="num week-ontime">' + (item.onTimeScored ? pct(item.onTime) : "\u2014") + "</span>"
-                  + '<span class="week-eng"><i style="width:' + (item.hours / maxWeekHours * 100).toFixed(1) + '%"></i><b>' + item.hours.toFixed(0) + "</b></span>"
-                  + '<span class="num week-var ' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</span>"
-                  + '<span class="num week-alts">' + item.alts + "</span></div>";
-              }).join("") + "</div>"
-            + '<div class="week-legend"><span><b class="is-green"></b>1 day</span><span><b class="is-green-soft"></b>2–3</span><span><b class="is-steel"></b>4–5</span><span><b class="is-copper"></b>6+</span>'
-            + '<span class="week-legend-note">' + weekly.length + ' week' + (weekly.length === 1 ? "" : "s") + ' · engineering bar is actual hours, "vs plan" is scheduled minus actual</span></div>'
-          : '<p class="ops-note">No weekly detail in this source set.</p>';
-        setText("#opsWeekNote", "Volume, turnaround mix and engineering load on one row per week. "
-          + pct(eng.engagementRate) + " of quotes in this cohort needed engineering time at all.");
-
-        // ---- Estimator detail --------------------------------------------------
-        const byEstimator = new Map();
-        data.records.forEach(record => {
-          const code = normaliseRosterCode(record.estimator);
-          if (!byEstimator.has(code)) byEstimator.set(code, { code: code, records: [], quotes: 0, alts: 0, value: 0, wins: 0 });
-          const group = byEstimator.get(code);
-          group.records.push(record);
-          group.quotes += 1;
-          group.alts += Number(record.alts) || 0;
-          group.value += Number(record.price) || 0;
-          if (record.won) group.wins += 1;
-        });
-        const estimators = Array.from(byEstimator.values()).map(group => Object.assign(group, {
-          name: resolvedNucorPerson(group.code, state.model && state.model.roster).name,
-          perWeek: group.quotes / weeks,
-          turn: nucorTurnaround(group.records)
-        })).sort((a, b) => b.quotes - a.quotes);
-        const maxLoad = Math.max(...estimators.map(item => item.perWeek));
-        $("#opsEstTable").innerHTML =
-          '<thead><tr><th>Estimator</th><th class="num">Quotes</th><th class="num">Per week</th><th>Relative load</th><th class="num">Alts</th><th class="num">Avg turn</th><th class="num">6+ days</th><th class="num">Quoted $</th><th class="num">Conversion</th></tr></thead><tbody>'
-          + estimators.map(item => '<tr data-filter="estimator" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.estimator === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.name) + '</span></td>'
-              + '<td class="num">' + item.quotes + '</td><td class="num">' + item.perWeek.toFixed(1) + '</td>'
-              + '<td class="load"><i style="width:' + (item.perWeek / maxLoad * 100).toFixed(1) + '%"></i></td>'
-              + '<td class="num">' + item.alts + '</td><td class="num">' + opsTurnText(item.turn.average) + '</td>'
-              + '<td class="num">' + pct(percentage(item.turn.sixPlus, item.turn.scored)) + '</td>'
-              + '<td class="num">' + money(item.value / 1000000) + '</td><td class="num">' + pct(percentage(item.wins, item.quotes)) + "</td></tr>").join("")
-          + '<tr class="is-total"><td>Total</td><td class="num">' + data.quotes + '</td><td class="num">' + (data.quotes / weeks).toFixed(1) + '</td><td></td><td class="num">' + data.alts
-          + '</td><td class="num">' + opsTurnText(turn.average) + '</td><td class="num">' + pct(percentage(turn.sixPlus, turn.scored))
-          + '</td><td class="num">' + money(data.quoteValue) + '</td><td class="num">' + pct(data.conversion) + "</td></tr></tbody>";
+            }).join("") + "</div>"
+          + '<div class="cap-full">' + loadTable + "</div>";
       }
 
       // ---- Definitions -------------------------------------------------------
@@ -2277,6 +2268,8 @@
 
       // ---- Timelines ---------------------------------------------------------
       const dayText = value => Number.isFinite(value) ? (value >= 10 ? value.toFixed(0) : value.toFixed(1)) + "d" : "—";
+      const fullDate = date => date instanceof Date && !Number.isNaN(date.getTime())
+        ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date) : "";
       const shortDate = date => date instanceof Date && !Number.isNaN(date.getTime())
         ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date) : "";
 
@@ -2285,17 +2278,19 @@
         const line = data.timeline;
         if (data.empty || !line || !data.records || !data.records.length) {
           $("#timelineKpis").innerHTML = '<div class="analysis-empty"><div><b>No lifecycle dates yet</b><span>Run the weekly quote books and an order log to measure how long work takes to come back.</span></div></div>';
-          ["#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          ["#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart", "#tlArrivals", "#tlTurn", "#opsWeek"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           setText("#cumulativeNote", "");
           return;
         }
 
         const half = line.curve.find(mark => mark.share >= 50);
         const oldest = line.ageing[line.ageing.length - 1];
+        const weeks = Math.max(1, (data.weekly || []).length);
         $("#timelineKpis").innerHTML = [
+          { label: "Quote load", value: (data.quotes / weeks).toFixed(1), note: "quotes per week · " + opsNumber(data.quotes) + " across " + weeks + " week" + (weeks === 1 ? "" : "s") },
+          { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · priced but never counted" },
           { label: "Median time to price", value: dayText(line.produce.median), note: "Date In to Done on " + opsNumber(line.produce.scored) + " of " + opsNumber(data.quotes) + " quotes" },
           { label: "Median time to answer", value: dayText(line.decide.median), note: line.decide.scored ? "Done to order entry on " + opsNumber(line.decide.scored) + " booked quotes" : "no booked quote carries both dates" },
-          { label: "Median full cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + opsNumber(line.total.scored) + " quotes" : "needs a Date In and a booked order" },
           { label: "Open book", value: money(line.openValue), note: opsNumber(line.openCount) + " quotes with no linked order" },
           { label: "Sitting past 60 days", value: opsNumber(oldest.count), note: money(oldest.value) + " · " + pct(oldest.share) + " of the open book", tone: oldest.count ? "bad" : "good" }
         ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
@@ -2369,6 +2364,81 @@
           setText("#cumulativeNote", "Quotes accumulate on the date they were quoted, orders on the date they were entered, from "
             + shortDate(series[0].date) + " to " + shortDate(last.date) + ".");
         }
+
+        // ---- 05 Arrivals -------------------------------------------------------
+        // With several months, compare months. With one, the same shape by week,
+        // so the panel always shows how arrivals moved rather than a note.
+        const months = data.monthly || [];
+        const arrivals = months.length > 1
+          ? months.map(month => ({ label: month.label, quotes: month.quotes, alts: month.alts, change: month.quoteChange }))
+          : (data.weekly || []).map((item, index, all) => ({
+              label: item.week, quotes: item.quotes, alts: item.alts,
+              change: index > 0 && all[index - 1].quotes ? (item.quotes - all[index - 1].quotes) / all[index - 1].quotes * 100 : null
+            }));
+        const arrivalMax = Math.max(1, ...arrivals.map(item => item.quotes));
+        $("#tlArrivals").innerHTML = (arrivals.length
+          ? '<div class="ops-subhead">' + (months.length > 1 ? "By month" : "By quoted week") + "</div>"
+            + arrivals.map(item => '<div class="trend-row"><span>' + escape(item.label) + '</span>'
+                + '<div class="trend-track"><i style="width:' + Math.max(2, item.quotes / arrivalMax * 100).toFixed(1) + '%"></i></div>'
+                + '<b>' + item.quotes + '</b>' + opsChange(item.change)
+                + '<small>' + item.alts + " alternates</small></div>").join("")
+          : '<p class="ops-note">No dated quote records in this cohort.</p>')
+          + (Array.isArray(data.bookedWeekly) && data.bookedWeekly.length
+              ? '<div class="ops-split is-tight"><div><span>Booked tons</span><strong>' + tons(data.bookedTons) + '</strong><small>from ' + data.tonsScored + ' matched jobs</small></div>'
+                + '<div><span>Tons per job</span><strong>' + (data.tonsScored ? (data.bookedTons / data.tonsScored).toFixed(1) : "—") + '</strong><small>average</small></div>'
+                + '<div><span>Entry weeks</span><strong>' + data.bookedWeekly.length + '</strong><small>with tonnage</small></div></div>'
+              : "")
+          + '<p class="ops-note"><b>Alternates are quoted work that carries no separate quote number.</b> ' + opsNumber(data.alts)
+          + ' of them sit behind ' + opsNumber(data.quotes) + ' quotes here, so roughly ' + pct(percentage(data.alts, data.quotes + data.alts))
+          + ' of what the group actually priced never appears in a quote count.</p>';
+
+        // ---- 06 Production speed -------------------------------------------------
+        const turn = data.turn;
+        const turnRows = [
+          { label: "1 day or less", value: turn.oneDay, tone: "green" },
+          { label: "2 to 3 days", value: turn.threeDay, tone: "green-soft" },
+          { label: "4 to 5 days", value: turn.fourFive, tone: "steel" },
+          { label: "6 days or more", value: turn.sixPlus, tone: "copper" }
+        ];
+        $("#tlTurn").innerHTML =
+          '<div class="turn-band" role="img" aria-label="Turnaround distribution across ' + turn.scored + ' scored quotes">'
+          + turnRows.map(row => row.value ? '<i class="is-' + row.tone + '" style="flex:' + row.value + '" title="' + escape(row.label) + ': ' + row.value + '"></i>' : "").join("")
+          + "</div>"
+          + '<div class="turn-legend">' + turnRows.map(row => '<span><b class="is-' + row.tone + '"></b>' + escape(row.label) + ' <strong>' + row.value + '</strong> <small>' + pct(percentage(row.value, turn.scored)) + "</small></span>").join("") + "</div>"
+          + '<div class="ops-split is-tight"><div><span>Average</span><strong>' + opsTurnText(turn.average) + 'd</strong></div>'
+          + '<div><span>Inside 3 days</span><strong>' + pct(percentage(turn.withinThree, turn.scored)) + '</strong></div>'
+          + '<div><span>6 days or more</span><strong>' + pct(percentage(turn.sixPlus, turn.scored)) + '</strong></div></div>'
+          + '<p class="ops-note">Date In to Done, on ' + turn.scored + ' of ' + data.quotes + ' quotes. ' + turn.excluded
+          + ' excluded at or beyond ' + TURN_LIMIT + ' days, which reads as a stale date rather than a slow quote. This is the one measure on this screen that does not care whether the quote converted.</p>';
+
+        // ---- Week by week ----------------------------------------------------------
+        const weekly = data.weekly || [];
+        const maxWeekQuotes = Math.max(1, ...weekly.map(item => item.quotes));
+        const maxWeekHours = Math.max(1, ...weekly.map(item => item.hours));
+        $("#opsWeek").innerHTML = weekly.length
+          ? '<div class="week-head"><span>Week</span><span>Quotes issued</span><span>Turnaround mix</span><span class="num">Avg</span><span class="num">On time</span><span>Engineering</span><span class="num">vs plan</span><span class="num">Alts</span></div>'
+            + '<div class="week-rows">' + weekly.map(item => {
+                const turnParts = [
+                  { value: item.turn.oneDay, tone: "green" },
+                  { value: item.turn.threeDay, tone: "green-soft" },
+                  { value: item.turn.fourFive, tone: "steel" },
+                  { value: item.turn.sixPlus, tone: "copper" }
+                ].filter(part => part.value > 0);
+                const good = item.variance >= 0;
+                return '<div class="week-row" data-filter="week" data-filter-value="' + escape(item.week) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.week === item.week) + '"><span class="week-id">' + escape(item.week) + "</span>"
+                  + '<span class="week-vol"><i style="width:' + (item.quotes / maxWeekQuotes * 100).toFixed(1) + '%"></i><b>' + item.quotes + "</b></span>"
+                  + '<span class="week-turn" title="' + item.turn.oneDay + " at 1 day, " + item.turn.threeDay + " at 2-3, " + item.turn.fourFive + " at 4-5, " + item.turn.sixPlus + ' at 6+">'
+                  + (turnParts.length ? turnParts.map(part => '<i class="is-' + part.tone + '" style="flex:' + part.value + '"></i>').join("") : '<i class="is-empty" style="flex:1"></i>')
+                  + "</span>"
+                  + '<span class="num week-avg">' + (item.turn.average === null ? "—" : item.turn.average.toFixed(1)) + "</span>"
+                  + '<span class="num week-ontime">' + (item.onTimeScored ? pct(item.onTime) : "—") + "</span>"
+                  + '<span class="week-eng"><i style="width:' + (item.hours / maxWeekHours * 100).toFixed(1) + '%"></i><b>' + item.hours.toFixed(0) + "</b></span>"
+                  + '<span class="num week-var ' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</span>"
+                  + '<span class="num week-alts">' + item.alts + "</span></div>";
+              }).join("") + "</div>"
+            + '<div class="week-legend"><span><b class="is-green"></b>1 day</span><span><b class="is-green-soft"></b>2–3</span><span><b class="is-steel"></b>4–5</span><span><b class="is-copper"></b>6+</span>'
+            + '<span class="week-legend-note">' + weekly.length + ' week' + (weekly.length === 1 ? "" : "s") + ' · engineering bar is actual hours, "vs plan" is scheduled minus actual</span></div>'
+          : '<p class="ops-note">No weekly detail in this source set.</p>';
       }
 
       // Inline SVG, sized from the data. Both charts read correctly with no
@@ -2438,13 +2508,18 @@
       // cap only exists to keep a multi-year load from building a DOM nobody reads.
       const CUSTOMER_ROW_CAP = 250;
 
+      let customerSearch = "";
+      let selectedAccount = "";
+
       function renderCustomers() {
         const data = currentScope();
         const signals = data.customers || blankCustomerSignals();
         const accounts = signals.accounts || [];
         if (data.empty || !accounts.length) {
           $("#custKpis").innerHTML = '<div class="analysis-empty"><div><b>No customer records yet</b><span>Run the weekly quote books to build the account view.</span></div></div>';
-          ["#custDiagnostic", "#custTable", "#custSort"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          ["#custDiagnostic", "#custRows", "#custSort"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          renderAccountProfile(null);
+          setText("#custTableNote", "");
           return;
         }
 
@@ -2455,22 +2530,6 @@
           { label: "Top ten concentration", value: pct(signals.concentration), note: "of quoted value sits with ten accounts" }
         ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
 
-        // The diagnostic the estimating group cannot get today: repeat demand
-        // that consumed quoting time and returned no order.
-        const never = (signals.askedNeverBooked || []).slice(0, 8);
-        const worst = Math.max(1, ...never.map(account => account.quoteValue));
-        $("#custDiagnostic").innerHTML = never.length
-          ? '<p class="ops-note" style="margin:0 0 12px">' + (signals.askedNeverBooked || []).length + ' accounts asked at least twice and booked nothing, carrying '
-            + money(signals.askedNeverBookedValue) + ' of quoted value and '
-            + (signals.askedNeverBooked || []).reduce((sum, a) => sum + a.hours, 0).toFixed(0) + ' engineering hours. That is the cost of demand that did not return.</p>'
-            + never.map(account => '<div class="cust-diag" data-filter="customer" data-filter-value="' + escape(account.key) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.customer === account.key) + '">'
-                + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
-                + '<div class="cust-diag-track"><i style="width:' + (account.quoteValue / worst * 100).toFixed(1) + '%"></i></div>'
-                + '<b>' + money(account.quoteValue) + "</b>"
-                + '<small>' + account.quotes + " quotes · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week · " : " weeks · ") + account.hours.toFixed(1) + " eng hrs</small></div>").join("")
-          : '<p class="ops-note">Every account that asked more than once has booked at least one job in this cohort.</p>';
-
-        // Sort control.
         $("#custSort").innerHTML = Object.keys(CUSTOMER_SORTS).map(key =>
           '<button class="cust-sort-btn" type="button" data-cust-sort="' + key + '" aria-pressed="' + String(customerSort === key) + '">'
           + escape(CUSTOMER_SORTS[key].label) + "</button>").join("");
@@ -2479,28 +2538,134 @@
           renderCustomers();
         }));
 
-        const sorted = accounts.slice().sort((a, b) => CUSTOMER_SORTS[customerSort].get(b) - CUSTOMER_SORTS[customerSort].get(a) || a.name.localeCompare(b.name));
-        const maxQuotes = Math.max(1, ...sorted.map(account => account.quotes));
-        $("#custTable").innerHTML =
-          '<thead><tr><th>Account</th><th class="num">Weeks</th><th class="num">Quotes</th><th>Asked vs booked</th><th class="num">Alts</th><th class="num">Avg quote</th><th class="num">Quoted</th><th class="num">Booked</th><th class="num">Returned</th><th class="num">Avg turn</th><th class="num">Eng hrs</th></tr></thead><tbody>'
-          + sorted.slice(0, CUSTOMER_ROW_CAP).map(account => {
+        // The search reaches an account's quotes and its linked jobs, so a job
+        // number written on a paper copy finds the account that owns it.
+        const term = customerSearch.trim().toLowerCase();
+        const quotesFor = account => (data.records || []).filter(record => customerKey(customerName(record.customer)) === account.key);
+        const matches = account => {
+          if (!term) return true;
+          if (account.name.toLowerCase().includes(term)) return true;
+          return quotesFor(account).some(record => (record.key + " " + (record.project || "") + " "
+            + (record.jobsDetail || []).map(job => job.id + " " + (job.name || "")).join(" ")).toLowerCase().includes(term));
+        };
+        const visible = accounts.filter(matches)
+          .sort((a, b) => CUSTOMER_SORTS[customerSort].get(b) - CUSTOMER_SORTS[customerSort].get(a) || a.name.localeCompare(b.name));
+        const maxQuotes = Math.max(1, ...visible.map(account => account.quotes));
+        if (!visible.some(account => account.key === selectedAccount)) selectedAccount = visible.length ? visible[0].key : "";
+
+        $("#custRows").innerHTML = visible.length
+          ? visible.slice(0, CUSTOMER_ROW_CAP).map(account => {
               const askWidth = account.quotes / maxQuotes * 100;
-              const winWidth = account.quotes ? account.wins / maxQuotes * 100 : 0;
-              return '<tr data-filter="customer" data-filter-value="' + escape(account.key) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.customer === account.key) + '">'
-                + '<td title="' + escape(account.name) + '"><span class="cust-name">' + escape(account.name) + "</span></td>"
-                + '<td class="num">' + account.loadedWeeks + '</td><td class="num">' + account.quotes + "</td>"
-                + '<td class="askbook"><div class="askbook-track" title="' + account.quotes + ' quoted, ' + account.wins + ' booked"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></div></td>'
-                + '<td class="num">' + account.alts + '</td><td class="num">' + money(account.averageQuote) + "</td>"
-                + '<td class="num">' + money(account.quoteValue) + '</td><td class="num">' + account.wins + "</td>"
-                + '<td class="num' + (account.wins ? "" : " is-zero") + '">' + (account.wins ? money(account.wonValue) : "\u2014") + "</td>"
-                + '<td class="num">' + (account.turnAverage === null ? "\u2014" : account.turnAverage.toFixed(1)) + "</td>"
-                + '<td class="num">' + account.hours.toFixed(1) + "</td></tr>";
+              const winWidth = account.wins ? account.wins / maxQuotes * 100 : 0;
+              return '<button class="account-row" type="button" data-account="' + escape(account.key) + '" aria-pressed="' + String(account.key === selectedAccount) + '">'
+                + '<span class="account-name"><strong title="' + escape(account.name) + '">' + escape(account.name) + "</strong>"
+                + '<span>' + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " · " + account.wins + " booked · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week" : " weeks") + "</span></span>"
+                + '<span class="askbook-track" title="' + account.quotes + ' quoted, ' + account.wins + ' booked"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></span>'
+                + '<span class="account-value">' + money(account.quoteValue) + "</span></button>";
             }).join("")
-          + "</tbody>";
-        setText("#custTableNote", CUSTOMER_SORTS[customerSort].note
-          + (sorted.length > CUSTOMER_ROW_CAP
-              ? " Showing the top " + CUSTOMER_ROW_CAP + " of " + opsNumber(sorted.length) + " accounts."
-              : " All " + opsNumber(sorted.length) + " accounts in the active cohort and filters."));
+          : '<div class="quote-empty">No account matches that search. Try an account name, a quote number, or a job number.</div>';
+        $$("[data-account]", $("#custRows")).forEach(button => button.addEventListener("click", () => {
+          selectedAccount = button.dataset.account;
+          renderCustomers();
+        }));
+        setText("#custTableNote", visible.length
+          ? CUSTOMER_SORTS[customerSort].note + " Showing " + opsNumber(Math.min(visible.length, CUSTOMER_ROW_CAP))
+            + (visible.length > CUSTOMER_ROW_CAP ? " of " + opsNumber(visible.length) : "") + " account" + (visible.length === 1 ? "" : "s")
+            + (term ? " matching this search." : " in the active cohort and filters.")
+          : "No account matches this search.");
+
+        renderAccountProfile(visible.find(account => account.key === selectedAccount) || null, quotesFor);
+
+        // The diagnostic the estimating group cannot get out of its own reporting.
+        const never = (signals.askedNeverBooked || []).slice(0, 8);
+        const worst = Math.max(1, ...never.map(account => account.quoteValue));
+        $("#custDiagnostic").innerHTML = never.length
+          ? '<p class="ops-note" style="margin:0 0 12px">' + (signals.askedNeverBooked || []).length + ' accounts asked at least twice and booked nothing, carrying '
+            + money(signals.askedNeverBookedValue) + ' of quoted value and '
+            + (signals.askedNeverBooked || []).reduce((sum, a) => sum + a.hours, 0).toFixed(0) + ' engineering hours. That is the cost of demand that did not return.</p>'
+            + never.map(account => '<div class="cust-diag" data-open-account="' + escape(account.key) + '" role="button" tabindex="0">'
+                + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
+                + '<div class="cust-diag-track"><i style="width:' + (account.quoteValue / worst * 100).toFixed(1) + '%"></i></div>'
+                + '<b>' + money(account.quoteValue) + "</b>"
+                + '<small>' + account.quotes + " quotes · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week · " : " weeks · ") + account.hours.toFixed(1) + " eng hrs</small></div>").join("")
+          : '<p class="ops-note">Every account that asked more than once has booked at least one job in this cohort.</p>';
+        $$("[data-open-account]").forEach(node => {
+          const open = () => {
+            selectedAccount = node.dataset.openAccount;
+            customerSearch = "";
+            const box = $("#custSearch");
+            if (box) box.value = "";
+            renderCustomers();
+            const profile = $("#custProfile");
+            if (profile) profile.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+          };
+          node.addEventListener("click", open);
+          node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+        });
+      }
+
+      // The account record. The quote list lives here now: a quote only means
+      // something beside the account that sent it and the job that came back
+      // from it, so the three are read together rather than on two screens.
+      function renderAccountProfile(account, quotesFor) {
+        const panel = $("#custProfile");
+        if (!panel) return;
+        if (!account) {
+          panel.innerHTML = '<div class="profile-top"><div class="eyebrow">Account record</div><h3>'
+            + (state.model ? "No account selected" : "Awaiting import")
+            + '</h3><p>' + (state.model
+                ? "Choose an account on the left to open every quote it sent and every job that came back."
+                : "Run the weekly quote books and an order log to build the account records.") + "</p></div>";
+          return;
+        }
+        const records = (quotesFor ? quotesFor(account) : []).slice()
+          .sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        const jobs = records.filter(record => record.won).reduce((all, record) => all.concat((record.jobsDetail || []).map(job => Object.assign({}, job, {
+          quoteKey: record.key, quoteValue: Number(record.price) || 0, lag: record.lag
+        }))), []).sort((a, b) => (b.entryDate ? b.entryDate.getTime() : 0) - (a.entryDate ? a.entryDate.getTime() : 0));
+        const bookedTons = jobs.reduce((sum, job) => sum + (Number(job.tons) || 0), 0);
+        const filtered = state.filters.customer === account.key;
+
+        panel.innerHTML = '<div class="profile-top"><div class="eyebrow">Account record</div>'
+          + '<h3 title="' + escape(account.name) + '">' + escape(account.name) + "</h3>"
+          + '<p>' + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " across " + account.loadedWeeks + (account.loadedWeeks === 1 ? " quoted week" : " quoted weeks")
+          + " · " + money(account.quoteValue) + " asked · " + (account.wins ? money(account.wonValue) + " returned" : "nothing returned yet") + "</p>"
+          + '<button class="profile-filter" type="button" aria-pressed="' + String(filtered) + '">'
+          + (filtered ? "Dashboard is filtered to this account — click to clear" : "Filter the whole dashboard to this account") + "</button></div>"
+          + '<div class="profile-stats">'
+          + '<div><span>Booked</span><strong>' + account.wins + " / " + account.quotes + '</strong><small>' + pct(account.conversion) + " came back</small></div>"
+          + '<div><span>Returned value</span><strong>' + (account.wins ? money(account.wonValue) : "—") + '</strong><small>of ' + money(account.quoteValue) + " asked</small></div>"
+          + '<div><span>Booked tons</span><strong>' + (bookedTons ? tons(bookedTons) : "—") + '</strong><small>' + jobs.length + " linked job" + (jobs.length === 1 ? "" : "s") + "</small></div>"
+          + '<div><span>Average quote</span><strong>' + money(account.averageQuote) + '</strong><small>' + account.alts + " alternates behind them</small></div>"
+          + '<div><span>Engineering</span><strong>' + account.hours.toFixed(1) + '</strong><small>hours · ' + account.hoursPerQuote.toFixed(2) + " per quote</small></div>"
+          + '<div><span>Average turn</span><strong>' + (account.turnAverage === null ? "—" : account.turnAverage.toFixed(1) + "d") + '</strong><small>Date In to Done</small></div></div>'
+          + (jobs.length
+              ? '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>' + jobs.length + " job" + (jobs.length === 1 ? "" : "s") + " · " + tons(bookedTons) + ' tons</b></div>'
+                + '<div class="profile-table-wrap"><table class="profile-table"><thead><tr><th>Job</th><th>Entered</th><th class="num">Tons</th><th class="num">Quote value</th><th>From quote</th></tr></thead><tbody>'
+                + jobs.map(job => '<tr><td><b>' + escape(job.id) + '</b>' + (job.name ? '<span class="job-name" title="' + escape(job.name) + '">' + escape(job.name) + "</span>" : "") + "</td>"
+                    + '<td class="date">' + (job.entryDate ? fullDate(job.entryDate) : "no entry date") + "</td>"
+                    + '<td class="num">' + (job.tons ? tons(job.tons) : "—") + "</td>"
+                    + '<td class="num">' + money(job.quoteValue / 1000000) + "</td>"
+                    + '<td class="quote-ref">' + escape(job.quoteKey) + (Number.isFinite(job.lag) ? '<span>' + job.lag + "d after quoting</span>" : "") + "</td></tr>").join("")
+                + "</tbody></table></div></section>"
+              : '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>none yet</b></div>'
+                + '<p class="ops-note">No order-log row in the loaded window carries a quote number from this account. That is a follow-up queue, not a recorded loss.</p></section>')
+          + '<section class="profile-block"><div class="profile-block-head"><span>Every quote from this account</span><b>' + records.length + " · " + money(account.quoteValue) + '</b></div>'
+          + '<div class="profile-table-wrap"><table class="profile-table"><thead><tr><th>Quote</th><th>Quoted</th><th class="num">Value</th><th>Quote engineer</th><th>Release</th><th>Outcome</th></tr></thead><tbody>'
+          + records.map(record => {
+              const engineer = resolvedNucorPerson(record.engineer, state.model && state.model.roster);
+              const release = record.onTime === "EARLY" ? "Early" : record.onTime === "ONTIME" ? "On the date" : record.onTime === "LATE" ? "Late" : "Not scored";
+              return '<tr class="' + (record.won ? "is-won" : "is-open") + '"><td><b>' + escape(record.quoteNumber || record.key) + "</b>"
+                + (record.project ? '<span class="job-name" title="' + escape(record.project) + '">' + escape(record.project) + "</span>" : "") + "</td>"
+                + '<td class="date">' + (record.date ? fullDate(record.date) : nucorWeekLabel(record.week)) + "</td>"
+                + '<td class="num">' + money((Number(record.price) || 0) / 1000000) + "</td>"
+                + '<td>' + escape(engineer.matched ? engineer.name : engineer.code) + "</td>"
+                + '<td>' + release + "</td>"
+                + '<td><span class="outcome-pill is-' + (record.won ? "won" : "open") + '">' + (record.won ? record.jobs + " booked" : (record.exposure === null ? "open" : "open " + record.exposure + "d")) + "</span></td></tr>";
+            }).join("")
+          + "</tbody></table></div></section>";
+        const filterButton = $(".profile-filter", panel);
+        if (filterButton) filterButton.addEventListener("click", () => setFilter("customer", account.key));
       }
 
       function getPeople() {
@@ -2670,112 +2835,6 @@
 
       function outcomeLabel(status) {
         return status === "confirmed" ? "Confirmed order" : status === "unconverted" ? "Unconverted" : "Still active";
-      }
-
-      function inspectorDate(value) {
-        const date = value instanceof Date ? value : spreadsheetDate(value);
-        return date ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date) : "Date not supplied";
-      }
-
-      function compactJobNumber(value) {
-        const number = Number(value) || 0;
-        return number ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(number) : "";
-      }
-
-      function linkedJobsMarkup(row) {
-        const jobs = Array.isArray(row.jobs) ? row.jobs : [];
-        if (!jobs.length) {
-          const preview = !state.model && !state.intake.hasRun;
-          const headline = preview ? "Preview only" : row.status === "confirmed" ? "Order link without job detail" : "No booked job linked";
-          const copy = preview ? "This preview is replaced after the weekly quote files and order log are selected and the dashboard is run." : row.status === "confirmed" ? "A confirmed order is present, but this source did not provide job-level context for the selected record." : "No booked job currently matches this quote number in the selected order log. It remains a seller-owned follow-up record; it is not treated as a loss.";
-          return '<section class="linked-jobs is-empty"><div class="linked-jobs-head"><span>Order outcome</span><strong>' + headline + '</strong></div><p>' + copy + '</p></section>';
-        }
-        const quoteProject = row.project ? '<div class="job-link-meta">Quote project: ' + escape(row.project) + '</div>' : "";
-        const cards = jobs.map(job => {
-          const details = [
-            job.entryDate ? "Order entry " + inspectorDate(job.entryDate) : "",
-            job.category ? job.category : "",
-            job.schedule ? "Schedule " + job.schedule : "",
-            job.tons ? compactJobNumber(job.tons) + " tons" : "",
-            job.totalHours ? compactJobNumber(job.totalHours) + " engineering hrs" : ""
-          ].filter(Boolean);
-          const team = [
-            job.salesEngineer ? "Sales engineer: " + job.salesEngineer : "",
-            job.csr ? "CSR: " + job.csr : "",
-            ...(Array.isArray(job.postOrderRoles) ? job.postOrderRoles.map(role => (role.label ? role.label + ": " : "") + role.value) : [])
-          ].filter(Boolean);
-          return '<article class="job-link"><div class="job-link-title"><strong>' + escape(job.id || "Job number not supplied") + '</strong><span>Booked job</span></div>' + (job.name ? '<div class="job-link-name">' + escape(job.name) + '</div>' : '') + (details.length ? '<div class="job-link-meta">' + escape(details.join(" · ")) + '</div>' : '') + (team.length ? '<div class="job-link-team">' + escape(team.join(" · ")) + '</div>' : '') + '</article>';
-        }).join("");
-        return '<section class="linked-jobs"><div class="linked-jobs-head"><span>Linked job outcome</span><strong>' + jobs.length + " booked job" + (jobs.length === 1 ? "" : "s") + "</strong></div>" + quoteProject + cards + "</section>";
-      }
-
-      function quoteRolesMarkup(row) {
-        const roles = Array.isArray(row.roles) ? row.roles : [];
-        if (!roles.length) return "";
-        return '<section class="record-roles" aria-label="Quote responsibility"><div class="sr-only">Quote responsibility</div>' + roles.map(role => '<div class="record-role"><span>' + escape(role.label) + '</span><strong>' + escape(role.name) + '</strong><small>' + escape(role.code === "(none)" ? "No initials supplied" : role.code + (role.matched ? " · source roster" : " · roster name not supplied")) + '</small></div>').join("") + '</section>';
-      }
-
-      function renderInspector(row) {
-        if (!row) {
-          const awaitingImport = !state.model && !state.intake.hasRun;
-          $("#quoteInspector").innerHTML = awaitingImport ? '<div class="inspector-top"><div class="eyebrow">Record focus</div><h3>Awaiting import</h3><p>Run the weekly quote files and one or more order-log exports to populate the traceable quote record view.</p></div>' : '<div class="inspector-top"><div class="eyebrow">Record focus</div><h3>No matching record</h3><p>Adjust the search or outcome filter to return a quote record.</p></div>';
-          return;
-        }
-        $("#quoteInspector").innerHTML = '<div class="inspector-top"><div class="eyebrow">Record focus</div><h3>' + escape(row.id) + "</h3><p>" + escape(row.customer) + " · " + escape(row.owner) + '</p></div><div class="inspector-body"><div class="record-flow"><span class="record-step sent">Quoted<i></i></span><span class="record-line"></span><span class="record-step sent">Release ' + escape(row.onTime) + '<i></i></span><span class="record-line"></span><span class="record-step ' + row.status + '">' + outcomeLabel(row.status) + '<i></i></span></div><div class="next-action"><span>Next action</span><strong>' + escape(row.next) + '</strong></div><div class="record-meta"><div><span>Quoted value</span><strong>' + escape(row.value) + '</strong></div><div><span>Exposure</span><strong>' + escape(row.age) + '</strong></div><div><span>Week quoted</span><strong>' + escape(row.week) + '</strong></div><div><span>Release</span><strong>' + escape(row.onTime) + "</strong></div></div></div>";
-        const inspectorBody = $(".inspector-body", $("#quoteInspector"));
-        if (inspectorBody) inspectorBody.insertAdjacentHTML("beforeend", quoteRolesMarkup(row) + linkedJobsMarkup(row));
-      }
-
-      // Default to the largest quoted value: on a records screen the first
-      // question is almost always "what is the biggest thing without an order".
-      const quoteSort = { key: "value", dir: -1, pending: true };
-
-      function renderQuotes() {
-        const text = $("#quoteSearch").value.trim().toLowerCase();
-        const filter = $("#quoteFilter").value;
-        const filtered = quotes.filter(row => {
-          const linkedJobText = (row.jobs || []).map(job => [job.id, job.name, job.customer].filter(Boolean).join(" ")).join(" ");
-          const matchesText = !text || [row.id, row.project, row.customer, row.owner, linkedJobText].join(" ").toLowerCase().includes(text);
-          const matchesFilter = filter === "all" || row.status === filter;
-          return matchesText && matchesFilter;
-        });
-        const sortValue = row => {
-          if (quoteSort.key === "value") return Number(row.valueRaw) || 0;
-          if (quoteSort.key === "week") return Number(row.weekRaw) || 0;
-          if (quoteSort.key === "status") return row.status === "confirmed" ? 1 : 0;
-          return String(row[quoteSort.key] || row.id || "").toLowerCase();
-        };
-        filtered.sort((a, b) => {
-          const left = sortValue(a);
-          const right = sortValue(b);
-          if (left === right) return String(a.id).localeCompare(String(b.id));
-          if (typeof left === "string") return quoteSort.dir * left.localeCompare(right);
-          return quoteSort.dir * (left - right);
-        });
-        $$("[data-sort]").forEach(button => {
-          const active = button.dataset.sort === quoteSort.key;
-          button.setAttribute("aria-sort", active ? (quoteSort.dir === 1 ? "ascending" : "descending") : "none");
-          button.classList.toggle("is-sorted", active);
-        });
-        const totalValue = filtered.reduce((sum, row) => sum + (Number(row.valueRaw) || 0), 0);
-        setText("#quoteCount", filtered.length === quotes.length
-          ? "Showing all " + filtered.length + " quote opportunities · " + money(totalValue / 1000000) + " quoted"
-          : "Showing " + filtered.length + " of " + quotes.length + " quote opportunities · " + money(totalValue / 1000000) + " quoted");
-        if (!filtered.some(row => row.id === state.selectedQuote) || quoteSort.pending) state.selectedQuote = filtered.length ? filtered[0].id : "";
-        quoteSort.pending = false;
-        if (!filtered.length) {
-          $("#quoteRows").innerHTML = '<div class="quote-empty">No quote records match this view.</div>';
-          setText("#quoteCount", "No quote records match this view. Clear the search or change the outcome filter.");
-          renderInspector(null);
-          return;
-        }
-        let html = "";
-        filtered.forEach(row => {
-          html += '<button class="quote-row" type="button" data-quote="' + row.id + '" aria-pressed="' + String(row.id === state.selectedQuote) + '"><span class="quote-id">' + escape(row.id) + '</span><span class="quote-week">' + escape(row.week) + '</span><span class="quote-customer">' + escape(row.customer) + '</span><span class="quote-owner" title="' + escape(row.owner) + '">' + escape(row.ownerName || row.owner) + '</span><span class="quote-value">' + escape(row.value) + '</span><span class="quote-status ' + row.status + '">' + outcomeLabel(row.status) + "</span></button>";
-        });
-        $("#quoteRows").innerHTML = html;
-        $$("[data-quote]", $("#quoteRows")).forEach(button => button.addEventListener("click", () => { state.selectedQuote = button.dataset.quote; renderQuotes(); }));
-        renderInspector(filtered.find(row => row.id === state.selectedQuote));
       }
 
       function setScreen(screen) {
@@ -5692,16 +5751,9 @@
         if (state.model) syncNucorViews();
         renderOverview();
         renderPeople();
-        renderQuotes();
-      }));
-      $$("[data-sort]").forEach(button => button.addEventListener("click", () => {
-        const key = button.dataset.sort;
-        // Same column toggles direction; a new column starts descending for
-        // numbers (biggest first) and ascending for text.
-        if (quoteSort.key === key) quoteSort.dir = -quoteSort.dir;
-        else { quoteSort.key = key; quoteSort.dir = key === "value" || key === "week" || key === "status" ? -1 : 1; }
-        quoteSort.pending = true;
-        renderQuotes();
+        renderCustomers();
+        renderTimeline();
+        renderTeamLoad();
       }));
 
       $$("[data-analysis]").forEach(button => button.addEventListener("click", () => {
@@ -5729,10 +5781,9 @@
       });
       $("#reviewMode").addEventListener("click", exportTeamReport);
       $("#exitReview").addEventListener("click", () => toggleReview(false));
-      $$("[data-role]").forEach(button => button.addEventListener("click", () => { state.role = button.dataset.role; state.selectedPerson = 0; renderPeople(); }));
+      $$("[data-role]").forEach(button => button.addEventListener("click", () => { state.role = button.dataset.role; state.selectedPerson = 0; renderPeople(); renderTeamLoad(); }));
       $$("[data-team-metric]").forEach(button => button.addEventListener("click", () => { state.teamMetric = button.dataset.teamMetric; renderPeople(); }));
-      $("#quoteSearch").addEventListener("input", renderQuotes);
-      $("#quoteFilter").addEventListener("change", renderQuotes);
+      $("#custSearch").addEventListener("input", event => { customerSearch = event.target.value; renderCustomers(); });
       $("#quoteFiles").addEventListener("change", event => {
         setSourceFiles("quote", event.target.files);
         event.target.value = "";
@@ -5758,10 +5809,9 @@
 
       renderOverview();
       renderPeople();
-      renderQuotes();
-      renderOps();
       renderCustomers();
       renderTimeline();
+      renderTeamLoad();
       renderFilterBar();
       refreshIntake();
       // Nothing is loaded yet, so open on Data Mapping where the files are

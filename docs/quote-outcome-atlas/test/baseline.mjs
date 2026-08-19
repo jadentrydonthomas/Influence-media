@@ -46,6 +46,13 @@ console.log('\n[compare]\n'+body.slice(0,320)+'\n');
 check('the compare lens reads the loaded baseline', /2025/.test(body), body.slice(0,60));
 check('it carries every measure', ['Quotes issued','Quoted value','Conversion','Average turnaround','Engineering hours'].every(k=>body.includes(k)));
 check('it states that the baseline is not added in', /never added to the live conversion/i.test(body));
+// Like weeks against like weeks: the prior set is W1-W2, the live set W1-W3,
+// so both sides must be narrowed to W1-W2 rather than 2 weeks being compared
+// against 3 and reported as a fall in demand.
+check('it matches on the weeks both sets share', /Matched on weeks 1–2/.test(body), body.slice(body.indexOf('Matched'), body.indexOf('Matched')+60));
+check('it says which live weeks it left out', /1 live week likewise|live week/.test(body));
+const issued = (body.match(/Quotes issued (\d+) (\d+)/)||[]);
+check('both sides carry the same weeks after matching', issued[1] === issued[2], issued.slice(1,3).join(' vs '));
 
 // A filter must narrow both sides.
 await p.click('[data-analysis="districts"]'); await p.waitForTimeout(400);
