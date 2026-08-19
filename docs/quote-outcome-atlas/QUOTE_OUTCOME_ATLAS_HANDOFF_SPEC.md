@@ -476,8 +476,8 @@ These come from the engineering brief. They are an explicit future-build backlog
 | File intake | Drag/drop and click-to-browse; auto-detect quote vs order files from sheet/header evidence; report filename, detected type/week, rows found, and specific errors per file. |
 | Performance | Parse larger source sets off the UI thread where possible; show progress; never block the page. |
 | Incremental loading | Adding Week 11 after Weeks 1–10 merges intelligently rather than forcing a full replacement; duplicate base keys need an explicit newest-source rule. |
-| Filter system | Week range, exposure, role, person, size band, customer search, and free text compose into one dismissible active-filter bar. |
-| Cross-filtering | Clicking a bar, line point, person, customer, or outcome segment applies a reversible filter — not decoration. |
+| Filter system | **Delivered.** Estimator, engineer, scheduler, district, quoted week, value band, turnaround bucket, customer and outcome compose into one dismissible active-filter bar. |
+| Cross-filtering | **Delivered.** Clicking a value band, district, quoted week, estimator, engineer or outcome card applies a reversible filter that every view respects. |
 | Segmentation | Quote engineer, estimator, scheduler, quote-number prefix/district, customer, quote week, and size bands, all derived from loaded data rather than hardcoded. |
 | Exports | CSV of the active filtered view; overview image; clean print/PDF path; uncluttered presentation mode. |
 | Shareable state | A filtered view MAY be stored in the URL hash where this stays compatible with offline file use. |
@@ -652,6 +652,7 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-11** | The weekly `project` field never resolved by header label because the workbook header reads `NAME`, so it fell back to a fixed column on every sheet (18 fallbacks). | [T-4](#113-code-rules) | **Fixed** — alias added; fallbacks down to 3, all non-critical order-log fields, with identical output. |
 | **A-12** | Data-quality rows reported counts with no way to act on them. | [T-11](#113-code-rules) | **Fixed** — offending values are named (e.g. `P-0287-025-2`) and fallback fields listed. |
 | **A-13** | The deck's on-time disc had its conic arc painted over from both sides — a 15px inset paper shadow from the rim and a `:before` disc from 15px inward — so it always rendered solid and never showed its value. | [V-11](#93-encoding-integrity) | **Fixed** — inset shadow dropped, inner disc pushed to 24px. |
+| **A-16** | Weekly sources were keyed by week number alone, so week 1 of one year collided with week 1 of another. Loading two years to compare them silently discarded one and reported it as a repeated reporting week — in exactly the year-over-year case the estimating reports are built around. | [P-3](#2-non-negotiable-product-requirements), [D-13](#75-required-validation-behavior) | **Fixed** — keyed by year and week; the weekly series buckets and labels the same way. |
 | **A-14** | New segment panels declared their bar track as `var(--surface-2, #eef2ef)`; `--surface-2` does not exist, so the light literal always won and painted a bright track on the dark panel. | [P-12](#2-non-negotiable-product-requirements), [V-22](#96-themes-and-accessibility) | **Fixed** — uses `--surface-soft`; regression asserts the colour differs per theme. |
 
 ### Confirmed by the real data

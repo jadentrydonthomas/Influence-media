@@ -18,6 +18,8 @@ quote books and order-log exports into a quote-to-order outcome view.
 | `test/boss-scenario.mjs` | Copy to another folder, clean profile, offline, four consecutive runs. |
 | `test/audit.py` | Recomputes every figure from the workbooks with openpyxl and compares. |
 | `test/a11y.mjs` | Accessible names, keyboard reach, focus rings, reduced motion. |
+| `test/filters.mjs` | Segmentation: filters narrow every view consistently and clear exactly. |
+| `test/compare.mjs` | Period comparison picks year, month or week granularity correctly. |
 
 ## Running the regression suite
 
@@ -42,6 +44,8 @@ node test/boss-scenario.mjs # copy to another folder, clean profile, offline, re
 node test/dump-figures.mjs && python3 test/audit.py   # independent recomputation
 node test/a11y.mjs          # keyboard, focus, labelling, reduced motion
 node test/first-run.mjs     # what a first-time recipient lands on
+node test/filters.mjs       # segmentation across every view
+node test/compare.mjs       # period comparison at each granularity
 ```
 
 `audit.py` reads the workbooks with openpyxl and recomputes every headline figure
@@ -84,6 +88,35 @@ disabled under `prefers-reduced-motion` and when printing.
 These reproduce the full Week 1–10 baseline behaviour in §12 of the spec: the same
 72/1/87 split of order rows and the same single non-standard reference
 (`P-0287-025-2`).
+
+## Segmentation
+
+Every view derives from `currentScope().records`, so filtering there narrows the
+sidebar, outcome field, weekly pulse, all eight analysis lenses, the roster, the quote
+records and the operations screen at once — no view can disagree with another.
+
+Filters are set by clicking the thing you want to look at: a value band, a district, a
+quoted week, an estimator row, an engineer on the capacity chart, or either outcome
+card. They compose, they toggle off, and a sticky bar names each one, reports how much
+of the book is left, and clears them.
+
+## Period comparison
+
+The **Period compare** lens reads the latest period against the one before it, at
+whatever granularity the loaded set supports:
+
+| Loaded span | Compares |
+| --- | --- |
+| More than one year | Latest year vs previous year |
+| One year, several months | Latest month vs previous month |
+| One month | Latest week vs previous week |
+
+Direction is judged rather than signed: more quotes, value and conversion read as
+improvement; longer turnaround and more engineering hours per quote read the other way.
+
+> Weekly sources are keyed by **year and week**. Keying on week number alone made week 1
+> of one year collide with week 1 of another, so loading two years to compare them
+> silently dropped one and reported it as a repeated reporting week.
 
 ## Estimating operations
 
