@@ -144,22 +144,25 @@ if (!download) {
   checkMatch('deck has no NaN or undefined', deck, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);
   checkMatch('deck agenda lists real quote numbers', deck, /class="quote">[A-Z0-9]+-\d+</);
   checkMatch('deck value-band chart present', deck, /conversion by quoted value band/i);
-  checkMatch('deck lag chart present', deck, /lag distribution/i);
+  // Slide 7 reads the same dates as the old lag buckets, as a decision curve.
+  checkMatch('deck decision curve present', deck, /cumulative share of booked orders by day/i);
+  checkMatch('deck lifecycle stages present', deck, /Date In &rarr; Done|Date In → Done/);
+  checkMatch('deck asked-against-booked chart present', deck, /quotes asked against orders booked/i);
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
-  // Continuity bars must encode the same measure their label prints.
-  // Each <g class="deck-bar-row"> carries a fill width and a value label; where
-  // the label reads "N wks", the width must order the same way N does.
   // The timing disc's conic arc used to be painted over from both sides by an
   // inset shadow and an inner disc, so it always rendered solid. Guard that.
   checkMatch('timing disc arc is not covered by an inset shadow', deck, /\.timing-disc\{box-shadow:0 22px 45px/);
   checkMatch('timing disc inner circle leaves a visible ring', deck, /\.timing-disc:before\{inset:24px\}/);
-  const barRows = [...deck.matchAll(/<rect class="deck-bar-fill"[^>]*?width="([\d.]+)"[\s\S]*?class="deck-bar-value"[^>]*>([^<]*)<\/text>/g)]
-    .map(m => ({ width: Number(m[1]), label: m[2] }))
-    .filter(r => /\d+\s*wks/.test(r.label))
-    .map(r => ({ width: r.width, weeks: Number((r.label.match(/(\d+)\s*wks/) || [0, 0])[1]) }));
-  const monotonic = barRows.every((r, i) => i === 0 || (barRows[i - 1].weeks >= r.weeks) === (barRows[i - 1].width >= r.width));
-  checks.push({ name: 'continuity bar length matches its week label', actual: JSON.stringify(barRows), expected: 'ordering matches weeks', pass: barRows.length > 0 && monotonic });
+  // Asked-against-booked rows must encode the same measure their label prints:
+  // the ask bar has to order the same way "N asked" does, and the booked bar
+  // can never be longer than the ask bar it sits inside.
+  const askRows = [...deck.matchAll(/<rect class="deck-bar-fill deck-ask"[^>]*?width="([\d.]+)"[^>]*><\/rect>(<rect class="deck-bar-fill deck-book"[^>]*?width="([\d.]+)"[^>]*><\/rect>)?[\s\S]*?class="deck-bar-value"[^>]*>(\d+) asked \u00b7 (\d+) booked/g)]
+    .map(m => ({ ask: Number(m[1]), book: Number(m[3] || 0), asked: Number(m[4]), booked: Number(m[5]) }));
+  const askOrdered = askRows.every((r, i) => i === 0 || (askRows[i - 1].asked >= r.asked) === (askRows[i - 1].ask >= r.ask));
+  const nested = askRows.every(r => r.book <= r.ask + 0.1 && (r.booked > 0) === (r.book > 0));
+  checks.push({ name: 'ask bar length matches its quote count', actual: JSON.stringify(askRows.slice(0, 3)), expected: 'ordering matches asked', pass: askRows.length > 0 && askOrdered });
+  checks.push({ name: 'booked bar never exceeds the ask bar it sits inside', actual: JSON.stringify(askRows.filter(r => r.book > r.ask + 0.1)), expected: '[]', pass: nested });
 }
 
 checks.push({ name: 'no uncaught JS errors', actual: jsErrors.length ? jsErrors.join('; ') : 'none', expected: 'none', pass: jsErrors.length === 0 });

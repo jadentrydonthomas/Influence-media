@@ -4736,19 +4736,6 @@
           }));
       }
 
-      function deckLagBuckets(records) {
-        const lags = records.filter(record => record.won && Number.isFinite(record.lag) && record.lag >= 0 && record.lag <= 400).map(record => record.lag);
-        const buckets = [
-          { label: "0–14 d", min: 0, max: 15 },
-          { label: "15–30 d", min: 15, max: 31 },
-          { label: "31–60 d", min: 31, max: 61 },
-          { label: "61–90 d", min: 61, max: 91 },
-          { label: "90+ d", min: 91, max: Infinity }
-        ].map(bucket => Object.assign({}, bucket, { count: 0 }));
-        lags.forEach(lag => { const bucket = buckets.find(item => lag >= item.min && lag < item.max); if (bucket) bucket.count += 1; });
-        return { buckets: buckets, scored: lags.length, median: numericQuantile(lags, .5), p10: numericQuantile(lags, .1), p90: numericQuantile(lags, .9) };
-      }
-
       // ---- Deck chart builders ---------------------------------------------
       // Charts are plain inline SVG sized from the data, so a 4-week and a
       // 30-week source set both stay legible. Animation is layered on top of a
@@ -4816,34 +4803,6 @@
           + rows + "</svg>";
       }
 
-      function deckColumnChart(items, options) {
-        const config = options || {};
-        if (!items.length) return '<div class="deck-empty">' + escape(config.empty || "Nothing to plot yet.") + "</div>";
-        const width = 860;
-        const height = 210;
-        const left = 44;
-        const right = 20;
-        const top = 26;
-        const bottom = 168;
-        const plot = width - left - right;
-        const step = plot / items.length;
-        const barWidth = Math.min(46, step * .6);
-        const max = Math.max.apply(null, items.map(item => Number(item.value) || 0)) || 1;
-        const bars = items.map((item, index) => {
-          const x = left + step * (index + .5);
-          const barHeight = (bottom - top) * (Number(item.value) || 0) / max;
-          return '<g class="deck-col" style="--deck-bar-delay:' + (index * 80) + 'ms">'
-            + '<rect class="deck-col-fill" x="' + (x - barWidth / 2).toFixed(1) + '" y="' + (bottom - barHeight).toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + Math.max(1, barHeight).toFixed(1) + '" rx="3"></rect>'
-            + '<text class="deck-col-value" x="' + x.toFixed(1) + '" y="' + (bottom - barHeight - 7).toFixed(1) + '" text-anchor="middle">' + escape(item.value_label || String(item.value)) + "</text>"
-            + '<text class="deck-col-label" x="' + x.toFixed(1) + '" y="' + (bottom + 20) + '" text-anchor="middle">' + escape(item.label) + "</text>"
-            + "</g>";
-        }).join("");
-        return '<svg class="deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Column chart") + '">'
-          + '<line class="grid" x1="' + left + '" x2="' + (width - right) + '" y1="' + bottom + '" y2="' + bottom + '"></line>'
-          + (config.caption ? '<text class="deck-axis-note" x="' + left + '" y="12">' + escape(config.caption) + "</text>" : "")
-          + bars + "</svg>";
-      }
-
       // Weekly pulse. Volume columns above, conversion line below, on-time as a
       // separate muted row so three different scales never share one axis.
       function reportWeeklySvg(weekly) {
@@ -4909,6 +4868,81 @@
           byEngineer: d.engineering.byEngineer.slice(0, 6),
           monthly: d.monthly.map(m => ({ label: m.label, quotes: m.quotes, alts: m.alts, turn: m.turnAverage, chg: m.quoteChange })) };
       };
+
+      // Asked against booked, on one track. The grey is what the account asked
+      // for; the green sitting inside it is what came back, so an account that
+      // asks a lot and books nothing reads as a bare bar rather than a number.
+      function deckAskBookChart(accounts, options) {
+        const config = options || {};
+        if (!accounts.length) return '<div class="deck-empty">' + escape(config.empty || "No account has more than one quote in this cohort yet.") + "</div>";
+        const width = 860, rowHeight = 40, labelWidth = 214, valueWidth = 168;
+        const plot = width - labelWidth - valueWidth;
+        const maxLabelChars = Math.max(6, Math.floor((labelWidth - 14) / 8.6));
+        const clip = text => { const value = String(text == null ? "" : text); return value.length > maxLabelChars ? value.slice(0, maxLabelChars - 1) + "…" : value; };
+        const max = Math.max.apply(null, accounts.map(account => account.quotes)) || 1;
+        const rows = accounts.map((account, index) => {
+          const y = index * rowHeight + 10;
+          const asked = Math.max(3, plot * account.quotes / max);
+          const booked = account.wins ? Math.max(3, plot * account.wins / max) : 0;
+          return '<g class="deck-bar-row" style="--deck-bar-delay:' + (index * 80) + 'ms">'
+            + '<text class="deck-bar-label" x="0" y="' + (y + 17) + '">' + escape(clip(account.name)) + "<title>" + escape(account.name) + "</title></text>"
+            + '<rect class="deck-bar-track" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + plot + '" height="15" rx="7.5"></rect>'
+            + '<rect class="deck-bar-fill deck-ask" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + asked.toFixed(1) + '" height="15" rx="7.5"></rect>'
+            + (booked ? '<rect class="deck-bar-fill deck-book" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + booked.toFixed(1) + '" height="15" rx="7.5" style="--deck-bar-delay:' + (index * 80 + 180) + 'ms"></rect>' : "")
+            + '<text class="deck-bar-value" x="' + width + '" y="' + (y + 17) + '" text-anchor="end">'
+            + account.quotes + " asked · " + account.wins + " booked · " + money(account.quoteValue) + "</text>"
+            + "</g>";
+        }).join("");
+        return '<svg class="deck-chart" viewBox="0 0 ' + width + " " + (accounts.length * rowHeight + 22) + '" role="img" aria-label="' + escape(config.label || "Quotes asked against orders booked, by account") + '">' + rows + "</svg>"
+          + '<div class="deck-key"><span><b class="k-ask"></b>Quotes asked</span><span><b class="k-book"></b>Orders booked</span></div>';
+      }
+
+      // The decision curve: of everything that eventually booked, the share that
+      // had booked by each day. Drawn as one path so it can animate on.
+      function deckCurveChart(curve, booked) {
+        if (!booked) return '<div class="deck-empty">No booked quote in this cohort carries a dated order entry, so there is no decision curve to draw.</div>';
+        const width = 470, height = 340, padLeft = 42, padBottom = 36, padTop = 18, padRight = 14;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const maxDay = curve[curve.length - 1].day;
+        const x = day => padLeft + day / maxDay * plotW;
+        const y = share => padTop + (1 - share / 100) * plotH;
+        const points = [{ day: 0, share: 0 }].concat(curve);
+        const path = points.map((point, index) => (index ? "L" : "M") + x(point.day).toFixed(1) + " " + y(point.share).toFixed(1)).join(" ");
+        // Rough path length, so the draw-on animation covers the whole line.
+        let length = 0;
+        for (let i = 1; i < points.length; i += 1) {
+          length += Math.hypot(x(points[i].day) - x(points[i - 1].day), y(points[i].share) - y(points[i - 1].share));
+        }
+        return '<svg class="deck-chart deck-curve" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative share of booked orders by day after the quoted week">'
+          + [0, 50, 100].map(share => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(share).toFixed(1) + '" y2="' + y(share).toFixed(1) + '"></line>'
+              + '<text class="deck-col-label" x="' + (padLeft - 7) + '" y="' + (y(share) + 4).toFixed(1) + '" text-anchor="end">' + share + "%</text>").join("")
+          + '<path class="deck-curve-area" d="' + path + " L" + x(maxDay).toFixed(1) + " " + (padTop + plotH) + " L" + padLeft + " " + (padTop + plotH) + ' Z"></path>'
+          + '<path class="deck-curve-line" style="--deck-len:' + Math.ceil(length + 20) + '" d="' + path + '"></path>'
+          + curve.map((mark, index) => '<circle class="deck-week-dot deck-curve-dot" cx="' + x(mark.day).toFixed(1) + '" cy="' + y(mark.share).toFixed(1) + '" r="4.5" style="--deck-bar-delay:' + (260 + index * 90) + 'ms"><title>By day ' + mark.day + ": " + pct(mark.share) + " (" + mark.count + " of " + booked + ")</title></circle>").join("")
+          + curve.map(mark => '<text class="deck-col-label" x="' + x(mark.day).toFixed(1) + '" y="' + (height - 12) + '" text-anchor="middle">' + mark.day + "</text>").join("")
+          + '<text class="deck-axis-note" x="' + padLeft + '" y="' + (height - 1) + '">DAYS AFTER THE QUOTED WEEK</text>'
+          + "</svg>";
+      }
+
+      // The three lifecycle stages on one shared day axis. Solid to the median,
+      // faint to the ninetieth percentile, so a long tail reads as a tail.
+      function deckStageRows(stages) {
+        const axis = Math.max(1, ...stages.map(stage => Number.isFinite(stage.stat.p90) ? stage.stat.p90 : 0));
+        return '<div class="stage-scale-deck"><span>0 days</span><span>' + Math.round(axis / 2) + '</span><span>' + Math.round(axis) + ' days</span></div>'
+          + stages.map((stage, index) => {
+              if (!stage.stat.scored) {
+                return '<div class="deck-stage is-empty"><span>' + escape(stage.label) + '</span><i></i><b>&mdash;</b>'
+                  + '<small>No quote here carries both ' + escape(stage.from) + ' and ' + escape(stage.to) + '.</small></div>';
+              }
+              const median = Math.max(2, Math.min(100, stage.stat.median / axis * 100));
+              const p90 = Math.max(median, Math.min(100, stage.stat.p90 / axis * 100));
+              return '<div class="deck-stage" style="--deck-bar-delay:' + (index * 110) + 'ms"><span>' + escape(stage.label) + "</span>"
+                + '<i><u class="tail is-' + stage.tone + '" style="width:' + p90.toFixed(1) + '%"></u><u class="fill is-' + stage.tone + '" style="width:' + median.toFixed(1) + '%"></u></i>'
+                + "<b>" + dayText(stage.stat.median) + "</b>"
+                + '<small>' + escape(stage.from) + " → " + escape(stage.to) + " · average " + dayText(stage.stat.average)
+                + " · 9 in 10 inside " + dayText(stage.stat.p90) + " · " + opsNumber(stage.stat.scored) + " scored</small></div>";
+            }).join("");
+      }
 
       function deckMetric(label, value, note) {
         // Long values (a confidence range, a big dollar figure) get a step down
@@ -4984,6 +5018,7 @@
           + '.side-stat{padding:10px 0;border-top:1px solid var(--line)}'
           + '.side-stat span{display:block;color:#7d8f84;font-size:9px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}'
           + '.side-stat strong{display:block;margin-top:4px;font-size:22px;font-weight:900;letter-spacing:-.04em}'
+          + '.side-stat strong{font-size:16px;letter-spacing:-.02em;overflow-wrap:anywhere}'
           + '.side-stat small{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45}'
           + '.district-list{display:grid;gap:2px}'
           + '.district-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line)}'
@@ -5045,6 +5080,43 @@
           + '.deck-slide.is-active .agenda-table tbody tr:nth-child(4){animation-delay:.18s}'
           + '.deck-slide.is-active .agenda-table tbody tr:nth-child(5){animation-delay:.24s}'
           + '.deck-slide.is-active .agenda-table tbody tr:nth-child(6){animation-delay:.3s}'
+          /* asked against booked */
+          + '.deck-ask{fill:var(--steel);opacity:.6}'
+          + '.deck-book{fill:var(--green)}'
+          + '.deck-key{display:flex;gap:20px;margin-top:6px;color:#6c8174;font-size:11px;font-weight:700}'
+          + '.deck-key span{display:inline-flex;align-items:center;gap:7px}'
+          + '.deck-key b{width:13px;height:6px;border-radius:3px;display:block}'
+          + '.deck-key .k-ask{background:var(--steel);opacity:.6}.deck-key .k-book{background:var(--green)}'
+          /* lifecycle + ageing */
+          + '.cycle-grid{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(300px,.68fr);gap:20px;align-items:stretch}'
+          + '.cycle-main,.cycle-side{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 10px 26px rgba(6,39,18,.05)}'
+          + '.cycle-side{display:flex;flex-direction:column;gap:6px}'
+          + '.cycle-side .deck-chart{margin-top:auto;margin-bottom:auto}'
+          + '.stage-scale-deck{display:flex;justify-content:space-between;margin:8px 0 2px;color:#93a49a;font-size:10px;font-weight:700}'
+          + '.deck-stage{display:grid;grid-template-columns:150px minmax(0,1fr) 56px;grid-template-areas:\'name track value\' \'note note note\';align-items:center;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line)}'
+          + '.deck-stage>span{grid-area:name;font-size:13px;font-weight:800}'
+          + '.deck-stage>i{grid-area:track;position:relative;display:block;height:14px;border-radius:7px;background:#e4ede7}'
+          + '.deck-stage>i u{position:absolute;top:0;left:0;height:100%;border-radius:7px;text-decoration:none;transform-origin:left center}'
+          + '.deck-stage>i u.tail{opacity:.3}'
+          + '.deck-stage>b{grid-area:value;font-family:Consolas,monospace;font-size:14px;font-weight:900;text-align:right}'
+          + '.deck-stage>small{grid-area:note;color:var(--muted);font-size:10.5px}'
+          + '.deck-stage.is-empty>span,.deck-stage.is-empty>b{color:#9aaba0}'
+          + '.deck-age{display:grid;grid-template-columns:130px minmax(0,1fr) 42px 62px;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:12px;font-weight:700}'
+          + '.deck-age>i{display:block;height:11px;border-radius:6px;background:#e4ede7}'
+          + '.deck-age>i u{display:block;height:100%;border-radius:6px;text-decoration:none;transform-origin:left center}'
+          + '.deck-age>b{font-family:Consolas,monospace;font-size:13px;font-weight:900;text-align:right}'
+          + '.deck-age>em{color:var(--muted);font-family:Consolas,monospace;font-size:11.5px;font-style:normal;text-align:right}'
+          + '.is-green{background:var(--green)}.is-green-soft{background:var(--green-deep)}'
+          + '.is-steel{background:var(--steel)}.is-copper{background:var(--copper)}.is-red{background:#8d3f24}'
+          + '.deck-curve-area{fill:#dcf3e4}'
+          + '.deck-curve-line{fill:none;stroke:var(--green);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}'
+          + '.deck-curve-dot{fill:#fff;stroke:var(--green-deep);stroke-width:2.4}'
+          /* a little depth on the panels, matching the discs the deck already uses */
+          + '.deck-metric,.weekly-summary,.analysis-main,.analysis-side,.agenda-table-wrap,.dual-charts>div{box-shadow:0 10px 26px rgba(6,39,18,.05)}'
+          + '.deck-slide.is-active .deck-stage>i u,.deck-slide.is-active .deck-age>i u{animation:deckWipe .6s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--deck-bar-delay,0ms)}'
+          + '.deck-slide.is-active .deck-curve-line{stroke-dasharray:var(--deck-len,900);animation:deckDraw .95s cubic-bezier(.3,.6,.3,1) both .25s}'
+          + '.deck-slide.is-active .deck-curve-area{animation:deckRise .6s ease-out both .2s}'
+          + '@media(max-width:900px){.cycle-grid{grid-template-columns:1fr}}'
           + '.deck-progress{position:fixed;left:0;top:0;height:3px;background:var(--green);z-index:9;transition:width .35s cubic-bezier(.2,.7,.3,1)}'
 + '.weekly-summary{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}'
           + '.weekly-summary>div{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}'
@@ -5054,6 +5126,12 @@
           + '.deck-slide.is-dense .deck-content{justify-content:center;padding-top:6px;padding-bottom:18px}'
           + '.deck-slide.is-dense header{margin-bottom:14px}'
           + '.deck-slide footer{padding-right:340px}'
+          /* The nav is a fixed overlay in the bottom-right corner. The footer
+             already steps around it; the closing callout has to as well, or its
+             last line reads underneath the buttons. */
+          + '.deck-content>.deck-callout:last-child{padding-right:352px}'
+          + '@media(max-width:900px){.deck-content>.deck-callout:last-child{padding-right:18px}}'
+          + '@media print{.deck-content>.deck-callout:last-child{padding-right:18px}}'
           + '@media(max-width:900px){.deck-slide footer{padding-right:0}.deck-slide footer span:last-child{display:none}}'
           + '.deck-page{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid rgba(255,255,255,.25);color:#ecfff0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800;letter-spacing:.04em}'
           + '.deck-nav{align-items:stretch}'
@@ -5110,15 +5188,10 @@
         const exportDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date());
         const sourceState = state.intake.hasRun ? "Imported source set" : "Design preview";
         const customerSignals = data.customers || blankCustomerSignals();
-        const topWinCustomer = Array.isArray(customerSignals.topWinAccounts) && customerSignals.topWinAccounts.length ? customerSignals.topWinAccounts[0] : null;
-        const topWinCustomerName = topWinCustomer ? String(topWinCustomer.name || "Customer").slice(0, 26) : "No linked customer win yet";
-        const bookedWeeks = Array.isArray(data.bookedWeekly) ? data.bookedWeekly : [];
-        const recurringAccounts = Array.isArray(customerSignals.multiWeekAccounts) ? customerSignals.multiWeekAccounts.slice(0, 5) : [];
         const valueBands = deckValueBands(records);
         const sizeBands = deckSizeBands(records);
         const districts = deckDistricts(records);
         const revisions = deckRevisionSplit(records);
-        const lag = deckLagBuckets(records);
         const followUp = deckFollowUp(records, 6);
         const coverage = onTimeCoverageNote(data);
 
@@ -5188,40 +5261,80 @@
           + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Delivered on the due date counts as on time; the workbook writes that result as N/A. Only rows with no release result at all are excluded from both halves of the rate.</span></div>'
           + "</div></div>" + timingRows;
 
-        // ---- 06 Commercial continuity ----------------------------------------
-        const recurringChart = deckBarChart(recurringAccounts.map(account => ({
-          label: String(account.name || "Customer"),
-          value: Number(account.loadedWeeks) || 0,
-          value_label: (Number(account.loadedWeeks) || 0) + " wks · " + money(account.quoteValue),
-          tone: account.wins ? "green" : "copper"
-        })), { label: "Customers by quoted weeks present", empty: "No multi-week customer pattern in this source set yet.", labelWidth: 232, valueWidth: 150 });
+        // ---- 06 Customer demand ----------------------------------------------
+        // Two questions on one slide: who asks the most, and who asks without
+        // ever booking. The second is the one the estimating group cannot get
+        // out of its own reporting today.
+        const askBookAccounts = (customerSignals.accounts || []).slice()
+          .sort((a, b) => b.quotes - a.quotes || b.quoteValue - a.quoteValue).slice(0, 8);
+        const neverBooked = (customerSignals.askedNeverBooked || []).slice(0, 4);
+        const neverBookedHours = (customerSignals.askedNeverBooked || []).reduce((sum, account) => sum + account.hours, 0);
         const operations = '<div class="weekly-summary">'
-          + '<div><span>Customer accounts</span><strong>' + customerSignals.total + '</strong><small>' + customerSignals.multiWeek + ' repeat · ' + customerSignals.firstSeen + ' first seen</small></div>'
-          + '<div><span>Booked volume</span><strong>' + (data.tonsScored ? tons(data.bookedTons) : "Not scored") + '</strong><small>' + (data.tonsScored ? data.tonsScored + " jobs with Total Tons" : "Total Tons not supplied") + '</small></div>'
-          + '<div><span>Most quote wins</span><strong>' + (topWinCustomer ? topWinCustomer.wins : "—") + '</strong><small>' + escape(topWinCustomerName) + '</small></div>'
-          + '<div><span>Repeat, no linked win</span><strong>' + customerSignals.repeatNoWin + '</strong><small>' + money(customerSignals.repeatNoWinValue) + ' quoted</small></div></div>'
-          + '<div class="analysis-grid"><div class="analysis-main">' + recurringChart + '</div>'
-          + '<aside class="analysis-side"><span class="section-label">District mix</span>'
-          + '<p>Quote-number prefixes, read straight off the quote key. No roster inference is applied, so no district result can misattribute a person.</p>'
-          + '<div class="district-list">' + (districts.length ? districts.slice(0, 5).map(district =>
-              '<div class="district-row"><b>' + escape(district.code) + '</b><strong class="' + (district.wins ? "" : "is-zero") + '">' + pct(district.conversion) + '</strong><span>' + district.quotes + ' quotes · ' + money(district.value / 1000000) + ' quoted</span></div>'
-            ).join("") : '<div class="deck-empty">No district prefixes available.</div>') + "</div></aside></div>"
-          + '<div class="deck-callout"><strong>Operating read:</strong> ' + customerSignals.repeatNoWin + ' recurring accounts carry ' + money(customerSignals.repeatNoWinValue) + ' of quoted value with no linked win. Treat that as a follow-up queue, not a loss list — a repeat customer quoting again is a relationship still in play.</div>';
+          + '<div><span>Accounts quoted</span><strong>' + customerSignals.total + '</strong><small>' + customerSignals.multiWeek + ' asked in more than one week</small></div>'
+          + '<div><span>Accounts that booked</span><strong>' + customerSignals.withWin + '</strong><small>' + pct(percentage(customerSignals.withWin, customerSignals.total)) + ' of accounts returned work</small></div>'
+          + '<div><span>Asked, booked nothing</span><strong>' + (customerSignals.askedNeverBooked || []).length + '</strong><small>' + money(customerSignals.askedNeverBookedValue) + ' quoted with no order</small></div>'
+          + '<div><span>Top ten concentration</span><strong>' + pct(customerSignals.concentration) + '</strong><small>of quoted value sits with ten accounts</small></div>'
+          + '<div><span>Booked volume</span><strong>' + (data.tonsScored ? tons(data.bookedTons) : "Not scored") + '</strong><small>' + (data.tonsScored ? data.tonsScored + " jobs carry Total Tons" : "Total Tons not supplied") + '</small></div></div>'
+          + '<div class="analysis-grid"><div class="analysis-main">'
+          + '<p class="chart-note" style="margin:0 0 10px">The accounts that asked most often, with what actually came back nested inside what they asked for.</p>'
+          + deckAskBookChart(askBookAccounts, { label: "Quotes asked against orders booked, by account" })
+          + '</div><aside class="analysis-side"><span class="section-label">Asked twice or more, booked nothing</span>'
+          + '<p>Ordered by the value that returned as nothing — the size of the question, not the number of requests.</p>'
+          + '<div class="district-list">' + (neverBooked.length ? neverBooked.map(account =>
+              '<div class="district-row"><b title="' + escape(account.name) + '">' + escape(account.name.length > 22 ? account.name.slice(0, 21) + "…" : account.name) + '</b><strong class="is-zero">' + money(account.quoteValue) + '</strong>'
+              + '<span>' + account.quotes + ' quotes · ' + account.loadedWeeks + (account.loadedWeeks === 1 ? ' week' : ' weeks') + ' · ' + account.hours.toFixed(1) + ' eng hrs</span></div>'
+            ).join("") : '<div class="deck-empty">Every repeat account here has booked at least one job.</div>')
+          + '</div><div class="side-stat"><span>District mix</span><strong>' + (districts.length ? districts.slice(0, 3).map(district => district.code + " " + pct(district.conversion)).join("  ") : "—")
+          + '</strong><small>Read off the quote key, so no district result can misattribute a person.</small></div>'
+          + "</aside></div>"
+          + '<div class="deck-callout"><strong>Operating read:</strong> ' + (customerSignals.askedNeverBooked || []).length
+          + ' accounts asked at least twice and booked nothing, carrying ' + money(customerSignals.askedNeverBookedValue) + ' of quoted value and '
+          + neverBookedHours.toFixed(0) + ' engineering hours. That is the cost of demand that did not return — a follow-up queue, not a loss list.</div>';
 
-        // ---- 07 Speed to order (new) -----------------------------------------
-        const lagChart = lag.scored
-          ? deckColumnChart(lag.buckets.map(bucket => ({ label: bucket.label, value: bucket.count, value_label: String(bucket.count) })), { label: "Quote-to-order lag distribution", caption: "BOOKED ORDERS BY DAYS FROM QUOTE" })
-          : '<div class="deck-empty">No dated quote-to-order pairs in this cohort yet. Lag needs both a quote date and an Order Entry date.</div>';
-        const tonsChart = bookedWeeks.length
-          ? deckColumnChart(bookedWeeks.slice(-12).map(item => ({ label: item.week, value: Number(item.tons) || 0, value_label: Math.round(Number(item.tons) || 0) })), { label: "Booked tons by order-entry week", caption: "BOOKED TONS BY ORDER-ENTRY WEEK" })
-          : '<div class="deck-empty">Total Tons is not populated on the matched jobs in this source set.</div>';
-        const speed = '<div class="weekly-summary">'
-          + '<div><span>Median lag</span><strong>' + (lag.median === null ? "—" : Math.round(lag.median) + " d") + '</strong><small>quote sent to order entry</small></div>'
-          + '<div><span>Fast decisions (p10)</span><strong>' + (lag.p10 === null ? "—" : Math.round(lag.p10) + " d") + '</strong><small>quickest tenth of wins</small></div>'
-          + '<div><span>Slow decisions (p90)</span><strong>' + (lag.p90 === null ? "—" : Math.round(lag.p90) + " d") + '</strong><small>slowest tenth of wins</small></div>'
-          + '<div><span>Scored pairs</span><strong>' + lag.scored + '</strong><small>of ' + data.orders + ' confirmed orders</small></div></div>'
-          + '<div class="dual-charts"><div>' + lagChart + "</div><div>" + tonsChart + "</div></div>"
-          + '<div class="deck-callout"><strong>Why the exposure lens exists:</strong> half of the wins in this cohort landed within ' + (lag.median === null ? "the median lag" : Math.round(lag.median) + " days") + ', and the slowest tenth took ' + (lag.p90 === null ? "considerably longer" : Math.round(lag.p90) + " days") + '. A quote issued last week has not lost — it has not been decided.</div>';
+        // ---- 07 How long it takes to come back --------------------------------
+        // Replaces the old lag-bucket slide. Same underlying dates, read as a
+        // lifecycle and a decision curve rather than four bars, and carrying the
+        // ageing of the work that has had no answer at all.
+        const line = data.timeline || nucorTimeline(data.records || [], data.cutoff);
+        const halfMark = line.curve.find(mark => mark.share >= 50);
+        const stageRows = deckStageRows([
+          { label: "Produce the quote", from: "Date In", to: "Done", stat: line.produce, tone: "green" },
+          { label: "Customer answers", from: "Done", to: "order entry", stat: line.decide, tone: "steel" },
+          { label: "Whole cycle", from: "Date In", to: "booked work", stat: line.total, tone: "copper" }
+        ]);
+        const ageMax = Math.max(1, ...line.ageing.map(band => band.count));
+        const ageRows = line.ageing.map((band, index) => '<div class="deck-age" style="--deck-bar-delay:' + (index * 70) + 'ms"><span>' + escape(band.label) + "</span>"
+          + '<i><u class="is-' + band.tone + '" style="width:' + (band.count / ageMax * 100).toFixed(1) + '%"></u></i>'
+          + "<b>" + opsNumber(band.count) + "</b><em>" + money(band.value) + "</em></div>").join("");
+        const speedBody = '<div class="weekly-summary">'
+          + '<div><span>Median time to price</span><strong>' + dayText(line.produce.median) + '</strong><small>Date In to Done on ' + opsNumber(line.produce.scored) + ' quotes</small></div>'
+          + '<div><span>Median time to answer</span><strong>' + dayText(line.decide.median) + '</strong><small>Done to order entry on ' + opsNumber(line.decide.scored) + ' booked quotes</small></div>'
+          + '<div><span>Half of orders land by</span><strong>' + (halfMark ? "day " + halfMark.day : "—") + '</strong><small>of ' + opsNumber(line.bookedScored) + ' quotes that booked</small></div>'
+          + '<div><span>Open book</span><strong>' + money(line.openValue) + '</strong><small>' + opsNumber(line.openCount) + ' quotes with no linked order</small></div></div>'
+          + '<div class="cycle-grid"><div class="cycle-main"><span class="section-label">Lifecycle</span>'
+          + stageRows
+          + '<p class="chart-note">The three stages are measured separately and do not add up: every quote has a Date In and a Done, but only a booked one has an order date.</p>'
+          + '<span class="section-label" style="margin-top:14px">The open book, by how long it has waited</span>'
+          + ageRows
+          + '<p class="chart-note">' + (data.exposure
+              ? 'The ' + escape(data.label) + ' lens already excludes anything younger than ' + data.exposure + ' days, so the bands below that are empty by definition rather than because no fresh work exists.'
+              : 'Aged against the order-log cutoff. An unconverted quote is work still needing a named current status, not a recorded loss.') + '</p>'
+          + '</div><div class="cycle-side"><span class="section-label">When the orders arrive</span>'
+          + deckCurveChart(line.curve, line.bookedScored)
+          + '<p class="chart-note">Of everything that eventually booked, the share that had booked by each day after the quoted week. '
+          + (halfMark ? 'Half had landed by day ' + halfMark.day + '. ' : '')
+          + 'Where the curve flattens is where waiting stops paying.</p>'
+          + '</div></div>';
+        const oldest = line.ageing[line.ageing.length - 1];
+        const speedCallout = '<div class="deck-callout"><strong>What to do with this:</strong> '
+          + (halfMark
+              ? "half of everything that booked had done so by day " + halfMark.day + ", so a quote past that point is past the window most of this book decides in — not lost, but worth a named next step. "
+              : "the decision window is not scored in this cohort yet. ")
+          + (oldest.count
+              ? opsNumber(oldest.count) + " quotes carrying " + money(oldest.value) + " have now waited more than sixty days. That is the follow-up list, ordered by value on the closing slide."
+              : "Nothing in this cohort has waited more than sixty days without an answer.")
+          + '</div>';
+        const speed = speedBody + speedCallout;
 
         // ---- 08 Review agenda (replaces the old generic action cards) ---------
         const followUpRows = followUp.length ? followUp.map((item, index) =>
@@ -5281,8 +5394,8 @@
           + deckSlide(3, "Weekly performance pulse", "Volume above.<br /><em>Conversion below.</em>", weekly, true)
           + deckSlide(4, "Value band analysis", "Not all quoted work<br /><em>behaves the same.</em>", valueSlide, true)
           + deckSlide(5, "Quote release timing", "Work delivered<br /><em>when it was needed.</em>", timing, true)
-          + deckSlide(6, "Commercial continuity", "See the operating<br /><em>depth behind outcome.</em>", operations, true)
-          + deckSlide(7, "Speed to order", "How long a decision<br /><em>actually takes.</em>", speed, true)
+          + deckSlide(6, "Customer demand", "Who asks, and who<br /><em>actually books.</em>", operations, true)
+          + deckSlide(7, "Lifecycle and decision window", "How long it takes<br /><em>to come back.</em>", speed, true)
           + deckSlide(8, "Estimating capacity", "What the work cost<br /><em>to produce.</em>", capacityBody, true)
           + deckSlide(9, "Review agenda", "The next review,<br /><em>already prioritised.</em>", agenda, true);
         return deckDocument(slides);
