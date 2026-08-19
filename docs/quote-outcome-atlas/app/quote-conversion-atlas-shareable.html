@@ -314,6 +314,22 @@
     /* The detail panel is short and the roster is long; let it follow the list. */
     @media (min-width: 1100px) { .person-card { position: sticky; top: 18px; } }
     .screen-heading h2.is-compact { font-size: clamp(30px, 3.6vw, 48px); }
+    .filter-bar { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 13px; border: 1px solid var(--green); background: var(--green-soft); }
+    .filter-bar[hidden] { display: none; }
+    .filter-lead { color: var(--green-dark); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .filter-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid var(--green); color: var(--ink); background: var(--surface); font: inherit; font-size: 11px; cursor: pointer; }
+    .filter-chip span { color: var(--ink-muted); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .filter-chip b { font-weight: 600; }
+    .filter-chip i { color: var(--ink-faint); font-style: normal; font-size: 13px; line-height: 1; }
+    .filter-chip:hover { border-color: var(--ink); }
+    .filter-chip:hover i { color: var(--red-deep); }
+    .filter-count { margin-left: auto; color: var(--green-dark); font-family: var(--mono); font-size: 11px; }
+    .filter-clear { padding: 5px 9px; border: 1px solid var(--green-dark); color: var(--green-dark); background: transparent; font: inherit; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+    .filter-clear:hover { color: var(--surface); background: var(--green-dark); }
+    /* Anything that sets a filter reads as pressable. */
+    [data-filter] { cursor: pointer; }
+    [data-filter]:hover { background: var(--surface-soft); }
+    [data-filter][aria-pressed="true"] { box-shadow: inset 3px 0 0 var(--green); }
     .ops-week { padding: 0 17px 15px; }
     .week-head, .week-row { display: grid; grid-template-columns: 46px minmax(76px,1fr) minmax(90px,1.15fr) 40px minmax(76px,.9fr) 52px 42px; align-items: center; gap: 10px; }
     .week-head { padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -832,6 +848,7 @@
         <div class="masthead-context"><strong>Quote outcome dashboard</strong> · Waterloo / Fort Wayne</div>
         <div class="masthead-actions"><span class="data-stamp" id="dataStamp">Design preview — import files and run dashboard</span><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
       </header>
+      <div class="filter-bar" id="filterBar" role="status" aria-live="polite" hidden></div>
       <button class="exit-review" id="exitReview" type="button">Exit review room</button>
 
       <section class="screen is-active" id="overview" aria-labelledby="overviewTitle">
@@ -904,8 +921,8 @@
               <div class="record-field-head"><div><span class="flow-step">Quoted-week record field</span><h3 id="recordFieldTitle">614 quote records, grouped by week.</h3></div><p id="matrixCaption">Read each card as a quoted week. Green markers are linked wins; copper cards make weeks with no returned win immediately visible.</p></div>
               <div class="outcome-matrix" id="outcomeMatrix" role="img" aria-label="614 quote records: 40 confirmed and 574 unconverted"></div>
               <div class="matrix-key">
-                <button class="matrix-toggle confirmed" type="button" data-flow-focus="confirmed" aria-pressed="false"><span>Confirmed orders</span><strong id="matrixConfirmedLabel">40 / 6.5%</strong></button>
-                <button class="matrix-toggle unconverted" type="button" data-flow-focus="unconverted" aria-pressed="false"><span>Unconverted opportunities</span><strong id="matrixUnconvertedLabel">574 / 93.5%</strong></button>
+                <button class="matrix-toggle confirmed" type="button" data-filter="outcome" data-filter-value="confirmed" data-flow-focus="confirmed" aria-pressed="false"><span>Confirmed orders</span><strong id="matrixConfirmedLabel">40 / 6.5%</strong></button>
+                <button class="matrix-toggle unconverted" type="button" data-filter="outcome" data-filter-value="unconverted" data-flow-focus="unconverted" aria-pressed="false"><span>Unconverted opportunities</span><strong id="matrixUnconvertedLabel">574 / 93.5%</strong></button>
               </div>
             </section>
             <div class="flow-footer" aria-live="polite"><span>Field readout</span><strong id="flowReadout">The fastest route to a useful sales review is to give every unconverted record a current, named outcome.</strong></div>
@@ -1064,7 +1081,7 @@
   <script>
     (() => {
       const app = document.getElementById("app");
-      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, intake: { quoteFiles: [], orderFiles: [], quoteError: "", orderError: "", running: false, hasRun: false, feedback: null } };
+      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, intake: { quoteFiles: [], orderFiles: [], quoteError: "", orderError: "", running: false, hasRun: false, feedback: null } };
       const scopes = {
         all: {
           label: "Full quote book", title: "The complete conversion picture.", period: "W1—W10", quotes: 614, quoteValue: 461, orders: 40, orderValue: 25, unconverted: 574, unconvertedValue: 436,
@@ -1208,8 +1225,139 @@
         : "needs a release result";
       const isThinSample = (scored, minimum) => Number(scored || 0) < (minimum || 10);
 
+      // ---- Segmentation ------------------------------------------------------
+      // Every view derives from currentScope().records, so filtering there is
+      // enough to narrow the whole dashboard at once. The estimating reports we
+      // are matching do this with slicers; here a filter is set by clicking the
+      // thing you want to look at.
+      const FILTER_LABELS = {
+        estimator: "Estimator", engineer: "Quote engineer", scheduler: "Scheduler",
+        district: "District", outcome: "Outcome", week: "Quote week",
+        band: "Value band", turn: "Turnaround", customer: "Customer"
+      };
+      const VALUE_BANDS = {
+        "under250k": { label: "Under $250k", min: 0, max: 250000 },
+        "250kto1m": { label: "$250k – $1M", min: 250000, max: 1000000 },
+        "1mto5m": { label: "$1M – $5M", min: 1000000, max: 5000000 },
+        "over5m": { label: "$5M and above", min: 5000000, max: Infinity }
+      };
+      const TURN_BUCKETS = {
+        one: { label: "1 day or less", test: days => days <= 1 },
+        three: { label: "2 to 3 days", test: days => days > 1 && days <= 3 },
+        fourfive: { label: "4 to 5 days", test: days => days > 3 && days <= 5 },
+        six: { label: "6 days or more", test: days => days > 5 }
+      };
+
+      const activeFilters = () => Object.keys(state.filters).filter(key => state.filters[key]);
+      const hasFilters = () => activeFilters().length > 0;
+
+      function filterLabelFor(key) {
+        const value = state.filters[key];
+        if (!value) return "";
+        if (key === "band") return (VALUE_BANDS[value] || {}).label || value;
+        if (key === "turn") return (TURN_BUCKETS[value] || {}).label || value;
+        if (key === "outcome") return value === "confirmed" ? "Confirmed orders" : "Unconverted";
+        if (key === "estimator" || key === "engineer" || key === "scheduler") {
+          const person = resolvedNucorPerson(value, state.model && state.model.roster);
+          return person.matched ? person.name : (value === "(none)" ? "No initials supplied" : value);
+        }
+        return value;
+      }
+
+      function filterRecords(records) {
+        const filters = state.filters;
+        if (!hasFilters()) return records;
+        return records.filter(record => {
+          if (filters.estimator && normaliseRosterCode(record.estimator) !== filters.estimator) return false;
+          if (filters.engineer && normaliseRosterCode(record.engineer) !== filters.engineer) return false;
+          if (filters.scheduler && normaliseRosterCode(record.scheduler) !== filters.scheduler) return false;
+          if (filters.district && String(record.key || "").split("-")[0] !== filters.district) return false;
+          if (filters.week && nucorWeekLabel(record.week) !== filters.week) return false;
+          if (filters.outcome === "confirmed" && !record.won) return false;
+          if (filters.outcome === "unconverted" && record.won) return false;
+          if (filters.customer && customerKey(customerName(record.customer)) !== filters.customer) return false;
+          if (filters.band) {
+            const band = VALUE_BANDS[filters.band];
+            const price = Number(record.price);
+            if (!band || !Number.isFinite(price) || price <= 0 || price < band.min || price >= band.max) return false;
+          }
+          if (filters.turn) {
+            const bucket = TURN_BUCKETS[filters.turn];
+            const days = turnDays(record);
+            if (!bucket || days === null || !bucket.test(days)) return false;
+          }
+          return true;
+        });
+      }
+
+      // Setting a filter rebuilds every derived view from the narrowed records.
+      function setFilter(key, value) {
+        if (!state.model) return;
+        const next = state.filters[key] === value ? "" : value;
+        state.filters[key] = next;
+        state.selectedPerson = 0;
+        scopeCache.key = "";
+        syncNucorViews();
+        renderAll();
+      }
+      function clearFilters() {
+        Object.keys(state.filters).forEach(key => { state.filters[key] = ""; });
+        state.selectedPerson = 0;
+        scopeCache.key = "";
+        syncNucorViews();
+        renderAll();
+      }
+      function renderAll() {
+        renderOverview();
+        renderPeople();
+        renderQuotes();
+        renderOps();
+        renderFilterBar();
+      }
+
+      function renderFilterBar() {
+        const bar = $("#filterBar");
+        if (!bar) return;
+        const keys = activeFilters();
+        if (!state.model || !keys.length) {
+          bar.hidden = true;
+          bar.innerHTML = "";
+          return;
+        }
+        const data = currentScope();
+        const total = state.model.records.length;
+        bar.hidden = false;
+        bar.innerHTML = '<span class="filter-lead">Filtered to</span>'
+          + keys.map(key => '<button class="filter-chip" type="button" data-clear-filter="' + key + '">'
+              + '<span>' + escape(FILTER_LABELS[key] || key) + "</span><b>" + escape(filterLabelFor(key)) + "</b><i aria-hidden=\"true\">\u00d7</i>"
+              + '<span class="sr-only">Remove this filter</span></button>').join("")
+          + '<span class="filter-count">' + data.quotes + " of " + total + " quote opportunities</span>"
+          + '<button class="filter-clear" type="button" id="clearFilters">Clear all</button>';
+        $$("[data-clear-filter]", bar).forEach(button => button.addEventListener("click", () => setFilter(button.dataset.clearFilter, "")));
+        const clear = $("#clearFilters");
+        if (clear) clear.addEventListener("click", clearFilters);
+      }
+
+      const scopeCache = { key: "", value: null };
+      const SCOPE_META = {
+        all: { exposure: 0, label: "Full quote book", title: "The complete conversion picture." },
+        mature: { exposure: 30, label: "30+ day exposure", title: "The decision-ready quote book." },
+        high: { exposure: 50, label: "50+ day exposure", title: "The established-outcome quote book." }
+      };
+
       function currentScope() {
-        return scopes[state.scope];
+        if (!state.model) return scopes[state.scope];
+        if (!hasFilters()) return scopes[state.scope];
+        const key = state.scope + "|" + JSON.stringify(state.filters);
+        if (scopeCache.key === key && scopeCache.value) return scopeCache.value;
+        const meta = SCOPE_META[state.scope] || SCOPE_META.mature;
+        const cutoff = state.model.quality.cutoff;
+        let records = state.model.records;
+        if (meta.exposure) records = records.filter(record => record.exposure !== null && record.exposure >= meta.exposure);
+        const scope = makeNucorScope(filterRecords(records), meta.exposure, cutoff, { label: meta.label, title: meta.title });
+        scopeCache.key = key;
+        scopeCache.value = scope;
+        return scope;
       }
 
       function kpiMarkup(label, ringValue, shownValue, headline, note, color) {
@@ -1455,7 +1603,8 @@
           const sizeData = deckSizeBands(data.records || []);
           const bandRow = (band, unit) => {
             const share = bandData.scored ? band.quotes / bandData.scored * 100 : 0;
-            return '<div class="segment-row' + (band.wins === 0 ? " is-zero" : "") + '"><span>' + escape(band.label) + '</span>'
+            const bandKey = Object.keys(VALUE_BANDS).find(key => VALUE_BANDS[key].label === band.label) || "";
+            return '<div class="segment-row' + (band.wins === 0 ? " is-zero" : "") + '"' + (unit && bandKey ? ' data-filter="band" data-filter-value="' + bandKey + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.band === bandKey) + '"' : "") + '><span>' + escape(band.label) + '</span>'
               + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
               + '<b>' + pct(band.conversion) + '</b>'
               + '<small>' + band.quotes + " quotes" + (unit ? " · " + money(band.value / 1000000) : "") + " · " + band.wins + " won</small></div>";
@@ -1473,7 +1622,7 @@
           html = districtData.length
             ? '<div class="segment-list">' + districtData.map(district => {
                 const share = maxDistrictValue ? district.value / maxDistrictValue * 100 : 0;
-                return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '"><span>' + escape(district.code) + '</span>'
+                return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '" data-filter="district" data-filter-value="' + escape(district.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.district === district.code) + '"><span>' + escape(district.code) + '</span>'
                   + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
                   + '<b>' + pct(district.conversion) + '</b>'
                   + '<small>' + district.quotes + " quotes · " + money(district.value / 1000000) + " quoted · " + district.wins + " won · "
@@ -1625,7 +1774,7 @@
           + engineers.map(item => {
               const width = Math.min(48, Math.abs(item.variance) / worst * 48);
               const good = item.variance >= 0;
-              return '<div class="cap-row"><span title="' + escape(resolvedNucorPerson(item.code, state.model && state.model.roster).name) + '">'
+              return '<div class="cap-row" data-filter="engineer" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.engineer === item.code) + '"><span title="' + escape(resolvedNucorPerson(item.code, state.model && state.model.roster).name) + '">'
                 + escape(item.code === "(none)" ? "No initials" : item.code) + "</span>"
                 + '<div class="cap-track"><i class="' + (good ? "is-good" : "is-bad") + '" style="' + (good ? "left:50%;" : "right:50%;") + "width:" + width.toFixed(1) + '%"></i></div>'
                 + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</b>"
@@ -1646,7 +1795,7 @@
                   { value: item.turn.sixPlus, tone: "copper" }
                 ].filter(part => part.value > 0);
                 const good = item.variance >= 0;
-                return '<div class="week-row"><span class="week-id">' + escape(item.week) + "</span>"
+                return '<div class="week-row" data-filter="week" data-filter-value="' + escape(item.week) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.week === item.week) + '"><span class="week-id">' + escape(item.week) + "</span>"
                   + '<span class="week-vol"><i style="width:' + (item.quotes / maxWeekQuotes * 100).toFixed(1) + '%"></i><b>' + item.quotes + "</b></span>"
                   + '<span class="week-turn" title="' + item.turn.oneDay + " at 1 day, " + item.turn.threeDay + " at 2-3, " + item.turn.fourFive + " at 4-5, " + item.turn.sixPlus + ' at 6+">'
                   + (turnParts.length ? turnParts.map(part => '<i class="is-' + part.tone + '" style="flex:' + part.value + '"></i>').join("") : '<i class="is-empty" style="flex:1"></i>')
@@ -1682,7 +1831,7 @@
         const maxLoad = Math.max(...estimators.map(item => item.perWeek));
         $("#opsEstTable").innerHTML =
           '<thead><tr><th>Estimator</th><th class="num">Quotes</th><th class="num">Per week</th><th>Relative load</th><th class="num">Alts</th><th class="num">Avg turn</th><th class="num">6+ days</th><th class="num">Quoted $</th><th class="num">Conversion</th></tr></thead><tbody>'
-          + estimators.map(item => '<tr><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.name) + '</span></td>'
+          + estimators.map(item => '<tr data-filter="estimator" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.estimator === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.name) + '</span></td>'
               + '<td class="num">' + item.quotes + '</td><td class="num">' + item.perWeek.toFixed(1) + '</td>'
               + '<td class="load"><i style="width:' + (item.perWeek / maxLoad * 100).toFixed(1) + '%"></i></td>'
               + '<td class="num">' + item.alts + '</td><td class="num">' + opsTurnText(item.turn.average) + '</td>'
@@ -3627,10 +3776,7 @@
         setText("#missingSentCount", dataset.exceptions.missingSent);
         setText("[data-role='engineers']", "Quote owners");
         $$("[data-role]").forEach(button => { button.hidden = button.dataset.role !== "engineers"; });
-        renderOverview();
-        renderPeople();
-        renderQuotes();
-        renderOps();
+        clearFilters();
         setScreen("overview");
       }
 
@@ -4472,7 +4618,22 @@
         }
       }
 
+      // Delegated so freshly rendered rows are clickable without rebinding.
+      document.addEventListener("click", event => {
+        const target = event.target.closest ? event.target.closest("[data-filter][data-filter-value]") : null;
+        if (!target || !state.model) return;
+        setFilter(target.dataset.filter, target.dataset.filterValue);
+      });
+      document.addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const target = event.target.closest ? event.target.closest("[data-filter][data-filter-value]") : null;
+        if (!target || !state.model || target.tagName === "BUTTON") return;
+        event.preventDefault();
+        setFilter(target.dataset.filter, target.dataset.filterValue);
+      });
+
       $$("[data-scope]").forEach(button => button.addEventListener("click", () => {
+        scopeCache.key = "";
         state.scope = button.dataset.scope;
         if (state.model) syncNucorViews();
         renderOverview();
@@ -4534,6 +4695,7 @@
       renderPeople();
       renderQuotes();
       renderOps();
+      renderFilterBar();
       refreshIntake();
       // Nothing is loaded yet, so open on Data Mapping where the files are
       // chosen and the run button lives, rather than on an empty dashboard.
