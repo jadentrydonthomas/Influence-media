@@ -307,7 +307,7 @@ footer.colophon{
     <div class="tb-cell"><dt>Product owner</dt><dd>Nucor Building Systems — Estimating</dd></div>
     <div class="tb-cell"><dt>Primary deliverable</dt><dd><code>quote-conversion-atlas-shareable.html</code></dd></div>
     <div class="tb-cell"><dt>Companion refs</dt><dd><code>DATA-EXTRACTION-MAP.md</code><br /><code>SHARE-README.md</code></dd></div>
-    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.1</dd></div>
+    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.2</dd></div>
     <div class="tb-cell"><dt>Last revised</dt><dd class="num">17 Aug 2026</dd></div>
     <div class="tb-cell"><dt>Status</dt><dd><span class="pill ok">Active — source of truth</span></dd></div>
   </dl>
@@ -458,6 +458,9 @@ footer.colophon{
       <tr><td><span class="rid">P-17</span></td><td>Reachable navigation</td><td>Every screen and the export control MUST be reachable at <strong>1366×768</strong> without scrolling the navigation. Compression comes first; scrolling is the fallback, never the norm.</td></tr>
       <tr><td><span class="rid">P-18</span></td><td>Definitions everywhere</td><td>A definitions surface MUST be reachable from every screen, before and after a run, carrying each term's meaning, its source column, and its live value. See <span class="rid">M-25</span>.</td></tr>
       <tr><td><span class="rid">P-19</span></td><td>Comparison never contaminates</td><td>Data loaded for comparison MUST NOT enter the live book. No headline figure may move because a baseline was loaded. See <span class="rid">M-23</span>.</td></tr>
+      <tr><td><span class="rid">P-20</span></td><td>One question, one screen</td><td>Two screens MUST NOT answer the same question. Where a view is a thinner copy of another it is removed rather than kept as a second answer &mdash; the cost of a duplicate is not screen count but the reader having to work out which of two numbers is the real one.</td></tr>
+      <tr><td><span class="rid">P-21</span></td><td>A slide is a fixed box</td><td>Every deck slide MUST fit the space it has at any figure and any window size. Content MUST be measured against the height available and scaled to fit, so a larger number changes the size of the type rather than pushing text under the navigation or off the page. Overlap is a correctness defect, not a style one: two figures on top of each other cannot both be read.</td></tr>
+      <tr><td><span class="rid">P-22</span></td><td>The mark travels</td><td>The Nucor mark MUST appear on every exported slide and MUST be embedded once and referenced, never repeated per slide.</td></tr>
     </tbody>
   </table></div>
   <p class="note new"><strong>New in v2.0 —</strong> <span class="rid">P-14</span> closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See <a href="#sa">A-1</a>.</p>
@@ -686,6 +689,7 @@ footer.colophon{
   <p><span class="rid">M-15</span> — account totals MUST reconcile: <code>repeat + first-seen = total accounts</code>.</p>
   <p><span class="rid">M-16</span> — the customer view MUST be able to answer <em>who asks without booking</em>, not only <em>who books</em>: per account, quotes asked, orders booked, quoted value, returned value, engineering hours consumed and average turnaround — with a ranking of accounts that asked <strong>at least twice and booked nothing</strong>, ordered by the quoted value that returned as nothing rather than by request count.</p>
   <p><span class="rid">M-17</span> — selecting an account MUST narrow every screen, on the same record-set filter path as every other segmentation (<span class="rid">P-16</span>).</p>
+  <p><span class="rid">M-26</span> &mdash; an account MUST be openable as a <strong>record</strong>, not only as a row of totals: every quote it sent, with its quote engineer, release result and whether it is booked or still open and for how long; and every job that came back, with the order-entry date, tonnage and the quote value it came from. A quote list with no account and no job beside it is three screens of the same records read separately.</p>
 
   <h4>Lifecycle timing</h4>
   <p>Three stages, each measured from dates the source already carries, each scored <strong>only</strong> on the records carrying both of its own dates, and each stating that denominator beside itself.</p>
@@ -704,6 +708,8 @@ footer.colophon{
       <tr><td><span class="rid">M-19</span></td><td>A <strong>decision curve</strong> MUST show, of the quotes that eventually booked, the cumulative share that had booked by day 7, 14, 21, 30, 45, 60 and 90 after the quoted week. It describes <em>when</em> orders arrive, never <em>whether</em> one will — quotes that never booked are not on the curve, and the surface MUST say so.</td></tr>
       <tr><td><span class="rid">M-20</span></td><td><strong>Open-book ageing</strong> MUST band unconverted quotes by exposure and carry quoted value beside the count. Where the active exposure lens is itself the reason a band is empty, the surface MUST state that rather than let it read as an absence of fresh work.</td></tr>
       <tr><td><span class="rid">M-21</span></td><td>A cumulative calendar MUST plot quotes issued (on their quoted date) against orders booked (on their entry date) <strong>on one axis</strong>, so the space between the two lines is the open book. Dual axes here are a defect: they make the gap arbitrary.</td></tr>
+      <tr><td><span class="rid">M-27</span></td><td>The decide stage is scored on quote wins alone, because a quote with no order has no answer to time. The surface MUST say so and MUST name it as an optimistic read &mdash; the time taken by the customers who said yes. Folding unanswered quotes in as an open-ended wait would measure how long ago work was quoted rather than how long a decision takes. Those records belong in the open-book ageing instead.</td></tr>
+      <tr><td><span class="rid">M-28</span></td><td><strong>Cohort maturity</strong> MUST report, for each quoted period, the share of that period's work that had booked by a fixed set of days after it was quoted. A period not yet exposed for a given number of days MUST render as <em>not yet answerable</em>, never as zero &mdash; a young period reading as a bad one is the defect this measure exists to prevent.</td></tr>
     </tbody>
   </table></div>
 
@@ -714,6 +720,7 @@ footer.colophon{
       <tr><td><span class="rid">M-22</span></td><td>The dashboard MUST accept an optional prior set of quote weeks, parsed through the same pipeline and joined to the same order source.</td></tr>
       <tr><td><span class="rid">M-23</span></td><td>Prior-period records MUST NOT enter any live scope. Loading a baseline MUST NOT change conversion, quoted value, quote count, or any other headline figure. This is a required regression assertion.</td></tr>
       <tr><td><span class="rid">M-24</span></td><td>The comparison MUST apply the active exposure lens and the active filters to both sides, with one exception: a quoted-week filter has no counterpart in another period and narrows the live side only. The surface MUST say when that has happened.</td></tr>
+      <tr><td><span class="rid">M-29</span></td><td>Where the two sides share week numbers, <strong>both</strong> MUST be narrowed to the shared set before measuring, and the surface MUST name the weeks it matched on and the weeks it left out. Comparing ten prior weeks against three live ones reports a collapse in demand that is really a difference in how much was uploaded. With no shared weeks it falls back to whole period against whole period and says so.</td></tr>
     </tbody>
   </table></div>
 
@@ -823,6 +830,8 @@ footer.colophon{
       <tr><td><span class="rid">K-8</span></td><td>The deck MUST render correctly with any week count the dashboard accepts (<span class="rid">P-3</span>).</td></tr>
       <tr><td><span class="rid">K-9</span></td><td>Print styles MUST force every slide visible and page-break between slides.</td></tr>
       <tr><td><span class="rid">K-10</span></td><td>Layout auditing MUST measure <strong>each slide in turn</strong>. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See <a href="#sa">A-19</a>.</td></tr>
+      <tr><td><span class="rid">K-12</span></td><td>Layout MUST be verified against <strong>inflated figures</strong>, not only against the fixture. A layout that holds only because the sample numbers are small is not repeatable. See <span class="rid">P-21</span>.</td></tr>
+      <tr><td><span class="rid">K-13</span></td><td>The navigation MUST occupy a reserved band that no slide content can enter, rather than overlaying the content area.</td></tr>
       <tr><td><span class="rid">K-11</span></td><td>Text overlap against the fixed navigation MUST be measured on the <strong>text</strong>, not on its container. A running-text block's box starts at the left margin and never reaches the nav, so element-level measurement misses a final line sitting underneath it. See <a href="#sa">A-20</a>.</td></tr>
     </tbody>
   </table></div>
@@ -1073,6 +1082,11 @@ build/         single-file bundling / inlining</code></pre>
       <tr><td><span class="rid">A-20</span></td><td>Nav-overlap was measured on element boxes. A running-text callout's box starts at the left margin and never reaches the nav, so a final line of text sitting under the buttons was invisible to the check.</td><td><span class="rid">K-11</span></td><td><strong>Fixed</strong> — measured with <code>Range.getClientRects()</code> on the text itself, with SVG text still checked by element.</td></tr>
       <tr><td><span class="rid">A-21</span></td><td>The navigation rail was written for five screens and clipped its last two silently once it carried seven, at exactly the 1366&times;768 the recipient uses — and the screen the user starts on was one of the two that disappeared.</td><td><span class="rid">P-17 · P-9</span></td><td><strong>Fixed</strong> — the rail compresses below 900px of height and scrolls as a fallback. Making it scrollable exposed a second defect: the decorative corner rings were an absolutely positioned pseudo-element hanging 94px below the rail, which became 94px of phantom scroll. Painted as background rings instead.</td></tr>
       <tr><td><span class="rid">A-22</span></td><td>The definitions drawer set <code>display:flex</code>, which outranks the user-agent <code>[hidden]</code> rule, so the closed drawer stayed laid out over the page and swallowed every click on the screen beneath it.</td><td><span class="rid">V-23</span></td><td><strong>Fixed</strong> — an explicit <code>[hidden]</code> rule for the drawer and its scrim.</td></tr>
+      <tr><td><span class="rid">A-24</span></td><td>Deck slides overlapped their own content once the figures grew: text under the navigation, headings riding over the header, chart labels on top of each other. Verified by inflating every number a thousandfold &mdash; 28 collisions across three viewport sizes.</td><td><span class="rid">P-21 · K-12</span></td><td><strong>Fixed</strong> &mdash; every slide is measured against its own box and scaled to fit. Two subtleties had to be right: scaling a block widened to (100/k)% cancels itself out exactly, because every width-driven height grows by the same 1/k; and a centred block that overflows starts <em>above</em> the header, and a transform paints from the layout position it already has.</td></tr>
+      <tr><td><span class="rid">A-25</span></td><td>The 10% reference label sat on the reference line, exactly where a week's own conversion value lands whenever the rate is near the reference.</td><td><span class="rid">V-11</span></td><td><strong>Fixed</strong> &mdash; it is axis furniture and now lives with the axis maximum.</td></tr>
+      <tr><td><span class="rid">A-26</span></td><td>The Nucor mark was embedded once per slide, so a nine-slide deck carried nine copies of the same 40KB payload &mdash; a 475KB file.</td><td><span class="rid">P-22 · P-1</span></td><td><strong>Fixed</strong> &mdash; embedded once in the deck stylesheet and referenced; 108KB.</td></tr>
+      <tr><td><span class="rid">A-27</span></td><td>Three regression checks asserted the deck contains no <code>NaN</code>. The mark's base64 payload contains the letters N-a-N, so embedding it turned three passing checks into false failures.</td><td><span class="rid">T-16</span></td><td><strong>Fixed</strong> &mdash; figure checks read the deck with data URIs stripped; markup checks read the raw text.</td></tr>
+      <tr><td><span class="rid">A-28</span></td><td>A prior period with more weeks than the live set was compared whole against whole, reporting a difference in how much was uploaded as a change in demand.</td><td><span class="rid">M-29</span></td><td><strong>Fixed</strong> &mdash; both sides are narrowed to the weeks they share, and the surface names what it matched and what it left out.</td></tr>
       <tr><td><span class="rid">A-23</span></td><td>Headline strips drew their dividers as a 1px grid gap over a line-coloured container, so a six-card strip wrapping to two rows painted the empty half of the second row as one solid block of border colour.</td><td><span class="rid">P-8 · P-12</span></td><td><strong>Fixed</strong> — cell borders instead, so an unfilled grid cell is simply empty.</td></tr>
     </tbody>
   </table></div>
@@ -1089,6 +1103,24 @@ build/         single-file bundling / inlining</code></pre>
 
 <section id="sb">
   <div class="sec-head"><span class="sec-num">B</span><h2 class="sec-title">Change log</h2></div>
+  <h3>v2.2 &mdash; 19 Aug 2026</h3>
+  <h4>Structure</h4>
+  <ul>
+    <li><strong>Seven screens become five</strong> (<span class="rid">P-20</span>). Quote records folded into the account record (<span class="rid">M-26</span>): a quote only means something beside the account that sent it and the job that came back from it. Estimating operations dissolved &mdash; its time series moved to Timelines, its per-person panels to Team performance.</li>
+    <li><strong>Cohort maturity added</strong> (<span class="rid">M-28</span>): every quoted week read at the same age, with a period too young to answer a column rendering as <em>not yet</em> rather than zero.</li>
+    <li><strong>The decide stage's bias is now stated</strong> (<span class="rid">M-27</span>) rather than left for the reader to infer.</li>
+    <li><strong>Prior-period week alignment</strong> (<span class="rid">M-29</span>): like weeks against like weeks, with the matched and excluded weeks named.</li>
+  </ul>
+  <h4>The deck</h4>
+  <ul>
+    <li><strong>Fit to slide</strong> (<span class="rid">P-21</span>): every slide is measured against its own box and scaled, so overlap is structurally impossible rather than avoided by luck.</li>
+    <li><strong>Stress verification</strong> (<span class="rid">K-12</span>): numbers inflated roughly a thousandfold, re-fitted, and measured at three viewport sizes. It found 28 collisions on the deck as it stood.</li>
+    <li><strong>The navigation moved into a reserved band</strong> (<span class="rid">K-13</span>).</li>
+    <li><strong>The mark on every slide</strong> (<span class="rid">P-22</span>), embedded once.</li>
+    <li><strong>Depth with one light source</strong>: extruded columns whose lit top face is what makes a short column readable beside a tall one; dials with a bezel, a recessed face and a real shadow.</li>
+  </ul>
+  <p class="note"><strong>Defects logged and fixed:</strong> <a href="#sa">A-24</a> through <a href="#sa">A-28</a>.</p>
+
   <h3>v2.1 &mdash; 19 Aug 2026</h3>
   <h4>Scope added</h4>
   <ul>

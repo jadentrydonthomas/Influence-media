@@ -5,10 +5,10 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.1 |
+| **Spec version** | 2.2 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
-| **Supersedes** | v2.0, the v1.0 handoff spec, and the earlier engineering brief |
+| **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
 
 > **This document is the contract.** It defines what the dashboard is for, what it must do, how data must be handled, and how future code and design changes are verified. Where this document and any older brief disagree, this document wins — except where [§13 Open questions](#13-open-questions--must-be-resolved-before-replatform) explicitly says a decision is still outstanding.
 
@@ -121,6 +121,9 @@ Stating these prevents well-meant scope drift:
 | **P-17** | Reachable navigation | Every screen and the export control MUST be reachable at **1366×768** without scrolling the navigation. Compression comes first; scrolling is the fallback, never the norm. |
 | **P-18** | Definitions everywhere | A definitions surface MUST be reachable from every screen, before and after a run, carrying each term's meaning, its source column, and its live value. See [M-25](#8-required-calculations-and-analytics). |
 | **P-19** | Comparison never contaminates | Data loaded for comparison MUST NOT enter the live book. No headline figure may move because a baseline was loaded. See [M-23](#8-required-calculations-and-analytics). |
+| **P-20** | One question, one screen | Two screens MUST NOT answer the same question. Where a view is a thinner copy of another, it is removed rather than kept as a second answer — the cost of a duplicate is not screen count but the reader having to work out which of two numbers is the real one. |
+| **P-21** | A slide is a fixed box | Every deck slide MUST fit the space it has at any figure and any window size. Content MUST be measured against the height available and scaled to fit, so a larger number changes the size of the type rather than pushing text under the navigation or off the page. Overlap is a correctness defect, not a style one: two figures on top of each other cannot both be read. |
+| **P-22** | The mark travels | The Nucor mark MUST appear on every exported slide and MUST be embedded once and referenced, never repeated per slide. |
 
 > **P-14 is new in v2.0** and closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See [Appendix A, A-1](#appendix-a--defect-log).
 >
@@ -352,6 +355,8 @@ Use the **quote-side** Customer field, not only the job-side field. The customer
 
 **M-17** — Selecting an account MUST narrow every screen, on the same record-set filter path as every other segmentation ([P-16](#2-non-negotiable-product-requirements)).
 
+**M-26** — An account MUST be openable as a **record**, not only as a row of totals. That record MUST carry every quote the account sent — with its quote engineer, release result, and whether it is booked or still open and for how long — and every job that came back, with the order-entry date, tonnage, and the quote value it came from. A quote list with no account and no job beside it is three screens of the same records read separately; this is the one screen that reads them together.
+
 ### 8.5 Lifecycle timing
 
 Three stages, each measured from dates the source already carries, each scored **only** on the records carrying both of its own dates, and each stating that denominator beside itself:
@@ -366,12 +371,15 @@ Three stages, each measured from dates the source already carries, each scored *
 - **M-19** — A **decision curve** MUST show, of the quotes that eventually booked, the cumulative share that had booked by day 7, 14, 21, 30, 45, 60 and 90 after the quoted week. It is a description of *when* orders arrive, never of *whether* one will — quotes that never booked are not on the curve, and the surface MUST say so.
 - **M-20** — **Open-book ageing** MUST band unconverted quotes by exposure and carry quoted value beside the count. Where the active exposure lens is itself the reason a band is empty, the surface MUST state that rather than let it read as an absence of fresh work.
 - **M-21** — A cumulative calendar MUST plot quotes issued (on their quoted date) against orders booked (on their entry date) **on one axis**, so the space between the two lines is the open book. Dual axes here are a defect: they make the gap arbitrary.
+- **M-27** — The decide stage is scored on quote wins alone, because a quote with no order has no answer to time. The surface MUST say so and MUST name it as an optimistic read — it is the time taken by the customers who said yes. Folding unanswered quotes in as an open-ended wait would measure how long ago work was quoted rather than how long a decision takes, and would put most of the book on a bar that cannot describe it. Those records belong in the open-book ageing instead.
+- **M-28** — **Cohort maturity** MUST report, for each quoted period, the share of that period's work that had booked by a fixed set of days after it was quoted. A period that has not been exposed for a given number of days MUST render as *not yet answerable*, never as zero — a young period reading as a bad one is the defect this measure exists to prevent. Comparing periods is only valid at equal age.
 
 ### 8.6 Prior-period comparison
 
 - **M-22** — The dashboard MUST accept an optional prior set of quote weeks, parsed through the same pipeline and joined to the same order source.
 - **M-23** — Prior-period records MUST NOT enter any live scope. Loading a baseline MUST NOT change conversion, quoted value, quote count, or any other headline figure. This is a required regression assertion.
 - **M-24** — The comparison MUST apply the active exposure lens and the active filters to both sides, with one exception: a quoted-week filter has no counterpart in another period and narrows the live side only. The surface MUST say when that has happened.
+- **M-29** — Where the two sides share week numbers, **both** MUST be narrowed to the shared set before measuring, and the surface MUST name the weeks it matched on and the weeks it left out. Comparing ten prior weeks against three live ones reports a collapse in demand that is really a difference in how much was uploaded. With no shared weeks the comparison falls back to whole period against whole period and MUST say so.
 
 ### 8.7 Definitions surface
 
@@ -456,6 +464,8 @@ The export creates a separate, self-contained HTML slide report presented with a
 - **K-2** — The customer slide MUST carry both halves of the demand question: what came back, and what was asked for repeatedly and never came back. See [Appendix A, A-5](#appendix-a--defect-log).
 - **K-2a** — The deck MUST be generated from the **active exposure cohort and the active filters**, so a deck exported from a narrowed view describes that narrowed view and nothing wider.
 - **K-10** — Layout auditing MUST measure **each slide in turn**. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See [Appendix A, A-19](#appendix-a--defect-log).
+- **K-12** — Layout MUST be verified against **inflated figures**, not only against the fixture. A layout that holds only because the sample numbers are small is not repeatable. See [`test/deck-stress.mjs`](#12-verification-baseline) and [P-21](#2-non-negotiable-product-requirements).
+- **K-13** — The navigation MUST occupy a reserved band that no slide content can enter, rather than overlaying the content area.
 - **K-11** — Text overlap against the fixed navigation MUST be measured on the **text**, not on its container. A running-text block's box starts at the left margin and never reaches the nav, so element-level measurement misses a final line sitting underneath it. See [Appendix A, A-20](#appendix-a--defect-log).
 - **K-3** — Standard, bold, readable fonts; large headings and clear body text. Condensed display faces are permitted for headlines only, per [V-17](#95-type-color-and-spacing).
 - **K-4** — Enough spacing around charts and cards that printing and laptop presentation stay legible.
@@ -703,6 +713,11 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-21** | The navigation rail was written for five screens and clipped its last two silently once it carried seven, at exactly the 1366×768 the recipient uses — and the screen the user starts on was one of the two that disappeared. | [P-17](#2-non-negotiable-product-requirements), [P-9](#2-non-negotiable-product-requirements) | **Fixed** — the rail compresses below 900px of height and scrolls as a fallback. Making it scrollable exposed a second defect: the decorative corner rings were an absolutely positioned pseudo-element hanging 94px below the rail, which became 94px of phantom scroll. Painted as background rings instead. |
 | **A-22** | The definitions drawer set `display:flex`, which outranks the user-agent `[hidden]` rule, so the closed drawer stayed laid out over the page and swallowed every click on the screen beneath it. | [V-23](#96-themes-and-accessibility) | **Fixed** — an explicit `[hidden]` rule for the drawer and its scrim. |
 | **A-23** | Headline strips drew their dividers as a 1px grid gap over a line-coloured container, so a six-card strip wrapping to two rows painted the empty half of the second row as one solid block of border colour. | [P-8](#2-non-negotiable-product-requirements), [P-12](#2-non-negotiable-product-requirements) | **Fixed** — cell borders instead, so an unfilled grid cell is simply empty. |
+| **A-24** | Deck slides overlapped their own content once the figures grew: text under the navigation, headings riding over the header, chart labels on top of each other. Verified by inflating every number a thousandfold — 28 collisions across three viewport sizes. | [P-21](#2-non-negotiable-product-requirements), [K-12](#10-team-report-deck-requirements) | **Fixed** — every slide is measured against its own box and scaled to fit. Two subtleties had to be right: scaling a block widened to (100/k)% cancels itself out exactly, because every width-driven height grows by the same 1/k; and a centred block that overflows starts *above* the header, and a transform paints from the layout position it already has. |
+| **A-25** | The 10% reference label sat on the reference line, exactly where a week's own conversion value lands whenever the rate is near the reference. | [V-11](#93-encoding-integrity) | **Fixed** — it is axis furniture and now lives with the axis maximum. |
+| **A-26** | The Nucor mark was embedded once per slide, so a nine-slide deck carried nine copies of the same 40KB payload — a 475KB file. | [P-22](#2-non-negotiable-product-requirements), [P-1](#2-non-negotiable-product-requirements) | **Fixed** — embedded once in the deck stylesheet and referenced; 108KB. |
+| **A-27** | Three regression checks asserted the deck contains no `NaN`. The mark's base64 payload contains the letters N-a-N, so embedding it turned three passing checks into false failures. | [T-16](#113-code-rules) | **Fixed** — figure checks read the deck with data URIs stripped; markup checks read the raw text. |
+| **A-28** | A prior period with more weeks than the live set was compared whole against whole, reporting a difference in how much was uploaded as a change in demand. | [M-29](#8-required-calculations-and-analytics) | **Fixed** — both sides are narrowed to the weeks they share, and the surface names what it matched and what it left out. |
 
 ### Confirmed by the real data
 
@@ -714,6 +729,25 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.2 — 19 Aug 2026
+
+**Structure**
+
+- **Seven screens become five** ([P-20](#2-non-negotiable-product-requirements)). Quote records folded into the account record ([M-26](#8-required-calculations-and-analytics)): a quote only means something beside the account that sent it and the job that came back from it. Estimating operations dissolved — its time series moved to Timelines, its per-person panels to Team performance.
+- **Cohort maturity added** ([M-28](#8-required-calculations-and-analytics)): every quoted week read at the same age, with a period too young to answer a column rendering as *not yet* rather than zero.
+- **The decide stage's bias is now stated** ([M-27](#8-required-calculations-and-analytics)) rather than left for the reader to infer.
+- **Prior-period week alignment** ([M-29](#8-required-calculations-and-analytics)): like weeks against like weeks, with the matched and excluded weeks named.
+
+**The deck**
+
+- **Fit to slide** ([P-21](#2-non-negotiable-product-requirements)): every slide is measured against its own box and scaled, so overlap is structurally impossible rather than avoided by luck.
+- **Stress verification** ([K-12](#10-team-report-deck-requirements)): numbers inflated roughly a thousandfold, re-fitted, and measured at three viewport sizes. It found 28 collisions on the deck as it stood.
+- **The navigation moved into a reserved band** ([K-13](#10-team-report-deck-requirements)).
+- **The mark on every slide** ([P-22](#2-non-negotiable-product-requirements)), embedded once.
+- **Depth with one light source**: extruded columns whose lit top face is what makes a short column readable beside a tall one; dials with a bezel, a recessed face and a real shadow.
+
+**Defects logged and fixed:** [A-24](#appendix-a--defect-log) through [A-28](#appendix-a--defect-log).
 
 ### v2.1 — 19 Aug 2026
 

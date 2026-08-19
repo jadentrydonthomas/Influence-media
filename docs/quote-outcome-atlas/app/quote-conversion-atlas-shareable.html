@@ -512,6 +512,31 @@
     .profile-table tr.is-won b { color: var(--green-dark); }
     .cap-full { grid-column: 1 / -1; margin-top: 18px; }
 
+    /* Cohort maturity. Colour carries the share, so the shape of the table is
+       readable before any single number is. A dot is a week that has not lived
+       long enough to answer that column — deliberately not a zero. */
+    .cohort-wrap { overflow-x: auto; }
+    .cohort { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .cohort th { padding: 9px 8px; border-bottom: 1.5px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
+    .cohort th.num, .cohort td.num { text-align: right; }
+    .cohort td { padding: 9px 8px; border-bottom: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+    .cohort tbody tr[role="button"] { cursor: pointer; }
+    .cohort tbody tr[role="button"]:hover td { background: var(--surface-soft); }
+    .cohort tbody tr[aria-pressed="true"] td { background: var(--green-soft); }
+    .cohort td b { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+    .cohort td span { display: block; margin-top: 2px; color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; }
+    .cohort td.age { color: var(--ink-muted); font-family: var(--mono); }
+    .cohort td.cell { box-shadow: inset 0 0 0 1px var(--surface); }
+    .cohort td.cell.is-high { background: var(--green); color: #fff; }
+    .cohort td.cell.is-high span { color: rgba(255,255,255,.72); }
+    .cohort td.cell.is-mid { background: var(--green-soft); }
+    .cohort td.cell.is-low { background: var(--surface-soft); }
+    .cohort td.cell.is-none b { color: var(--ink-faint); }
+    .cohort td.cell.is-young { color: var(--ink-faint); font-size: 16px; text-align: center; }
+    .cohort td.cell.is-total { background: transparent; box-shadow: inset 1px 0 0 var(--line); }
+    .cohort tr.cohort-foot td { border-bottom: 0; border-top: 1.5px solid var(--line); color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; }
+    .cohort tr.cohort-foot td:first-child { color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+
     /* Definitions drawer. Available from every screen, because the question
        "what is this number" is asked in front of whichever screen raised it. */
     /* display:flex on .glossary outranks the user-agent [hidden] rule, so the
@@ -1260,6 +1285,10 @@
             <div class="ops-body" id="tlTurn"></div>
           </section>
         </div>
+        <section class="panel" aria-labelledby="tlCohortTitle">
+          <div class="panel-head"><span class="ops-step">07 &middot; Cohort maturity</span><h2 id="tlCohortTitle">Every week read at the same age</h2><p id="tlCohortNote"></p></div>
+          <div class="ops-body" id="tlCohort"></div>
+        </section>
         <section class="panel" aria-labelledby="tlWeekTitle">
           <div class="panel-head"><h2 id="tlWeekTitle">Week by week</h2><p id="tlWeekNote">Volume, turnaround mix, release timing and engineering load on one row per week, so a long span stays readable instead of stacking series on top of each other.</p></div>
           <div class="ops-week" id="opsWeek"></div>
@@ -2187,7 +2216,7 @@
                 what: "Date In to Done: how long the group took to produce the quote. Anything at or beyond " + TURN_LIMIT + " days is excluded as a stale date rather than counted as a slow quote.",
                 src: "Weekly workbook · Date In and Done · " + (live ? opsNumber(data.turn.scored) + " scored, " + opsNumber(data.turn.excluded) + " excluded" : "—") },
               { term: "Decision window", now: live && line ? dayText(line.decide.median) : "—",
-                what: "Done to order entry: how long the customer took to answer. Only a quote that booked has an end date, so this is scored on quote wins alone.",
+                what: "Done to order entry: how long the customer took to answer. A quote with no order has no answer to time, so only quote wins are on it. That makes it the time taken by the customers who said yes — an optimistic read by construction, and the reason the open book is reported separately rather than folded in as an open-ended wait.",
                 src: "Weekly Done · order-log entry date" },
               { term: "Exposure", now: live ? (data.exposure ? data.exposure + "+ days" : "all ages") : "—",
                 what: "How many days a quote has had to come back, measured to the order-log cutoff. A quote priced last week has not failed to convert — it has not had the chance.",
@@ -2278,7 +2307,7 @@
         const line = data.timeline;
         if (data.empty || !line || !data.records || !data.records.length) {
           $("#timelineKpis").innerHTML = '<div class="analysis-empty"><div><b>No lifecycle dates yet</b><span>Run the weekly quote books and an order log to measure how long work takes to come back.</span></div></div>';
-          ["#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart", "#tlArrivals", "#tlTurn", "#opsWeek"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          ["#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart", "#tlArrivals", "#tlTurn", "#tlCohort", "#opsWeek"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           setText("#cumulativeNote", "");
           return;
         }
@@ -2321,7 +2350,9 @@
                 + '<small>' + escape(stage.from) + " → " + escape(stage.to) + " · average " + dayText(stage.stat.average)
                 + " · 9 in 10 inside " + dayText(stage.stat.p90) + " · " + opsNumber(stage.stat.scored) + " scored</small></div>";
             }).join("")
-          + '<p class="ops-note"><b>The three stages are measured separately and do not add up.</b> Produce and answer are scored on different sets of quotes — every quote has a Date In and a Done, but only a booked one has an order date — so the whole-cycle bar is its own measurement, not the sum of the two above it.</p>';
+          + '<p class="ops-note"><b>The three stages are measured separately and do not add up.</b> Produce and answer are scored on different sets of quotes — every quote has a Date In and a Done, but only a booked one has an order date — so the whole-cycle bar is its own measurement, not the sum of the two above it.</p>'
+          + '<p class="ops-note"><b>Read the answer stage as the time taken by the customers who said yes.</b> A quote with no order has no answer to time, so it cannot be on this bar; if it were, most of the book would be an open-ended wait and the figure would measure how long ago work was quoted rather than how long a decision takes. That does make it an optimistic read: it is '
+          + opsNumber(line.decide.scored) + ' decisions out of ' + opsNumber(data.quotes) + ' quotes. The open book below is where the ones with no answer are counted.</p>';
 
         // ---- 02 Decision window ------------------------------------------------
         $("#decisionCurve").innerHTML = line.bookedScored
@@ -2410,6 +2441,35 @@
           + '<div><span>6 days or more</span><strong>' + pct(percentage(turn.sixPlus, turn.scored)) + '</strong></div></div>'
           + '<p class="ops-note">Date In to Done, on ' + turn.scored + ' of ' + data.quotes + ' quotes. ' + turn.excluded
           + ' excluded at or beyond ' + TURN_LIMIT + ' days, which reads as a stale date rather than a slow quote. This is the one measure on this screen that does not care whether the quote converted.</p>';
+
+        // ---- 07 Cohort maturity ---------------------------------------------------
+        const cohort = data.cohort || { marks: [], rows: [], matureAt: [] };
+        const shareTone = share => share === null ? "" : share >= 20 ? " is-high" : share >= 10 ? " is-mid" : share > 0 ? " is-low" : " is-none";
+        $("#tlCohort").innerHTML = cohort.rows.length
+          ? '<div class="cohort-wrap"><table class="cohort"><thead><tr><th>Quoted week</th><th class="num">Quotes</th><th class="num">Age</th>'
+            + cohort.marks.map(day => '<th class="num">By day ' + day + "</th>").join("")
+            + '<th class="num">To date</th></tr></thead><tbody>'
+            + cohort.rows.map(row => '<tr data-filter="week" data-filter-value="' + escape(row.label) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.week === row.label) + '">'
+                + "<td><b>" + escape(row.label) + "</b></td>"
+                + '<td class="num">' + row.quotes + "</td>"
+                + '<td class="num age">' + (row.age === null ? "—" : row.age + "d") + "</td>"
+                + row.cells.map(cell => cell.mature
+                    ? '<td class="num cell' + shareTone(cell.share) + '"><b>' + pct(cell.share) + "</b><span>" + cell.count + "</span></td>"
+                    : '<td class="num cell is-young" title="This week is only ' + (row.age === null ? "?" : row.age) + ' days old, so it cannot answer a ' + cell.day + '-day column yet">·</td>').join("")
+                + '<td class="num cell is-total"><b>' + pct(row.conversion) + "</b><span>" + row.wins + "</span></td></tr>").join("")
+            + '<tr class="cohort-foot"><td>All weeks old enough</td><td class="num"></td><td class="num"></td>'
+            + cohort.matureAt.map(mark => '<td class="num">' + (mark.share === null ? "—" : pct(mark.share)) + "<span>" + mark.weeks + " wk</span></td>").join("")
+            + '<td class="num">' + pct(data.conversion) + "</td></tr>"
+            + "</tbody></table></div>"
+            + '<p class="ops-note"><b>A dot means the week has not lived long enough to answer that column.</b> Comparing a week quoted six days ago against one quoted sixty days ago compares a decision that has not been made yet against one that has. Each column here only counts the weeks that have had that many days, so two weeks are only ever compared at the same age.</p>'
+          : '<p class="ops-note">No dated quoted week in this cohort, so there is nothing to age.</p>';
+        setText("#tlCohortNote", cohort.rows.length
+          ? "Of the work quoted in each week, the share that had booked by each day after it was quoted. This is how a recent week and an old one can be compared without the older one winning by age alone."
+          : "");
+        $$("[data-filter=\"week\"]", $("#tlCohort")).forEach(node => {
+          node.addEventListener("click", () => setFilter("week", node.dataset.filterValue));
+          node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setFilter("week", node.dataset.filterValue); } });
+        });
 
         // ---- Week by week ----------------------------------------------------------
         const weekly = data.weekly || [];
@@ -3982,6 +4042,55 @@
         { label: "Over 60 days", min: 61, max: Infinity, tone: "red" }
       ];
 
+      // Cohort maturity. Comparing this week's conversion against a week from
+      // two months ago compares a quote that has had six days to come back
+      // against one that has had sixty. This reads every quoted week at the
+      // same age instead: of the work quoted in week N, what share had booked
+      // by day 7, 14, 30, 45 and 60 — and where a week has not yet lived long
+      // enough to answer a column, the cell says so rather than showing a zero.
+      const COHORT_MARKS = [7, 14, 30, 45, 60];
+
+      function nucorCohortMatrix(records, cutoff) {
+        const groups = new Map();
+        records.forEach(record => {
+          if (!(record.date instanceof Date)) return;
+          const year = record.date.getFullYear();
+          const key = year + "-" + String(Number(record.week) || 0).padStart(3, "0");
+          if (!groups.has(key)) groups.set(key, { key: key, year: year, week: Number(record.week) || 0, date: record.date, records: [] });
+          const group = groups.get(key);
+          if (record.date < group.date) group.date = record.date;
+          group.records.push(record);
+        });
+        const multiYear = new Set(Array.from(groups.values()).map(group => group.year)).size > 1;
+        const rows = Array.from(groups.values()).sort((a, b) => a.key.localeCompare(b.key)).map(group => {
+          const age = cutoff instanceof Date ? daysApart(group.date, cutoff) : null;
+          const quotes = group.records.length;
+          const cells = COHORT_MARKS.map(day => {
+            // A week only answers a column once it has been exposed for that
+            // long. Anything else would read a young week as a bad one.
+            if (age === null || age < day) return { day: day, mature: false, count: null, share: null };
+            const booked = group.records.filter(record => record.won && Number.isFinite(record.lag) && record.lag <= day).length;
+            return { day: day, mature: true, count: booked, share: quotes ? percentage(booked, quotes) : 0 };
+          });
+          return {
+            key: group.key,
+            label: nucorWeekLabel(group.week) + (multiYear ? " '" + String(group.year).slice(2) : ""),
+            quotes: quotes,
+            age: age,
+            wins: group.records.filter(record => record.won).length,
+            conversion: quotes ? percentage(group.records.filter(record => record.won).length, quotes) : 0,
+            cells: cells
+          };
+        });
+        const matureAt = COHORT_MARKS.map(day => {
+          const eligible = rows.filter(row => row.age !== null && row.age >= day);
+          const quotes = eligible.reduce((sum, row) => sum + row.quotes, 0);
+          const booked = eligible.reduce((sum, row) => sum + (row.cells.find(cell => cell.day === day) || { count: 0 }).count, 0);
+          return { day: day, weeks: eligible.length, quotes: quotes, booked: booked, share: quotes ? percentage(booked, quotes) : null };
+        });
+        return { marks: COHORT_MARKS, rows: rows, matureAt: matureAt };
+      }
+
       function nucorTimeline(records, cutoff) {
         const produce = stageStats(records.map(record => record.turnaround));
         const decide = stageStats(records.map(record => daysApart(record.done, record.firstOrder)));
@@ -4074,6 +4183,7 @@
           bookedWeekly: nucorBookedWeeklySeries(records),
           customers: nucorCustomerSignals(records),
           timeline: nucorTimeline(records, cutoff),
+          cohort: nucorCohortMatrix(records, cutoff),
           empty: false,
           cutoff: cutoff
         });
@@ -5196,7 +5306,7 @@
           + '.outcome-card.neutral:before{background:var(--steel)}'
           + '.outcome-card strong{font-size:52px;margin-top:22px}'
           /* analysis + agenda layouts */
-          + '.analysis-grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(210px,.38fr);gap:20px;align-items:start}'
+          + '.analysis-grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(210px,.38fr);gap:20px;align-items:stretch}'
           + '.analysis-main{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff}'
           + '.analysis-side{min-width:0;padding:19px;border:1px solid var(--line);background:#fff}'
           + '.analysis-side p{margin:10px 0 14px;color:var(--muted);font-size:13px;line-height:1.55}'
@@ -5355,6 +5465,14 @@
           /* A quiet ground plane behind every slide, so the cards sit on
              something rather than floating on flat paper. */
           + '.deck-slide:before{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;background:linear-gradient(180deg,rgba(15,74,40,0) 0%,rgba(15,74,40,.045) 100%);pointer-events:none}'
+          + '.booked-strip{margin-top:16px;padding:15px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
+          + '.booked-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 22px;margin-top:10px}'
+          + '.booked-row{display:grid;grid-template-columns:minmax(0,1fr) 52px;grid-template-areas:\'name rate\' \'note note\' \'bar bar\';align-items:baseline;gap:3px 10px}'
+          + '.booked-row b{grid-area:name;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+          + '.booked-row span{grid-area:note;color:var(--muted);font-size:11.5px}'
+          + '.booked-row em{grid-area:rate;color:var(--green-deep);font-family:Consolas,monospace;font-size:14px;font-style:normal;font-weight:800;text-align:right}'
+          + '.booked-row i{grid-area:bar;display:block;height:7px;margin-top:4px;border-radius:4px;background:#e4ede7}'
+          + '.booked-row i u{display:block;height:100%;border-radius:4px;background:var(--green);text-decoration:none}'
           + '.deck-progress{position:fixed;left:0;top:0;height:3px;background:var(--green);z-index:9;transition:width .35s cubic-bezier(.2,.7,.3,1)}'
 + '.weekly-summary{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}'
           + '.weekly-summary>div{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}'
@@ -5530,9 +5648,10 @@
         // ever booking. The second is the one the estimating group cannot get
         // out of its own reporting today.
         const askBookAccounts = (customerSignals.accounts || []).slice()
-          .sort((a, b) => b.quotes - a.quotes || b.quoteValue - a.quoteValue).slice(0, 8);
+          .sort((a, b) => b.quotes - a.quotes || b.quoteValue - a.quoteValue).slice(0, 6);
         const neverBooked = (customerSignals.askedNeverBooked || []).slice(0, 4);
         const neverBookedHours = (customerSignals.askedNeverBooked || []).reduce((sum, account) => sum + account.hours, 0);
+        const topBooked = (customerSignals.topWinAccounts || []).slice(0, 4);
         const operations = '<div class="weekly-summary">'
           + '<div><span>Accounts quoted</span><strong>' + customerSignals.total + '</strong><small>' + customerSignals.multiWeek + ' asked in more than one week</small></div>'
           + '<div><span>Accounts that booked</span><strong>' + customerSignals.withWin + '</strong><small>' + pct(percentage(customerSignals.withWin, customerSignals.total)) + ' of accounts returned work</small></div>'
@@ -5549,11 +5668,19 @@
               + '<span>' + account.quotes + ' quotes · ' + account.loadedWeeks + (account.loadedWeeks === 1 ? ' week' : ' weeks') + ' · ' + account.hours.toFixed(1) + ' eng hrs</span></div>'
             ).join("") : '<div class="deck-empty">Every repeat account here has booked at least one job.</div>')
           + '</div><div class="side-stat"><span>District mix</span><strong>' + (districts.length ? districts.slice(0, 3).map(district => district.code + " " + pct(district.conversion)).join("  ") : "—")
-          + '</strong><small>Read off the quote key, so no district result can misattribute a person.</small></div>'
+          + '</strong><small>Read off the quote key.</small></div>'
           + "</aside></div>"
+          + (topBooked.length
+              ? '<div class="booked-strip"><span class="section-label">Where the booked work came from</span><div class="booked-rows">'
+                + topBooked.map(account => '<div class="booked-row"><b>' + escape(account.name.length > 28 ? account.name.slice(0, 27) + "…" : account.name) + "</b>"
+                    + "<span>" + account.wins + " job" + (account.wins === 1 ? "" : "s") + " · " + money(account.wonValue) + " returned of " + money(account.quoteValue) + " asked</span>"
+                    + '<i><u style="width:' + Math.min(100, account.quoteValue ? account.wonValue / account.quoteValue * 100 : 0).toFixed(1) + '%"></u></i>'
+                    + "<em>" + pct(account.conversion) + "</em></div>").join("")
+                + "</div></div>"
+              : "")
           + '<div class="deck-callout"><strong>Operating read:</strong> ' + (customerSignals.askedNeverBooked || []).length
           + ' accounts asked at least twice and booked nothing, carrying ' + money(customerSignals.askedNeverBookedValue) + ' of quoted value and '
-          + neverBookedHours.toFixed(0) + ' engineering hours. That is the cost of demand that did not return — a follow-up queue, not a loss list.</div>';
+          + neverBookedHours.toFixed(0) + ' engineering hours — a follow-up queue, not a loss list.</div>';
 
         // ---- 07 How long it takes to come back --------------------------------
         // Replaces the old lag-bucket slide. Same underlying dates, read as a

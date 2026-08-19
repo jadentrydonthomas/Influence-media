@@ -3,17 +3,15 @@
 Offline, single-file management dashboard that turns Nucor Building Systems weekly
 quote books and order-log exports into a quote-to-order outcome view.
 
-Seven screens, all reading one record set:
+Five screens, all reading one record set:
 
 | # | Screen | The question it answers |
 | --- | --- | --- |
 | 01 | Outcome dashboard | Did the quoted work come back? |
-| 02 | Team performance | Who owned it, and how did their book behave? |
-| 03 | Quote records | What happened to this specific quote? |
-| 04 | Customers | Who asks, and who actually books? |
-| 05 | Timelines | How long does it take to come back? |
-| 06 | Estimating operations | What did the work cost to put out the door? |
-| 07 | Data mapping | Where did every number come from, and what did the source get wrong? |
+| 02 | Team performance | Who owned it, how did their book behave, and what did it cost to produce? |
+| 03 | Customers | Who asks, who actually books, and what did each account book? |
+| 04 | Timelines | How long does it take to come back? |
+| 05 | Data mapping | Where did every number come from, and what did the source get wrong? |
 
 A **What the numbers mean** drawer opens from any screen with the definition,
 source column and live value of every term.
@@ -21,7 +19,7 @@ source column and live value of every term.
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.1). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.2). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
@@ -41,6 +39,7 @@ source column and live value of every term.
 | `test/sorts.mjs` | Each customer sort changes the question; a filtered deck stays coherent. |
 | `test/glossary.mjs` | The definitions drawer opens before and after a run. |
 | `test/spec-check.mjs` | The markdown and designed spec agree on every requirement ID and version. |
+| `test/deck-stress.mjs` | Inflates every number in the deck and checks nothing collides at three viewport sizes. |
 
 ## Running the regression suite
 
@@ -73,6 +72,7 @@ node test/rail.mjs          # navigation reachable at five viewport sizes
 node test/sorts.mjs         # customer sorts, and a deck exported while filtered
 node test/glossary.mjs      # the definitions drawer
 node test/spec-check.mjs    # the two spec documents agree
+node test/deck-stress.mjs   # the deck holds its layout when the numbers get bigger
 ```
 
 `audit.py` reads the workbooks with openpyxl and recomputes every headline figure
@@ -88,13 +88,22 @@ Nine slides, generated from the active exposure cohort and the active filters:
 3. Weekly pulse — volume columns above, conversion line below, scales to any span
 4. Value band analysis — conversion by quoted value band
 5. Release timing — on-time rate with its scored denominator
-6. **Customer demand** — asked against booked per account, and the accounts that
-   asked twice or more and booked nothing
+6. **Customer demand** — asked against booked per account, the accounts that asked
+   twice or more and booked nothing, and where the booked work actually came from
 7. **Lifecycle and decision window** — three measured stages, the decision curve,
    and the ageing of the open book
 8. Estimating capacity — scheduled vs actual engineering hours by engineer, with turnaround
 9. Review agenda — highest-value work with no linked order, by quote, owner and value
 
+Every slide carries the Nucor mark, and every slide is **fitted to its own box**: the
+content block is measured against the height it actually has and scaled to fit, so a
+larger figure changes the size of the type rather than pushing text under the
+navigation. `test/deck-stress.mjs` multiplies every number in the deck by roughly a
+thousand, re-fits, and measures at three viewport sizes for content leaving the slide,
+chart labels sitting on each other, and text under the nav.
+
+The weekly volume lane is drawn as extruded columns with a lit top face and a shadowed
+right face — the top face is what makes a short column readable beside a tall one.
 Charts are inline SVG sized from the data. Entrance motion is layered on top of an
 already-correct static state, so a chart still reads if animation never runs, and is
 disabled under `prefers-reduced-motion` and when printing.
@@ -149,15 +158,21 @@ improvement; longer turnaround and more engineering hours per quote read the oth
 
 ## Customers
 
-A screen for account demand. Every account in the loaded book, measured by what it
-asked for against what came back, in one table where the sort changes the question
-rather than adding another table: most quotes, most quoted value, most booked,
-largest unreturned, most engineering time.
+Account demand, and the account record. The list on the left ranks every account —
+most quotes, most quoted value, most booked, largest unreturned, most engineering
+time — and the panel on the right opens that account in full:
 
-It leads with the diagnostic the estimating group cannot get out of its own
-reporting — accounts that asked at least twice and booked nothing, ordered by the
-quoted value that returned as nothing, with the engineering hours those requests
-consumed. Selecting an account narrows the whole dashboard to it.
+- what it asked for against what came back, its engineering hours and average turnaround
+- **every job it booked**, with the order-entry date, tonnage, and the quote value it came from
+- **every quote it ever sent**, with the quote engineer, the release result, and whether
+  the quote is booked or still open and for how long
+
+The search reaches quote numbers and job numbers, so a job number written on a paper
+copy finds the account that owns it. Selecting an account narrows the whole dashboard.
+
+Below it sits the diagnostic the estimating group cannot get out of its own reporting
+— accounts that asked at least twice and booked nothing, ordered by the quoted value
+that returned as nothing, with the engineering hours those requests consumed.
 
 ## Timelines
 
@@ -176,6 +191,20 @@ carry:
   and the panel says so rather than letting it read as "no fresh work".
 - **A calendar** — cumulative quotes issued against cumulative orders booked on one
   axis, so the space between the lines is the open book itself.
+- **Arrivals and production speed** — how much came in per period, and the Date In →
+  Done distribution, which is the one measure here that does not care whether the
+  quote converted.
+- **Cohort maturity** — of the work quoted in each week, the share that had booked by
+  day 7, 14, 30, 45 and 60. A week that has not lived long enough to answer a column
+  shows a dot rather than a zero, so a recent week and an old one are only ever
+  compared at the same age.
+- **Week by week** — volume, turnaround mix, release timing and engineering load, one
+  row per week.
+
+> The answer stage is scored on quote wins alone, because a quote with no order has
+> no answer to time. That makes it the time taken by the customers who said yes — an
+> optimistic read by construction, stated on the panel. The ones with no answer are
+> counted in the open book instead, rather than folded in as an open-ended wait.
 
 ## Prior period
 
@@ -192,10 +221,12 @@ A drawer, reachable from every screen, naming each term, the column or file it i
 measured from, and the live figure it currently holds. A definition that does not
 show its own denominator is how a number gets misread.
 
-## Estimating operations
+## Load and capacity
 
-A screen that carries what the estimating group's own reporting tracks, drawn from
-weekly columns that were parsed but never shown:
+What the estimating group's own reporting tracks, drawn from weekly columns that were
+parsed but never shown. It sits on **Team performance**, because it is per-person:
+capacity against plan for quote engineers, and the same load table for estimators and
+schedulers. The time series it used to sit beside are on Timelines.
 
 - **Alternates** (column G) — quoted work with no separate quote number. 112 sit behind
   174 quotes in the fixtures, so ~39% of what was priced never appears in a quote count.
