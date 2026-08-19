@@ -342,6 +342,26 @@
     [data-filter] { cursor: pointer; }
     [data-filter]:hover { background: var(--surface-soft); }
     [data-filter][aria-pressed="true"] { box-shadow: inset 3px 0 0 var(--green); }
+    .cust-sort { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 17px 12px; }
+    .cust-sort-btn { padding: 6px 10px; border: 1px solid var(--line); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+    .cust-sort-btn[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
+    .cust-sort-btn:hover { border-color: var(--ink); }
+    .cust-name { display: block; max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Asked against booked, on one track rather than two. The grey bar is how
+       much they asked for; the green sitting inside it is how much came back,
+       so an account that asks a lot and books nothing reads as a bare bar. */
+    .askbook { width: 132px; padding-right: 12px !important; }
+    .askbook-track { position: relative; height: 9px; border-radius: 5px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .askbook-track i { position: absolute; top: 0; left: 0; height: 100%; border-radius: 5px; }
+    .askbook-track .ask { background: var(--steel); opacity: .55; }
+    .askbook-track .book { background: var(--green); }
+    .ops-table td.num.is-zero { color: var(--red-deep); }
+    .cust-diag { display: grid; grid-template-columns: minmax(0,1fr) 150px 74px; grid-template-areas: "name track value" "note note note"; align-items: center; gap: 2px 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+    .cust-diag > span { grid-area: name; overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .cust-diag-track { grid-area: track; height: 10px; overflow: hidden; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); border-radius: 5px; }
+    .cust-diag-track i { display: block; height: 100%; background: var(--red); border-radius: 5px; }
+    .cust-diag > b { grid-area: value; color: var(--red-deep); font-family: var(--mono); font-size: 12px; text-align: right; }
+    .cust-diag > small { grid-area: note; color: var(--ink-faint); font-size: 9.5px; }
     .ops-week { padding: 0 17px 15px; }
     .week-head, .week-row { display: grid; grid-template-columns: 46px minmax(70px,1fr) minmax(84px,1.1fr) 38px 50px minmax(70px,.85fr) 50px 40px; align-items: center; gap: 10px; }
     .week-head { padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -405,6 +425,81 @@
     .turn-legend b { width: 9px; height: 9px; flex: none; border-radius: 2px; }
     .turn-legend strong { margin-left: auto; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 600; }
     .turn-legend small { width: 44px; color: var(--ink-faint); font-family: var(--mono); font-size: 10px; text-align: right; }
+    .is-red { background: var(--red-deep); }
+
+    /* Definitions drawer. Available from every screen, because the question
+       "what is this number" is asked in front of whichever screen raised it. */
+    /* display:flex on .glossary outranks the user-agent [hidden] rule, so the
+       closed drawer stayed laid out over the page and swallowed every click. */
+    .glossary[hidden], .glossary-scrim[hidden] { display: none; }
+    .glossary-scrim { position: fixed; inset: 0; z-index: 40; background: rgba(9,22,14,.42); animation: fade 200ms var(--ease); }
+    .glossary { position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: min(560px, 100%); display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line); box-shadow: -24px 0 60px rgba(6,26,15,.22); animation: slideIn 260ms var(--ease); }
+    @keyframes slideIn { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .glossary-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px 16px; border-bottom: 1px solid var(--line); }
+    .glossary-head h2 { margin: 8px 0 0; color: var(--ink); font-family: var(--display); font-size: 26px; letter-spacing: -.02em; line-height: .98; text-transform: uppercase; }
+    .glossary-close { padding: 7px 12px; border: 1px solid var(--line); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+    .glossary-close:hover { border-color: var(--ink); color: var(--ink); }
+    .glossary-body { flex: 1; overflow: auto; padding: 4px 24px 30px; }
+    .gloss-group { padding-top: 18px; }
+    .gloss-group > h3 { margin: 0 0 4px; color: var(--green-dark); font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .gloss-group > p { margin: 0 0 6px; color: var(--ink-muted); font-size: 11.5px; line-height: 1.5; }
+    .gloss-term { padding: 11px 0; border-top: 1px solid var(--line); }
+    .gloss-term dt { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--ink); font-size: 13px; font-weight: 700; }
+    .gloss-term dt b { flex: none; color: var(--green-dark); font-family: var(--mono); font-size: 13px; font-weight: 600; }
+    .gloss-term dd { margin: 5px 0 0; color: var(--ink-muted); font-size: 12px; line-height: 1.55; }
+    .gloss-term dd.src { margin-top: 5px; color: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
+    .gloss-warn { margin-top: 16px; padding: 13px 15px; border-left: 3px solid var(--red); background: var(--surface-soft); color: var(--ink-muted); font-size: 11.5px; line-height: 1.55; }
+    .gloss-warn strong { color: var(--ink); }
+    @media (max-width: 620px) { .glossary { width: 100%; } .glossary-head h2 { font-size: 21px; } }
+    @media print { .glossary, .glossary-scrim { display: none !important; } }
+
+    /* Timelines. Every bar carries its median as the solid part and the
+       ninetieth percentile as the faint tail, so a long right-hand tail reads
+       as "a few take much longer" rather than moving the headline. */
+    .stage-scale { display: flex; justify-content: space-between; margin-bottom: 9px; color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; }
+    .stage-row { display: grid; grid-template-columns: 150px minmax(0,1fr) 52px; grid-template-areas: "name track value" "note note note"; align-items: center; gap: 3px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+    .stage-row > span { grid-area: name; color: var(--ink); font-size: 12px; font-weight: 600; }
+    .stage-track { position: relative; grid-area: track; height: 13px; border-radius: 7px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .stage-track i { position: absolute; top: 0; left: 0; height: 100%; border-radius: 7px; }
+    .stage-track .stage-tail { opacity: .28; }
+    .stage-track u { position: absolute; top: -3px; width: 1.5px; height: 19px; background: var(--ink-faint); }
+    .stage-row > b { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 13px; text-align: right; }
+    .stage-row > small { grid-area: note; color: var(--ink-faint); font-size: 9.5px; }
+    .stage-row.is-empty > span, .stage-row.is-empty > b { color: var(--ink-faint); }
+
+    .curve-svg { display: block; width: 100%; height: auto; }
+    .curve-svg .grid { stroke: var(--line); stroke-width: 1; }
+    .curve-svg .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 9px; }
+    .curve-svg .curve-area { fill: var(--green-soft); }
+    .curve-svg .curve-line { fill: none; stroke: var(--green); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+    .curve-svg .curve-dot { fill: var(--surface); stroke: var(--green-dark); stroke-width: 2; }
+    .curve-list { display: grid; align-content: start; gap: 2px; }
+    .curve-row { display: grid; grid-template-columns: 66px minmax(0,1fr) 48px 62px; align-items: center; gap: 9px; padding: 5px 0; border-top: 1px solid var(--line); color: var(--ink-muted); font-size: 11px; }
+    .curve-track { height: 8px; border-radius: 4px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+    .curve-track i { display: block; height: 100%; background: var(--green); border-radius: 4px; }
+    .curve-row b { color: var(--ink); font-family: var(--mono); font-size: 12px; text-align: right; }
+    .curve-row small { color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; text-align: right; }
+
+    .age-row { display: grid; grid-template-columns: 132px minmax(0,1fr) 42px 62px; grid-template-areas: "name track count value" "note note note note"; align-items: center; gap: 2px 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+    .age-row > span { grid-area: name; display: flex; align-items: center; gap: 7px; color: var(--ink); font-size: 11.5px; }
+    .age-row > span b { width: 9px; height: 9px; flex: none; border-radius: 2px; }
+    .age-track { grid-area: track; height: 9px; border-radius: 5px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+    .age-track i { display: block; height: 100%; border-radius: 5px; }
+    .age-row > b { grid-area: count; color: var(--ink); font-family: var(--mono); font-size: 12px; text-align: right; }
+    .age-row > u { grid-area: value; color: var(--ink-muted); font-family: var(--mono); font-size: 11px; text-align: right; text-decoration: none; }
+    .age-row > small { grid-area: note; color: var(--ink-faint); font-size: 9.5px; }
+
+    .cum-svg { display: block; width: 100%; height: auto; }
+    .cum-svg .grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .cum-svg .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 9px; }
+    .cum-svg .cum-gap { fill: var(--red); opacity: .13; }
+    .cum-svg .cum-quotes { fill: none; stroke: var(--steel); stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+    .cum-svg .cum-orders { fill: none; stroke: var(--green); stroke-width: 2.6; vector-effect: non-scaling-stroke; }
+    .cum-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; color: var(--ink-muted); font-size: 10.5px; }
+    .cum-legend span { display: flex; align-items: center; gap: 7px; }
+    .cum-legend b { width: 12px; height: 4px; border-radius: 2px; }
+    .cum-legend b.is-gap { height: 9px; background: var(--red); opacity: .3; }
     .cap-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; padding: 13px; background: var(--surface-soft); border-left: 3px solid var(--steel); }
     .cap-hero.is-good { border-left-color: var(--green); }
     .cap-hero.is-bad { border-left-color: var(--red); }
@@ -431,6 +526,10 @@
     .ops-kpi small { display: block; margin-top: 5px; color: var(--ink-muted); font-size: 10px; line-height: 1.4; }
     .ops-layout { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(300px,.75fr); gap: 20px; align-items: start; margin-bottom: 20px; }
     .ops-table-wrap { overflow-x: auto; padding: 0 17px 17px; }
+    /* 113 accounts is a real answer, not an overflow. The list scrolls inside
+       the panel so the screen stays one screen and the header stays readable. */
+    .ops-table-wrap.is-tall { max-height: 560px; overflow: auto; }
+    .ops-table-wrap.is-tall thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ops-table.is-wide { min-width: 940px; }
     .ops-table th { padding: 8px 7px; border-bottom: 1.5px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
@@ -665,7 +764,10 @@
     .intake-head .eyebrow { color: #a4ddb2; }
     .intake-head h3 { max-width: 360px; margin: 7px 0 0; color: #fff; font-family: var(--display); font-size: 37px; letter-spacing: -.02em; line-height: .87; text-transform: uppercase; }
     .intake-head p { max-width: 265px; margin: 0; color: rgba(239,248,240,.62); font-size: 10px; line-height: 1.45; text-align: right; }
-    .intake-steps { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) 38px minmax(0,1fr); gap: 0; align-items: stretch; margin-top: 22px; }
+    .intake-steps { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) 30px minmax(0,1fr) 30px minmax(0,1fr); gap: 0; align-items: stretch; margin-top: 22px; }
+    @media (max-width: 1180px) { .intake-steps { grid-template-columns: 1fr; } .intake-divider { display: none; } }
+    /* The prior period is optional, and reads that way until something is in it. */
+    .intake-step.is-optional[data-state="empty"] { border-style: dotted; opacity: .78; }
     .intake-step { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 185px; padding: 15px; border: 1px dashed rgba(222,247,228,.27); background: rgba(255,255,255,.028); transition: border-color 180ms var(--ease), background 180ms var(--ease), transform 180ms var(--ease); }
     .intake-step[data-state="drag"] { border-color: var(--green-bright); background: rgba(0,189,87,.12); transform: translateY(-2px); }
     .intake-step[data-state="ready"] { border-style: solid; border-color: rgba(83,231,142,.6); background: rgba(0,189,87,.09); }
@@ -848,8 +950,10 @@
         <button type="button" data-screen="overview" data-number="01" aria-current="page">Outcome dashboard</button>
         <button type="button" data-screen="people" data-number="02" aria-current="false">Team performance</button>
         <button type="button" data-screen="quotes" data-number="03" aria-current="false">Quote records</button>
-        <button type="button" data-screen="ops" data-number="04" aria-current="false">Estimating operations</button>
-        <button type="button" data-screen="data" data-number="05" aria-current="false">Data mapping</button>
+        <button type="button" data-screen="customers" data-number="04" aria-current="false">Customers</button>
+        <button type="button" data-screen="timeline" data-number="05" aria-current="false">Timelines</button>
+        <button type="button" data-screen="ops" data-number="06" aria-current="false">Estimating operations</button>
+        <button type="button" data-screen="data" data-number="07" aria-current="false">Data mapping</button>
       </nav>
       <div class="rail-bottom">
         <button class="review-mode" id="reviewMode" type="button">Export team report deck</button>
@@ -860,8 +964,16 @@
     <main class="main">
       <header class="masthead">
         <div class="masthead-context"><strong>Quote outcome dashboard</strong> · Waterloo / Fort Wayne</div>
-        <div class="masthead-actions"><span class="data-stamp" id="dataStamp">Design preview — import files and run dashboard</span><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
+        <div class="masthead-actions"><span class="data-stamp" id="dataStamp">Design preview — import files and run dashboard</span><button class="theme-button" id="glossaryButton" type="button" aria-expanded="false" aria-controls="glossary">What the numbers mean</button><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
       </header>
+      <div class="glossary-scrim" id="glossaryScrim" hidden></div>
+      <aside class="glossary" id="glossary" aria-labelledby="glossaryTitle" hidden>
+        <div class="glossary-head">
+          <div><div class="eyebrow">Definitions</div><h2 id="glossaryTitle">What each number is,<br />and where it comes from.</h2></div>
+          <button class="glossary-close" id="glossaryClose" type="button" aria-label="Close definitions">Close</button>
+        </div>
+        <div class="glossary-body" id="glossaryBody"></div>
+      </aside>
       <div class="filter-bar" id="filterBar" role="status" aria-live="polite" hidden></div>
       <button class="exit-review" id="exitReview" type="button">Exit review room</button>
 
@@ -1019,6 +1131,47 @@
         </div>
       </section>
 
+      <section class="screen" id="customers" aria-labelledby="custTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">Customer demand</div><h2 id="custTitle" class="is-compact">Who asks, and who <em>actually books.</em></h2></div>
+          <p>Every account in the loaded quote book, measured by what it asked for and what came back. Sort to change the question; select an account to narrow the whole dashboard to it.</p>
+        </div>
+        <section class="ops-kpis" id="custKpis" aria-label="Customer headline figures"></section>
+        <section class="panel" aria-labelledby="custDiagTitle">
+          <div class="panel-head"><span class="ops-step">The question worth asking</span><h2 id="custDiagTitle">Repeat demand that returned nothing</h2></div>
+          <div class="ops-body" id="custDiagnostic"></div>
+        </section>
+        <section class="panel" aria-labelledby="custTableTitle">
+          <div class="panel-head"><h2 id="custTableTitle">All accounts</h2><p id="custTableNote"></p></div>
+          <div class="cust-sort" id="custSort" role="group" aria-label="Sort accounts"></div>
+          <div class="ops-table-wrap is-tall"><table class="ops-table is-wide" id="custTable"></table></div>
+        </section>
+      </section>
+
+      <section class="screen" id="timeline" aria-labelledby="timelineTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">Timelines</div><h2 id="timelineTitle" class="is-compact">How long it takes <em>to come back.</em></h2></div>
+          <p>The quote book read along a calendar rather than a list. Every figure here is measured from dates the workbooks already carry — Date In, Done, and the order-log entry date — so nothing is modelled or assumed.</p>
+        </div>
+        <section class="ops-kpis" id="timelineKpis" aria-label="Lifecycle headline figures"></section>
+        <section class="panel" aria-labelledby="lifecycleTitle">
+          <div class="panel-head"><span class="ops-step">01 &middot; Lifecycle</span><h2 id="lifecycleTitle">From request to booked work</h2><p>Three measured stages. A quote only counts toward a stage when it carries both of that stage&rsquo;s own dates, so each bar states its own denominator.</p></div>
+          <div class="ops-body" id="lifecycleStages"></div>
+        </section>
+        <section class="panel" aria-labelledby="curveTitle">
+          <div class="panel-head"><span class="ops-step">02 &middot; Decision window</span><h2 id="curveTitle">When the orders actually arrive</h2><p>Of everything that eventually booked, the share that had booked by each day after the quoted week. Where the curve flattens is where waiting stops paying.</p></div>
+          <div class="ops-body is-wide" id="decisionCurve"></div>
+        </section>
+        <section class="panel" aria-labelledby="ageTitle">
+          <div class="panel-head"><span class="ops-step">03 &middot; The open book</span><h2 id="ageTitle">How long work has sat without an answer</h2><p>Quotes with no linked order, aged against the order-log cutoff. Value travels with the count because one large quote past sixty days is not one row of risk.</p></div>
+          <div class="ops-body" id="openAgeing"></div>
+        </section>
+        <section class="panel" aria-labelledby="cumulativeTitle">
+          <div class="panel-head"><span class="ops-step">04 &middot; Calendar</span><h2 id="cumulativeTitle">Quotes issued against orders booked</h2><p id="cumulativeNote"></p></div>
+          <div class="ops-body" id="cumulativeChart"></div>
+        </section>
+      </section>
+
       <section class="screen" id="ops" aria-labelledby="opsTitle">
         <div class="screen-heading">
           <div><div class="eyebrow">Estimating operations</div><h2 id="opsTitle" class="is-compact">What the work cost to <em>put out the door.</em></h2></div>
@@ -1071,6 +1224,13 @@
                 <label class="source-add" for="orderFiles">Add order logs</label><input class="file-input" id="orderFiles" type="file" accept=".xlsm,.xlsx,.csv" multiple />
                 <div class="source-status" aria-live="polite"><strong id="orderStatus">Awaiting order logs</strong><span id="orderFileName">One or more source files required</span></div>
               </article>
+              <div class="intake-divider" aria-hidden="true"><span>&rarr;</span></div>
+              <article class="intake-step is-optional" id="priorStage" data-state="empty">
+                <div class="intake-step-head"><span class="intake-step-number">03</span><span>Optional</span></div>
+                <h4>Prior period</h4><p>Last year&rsquo;s quote weeks, for comparison only. They are measured separately and never added to the live conversion figures. Add the matching order log above so their orders link too.</p>
+                <label class="source-add" for="priorFiles">Add prior quote weeks</label><input class="file-input" id="priorFiles" type="file" accept=".xlsm,.xlsx,.csv" multiple />
+                <div class="source-status" aria-live="polite"><strong id="priorStatus">No prior period loaded</strong><span id="priorFileNames">Optional &mdash; feeds the Compare lens</span></div>
+              </article>
             </div>
             <div class="run-console">
               <button class="run-dashboard" id="runDashboard" type="button" disabled><span id="runButtonLabel">Run dashboard</span><small id="runButtonHelp">Join quote and order records, then refresh every visible metric.</small></button>
@@ -1091,7 +1251,7 @@
   <script>
     (() => {
       const app = document.getElementById("app");
-      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, intake: { quoteFiles: [], orderFiles: [], quoteError: "", orderError: "", running: false, hasRun: false, feedback: null } };
+      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, baseline: null, intake: { quoteFiles: [], orderFiles: [], priorFiles: [], quoteError: "", orderError: "", priorError: "", running: false, hasRun: false, feedback: null } };
       const scopes = {
         all: {
           label: "Full quote book", title: "The complete conversion picture.", period: "W1—W10", quotes: 614, quoteValue: 461, orders: 40, orderValue: 25, unconverted: 574, unconvertedValue: 436,
@@ -1156,7 +1316,7 @@
       ];
 
       function blankCustomerSignals() {
-        return { total: 0, multiWeek: 0, consistent: 0, firstSeen: 0, repeatNoWin: 0, repeatNoWinValue: 0, accounts: [], multiWeekAccounts: [], firstSeenAccounts: [], topWinAccounts: [], repeatNoWinAccounts: [] };
+        return { total: 0, withWin: 0, multiWeek: 0, consistent: 0, firstSeen: 0, repeatNoWin: 0, repeatNoWinValue: 0, askedNeverBooked: [], askedNeverBookedValue: 0, concentration: 0, totalQuotedValue: 0, totalHours: 0, accounts: [], multiWeekAccounts: [], firstSeenAccounts: [], topWinAccounts: [], repeatNoWinAccounts: [] };
       }
 
       function blankScope(label, title, exposure) {
@@ -1327,6 +1487,8 @@
         renderPeople();
         renderQuotes();
         renderOps();
+        renderCustomers();
+        renderTimeline();
         renderFilterBar();
       }
 
@@ -1373,6 +1535,34 @@
         scopeCache.key = key;
         scopeCache.value = scope;
         return scope;
+      }
+
+      // A separately loaded prior period, compared against the live book on the
+      // same exposure lens and the same filters. It is kept out of the main
+      // scopes on purpose: a baseline is there to compare against, not to be
+      // added to this year's conversion.
+      function baselineComparison(data) {
+        const baseline = state.baseline;
+        if (!baseline || !baseline.model) return null;
+        const prior = baseline.model.scopes[state.scope] || baseline.model.scopes.all;
+        if (!prior || !prior.records || !prior.records.length) return null;
+        // A quoted-week filter has no counterpart in another year, so it is the
+        // one filter the baseline side does not take.
+        const week = state.filters.week;
+        state.filters.week = "";
+        let priorRecords;
+        try { priorRecords = filterRecords(prior.records); } finally { state.filters.week = week; }
+        if (!priorRecords.length) return { baseline: true, empty: true, priorLabel: baseline.label };
+        return {
+          baseline: true,
+          weekFilterIgnored: Boolean(week),
+          granularity: "period",
+          currentLabel: data.period,
+          priorLabel: baseline.label,
+          periods: 2,
+          current: periodMeasure(data.records || []),
+          prior: periodMeasure(priorRecords)
+        };
       }
 
       function kpiMarkup(label, ringValue, shownValue, headline, note, color) {
@@ -1630,14 +1820,20 @@
               + '<div class="analysis-foot"><strong>Read the bar and the number separately:</strong> the bar is how much of the book sits in that band; the number beside it is how much of that band came back. ' + bandData.scored + " of " + data.quotes + ' records carry a price and are scored here.</div>'
             : '<div class="analysis-foot"><strong>No priced quote records in this cohort.</strong> Value banding needs the weekly Price field.</div>';
         } else if (state.analysis === "compare") {
-          const cmp = data.comparison;
-          title = "Period comparison";
-          description = cmp && !cmp.insufficient
-            ? "The latest " + cmp.granularity + " against the one before it, on the same cohort and filters."
-            : "Comparing one period against the one before it.";
-          if (!cmp || cmp.insufficient) {
+          const loaded = baselineComparison(data);
+          const cmp = loaded && !loaded.empty ? loaded : data.comparison;
+          title = cmp && cmp.baseline ? "Against the prior period" : "Period comparison";
+          description = cmp && cmp.baseline
+            ? "The live quote book against the prior period loaded in Data mapping, on the same exposure lens and filters."
+            : cmp && !cmp.insufficient
+              ? "The latest " + cmp.granularity + " against the one before it, on the same cohort and filters."
+              : "Comparing one period against the one before it.";
+          if (loaded && loaded.empty) {
+            html = '<div class="analysis-foot"><strong>' + escape(loaded.priorLabel) + ' is loaded, but no record in it survives the active filters.</strong> '
+              + 'Clear a filter, or pick one the prior period also contains.</div>';
+          } else if (!cmp || cmp.insufficient) {
             html = '<div class="analysis-foot"><strong>Only one ' + (cmp ? cmp.granularity : "period") + ' is loaded.</strong> '
-              + 'Comparison needs at least two. Load an earlier set of quote weeks alongside this one and the view fills in — across years it compares year on year, otherwise month on month, otherwise week on week.</div>';
+              + 'Comparison needs at least two. Add an earlier set of quote weeks under <b>Prior period</b> in Data mapping, or load them alongside this one — across years it compares year on year, otherwise month on month, otherwise week on week.</div>';
           } else {
             const delta = (now, before, invert) => {
               if (now === null || before === null || before === undefined || now === undefined) return { text: "—", tone: "flat" };
@@ -1666,7 +1862,12 @@
                     + '<em class="is-' + d.tone + '">' + d.text + "</em></div>";
                 }).join("")
               + '<div class="analysis-foot"><strong>Direction is judged, not just signed.</strong> More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. '
-              + cmp.periods + ' ' + cmp.granularity + 's are loaded, so this compares ' + escape(cmp.currentLabel) + ' against ' + escape(cmp.priorLabel) + '.</div>';
+              + (cmp.baseline
+                  ? 'This compares the live book (' + escape(cmp.currentLabel) + ') against the separately loaded ' + escape(cmp.priorLabel)
+                    + '. The prior period is never added to the live conversion figures — it exists only here.'
+                    + (cmp.weekFilterIgnored ? ' The quoted-week filter narrows the live side only, since a week number has no counterpart in another period.' : '')
+                  : cmp.periods + ' ' + cmp.granularity + 's are loaded, so this compares ' + escape(cmp.currentLabel) + ' against ' + escape(cmp.priorLabel) + '.')
+              + '</div>';
           }
         } else if (state.analysis === "districts") {
           title = "District mix";
@@ -1906,6 +2107,359 @@
           + '<tr class="is-total"><td>Total</td><td class="num">' + data.quotes + '</td><td class="num">' + (data.quotes / weeks).toFixed(1) + '</td><td></td><td class="num">' + data.alts
           + '</td><td class="num">' + opsTurnText(turn.average) + '</td><td class="num">' + pct(percentage(turn.sixPlus, turn.scored))
           + '</td><td class="num">' + money(data.quoteValue) + '</td><td class="num">' + pct(data.conversion) + "</td></tr></tbody>";
+      }
+
+      // ---- Definitions -------------------------------------------------------
+      // Every term the dashboard uses, what it is measured from, and the live
+      // figure it currently holds. The live column is the point: a definition
+      // that does not show its own denominator is how a number gets misread.
+      function glossaryGroups() {
+        const data = currentScope();
+        const live = data && !data.empty;
+        const quality = state.model ? state.model.quality : null;
+        const line = live ? data.timeline : null;
+        const value = shown => live ? shown : "—";
+        return [
+          {
+            title: "The quote book",
+            intro: "What counts as one piece of work, and what came back.",
+            terms: [
+              { term: "Quote opportunity", now: value(opsNumber(data.quotes)),
+                what: "One quote number, however many revisions it went through. Revisions collapse into a single opportunity so a quote that was priced three times is not counted three times.",
+                src: "Weekly workbook · column B Quote No., normalised to prefix-number" },
+              { term: "Alternate", now: value(opsNumber(data.alts)),
+                what: "Priced work carried inside another quote with no separate quote number of its own. Alternates never appear in a quote count, which is why the quote count understates what the group actually priced.",
+                src: "Weekly workbook · column G" },
+              { term: "Quote win", now: value(opsNumber(data.orders)),
+                what: "A quote whose number appears on at least one row of the order log. It is an observed link, not a judgement — nothing is marked won by hand.",
+                src: "Order log · Quote # joined to weekly Quote No." },
+              { term: "Booked job", now: value(opsNumber(data.jobs)),
+                what: "An individual order-log row linked to a quote. One quote win can carry several booked jobs, so the two numbers differ on purpose.",
+                src: "Order log · one row per job" },
+              { term: "Conversion", now: value(pct(data.conversion)),
+                what: "Quote wins divided by quote opportunities in the active cohort. It answers whether work came back, not whether it was profitable.",
+                src: "Derived · wins ÷ opportunities" },
+              { term: "Quoted value", now: value(money(data.quoteValue)),
+                what: "The sum of the priced value on every opportunity in the cohort. A quote with no price contributes nothing rather than being guessed.",
+                src: "Weekly workbook · price column · " + value(opsNumber(data.priceScoredCount) + " of " + opsNumber(data.quotes) + " carry a price") },
+              { term: "Unconverted", now: value(opsNumber(data.unconverted)),
+                what: "An opportunity with no linked order yet. It is work still needing a named current status — it is not a recorded loss, and this dashboard never calls it one.",
+                src: "Derived · opportunities without a linked order" }
+            ]
+          },
+          {
+            title: "Time",
+            intro: "Three different clocks, measured from three different pairs of dates.",
+            terms: [
+              { term: "Turnaround", now: live && line ? dayText(line.produce.median) : "—",
+                what: "Date In to Done: how long the group took to produce the quote. Anything at or beyond " + TURN_LIMIT + " days is excluded as a stale date rather than counted as a slow quote.",
+                src: "Weekly workbook · Date In and Done · " + (live ? opsNumber(data.turn.scored) + " scored, " + opsNumber(data.turn.excluded) + " excluded" : "—") },
+              { term: "Decision window", now: live && line ? dayText(line.decide.median) : "—",
+                what: "Done to order entry: how long the customer took to answer. Only a quote that booked has an end date, so this is scored on quote wins alone.",
+                src: "Weekly Done · order-log entry date" },
+              { term: "Exposure", now: live ? (data.exposure ? data.exposure + "+ days" : "all ages") : "—",
+                what: "How many days a quote has had to come back, measured to the order-log cutoff. A quote priced last week has not failed to convert — it has not had the chance.",
+                src: "Derived · quoted date to order-log cutoff" + (live && data.cutoff ? " (" + shortDate(data.cutoff) + ")" : "") },
+              { term: "Lag", now: live && data.medianLag !== null ? Math.round(data.medianLag) + "d" : "—",
+                what: "Quoted week to first linked order entry, on quotes that booked. The decision curve on the Timelines screen is this figure spread across every win.",
+                src: "Derived · quoted date to first order entry" }
+            ]
+          },
+          {
+            title: "Release timing",
+            intro: "The measure most easily misread, so it always travels with its denominator.",
+            terms: [
+              { term: "Met the due date", now: value(pct(data.onTime)),
+                what: "The share of scored quotes delivered on or before the date the customer asked for. EARLY and on-the-due-date both count as met; LATE does not.",
+                src: "Weekly workbook · On-Time column · " + value(opsNumber(data.onTimeScoredCount) + " of " + opsNumber(data.quotes) + " scored") },
+              { term: "The N/A value", now: "on time",
+                what: "The On-Time column is three-state, and the workbook writes \"N/A\" for a quote delivered exactly on the due date. It is not missing data. Every fixture row was checked against its own Due and Done dates and agreed.",
+                src: "Verified per row · disagreements are reported in Data mapping" + (quality ? " (" + opsNumber(Number(quality.onTimeConflicts) || 0) + " now)" : "") }
+            ]
+          },
+          {
+            title: "Who owns what",
+            intro: "Three roles, taken only from the weekly workbook.",
+            terms: [
+              { term: "Quote engineer", now: value(opsNumber(peopleByRole.engineers.length)),
+                what: "Owns the engineering hours on a quote. Scheduled against actual hours is measured against this person.",
+                src: "Weekly workbook · ENGR. column" },
+              { term: "Estimator", now: value(opsNumber(peopleByRole.estimators.length)),
+                what: "Owns the quote and its alternates. Quote counts and alternate counts are measured against this person.",
+                src: "Weekly workbook · EST column" },
+              { term: "Scheduler", now: value(opsNumber(peopleByRole.schedulers.length)),
+                what: "Owns the scheduling of the quote.",
+                src: "Weekly workbook · SCHR column" },
+              { term: "Order-log names", now: "context only",
+                what: "The sales engineer and CSR carried on an order row describe the job after it was booked. They are shown as context on a quote record and never overwrite the weekly workbook's ownership.",
+                src: "Order log · never used for attribution" }
+            ]
+          },
+          {
+            title: "Cohorts, filters and the prior period",
+            intro: "Three ways of narrowing what is on screen, all of which apply everywhere at once.",
+            terms: [
+              { term: "Exposure lens", now: live ? escape(data.label) : "—",
+                what: "All quotes, or only those with at least 30 or 50 days of exposure. The lens changes the cohort, so every number on every screen changes with it.",
+                src: "Sidebar · Full quote book / 30+ / 50+" },
+              { term: "Filter", now: activeFilters().length ? activeFilters().length + " active" : "none",
+                what: "Clicking a band, district, week, person, outcome or account narrows every view at once, so no two screens can disagree about which records are being read.",
+                src: "Derived · applied to the record set, not to each chart" },
+              { term: "Prior period", now: state.baseline ? escape(state.baseline.label) : "not loaded",
+                what: "An earlier set of quote weeks loaded separately in Data mapping. It is measured through the same pipeline but kept out of the live scopes entirely — it exists only inside the Compare lens, and never moves a headline figure.",
+                src: "Data mapping · step 03" }
+            ]
+          }
+        ];
+      }
+
+      function renderGlossary() {
+        const body = $("#glossaryBody");
+        if (!body) return;
+        body.innerHTML = glossaryGroups().map(group =>
+          '<section class="gloss-group"><h3>' + escape(group.title) + "</h3><p>" + escape(group.intro) + "</p><dl>"
+          + group.terms.map(item => '<div class="gloss-term"><dt><span>' + escape(item.term) + "</span><b>" + item.now + "</b></dt>"
+              + "<dd>" + escape(item.what) + "</dd><dd class=\"src\">" + item.src + "</dd></div>").join("")
+          + "</dl></section>").join("")
+          + '<div class="gloss-warn"><strong>What this dashboard does not do.</strong> It does not forecast, it does not score people against each other, and it never labels an unconverted quote as lost. Every figure is an observation of what the two source files already say; where a source is silent, the number says so rather than filling the gap.</div>';
+      }
+
+      function setGlossary(open) {
+        const drawer = $("#glossary"), scrim = $("#glossaryScrim"), button = $("#glossaryButton");
+        if (!drawer) return;
+        if (open) renderGlossary();
+        drawer.hidden = !open;
+        scrim.hidden = !open;
+        button.setAttribute("aria-expanded", String(open));
+        if (open) $("#glossaryClose").focus(); else button.focus();
+      }
+
+      // ---- Timelines ---------------------------------------------------------
+      const dayText = value => Number.isFinite(value) ? (value >= 10 ? value.toFixed(0) : value.toFixed(1)) + "d" : "—";
+      const shortDate = date => date instanceof Date && !Number.isNaN(date.getTime())
+        ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date) : "";
+
+      function renderTimeline() {
+        const data = currentScope();
+        const line = data.timeline;
+        if (data.empty || !line || !data.records || !data.records.length) {
+          $("#timelineKpis").innerHTML = '<div class="analysis-empty"><div><b>No lifecycle dates yet</b><span>Run the weekly quote books and an order log to measure how long work takes to come back.</span></div></div>';
+          ["#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          setText("#cumulativeNote", "");
+          return;
+        }
+
+        const half = line.curve.find(mark => mark.share >= 50);
+        const oldest = line.ageing[line.ageing.length - 1];
+        $("#timelineKpis").innerHTML = [
+          { label: "Median time to price", value: dayText(line.produce.median), note: "Date In to Done on " + opsNumber(line.produce.scored) + " of " + opsNumber(data.quotes) + " quotes" },
+          { label: "Median time to answer", value: dayText(line.decide.median), note: line.decide.scored ? "Done to order entry on " + opsNumber(line.decide.scored) + " booked quotes" : "no booked quote carries both dates" },
+          { label: "Median full cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + opsNumber(line.total.scored) + " quotes" : "needs a Date In and a booked order" },
+          { label: "Half of orders land by", value: half ? "day " + half.day : "—", note: line.bookedScored ? "of " + opsNumber(line.bookedScored) + " quotes that booked" : "no booked lag is scored yet" },
+          { label: "Open book", value: money(line.openValue), note: opsNumber(line.openCount) + " quotes with no linked order" },
+          { label: "Sitting past 60 days", value: opsNumber(oldest.count), note: money(oldest.value) + " · " + pct(oldest.share) + " of the open book", tone: oldest.count ? "bad" : "good" }
+        ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
+
+        // ---- 01 Lifecycle stages ----------------------------------------------
+        const stages = [
+          { key: "produce", label: "Produce the quote", from: "Date In", to: "Done", stat: line.produce, tone: "green" },
+          { key: "decide", label: "Customer answers", from: "Done", to: "order entry", stat: line.decide, tone: "steel" },
+          { key: "total", label: "Whole cycle", from: "Date In", to: "booked work", stat: line.total, tone: "copper" }
+        ];
+        const axis = Math.max(1, ...stages.map(stage => Number.isFinite(stage.stat.p90) ? stage.stat.p90 : 0));
+        $("#lifecycleStages").innerHTML =
+          '<div class="stage-scale"><span>0 days</span><span>' + Math.round(axis / 2) + '</span><span>' + Math.round(axis) + ' days</span></div>'
+          + stages.map(stage => {
+              if (!stage.stat.scored) {
+                return '<div class="stage-row is-empty"><span>' + escape(stage.label) + '</span>'
+                  + '<div class="stage-track"></div><b>—</b>'
+                  + '<small>No quote in this cohort carries both ' + escape(stage.from) + ' and ' + escape(stage.to) + '.</small></div>';
+              }
+              const median = Math.max(0, Math.min(100, stage.stat.median / axis * 100));
+              const p90 = Math.max(median, Math.min(100, stage.stat.p90 / axis * 100));
+              return '<div class="stage-row"><span>' + escape(stage.label) + "</span>"
+                + '<div class="stage-track" title="median ' + dayText(stage.stat.median) + ', 9 in 10 within ' + dayText(stage.stat.p90) + '">'
+                + '<i class="stage-tail is-' + stage.tone + '" style="width:' + p90.toFixed(1) + '%"></i>'
+                + '<i class="stage-fill is-' + stage.tone + '" style="width:' + Math.max(1.5, median).toFixed(1) + '%"></i>'
+                + '<u style="left:' + p90.toFixed(1) + '%"></u></div>'
+                + "<b>" + dayText(stage.stat.median) + "</b>"
+                + '<small>' + escape(stage.from) + " → " + escape(stage.to) + " · average " + dayText(stage.stat.average)
+                + " · 9 in 10 inside " + dayText(stage.stat.p90) + " · " + opsNumber(stage.stat.scored) + " scored</small></div>";
+            }).join("")
+          + '<p class="ops-note"><b>The three stages are measured separately and do not add up.</b> Produce and answer are scored on different sets of quotes — every quote has a Date In and a Done, but only a booked one has an order date — so the whole-cycle bar is its own measurement, not the sum of the two above it.</p>';
+
+        // ---- 02 Decision window ------------------------------------------------
+        $("#decisionCurve").innerHTML = line.bookedScored
+          ? '<div>' + decisionCurveSvg(line.curve)
+            + '<p class="ops-note">Measured from the quoted week to the first linked order entry, across ' + opsNumber(line.bookedScored)
+            + ' quotes that booked. This is when orders arrive, not how likely one is — a quote that never booked is not on this curve.</p></div>'
+            + '<div class="curve-list">' + line.curve.map(mark => '<div class="curve-row"><span>By day ' + mark.day + '</span>'
+                + '<div class="curve-track"><i style="width:' + mark.share.toFixed(1) + '%"></i></div>'
+                + '<b>' + pct(mark.share) + '</b><small>' + mark.count + ' of ' + line.bookedScored + '</small></div>').join("") + "</div>"
+          : '<p class="ops-note">No booked quote in this cohort carries a dated order entry, so there is no decision curve to draw yet.</p>';
+
+        // ---- 03 The open book --------------------------------------------------
+        const ageMax = Math.max(1, ...line.ageing.map(band => band.count));
+        $("#openAgeing").innerHTML =
+          '<div class="turn-band" role="img" aria-label="Ageing of ' + line.openCount + ' quotes with no linked order">'
+          + line.ageing.map(band => band.count ? '<i class="is-' + band.tone + '" style="flex:' + band.count + '" title="' + escape(band.label) + ': ' + band.count + '"></i>' : "").join("")
+          + "</div>"
+          + line.ageing.map(band => '<div class="age-row"><span><b class="is-' + band.tone + '"></b>' + escape(band.label) + "</span>"
+              + '<div class="age-track"><i class="is-' + band.tone + '" style="width:' + (band.count / ageMax * 100).toFixed(1) + '%"></i></div>'
+              + "<b>" + opsNumber(band.count) + "</b><u>" + money(band.value) + "</u>"
+              + '<small>' + pct(band.share) + " of the open book</small></div>").join("")
+          + '<p class="ops-note">' + opsNumber(line.openCount) + ' quotes carrying ' + money(line.openValue)
+          + ' have no linked order, aged against the ' + (data.cutoff ? shortDate(data.cutoff) : "order-log") + ' cutoff. '
+          + (line.openUnaged ? opsNumber(line.openUnaged) + ' more cannot be aged because no cutoff date was read from the order log. ' : "")
+          + (data.exposure ? 'The active ' + escape(data.label) + ' lens excludes anything younger than ' + data.exposure + ' days, so the bands below that are empty by definition rather than because no fresh work exists. ' : "")
+          + 'An unconverted quote is work still needing a named current status, not a recorded loss.</p>';
+
+        // ---- 04 Calendar -------------------------------------------------------
+        const series = line.cumulative || [];
+        if (series.length < 2) {
+          $("#cumulativeChart").innerHTML = '<p class="ops-note">A single dated day is loaded, so there is no span to plot yet.</p>';
+          setText("#cumulativeNote", "Needs quotes across more than one date.");
+        } else {
+          const last = series[series.length - 1];
+          $("#cumulativeChart").innerHTML = cumulativeSvg(series)
+            + '<p class="ops-note">Both lines are counts on the same axis, so the space between them is the open book itself: '
+            + opsNumber(last.quotes) + ' quotes issued against ' + opsNumber(last.orders) + ' booked by '
+            + shortDate(last.date) + ', a gap of ' + opsNumber(last.quotes - last.orders) + '.</p>';
+          setText("#cumulativeNote", "Quotes accumulate on the date they were quoted, orders on the date they were entered, from "
+            + shortDate(series[0].date) + " to " + shortDate(last.date) + ".");
+        }
+      }
+
+      // Inline SVG, sized from the data. Both charts read correctly with no
+      // script and no motion, so printing and reduced-motion lose nothing.
+      function decisionCurveSvg(curve) {
+        const width = 460, height = 190, padLeft = 34, padBottom = 26, padTop = 12, padRight = 10;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const maxDay = curve[curve.length - 1].day;
+        const x = day => padLeft + day / maxDay * plotW;
+        const y = share => padTop + (1 - share / 100) * plotH;
+        const points = [{ day: 0, share: 0 }].concat(curve);
+        const path = points.map((point, index) => (index ? "L" : "M") + x(point.day).toFixed(1) + " " + y(point.share).toFixed(1)).join(" ");
+        const area = path + " L" + x(maxDay).toFixed(1) + " " + (padTop + plotH) + " L" + padLeft + " " + (padTop + plotH) + " Z";
+        return '<svg class="curve-svg" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative share of booked orders by day after the quoted week">'
+          + [0, 25, 50, 75, 100].map(share => '<line x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(share).toFixed(1) + '" y2="' + y(share).toFixed(1) + '" class="grid" />'
+              + '<text x="' + (padLeft - 6) + '" y="' + (y(share) + 3.5).toFixed(1) + '" class="axis" text-anchor="end">' + share + "</text>").join("")
+          + '<path d="' + area + '" class="curve-area" />'
+          + '<path d="' + path + '" class="curve-line" />'
+          + curve.map(mark => '<circle cx="' + x(mark.day).toFixed(1) + '" cy="' + y(mark.share).toFixed(1) + '" r="3" class="curve-dot"><title>By day ' + mark.day + ": " + pct(mark.share) + " (" + mark.count + ")</title></circle>").join("")
+          + curve.map(mark => '<text x="' + x(mark.day).toFixed(1) + '" y="' + (height - 8) + '" class="axis" text-anchor="middle">' + mark.day + "</text>").join("")
+          + '<text x="' + (padLeft - 6) + '" y="' + (height - 8) + '" class="axis" text-anchor="end">day</text>'
+          + "</svg>";
+      }
+
+      function cumulativeSvg(series) {
+        const width = 900, height = 240, padLeft = 42, padBottom = 26, padTop = 14, padRight = 12;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const start = series[0].date.getTime();
+        const span = Math.max(1, series[series.length - 1].date.getTime() - start);
+        const top = Math.max(1, series[series.length - 1].quotes);
+        const x = date => padLeft + (date.getTime() - start) / span * plotW;
+        const y = value => padTop + (1 - value / top) * plotH;
+        const linePath = key => series.map((point, index) => (index ? "L" : "M") + x(point.date).toFixed(1) + " " + y(point[key]).toFixed(1)).join(" ");
+        const band = linePath("quotes") + " " + series.slice().reverse().map(point => "L" + x(point.date).toFixed(1) + " " + y(point.orders).toFixed(1)).join(" ") + " Z";
+        const ticks = [0, Math.round(top / 2), top];
+        // At most six date labels, whatever the span.
+        const every = Math.max(1, Math.ceil(series.length / 6));
+        return '<svg class="cum-svg" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative quotes issued against orders booked over the loaded span">'
+          + ticks.map(value => '<line x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" class="grid" />'
+              + '<text x="' + (padLeft - 6) + '" y="' + (y(value) + 3.5).toFixed(1) + '" class="axis" text-anchor="end">' + value + "</text>").join("")
+          + '<path d="' + band + '" class="cum-gap" />'
+          + '<path d="' + linePath("quotes") + '" class="cum-quotes" />'
+          + '<path d="' + linePath("orders") + '" class="cum-orders" />'
+          + series.map((point, index) => {
+              if (index % every !== 0 && index !== series.length - 1) return "";
+              // The first and last labels are anchored inward so neither hangs
+              // off the edge of the plot.
+              const anchor = index === 0 ? "start" : index === series.length - 1 ? "end" : "middle";
+              return '<text x="' + x(point.date).toFixed(1) + '" y="' + (height - 8) + '" class="axis" text-anchor="' + anchor + '">' + escape(shortDate(point.date)) + "</text>";
+            }).join("")
+          + "</svg>"
+          + '<div class="cum-legend"><span><b class="is-steel"></b>Quotes issued</span><span><b class="is-green"></b>Orders booked</span><span><b class="is-gap"></b>Open, no linked order</span></div>';
+      }
+
+      // ---- Customers ---------------------------------------------------------
+      // One table, several questions. Sorting changes which question is being
+      // asked rather than adding another table to read.
+      const CUSTOMER_SORTS = {
+        quotes: { label: "Most quotes", note: "Accounts ranked by how often they asked.", get: a => a.quotes },
+        value: { label: "Most quoted value", note: "Accounts ranked by the size of what they asked for.", get: a => a.quoteValue },
+        wins: { label: "Most booked", note: "Accounts ranked by the work that actually came back.", get: a => a.wins || 0 },
+        unreturned: { label: "Largest unreturned", note: "Accounts ranked by quoted value that has not come back. High rows asked for a lot and booked little.", get: a => a.unreturnedValue },
+        effort: { label: "Most engineering time", note: "Accounts ranked by the engineering hours spent quoting them.", get: a => a.hours }
+      };
+      let customerSort = "value";
+      // The panel scrolls, so the list is the answer rather than a preview. The
+      // cap only exists to keep a multi-year load from building a DOM nobody reads.
+      const CUSTOMER_ROW_CAP = 250;
+
+      function renderCustomers() {
+        const data = currentScope();
+        const signals = data.customers || blankCustomerSignals();
+        const accounts = signals.accounts || [];
+        if (data.empty || !accounts.length) {
+          $("#custKpis").innerHTML = '<div class="analysis-empty"><div><b>No customer records yet</b><span>Run the weekly quote books to build the account view.</span></div></div>';
+          ["#custDiagnostic", "#custTable", "#custSort"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          return;
+        }
+
+        $("#custKpis").innerHTML = [
+          { label: "Accounts quoted", value: opsNumber(signals.total), note: signals.multiWeek + " asked in more than one week" },
+          { label: "Accounts that booked", value: opsNumber(signals.withWin), note: pct(percentage(signals.withWin, signals.total)) + " of accounts returned work" },
+          { label: "Asked, booked nothing", value: opsNumber((signals.askedNeverBooked || []).length), note: money(signals.askedNeverBookedValue) + " quoted with no order", tone: "bad" },
+          { label: "Top ten concentration", value: pct(signals.concentration), note: "of quoted value sits with ten accounts" }
+        ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
+
+        // The diagnostic the estimating group cannot get today: repeat demand
+        // that consumed quoting time and returned no order.
+        const never = (signals.askedNeverBooked || []).slice(0, 8);
+        const worst = Math.max(1, ...never.map(account => account.quoteValue));
+        $("#custDiagnostic").innerHTML = never.length
+          ? '<p class="ops-note" style="margin:0 0 12px">' + (signals.askedNeverBooked || []).length + ' accounts asked at least twice and booked nothing, carrying '
+            + money(signals.askedNeverBookedValue) + ' of quoted value and '
+            + (signals.askedNeverBooked || []).reduce((sum, a) => sum + a.hours, 0).toFixed(0) + ' engineering hours. That is the cost of demand that did not return.</p>'
+            + never.map(account => '<div class="cust-diag" data-filter="customer" data-filter-value="' + escape(account.key) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.customer === account.key) + '">'
+                + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
+                + '<div class="cust-diag-track"><i style="width:' + (account.quoteValue / worst * 100).toFixed(1) + '%"></i></div>'
+                + '<b>' + money(account.quoteValue) + "</b>"
+                + '<small>' + account.quotes + " quotes · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week · " : " weeks · ") + account.hours.toFixed(1) + " eng hrs</small></div>").join("")
+          : '<p class="ops-note">Every account that asked more than once has booked at least one job in this cohort.</p>';
+
+        // Sort control.
+        $("#custSort").innerHTML = Object.keys(CUSTOMER_SORTS).map(key =>
+          '<button class="cust-sort-btn" type="button" data-cust-sort="' + key + '" aria-pressed="' + String(customerSort === key) + '">'
+          + escape(CUSTOMER_SORTS[key].label) + "</button>").join("");
+        $$("[data-cust-sort]").forEach(button => button.addEventListener("click", () => {
+          customerSort = button.dataset.custSort;
+          renderCustomers();
+        }));
+
+        const sorted = accounts.slice().sort((a, b) => CUSTOMER_SORTS[customerSort].get(b) - CUSTOMER_SORTS[customerSort].get(a) || a.name.localeCompare(b.name));
+        const maxQuotes = Math.max(1, ...sorted.map(account => account.quotes));
+        $("#custTable").innerHTML =
+          '<thead><tr><th>Account</th><th class="num">Weeks</th><th class="num">Quotes</th><th>Asked vs booked</th><th class="num">Alts</th><th class="num">Avg quote</th><th class="num">Quoted</th><th class="num">Booked</th><th class="num">Returned</th><th class="num">Avg turn</th><th class="num">Eng hrs</th></tr></thead><tbody>'
+          + sorted.slice(0, CUSTOMER_ROW_CAP).map(account => {
+              const askWidth = account.quotes / maxQuotes * 100;
+              const winWidth = account.quotes ? account.wins / maxQuotes * 100 : 0;
+              return '<tr data-filter="customer" data-filter-value="' + escape(account.key) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.customer === account.key) + '">'
+                + '<td title="' + escape(account.name) + '"><span class="cust-name">' + escape(account.name) + "</span></td>"
+                + '<td class="num">' + account.loadedWeeks + '</td><td class="num">' + account.quotes + "</td>"
+                + '<td class="askbook"><div class="askbook-track" title="' + account.quotes + ' quoted, ' + account.wins + ' booked"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></div></td>'
+                + '<td class="num">' + account.alts + '</td><td class="num">' + money(account.averageQuote) + "</td>"
+                + '<td class="num">' + money(account.quoteValue) + '</td><td class="num">' + account.wins + "</td>"
+                + '<td class="num' + (account.wins ? "" : " is-zero") + '">' + (account.wins ? money(account.wonValue) : "\u2014") + "</td>"
+                + '<td class="num">' + (account.turnAverage === null ? "\u2014" : account.turnAverage.toFixed(1)) + "</td>"
+                + '<td class="num">' + account.hours.toFixed(1) + "</td></tr>";
+            }).join("")
+          + "</tbody>";
+        setText("#custTableNote", CUSTOMER_SORTS[customerSort].note
+          + (sorted.length > CUSTOMER_ROW_CAP
+              ? " Showing the top " + CUSTOMER_ROW_CAP + " of " + opsNumber(sorted.length) + " accounts."
+              : " All " + opsNumber(sorted.length) + " accounts in the active cohort and filters."));
       }
 
       function getPeople() {
@@ -2992,32 +3546,36 @@
         });
         const keys = Array.from(buckets.keys()).sort();
         if (keys.length < 2) return { granularity: granularity, insufficient: true, periods: keys.length };
-        const measure = group => {
-          const turn = nucorTurnaround(group);
-          const engineering = nucorEngineering(group);
-          const scored = group.filter(record => onTimeIsScored(record.onTime));
-          const wins = group.filter(record => record.won);
-          return {
-            quotes: group.length,
-            alts: group.reduce((sum, record) => sum + (Number(record.alts) || 0), 0),
-            value: group.reduce((sum, record) => sum + (Number(record.price) || 0), 0),
-            wins: wins.length,
-            conversion: group.length ? percentage(wins.length, group.length) : 0,
-            turn: turn.average,
-            withinThree: turn.scored ? percentage(turn.withinThree, turn.scored) : null,
-            onTime: scored.length ? percentage(scored.filter(record => onTimeMetDate(record.onTime)).length, scored.length) : null,
-            hours: engineering.totalHours,
-            scheduled: engineering.scheduledHours,
-            hoursPerQuote: engineering.perQuote
-          };
-        };
         return {
           granularity: granularity,
           currentLabel: labelOf(keys[keys.length - 1]),
           priorLabel: labelOf(keys[keys.length - 2]),
           periods: keys.length,
-          current: measure(buckets.get(keys[keys.length - 1])),
-          prior: measure(buckets.get(keys[keys.length - 2]))
+          current: periodMeasure(buckets.get(keys[keys.length - 1])),
+          prior: periodMeasure(buckets.get(keys[keys.length - 2]))
+        };
+      }
+
+      // One measurement, used by both the automatic period split and the
+      // separately loaded prior period, so the two can never disagree about
+      // what a measure means.
+      function periodMeasure(group) {
+        const turn = nucorTurnaround(group);
+        const engineering = nucorEngineering(group);
+        const scored = group.filter(record => onTimeIsScored(record.onTime));
+        const wins = group.filter(record => record.won);
+        return {
+          quotes: group.length,
+          alts: group.reduce((sum, record) => sum + (Number(record.alts) || 0), 0),
+          value: group.reduce((sum, record) => sum + (Number(record.price) || 0), 0),
+          wins: wins.length,
+          conversion: group.length ? percentage(wins.length, group.length) : 0,
+          turn: turn.average,
+          withinThree: turn.scored ? percentage(turn.withinThree, turn.scored) : null,
+          onTime: scored.length ? percentage(scored.filter(record => onTimeMetDate(record.onTime)).length, scored.length) : null,
+          hours: engineering.totalHours,
+          scheduled: engineering.scheduledHours,
+          hoursPerQuote: engineering.perQuote
         };
       }
 
@@ -3092,9 +3650,11 @@
           const name = customerName(record.customer);
           const key = customerKey(name);
           if (!key) return;
-          if (!groups.has(key)) groups.set(key, { key: key, name: name, quotes: 0, wins: 0, jobs: 0, quoteValue: 0, wonValue: 0, tons: 0, alts: 0, large: 0, weeks: new Set() });
+          if (!groups.has(key)) groups.set(key, { key: key, name: name, quotes: 0, wins: 0, jobs: 0, quoteValue: 0, wonValue: 0, tons: 0, alts: 0, large: 0, hours: 0, weeks: new Set(), records: [] });
           const group = groups.get(key);
           group.weeks.add(String(record.week || ""));
+          group.hours += Number(record.hours) || 0;
+          group.records.push(record);
           group.quotes += 1;
           group.alts += Number(record.alts) || 0;
           // Quotes above $1M, the point where a single account's mix starts to
@@ -3108,7 +3668,14 @@
         });
         const accounts = Array.from(groups.values()).map(group => {
           const loadedWeeks = group.weeks.size || 1;
+          const turn = nucorTurnaround(group.records);
           return {
+            // What this account cost us to serve, against what it returned.
+            hours: group.hours,
+            hoursPerQuote: group.quotes ? group.hours / group.quotes : 0,
+            turnAverage: turn.average,
+            averageQuote: group.quotes ? group.quoteValue / group.quotes / 1000000 : 0,
+            unreturnedValue: (group.quoteValue - group.wonValue) / 1000000,
             key: group.key,
             name: group.name,
             quotes: group.quotes,
@@ -3128,8 +3695,22 @@
         const multiWeekAccounts = accounts.filter(account => account.multiWeek);
         const topWinAccounts = accounts.filter(account => account.wins > 0).slice().sort((left, right) => right.wins - left.wins || right.wonValue - left.wonValue || right.conversion - left.conversion || left.name.localeCompare(right.name));
         const repeatNoWinAccounts = multiWeekAccounts.filter(account => account.wins === 0).slice().sort((left, right) => right.quoteValue - left.quoteValue || right.quotes - left.quotes || left.name.localeCompare(right.name));
+        // Accounts that ask repeatedly and book nothing. Ordered by the quoted
+        // value that came back as nothing, because that is the size of the
+        // question, not the number of requests.
+        const askedNeverBooked = accounts.filter(account => account.wins === 0 && account.quotes >= 2)
+          .slice().sort((left, right) => right.quoteValue - left.quoteValue || right.quotes - left.quotes);
+        const byValue = accounts.slice().sort((a, b) => b.quoteValue - a.quoteValue);
+        const totalValue = accounts.reduce((sum, account) => sum + account.quoteValue, 0);
+        const topTenValue = byValue.slice(0, 10).reduce((sum, account) => sum + account.quoteValue, 0);
         return {
           total: accounts.length,
+          withWin: accounts.filter(account => account.wins > 0).length,
+          askedNeverBooked: askedNeverBooked,
+          askedNeverBookedValue: askedNeverBooked.reduce((sum, account) => sum + account.quoteValue, 0),
+          concentration: totalValue ? percentage(topTenValue, totalValue) : 0,
+          totalQuotedValue: totalValue,
+          totalHours: accounts.reduce((sum, account) => sum + account.hours, 0),
           multiWeek: multiWeekAccounts.length,
           consistent: accounts.filter(account => account.consistent).length,
           firstSeen: accounts.filter(account => !account.multiWeek).length,
@@ -3267,6 +3848,109 @@
         };
       }
 
+      // ---- Lifecycle timing --------------------------------------------------
+      // Three stages, each measured from dates the workbook already carries.
+      //   produce  Date In -> Done         how long the group took to price it
+      //   decide   Done    -> order entry  how long the customer took to answer
+      //   total    Date In -> order entry  request to booked work
+      // Nothing here is modelled. A stage only counts a quote that carries both
+      // of its own dates, so each stage states its own denominator.
+      const TIMELINE_STAGE_LIMIT = 400;
+
+      function stageStats(values) {
+        const clean = values.filter(value => Number.isFinite(value) && value >= 0 && value <= TIMELINE_STAGE_LIMIT);
+        return {
+          scored: clean.length,
+          average: clean.length ? clean.reduce((sum, value) => sum + value, 0) / clean.length : null,
+          median: numericQuantile(clean, .5),
+          p90: numericQuantile(clean, .9)
+        };
+      }
+
+      // How long after the quoted week the booked orders actually arrived. Read
+      // as: by day N, this share of everything that ever booked had booked. The
+      // point where the curve flattens is the point where waiting stops paying.
+      const DECISION_MARKS = [7, 14, 21, 30, 45, 60, 90];
+      // How long work has sat with no answer, against the exposure it has had.
+      const AGEING_BANDS = [
+        { label: "Under 15 days", min: 0, max: 14, tone: "green" },
+        { label: "15 to 30 days", min: 15, max: 30, tone: "green-soft" },
+        { label: "31 to 45 days", min: 31, max: 45, tone: "steel" },
+        { label: "46 to 60 days", min: 46, max: 60, tone: "copper" },
+        { label: "Over 60 days", min: 61, max: Infinity, tone: "red" }
+      ];
+
+      function nucorTimeline(records, cutoff) {
+        const produce = stageStats(records.map(record => record.turnaround));
+        const decide = stageStats(records.map(record => daysApart(record.done, record.firstOrder)));
+        const total = stageStats(records.map(record => daysApart(record.dateIn, record.firstOrder)));
+        // Decision curve, measured from the quoted week so it uses the same lag
+        // the rest of the dashboard already reports.
+        const lags = records.filter(record => record.won).map(record => record.lag).filter(value => Number.isFinite(value));
+        const booked = lags.length;
+        const curve = DECISION_MARKS.map(day => ({
+          day: day,
+          count: lags.filter(value => value <= day).length,
+          share: booked ? percentage(lags.filter(value => value <= day).length, booked) : 0
+        }));
+
+        // Ageing of the work that has no linked order yet, by how long it has
+        // been exposed to the order log. Value travels with the count because a
+        // single large quote sitting past 60 days is not one row of risk.
+        const open = records.filter(record => !record.won && Number.isFinite(record.exposure));
+        const ageing = AGEING_BANDS.map(band => {
+          const rows = open.filter(record => record.exposure >= band.min && record.exposure <= band.max);
+          return {
+            label: band.label, tone: band.tone,
+            count: rows.length,
+            share: open.length ? percentage(rows.length, open.length) : 0,
+            value: sumNucor(rows, record => record.price) / 1000000
+          };
+        });
+
+        // A calendar, not a list of weeks: quotes accumulate on the date they
+        // were quoted and orders on the date they were entered, so the widening
+        // gap between the two lines is the open book itself.
+        const dated = records.filter(record => record.date instanceof Date && !Number.isNaN(record.date.getTime()));
+        let cumulative = [];
+        if (dated.length) {
+          const start = new Date(Math.min(...dated.map(record => record.date.getTime())));
+          const orderDates = records.filter(record => record.firstOrder instanceof Date).map(record => record.firstOrder.getTime());
+          const endCandidates = [Math.max(...dated.map(record => record.date.getTime()))].concat(orderDates.length ? [Math.max(...orderDates)] : []);
+          if (cutoff instanceof Date && !Number.isNaN(cutoff.getTime())) endCandidates.push(cutoff.getTime());
+          const end = new Date(Math.max(...endCandidates));
+          const span = Math.max(1, Math.round((end - start) / 86400000));
+          // At most ~40 points, so a one-month load steps by days and a two-year
+          // load steps by weeks without either drawing an unreadable line.
+          const step = Math.max(1, Math.ceil(span / 40));
+          for (let day = 0; day <= span; day += step) {
+            const at = new Date(start.getTime() + day * 86400000);
+            cumulative.push({
+              date: at,
+              quotes: dated.filter(record => record.date <= at).length,
+              value: sumNucor(dated.filter(record => record.date <= at), record => record.price) / 1000000,
+              orders: records.filter(record => record.firstOrder instanceof Date && record.firstOrder <= at).length
+            });
+          }
+          const last = cumulative[cumulative.length - 1];
+          if (!last || last.date < end) cumulative.push({
+            date: end,
+            quotes: dated.length,
+            value: sumNucor(dated, record => record.price) / 1000000,
+            orders: records.filter(record => record.firstOrder instanceof Date).length
+          });
+        }
+
+        return {
+          produce: produce, decide: decide, total: total,
+          curve: curve, bookedScored: booked,
+          ageing: ageing, openCount: open.length,
+          openValue: sumNucor(open, record => record.price) / 1000000,
+          openUnaged: records.filter(record => !record.won).length - open.length,
+          cumulative: cumulative
+        };
+      }
+
       function makeNucorScope(records, exposure, cutoff, options) {
         const summary = nucorSummary(records);
         const period = nucorPeriod(records);
@@ -3287,6 +3971,7 @@
           weekly: nucorWeeklySeries(records),
           bookedWeekly: nucorBookedWeeklySeries(records),
           customers: nucorCustomerSignals(records),
+          timeline: nucorTimeline(records, cutoff),
           empty: false,
           cutoff: cutoff
         });
@@ -3598,8 +4283,31 @@
         if (!quotes.some(quote => quote.id === state.selectedQuote)) state.selectedQuote = quotes.length ? quotes[0].id : "";
       }
 
-      function applyNucorDataset(model, restored) {
+      // Builds the optional prior-period model from the same parser, joined to
+      // the same order source. A prior period that cannot be read is reported
+      // rather than silently dropped, and never stops the live run.
+      async function buildBaselineModel(orderSource) {
+        state.baseline = null;
+        if (!state.intake.priorFiles.length) return null;
+        try {
+          const workbooks = await Promise.all(state.intake.priorFiles.map(file => parseSpreadsheetWorkbook(file)));
+          const nonWeekly = workbooks.filter(workbook => !nucorWeekdays.every(day => findSheet(workbook, day)));
+          if (nonWeekly.length) throw new Error("A prior-period file must be a weekly quote book with Monday through Friday sheets.");
+          const sources = workbooks.map((workbook, index) => parseNucorWeekWorkbook(workbook, state.intake.priorFiles[index], index));
+          const model = buildNucorDataset(sources, orderSource);
+          const years = Array.from(new Set(sources.map(source => Number(source.year) || 0).filter(Boolean))).sort();
+          const label = years.length === 1 ? String(years[0]) : years.length ? years[0] + "–" + years[years.length - 1] : "Prior period";
+          state.intake.priorError = "";
+          return { model: model, label: label + " (" + model.scopes.all.period + ")" };
+        } catch (error) {
+          state.intake.priorError = "Prior period not loaded: " + (error && error.message ? error.message : "unreadable file");
+          return null;
+        }
+      }
+
+      function applyNucorDataset(model, restored, baseline) {
         state.model = model;
+        state.baseline = baseline || null;
         scopes.all = model.scopes.all;
         scopes.mature = model.scopes.mature;
         scopes.high = model.scopes.high;
@@ -3611,8 +4319,6 @@
         syncNucorViews();
         const cutoffText = model.quality.cutoff ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(model.quality.cutoff) : "no order cutoff";
         const namedRosterText = nucorPeople(model.records, "engineers", model.roster).length + " quote engineers · " + nucorPeople(model.records, "estimators", model.roster).length + " estimators · " + nucorPeople(model.records, "schedulers", model.roster).length + " schedulers";
-        const rosterText = nucorPeople(model.records, "engineers").length + " quote engineers · " + nucorPeople(model.records, "estimators").length + " estimators · " + nucorPeople(model.records, "schedulers").length + " schedulers";
-        setText("#dataStamp", "Imported " + model.scopes.all.period + " · order cutoff " + cutoffText);
         setReportingPeriod(model.scopes.all.period);
         setText("#missingOrderQuoteCount", model.quality.missingOrderQuote);
         setText("#outsideWindowCount", model.quality.outsideWindow);
@@ -3637,11 +4343,12 @@
           : "Every written result agrees with its Due and Done dates. N/A means delivered on the due date, which counts as on time.");
         setText("#unmappedRosterCount", model.quality.unmappedRoster || 0);
         setText("#unmappedRosterDetail", model.quality.unmappedRoster ? model.quality.unmappedRosterCodes.join(", ") + " do not have a full-name entry in the selected Inventory rosters." : "Every used role code resolved to a supplied full name.");
-        setText("#dataStamp", "Imported " + model.scopes.all.period + " · " + rosterText + " · order cutoff " + cutoffText);
-        renderOverview();
-        setText("#dataStamp", "Imported " + model.scopes.all.period + " · " + namedRosterText + " · order cutoff " + cutoffText);
-        renderPeople();
-        renderQuotes();
+        setText("#dataStamp", "Imported " + model.scopes.all.period + " · " + namedRosterText + " · order cutoff " + cutoffText
+          + (state.baseline ? " · baseline " + state.baseline.label : ""));
+        // Every screen is redrawn from the one entry point. Listing individual
+        // renderers here is how the customers and operations screens ended up
+        // still showing their empty state after a successful run.
+        renderAll();
         setScreen("overview");
         // Each browser launch deliberately starts with a blank dashboard. Current files must be selected and run for every review.
       }
@@ -4623,8 +5330,13 @@
         const readyToRun = quoteReady && orderReady;
         const quoteState = intake.running ? "parsing" : intake.quoteError ? "error" : quoteReady ? "ready" : "empty";
         const orderState = intake.running ? "parsing" : intake.orderError ? "error" : orderReady ? "ready" : "empty";
+        const priorReady = intake.priorFiles.length && !intake.priorError;
+        const priorState = intake.running && intake.priorFiles.length ? "parsing" : intake.priorError ? "error" : priorReady ? "ready" : "empty";
         $("#quoteStage").dataset.state = quoteState;
         $("#orderStage").dataset.state = orderState;
+        $("#priorStage").dataset.state = priorState;
+        setText("#priorStatus", intake.priorError ? "Prior period needs attention" : priorReady ? intake.priorFiles.length + " prior quote source" + (intake.priorFiles.length === 1 ? "" : "s") + " selected" : "No prior period loaded");
+        setText("#priorFileNames", intake.priorError || (priorReady ? fileNameSummary(intake.priorFiles) : "Optional \u2014 feeds the Compare lens"));
         setText("#quoteStatus", intake.quoteError ? "Quote source needs attention" : quoteReady ? intake.quoteFiles.length + " weekly quote source" + (intake.quoteFiles.length === 1 ? "" : "s") + " selected" : "Awaiting weekly quote files");
         setText("#quoteFileNames", intake.quoteError || (quoteReady ? fileNameSummary(intake.quoteFiles) : "XLSM, XLSX, or CSV"));
         setText("#orderStatus", intake.orderError ? "Order logs need attention" : orderReady ? intake.orderFiles.length + " order-log export" + (intake.orderFiles.length === 1 ? "" : "s") + " selected" : "Awaiting order logs");
@@ -4639,7 +5351,8 @@
         } else if (!readyToRun) {
           displayRunFeedback("Source set incomplete", "Add at least one quote-week file and one or more order-log exports to enable the run.", "");
         } else {
-          displayRunFeedback("Ready to run", intake.quoteFiles.length + " quote-week source" + (intake.quoteFiles.length === 1 ? "" : "s") + " plus " + intake.orderFiles.length + " order-log export" + (intake.orderFiles.length === 1 ? "" : "s") + " are staged for the dashboard.", "success");
+          displayRunFeedback("Ready to run", intake.quoteFiles.length + " quote-week source" + (intake.quoteFiles.length === 1 ? "" : "s") + " plus " + intake.orderFiles.length + " order-log export" + (intake.orderFiles.length === 1 ? "" : "s")
+            + (priorReady ? " are staged, with " + intake.priorFiles.length + " prior-period source" + (intake.priorFiles.length === 1 ? "" : "s") + " held aside for comparison." : " are staged for the dashboard."), "success");
         }
       }
 
@@ -4652,6 +5365,9 @@
         if (kind === "quote") {
           state.intake.quoteFiles = valid;
           state.intake.quoteError = invalid.length ? "Use XLSM, XLSX, or CSV for the quote weeks." : "";
+        } else if (kind === "prior") {
+          state.intake.priorFiles = valid;
+          state.intake.priorError = invalid.length ? "Use XLSM or XLSX for the prior quote weeks." : "";
         } else {
           state.intake.orderFiles = valid;
           state.intake.orderError = invalid.length ? "Use XLSM, XLSX, or CSV for the order logs." : valid.length ? "" : "Select at least one order log.";
@@ -4707,8 +5423,13 @@
               const weekSources = quoteWorkbooks.map((workbook, index) => parseNucorWeekWorkbook(workbook, state.intake.quoteFiles[index], index));
               const orderWorkbooks = await Promise.all(state.intake.orderFiles.map(file => parseSpreadsheetWorkbook(file)));
               const orderSource = mergeNucorOrderSources(orderWorkbooks.map((workbook, index) => parseNucorOrderWorkbook(workbook, state.intake.orderFiles[index])));
+              // The prior period is built through the same pipeline and joined
+              // to the same order source, then kept in its own model. It never
+              // enters the live scopes, so no headline figure moves because a
+              // baseline was loaded.
+              const baseline = await buildBaselineModel(orderSource);
               const model = buildNucorDataset(weekSources, orderSource);
-              applyNucorDataset(model);
+              applyNucorDataset(model, false, baseline);
               state.intake.hasRun = true;
               const quality = model.quality;
               const repairNotes = [];
@@ -4720,7 +5441,9 @@
               const rosterNote = quality.unmappedRoster ? quality.rosterNames + " roster names resolved; " + quality.unmappedRosterCodes.join(", ") + " still need a full-name entry in Inventory." : quality.rosterNames + " roster names resolved from Inventory.";
               state.intake.feedback = {
                 title: "Nucor workbook dashboard refreshed",
-                copy: quality.rawQuoteRows + " quote rows collapsed to " + model.records.length + " opportunities. " + model.scopes.all.orders + " quote wins map to " + quality.matchedJobs + " booked jobs. " + rosterNote + " " + (repairNotes.length ? repairNotes.join("; ") + "." : "All source-quality checks passed."),
+                copy: quality.rawQuoteRows + " quote rows collapsed to " + model.records.length + " opportunities. " + model.scopes.all.orders + " quote wins map to " + quality.matchedJobs + " booked jobs. "
+                  + (state.baseline ? state.baseline.label + " is held aside as a comparison baseline with " + state.baseline.model.records.length + " opportunities. " : "")
+                  + rosterNote + " " + (repairNotes.length ? repairNotes.join("; ") + "." : "All source-quality checks passed."),
                 tone: "success"
               };
               return;
@@ -4824,14 +5547,27 @@
         setSourceFiles("order", event.target.files);
         event.target.value = "";
       });
+      $("#priorFiles").addEventListener("change", event => {
+        setSourceFiles("prior", event.target.files);
+        event.target.value = "";
+      });
       wireIntakeStage($("#quoteStage"), "quote");
+      wireIntakeStage($("#priorStage"), "prior");
       wireIntakeStage($("#orderStage"), "order");
       $("#runDashboard").addEventListener("click", runDashboard);
+      $("#glossaryButton").addEventListener("click", () => setGlossary($("#glossary").hidden));
+      $("#glossaryClose").addEventListener("click", () => setGlossary(false));
+      $("#glossaryScrim").addEventListener("click", () => setGlossary(false));
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !$("#glossary").hidden) setGlossary(false);
+      });
 
       renderOverview();
       renderPeople();
       renderQuotes();
       renderOps();
+      renderCustomers();
+      renderTimeline();
       renderFilterBar();
       refreshIntake();
       // Nothing is loaded yet, so open on Data Mapping where the files are

@@ -52,7 +52,7 @@ check('week comparison names both periods', /compares Week \d+ against Week \d+/
 const single = await run([w(1)]);
 console.log('[single week]\n' + single.slice(0, 180) + '\n');
 check('a single period explains itself instead of showing a blank', /Only one .* is loaded/i.test(single), single.slice(0, 60));
-check('it tells you what to load', /Load an earlier set/i.test(single));
+check('it tells you what to load', /add an earlier set of quote weeks/i.test(single));
 
 // 3. Two years present -> year granularity.
 const yearly = await run([...prior, w(1), w(2), w(3)]);
