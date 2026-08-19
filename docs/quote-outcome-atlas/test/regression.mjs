@@ -138,7 +138,11 @@ if (!download) {
   const fs = await import('fs');
   const out = path.join(root, 'test', 'deck-out.html');
   await download.saveAs(out);
-  const deck = fs.readFileSync(out, 'utf8');
+  const deckRaw = fs.readFileSync(out, 'utf8');
+  // The Nucor mark travels with the deck as a base64 data URI, and base64
+  // happily contains the letters N-a-N. Figure checks read the deck with the
+  // payloads stripped; anything checking markup uses the raw text.
+  const deck = deckRaw.replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, 'data:image/png;base64,MARK');
   check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 9);
   checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 9</);
   checkMatch('deck has no NaN or undefined', deck, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);

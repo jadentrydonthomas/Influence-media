@@ -53,7 +53,8 @@ const railFiltered = await p.$eval('#railQuoted', n=>n.textContent.trim());
 const [dl] = await Promise.all([p.waitForEvent('download',{timeout:40000}), p.click('#reviewMode')]);
 const out = path.join(root,'test','deck-filtered.html');
 await dl.saveAs(out);
-const deck = fs.readFileSync(out,'utf8');
+// The Nucor mark rides along as base64, which contains the letters NaN.
+const deck = fs.readFileSync(out,'utf8').replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g,'MARK');
 check('a filtered deck exports', deck.length>20000, deck.length+' bytes');
 check('the filtered deck has no NaN', !/NaN|undefined|Infinity/.test(deck));
 check('the filtered deck carries the narrowed count', deck.includes('>'+railFiltered+'<'), 'expected '+railFiltered);

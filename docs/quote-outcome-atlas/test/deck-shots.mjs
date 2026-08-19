@@ -24,6 +24,7 @@ const n = await p.$$eval('.deck-slide', s=>s.length);
 for (let i=0;i<n;i++){
   if(i>0) await p.keyboard.press('ArrowRight');
   await p.waitForTimeout(1500);
+  await p.evaluate(()=>window.scrollTo(0,0));
   await p.screenshot({path:path.join(root,'test',`deck-${i+1}.png`)});
 }
 // Audited one slide at a time. A hidden slide measures as zero, so auditing

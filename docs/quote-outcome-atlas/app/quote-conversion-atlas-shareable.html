@@ -4910,17 +4910,22 @@
 
       // Weekly pulse. Volume columns above, conversion line below, on-time as a
       // separate muted row so three different scales never share one axis.
-      function reportWeeklySvg(weekly) {
+      function reportWeeklySvg(weekly, options) {
         if (!weekly.length) return '<div class="deck-empty">No weekly quote data is available in this source set.</div>';
+        // The deck draws the volume lane as extruded columns above this chart,
+        // so it can ask for the conversion lane on its own. The dashboard still
+        // asks for both, and neither caller changes the other.
+        const config = options || {};
+        const volumeLane = config.volumeLane !== false;
         const dense = weekly.length > 16;
         const width = Math.max(860, weekly.length * (dense ? 34 : 48) + 130);
-        const height = 262;
+        const height = volumeLane ? 262 : 132;
         const left = 52;
         const right = 26;
         const volumeTop = 32;
         const volumeBottom = 118;
-        const rateTop = 158;
-        const rateBottom = 224;
+        const rateTop = volumeLane ? 158 : 26;
+        const rateBottom = volumeLane ? 224 : 94;
         const plot = width - left - right;
         const step = plot / weekly.length;
         const barWidth = Math.min(27, step * .56);
@@ -4940,7 +4945,7 @@
           bars.push('<rect class="deck-week-bar" style="--deck-bar-delay:' + (index * 45) + 'ms" x="' + (x - barWidth / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + Math.max(1, barHeight).toFixed(1) + '" rx="2"></rect>');
           if (!dense) counts.push('<text class="week-count" x="' + x.toFixed(1) + '" y="' + (y - 6).toFixed(1) + '" text-anchor="middle">' + item.quotes + "</text>");
           points.push(x.toFixed(1) + "," + pointY.toFixed(1));
-          if (index % labelEvery === 0) labels.push('<text x="' + x.toFixed(1) + '" y="252" text-anchor="middle" class="week">' + escape(item.week) + "</text>");
+          if (index % labelEvery === 0) labels.push('<text x="' + x.toFixed(1) + '" y="' + (rateBottom + 28) + '" text-anchor="middle" class="week">' + escape(item.week) + "</text>");
         });
         const referenceY = rateBottom - (rateBottom - rateTop) * Math.min(10, maxRate) / maxRate;
         const dots = points.map((point, index) => {
@@ -4955,16 +4960,19 @@
           const pair = point.split(",");
           return '<text class="week-count" x="' + pair[0] + '" y="' + (Number(pair[1]) - 11).toFixed(1) + '" text-anchor="middle">' + pct(weekly[index].rate) + "</text>";
         }).join("");
-        return '<svg class="weekly-deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Weekly quotes issued and confirmed conversion across ' + weekly.length + ' quoted weeks">'
-          + '<text x="' + left + '" y="16" class="lane">QUOTES ISSUED</text>'
-          + '<text x="' + left + '" y="146" class="lane">CONFIRMED CONVERSION</text>'
-          + '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + volumeBottom + '" y2="' + volumeBottom + '" class="grid"></line>'
+        return '<svg class="weekly-deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + (volumeLane ? "Weekly quotes issued and confirmed conversion" : "Confirmed conversion by quoted week") + ' across ' + weekly.length + ' quoted weeks">'
+          + (volumeLane ? '<text x="' + left + '" y="16" class="lane">QUOTES ISSUED</text>' : "")
+          + '<text x="' + left + '" y="' + (rateTop - 12) + '" class="lane">CONFIRMED CONVERSION</text>'
+          + (volumeLane ? '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + volumeBottom + '" y2="' + volumeBottom + '" class="grid"></line>' : "")
           + '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + rateBottom + '" y2="' + rateBottom + '" class="grid"></line>'
-          + '<text class="axis-max" x="' + (left - 8) + '" y="' + (volumeTop + 8) + '" text-anchor="end">' + maxQuotes + "</text>"
+          + (volumeLane ? '<text class="axis-max" x="' + (left - 8) + '" y="' + (volumeTop + 8) + '" text-anchor="end">' + maxQuotes + "</text>" : "")
           + '<text class="axis-max" x="' + (left - 8) + '" y="' + (rateTop + 8) + '" text-anchor="end">' + maxRate + "%</text>"
           + '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + referenceY.toFixed(1) + '" y2="' + referenceY.toFixed(1) + '" class="reference"></line>'
-          + '<text x="' + (width - right) + '" y="' + (referenceY - 6).toFixed(1) + '" text-anchor="end" class="reference-label">10% REFERENCE</text>'
-          + bars.join("") + counts.join("")
+          // The label used to sit on the reference line, where a week's own
+          // conversion value lands whenever the rate is near the reference. It
+          // is axis furniture, so it lives with the axis maximum instead.
+          + '<text x="' + (width - right) + '" y="' + (rateTop + 8) + '" text-anchor="end" class="reference-label">10% REFERENCE ---</text>'
+          + (volumeLane ? bars.join("") + counts.join("") : "")
           + '<polyline class="deck-week-line" points="' + points.join(" ") + '" fill="none" stroke="var(--green)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>'
           + dots + rateLabels + labels.join("") + "</svg>";
       }
@@ -4981,6 +4989,57 @@
           byEngineer: d.engineering.byEngineer.slice(0, 6),
           monthly: d.monthly.map(m => ({ label: m.label, quotes: m.quotes, alts: m.alts, turn: m.turnAverage, chg: m.quoteChange })) };
       };
+
+      // A column drawn as three faces — front, top and right — on a fixed
+      // isometric offset. It is the same value read three ways, so the chart
+      // has depth without any of it being decoration: the top face is what
+      // makes a short column readable next to a tall one.
+      function deckIsoColumns(items, options) {
+        const config = options || {};
+        if (!items.length) return '<div class="deck-empty">' + escape(config.empty || "No weeks in this source set yet.") + "</div>";
+        const width = 1240, height = 250, padTop = 34, padBottom = 40, padLeft = 40, padRight = 24;
+        const depth = Math.min(16, Math.max(7, 120 / items.length));
+        const plotW = width - padLeft - padRight - depth;
+        const plotH = height - padTop - padBottom - depth;
+        const step = plotW / items.length;
+        const barW = Math.min(58, Math.max(9, step * 0.62));
+        const max = Math.max.apply(null, items.map(item => Number(item.value) || 0)) || 1;
+        // At most twelve labels, whichever span is loaded.
+        const every = Math.max(1, Math.ceil(items.length / 12));
+        const baseY = padTop + plotH;
+        const columns = items.map((item, index) => {
+          const value = Number(item.value) || 0;
+          const h = value > 0 ? Math.max(3, plotH * value / max) : 0;
+          const x = padLeft + step * index + (step - barW) / 2;
+          const y = baseY - h;
+          const tone = item.tone === "copper" ? "var(--copper)" : item.tone === "deep" ? "var(--green-deep)" : "var(--green)";
+          const label = index % every === 0 || index === items.length - 1;
+          if (!h) {
+            return config.labels === false ? "" : '<g class="iso-col"><text class="deck-col-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + depth + 17) + '" text-anchor="middle">' + escape(item.label) + "</text></g>";
+          }
+          return '<g class="iso-col" style="--deck-bar-delay:' + (index * 55) + 'ms">'
+            + '<polygon class="iso-side" points="' + [
+                (x + barW) + "," + y, (x + barW + depth) + "," + (y - depth),
+                (x + barW + depth) + "," + (baseY - depth), (x + barW) + "," + baseY
+              ].map(pt => pt).join(" ") + '" fill="' + tone + '"></polygon>'
+            + '<polygon class="iso-top" points="' + [
+                x + "," + y, (x + depth) + "," + (y - depth),
+                (x + barW + depth) + "," + (y - depth), (x + barW) + "," + y
+              ].join(" ") + '" fill="' + tone + '"></polygon>'
+            + '<rect class="iso-face deck-col-fill" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + tone + '"></rect>'
+            + '<text class="deck-col-value" x="' + (x + barW / 2 + depth / 2).toFixed(1) + '" y="' + (y - depth - 7).toFixed(1) + '" text-anchor="middle">' + escape(item.value_label == null ? value : item.value_label) + "</text>"
+            + (label && config.labels !== false ? '<text class="deck-col-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + depth + 17) + '" text-anchor="middle">' + escape(item.label) + "</text>" : "")
+            + "</g>";
+        }).join("");
+        const floor = '<polygon class="iso-floor" points="' + [
+          padLeft + "," + baseY, (padLeft + depth) + "," + (baseY - depth),
+          (width - padRight) + "," + (baseY - depth), (width - padRight - depth) + "," + baseY
+        ].join(" ") + '"></polygon>';
+        return '<svg class="deck-chart deck-iso" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Column chart") + '">'
+          + floor + columns
+          + (config.caption ? '<text class="deck-axis-note" x="' + padLeft + '" y="16">' + escape(config.caption) + "</text>" : "")
+          + "</svg>";
+      }
 
       // Asked against booked, on one track. The grey is what the account asked
       // for; the green sitting inside it is what came back, so an account that
@@ -5063,8 +5122,21 @@
         const compact = String(value).length > 8 ? " is-compact" : "";
         return '<div class="deck-metric"><span>' + label + '</span><strong class="' + compact.trim() + '">' + value + '</strong><small>' + note + "</small></div>";
       }
+      // The Nucor mark is already embedded in this file; the deck reads it from
+      // the page rather than carrying a second copy of the same 40KB.
+      function deckMarkSource() {
+        const img = document.querySelector(".brand img");
+        return img && img.getAttribute("src") ? img.getAttribute("src") : "";
+      }
+
       function deckSlide(number, eyebrow, title, body, dense) {
-        return '<section class="deck-slide' + (dense ? " is-dense" : "") + '" data-slide="' + number + '"><header><span>' + eyebrow + '</span><b>TEAM OUTCOME REPORT · ' + String(number).padStart(2, "0") + '</b></header><div class="deck-content"><h1>' + title + "</h1>" + body + '</div><footer><span>Quote outcome dashboard</span><span>Use ← → to move · P to print / save PDF</span></footer></section>';
+        // Everything inside .deck-fit is scaled to the slide at runtime, so a
+        // bigger number can never push content under the nav or off the page.
+        return '<section class="deck-slide' + (dense ? " is-dense" : "") + '" data-slide="' + number + '">'
+          + '<header><span class="deck-eyebrow"><i class="deck-mark" role="img" aria-label="Nucor"></i>' + eyebrow + '</span>'
+          + '<b>TEAM OUTCOME REPORT · ' + String(number).padStart(2, "0") + '</b></header>'
+          + '<div class="deck-content"><div class="deck-fit"><h1>' + title + "</h1>" + body + "</div></div>"
+          + '<footer><span>Quote outcome dashboard</span><span>Use ← → to move · P to print / save PDF</span></footer></section>';
       }
 
       function deckStyles() {
@@ -5081,8 +5153,8 @@
       function deckExtraStyles() {
         return '<style>'
           + ':root{--steel:#8fa5ad}'
-          + '.deck-content h1{margin-bottom:22px}'
-          + '.deck-content>*{min-width:0}'
+          + '.deck-fit h1{margin-bottom:22px}'
+          + '.deck-fit>*{min-width:0}'
           + '.deck-metrics{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}'
           + '.deck-metric strong{overflow-wrap:anywhere}'
           + '.deck-metric strong.is-compact{font-size:23px;letter-spacing:-.03em}'
@@ -5175,10 +5247,10 @@
           + '@keyframes deckPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}'
           + '@keyframes deckDraw{from{stroke-dashoffset:var(--deck-len,2000)}to{stroke-dashoffset:0}}'
           + '@keyframes deckDial{from{--deck-conversion:0%}}'
-          + '.deck-slide.is-active .deck-content>*{animation:deckRise .52s cubic-bezier(.2,.7,.3,1) both}'
-          + '.deck-slide.is-active .deck-content>*:nth-child(2){animation-delay:.07s}'
-          + '.deck-slide.is-active .deck-content>*:nth-child(3){animation-delay:.14s}'
-          + '.deck-slide.is-active .deck-content>*:nth-child(4){animation-delay:.2s}'
+          + '.deck-slide.is-active .deck-fit>*{animation:deckRise .52s cubic-bezier(.2,.7,.3,1) both}'
+          + '.deck-slide.is-active .deck-fit>*:nth-child(2){animation-delay:.07s}'
+          + '.deck-slide.is-active .deck-fit>*:nth-child(3){animation-delay:.14s}'
+          + '.deck-slide.is-active .deck-fit>*:nth-child(4){animation-delay:.2s}'
           + '.deck-slide.is-active .hero-disc,.deck-slide.is-active .timing-disc{animation:deckPop .6s cubic-bezier(.2,.8,.3,1) both .12s}'
           + '.deck-slide.is-active .split-bar i{transform-origin:left center;animation:deckWipe .7s cubic-bezier(.2,.7,.3,1) both .2s}'
           + '.deck-slide.is-active .deck-bar-fill{transform-box:fill-box;transform-origin:left center;animation:deckWipe .6s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--deck-bar-delay,0ms)}'
@@ -5230,21 +5302,74 @@
           + '.deck-slide.is-active .deck-curve-line{stroke-dasharray:var(--deck-len,900);animation:deckDraw .95s cubic-bezier(.3,.6,.3,1) both .25s}'
           + '.deck-slide.is-active .deck-curve-area{animation:deckRise .6s ease-out both .2s}'
           + '@media(max-width:900px){.cycle-grid{grid-template-columns:1fr}}'
+          /* ---- fit-to-slide -------------------------------------------------
+             A slide is a fixed box, not a scrolling page. The content block is
+             measured against the height it actually has and scaled to fit, so
+             a larger figure changes the size of the type rather than pushing
+             text under the navigation. */
+          + '.deck-slide{height:100vh;overflow:hidden}'
+          + '.deck-content{min-height:0;overflow:visible}'
+          + '.deck-fit{transform-origin:top center;width:100%}'
+          // Centring is the default and is correct while content fits. Once a
+          // slide is being scaled the box must start at the top, because a
+          // transform paints from the layout position it already has: a centred
+          // box that overflows starts above the header, and scaling it keeps
+          // that offset. The dense-slide rule sets centring at the same
+          // specificity later in this sheet, so the override is explicit.
+          + '.deck-slide.is-fitted .deck-content{justify-content:flex-start!important}'
+          + '.deck-slide.is-measuring{display:flex!important;flex-direction:column;position:absolute;left:-99999px;top:0;width:100vw}'
+          /* The nav sits in a reserved band across the bottom, so no slide
+             content can ever be underneath it. */
+          + '.deck-slide{padding-bottom:104px}'
+          + '.deck-nav{left:50%;right:auto;transform:translateX(-50%)}'
+          + '.deck-slide footer{padding-right:0}'
+          /* The mark, on every slide. */
+          + '.deck-eyebrow{display:inline-flex;align-items:center;gap:11px}'
+          + '.deck-mark{display:block;width:88px;height:22px;background-image:url(' + deckMarkSource() + ');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#fff;padding:5px 7px;box-shadow:0 2px 10px rgba(6,39,18,.12),0 0 0 1px rgba(6,39,18,.06)}'
+          + '.deck-mark.is-large{width:150px;height:36px;padding:0;background-color:transparent;box-shadow:none}'
+          + '.hero-mark{display:inline-flex;align-items:center;gap:15px;margin-bottom:26px;padding:11px 16px;background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 16px 34px -20px rgba(6,39,18,.55),0 3px 8px -6px rgba(6,39,18,.35)}'
+          + '.hero-mark span{color:#5d7266;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:800;letter-spacing:.13em;line-height:1.35;text-transform:uppercase;border-left:1px solid var(--line);padding-left:15px}'
+          /* ---- depth ----------------------------------------------------------
+             One light source, top-left. The top face of a column is lit, the
+             right face is in shadow, and every raised surface casts the same
+             soft shadow down and right. Depth here is doing work: the top face
+             is what makes a short column readable beside a tall one. */
+          + '.deck-iso .iso-floor{fill:#d7e3da;opacity:.5}'
+          + '.deck-iso .iso-top{filter:brightness(1.28)}'
+          + '.deck-iso .iso-side{filter:brightness(.62)}'
+          + '.deck-iso .iso-face{filter:none}'
+          + '.deck-iso .deck-col-value{fill:#1d3527;font-size:12px;font-weight:800}'
+          + '.deck-metric,.weekly-summary,.outcome-card,.outcome-intro,.analysis-main,.analysis-side,.agenda-table-wrap,.cycle-main,.cycle-side,.dual-charts>div{box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5),0 3px 8px -6px rgba(6,39,18,.35)}'
+          + '.deck-metrics{position:relative}'
+          + '.deck-metric{position:relative;background:linear-gradient(180deg,#fff 0%,#fbfdfb 100%)}'
+          + '.outcome-card:before{box-shadow:2px 0 6px -3px rgba(6,39,18,.35)}'
+          /* The dial reads as a machined part: a bezel, a recessed face, and a
+             highlight along the top-left edge where the light is. */
+          + '.hero-disc,.timing-disc{box-shadow:inset 0 0 0 15px var(--paper),inset 0 2px 5px rgba(255,255,255,.85),0 30px 60px -22px rgba(6,39,18,.45),0 10px 20px -12px rgba(6,39,18,.3)}'
+          + '.timing-disc{box-shadow:inset 0 2px 5px rgba(255,255,255,.85),0 30px 60px -22px rgba(6,39,18,.45),0 10px 20px -12px rgba(6,39,18,.3)}'
+          + '.hero-disc>div{box-shadow:inset 0 3px 12px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.5)}'
+          + '.timing-disc:before{box-shadow:inset 0 3px 12px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.5)}'
+          /* Bars read as extruded pills rather than flat blocks. */
+          + '.deck-bar-fill,.split-bar i,.deck-col-fill{filter:drop-shadow(0 1px 1px rgba(6,39,18,.22))}'
+          + '.deck-bar-track,.stage-track,.age-track{filter:drop-shadow(inset 0 1px 0 rgba(6,39,18,.06))}'
+          /* A quiet ground plane behind every slide, so the cards sit on
+             something rather than floating on flat paper. */
+          + '.deck-slide:before{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;background:linear-gradient(180deg,rgba(15,74,40,0) 0%,rgba(15,74,40,.045) 100%);pointer-events:none}'
           + '.deck-progress{position:fixed;left:0;top:0;height:3px;background:var(--green);z-index:9;transition:width .35s cubic-bezier(.2,.7,.3,1)}'
 + '.weekly-summary{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}'
           + '.weekly-summary>div{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}'
           + '.weekly-summary strong{overflow-wrap:anywhere}'
           + '.deck-col-label{font-size:10px}'
-          + '.deck-slide.is-dense .deck-content h1{font-size:clamp(28px,3.5vw,48px);max-width:900px;margin-bottom:20px;line-height:.94}'
+          + '.deck-slide.is-dense .deck-fit h1{font-size:clamp(28px,3.5vw,48px);max-width:900px;margin-bottom:20px;line-height:.94}'
           + '.deck-slide.is-dense .deck-content{justify-content:center;padding-top:6px;padding-bottom:18px}'
           + '.deck-slide.is-dense header{margin-bottom:14px}'
           + '.deck-slide footer{padding-right:340px}'
           /* The nav is a fixed overlay in the bottom-right corner. The footer
              already steps around it; the closing callout has to as well, or its
              last line reads underneath the buttons. */
-          + '.deck-content>.deck-callout:last-child{padding-right:352px}'
-          + '@media(max-width:900px){.deck-content>.deck-callout:last-child{padding-right:18px}}'
-          + '@media print{.deck-content>.deck-callout:last-child{padding-right:18px}}'
+          + '.deck-fit>.deck-callout:last-child{padding-right:24px}'
+          + ''
+          + ''
           + '@media(max-width:900px){.deck-slide footer{padding-right:0}.deck-slide footer span:last-child{display:none}}'
           + '.deck-page{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid rgba(255,255,255,.25);color:#ecfff0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800;letter-spacing:.04em}'
           + '.deck-nav{align-items:stretch}'
@@ -5264,12 +5389,23 @@
           // Measure each polyline so the draw animation starts fully hidden
           // regardless of how many weeks the chart ended up spanning.
           + 'function measure(slide){Array.prototype.forEach.call(slide.querySelectorAll(".deck-week-line"),function(line){try{line.style.setProperty("--deck-len",Math.ceil(line.getTotalLength())+1)}catch(e){}})}'
+          + 'function fit(slide){var box=slide.querySelector(".deck-content");var inner=slide.querySelector(".deck-fit");'
+          + 'if(!box||!inner)return;inner.style.transform="";slide.classList.remove("is-fitted");'
+          + 'var reveal=!slide.classList.contains("is-active");if(reveal)slide.classList.add("is-measuring");'
+          + 'var avail=box.clientHeight;var need=inner.scrollHeight;'
+          + 'var gap=12;var k=need>avail-gap&&avail>gap?Math.max(0.42,(avail-gap)/need):1;'
+          + 'slide.classList.toggle("is-fitted",k<1);'
+          + 'if(k<1){inner.style.transform="scale("+k+")";}'
+          + 'if(reveal)slide.classList.remove("is-measuring");}'
+          + 'function fitAll(){slides.forEach(fit)}'
+          + 'var fitTimer=0;window.addEventListener("resize",function(){clearTimeout(fitTimer);fitTimer=setTimeout(fitAll,120)});'
+          + 'if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitAll);'
           + 'function show(index){current=(index+slides.length)%slides.length;'
           + 'slides.forEach(function(slide,i){slide.classList.remove("is-active")});'
           + 'var active=slides[current];measure(active);'
           // Reflow between removing and adding the class so entrance animations
           // replay every time a slide is revisited.
-          + 'void active.offsetWidth;active.classList.add("is-active");'
+          + 'void active.offsetWidth;active.classList.add("is-active");fit(active);'
           + 'if(page)page.textContent=(current+1)+" / "+slides.length;'
           + 'if(bar)bar.style.width=((current+1)/slides.length*100)+"%";}'
           + 'var next=document.getElementById("next");if(next)next.addEventListener("click",function(){show(current+1)});'
@@ -5281,9 +5417,14 @@
           + 'if(event.key==="Home"){event.preventDefault();show(0)}'
           + 'if(event.key==="End"){event.preventDefault();show(slides.length-1)}'
           + 'if(String(event.key).toLowerCase()==="p"){window.print()}});'
-          + 'window.addEventListener("beforeprint",function(){slides.forEach(function(s){s.classList.add("is-active")})});'
+          // ---- Fit to slide -------------------------------------------------
+          // A slide is a fixed box. Bigger numbers make content taller, and a
+          // taller block used to push text under the nav or off the page. Every
+          // slide is measured against the space it actually has and scaled down
+          // to fit, so the layout holds at any figure and any window size.
+          + 'window.addEventListener("beforeprint",function(){slides.forEach(function(s){s.classList.add("is-active")});fitAll()});'
           + 'window.addEventListener("afterprint",function(){show(current)});'
-          + 'show(0)})()</scr' + "ipt>";
+          + 'show(0);fitAll();setTimeout(fitAll,60)})()</scr' + "ipt>";
         // The counter is generated from the slide count, never hardcoded.
         const count = (slides.match(/class="deck-slide[ "]/g) || []).length;
         return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quote outcome team report</title>'
@@ -5311,6 +5452,7 @@
         // ---- 01 Executive outcome -------------------------------------------
         const confidence = data.ci ? data.ci.low.toFixed(1) + "–" + data.ci.high.toFixed(1) + "%" : "—";
         const opening = '<div class="hero-grid"><div class="hero-copy">'
+          + '<div class="hero-mark"><i class="deck-mark is-large" role="img" aria-label="Nucor Building Systems"></i><span>Building Systems<br />Estimating</span></div>'
           + '<p class="lead">Every quote in the selected source set, followed through to a confirmed order or an outcome that still needs an owner. Figures come from the weekly quote books joined to the order logs on quote number.</p>'
           + '<div class="deck-metrics">'
           + deckMetric("Quote conversion", pct(data.conversion), data.orders + " confirmed order links")
@@ -5339,7 +5481,9 @@
           + '<div><span>Peak release</span><strong>' + (peakWeek ? escape(peakWeek.week) + " / " + peakWeek.quotes : "—") + '</strong><small>quotes issued</small></div>'
           + '<div><span>Strongest conversion</span><strong>' + (bestWeek ? escape(bestWeek.week) + " / " + pct(bestWeek.rate) : "—") + '</strong><small>confirmed order rate</small></div>'
           + '<div><span>Release on time</span><strong>' + timingText + '</strong><small>' + escape(coverage) + '</small></div></div>'
-          + reportWeeklySvg(data.weekly)
+          + deckIsoColumns(data.weekly.map(item => ({ label: item.week, value: item.quotes, value_label: String(item.quotes) })),
+              { label: "Quote opportunities issued by quoted week", caption: "QUOTES ISSUED", labels: false })
+          + reportWeeklySvg(data.weekly, { volumeLane: false })
           // The note used to assert that recent weeks sit below the reference
           // whether they did or not. It now reads the loaded weeks.
           + '<p class="chart-note">Volume and conversion stay on separate lanes so workload is never mistaken for performance. '

@@ -72,7 +72,9 @@ for (const c of CASES) {
       const deck = fs.readFileSync(out, 'utf8');
       result.deckSlides = (deck.match(/class="deck-slide[ \"]/g) || []).length;
       result.deckBytes = deck.length;
-      result.deckNaN = /NaN|undefined|Infinity/.test(deck);
+      // The Nucor mark travels with the deck as base64, and base64 contains
+      // the letters NaN. Figure checks read the deck with payloads stripped.
+      result.deckNaN = /NaN|undefined|Infinity/.test(deck.replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, 'MARK'));
     } else {
       result.deckSlides = 0;
     }
