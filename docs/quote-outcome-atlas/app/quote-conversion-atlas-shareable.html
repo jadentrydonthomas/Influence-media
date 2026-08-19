@@ -343,7 +343,7 @@
     [data-filter]:hover { background: var(--surface-soft); }
     [data-filter][aria-pressed="true"] { box-shadow: inset 3px 0 0 var(--green); }
     .ops-week { padding: 0 17px 15px; }
-    .week-head, .week-row { display: grid; grid-template-columns: 46px minmax(76px,1fr) minmax(90px,1.15fr) 40px minmax(76px,.9fr) 52px 42px; align-items: center; gap: 10px; }
+    .week-head, .week-row { display: grid; grid-template-columns: 46px minmax(70px,1fr) minmax(84px,1.1fr) 38px 50px minmax(70px,.85fr) 50px 40px; align-items: center; gap: 10px; }
     .week-head { padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
     .week-head .num, .week-row .num { text-align: right; }
     .week-rows { max-height: min(46vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
@@ -358,7 +358,8 @@
     .week-turn { display: flex; height: 11px; overflow: hidden; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line); }
     .week-turn i { display: block; min-width: 2px; }
     .week-turn i.is-empty { background: var(--surface-soft); }
-    .week-avg, .week-alts { font-family: var(--mono); font-size: 11px; }
+    .week-avg, .week-alts, .week-ontime { font-family: var(--mono); font-size: 11px; }
+    .week-ontime { color: var(--green-dark); }
     .week-var { font-family: var(--mono); font-size: 11px; }
     .week-var.is-good { color: var(--green-dark); }
     .week-var.is-bad { color: var(--red-deep); }
@@ -387,6 +388,7 @@
     .ops-split span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
     .ops-split strong { display: block; margin-top: 4px; color: var(--ink); font-family: var(--mono); font-size: 18px; font-weight: 500; letter-spacing: -.03em; }
     .ops-split small { display: block; margin-top: 3px; color: var(--ink-muted); font-size: 9.5px; }
+    .ops-subhead { margin: 0 0 6px; color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
     .trend-row { display: grid; grid-template-columns: 74px minmax(0,1fr) 34px 52px; grid-template-areas: "label track value chg" "label track note note"; align-items: center; gap: 2px 8px; padding: 5px 0; }
     .trend-row > span { grid-area: label; color: var(--ink); font-size: 11px; }
     .trend-track { grid-area: track; height: 9px; overflow: hidden; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); border-radius: 5px; }
@@ -877,11 +879,8 @@
             <button class="control-button" type="button" data-scope="high" aria-describedby="exposureGuide" aria-pressed="false">50+ days</button>
           </div>
           <div class="button-group comparison-switch" aria-label="Comparison lens">
-            <button class="control-button" type="button" data-analysis="outcomes" aria-pressed="true">Outcomes</button>
-            <button class="control-button" type="button" data-analysis="value" aria-pressed="false">Value</button>
-            <button class="control-button" type="button" data-analysis="ontime" aria-pressed="false">On time</button>
-            <button class="control-button" type="button" data-analysis="tons" aria-pressed="false">Booked tons</button>
-            <button class="control-button" type="button" data-analysis="bands" aria-pressed="false">Value bands</button>
+            <button class="control-button" type="button" data-analysis="outcomes" aria-pressed="true">Value</button>
+            <button class="control-button" type="button" data-analysis="bands" aria-pressed="false">Bands</button>
             <button class="control-button" type="button" data-analysis="districts" aria-pressed="false">Districts</button>
             <button class="control-button" type="button" data-analysis="compare" aria-pressed="false">Compare</button>
             <button class="control-button" type="button" data-analysis="customers" aria-pressed="false">Customers</button>
@@ -954,14 +953,11 @@
           <section class="panel analysis-panel" aria-labelledby="analysisTitle">
             <div class="panel-head"><h2 id="analysisTitle">Outcome value mix</h2><p id="analysisDescription">How quoted value is currently distributed between confirmed orders and records without a linked order.</p></div>
             <div class="analysis-tabs" aria-label="Analysis panels">
-              <button class="analysis-tab" type="button" data-analysis="outcomes" aria-pressed="true">Outcome mix</button>
-              <button class="analysis-tab" type="button" data-analysis="value" aria-pressed="false">Value bridge</button>
-              <button class="analysis-tab" type="button" data-analysis="ontime" aria-pressed="false">SLA pulse</button>
-              <button class="analysis-tab" type="button" data-analysis="tons" aria-pressed="false">Booked tons</button>
-              <button class="analysis-tab" type="button" data-analysis="bands" aria-pressed="false">Value bands</button>
-              <button class="analysis-tab" type="button" data-analysis="districts" aria-pressed="false">District mix</button>
-              <button class="analysis-tab" type="button" data-analysis="compare" aria-pressed="false">Period compare</button>
-              <button class="analysis-tab" type="button" data-analysis="customers" aria-pressed="false">Customer signals</button>
+              <button class="analysis-tab" type="button" data-analysis="outcomes" aria-pressed="true">Value</button>
+              <button class="analysis-tab" type="button" data-analysis="bands" aria-pressed="false">Bands</button>
+              <button class="analysis-tab" type="button" data-analysis="districts" aria-pressed="false">Districts</button>
+              <button class="analysis-tab" type="button" data-analysis="compare" aria-pressed="false">Compare</button>
+              <button class="analysis-tab" type="button" data-analysis="customers" aria-pressed="false">Customers</button>
             </div>
             <div class="analysis-body" id="analysisBody"></div>
           </section>
@@ -1595,9 +1591,9 @@
         }
         if (state.analysis === "outcomes") {
           title = "Outcome value mix";
-          description = "How quoted value is currently distributed between confirmed orders and records without a linked order.";
-          html = '<div class="donut-layout"><div class="donut" style="--donut-value:' + data.valueCapture + '"><div class="donut-content"><strong>' + pct(data.valueCapture) + '</strong><span>value captured</span></div></div><div class="outcome-key"><div><i style="--key:var(--green)"></i><span>Confirmed order value</span><b>' + money(data.orderValue) + '</b></div><div><i style="--key:var(--red)"></i><span>Unconverted quote value</span><b>' + money(data.unconvertedValue) + '</b></div><div><i style="--key:var(--steel)"></i><span>Total quoted value</span><b>' + money(data.quoteValue) + '</b></div></div></div><div class="analysis-foot"><strong>Professional read:</strong> unconverted opportunities remain open, lost, or not yet fully linked until a confirmed order or outcome is recorded.</div>';
-        } else if (state.analysis === "value") {
+          description = "How quoted value is distributed between confirmed orders and records without a linked order.";
+          html = '<div class="donut-layout"><div class="donut" style="--donut-value:' + data.valueCapture + '"><div class="donut-content"><strong>' + pct(data.valueCapture) + '</strong><span>value captured</span></div></div><div class="outcome-key"><div><i style="--key:var(--green)"></i><span>Confirmed order value</span><b>' + money(data.orderValue) + '</b></div><div><i style="--key:var(--red)"></i><span>Unconverted quote value</span><b>' + money(data.unconvertedValue) + '</b></div><div><i style="--key:var(--steel)"></i><span>Total quoted value</span><b>' + money(data.quoteValue) + '</b></div></div></div><div class="waterfall"><div class="waterfall-row"><span>Quoted value</span><div class="waterfall-track"><i style="--waterfall:100%;--waterfall-color:var(--steel)"></i></div><b>' + money(data.quoteValue) + '</b></div><div class="waterfall-row"><span>Confirmed value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(5, data.valueCapture) + '%;--waterfall-color:var(--green)"></i></div><b>' + money(data.orderValue) + '</b></div><div class="waterfall-row"><span>Unconverted value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(12, 100 - data.valueCapture) + '%;--waterfall-color:var(--red)"></i></div><b>' + money(data.unconvertedValue) + '</b></div></div><div class="analysis-foot"><strong>Professional read:</strong> unconverted opportunities remain open, lost, or not yet fully linked until a confirmed order or outcome is recorded. Focus follow-up on high-value unconverted records first.</div>';
+        } else if (state.analysis === "__retired_value") {
           title = "Quote value bridge";
           description = "A direct value reading of quoted work, confirmed orders, and value still unconverted to a linked order.";
           html = '<div class="waterfall"><div class="waterfall-row"><span>Quoted value</span><div class="waterfall-track"><i style="--waterfall:100%;--waterfall-color:var(--steel)"></i></div><b>' + money(data.quoteValue) + '</b></div><div class="waterfall-row"><span>Confirmed value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(5, data.valueCapture) + '%;--waterfall-color:var(--green)"></i></div><b>' + money(data.orderValue) + '</b></div><div class="waterfall-row"><span>Unconverted value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(12, 100 - data.valueCapture) + '%;--waterfall-color:var(--red)"></i></div><b>' + money(data.unconvertedValue) + '</b></div></div><div class="analysis-foot"><strong>Seller lens:</strong> focus follow-up on high-value unconverted records, then use current status to separate active work from losses.</div>';
@@ -1777,20 +1773,31 @@
 
         // ---- 01 Demand --------------------------------------------------------
         const months = data.monthly || [];
-        const monthRows = months.length > 1
-          ? months.map(month => {
-              const share = Math.max(2, month.quotes / Math.max(...months.map(m => m.quotes)) * 100);
-              return '<div class="trend-row"><span>' + escape(month.label) + '</span>'
-                + '<div class="trend-track"><i style="width:' + share.toFixed(1) + '%"></i></div>'
-                + '<b>' + month.quotes + '</b>' + opsChange(month.quoteChange)
-                + '<small>' + month.alts + ' alts · ' + money(month.value / 1000000) + "</small></div>";
-            }).join("")
-          : '<p class="ops-note">This source set covers a single month, so there is no prior period to compare. Load more weeks and the month-on-month change appears here.</p>';
-        $("#opsDemand").innerHTML =
-          '<div class="ops-split"><div><span>Quotes</span><strong>' + opsNumber(data.quotes) + '</strong><small>' + (data.quotes / weeks).toFixed(1) + ' per week</small></div>'
-          + '<div><span>Alternates</span><strong>' + opsNumber(data.alts) + '</strong><small>' + data.altsPerQuote.toFixed(2) + ' per quote</small></div>'
-          + '<div><span>Quoted value</span><strong>' + money(data.quoteValue) + '</strong><small>' + money(data.quoteValue / data.quotes) + ' average</small></div></div>'
-          + monthRows
+        // With several months, compare months. With one, the same shape by week,
+        // so the panel always shows how arrivals moved rather than a note.
+        const arrivals = months.length > 1
+          ? months.map(month => ({ label: month.label, quotes: month.quotes, alts: month.alts, value: month.value, change: month.quoteChange }))
+          : (data.weekly || []).map((item, index, all) => ({
+              label: item.week, quotes: item.quotes, alts: item.alts,
+              value: item.records ? 0 : 0,
+              change: index > 0 && all[index - 1].quotes ? (item.quotes - all[index - 1].quotes) / all[index - 1].quotes * 100 : null
+            }));
+        const arrivalMax = Math.max(1, ...arrivals.map(item => item.quotes));
+        const monthRows = arrivals.length
+          ? '<div class="ops-subhead">' + (months.length > 1 ? "By month" : "By quoted week") + "</div>"
+            + arrivals.map(item => '<div class="trend-row"><span>' + escape(item.label) + '</span>'
+                + '<div class="trend-track"><i style="width:' + Math.max(2, item.quotes / arrivalMax * 100).toFixed(1) + '%"></i></div>'
+                + '<b>' + item.quotes + '</b>' + opsChange(item.change)
+                + '<small>' + item.alts + " alternates</small></div>").join("")
+          : '<p class="ops-note">No dated quote records in this cohort.</p>';
+        // The headline strip already carries quotes, alternates and value; this
+        // panel shows how they moved, not the same three numbers again.
+        $("#opsDemand").innerHTML = monthRows
+          + (Array.isArray(data.bookedWeekly) && data.bookedWeekly.length
+              ? '<div class="ops-split is-tight"><div><span>Booked tons</span><strong>' + tons(data.bookedTons) + '</strong><small>from ' + data.tonsScored + ' matched jobs</small></div>'
+                + '<div><span>Tons per job</span><strong>' + (data.tonsScored ? (data.bookedTons / data.tonsScored).toFixed(1) : "\u2014") + '</strong><small>average</small></div>'
+                + '<div><span>Entry weeks</span><strong>' + data.bookedWeekly.length + '</strong><small>with tonnage</small></div></div>'
+              : "")
           + '<p class="ops-note"><b>Alternates are quoted work that carries no separate quote number.</b> ' + opsNumber(data.alts)
           + ' of them sit behind ' + opsNumber(data.quotes) + ' quotes here, so roughly ' + pct(percentage(data.alts, data.quotes + data.alts))
           + ' of what the group actually priced never appears in a quote count.</p>';
@@ -1844,7 +1851,7 @@
         const maxWeekQuotes = Math.max(1, ...weekly.map(item => item.quotes));
         const maxWeekHours = Math.max(1, ...weekly.map(item => item.hours));
         $("#opsWeek").innerHTML = weekly.length
-          ? '<div class="week-head"><span>Week</span><span>Quotes issued</span><span>Turnaround mix</span><span class="num">Avg</span><span>Engineering</span><span class="num">vs plan</span><span class="num">Alts</span></div>'
+          ? '<div class="week-head"><span>Week</span><span>Quotes issued</span><span>Turnaround mix</span><span class="num">Avg</span><span class="num">On time</span><span>Engineering</span><span class="num">vs plan</span><span class="num">Alts</span></div>'
             + '<div class="week-rows">' + weekly.map(item => {
                 const turnParts = [
                   { value: item.turn.oneDay, tone: "green" },
@@ -1859,6 +1866,7 @@
                   + (turnParts.length ? turnParts.map(part => '<i class="is-' + part.tone + '" style="flex:' + part.value + '"></i>').join("") : '<i class="is-empty" style="flex:1"></i>')
                   + "</span>"
                   + '<span class="num week-avg">' + (item.turn.average === null ? "—" : item.turn.average.toFixed(1)) + "</span>"
+                  + '<span class="num week-ontime">' + (item.onTimeScored ? pct(item.onTime) : "\u2014") + "</span>"
                   + '<span class="week-eng"><i style="width:' + (item.hours / maxWeekHours * 100).toFixed(1) + '%"></i><b>' + item.hours.toFixed(0) + "</b></span>"
                   + '<span class="num week-var ' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</span>"
                   + '<span class="num week-alts">' + item.alts + "</span></div>";
