@@ -2002,7 +2002,7 @@
           { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · unpriced rework" },
           { label: "Average turnaround", value: opsTurnText(turn.average) + "d", note: pct(percentage(turn.withinThree, turn.scored)) + " inside three days" },
           { label: "Engineering hours", value: eng.totalHours.toFixed(0), note: eng.perQuote.toFixed(2) + " per quote · " + eng.fivePlus + " quotes at 5+" },
-          { label: variance >= 0 ? "Capacity gain" : "Capacity bust", value: (variancePct === null ? "—" : (variancePct > 0 ? "+" : "") + variancePct.toFixed(1) + "%"),
+          { label: variance >= 0 ? "Under the time set aside" : "Over the time set aside", value: (variancePct === null ? "—" : Math.abs(variancePct).toFixed(1) + "%"),
             note: eng.scheduledHours.toFixed(0) + " scheduled vs " + eng.totalHours.toFixed(0) + " actual", tone: variance >= 0 ? "good" : "bad" },
           { label: "Quoted value", value: money(data.quoteValue), note: money(data.quoteValue / data.quotes) + " average quote" }
         ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
@@ -4792,7 +4792,10 @@
         const max = Math.max.apply(null, rows.concat([{ value: 0 }]).map(row => Number(row.value) || 0)) || 1;
         const bars = rows.map((row, index) => {
           const y = index * rowHeight + 8;
-          const barWidth = Math.max(2, plot * (Number(row.value) || 0) / max);
+          // A zero draws nothing. A minimum-width stub for a zero value is how a
+          // chart says "a little" when the data says "none".
+          const rowValue = Number(row.value) || 0;
+          const barWidth = rowValue > 0 ? Math.max(2, plot * rowValue / max) : 0;
           const tone = row.tone === "copper" ? "var(--copper)" : row.tone === "deep" ? "var(--green-deep)" : "var(--green)";
           return '<g class="deck-bar-row" style="--deck-bar-delay:' + (index * 90) + 'ms">'
             + '<text class="deck-bar-label" x="0" y="' + (y + 17) + '">' + escape(clip(row.label)) + "<title>" + escape(row.label) + "</title></text>"
@@ -4877,6 +4880,14 @@
           const pair = point.split(",");
           return '<circle class="deck-week-dot" style="--deck-bar-delay:' + (index * 45 + 260) + 'ms" cx="' + pair[0] + '" cy="' + pair[1] + '" r="4"></circle>';
         }).join("");
+        // The volume lane prints its value on every bar; the conversion lane
+        // only had a shape. It now prints its value too, at the same density
+        // the week labels use so a long span does not collide.
+        const rateLabels = dense ? "" : points.map((point, index) => {
+          if (index % labelEvery !== 0 && index !== points.length - 1) return "";
+          const pair = point.split(",");
+          return '<text class="week-count" x="' + pair[0] + '" y="' + (Number(pair[1]) - 11).toFixed(1) + '" text-anchor="middle">' + pct(weekly[index].rate) + "</text>";
+        }).join("");
         return '<svg class="weekly-deck-chart" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Weekly quotes issued and confirmed conversion across ' + weekly.length + ' quoted weeks">'
           + '<text x="' + left + '" y="16" class="lane">QUOTES ISSUED</text>'
           + '<text x="' + left + '" y="146" class="lane">CONFIRMED CONVERSION</text>'
@@ -4888,7 +4899,7 @@
           + '<text x="' + (width - right) + '" y="' + (referenceY - 6).toFixed(1) + '" text-anchor="end" class="reference-label">10% REFERENCE</text>'
           + bars.join("") + counts.join("")
           + '<polyline class="deck-week-line" points="' + points.join(" ") + '" fill="none" stroke="var(--green)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>'
-          + dots + labels.join("") + "</svg>";
+          + dots + rateLabels + labels.join("") + "</svg>";
       }
 
       // Exposed so the scale test can render the weekly chart at 1, 12 and 52
@@ -5227,7 +5238,7 @@
         const sizeBands = deckSizeBands(records);
         const districts = deckDistricts(records);
         const revisions = deckRevisionSplit(records);
-        const followUp = deckFollowUp(records, 6);
+        const followUp = deckFollowUp(records, 10);
         const coverage = onTimeCoverageNote(data);
 
         // ---- 01 Executive outcome -------------------------------------------
@@ -5255,13 +5266,20 @@
         // ---- 03 Weekly pulse -------------------------------------------------
         const peakWeek = data.weekly.length ? data.weekly.reduce((best, item) => item.quotes > best.quotes ? item : best, data.weekly[0]) : null;
         const bestWeek = data.weekly.length ? data.weekly.reduce((best, item) => item.rate > best.rate ? item : best, data.weekly[0]) : null;
+        const belowReference = data.weekly.filter(item => item.rate < 10).length;
         const weekly = '<div class="weekly-summary">'
           + '<div><span>Quoted weeks loaded</span><strong>' + data.weekly.length + '</strong><small>the chart scales to the set</small></div>'
           + '<div><span>Peak release</span><strong>' + (peakWeek ? escape(peakWeek.week) + " / " + peakWeek.quotes : "—") + '</strong><small>quotes issued</small></div>'
           + '<div><span>Strongest conversion</span><strong>' + (bestWeek ? escape(bestWeek.week) + " / " + pct(bestWeek.rate) : "—") + '</strong><small>confirmed order rate</small></div>'
           + '<div><span>Release on time</span><strong>' + timingText + '</strong><small>' + escape(coverage) + '</small></div></div>'
           + reportWeeklySvg(data.weekly)
-          + '<p class="chart-note">Volume and conversion stay on separate lanes so workload is never mistaken for performance. Recent weeks sit below the 10% reference because their decision window is still open — that is what the exposure lens is for.</p>';
+          // The note used to assert that recent weeks sit below the reference
+          // whether they did or not. It now reads the loaded weeks.
+          + '<p class="chart-note">Volume and conversion stay on separate lanes so workload is never mistaken for performance. '
+          + (belowReference
+              ? belowReference + ' of ' + data.weekly.length + ' loaded week' + (data.weekly.length === 1 ? '' : 's') + ' sit' + (belowReference === 1 ? 's' : '') + ' below the 10% reference. A recent week below the line is usually a decision window still open rather than a weak week — that is what the exposure lens is for.'
+              : 'Every loaded week sits at or above the 10% reference on this cohort.')
+          + '</p>';
 
         // ---- 04 Where the value sits (new) -----------------------------------
         const worstBand = valueBands.bands.filter(band => band.quotes >= 3).sort((a, b) => a.conversion - b.conversion)[0];
@@ -5385,9 +5403,7 @@
           + '<aside class="agenda-side"><span class="section-label">Three things this data says</span>'
           + '<div class="agenda-point"><b>01</b><p>' + escape(valueRead) + '</p></div>'
           + '<div class="agenda-point"><b>02</b><p>' + (weakSize ? escape(weakSize.label + " converts at " + pct(weakSize.conversion) + " across " + weakSize.quotes + " quotes — the weakest scored size band.") : "Size banding needs square-foot values to produce a read.") + '</p></div>'
-          + '<div class="agenda-point"><b>03</b><p>' + escape(onTimeAvailable(data)
-              ? "Release timing is scored on " + coverage + ". Widening that coverage would make delivery discipline a usable operating measure rather than a partial one."
-              : "Release timing is unscored in this set. Populating the On-Time column would add a delivery measure that is independent of conversion.") + '</p></div>'
+          + '<div class="agenda-point"><b>03</b><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'
           + "</aside></div>";
 
         // ---- 08 Estimating capacity (new) -------------------------------------
@@ -5399,7 +5415,7 @@
         const capacityBody = '<div class="weekly-summary">'
           + '<div><span>Scheduled hours</span><strong>' + eng.scheduledHours.toFixed(0) + '</strong><small>set aside for this work</small></div>'
           + '<div><span>Actual hours</span><strong>' + eng.totalHours.toFixed(0) + '</strong><small>' + eng.perQuote.toFixed(2) + ' per quote</small></div>'
-          + '<div><span>' + (capVariance >= 0 ? "Under plan by" : "Over plan by") + '</span><strong>' + Math.abs(capVariance).toFixed(0) + ' hrs</strong><small>' + (capPct === null ? "\u2014" : (capPct > 0 ? "+" : "") + capPct.toFixed(1) + "% against plan") + '</small></div>'
+          + '<div><span>' + (capVariance >= 0 ? "Under plan by" : "Over plan by") + '</span><strong>' + Math.abs(capVariance).toFixed(0) + ' hrs</strong><small>' + (capPct === null ? "\u2014" : Math.abs(capPct).toFixed(1) + "% " + (capVariance >= 0 ? "under" : "over") + " plan") + '</small></div>'
           + '<div><span>Average turnaround</span><strong>' + (turnData.average === null ? "\u2014" : turnData.average.toFixed(1) + " d") + '</strong><small>' + pct(percentage(turnData.withinThree, turnData.scored)) + ' inside three days</small></div></div>'
           + '<div class="analysis-grid"><div class="analysis-main">'
           + (capEngineers.length
@@ -5423,6 +5439,28 @@
               ? "Engineering came in under the scheduled time across this run."
               : "Engineering ran " + Math.abs(capVariance).toFixed(0) + " hours over the time set aside, " + Math.abs(capPct).toFixed(1) + "% above plan.")
           + ' A single engineer well over the line is a scheduling question, not a performance one \u2014 the hours were booked against an estimate made before the work started.</div>';
+
+        // The old third point told you to widen release-timing coverage even
+        // when coverage was already complete. It now says the most actionable
+        // true thing about this cohort.
+        function agendaThirdPoint(scope, coverageText) {
+          if (!onTimeAvailable(scope)) {
+            return "Release timing is unscored in this set. Populating the On-Time column would add a delivery measure that is independent of conversion.";
+          }
+          if (scope.onTimeCoverage < 95) {
+            return "Release timing is scored on " + coverageText + ". Widening that coverage would make delivery discipline a usable operating measure rather than a partial one.";
+          }
+          const timeline = scope.timeline;
+          const oldestBand = timeline && timeline.ageing.length ? timeline.ageing[timeline.ageing.length - 1] : null;
+          const halfBy = timeline ? timeline.curve.find(mark => mark.share >= 50) : null;
+          if (oldestBand && oldestBand.count) {
+            return opsNumber(oldestBand.count) + " quotes carrying " + money(oldestBand.value)
+              + " have waited more than sixty days with no linked order"
+              + (halfBy ? ", against a book where half of everything that booked had done so by day " + halfBy.day : "")
+              + ". Those are the rows most in need of a named current status.";
+          }
+          return "Release timing is scored on " + coverageText + ", and nothing in this cohort has waited more than sixty days without an answer.";
+        }
 
         const slides = deckSlide(1, "Executive outcome", "See the quote book<br /><em>through to outcome.</em>", opening)
           + deckSlide(2, "Quote outcome overview", "One quote book.<br /><em>Two visible outcomes.</em>", outcomes)
