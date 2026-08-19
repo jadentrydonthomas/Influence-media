@@ -77,8 +77,21 @@
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
     .app { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); background: linear-gradient(to right, var(--rail) 0 244px, transparent 244px); }
-    .rail { position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh; padding: 26px 22px 23px; overflow: hidden; color: #fff6f7; background: var(--rail); }
-    .rail::after { content: ""; position: absolute; right: -85px; bottom: -94px; width: 238px; height: 238px; border: 1px solid rgba(132, 214, 150, .18); border-radius: 50%; box-shadow: 0 0 0 38px rgba(132,214,150,.04), 0 0 0 76px rgba(132,214,150,.018); pointer-events: none; }
+    /* overflow:hidden clipped the last nav items and the export button on a
+       1366x768 laptop once the rail carried seven screens. It scrolls now, and
+       compresses first so that scrolling is the fallback rather than the norm. */
+    .rail { position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh; padding: 26px 22px 23px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; color: #fff6f7; background: var(--rail); }
+    .rail::-webkit-scrollbar { width: 6px; }
+    .rail::-webkit-scrollbar-thumb { background: rgba(235,248,237,.22); border-radius: 3px; }
+    /* The corner rings were an absolutely positioned pseudo-element hanging 94px
+       below the rail. Once the rail scrolled, that phantom overflow added 94px
+       of scroll to a rail whose content already fitted. Painted as background
+       rings instead: same geometry, no layout. */
+    .rail { background-image:
+      radial-gradient(circle at calc(100% - 34px) calc(100% - 25px), transparent 118px, rgba(132,214,150,.18) 118px 119px, transparent 119px),
+      radial-gradient(circle at calc(100% - 34px) calc(100% - 25px), transparent 119px, rgba(132,214,150,.04) 119px 157px, transparent 157px),
+      radial-gradient(circle at calc(100% - 34px) calc(100% - 25px), transparent 157px, rgba(132,214,150,.018) 157px 195px, transparent 195px);
+      background-repeat: no-repeat; }
     .brand { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 151px; min-height: 42px; padding: 6px 8px; background: #fff; }
     .brand img { display: block; width: 135px; max-width: 100%; height: auto; }
     .rail-label { position: relative; z-index: 1; margin-top: 19px; color: rgba(235,248,237,.55); font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
@@ -104,6 +117,25 @@
     .review-mode { width: 100%; padding: 10px 11px; border: 1px solid rgba(233,248,236,.34); color: #f7fff8; background: rgba(255,255,255,.04); text-align: left; font-family: var(--display); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; transition: border-color 180ms var(--ease), background 180ms var(--ease); }
     .review-mode:hover { border-color: var(--green-bright); background: rgba(0,189,87,.13); }
     .rail-bottom p { margin: 10px 0 0; color: rgba(235,248,237,.34); font-size: 10px; line-height: 1.45; }
+    @media (max-height: 900px) {
+      .rail { padding: 16px 20px 14px; }
+      .rail-label { margin-top: 10px; font-size: 9px; }
+      .rail-title { font-size: 23px; }
+      .rail-score { margin-top: 13px; padding: 12px 0 11px; }
+      .rail-score strong { font-size: 42px; }
+      .rail-score small { margin-top: 6px; }
+      .rail-score b { display: none; }
+      .rail-facts { margin-top: 11px; }
+      .rail-fact { min-height: 46px; padding: 7px 8px; }
+      .rail-nav { margin-top: 11px; gap: 0; }
+      .rail-nav button { padding: 6px 0; font-size: 10px; letter-spacing: .09em; }
+      .rail-bottom p { display: none; }
+      .review-mode { padding: 8px 10px; font-size: 9px; }
+    }
+    @media (max-height: 700px) {
+      .rail-score small { display: none; }
+      .rail-facts { display: none; }
+    }
 
     .main { min-width: 0; padding: 0 42px 56px; }
     .masthead { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 78px; border-bottom: 1px solid var(--line); }
@@ -519,8 +551,11 @@
     .ops-table .load { width: 110px; }
     .ops-table .load i { display: block; height: 8px; background: var(--green); border-radius: 4px; }
     .est-name { color: var(--ink-muted); font-size: 11px; }
-    .ops-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; margin-bottom: 20px; border: 1px solid var(--line); background: var(--line); }
-    .ops-kpi { padding: 15px 17px; background: var(--surface); }
+    /* A 1px gap over a line-coloured container painted the ragged last row of a
+       six-card strip as one large block of border colour. Cell borders instead,
+       so an unfilled grid cell is simply empty. */
+    .ops-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 20px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+    .ops-kpi { padding: 15px 17px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); }
     .ops-kpi span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .ops-kpi strong { display: block; margin-top: 7px; color: var(--ink); font-family: var(--mono); font-size: 25px; font-weight: 500; letter-spacing: -.04em; }
     .ops-kpi small { display: block; margin-top: 5px; color: var(--ink-muted); font-size: 10px; line-height: 1.4; }
@@ -2255,7 +2290,6 @@
           { label: "Median time to price", value: dayText(line.produce.median), note: "Date In to Done on " + opsNumber(line.produce.scored) + " of " + opsNumber(data.quotes) + " quotes" },
           { label: "Median time to answer", value: dayText(line.decide.median), note: line.decide.scored ? "Done to order entry on " + opsNumber(line.decide.scored) + " booked quotes" : "no booked quote carries both dates" },
           { label: "Median full cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + opsNumber(line.total.scored) + " quotes" : "needs a Date In and a booked order" },
-          { label: "Half of orders land by", value: half ? "day " + half.day : "—", note: line.bookedScored ? "of " + opsNumber(line.bookedScored) + " quotes that booked" : "no booked lag is scored yet" },
           { label: "Open book", value: money(line.openValue), note: opsNumber(line.openCount) + " quotes with no linked order" },
           { label: "Sitting past 60 days", value: opsNumber(oldest.count), note: money(oldest.value) + " · " + pct(oldest.share) + " of the open book", tone: oldest.count ? "bad" : "good" }
         ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
@@ -2292,7 +2326,8 @@
         $("#decisionCurve").innerHTML = line.bookedScored
           ? '<div>' + decisionCurveSvg(line.curve)
             + '<p class="ops-note">Measured from the quoted week to the first linked order entry, across ' + opsNumber(line.bookedScored)
-            + ' quotes that booked. This is when orders arrive, not how likely one is — a quote that never booked is not on this curve.</p></div>'
+            + ' quotes that booked. ' + (half ? 'Half had landed by day ' + half.day + '. ' : '')
+            + 'This is when orders arrive, not how likely one is — a quote that never booked is not on this curve.</p></div>'
             + '<div class="curve-list">' + line.curve.map(mark => '<div class="curve-row"><span>By day ' + mark.day + '</span>'
                 + '<div class="curve-track"><i style="width:' + mark.share.toFixed(1) + '%"></i></div>'
                 + '<b>' + pct(mark.share) + '</b><small>' + mark.count + ' of ' + line.bookedScored + '</small></div>').join("") + "</div>"
