@@ -39,7 +39,7 @@ for (const scope of ['all', 'mature', 'high']) {
 
 await p.click('[data-scope="mature"]');
 await p.waitForTimeout(400);
-for (const lens of ['outcomes', 'bands', 'districts', 'compare', 'customers']) {
+for (const lens of ['outcomes', 'bands', 'districts', 'compare']) {
   await p.click(`[data-analysis="${lens}"]`);
   await p.waitForTimeout(400);
   out.lenses[lens] = await p.$eval('#analysisBody', n => n.innerText.replace(/\s+/g, ' ').trim());

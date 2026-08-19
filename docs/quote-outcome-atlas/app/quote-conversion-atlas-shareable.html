@@ -554,7 +554,7 @@
     /* A 1px gap over a line-coloured container painted the ragged last row of a
        six-card strip as one large block of border colour. Cell borders instead,
        so an unfilled grid cell is simply empty. */
-    .ops-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 20px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+    .ops-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); margin-bottom: 20px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
     .ops-kpi { padding: 15px 17px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); }
     .ops-kpi span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .ops-kpi strong { display: block; margin-top: 7px; color: var(--ink); font-family: var(--mono); font-size: 25px; font-weight: 500; letter-spacing: -.04em; }
@@ -1030,7 +1030,6 @@
             <button class="control-button" type="button" data-analysis="bands" aria-pressed="false">Bands</button>
             <button class="control-button" type="button" data-analysis="districts" aria-pressed="false">Districts</button>
             <button class="control-button" type="button" data-analysis="compare" aria-pressed="false">Compare</button>
-            <button class="control-button" type="button" data-analysis="customers" aria-pressed="false">Customers</button>
           </div>
         </div>
         <p class="exposure-guide" id="exposureGuide"><strong>Exposure guide:</strong> 30+ days includes quotes sent at least 30 days before the newest Order Entry date in the selected logs; 50+ days uses 50 days. It removes fresh decision windows from the conversion lens - it does not label newer quotes as lost.</p>
@@ -1104,7 +1103,6 @@
               <button class="analysis-tab" type="button" data-analysis="bands" aria-pressed="false">Bands</button>
               <button class="analysis-tab" type="button" data-analysis="districts" aria-pressed="false">Districts</button>
               <button class="analysis-tab" type="button" data-analysis="compare" aria-pressed="false">Compare</button>
-              <button class="analysis-tab" type="button" data-analysis="customers" aria-pressed="false">Customers</button>
             </div>
             <div class="analysis-body" id="analysisBody"></div>
           </section>
@@ -1620,7 +1618,7 @@
         const jobs = data.jobs || data.orders;
         const html = [
           kpiMarkup("Quote conversion", data.conversion, pct(data.conversion), pct(data.conversion), data.orders + " quote wins", "var(--green)"),
-          kpiMarkup("95% confidence", data.conversion, confidence, "based on " + data.quotes + " opportunities", "Wilson interval on the active cohort", "var(--steel)"),
+          kpiMarkup("95% confidence", data.conversion, confidence, "based on " + data.quotes + " opportunities", "on the active cohort", "var(--steel)"),
           kpiMarkup("Quote release on time", timingAvailable ? data.onTime : 0, timingAvailable ? data.onTime + "%" : "—", timingAvailable ? data.onTime + "%" : "Not scored", timingAvailable ? (Number(data.onTimeScoredCount) || 0) + "/" + (Number(data.quotes) || 0) + " scored · target 90%" : "needs a release result", "var(--green)"),
           kpiMarkup("Won value capture", data.valueCapture, pct(data.valueCapture), money(data.orderValue), jobs + " jobs booked from " + money(data.quoteValue), "var(--amber)")
         ];
@@ -1936,11 +1934,17 @@
           }).join("") : '<div class="analysis-empty"><div><b>No matched booked tons</b><span>Matched orders need a valid Order Entry date and Total Tons value to populate this operational view.</span></div></div>';
           html = '<div class="tonnage-summary"><div><span>Booked tons</span><strong>' + tons(totalTons) + ' t</strong><small>from matched order rows</small></div><div><span>Booked jobs</span><strong>' + (data.jobs || 0) + '</strong><small>linked to quote wins</small></div><div><span>Order-entry weeks</span><strong>' + series.length + '</strong><small>with matched booked tons</small></div></div><div class="tonnage-bars">' + bars + '</div><div class="analysis-foot"><strong>Read it correctly:</strong> bars use the Order Log Order Entry date and Total Tons field. They show booked operating volume for the selected quote cohort, not quote volume.</div>';
         } else {
-          title = "Customer relationship signals";
-          description = "Quote-side customer patterns: repeat relationships, the accounts returning the most quote wins, and recurring activity with no linked win yet.";
+          // The customer lens was a thinner copy of what screen 04 now does in
+          // full, so it was removed rather than kept as a second answer to the
+          // same question. This branch stays as the fallback for any unexpected
+          // lens value, and points at the screen instead of half-answering.
+          title = "Customer demand";
+          description = "Account demand has its own screen, where every account carries what it asked for against what came back.";
           const signals = data.customers || blankCustomerSignals();
-          const customerRows = (accounts, emptyTitle, emptyCopy) => accounts.length ? accounts.slice(0, 5).map(account => '<div class="customer-row"><div><strong title="' + escape(account.name) + '">' + escape(account.name) + '</strong><span>' + account.loadedWeeks + ' quoted weeks &middot; ' + account.quotes + ' quotes &middot; ' + (account.alts || 0) + ' alts &middot; ' + (account.large || 0) + ' over $1M &middot; ' + account.wins + ' wins</span></div><div><b>' + money(account.quoteValue) + ' quoted</b><small>' + (account.wins ? money(account.wonValue) + ' won / ' + pct(account.conversion) : 'No linked win') + '</small></div></div>').join("") : '<div class="customer-row"><div><strong>' + escape(emptyTitle) + '</strong><span>' + escape(emptyCopy) + '</span></div></div>';
-          html = '<div class="customer-signal-grid"><div><span>Customer accounts</span><strong>' + signals.total + '</strong><small>' + signals.firstSeen + ' first seen in this loaded quote book</small></div><div><span>Repeat quote customers</span><strong>' + signals.multiWeek + '</strong><small>' + signals.consistent + ' appeared in 3+ quote weeks</small></div><div><span>Repeat / no linked win</span><strong>' + signals.repeatNoWin + '</strong><small>' + money(signals.repeatNoWinValue) + ' quoted value needs an outcome</small></div></div><div class="customer-lists"><section class="customer-list"><div class="customer-list-head"><span>Repeat relationships</span><b>quoted value</b></div>' + customerRows(signals.multiWeekAccounts || [], "No repeat customer yet", "A customer needs quotes in at least two selected weeks to appear here.") + '</section><section class="customer-list"><div class="customer-list-head"><span>Most quote wins</span><b>wins / value</b></div>' + customerRows(signals.topWinAccounts || [], "No linked customer win yet", "A matched Order Log Quote # creates this view.") + '</section><section class="customer-list"><div class="customer-list-head"><span>Repeat activity / no win</span><b>follow-up value</b></div>' + customerRows(signals.repeatNoWinAccounts || [], "No repeat no-win pattern", "This list stays empty when repeat customers have a linked win.") + '</section></div><div class="analysis-foot"><strong>Important definition:</strong> repeat means the customer appears in two or more selected quote weeks. No linked win means no matching Order Log Quote # was found - it is a follow-up signal, not an automatic loss label.</div>';
+          html = '<div class="analysis-empty"><div><b>' + opsNumber(signals.total) + ' accounts in this cohort</b>'
+            + '<span>' + opsNumber(signals.withWin) + ' have booked; ' + opsNumber((signals.askedNeverBooked || []).length)
+            + ' asked at least twice and booked nothing, carrying ' + money(signals.askedNeverBookedValue) + ' of quoted value. '
+            + 'Open <b>04 Customers</b> for the full account view.</span></div></div>';
         }
         setText("#analysisTitle", title);
         setText("#analysisDescription", description);
@@ -2065,7 +2069,9 @@
           '<div class="cap-side"><div class="cap-hero' + (variance >= 0 ? " is-good" : " is-bad") + '"><div><span>Scheduled</span><strong>' + eng.scheduledHours.toFixed(0) + '</strong></div>'
           + '<div><span>Actual</span><strong>' + eng.totalHours.toFixed(0) + '</strong></div>'
           + '<div><span>' + (variance >= 0 ? "Under by" : "Over by") + '</span><strong>' + Math.abs(variance).toFixed(0) + ' hrs</strong></div>'
-          + '<div><span>Gain / bust</span><strong>' + (variancePct === null ? "—" : (variancePct > 0 ? "+" : "") + variancePct.toFixed(1) + "%") + '</strong></div></div>'
+          // The headline strip above already carries the percentage against plan.
+          // This cell says something it does not.
+          + '<div><span>Hours per quote</span><strong>' + eng.perQuote.toFixed(2) + '</strong></div></div>'
           + '<p class="ops-note"><b>This is the measure the outcome view cannot give you.</b> Conversion says whether the work came back; this says whether it cost what the group set aside for it. '
           + (variance >= 0
               ? "Engineering came in under the scheduled time across this run."
@@ -2580,7 +2586,9 @@
           $$("[data-person]", $("#teamRows")).forEach(button => {
             const person = people[Number(button.dataset.person)];
             const detail = $(".member-name span", button);
-            if (person && detail) detail.textContent = person.quotes + " opportunities · " + person.orders + " quote wins · " + person.jobs + " booked jobs";
+            // Three long words in a fixed-width column truncated to "2 boo…".
+            // The row header already names what these columns are.
+            if (person && detail) detail.textContent = person.quotes + " quotes · " + person.orders + " wins · " + person.jobs + " jobs";
           });
         }
         const selected = people[state.selectedPerson];

@@ -194,7 +194,10 @@ def main():
     listed = shown["people"]["engineers"]
     total_listed = 0
     for row in listed:
-        m = re.search(r"(\d+) opportunities", row)
+        # The roster row prints "41 quotes · 2 wins · 2 jobs"; it used to read
+        # "41 opportunities". Accept either so a copy edit cannot silently
+        # zero this check.
+        m = re.search(r"(\d+) (?:opportunities|quotes)\b", row)
         if m:
             total_listed += int(m.group(1))
     check("quote-engineer volumes sum to the cohort", len(cohort), total_listed)
