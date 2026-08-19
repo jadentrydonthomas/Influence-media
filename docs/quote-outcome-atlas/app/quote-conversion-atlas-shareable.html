@@ -314,6 +314,18 @@
     /* The detail panel is short and the roster is long; let it follow the list. */
     @media (min-width: 1100px) { .person-card { position: sticky; top: 18px; } }
     .screen-heading h2.is-compact { font-size: clamp(30px, 3.6vw, 48px); }
+    .cmp-head, .cmp-row { display: grid; grid-template-columns: minmax(0,1.5fr) 78px 78px 66px; align-items: center; gap: 10px; }
+    .cmp-head { padding-bottom: 8px; border-bottom: 1.5px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .cmp-head b, .cmp-head span:last-child { text-align: right; }
+    .cmp-head b.is-now { color: var(--green-dark); }
+    .cmp-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .cmp-row span { color: var(--ink); font-size: 11.5px; }
+    .cmp-row i { color: var(--ink-faint); font-family: var(--mono); font-size: 12px; font-style: normal; text-align: right; }
+    .cmp-row b { color: var(--ink); font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; }
+    .cmp-row em { font-family: var(--mono); font-size: 11.5px; font-style: normal; text-align: right; }
+    .cmp-row em.is-up { color: var(--green-dark); }
+    .cmp-row em.is-down { color: var(--red-deep); }
+    .cmp-row em.is-flat { color: var(--ink-faint); }
     .filter-bar { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 13px; border: 1px solid var(--green); background: var(--green-soft); }
     .filter-bar[hidden] { display: none; }
     .filter-lead { color: var(--green-dark); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
@@ -871,6 +883,7 @@
             <button class="control-button" type="button" data-analysis="tons" aria-pressed="false">Booked tons</button>
             <button class="control-button" type="button" data-analysis="bands" aria-pressed="false">Value bands</button>
             <button class="control-button" type="button" data-analysis="districts" aria-pressed="false">Districts</button>
+            <button class="control-button" type="button" data-analysis="compare" aria-pressed="false">Compare</button>
             <button class="control-button" type="button" data-analysis="customers" aria-pressed="false">Customers</button>
           </div>
         </div>
@@ -947,6 +960,7 @@
               <button class="analysis-tab" type="button" data-analysis="tons" aria-pressed="false">Booked tons</button>
               <button class="analysis-tab" type="button" data-analysis="bands" aria-pressed="false">Value bands</button>
               <button class="analysis-tab" type="button" data-analysis="districts" aria-pressed="false">District mix</button>
+              <button class="analysis-tab" type="button" data-analysis="compare" aria-pressed="false">Period compare</button>
               <button class="analysis-tab" type="button" data-analysis="customers" aria-pressed="false">Customer signals</button>
             </div>
             <div class="analysis-body" id="analysisBody"></div>
@@ -1272,7 +1286,12 @@
           if (filters.engineer && normaliseRosterCode(record.engineer) !== filters.engineer) return false;
           if (filters.scheduler && normaliseRosterCode(record.scheduler) !== filters.scheduler) return false;
           if (filters.district && String(record.key || "").split("-")[0] !== filters.district) return false;
-          if (filters.week && nucorWeekLabel(record.week) !== filters.week) return false;
+          if (filters.week) {
+            const years = new Set(state.model.records.filter(item => item.date).map(item => item.date.getFullYear()));
+            const year = record.date ? record.date.getFullYear() : 0;
+            const label = years.size > 1 ? nucorWeekLabel(record.week) + " '" + String(year).slice(2) : nucorWeekLabel(record.week);
+            if (label !== filters.week) return false;
+          }
           if (filters.outcome === "confirmed" && !record.won) return false;
           if (filters.outcome === "unconverted" && record.won) return false;
           if (filters.customer && customerKey(customerName(record.customer)) !== filters.customer) return false;
@@ -1614,6 +1633,45 @@
               + '<div class="segment-split"><h4>By building size</h4><div class="segment-list">' + (sizeData.bands.length ? sizeData.bands.map(band => bandRow(band, false)).join("") : '<div class="analysis-foot">Square-foot values are not populated in this source set.</div>') + "</div></div>"
               + '<div class="analysis-foot"><strong>Read the bar and the number separately:</strong> the bar is how much of the book sits in that band; the number beside it is how much of that band came back. ' + bandData.scored + " of " + data.quotes + ' records carry a price and are scored here.</div>'
             : '<div class="analysis-foot"><strong>No priced quote records in this cohort.</strong> Value banding needs the weekly Price field.</div>';
+        } else if (state.analysis === "compare") {
+          const cmp = data.comparison;
+          title = "Period comparison";
+          description = cmp && !cmp.insufficient
+            ? "The latest " + cmp.granularity + " against the one before it, on the same cohort and filters."
+            : "Comparing one period against the one before it.";
+          if (!cmp || cmp.insufficient) {
+            html = '<div class="analysis-foot"><strong>Only one ' + (cmp ? cmp.granularity : "period") + ' is loaded.</strong> '
+              + 'Comparison needs at least two. Load an earlier set of quote weeks alongside this one and the view fills in — across years it compares year on year, otherwise month on month, otherwise week on week.</div>';
+          } else {
+            const delta = (now, before, invert) => {
+              if (now === null || before === null || before === undefined || now === undefined) return { text: "—", tone: "flat" };
+              if (!before) return { text: "—", tone: "flat" };
+              const change = (now - before) / Math.abs(before) * 100;
+              const good = invert ? change < 0 : change > 0;
+              return { text: (change > 0 ? "+" : "") + change.toFixed(1) + "%", tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down") };
+            };
+            const rows = [
+              { label: "Quotes issued", now: cmp.current.quotes, was: cmp.prior.quotes, fmt: v => opsNumber(v) },
+              { label: "Alternates", now: cmp.current.alts, was: cmp.prior.alts, fmt: v => opsNumber(v) },
+              { label: "Quoted value", now: cmp.current.value, was: cmp.prior.value, fmt: v => money(v / 1000000) },
+              { label: "Quote wins", now: cmp.current.wins, was: cmp.prior.wins, fmt: v => opsNumber(v) },
+              { label: "Conversion", now: cmp.current.conversion, was: cmp.prior.conversion, fmt: v => pct(v) },
+              { label: "Average turnaround", now: cmp.current.turn, was: cmp.prior.turn, fmt: v => v === null ? "—" : v.toFixed(1) + "d", invert: true },
+              { label: "Inside three days", now: cmp.current.withinThree, was: cmp.prior.withinThree, fmt: v => v === null ? "—" : pct(v) },
+              { label: "Met the due date", now: cmp.current.onTime, was: cmp.prior.onTime, fmt: v => v === null ? "—" : pct(v) },
+              { label: "Engineering hours", now: cmp.current.hours, was: cmp.prior.hours, fmt: v => v.toFixed(0), invert: true },
+              { label: "Eng hours per quote", now: cmp.current.hoursPerQuote, was: cmp.prior.hoursPerQuote, fmt: v => v.toFixed(2), invert: true }
+            ];
+            html = '<div class="cmp-head"><span></span><b>' + escape(cmp.priorLabel) + '</b><b class="is-now">' + escape(cmp.currentLabel) + '</b><span>Change</span></div>'
+              + rows.map(row => {
+                  const d = delta(row.now, row.was, row.invert);
+                  return '<div class="cmp-row"><span>' + escape(row.label) + '</span>'
+                    + '<i>' + row.fmt(row.was) + '</i><b>' + row.fmt(row.now) + '</b>'
+                    + '<em class="is-' + d.tone + '">' + d.text + "</em></div>";
+                }).join("")
+              + '<div class="analysis-foot"><strong>Direction is judged, not just signed.</strong> More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. '
+              + cmp.periods + ' ' + cmp.granularity + 's are loaded, so this compares ' + escape(cmp.currentLabel) + ' against ' + escape(cmp.priorLabel) + '.</div>';
+          }
         } else if (state.analysis === "districts") {
           title = "District mix";
           description = "Quote-number prefixes read straight off the quote key, so no district result depends on a roster guess.";
@@ -2668,6 +2726,7 @@
         return {
           name: file.name,
           week: week,
+          year: year,
           records: records,
           roster: roster,
           quality: { correctedDate: correctedDate ? 1 : 0, headerFallbacks: headerFallbacks, fallbackFields: fallbackFields, invalidDateIn: invalidDateIn, droppedRows: droppedRows, onTimeConflicts: onTimeConflicts },
@@ -2894,15 +2953,79 @@
         });
       }
 
+      // Period comparison. Their reports read 2024 against 2025; the same
+      // question at whatever granularity the loaded set supports - year if more
+      // than one is present, otherwise month, otherwise week. Always the latest
+      // period against the one before it, which is what a review asks for.
+      function nucorComparison(records) {
+        const dated = records.filter(record => record.date);
+        if (!dated.length) return null;
+        const years = new Set(dated.map(record => record.date.getFullYear()));
+        const monthKeys = new Set(dated.map(record => record.date.getFullYear() + "-" + String(record.date.getMonth() + 1).padStart(2, "0")));
+        let granularity, keyOf, labelOf;
+        if (years.size > 1) {
+          granularity = "year";
+          keyOf = record => String(record.date.getFullYear());
+          labelOf = key => key;
+        } else if (monthKeys.size > 1) {
+          granularity = "month";
+          keyOf = record => record.date.getFullYear() + "-" + String(record.date.getMonth() + 1).padStart(2, "0");
+          labelOf = key => MONTH_NAMES[Number(key.split("-")[1]) - 1] + " " + key.split("-")[0];
+        } else {
+          granularity = "week";
+          keyOf = record => String(record.week || 0).padStart(3, "0");
+          labelOf = key => "Week " + Number(key);
+        }
+        const buckets = new Map();
+        dated.forEach(record => {
+          const key = keyOf(record);
+          if (!buckets.has(key)) buckets.set(key, []);
+          buckets.get(key).push(record);
+        });
+        const keys = Array.from(buckets.keys()).sort();
+        if (keys.length < 2) return { granularity: granularity, insufficient: true, periods: keys.length };
+        const measure = group => {
+          const turn = nucorTurnaround(group);
+          const engineering = nucorEngineering(group);
+          const scored = group.filter(record => onTimeIsScored(record.onTime));
+          const wins = group.filter(record => record.won);
+          return {
+            quotes: group.length,
+            alts: group.reduce((sum, record) => sum + (Number(record.alts) || 0), 0),
+            value: group.reduce((sum, record) => sum + (Number(record.price) || 0), 0),
+            wins: wins.length,
+            conversion: group.length ? percentage(wins.length, group.length) : 0,
+            turn: turn.average,
+            withinThree: turn.scored ? percentage(turn.withinThree, turn.scored) : null,
+            onTime: scored.length ? percentage(scored.filter(record => onTimeMetDate(record.onTime)).length, scored.length) : null,
+            hours: engineering.totalHours,
+            scheduled: engineering.scheduledHours,
+            hoursPerQuote: engineering.perQuote
+          };
+        };
+        return {
+          granularity: granularity,
+          currentLabel: labelOf(keys[keys.length - 1]),
+          priorLabel: labelOf(keys[keys.length - 2]),
+          periods: keys.length,
+          current: measure(buckets.get(keys[keys.length - 1])),
+          prior: measure(buckets.get(keys[keys.length - 2]))
+        };
+      }
+
       function nucorWeekLabel(week) {
         return "W" + Number(week || 0);
       }
 
       function nucorWeeklySeries(records) {
         const groups = new Map();
+        // With more than one year loaded, "W1" is ambiguous; label it "W1 '25".
+        const years = new Set(records.filter(record => record.date).map(record => record.date.getFullYear()));
+        const multiYear = years.size > 1;
         records.forEach(record => {
-          const key = nucorWeekLabel(record.week);
-          if (!groups.has(key)) groups.set(key, { week: key, sort: Number(record.week || 0), quotes: 0, orders: 0, onTimeHits: 0, onTimeScored: 0, records: [] });
+          const year = record.date ? record.date.getFullYear() : 0;
+          const key = multiYear ? nucorWeekLabel(record.week) + " '" + String(year).slice(2) : nucorWeekLabel(record.week);
+          if (!groups.has(key)) groups.set(key, { week: key, sort: year * 100 + Number(record.week || 0), quotes: 0, orders: 0, onTimeHits: 0, onTimeScored: 0, records: [] });
           const group = groups.get(key);
           group.quotes += 1;
           group.orders += record.won ? 1 : 0;
@@ -3131,7 +3254,8 @@
           altsPerQuote: records.length ? sumNucor(records, record => record.alts) / records.length : 0,
           turn: nucorTurnaround(records),
           engineering: nucorEngineering(records),
-          monthly: nucorMonthlySeries(records)
+          monthly: nucorMonthlySeries(records),
+          comparison: nucorComparison(records)
         };
       }
 
@@ -3162,13 +3286,18 @@
 
       function buildNucorDataset(weekSources, orderSource) {
         if (!weekSources.length) throw new Error("No weekly quote workbooks were read.");
+        // Keyed by year and week. Keying on the week number alone made week 1
+        // of one year collide with week 1 of another, so loading two years to
+        // compare them silently dropped one and reported it as a duplicate.
         const latestByWeek = new Map();
         let duplicateWeeks = 0;
         weekSources.forEach(source => {
-          if (latestByWeek.has(source.week)) duplicateWeeks += 1;
-          latestByWeek.set(source.week, source);
+          const key = (Number(source.year) || 0) + "-" + String(source.week).padStart(3, "0");
+          if (latestByWeek.has(key)) duplicateWeeks += 1;
+          latestByWeek.set(key, source);
         });
-        const sources = Array.from(latestByWeek.values()).sort((a, b) => a.week - b.week || a.name.localeCompare(b.name));
+        const sources = Array.from(latestByWeek.values())
+          .sort((a, b) => (Number(a.year) || 0) - (Number(b.year) || 0) || a.week - b.week || a.name.localeCompare(b.name));
         const roster = mergeNucorRosters(sources);
         const rawRecords = sources.reduce((all, source) => all.concat(source.records), []);
         const records = collapseNucorOpportunities(rawRecords);
