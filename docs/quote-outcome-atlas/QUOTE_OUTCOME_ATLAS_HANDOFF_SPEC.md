@@ -5,10 +5,10 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.0 |
-| **Last revised** | 17 Aug 2026 |
+| **Spec version** | 2.1 |
+| **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
-| **Supersedes** | v1.0 handoff spec and the earlier engineering brief |
+| **Supersedes** | v2.0, the v1.0 handoff spec, and the earlier engineering brief |
 
 > **This document is the contract.** It defines what the dashboard is for, what it must do, how data must be handled, and how future code and design changes are verified. Where this document and any older brief disagree, this document wins — except where [§13 Open questions](#13-open-questions--must-be-resolved-before-replatform) explicitly says a decision is still outstanding.
 
@@ -116,8 +116,15 @@ Stating these prevents well-meant scope drift:
 | **P-12** | Theme integrity | Light and dark themes MUST both work, preserve contrast, and have no broken states. |
 | **P-13** | Brand continuity | The embedded Nucor mark MUST remain in the portable file, embedded — no external image dependency. |
 | **P-14** | Honest coverage | Any metric computed over a subset of records MUST display its denominator and coverage percentage next to the value. See [M-8](#4-metric-definitions-and-formulas). |
+| **P-15** | Trustworthy intake | The opening import screen MUST be blank. It MUST NOT display a previous run, a cached dataset, or sample figures as if they were current source data. Restoring a cache MUST be an explicit, labeled action showing the cached run's date and file list. |
+| **P-16** | One filter path | Every view MUST derive from one filtered record set. Narrowing to a band, district, week, person, outcome or account MUST narrow every screen, every lens, the roster, the quote list and the exported deck at once. A view that filters itself independently is a defect, because two screens can then disagree about which records are being read. |
+| **P-17** | Reachable navigation | Every screen and the export control MUST be reachable at **1366×768** without scrolling the navigation. Compression comes first; scrolling is the fallback, never the norm. |
+| **P-18** | Definitions everywhere | A definitions surface MUST be reachable from every screen, before and after a run, carrying each term's meaning, its source column, and its live value. See [M-25](#8-required-calculations-and-analytics). |
+| **P-19** | Comparison never contaminates | Data loaded for comparison MUST NOT enter the live book. No headline figure may move because a baseline was loaded. See [M-23](#8-required-calculations-and-analytics). |
 
 > **P-14 is new in v2.0** and closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See [Appendix A, A-1](#appendix-a--defect-log).
+>
+> **P-16 to P-19 are new in v2.1.** P-17 closes a defect found by review: the rail was written for five screens, clipped the last two silently once it carried seven, and the screen the user starts on was the one that disappeared.
 
 ---
 
@@ -150,7 +157,7 @@ Every formula below MUST be implemented once, in a shared module, and referenced
 | **M-1** | Quote conversion | `distinct quote wins ÷ distinct quote opportunities` in the active cohort. **MUST NOT** divide booked jobs by quotes. |
 | **M-2** | Won-value capture | `Σ quoted value of opportunities with a linked order ÷ Σ all quoted value` in the active cohort. |
 | **M-3** | Exposure days | `exposure = order_log_cutoff_date − quote_date`, both floored to calendar date, no time component, no timezone conversion. A quote with `exposure ≥ 30` qualifies for the 30+ lens; `≥ 50` for the 50+ lens. |
-| **M-4** | Order-log cutoff | The **latest valid `Order Entry` date** across all selected order logs. A single implausible future date MUST NOT set the cutoff — see [D-13](#73-required-validation-behavior). |
+| **M-4** | Order-log cutoff | The **latest valid `Order Entry` date** across all selected order logs. A single implausible future date MUST NOT set the cutoff — see [D-13](#75-required-validation-behavior). |
 | **M-5** | On-time release | The weekly `On-Time` column is a **three-state** result, verified against `Due` and `Done` on every fixture row with no exceptions: `EARLY` ⇔ Done < Due, `LATE` ⇔ Done > Due, `N/A` ⇔ **Done = Due**. `N/A` means *delivered on the due date*, not *not applicable*. `on-time = count(EARLY or N/A) ÷ count(EARLY or LATE or N/A)`. Only rows carrying no result at all are excluded from both halves. Every row's written result MUST be cross-checked against its own `Due`/`Done` dates; disagreements MUST be counted and surfaced, never assumed away. |
 | **M-6** | Quote-to-order lag | `Order Entry date − quote date` for matched pairs. Report median, p10, p90. Negative lags are invalid and MUST be flagged, not clamped. |
 | **M-7** | Wilson 95% interval | For `p̂ = x/n`, `z = 1.959964`: `centre = (p̂ + z²/2n) / (1 + z²/n)`, `half = z·√(p̂(1−p̂)/n + z²/4n²) / (1 + z²/n)`. Display as `centre ± half`. When `n = 0`, display "no records", never `0%`. |
@@ -341,7 +348,36 @@ Use the **quote-side** Customer field, not only the job-side field. The customer
 
 **M-15** — Account totals MUST reconcile: `repeat customers + first-seen customers = total customer accounts`. This identity is a required property test.
 
-### 8.5 Team insights
+**M-16** — The customer view MUST be able to answer *who asks without booking*, not only *who books*. That means, per account: quotes asked, orders booked, quoted value, returned value, engineering hours consumed, and average turnaround — with a ranking of accounts that asked **at least twice and booked nothing**, ordered by the quoted value that returned as nothing rather than by request count.
+
+**M-17** — Selecting an account MUST narrow every screen, on the same record-set filter path as every other segmentation ([P-16](#2-non-negotiable-product-requirements)).
+
+### 8.5 Lifecycle timing
+
+Three stages, each measured from dates the source already carries, each scored **only** on the records carrying both of its own dates, and each stating that denominator beside itself:
+
+| Stage | From | To | What it means |
+| --- | --- | --- | --- |
+| Produce | `Date In` | `Done` | How long the group took to price the work |
+| Decide | `Done` | order-log entry date | How long the customer took to answer |
+| Whole cycle | `Date In` | order-log entry date | Request to booked work |
+
+- **M-18** — The three stages MUST NOT be presented as summing to one another, and the surface MUST say so. Produce is scored on every quote; decide and whole-cycle only on quotes that booked.
+- **M-19** — A **decision curve** MUST show, of the quotes that eventually booked, the cumulative share that had booked by day 7, 14, 21, 30, 45, 60 and 90 after the quoted week. It is a description of *when* orders arrive, never of *whether* one will — quotes that never booked are not on the curve, and the surface MUST say so.
+- **M-20** — **Open-book ageing** MUST band unconverted quotes by exposure and carry quoted value beside the count. Where the active exposure lens is itself the reason a band is empty, the surface MUST state that rather than let it read as an absence of fresh work.
+- **M-21** — A cumulative calendar MUST plot quotes issued (on their quoted date) against orders booked (on their entry date) **on one axis**, so the space between the two lines is the open book. Dual axes here are a defect: they make the gap arbitrary.
+
+### 8.6 Prior-period comparison
+
+- **M-22** — The dashboard MUST accept an optional prior set of quote weeks, parsed through the same pipeline and joined to the same order source.
+- **M-23** — Prior-period records MUST NOT enter any live scope. Loading a baseline MUST NOT change conversion, quoted value, quote count, or any other headline figure. This is a required regression assertion.
+- **M-24** — The comparison MUST apply the active exposure lens and the active filters to both sides, with one exception: a quoted-week filter has no counterpart in another period and narrows the live side only. The surface MUST say when that has happened.
+
+### 8.7 Definitions surface
+
+- **M-25** — Every term the dashboard displays MUST be reachable from a definitions surface available on **every** screen, carrying (a) what the term is, (b) the source file and column it is measured from, and (c) its live value in the active cohort. A definition without its own denominator is how a number gets misread ([P-14](#2-non-negotiable-product-requirements)).
+
+### 8.8 Team insights
 
 The People view MUST support Quote Engineers, Estimators, and Schedulers, showing name or initials, quote volume, conversion, on-time signal, relative scale, and won value. It MUST stay readable with long names at laptop resolution. Small samples MUST be marked per [M-9](#4-metric-definitions-and-formulas).
 
@@ -404,17 +440,23 @@ The export creates a separate, self-contained HTML slide report presented with a
 
 | # | Slide | Content |
 | --- | --- | --- |
-| 1 | Executive outcome | Conversion, quoted value, confirmed value. |
+| 1 | Executive outcome | Conversion, quoted value, confirmed value, Wilson interval. |
 | 2 | Quote outcome | Confirmed vs unconverted opportunities and value. |
 | 3 | Weekly performance pulse | Quote volume and conversion on separate lanes. |
-| 4 | Quote release timing | On-time definition, result, **and coverage**. |
-| 5 | Commercial continuity | Booked tons, customer continuity, top quote-win customer, repeat/no-linked-win signal. |
-| 6 | Management focus | Concise actions for outcome follow-up, delivery signal, next refresh. |
+| 4 | Value band analysis | Conversion by quoted value band, with each band's own count. |
+| 5 | Quote release timing | On-time definition, result, **and coverage**. |
+| 6 | Customer demand | Quotes asked against orders booked per account; accounts that asked twice or more and booked nothing, by the value that returned as nothing; district mix; booked tons. |
+| 7 | Lifecycle and decision window | The three measured stages, the decision curve, and the ageing of the open book. |
+| 8 | Estimating capacity | Scheduled against actual engineering hours by engineer, with the turnaround mix. |
+| 9 | Review agenda | Highest-value work with no linked order, by quote, owner, exposure and value. |
 
 **Deck requirements**
 
-- **K-1** — Six slides. The counter MUST read `1 / 6` and update correctly. The counter's initial markup MUST be generated from the slide count, never hardcoded. See [Appendix A, A-4](#appendix-a--defect-log).
-- **K-2** — Slide 5 MUST include the top quote-win customer and the repeat/no-linked-win signal. Both are currently missing. See [Appendix A, A-5](#appendix-a--defect-log).
+- **K-1** — The counter MUST be generated from the slide count, never hardcoded, and MUST update correctly. See [Appendix A, A-4](#appendix-a--defect-log).
+- **K-2** — The customer slide MUST carry both halves of the demand question: what came back, and what was asked for repeatedly and never came back. See [Appendix A, A-5](#appendix-a--defect-log).
+- **K-2a** — The deck MUST be generated from the **active exposure cohort and the active filters**, so a deck exported from a narrowed view describes that narrowed view and nothing wider.
+- **K-10** — Layout auditing MUST measure **each slide in turn**. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See [Appendix A, A-19](#appendix-a--defect-log).
+- **K-11** — Text overlap against the fixed navigation MUST be measured on the **text**, not on its container. A running-text block's box starts at the left margin and never reaches the nav, so element-level measurement misses a final line sitting underneath it. See [Appendix A, A-20](#appendix-a--defect-log).
 - **K-3** — Standard, bold, readable fonts; large headings and clear body text. Condensed display faces are permitted for headlines only, per [V-17](#95-type-color-and-spacing).
 - **K-4** — Enough spacing around charts and cards that printing and laptop presentation stay legible.
 - **K-5** — No small faint labels, no condensed unreadable text, no text overlapping decorative treatment.
@@ -654,6 +696,13 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-13** | The deck's on-time disc had its conic arc painted over from both sides — a 15px inset paper shadow from the rim and a `:before` disc from 15px inward — so it always rendered solid and never showed its value. | [V-11](#93-encoding-integrity) | **Fixed** — inset shadow dropped, inner disc pushed to 24px. |
 | **A-16** | Weekly sources were keyed by week number alone, so week 1 of one year collided with week 1 of another. Loading two years to compare them silently discarded one and reported it as a repeated reporting week — in exactly the year-over-year case the estimating reports are built around. | [P-3](#2-non-negotiable-product-requirements), [D-13](#75-required-validation-behavior) | **Fixed** — keyed by year and week; the weekly series buckets and labels the same way. |
 | **A-14** | New segment panels declared their bar track as `var(--surface-2, #eef2ef)`; `--surface-2` does not exist, so the light literal always won and painted a bright track on the dark panel. | [P-12](#2-non-negotiable-product-requirements), [V-22](#96-themes-and-accessibility) | **Fixed** — uses `--surface-soft`; regression asserts the colour differs per theme. |
+| **A-17** | `applyNucorDataset` redrew the dashboard by naming three renderers instead of calling the one entry point, so two screens kept their pre-run empty state after a successful run. Nothing errored; the screens simply said "no records yet" over a loaded book. | [P-4](#2-non-negotiable-product-requirements) | **Fixed** — one `renderAll()` entry point, and every future screen is drawn by adding it there once. |
+| **A-18** | Per-account quoted value is held in millions, and the totals derived from it were divided by a million a second time before display, so an account view reported `$0.0M` against a real `$59.5M`. | [M-3](#4-metric-definitions-and-formulas) | **Fixed** — one unit, converted once at the point it is computed. |
+| **A-19** | The deck layout audit walked every slide at once, but a hidden slide measures as zero, so it only ever checked whichever slide happened to be active and reported a clean bill on the eight it never looked at. | [K-10](#10-team-report-deck-requirements) | **Fixed** — each slide is activated in turn; the audit exits non-zero on any finding. It immediately surfaced two real collisions. |
+| **A-20** | Nav-overlap was measured on element boxes. A running-text callout's box starts at the left margin and never reaches the nav, so a final line of text sitting under the buttons was invisible to the check. | [K-11](#10-team-report-deck-requirements) | **Fixed** — measured with `Range.getClientRects()` on the text itself, with SVG text still checked by element. |
+| **A-21** | The navigation rail was written for five screens and clipped its last two silently once it carried seven, at exactly the 1366×768 the recipient uses — and the screen the user starts on was one of the two that disappeared. | [P-17](#2-non-negotiable-product-requirements), [P-9](#2-non-negotiable-product-requirements) | **Fixed** — the rail compresses below 900px of height and scrolls as a fallback. Making it scrollable exposed a second defect: the decorative corner rings were an absolutely positioned pseudo-element hanging 94px below the rail, which became 94px of phantom scroll. Painted as background rings instead. |
+| **A-22** | The definitions drawer set `display:flex`, which outranks the user-agent `[hidden]` rule, so the closed drawer stayed laid out over the page and swallowed every click on the screen beneath it. | [V-23](#96-themes-and-accessibility) | **Fixed** — an explicit `[hidden]` rule for the drawer and its scrim. |
+| **A-23** | Headline strips drew their dividers as a 1px grid gap over a line-coloured container, so a six-card strip wrapping to two rows painted the empty half of the second row as one solid block of border colour. | [P-8](#2-non-negotiable-product-requirements), [P-12](#2-non-negotiable-product-requirements) | **Fixed** — cell borders instead, so an unfilled grid cell is simply empty. |
 
 ### Confirmed by the real data
 
@@ -665,6 +714,21 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.1 — 19 Aug 2026
+
+**Scope added**
+
+- **Customers is its own screen** ([M-16](#8-required-calculations-and-analytics), [M-17](#8-required-calculations-and-analytics)). The customer requirement previously asked only who books; it now also has to answer who asks repeatedly and books nothing, with the engineering hours those requests consumed and the value that returned as nothing.
+- **Lifecycle timing specified** ([§8.5](#8-required-calculations-and-analytics), [M-18](#8-required-calculations-and-analytics)–[M-21](#8-required-calculations-and-analytics)): three stages measured from source dates, each with its own denominator and an explicit statement that they do not sum; a decision curve that describes *when* orders arrive and never *whether* one will; open-book ageing that says when the exposure lens is itself the reason a band is empty; and a single-axis cumulative calendar, because dual axes would make the gap between quotes and orders arbitrary.
+- **Prior-period comparison specified** ([§8.6](#8-required-calculations-and-analytics), [P-19](#2-non-negotiable-product-requirements)): a baseline is parsed through the same pipeline, kept out of every live scope, and may not move a headline figure.
+- **Definitions surface required on every screen** ([P-18](#2-non-negotiable-product-requirements), [M-25](#8-required-calculations-and-analytics)), carrying each term's source column and its live value.
+- **One filter path made a requirement** ([P-16](#2-non-negotiable-product-requirements)) rather than an implementation detail: every view derives from one filtered record set, so two screens cannot disagree about which records are being read.
+- **Navigation reachability made a requirement** ([P-17](#2-non-negotiable-product-requirements)) at 1366×768, after the rail was found clipping the screen the user starts on.
+- **Deck slide table corrected to the delivered nine slides**, with the customer and timing slides rewritten, and the deck now generated from the active filters as well as the active cohort ([K-2a](#10-team-report-deck-requirements)).
+- **Layout-audit requirements added** ([K-10](#10-team-report-deck-requirements), [K-11](#10-team-report-deck-requirements)) after the existing audit was found to be checking one slide out of nine and measuring container boxes rather than text.
+
+**Defects logged and fixed:** [A-17](#appendix-a--defect-log) through [A-23](#appendix-a--defect-log).
 
 ### v2.0 — 17 Aug 2026
 

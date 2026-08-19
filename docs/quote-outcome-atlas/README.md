@@ -3,10 +3,25 @@
 Offline, single-file management dashboard that turns Nucor Building Systems weekly
 quote books and order-log exports into a quote-to-order outcome view.
 
+Seven screens, all reading one record set:
+
+| # | Screen | The question it answers |
+| --- | --- | --- |
+| 01 | Outcome dashboard | Did the quoted work come back? |
+| 02 | Team performance | Who owned it, and how did their book behave? |
+| 03 | Quote records | What happened to this specific quote? |
+| 04 | Customers | Who asks, and who actually books? |
+| 05 | Timelines | How long does it take to come back? |
+| 06 | Estimating operations | What did the work cost to put out the door? |
+| 07 | Data mapping | Where did every number come from, and what did the source get wrong? |
+
+A **What the numbers mean** drawer opens from any screen with the definition,
+source column and live value of every term.
+
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.0). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.1). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
@@ -20,6 +35,12 @@ quote books and order-log exports into a quote-to-order outcome view.
 | `test/a11y.mjs` | Accessible names, keyboard reach, focus rings, reduced motion. |
 | `test/filters.mjs` | Segmentation: filters narrow every view consistently and clear exactly. |
 | `test/compare.mjs` | Period comparison picks year, month or week granularity correctly. |
+| `test/baseline.mjs` | A loaded prior period compares without moving a single live figure. |
+| `test/review.mjs` | The customer and timeline screens filter, theme, and fit a 1366px laptop. |
+| `test/rail.mjs` | Every navigation item is reachable at five viewport sizes. |
+| `test/sorts.mjs` | Each customer sort changes the question; a filtered deck stays coherent. |
+| `test/glossary.mjs` | The definitions drawer opens before and after a run. |
+| `test/spec-check.mjs` | The markdown and designed spec agree on every requirement ID and version. |
 
 ## Running the regression suite
 
@@ -28,7 +49,7 @@ npm install
 node test/regression.mjs
 ```
 
-33 assertions cover the core outcome figures, the data-quality exceptions, coverage
+48 assertions cover the core outcome figures, the data-quality exceptions, coverage
 labelling, and the exported deck. Spec `T-16` requires these to stay green after any
 change to parsing, joins, ownership, exposure, or metrics.
 
@@ -46,6 +67,12 @@ node test/a11y.mjs          # keyboard, focus, labelling, reduced motion
 node test/first-run.mjs     # what a first-time recipient lands on
 node test/filters.mjs       # segmentation across every view
 node test/compare.mjs       # period comparison at each granularity
+node test/baseline.mjs      # a prior period compares without entering the live book
+node test/review.mjs        # the new screens filter, theme and fit a laptop
+node test/rail.mjs          # navigation reachable at five viewport sizes
+node test/sorts.mjs         # customer sorts, and a deck exported while filtered
+node test/glossary.mjs      # the definitions drawer
+node test/spec-check.mjs    # the two spec documents agree
 ```
 
 `audit.py` reads the workbooks with openpyxl and recomputes every headline figure
@@ -54,17 +81,19 @@ dashboard actually displayed. 28/28 agree across all three exposure lenses.
 
 ## The exported deck
 
-Nine slides, generated from the active exposure cohort:
+Nine slides, generated from the active exposure cohort and the active filters:
 
 1. Executive outcome — conversion, quoted value, confirmed value, Wilson interval
 2. Quote outcome — confirmed vs unconverted, proportional split
 3. Weekly pulse — volume columns above, conversion line below, scales to any span
-4. **Value band analysis** — conversion by quoted value band
+4. Value band analysis — conversion by quoted value band
 5. Release timing — on-time rate with its scored denominator
-6. Commercial continuity — customers, booked tons, district mix
-7. **Speed to order** — quote-to-order lag distribution and booked tons by entry week
-8. **Estimating capacity** — scheduled vs actual engineering hours by engineer, with turnaround
-9. **Review agenda** — highest-value work with no linked order, by quote, owner and value
+6. **Customer demand** — asked against booked per account, and the accounts that
+   asked twice or more and booked nothing
+7. **Lifecycle and decision window** — three measured stages, the decision curve,
+   and the ageing of the open book
+8. Estimating capacity — scheduled vs actual engineering hours by engineer, with turnaround
+9. Review agenda — highest-value work with no linked order, by quote, owner and value
 
 Charts are inline SVG sized from the data. Entrance motion is layered on top of an
 already-correct static state, so a chart still reads if animation never runs, and is
@@ -118,9 +147,54 @@ improvement; longer turnaround and more engineering hours per quote read the oth
 > of one year collide with week 1 of another, so loading two years to compare them
 > silently dropped one and reported it as a repeated reporting week.
 
+## Customers
+
+A screen for account demand. Every account in the loaded book, measured by what it
+asked for against what came back, in one table where the sort changes the question
+rather than adding another table: most quotes, most quoted value, most booked,
+largest unreturned, most engineering time.
+
+It leads with the diagnostic the estimating group cannot get out of its own
+reporting — accounts that asked at least twice and booked nothing, ordered by the
+quoted value that returned as nothing, with the engineering hours those requests
+consumed. Selecting an account narrows the whole dashboard to it.
+
+## Timelines
+
+The book read along a calendar rather than a list, from dates the workbooks already
+carry:
+
+- **Three lifecycle stages** — Date In → Done (producing the quote), Done → order
+  entry (the customer answering), and Date In → booked work. Each is scored on the
+  quotes that carry both of its own dates and states that denominator, and the
+  panel says plainly that the three do not add up.
+- **The decision curve** — of everything that eventually booked, the share that had
+  booked by day 7, 14, 21, 30, 45, 60 and 90. Where it flattens is where waiting
+  stops paying.
+- **The open book, aged** — quotes with no linked order, banded by exposure, with
+  quoted value beside the count. The exposure lens itself empties the young bands,
+  and the panel says so rather than letting it read as "no fresh work".
+- **A calendar** — cumulative quotes issued against cumulative orders booked on one
+  axis, so the space between the lines is the open book itself.
+
+## Prior period
+
+An optional third intake step takes an earlier set of quote weeks. They run through
+the same parser and join the same order source, then stay in their own model: they
+never enter the live scopes, so loading a baseline cannot move a headline figure.
+The **Compare** lens prefers the loaded baseline when there is one, on the same
+exposure lens and the same filters — except a quoted-week filter, which has no
+counterpart in another period and narrows the live side only.
+
+## Definitions
+
+A drawer, reachable from every screen, naming each term, the column or file it is
+measured from, and the live figure it currently holds. A definition that does not
+show its own denominator is how a number gets misread.
+
 ## Estimating operations
 
-A fourth screen carries what the estimating group's own reporting tracks, drawn from
+A screen that carries what the estimating group's own reporting tracks, drawn from
 weekly columns that were parsed but never shown:
 
 - **Alternates** (column G) — quoted work with no separate quote number. 112 sit behind
