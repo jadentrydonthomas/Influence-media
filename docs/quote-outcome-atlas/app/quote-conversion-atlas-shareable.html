@@ -18,6 +18,7 @@
       --green-bright: #00bd57;
       --green-soft: #def4e5;
       --green-dark: #004b26;
+      --green-head: #004b26;
       --red: #bc6847;
       --red-deep: #853b29;
       --red-soft: #fae8e0;
@@ -49,6 +50,7 @@
       --green-bright: #55ec91;
       --green-soft: #143e24;
       --green-dark: #adefc2;
+      --green-head: #0b3f22;
       --red: #ef9873;
       --red-deep: #ffc0aa;
       --red-soft: #432a20;
@@ -358,6 +360,75 @@
     .cmp-row em.is-up { color: var(--green-dark); }
     .cmp-row em.is-down { color: var(--red-deep); }
     .cmp-row em.is-flat { color: var(--ink-faint); }
+    /* Year over year. One shape is used everywhere on this screen so the eye
+       learns it once: the solid green bar is this period, the outlined steel
+       bar under it is the same measure a year ago. */
+    .cmp-banner { margin: 0 0 18px; padding: 15px 18px; border: 1px solid var(--green); border-left-width: 4px; background: linear-gradient(120deg, var(--green-soft), var(--surface) 62%); }
+    .cmp-banner-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 9px; }
+    .cmp-banner-main span, .cmp-banner-main i { color: var(--ink-muted); font-family: var(--display); font-size: 9px; font-style: normal; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .cmp-banner-main strong { color: var(--green-dark); font-family: var(--display); font-size: 17px; letter-spacing: .02em; }
+    .cmp-banner-main strong.is-then { color: var(--steel); }
+    .cmp-banner p { max-width: 96ch; margin: 8px 0 0; color: var(--ink-muted); font-size: 10.5px; line-height: 1.55; }
+    .cmp-banner .analysis-empty { min-height: 88px; border: 0; background: none; }
+    .cmp-kpi u { display: block; margin-top: 4px; font-family: var(--mono); font-size: 12px; font-weight: 600; text-decoration: none; }
+    .cmp-kpi u.is-up { color: var(--green-dark); }
+    .cmp-kpi u.is-down { color: var(--red-deep); }
+    .cmp-kpi u.is-flat { color: var(--ink-faint); }
+    .cmp-kpi.is-up { box-shadow: inset 3px 0 0 var(--green); }
+    .cmp-kpi.is-down { box-shadow: inset 3px 0 0 var(--red); }
+    .cmp-head b.is-then { color: var(--steel); }
+    .cmp-pair { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 62px; grid-template-areas: "label bars delta" "note note note"; align-items: center; gap: 3px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .cmp-pair-label { grid-area: label; overflow: hidden; color: var(--ink); font-size: 11.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .cmp-pair-bars { grid-area: bars; display: grid; gap: 3px; }
+    .cmp-pair > em { grid-area: delta; font-family: var(--mono); font-size: 11.5px; font-style: normal; text-align: right; }
+    .cmp-pair > em.is-up { color: var(--green-dark); }
+    .cmp-pair > em.is-down { color: var(--red-deep); }
+    .cmp-pair > em.is-flat { color: var(--ink-faint); }
+    .cmp-pair > small { grid-area: note; color: var(--ink-faint); font-size: 9.5px; line-height: 1.4; }
+    /* The figure gets its own column rather than trailing the bar, so a bar at
+       full scale cannot push its own label off the end of the row. */
+    .cmp-bar { display: grid; grid-template-columns: minmax(0, 1fr) 66px; align-items: center; gap: 8px; height: 15px; background: linear-gradient(var(--surface-soft), var(--surface-soft)) left center / calc(100% - 74px) 100% no-repeat; }
+    .cmp-bar i { display: block; height: 100%; justify-self: start; }
+    .cmp-bar b { color: var(--ink-muted); font-family: var(--mono); font-size: 10.5px; font-weight: 600; text-align: right; white-space: nowrap; }
+    .cmp-bar.is-now i { background: var(--green); }
+    .cmp-bar.is-now b { color: var(--green-dark); }
+    .cmp-bar.is-then i { background: var(--steel-soft); box-shadow: inset 0 0 0 1px var(--steel); }
+    .cmp-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; color: var(--ink-muted); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .cmp-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .cmp-legend b { display: block; width: 15px; height: 7px; }
+    .cmp-legend b.is-now { background: var(--green); }
+    .cmp-legend b.is-then { background: var(--steel-soft); box-shadow: inset 0 0 0 1px var(--steel); }
+    .cmp-legend b.is-now-won { height: 3px; background: repeating-linear-gradient(90deg, var(--green-bright) 0 5px, transparent 5px 8px); }
+    .cmp-legend b.is-then-won { height: 3px; background: repeating-linear-gradient(90deg, var(--steel) 0 5px, transparent 5px 8px); }
+    .cmp-race { display: block; width: 100%; height: auto; }
+    .cmp-race .grid { stroke: var(--line); stroke-width: 1; }
+    .cmp-race .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
+    .cmp-race path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .cmp-race .race-current { stroke: var(--green); stroke-width: 3; }
+    .cmp-race .race-prior { stroke: var(--steel); stroke-width: 2; }
+    .cmp-race .race-current-won { stroke: var(--green-bright); stroke-width: 2.5; stroke-dasharray: 6 5; }
+    .cmp-race .race-prior-won { stroke: var(--steel); stroke-width: 2; stroke-dasharray: 6 5; opacity: .6; }
+    .cmp-move-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 18px; }
+    .cmp-move { border: 1px solid var(--line); background: var(--surface-soft); }
+    .cmp-move-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 9px 12px; background: var(--green-head); }
+    .cmp-move-head span { color: #ffffff; font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .cmp-move-head b { color: var(--green-bright); font-family: var(--mono); font-size: 13px; }
+    .cmp-move-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name delta" "note note"; gap: 2px 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; cursor: pointer; }
+    .cmp-move-row:last-child { border-bottom: 0; }
+    .cmp-move-row:hover { background: var(--surface); }
+    .cmp-move-row:focus-visible { background: var(--surface); outline: 2px solid var(--green); outline-offset: -2px; }
+    .cmp-move-row b { grid-area: name; overflow: hidden; color: var(--ink); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+    .cmp-move-row em { grid-area: delta; font-family: var(--mono); font-size: 11.5px; font-style: normal; white-space: nowrap; }
+    .cmp-move-row span { grid-area: note; color: var(--ink-faint); font-size: 9.5px; line-height: 1.4; }
+    .cmp-move-row.is-good { border-left-color: var(--green); }
+    .cmp-move-row.is-good em { color: var(--green-dark); }
+    .cmp-move-row.is-bad { border-left-color: var(--red); }
+    .cmp-move-row.is-bad em { color: var(--red-deep); }
+    .cmp-move-row.is-new { border-left-color: var(--green-bright); }
+    .cmp-move-row.is-new em { color: var(--green-dark); }
+    .cmp-move-row.is-lapsed { border-left-color: var(--amber); }
+    .cmp-move-row.is-lapsed em { color: var(--amber); }
+    .cmp-move .ops-note { margin: 0; padding: 12px; }
     .filter-bar { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 13px; border: 1px solid var(--green); background: var(--green-soft); }
     .filter-bar[hidden] { display: none; }
     .filter-lead { color: var(--green-dark); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
@@ -933,8 +1004,24 @@
     .intake-head .eyebrow { color: #a4ddb2; }
     .intake-head h3 { max-width: 360px; margin: 7px 0 0; color: #fff; font-family: var(--display); font-size: 37px; letter-spacing: -.02em; line-height: .87; text-transform: uppercase; }
     .intake-head p { max-width: 265px; margin: 0; color: rgba(239,248,240,.62); font-size: 10px; line-height: 1.45; text-align: right; }
-    .intake-steps { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) 30px minmax(0,1fr) 30px minmax(0,1fr); gap: 0; align-items: stretch; margin-top: 22px; }
-    @media (max-width: 1180px) { .intake-steps { grid-template-columns: 1fr; } .intake-divider { display: none; } }
+    .intake-steps { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) 38px minmax(0,1fr); gap: 0; align-items: stretch; margin-top: 22px; }
+    @media (max-width: 900px) { .intake-steps { grid-template-columns: 1fr; } .intake-divider { display: none; } }
+
+    /* The prior period is an addition, not a third of the job, so it sits under
+       the run console as one compact bar rather than as an equal column. */
+    .prior-bar { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1.35fr) auto minmax(150px,.5fr); gap: 14px 20px; align-items: center; margin-top: 14px; padding: 14px 16px; border: 1px dotted rgba(222,247,228,.3); background: rgba(255,255,255,.03); transition: border-color 180ms var(--ease), background 180ms var(--ease); }
+    .prior-bar[data-state="ready"] { border-style: solid; border-color: rgba(83,231,142,.55); background: rgba(0,189,87,.08); }
+    .prior-bar[data-state="error"] { border-style: solid; border-color: rgba(239,152,115,.7); background: rgba(188,104,71,.1); }
+    .prior-bar[data-state="drag"] { border-color: var(--green-bright); background: rgba(0,189,87,.12); }
+    .prior-tag { display: inline-block; margin-bottom: 5px; padding: 2px 7px; border: 1px solid rgba(224,247,229,.3); color: #cbf1d3; font-family: var(--display); font-size: 8px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .prior-head h4 { margin: 0; color: #fff; font-family: var(--display); font-size: 15px; letter-spacing: .03em; text-transform: uppercase; }
+    .prior-head p { margin: 6px 0 0; max-width: 62ch; color: rgba(238,248,240,.6); font-size: 11px; line-height: 1.5; }
+    .prior-inputs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .prior-add { display: inline-flex; align-items: center; padding: 8px 12px; border: 1px solid rgba(233,248,236,.34); color: #f7fff8; font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: border-color 180ms var(--ease), background 180ms var(--ease); }
+    .prior-add:hover { border-color: var(--green-bright); background: rgba(0,189,87,.14); }
+    .prior-status strong { display: block; color: #eefaf0; font-family: var(--mono); font-size: 11px; }
+    .prior-status span { display: block; margin-top: 3px; color: rgba(235,248,237,.45); font-family: var(--mono); font-size: 9.5px; overflow-wrap: anywhere; }
+    @media (max-width: 900px) { .prior-bar { grid-template-columns: 1fr; } }
     /* The prior period is optional, and reads that way until something is in it. */
     .intake-step.is-optional[data-state="empty"] { border-style: dotted; opacity: .78; }
     .intake-step { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 185px; padding: 15px; border: 1px dashed rgba(222,247,228,.27); background: rgba(255,255,255,.028); transition: border-color 180ms var(--ease), background 180ms var(--ease), transform 180ms var(--ease); }
@@ -1120,7 +1207,8 @@
         <button type="button" data-screen="people" data-number="02" aria-current="false">Team performance</button>
         <button type="button" data-screen="customers" data-number="03" aria-current="false">Customers</button>
         <button type="button" data-screen="timeline" data-number="04" aria-current="false">Timelines</button>
-        <button type="button" data-screen="data" data-number="05" aria-current="false">Data mapping</button>
+        <button type="button" data-screen="compare" data-number="05" aria-current="false" hidden>Year over year</button>
+        <button type="button" data-screen="data" data-number="06" aria-current="false">Data mapping</button>
       </nav>
       <div class="rail-bottom">
         <button class="review-mode" id="reviewMode" type="button">Export team report deck</button>
@@ -1358,6 +1446,41 @@
         </section>
       </section>
 
+      <section class="screen" id="compare" aria-labelledby="compareTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">Year over year</div><h2 id="compareTitle" class="is-compact">The same weeks, <em>a year apart.</em></h2></div>
+          <p id="compareIntro">A prior period is loaded and measured through the same pipeline. Everything on this screen reads the weeks the two periods share, on the active exposure lens and the active filters &mdash; so a difference here is a difference in the work, not in what was uploaded.</p>
+        </div>
+        <section class="cmp-banner" id="compareBanner" aria-live="polite"></section>
+        <section class="ops-kpis" id="compareKpis" aria-label="Year over year headline figures"></section>
+        <section class="panel" aria-labelledby="cmpTableTitle">
+          <div class="panel-head"><span class="ops-step">01 &middot; The headline</span><h2 id="cmpTableTitle">Every measure, both periods</h2><p>Direction is judged rather than signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way.</p></div>
+          <div class="ops-body" id="cmpTable"></div>
+        </section>
+        <section class="panel" aria-labelledby="cmpWeekTitle">
+          <div class="panel-head"><span class="ops-step">02 &middot; Week by week</span><h2 id="cmpWeekTitle">Which weeks moved</h2><p id="cmpWeekNote"></p></div>
+          <div class="ops-body" id="cmpWeeks"></div>
+        </section>
+        <section class="panel" aria-labelledby="cmpRaceTitle">
+          <div class="panel-head"><span class="ops-step">03 &middot; The race</span><h2 id="cmpRaceTitle">Ahead or behind, at the same point</h2><p>Quoted value and returned value accumulating week by week in both periods. The gap between the pairs at any week is how far ahead or behind this period is at that point &mdash; not at the end.</p></div>
+          <div class="ops-body" id="cmpRace"></div>
+        </section>
+        <div class="ops-pair">
+          <section class="panel ops-panel" aria-labelledby="cmpBandTitle">
+            <div class="panel-head"><span class="ops-step">04 &middot; The mix</span><h2 id="cmpBandTitle">Where the work moved</h2><p>Quoted value by band, both periods. A book that is the same size can still be a different book.</p></div>
+            <div class="ops-body" id="cmpBands"></div>
+          </section>
+          <section class="panel ops-panel" aria-labelledby="cmpPeopleTitle">
+            <div class="panel-head"><span class="ops-step">05 &middot; Who carried it</span><h2 id="cmpPeopleTitle">Load and return by person</h2><p id="cmpPeopleNote"></p></div>
+            <div class="ops-body" id="cmpPeople"></div>
+          </section>
+        </div>
+        <section class="panel" aria-labelledby="cmpCustTitle">
+          <div class="panel-head"><span class="ops-step">06 &middot; Accounts</span><h2 id="cmpCustTitle">Who grew, who shrank, who stopped asking</h2><p id="cmpCustNote"></p></div>
+          <div class="ops-body" id="cmpCustomers"></div>
+        </section>
+      </section>
+
       <section class="screen" id="data" aria-labelledby="dataTitle">
         <div class="screen-heading">
           <div><div class="eyebrow">Data mapping</div><h2 id="dataTitle">A dashboard that<br />survives the <em>spreadsheet.</em></h2></div>
@@ -1380,18 +1503,23 @@
                 <label class="source-add" for="orderFiles">Add order logs</label><input class="file-input" id="orderFiles" type="file" accept=".xlsm,.xlsx,.csv" multiple />
                 <div class="source-status" aria-live="polite"><strong id="orderStatus">Awaiting order logs</strong><span id="orderFileName">One or more source files required</span></div>
               </article>
-              <div class="intake-divider" aria-hidden="true"><span>&rarr;</span></div>
-              <article class="intake-step is-optional" id="priorStage" data-state="empty">
-                <div class="intake-step-head"><span class="intake-step-number">03</span><span>Optional</span></div>
-                <h4>Prior period</h4><p>Last year&rsquo;s quote weeks, for comparison only. They are measured separately and never added to the live conversion figures. Add the matching order log above so their orders link too.</p>
-                <label class="source-add" for="priorFiles">Add prior quote weeks</label><input class="file-input" id="priorFiles" type="file" accept=".xlsm,.xlsx,.csv" multiple />
-                <div class="source-status" aria-live="polite"><strong id="priorStatus">No prior period loaded</strong><span id="priorFileNames">Optional &mdash; feeds the Compare lens</span></div>
-              </article>
             </div>
+            <div class="run-console">            </div>
             <div class="run-console">
               <button class="run-dashboard" id="runDashboard" type="button" disabled><span id="runButtonLabel">Run dashboard</span><small id="runButtonHelp">Join quote and order records, then refresh every visible metric.</small></button>
               <div class="run-status" id="runStatus" aria-live="polite"><span id="runStatusTitle">Source set incomplete</span><strong id="runStatusCopy">Add at least one quote-week file and one or more order-log exports to enable the run.</strong></div>
             </div>
+            <section class="prior-bar" id="priorStage" data-state="empty" aria-labelledby="priorBarTitle">
+              <div class="prior-head">
+                <div><span class="prior-tag">Optional</span><h4 id="priorBarTitle">Add a prior period to compare against</h4></div>
+                <p>Last year&rsquo;s quote weeks and its own order log. They are measured separately and never added to the live figures &mdash; they open a year-over-year screen and a chapter in the exported deck.</p>
+              </div>
+              <div class="prior-inputs">
+                <label class="prior-add" for="priorFiles">Prior quote weeks<input class="file-input" id="priorFiles" type="file" accept=".xlsm,.xlsx" multiple /></label>
+                <label class="prior-add" for="priorOrderFiles">Prior order logs<input class="file-input" id="priorOrderFiles" type="file" accept=".xlsm,.xlsx,.csv" multiple /></label>
+              </div>
+              <div class="prior-status" aria-live="polite"><strong id="priorStatus">No prior period loaded</strong><span id="priorFileNames">Optional</span></div>
+            </section>
           </section>
           <aside class="mapping-panel">
             <section class="mapping-card"><h3>Weekly quote fields</h3><p>Five weekday sheets are read. Column B Quote No. creates the opportunity key; columns M Engineer and N Estimator own the team credit. Revisions collapse to one opportunity.</p><div class="field-chips"><span class="field-chip">quote no.</span><span class="field-chip">ver.</span><span class="field-chip">customer</span><span class="field-chip">schr</span><span class="field-chip">engr.</span><span class="field-chip">est</span><span class="field-chip">act hrs</span><span class="field-chip">on-time</span><span class="field-chip">price</span></div></section>
@@ -1407,7 +1535,7 @@
   <script>
     (() => {
       const app = document.getElementById("app");
-      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, baseline: null, intake: { quoteFiles: [], orderFiles: [], priorFiles: [], quoteError: "", orderError: "", priorError: "", running: false, hasRun: false, feedback: null } };
+      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, baseline: null, intake: { quoteFiles: [], orderFiles: [], priorFiles: [], priorOrderFiles: [], quoteError: "", orderError: "", priorError: "", running: false, hasRun: false, feedback: null } };
       const scopes = {
         all: {
           label: "Full quote book", title: "The complete conversion picture.", period: "W1—W10", quotes: 614, quoteValue: 461, orders: 40, orderValue: 25, unconverted: 574, unconvertedValue: 436,
@@ -1528,6 +1656,13 @@
       const $ = (selector, parent = document) => parent.querySelector(selector);
       const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
       const money = value => "$" + (value < 1 ? value.toFixed(1) : value.toFixed(value % 1 ? 1 : 0)) + "M";
+      // Millions, but readable below a million: an average quote of $850k
+      // says something that "$0.9M" does not.
+      const fineMoney = value => {
+        const amount = Number(value) || 0;
+        const size = Math.abs(amount);
+        return (amount < 0 ? "-" : "") + (size >= 1 ? money(size) : "$" + Math.round(size * 1000) + "k");
+      };
       const tons = value => new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(Number(value) || 0);
       const pct = value => Number(value).toFixed(1) + "%";
       const escape = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
@@ -1644,6 +1779,7 @@
         renderCustomers();
         renderTimeline();
         renderTeamLoad();
+        renderCompare();
         renderFilterBar();
       }
 
@@ -1742,6 +1878,217 @@
           noOverlap: shared.length === 0,
           current: periodMeasure(liveRecords),
           prior: periodMeasure(priorRecords)
+        };
+      }
+
+      // ---- Year over year ----------------------------------------------------
+      // One model behind the comparison screen and the comparison chapter of the
+      // deck, so the two can never disagree. Everything here is measured on the
+      // weeks the two periods share: a period with ten weeks loaded against one
+      // with three is a difference in what was uploaded, not in demand.
+      function buildYearComparison() {
+        const baseline = state.baseline;
+        if (!baseline || !baseline.model || !state.model) return { ready: false };
+        const meta = SCOPE_META[state.scope] || SCOPE_META.mature;
+        const priorScope = baseline.model.scopes[state.scope] || baseline.model.scopes.all;
+        const liveScope = scopes[state.scope] || scopes.all;
+        if (!priorScope || !priorScope.records || !priorScope.records.length) return { ready: false };
+
+        // Filters apply to both sides so the comparison follows the dashboard,
+        // except a quoted-week filter, which has no counterpart in another year.
+        const week = state.filters.week;
+        state.filters.week = "";
+        let liveRecords, priorRecords;
+        try {
+          liveRecords = filterRecords(liveScope.records || []);
+          priorRecords = filterRecords(priorScope.records);
+        } finally { state.filters.week = week; }
+
+        const weekOf = record => Number(record.week) || 0;
+        const liveWeeks = new Set(liveRecords.map(weekOf).filter(Boolean));
+        const priorWeeks = new Set(priorRecords.map(weekOf).filter(Boolean));
+        const shared = Array.from(liveWeeks).filter(number => priorWeeks.has(number)).sort((a, b) => a - b);
+        const aligned = shared.length > 0;
+        if (aligned) {
+          const keep = new Set(shared);
+          liveRecords = liveRecords.filter(record => keep.has(weekOf(record)));
+          priorRecords = priorRecords.filter(record => keep.has(weekOf(record)));
+        }
+        if (!liveRecords.length || !priorRecords.length) return { ready: false, empty: true, priorLabel: baseline.label };
+
+        const measure = records => {
+          const summary = nucorSummary(records);
+          const line = nucorTimeline(records, null);
+          return {
+            quotes: summary.quotes,
+            alts: summary.alts,
+            value: summary.quoteValue,
+            wins: summary.orders,
+            jobs: summary.jobs,
+            wonValue: summary.orderValue,
+            conversion: summary.conversion,
+            valueCapture: summary.valueCapture,
+            onTime: summary.onTimeScored ? summary.onTime : null,
+            turn: summary.turn.average,
+            withinThree: summary.turn.scored ? percentage(summary.turn.withinThree, summary.turn.scored) : null,
+            hours: summary.hours,
+            hoursPerQuote: summary.hoursPerQuote,
+            tons: summary.bookedTons,
+            averageQuote: summary.quotes ? summary.quoteValue / summary.quotes : 0,
+            produce: line.produce.median,
+            decide: line.decide.median,
+            accounts: summary.customers ? 0 : 0
+          };
+        };
+        const current = measure(liveRecords);
+        const prior = measure(priorRecords);
+
+        // Week by week, on the shared week numbers only.
+        const weekRow = number => {
+          const live = liveRecords.filter(record => weekOf(record) === number);
+          const before = priorRecords.filter(record => weekOf(record) === number);
+          return {
+            week: number,
+            label: nucorWeekLabel(number),
+            current: { quotes: live.length, value: sumNucor(live, r => r.price) / 1000000, wins: live.filter(r => r.won).length,
+              conversion: live.length ? percentage(live.filter(r => r.won).length, live.length) : 0,
+              wonValue: sumNucor(live.filter(r => r.won), r => r.price) / 1000000 },
+            prior: { quotes: before.length, value: sumNucor(before, r => r.price) / 1000000, wins: before.filter(r => r.won).length,
+              conversion: before.length ? percentage(before.filter(r => r.won).length, before.length) : 0,
+              wonValue: sumNucor(before.filter(r => r.won), r => r.price) / 1000000 }
+          };
+        };
+        const weekly = (aligned ? shared : Array.from(new Set(Array.from(liveWeeks).concat(Array.from(priorWeeks)))).sort((a, b) => a - b)).map(weekRow);
+        let runningCurrent = 0, runningPrior = 0, runningCurrentWins = 0, runningPriorWins = 0;
+        const cumulative = weekly.map(row => {
+          runningCurrent += row.current.value;
+          runningPrior += row.prior.value;
+          runningCurrentWins += row.current.wonValue;
+          runningPriorWins += row.prior.wonValue;
+          return { label: row.label, current: runningCurrent, prior: runningPrior, currentWon: runningCurrentWins, priorWon: runningPriorWins };
+        });
+
+        // Where the mix moved.
+        const liveBands = deckValueBands(liveRecords).bands;
+        const priorBands = deckValueBands(priorRecords).bands;
+        const bandLabels = Array.from(new Set(liveBands.map(band => band.label).concat(priorBands.map(band => band.label))));
+        const blankBand = { quotes: 0, wins: 0, value: 0, wonValue: 0, conversion: 0 };
+        const bands = bandLabels.map(label => ({
+          label: label,
+          current: liveBands.find(band => band.label === label) || blankBand,
+          prior: priorBands.find(band => band.label === label) || blankBand
+        }));
+
+        // Which accounts grew, shrank, arrived, or stopped asking.
+        const accountMap = records => {
+          const map = new Map();
+          records.forEach(record => {
+            const name = customerName(record.customer);
+            const key = customerKey(name);
+            if (!key) return;
+            if (!map.has(key)) map.set(key, { key: key, name: name, quotes: 0, value: 0, wins: 0, wonValue: 0 });
+            const entry = map.get(key);
+            entry.quotes += 1;
+            entry.value += Number(record.price) || 0;
+            if (record.won) { entry.wins += 1; entry.wonValue += Number(record.price) || 0; }
+          });
+          return map;
+        };
+        const liveAccounts = accountMap(liveRecords);
+        const priorAccounts = accountMap(priorRecords);
+        const movement = [];
+        liveAccounts.forEach((entry, key) => {
+          const before = priorAccounts.get(key);
+          movement.push({
+            key: key, name: entry.name,
+            current: entry,
+            prior: before || { quotes: 0, value: 0, wins: 0, wonValue: 0 },
+            state: before ? "both" : "new",
+            valueChange: (entry.value - (before ? before.value : 0)) / 1000000
+          });
+        });
+        priorAccounts.forEach((entry, key) => {
+          if (liveAccounts.has(key)) return;
+          movement.push({
+            key: key, name: entry.name,
+            current: { quotes: 0, value: 0, wins: 0, wonValue: 0 },
+            prior: entry, state: "lapsed",
+            valueChange: -entry.value / 1000000
+          });
+        });
+        const customers = {
+          both: movement.filter(item => item.state === "both").length,
+          arrived: movement.filter(item => item.state === "new"),
+          lapsed: movement.filter(item => item.state === "lapsed"),
+          grown: movement.filter(item => item.state === "both" && item.valueChange > 0).sort((a, b) => b.valueChange - a.valueChange),
+          shrunk: movement.filter(item => item.state === "both" && item.valueChange < 0).sort((a, b) => a.valueChange - b.valueChange),
+          movement: movement
+        };
+
+        // Who carried the work, both years.
+        const roleField = state.role === "estimators" ? "estimator" : state.role === "schedulers" ? "scheduler" : "engineer";
+        const peopleMap = records => {
+          const map = new Map();
+          records.forEach(record => {
+            const code = normaliseRosterCode(record[roleField]);
+            if (!map.has(code)) map.set(code, { code: code, quotes: 0, wins: 0, value: 0, hours: 0 });
+            const entry = map.get(code);
+            entry.quotes += 1;
+            entry.hours += Number(record.hours) || 0;
+            entry.value += Number(record.price) || 0;
+            if (record.won) entry.wins += 1;
+          });
+          return map;
+        };
+        const livePeople = peopleMap(liveRecords);
+        const priorPeople = peopleMap(priorRecords);
+        const blankPerson = { quotes: 0, wins: 0, value: 0, hours: 0 };
+        const people = Array.from(new Set(Array.from(livePeople.keys()).concat(Array.from(priorPeople.keys()))))
+          .filter(code => code !== "(none)")
+          .map(code => ({
+            code: code,
+            name: resolvedNucorPerson(code, state.model && state.model.roster).name,
+            current: livePeople.get(code) || blankPerson,
+            prior: priorPeople.get(code) || blankPerson
+          }))
+          .sort((a, b) => (b.current.quotes + b.prior.quotes) - (a.current.quotes + a.prior.quotes));
+
+        const weekSpan = numbers => !numbers.length ? "" : numbers.length === 1 ? "week " + numbers[0]
+          : "weeks " + numbers[0] + "–" + numbers[numbers.length - 1];
+
+        // Both sides are named by their year wherever the two years differ.
+        // A legend reading "2026" against "2025" is read at a glance; one
+        // reading "W1–W3" against "W1–W2" has to be worked out, and if someone
+        // loads a prior set from the same year the years stop telling them
+        // apart, so the wording falls back to this period against the prior one.
+        const liveYears = Array.from(new Set((state.model.records || [])
+          .filter(record => record.date).map(record => record.date.getFullYear()))).sort();
+        const liveYearLabel = liveYears.length === 1 ? String(liveYears[0])
+          : liveYears.length ? liveYears[0] + "–" + liveYears[liveYears.length - 1] : "";
+        const priorYearLabel = baseline.shortLabel || "";
+        const yearsDiffer = Boolean(liveYearLabel) && Boolean(priorYearLabel) && liveYearLabel !== priorYearLabel;
+        return {
+          ready: true,
+          currentLabel: (yearsDiffer ? liveYearLabel + " (" + liveScope.period + ")" : liveScope.period),
+          priorLabel: yearsDiffer ? baseline.label : "the prior period (" + (baseline.model.scopes.all.period || "") + ")",
+          currentShort: yearsDiffer ? liveYearLabel : "This period",
+          priorShort: yearsDiffer ? priorYearLabel : "Prior",
+          lens: meta.label,
+          ownOrders: Boolean(baseline.ownOrders),
+          aligned: aligned,
+          alignedOn: weekSpan(shared),
+          matchedWeeks: shared.length,
+          liveExcluded: liveWeeks.size - (aligned ? shared.length : 0),
+          priorExcluded: priorWeeks.size - (aligned ? shared.length : 0),
+          weekFilterIgnored: Boolean(week),
+          current: current,
+          prior: prior,
+          weekly: weekly,
+          cumulative: cumulative,
+          bands: bands,
+          customers: customers,
+          people: people,
+          roleLabel: state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer"
         };
       }
 
@@ -2231,6 +2578,199 @@
                 + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + item.quotes + " quotes</small></div>";
             }).join("") + "</div>"
           + '<div class="cap-full">' + loadTable + "</div>";
+      }
+
+      // ---- Year over year ----------------------------------------------------
+      const cmpDelta = (now, before, invert) => {
+        if (now === null || before === null || now === undefined || before === undefined) return { text: "—", tone: "flat" };
+        if (!before) return { text: now ? "new" : "—", tone: now ? (invert ? "down" : "up") : "flat" };
+        const change = (now - before) / Math.abs(before) * 100;
+        const good = invert ? change < 0 : change > 0;
+        return { text: (change > 0 ? "+" : "") + change.toFixed(1) + "%", tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down") };
+      };
+
+      // Two bars on one scale, one row. Used everywhere on this screen so the
+      // eye learns the shape once: the top bar is this period, the bar under it
+      // is the same measure a year ago.
+      function cmpPairRow(label, currentValue, priorValue, max, format, note, invert) {
+        const delta = cmpDelta(currentValue, priorValue, invert);
+        const width = value => max ? Math.max(value > 0 ? 1.5 : 0, Math.min(100, value / max * 100)) : 0;
+        return '<div class="cmp-pair"><span class="cmp-pair-label">' + escape(label) + "</span>"
+          + '<div class="cmp-pair-bars">'
+          + '<div class="cmp-bar is-now"><i style="width:' + width(currentValue).toFixed(1) + '%"></i><b>' + format(currentValue) + "</b></div>"
+          + '<div class="cmp-bar is-then"><i style="width:' + width(priorValue).toFixed(1) + '%"></i><b>' + format(priorValue) + "</b></div>"
+          + "</div>"
+          + '<em class="is-' + delta.tone + '">' + delta.text + "</em>"
+          + (note ? "<small>" + escape(note) + "</small>" : "") + "</div>";
+      }
+
+      function renderCompare() {
+        const nav = $('[data-screen="compare"]');
+        const data = buildYearComparison();
+        if (nav) nav.hidden = !state.baseline;
+        if (!state.baseline) {
+          if (state.screen === "compare") setScreen("overview");
+          return;
+        }
+        if (!data.ready) {
+          $("#compareBanner").innerHTML = '<div class="analysis-empty"><div><b>Nothing to compare on this lens</b><span>'
+            + (data.empty ? "The prior period is loaded, but no record on either side survives the active filters." : "The prior period holds no record at this exposure lens. Switch to the full quote book to read it.")
+            + "</span></div></div>";
+          ["#compareKpis", "#cmpTable", "#cmpWeeks", "#cmpRace", "#cmpBands", "#cmpPeople", "#cmpCustomers"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          return;
+        }
+
+        // ---- What is being compared, said before anything is compared --------
+        $("#compareBanner").innerHTML = '<div class="cmp-banner-main"><span>Comparing</span><strong>' + escape(data.currentLabel)
+          + '</strong><i>against</i><strong class="is-then">' + escape(data.priorLabel) + "</strong></div>"
+          + '<p>' + (data.aligned
+              ? "Matched on " + escape(data.alignedOn) + ", present in both periods"
+                + (data.priorExcluded ? " — " + data.priorExcluded + " prior week" + (data.priorExcluded === 1 ? "" : "s") + " left out" : "")
+                + (data.liveExcluded ? (data.priorExcluded ? ", and " : " — ") + data.liveExcluded + " live week" + (data.liveExcluded === 1 ? "" : "s") + " likewise" : "")
+                + "."
+              : "The two periods share no week numbers, so this compares whole period against whole period. Load the matching weeks from each year for a like-for-like read.")
+          + " " + escape(data.lens) + " lens, measured inside each period against that period's own last day, so both sides answer the same question about their own quotes."
+          + (data.ownOrders ? " The prior period was joined to its own order log." : " The prior period was joined to this period's order log, so its conversion is only as complete as that file — add a prior order log for a true read.")
+          + (data.weekFilterIgnored ? " The quoted-week filter narrows this period only, since a week number has no counterpart in another year." : "")
+          + "</p>";
+
+        // ---- Headline --------------------------------------------------------
+        const kpi = (label, now, before, format, invert, note) => {
+          const delta = cmpDelta(now, before, invert);
+          return '<article class="ops-kpi cmp-kpi is-' + delta.tone + '"><span>' + escape(label) + "</span>"
+            + "<strong>" + format(now) + "</strong>"
+            + '<u class="is-' + delta.tone + '">' + delta.text + "</u>"
+            + "<small>" + format(before) + " a year ago" + (note ? " · " + escape(note) : "") + "</small></article>";
+        };
+        $("#compareKpis").innerHTML =
+          kpi("Quotes issued", data.current.quotes, data.prior.quotes, opsNumber)
+          + kpi("Quoted value", data.current.value, data.prior.value, money)
+          + kpi("Quote wins", data.current.wins, data.prior.wins, opsNumber)
+          + kpi("Conversion", data.current.conversion, data.prior.conversion, pct)
+          + kpi("Value returned", data.current.wonValue, data.prior.wonValue, money)
+          + kpi("Average turnaround", data.current.turn, data.prior.turn, value => value === null ? "—" : value.toFixed(1) + "d", true);
+
+        // ---- 01 The headline table -------------------------------------------
+        const rows = [
+          { label: "Quotes issued", now: data.current.quotes, was: data.prior.quotes, fmt: opsNumber },
+          { label: "Alternates", now: data.current.alts, was: data.prior.alts, fmt: opsNumber },
+          { label: "Quoted value", now: data.current.value, was: data.prior.value, fmt: money },
+          { label: "Average quote", now: data.current.averageQuote, was: data.prior.averageQuote, fmt: fineMoney },
+          { label: "Quote wins", now: data.current.wins, was: data.prior.wins, fmt: opsNumber },
+          { label: "Booked jobs", now: data.current.jobs, was: data.prior.jobs, fmt: opsNumber },
+          { label: "Conversion", now: data.current.conversion, was: data.prior.conversion, fmt: pct },
+          { label: "Value returned", now: data.current.wonValue, was: data.prior.wonValue, fmt: money },
+          { label: "Value capture", now: data.current.valueCapture, was: data.prior.valueCapture, fmt: pct },
+          { label: "Booked tons", now: data.current.tons, was: data.prior.tons, fmt: value => value ? tons(value) : "—" },
+          { label: "Met the due date", now: data.current.onTime, was: data.prior.onTime, fmt: value => value === null ? "not scored" : pct(value) },
+          { label: "Average turnaround", now: data.current.turn, was: data.prior.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
+          { label: "Inside three days", now: data.current.withinThree, was: data.prior.withinThree, fmt: value => value === null ? "—" : pct(value) },
+          { label: "Median time to price", now: data.current.produce, was: data.prior.produce, fmt: value => value === null ? "—" : dayText(value), invert: true },
+          { label: "Median decision time", now: data.current.decide, was: data.prior.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
+          { label: "Engineering hours", now: data.current.hours, was: data.prior.hours, fmt: value => value.toFixed(0), invert: true },
+          { label: "Hours per quote", now: data.current.hoursPerQuote, was: data.prior.hoursPerQuote, fmt: value => value.toFixed(2), invert: true }
+        ];
+        $("#cmpTable").innerHTML = '<div class="cmp-head"><span></span><b class="is-then">' + escape(data.priorShort) + '</b><b class="is-now">' + escape(data.currentShort) + "</b><span>Change</span></div>"
+          + rows.map(row => {
+              const delta = cmpDelta(row.now, row.was, row.invert);
+              return '<div class="cmp-row"><span>' + escape(row.label) + "</span>"
+                + "<i>" + row.fmt(row.was) + "</i><b>" + row.fmt(row.now) + "</b>"
+                + '<em class="is-' + delta.tone + '">' + delta.text + "</em></div>";
+            }).join("");
+
+        // ---- 02 Week by week --------------------------------------------------
+        const weekMax = Math.max(1, ...data.weekly.map(row => Math.max(row.current.quotes, row.prior.quotes)));
+        const valueMax = Math.max(0.0001, ...data.weekly.map(row => Math.max(row.current.value, row.prior.value)));
+        $("#cmpWeeks").innerHTML = '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + "</span><span><b class=\"is-then\"></b>" + escape(data.priorShort) + "</span></div>"
+          + '<div class="ops-subhead">Quotes issued</div>'
+          + data.weekly.map(row => cmpPairRow(row.label, row.current.quotes, row.prior.quotes, weekMax, opsNumber,
+              pct(row.current.conversion) + " conversion this period against " + pct(row.prior.conversion) + " last")).join("")
+          + '<div class="ops-subhead" style="margin-top:16px">Quoted value</div>'
+          + data.weekly.map(row => cmpPairRow(row.label, row.current.value, row.prior.value, valueMax, money,
+              money(row.current.wonValue) + " returned against " + money(row.prior.wonValue))).join("");
+        setText("#cmpWeekNote", "Every week number present in both periods, quoted volume above quoted value. "
+          + data.weekly.length + " week" + (data.weekly.length === 1 ? "" : "s") + " matched.");
+
+        // ---- 03 The race ------------------------------------------------------
+        $("#cmpRace").innerHTML = cmpRaceSvg(data.cumulative, data)
+          + '<p class="ops-note">Both periods start at zero on their own week one, so the lines are read against each other rather than against a calendar. '
+          + (data.cumulative.length
+              ? "By " + escape(data.cumulative[data.cumulative.length - 1].label) + " this period had quoted " + money(data.cumulative[data.cumulative.length - 1].current)
+                + " against " + money(data.cumulative[data.cumulative.length - 1].prior) + ", and returned " + money(data.cumulative[data.cumulative.length - 1].currentWon)
+                + " against " + money(data.cumulative[data.cumulative.length - 1].priorWon) + "."
+              : "")
+          + "</p>";
+
+        // ---- 04 The mix -------------------------------------------------------
+        const bandMax = Math.max(0.0001, ...data.bands.map(band => Math.max(band.current.value, band.prior.value))) / 1000000;
+        $("#cmpBands").innerHTML = '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + "</span><span><b class=\"is-then\"></b>" + escape(data.priorShort) + "</span></div>"
+          + data.bands.map(band => cmpPairRow(band.label, band.current.value / 1000000, band.prior.value / 1000000, bandMax, money,
+              band.current.quotes + " quotes at " + pct(band.current.conversion) + " against " + band.prior.quotes + " at " + pct(band.prior.conversion))).join("")
+          + '<p class="ops-note">Two books of the same size can be made of different work. This is where it moved.</p>';
+
+        // ---- 05 Who carried it ------------------------------------------------
+        const people = data.people.slice(0, 10);
+        const peopleMax = Math.max(1, ...people.map(person => Math.max(person.current.quotes, person.prior.quotes)));
+        $("#cmpPeople").innerHTML = people.length
+          ? '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + "</span><span><b class=\"is-then\"></b>" + escape(data.priorShort) + "</span></div>"
+            + people.map(person => cmpPairRow(person.name, person.current.quotes, person.prior.quotes, peopleMax, opsNumber,
+                person.current.wins + " booked at " + pct(percentage(person.current.wins, person.current.quotes)) + " against "
+                + person.prior.wins + " at " + pct(percentage(person.prior.wins, person.prior.quotes)))).join("")
+          : '<p class="ops-note">No named owner appears in either period.</p>';
+        setText("#cmpPeopleNote", data.roleLabel + " ownership, both periods, on the shared weeks. Switch the role on Team performance to change whose book this is.");
+
+        // ---- 06 Accounts ------------------------------------------------------
+        const movers = data.customers;
+        const list = (title, items, tone, empty) => '<section class="cmp-move"><div class="cmp-move-head"><span>' + escape(title) + "</span><b>" + items.length + "</b></div>"
+          + (items.length
+              ? items.slice(0, 6).map(item => '<div class="cmp-move-row is-' + tone + '" data-open-account="' + escape(item.key) + '" role="button" tabindex="0">'
+                  + '<b title="' + escape(item.name) + '">' + escape(item.name) + "</b>"
+                  + "<em>" + (item.valueChange > 0 ? "+" : "") + fineMoney(item.valueChange) + "</em>"
+                  + "<span>" + fineMoney(item.current.value / 1000000) + " this period against " + fineMoney(item.prior.value / 1000000) + " last · "
+                  + item.current.quotes + " quotes against " + item.prior.quotes + "</span></div>").join("")
+              : '<p class="ops-note">' + escape(empty) + "</p>") + "</section>";
+        $("#cmpCustomers").innerHTML = '<div class="cmp-move-grid">'
+          + list("Grew the most", movers.grown, "good", "No account quoted more this period than last.")
+          + list("Fell the most", movers.shrunk, "bad", "No account quoted less this period than last.")
+          + list("New this period", movers.arrived, "new", "Every account also appears in the prior period.")
+          + list("Stopped asking", movers.lapsed, "lapsed", "Every prior account also appears this period.")
+          + "</div>";
+        setText("#cmpCustNote", movers.both + " account" + (movers.both === 1 ? "" : "s") + " appear in both periods, "
+          + movers.arrived.length + " only in this one, and " + movers.lapsed.length + " only in the prior one. Selecting an account opens its record on the Customers screen.");
+        $$("[data-open-account]", $("#cmpCustomers")).forEach(node => {
+          const open = () => { selectedAccount = node.dataset.openAccount; customerSearch = ""; const box = $("#custSearch"); if (box) box.value = ""; renderCustomers(); setScreen("customers"); };
+          node.addEventListener("click", open);
+          node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+        });
+      }
+
+      // Two periods, both starting at their own week one, so the lines are read
+      // against each other rather than against a calendar a year apart.
+      function cmpRaceSvg(series, data) {
+        if (series.length < 2) return '<p class="ops-note">A single matched week is loaded, so there is no race to plot yet.</p>';
+        const width = 900, height = 280, padLeft = 52, padBottom = 34, padTop = 16, padRight = 14;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const top = Math.max(0.0001, ...series.map(point => Math.max(point.current, point.prior)));
+        const x = index => padLeft + (series.length === 1 ? plotW / 2 : index / (series.length - 1) * plotW);
+        const y = value => padTop + (1 - value / top) * plotH;
+        const path = key => series.map((point, index) => (index ? "L" : "M") + x(index).toFixed(1) + " " + y(point[key]).toFixed(1)).join(" ");
+        const ticks = [0, top / 2, top];
+        const every = Math.max(1, Math.ceil(series.length / 8));
+        return '<svg class="cmp-race" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative quoted and returned value in both periods">'
+          + ticks.map(value => '<line x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" class="grid" />'
+              + '<text x="' + (padLeft - 7) + '" y="' + (y(value) + 3.5).toFixed(1) + '" class="axis" text-anchor="end">' + money(value) + "</text>").join("")
+          + '<path d="' + path("prior") + '" class="race-prior" />'
+          + '<path d="' + path("current") + '" class="race-current" />'
+          + '<path d="' + path("priorWon") + '" class="race-prior-won" />'
+          + '<path d="' + path("currentWon") + '" class="race-current-won" />'
+          + series.map((point, index) => index % every === 0 || index === series.length - 1
+              ? '<text x="' + x(index).toFixed(1) + '" y="' + (height - 8) + '" class="axis" text-anchor="' + (index === 0 ? "start" : index === series.length - 1 ? "end" : "middle") + '">' + escape(point.label) + "</text>"
+              : "").join("")
+          + "</svg>"
+          + '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + ' quoted</span>'
+          + '<span><b class="is-then"></b>' + escape(data.priorShort) + ' quoted</span>'
+          + '<span><b class="is-now-won"></b>' + escape(data.currentShort) + ' returned</span>'
+          + '<span><b class="is-then-won"></b>' + escape(data.priorShort) + " returned</span></div>";
       }
 
       // ---- Definitions -------------------------------------------------------
@@ -4695,11 +5235,28 @@
           const nonWeekly = workbooks.filter(workbook => !nucorWeekdays.every(day => findSheet(workbook, day)));
           if (nonWeekly.length) throw new Error("A prior-period file must be a weekly quote book with Monday through Friday sheets.");
           const sources = workbooks.map((workbook, index) => parseNucorWeekWorkbook(workbook, state.intake.priorFiles[index], index));
-          const model = buildNucorDataset(sources, orderSource);
+          // A prior year has its own order log. Joining last year's quotes to
+          // this year's orders would find almost nothing and report a collapse
+          // in conversion that is really a missing file. Where one is supplied
+          // it is used; where it is not, the live one is, and the label says so.
+          let priorOrders = orderSource;
+          let ownOrders = false;
+          if (state.intake.priorOrderFiles.length) {
+            const orderBooks = await Promise.all(state.intake.priorOrderFiles.map(file => parseSpreadsheetWorkbook(file)));
+            priorOrders = mergeNucorOrderSources(orderBooks.map((workbook, index) => parseNucorOrderWorkbook(workbook, state.intake.priorOrderFiles[index])));
+            ownOrders = true;
+          }
+          const model = buildNucorDataset(sources, priorOrders);
           const years = Array.from(new Set(sources.map(source => Number(source.year) || 0).filter(Boolean))).sort();
           const label = years.length === 1 ? String(years[0]) : years.length ? years[0] + "–" + years[years.length - 1] : "Prior period";
           state.intake.priorError = "";
-          return { model: model, label: label + " (" + model.scopes.all.period + ")" };
+          return {
+            model: model,
+            ownOrders: ownOrders,
+            years: years,
+            label: label + " (" + model.scopes.all.period + ")",
+            shortLabel: years.length === 1 ? String(years[0]) : years.length ? years[0] + "–" + years[years.length - 1] : "Prior"
+          };
         } catch (error) {
           state.intake.priorError = "Prior period not loaded: " + (error && error.message ? error.message : "unreadable file");
           return null;
@@ -5303,7 +5860,8 @@
         const depth = 14;
         const plotW = width - padLeft - padRight - depth;
         const plotH = height - padTop - padBottom - depth;
-        const step = plotW / groups.length;
+        const step = Math.min(plotW / groups.length, 300);
+        const originX = padLeft + (plotW - step * groups.length) / 2;
         const barW = Math.min(74, Math.max(13, step * 0.3));
         const gap = Math.max(5, barW * 0.22);
         const max = Math.max.apply(null, groups.map(group => Math.max(Number(group.a) || 0, Number(group.b) || 0))) || 1;
@@ -5322,7 +5880,7 @@
             + '<text class="deck-col-value" x="' + (x + barW / 2 + depth / 2).toFixed(1) + '" y="' + (y - depth - 7).toFixed(1) + '" text-anchor="middle">' + escape(label) + "</text>";
         };
         const columns = groups.map((group, index) => {
-          const centre = padLeft + step * index + step / 2;
+          const centre = originX + step * index + step / 2;
           const left = centre - barW - gap / 2;
           return '<g class="iso-col" style="--deck-bar-delay:' + (index * 60) + 'ms">'
             + column(left, Number(group.a) || 0, config.toneA || "var(--steel)", group.labelA)
@@ -5498,10 +6056,233 @@
         return img && img.getAttribute("src") ? img.getAttribute("src") : "";
       }
 
-      function deckSlide(number, eyebrow, title, body, dense) {
+      // ---- Chapter two: the same weeks, a year apart -------------------------
+      // Appended to the deck only when a prior period has been loaded. It is a
+      // chapter rather than one more slide because a year-over-year read is its
+      // own argument: the first nine slides say what this period did, these say
+      // whether that is better or worse than the last time we stood here.
+      //
+      // Every figure comes from buildYearComparison(), the same model the Year
+      // over year screen reads, so the deck and the screen cannot disagree.
+      function deckYearChapter(startNumber) {
+        const cmp = buildYearComparison();
+        if (!cmp || !cmp.ready) return "";
+        const now = cmp.current, then = cmp.prior;
+        const delta = (a, b, invert) => cmpDelta(a, b, invert);
+        const chip = (a, b, invert) => {
+          const move = delta(a, b, invert);
+          return '<u class="deck-delta is-' + move.tone + '">' + escape(move.text) + "</u>";
+        };
+        // Same step-down as deckMetric: a figure that wraps is a figure cut in half.
+        const sized = value => { const length = String(value).length; return length > 12 ? " is-longer" : length > 8 ? " is-long" : ""; };
+        const deltaMetric = (label, a, b, format, invert, note) =>
+          '<div class="deck-metric is-delta"><span>' + escape(label) + "</span>"
+          + '<strong class="' + sized(format(a)).trim() + '">' + escape(format(a)) + "</strong>"
+          + chip(a, b, invert)
+          + "<small>" + escape(format(b)) + " in " + escape(cmp.priorShort) + (note ? " · " + escape(note) : "") + "</small></div>";
+        const pointMove = (a, b) => {
+          const move = a - b;
+          return (move > 0 ? "+" : move < 0 ? "−" : "") + Math.abs(move).toFixed(1) + " points";
+        };
+        const matched = cmp.aligned
+          ? "Matched on " + cmp.alignedOn + ", present in both periods"
+          : "Whole period against whole period — the two sets share no week numbers";
+
+        // ---- Chapter divider --------------------------------------------------
+        const opener = '<p class="lead">Everything in this chapter reads the weeks the two periods share, on the same exposure lens and the same filters as the screens behind it. '
+          + escape(matched) + ". "
+          + (cmp.ownOrders
+              ? "Each period is joined to its own order log, so both sides are complete."
+              : "The prior period is joined to this period's order log, so read its conversion as a floor rather than a fact.")
+          + "</p>"
+          + '<div class="deck-metrics">'
+          + deltaMetric("Quoted value", now.value, then.value, money, false, cmp.matchedWeeks + " matched week" + (cmp.matchedWeeks === 1 ? "" : "s"))
+          + deltaMetric("Value returned", now.wonValue, then.wonValue, money, false, "orders joined to these quotes")
+          + deltaMetric("Conversion", now.conversion, then.conversion, pct, false, pointMove(now.conversion, then.conversion))
+          + "</div>"
+          + '<div class="source-chip"><i></i>' + escape(cmp.currentLabel + " against " + cmp.priorLabel + " · " + cmp.lens + " lens") + "</div>";
+
+        // ---- The headline: two discs, then every measure -----------------------
+        const versusDisc = (heading, share, note, isThen) =>
+          '<article class="vs-side' + (isThen ? " is-then" : "") + '">'
+          + '<span class="section-label">' + escape(heading) + "</span>"
+          + '<div class="vs-disc" style="--vs:' + Math.max(0, Math.min(100, Number(share) || 0)).toFixed(1) + '%"><div>'
+          + "<strong>" + escape(pct(share)) + "</strong><span>booked</span></div></div>"
+          + "<p>" + escape(note) + "</p></article>";
+        const conversionMove = delta(now.conversion, then.conversion);
+        const headlineRows = [
+          { label: "Quotes issued", now: now.quotes, was: then.quotes, fmt: opsNumber },
+          { label: "Quoted value", now: now.value, was: then.value, fmt: money },
+          { label: "Quote wins", now: now.wins, was: then.wins, fmt: opsNumber },
+          { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: money },
+          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct },
+          { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
+          { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
+          { label: "Engineering hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true }
+        ];
+        const headline = '<div class="vs-layout">'
+          + versusDisc(cmp.priorShort, then.conversion, opsNumber(then.wins) + " wins from " + opsNumber(then.quotes) + " quotes", true)
+          + '<div class="vs-middle"><span class="section-label">The move</span>'
+          + '<strong class="is-' + conversionMove.tone + '">' + escape(pointMove(now.conversion, then.conversion)) + "</strong>"
+          + "<b>of conversion</b>"
+          + '<p>' + escape(money(now.wonValue) + " came back this period against " + money(then.wonValue) + " last, on "
+              + money(now.value) + " quoted against " + money(then.value) + ".") + "</p></div>"
+          + versusDisc(cmp.currentShort, now.conversion, opsNumber(now.wins) + " wins from " + opsNumber(now.quotes) + " quotes", false)
+          + "</div>"
+          + '<table class="yoy-table"><thead><tr><th>Measure</th><th>' + escape(cmp.priorShort) + "</th><th>" + escape(cmp.currentShort) + "</th><th>Change</th></tr></thead><tbody>"
+          + headlineRows.map(row => {
+              const move = delta(row.now, row.was, row.invert);
+              return "<tr><td>" + escape(row.label) + '</td><td class="then">' + escape(row.fmt(row.was))
+                + '</td><td class="now">' + escape(row.fmt(row.now)) + '</td><td class="chg is-' + move.tone + '">' + escape(move.text) + "</td></tr>";
+            }).join("")
+          + "</tbody></table>";
+
+        // ---- Week by week ------------------------------------------------------
+        const weekPairs = cmp.weekly.map(row => ({
+          label: row.label,
+          a: row.prior.quotes, b: row.current.quotes,
+          labelA: String(row.prior.quotes), labelB: String(row.current.quotes),
+          note: pct(row.prior.conversion) + " → " + pct(row.current.conversion)
+        }));
+        const grewWeeks = cmp.weekly.filter(row => row.current.quotes > row.prior.quotes).length;
+        const fellWeeks = cmp.weekly.filter(row => row.current.quotes < row.prior.quotes).length;
+        const weeks = deckIsoPairs(weekPairs, {
+            toneA: "var(--steel)", toneB: "var(--green)",
+            keyA: cmp.priorShort + " quotes", keyB: cmp.currentShort + " quotes",
+            caption: "QUOTES ISSUED IN EACH MATCHED WEEK, BOTH PERIODS",
+            label: "Quotes issued per week in both periods",
+            empty: "No week number appears in both periods yet."
+          })
+          + '<p class="chart-note">The figure under each pair is conversion, last period to this one. '
+          + escape(grewWeeks + " of " + cmp.weekly.length + " matched week" + (cmp.weekly.length === 1 ? "" : "s") + " carried more quotes than a year ago"
+              + (fellWeeks ? ", " + fellWeeks + " carried fewer" : "") + ".") + "</p>";
+
+        // ---- The race ----------------------------------------------------------
+        const last = cmp.cumulative.length ? cmp.cumulative[cmp.cumulative.length - 1] : null;
+        const race = deckRaceChart(cmp.cumulative, cmp)
+          + (last
+              ? '<div class="deck-callout"><strong>' + escape("By " + last.label + ": ")
+                + "</strong>" + escape(money(last.current) + " quoted against " + money(last.prior)
+                  + ", and " + money(last.currentWon) + " returned against " + money(last.priorWon) + ". "
+                  + (last.current >= last.prior
+                      ? "The book is ahead of where it stood a year ago at the same point."
+                      : "The book is behind where it stood a year ago at the same point.")) + "</div>"
+              : "");
+
+        // ---- Where the mix moved -----------------------------------------------
+        const bandPairs = cmp.bands.map(band => ({
+          label: band.label,
+          a: band.prior.wonValue / 1000000, b: band.current.wonValue / 1000000,
+          labelA: money(band.prior.wonValue / 1000000), labelB: money(band.current.wonValue / 1000000),
+          note: band.prior.quotes + " → " + band.current.quotes + " quotes"
+        }));
+        const biggestBandMove = cmp.bands.slice().sort((a, b) =>
+          Math.abs(b.current.wonValue - b.prior.wonValue) - Math.abs(a.current.wonValue - a.prior.wonValue))[0];
+        const mix = deckIsoPairs(bandPairs, {
+            toneA: "var(--steel)", toneB: "var(--green)",
+            keyA: cmp.priorShort + " returned", keyB: cmp.currentShort + " returned",
+            caption: "VALUE THAT CAME BACK, BY QUOTE SIZE, BOTH PERIODS",
+            label: "Returned value by value band in both periods",
+            empty: "No priced quote in either period falls into a band yet."
+          })
+          + '<p class="chart-note">Ordered value, not quote count: this is where the money actually came from, and the figure under each pair is how many quotes it took in each period.</p>'
+          + (biggestBandMove
+              ? '<div class="deck-callout"><strong>Biggest shift:</strong> ' + escape(biggestBandMove.label + " returned "
+                  + money(biggestBandMove.current.wonValue / 1000000) + " this period against "
+                  + money(biggestBandMove.prior.wonValue / 1000000) + " last, from "
+                  + biggestBandMove.current.quotes + " quotes against " + biggestBandMove.prior.quotes + ".") + "</div>"
+              : "");
+
+        // ---- Who grew, who stopped asking ---------------------------------------
+        const moveCard = (title, items, tone, empty, valueOf) =>
+          '<article class="move-card is-' + tone + '"><span class="section-label">' + escape(title) + "</span>"
+          + "<strong>" + items.length + "</strong>"
+          + (items.length
+              ? '<div class="move-list">' + items.slice(0, 5).map(item =>
+                  '<div class="move-row"><b>' + escape(item.name.length > 24 ? item.name.slice(0, 23) + "…" : item.name) + "</b>"
+                  + "<em>" + escape(valueOf(item)) + "</em></div>").join("") + "</div>"
+              : '<p>' + escape(empty) + "</p>")
+          + "</article>";
+        const signed = value => (value > 0 ? "+" : value < 0 ? "−" : "") + fineMoney(Math.abs(value));
+        const accounts = '<div class="move-grid">'
+          + moveCard("Grew the most", cmp.customers.grown, "good", "No account quoted more than a year ago.", item => signed(item.valueChange))
+          + moveCard("Fell the most", cmp.customers.shrunk, "bad", "No account quoted less than a year ago.", item => signed(item.valueChange))
+          + moveCard("New this period", cmp.customers.arrived, "new", "Every account also appears a year ago.", item => fineMoney(item.current.value / 1000000))
+          + moveCard("Stopped asking", cmp.customers.lapsed, "lapsed", "Every account from a year ago is still asking.", item => fineMoney(item.prior.value / 1000000))
+          + "</div>"
+          + '<p class="chart-note">' + escape(cmp.customers.both + " account" + (cmp.customers.both === 1 ? "" : "s") + " appear in both periods, "
+              + cmp.customers.arrived.length + " only in this one, and " + cmp.customers.lapsed.length + " only a year ago. "
+              + "Figures are quoted value, and the arrivals and departures are the ones worth a phone call.") + "</p>";
+
+        return deckSlide(startNumber, "Chapter two · Year over year", "The same weeks,<br /><em>a year apart.</em>", opener, false, "is-chapter")
+          + deckSlide(startNumber + 1, "Year over year headline", "Better or worse<br /><em>than last time.</em>", headline, true)
+          + deckSlide(startNumber + 2, "Week against week", "Every matched week,<br /><em>side by side.</em>", weeks, true)
+          + deckSlide(startNumber + 3, "The race", "Ahead or behind<br /><em>at the same point.</em>", race, true)
+          + deckSlide(startNumber + 4, "Where the mix moved", "The money came back<br /><em>from a different place.</em>", mix, true)
+          + deckSlide(startNumber + 5, "Account movement", "Who grew, and who<br /><em>stopped asking.</em>", accounts, true);
+      }
+
+      // Two periods accumulating week by week, both starting at their own week
+      // one. The band between the quoted lines is the whole point: green where
+      // this period is ahead of where it stood a year ago, copper where it is
+      // behind, so the answer is a shape rather than a subtraction.
+      function deckRaceChart(series, cmp) {
+        if (!series || series.length < 2) return '<div class="deck-empty">Only one matched week is loaded, so there is no race to plot yet.</div>';
+        const width = 1240, height = 340, padLeft = 96, padRight = 210, padTop = 22, padBottom = 46;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const top = Math.max(0.0001, ...series.map(point => Math.max(point.current, point.prior)));
+        const x = index => padLeft + (series.length === 1 ? plotW / 2 : index / (series.length - 1) * plotW);
+        const y = value => padTop + (1 - Math.max(0, value) / top) * plotH;
+        const line = key => series.map((point, index) => (index ? "L" : "M") + x(index).toFixed(1) + " " + y(point[key]).toFixed(1)).join(" ");
+        const band = line("current")
+          + " " + series.slice().reverse().map((point, index) => "L" + x(series.length - 1 - index).toFixed(1) + " " + y(point.prior).toFixed(1)).join(" ")
+          + " Z";
+        const finish = series[series.length - 1];
+        const ahead = finish.current >= finish.prior;
+        const ticks = [0, top / 2, top];
+        const every = Math.max(1, Math.ceil(series.length / 10));
+
+        // End labels sit at their own line's height, then are pushed apart so
+        // four values landing close together cannot print on top of each other.
+        const ends = [
+          { label: cmp.currentShort + " quoted", value: finish.current, cls: "is-now" },
+          { label: cmp.priorShort + " quoted", value: finish.prior, cls: "is-then" },
+          { label: cmp.currentShort + " returned", value: finish.currentWon, cls: "is-now-won" },
+          { label: cmp.priorShort + " returned", value: finish.priorWon, cls: "is-then-won" }
+        ].map(end => ({ end: end, at: y(end.value), y: y(end.value) })).sort((a, b) => a.y - b.y);
+        // Each end label is a value over a caption, so the rows need clearing
+        // for both lines, not just for the value.
+        const gap = 34;
+        for (let index = 1; index < ends.length; index += 1) {
+          if (ends[index].y - ends[index - 1].y < gap) ends[index].y = ends[index - 1].y + gap;
+        }
+        const overshoot = ends[ends.length - 1].y - (padTop + plotH);
+        if (overshoot > 0) ends.forEach(entry => { entry.y -= overshoot; });
+        const undershoot = (padTop + 12) - ends[0].y;
+        if (undershoot > 0) ends.forEach(entry => { entry.y += undershoot; });
+
+        return '<svg class="deck-chart deck-race" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative quoted and returned value, both periods">'
+          + ticks.map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
+              + '<text class="axis" x="' + (padLeft - 11) + '" y="' + (y(value) + 4).toFixed(1) + '" text-anchor="end">' + escape(money(value)) + "</text>").join("")
+          + '<path class="race-band ' + (ahead ? "is-ahead" : "is-behind") + '" d="' + band + '" />'
+          + '<path class="race-line is-then-won" d="' + line("priorWon") + '" />'
+          + '<path class="race-line is-now-won" d="' + line("currentWon") + '" />'
+          + '<path class="race-line is-then" d="' + line("prior") + '" />'
+          + '<path class="race-line is-now" d="' + line("current") + '" />'
+          + series.map((point, index) => index % every === 0 || index === series.length - 1
+              ? '<text class="week" x="' + x(index).toFixed(1) + '" y="' + (height - 14) + '" text-anchor="' + (index === 0 ? "start" : index === series.length - 1 ? "end" : "middle") + '">' + escape(point.label) + "</text>"
+              : "").join("")
+          + ends.map(entry => '<line class="race-leader" x1="' + (width - padRight).toFixed(1) + '" y1="' + entry.at.toFixed(1)
+              + '" x2="' + (width - padRight + 16).toFixed(1) + '" y2="' + entry.y.toFixed(1) + '" />'
+              + '<text class="race-end ' + entry.end.cls + '" x="' + (width - padRight + 22).toFixed(1) + '" y="' + (entry.y - 3).toFixed(1) + '">' + escape(money(entry.end.value)) + "</text>"
+              + '<text class="race-end-label" x="' + (width - padRight + 22).toFixed(1) + '" y="' + (entry.y + 11).toFixed(1) + '">' + escape(entry.end.label) + "</text>").join("")
+          + "</svg>";
+      }
+
+      function deckSlide(number, eyebrow, title, body, dense, extraClass) {
         // Everything inside .deck-fit is scaled to the slide at runtime, so a
         // bigger number can never push content under the nav or off the page.
-        return '<section class="deck-slide' + (dense ? " is-dense" : "") + '" data-slide="' + number + '">'
+        return '<section class="deck-slide' + (dense ? " is-dense" : "") + (extraClass ? " " + extraClass : "") + '" data-slide="' + number + '">'
           + '<header><span class="deck-eyebrow"><i class="deck-mark" role="img" aria-label="Nucor"></i>' + eyebrow + '</span>'
           + '<b>TEAM OUTCOME REPORT · ' + String(number).padStart(2, "0") + '</b></header>'
           + '<div class="deck-content"><div class="deck-fit"><h1>' + title + "</h1>" + body + "</div></div>"
@@ -5839,6 +6620,80 @@
           + '@media(max-width:900px){.analysis-grid,.agenda-grid,.dual-charts{grid-template-columns:1fr}.deck-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}'
           + '@media(max-width:720px){.outcome-card strong{font-size:44px}.split-legend{font-size:12px}}'
           + '@media(prefers-reduced-motion:reduce){.deck-slide *{animation:none!important;transition:none!important}}'
+          + ''
+          // Chapter two: year over year. Green is always this period, steel is
+          // always the period a year ago, on every chart in the chapter.
+          + '.deck-slide.is-chapter{background:radial-gradient(circle at 78% 18%,rgba(0,189,87,.22),transparent 30%),#0b1d12;color:#eefff2}'
+          + '.deck-slide.is-chapter:after{border-color:rgba(0,189,87,.22);box-shadow:0 0 0 34px rgba(0,189,87,.05),0 0 0 68px rgba(0,189,87,.028)}'
+          + '.deck-slide.is-chapter header span,.deck-slide.is-chapter .deck-content h1 em{color:#4bea8c}'
+          + '.deck-slide.is-chapter header b,.deck-slide.is-chapter footer,.deck-slide.is-chapter footer span:last-child{color:rgba(238,255,242,.5)}'
+          + '.deck-slide.is-chapter .lead{color:rgba(238,255,242,.72);max-width:900px}'
+          + '.deck-slide.is-chapter .deck-metrics{border-color:rgba(238,255,242,.16)}'
+          + '.deck-slide.is-chapter .deck-metric{background:rgba(255,255,255,.045);border-color:rgba(238,255,242,.16)}'
+          + '.deck-slide.is-chapter .deck-metric span{color:#8fd4a8}'
+          + '.deck-slide.is-chapter .deck-metric strong{color:#f3fff6}'
+          + '.deck-slide.is-chapter .deck-metric small{color:rgba(238,255,242,.55)}'
+          + '.deck-slide.is-chapter .source-chip{color:rgba(238,255,242,.6)}'
+          + '.deck-metric.is-delta{position:relative}'
+          + '.deck-delta{display:inline-block;margin-top:7px;font-family:Consolas,monospace;font-size:15px;font-weight:700;text-decoration:none}'
+          + '.deck-delta.is-up{color:#00bd57}.deck-delta.is-down{color:var(--copper)}.deck-delta.is-flat{color:#8b9c91}'
+          + '.deck-slide.is-chapter .deck-delta.is-down{color:#efa287}'
+          + '.vs-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.9fr) minmax(0,1fr);gap:26px;align-items:center;margin-bottom:22px}'
+          + '.vs-side{display:grid;justify-items:center;gap:13px;padding:22px 18px;border:1px solid var(--line);background:#fff;text-align:center}'
+          + '.vs-side p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.45}'
+          + '.vs-disc{--vs:0%;display:grid;place-items:center;width:min(19vw,196px);aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--green) var(--vs),#dce7df 0);box-shadow:inset 0 0 0 12px #fff,0 20px 40px -24px rgba(6,39,18,.6)}'
+          + '.vs-disc>div{display:grid;place-items:center;width:70%;aspect-ratio:1;border-radius:50%;background:#0b1d12;color:#f2fff5}'
+          + '.vs-disc strong{display:block;font-family:Consolas,monospace;font-size:34px;font-weight:500;letter-spacing:-.07em}'
+          + '.vs-disc span{display:block;margin-top:3px;color:rgba(239,255,242,.6);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}'
+          + '.vs-side.is-then .vs-disc{background:conic-gradient(var(--steel) var(--vs),#e6ebe8 0)}'
+          + '.vs-side.is-then .vs-disc>div{background:#31424a}'
+          + '.vs-middle{display:grid;justify-items:center;gap:5px;padding:22px 18px;border:1px solid var(--line);background:#0b1d12;color:#eefff2;text-align:center}'
+          + '.vs-middle .section-label{color:#8fd4a8}'
+          + '.vs-middle strong{font-family:Consolas,monospace;font-size:40px;font-weight:500;letter-spacing:-.07em;line-height:1}'
+          + '.vs-middle strong.is-up{color:#4bea8c}.vs-middle strong.is-down{color:#efa287}.vs-middle strong.is-flat{color:rgba(238,255,242,.65)}'
+          + '.vs-middle b{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(238,255,242,.55)}'
+          + '.vs-middle p{margin:9px 0 0;color:rgba(238,255,242,.68);font-size:12.5px;line-height:1.5}'
+          + '.yoy-table{width:100%;border-collapse:collapse;border:1px solid var(--line);background:#fff}'
+          + '.yoy-table th{padding:9px 13px;border-bottom:1px solid var(--line);color:#799084;font-size:9.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;text-align:right}'
+          + '.yoy-table th:first-child{text-align:left}'
+          + '.yoy-table td{padding:8px 13px;border-bottom:1px solid #eef3ef;font-family:Consolas,monospace;font-size:13px;text-align:right;white-space:nowrap}'
+          + '.yoy-table td:first-child{font-family:Arial,Helvetica,sans-serif;font-size:12.5px;font-weight:700;text-align:left;white-space:normal}'
+          + '.yoy-table tr:last-child td{border-bottom:0}'
+          + '.yoy-table td.then{color:#8b9c91}'
+          + '.yoy-table td.now{font-weight:700;color:#12301e}'
+          + '.yoy-table td.chg.is-up{color:var(--green-deep)}.yoy-table td.chg.is-down{color:var(--copper)}.yoy-table td.chg.is-flat{color:#8b9c91}'
+          + '.deck-race{display:block;width:100%;height:auto}'
+          + '.deck-race .grid{stroke:#dce5de;stroke-width:1}'
+          + '.deck-race .axis{fill:#718277;font-family:Consolas,monospace;font-size:11px}'
+          + '.deck-race .week{fill:#718277;font-family:Consolas,monospace;font-size:11px}'
+          + '.deck-race .race-band{stroke:none}'
+          + '.deck-race .race-band.is-ahead{fill:rgba(0,189,87,.14)}'
+          + '.deck-race .race-band.is-behind{fill:rgba(200,118,86,.16)}'
+          + '.deck-race .race-line{fill:none;stroke-linecap:round;stroke-linejoin:round}'
+          + '.deck-race .race-line.is-now{stroke:var(--green-deep);stroke-width:4}'
+          + '.deck-race .race-line.is-then{stroke:var(--steel);stroke-width:3}'
+          + '.deck-race .race-line.is-now-won{stroke:var(--green);stroke-width:3;stroke-dasharray:8 6}'
+          + '.deck-race .race-line.is-then-won{stroke:#b6c6cc;stroke-width:2.5;stroke-dasharray:8 6}'
+          + '.deck-race .race-leader{stroke:#c8d4cb;stroke-width:1}'
+          + '.deck-race .race-end{font-family:Consolas,monospace;font-size:14px;font-weight:700}'
+          + '.deck-race .race-end.is-now{fill:var(--green-deep)}.deck-race .race-end.is-then{fill:#66808a}'
+          + '.deck-race .race-end.is-now-won{fill:var(--green)}.deck-race .race-end.is-then-won{fill:#93a8b0}'
+          + '.deck-race .race-end-label{fill:#8b9c91;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}'
+          + '.move-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}'
+          + '.move-card{position:relative;padding:19px;border:1px solid var(--line);background:#fff;overflow:hidden}'
+          + '.move-card:before{content:"";position:absolute;top:0;bottom:0;left:0;width:5px;background:var(--green)}'
+          + '.move-card.is-bad:before{background:var(--copper)}.move-card.is-new:before{background:var(--green)}.move-card.is-lapsed:before{background:#bd7b21}'
+          + '.move-card>strong{display:block;margin-top:11px;font-family:Consolas,monospace;font-size:40px;font-weight:500;letter-spacing:-.09em;line-height:.9}'
+          + '.move-card>p{margin:13px 0 0;color:var(--muted);font-size:11.5px;line-height:1.45}'
+          + '.move-list{margin-top:14px;display:grid;gap:7px}'
+          + '.move-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:baseline;padding-bottom:6px;border-bottom:1px solid #eef3ef}'
+          + '.move-row:last-child{border-bottom:0;padding-bottom:0}'
+          + '.move-row b{overflow:hidden;font-size:11.5px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}'
+          + '.move-row em{font-family:Consolas,monospace;font-size:12px;font-style:normal;font-weight:700}'
+          + '.move-card.is-good .move-row em{color:var(--green-deep)}.move-card.is-new .move-row em{color:var(--green-deep)}'
+          + '.move-card.is-bad .move-row em{color:var(--copper)}.move-card.is-lapsed .move-row em{color:#a66917}'
+          + '@media(max-width:900px){.vs-layout{grid-template-columns:1fr}.move-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}'
+          + '@media(max-width:720px){.move-grid{grid-template-columns:1fr}.deck-race{width:900px;max-width:none}}'
           + '@media print{.deck-slide *{animation:none!important}.deck-progress{display:none}.dual-charts{grid-template-columns:1fr 1fr}.analysis-grid,.agenda-grid{grid-template-columns:minmax(0,1.6fr) minmax(0,.4fr)}}'
           + "</style>";
       }
@@ -6261,7 +7116,10 @@
           + deckSlide(6, "Customer demand", "Who asks, and who<br /><em>actually books.</em>", operations, true)
           + deckSlide(7, "Lifecycle and decision window", "How long it takes<br /><em>to come back.</em>", speed, true)
           + deckSlide(8, "Cohort maturity", "Every week measured<br /><em>at the same age.</em>", capacityBody, true)
-          + deckSlide(9, "The work that came back", "Our best booked work,<br /><em>and who delivered it.</em>", agenda, true);
+          + deckSlide(9, "The work that came back", "Our best booked work,<br /><em>and who delivered it.</em>", agenda, true)
+          // Chapter two only exists when a prior period has been loaded. With
+          // no baseline the deck is the nine slides it has always been.
+          + deckYearChapter(10);
         return deckDocument(slides);
       }
 
@@ -6312,8 +7170,16 @@
         $("#quoteStage").dataset.state = quoteState;
         $("#orderStage").dataset.state = orderState;
         $("#priorStage").dataset.state = priorState;
-        setText("#priorStatus", intake.priorError ? "Prior period needs attention" : priorReady ? intake.priorFiles.length + " prior quote source" + (intake.priorFiles.length === 1 ? "" : "s") + " selected" : "No prior period loaded");
-        setText("#priorFileNames", intake.priorError || (priorReady ? fileNameSummary(intake.priorFiles) : "Optional \u2014 feeds the Compare lens"));
+        setText("#priorStatus", intake.priorError
+          ? "Prior period needs attention"
+          : priorReady
+            ? intake.priorFiles.length + " quote week" + (intake.priorFiles.length === 1 ? "" : "s")
+              + (intake.priorOrderFiles.length ? " · " + intake.priorOrderFiles.length + " order log" + (intake.priorOrderFiles.length === 1 ? "" : "s") : " · this year's order log")
+            : "No prior period loaded");
+        setText("#priorFileNames", intake.priorError
+          || (priorReady
+              ? fileNameSummary(intake.priorFiles.concat(intake.priorOrderFiles))
+              : "Optional"));
         setText("#quoteStatus", intake.quoteError ? "Quote source needs attention" : quoteReady ? intake.quoteFiles.length + " weekly quote source" + (intake.quoteFiles.length === 1 ? "" : "s") + " selected" : "Awaiting weekly quote files");
         setText("#quoteFileNames", intake.quoteError || (quoteReady ? fileNameSummary(intake.quoteFiles) : "XLSM, XLSX, or CSV"));
         setText("#orderStatus", intake.orderError ? "Order logs need attention" : orderReady ? intake.orderFiles.length + " order-log export" + (intake.orderFiles.length === 1 ? "" : "s") + " selected" : "Awaiting order logs");
@@ -6345,6 +7211,9 @@
         } else if (kind === "prior") {
           state.intake.priorFiles = valid;
           state.intake.priorError = invalid.length ? "Use XLSM or XLSX for the prior quote weeks." : "";
+        } else if (kind === "priorOrder") {
+          state.intake.priorOrderFiles = valid;
+          state.intake.priorError = invalid.length ? "Use XLSM, XLSX, or CSV for the prior order logs." : "";
         } else {
           state.intake.orderFiles = valid;
           state.intake.orderError = invalid.length ? "Use XLSM, XLSX, or CSV for the order logs." : valid.length ? "" : "Select at least one order log.";
@@ -6478,6 +7347,7 @@
         renderCustomers();
         renderTimeline();
         renderTeamLoad();
+        renderCompare();
       }));
 
       $$("[data-analysis]").forEach(button => button.addEventListener("click", () => {
@@ -6505,7 +7375,7 @@
       });
       $("#reviewMode").addEventListener("click", exportTeamReport);
       $("#exitReview").addEventListener("click", () => toggleReview(false));
-      $$("[data-role]").forEach(button => button.addEventListener("click", () => { state.role = button.dataset.role; state.selectedPerson = 0; renderPeople(); renderTeamLoad(); }));
+      $$("[data-role]").forEach(button => button.addEventListener("click", () => { state.role = button.dataset.role; state.selectedPerson = 0; renderPeople(); renderTeamLoad(); renderCompare(); }));
       $$("[data-team-metric]").forEach(button => button.addEventListener("click", () => { state.teamMetric = button.dataset.teamMetric; renderPeople(); }));
       $("#custSearch").addEventListener("input", event => { customerSearch = event.target.value; renderCustomers(); });
       $("#quoteFiles").addEventListener("change", event => {
@@ -6518,6 +7388,10 @@
       });
       $("#priorFiles").addEventListener("change", event => {
         setSourceFiles("prior", event.target.files);
+        event.target.value = "";
+      });
+      $("#priorOrderFiles").addEventListener("change", event => {
+        setSourceFiles("priorOrder", event.target.files);
         event.target.value = "";
       });
       wireIntakeStage($("#quoteStage"), "quote");
@@ -6536,6 +7410,7 @@
       renderCustomers();
       renderTimeline();
       renderTeamLoad();
+      renderCompare();
       renderFilterBar();
       refreshIntake();
       // Nothing is loaded yet, so open on Data Mapping where the files are

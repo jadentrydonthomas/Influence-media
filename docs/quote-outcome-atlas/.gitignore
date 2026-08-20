@@ -2,6 +2,12 @@ node_modules/
 package-lock.json
 test/*.png
 test/deck-out.html
+# Generated from the real fixtures, so they carry customer names, prices and
+# staff names. Regenerate locally; never commit.
+test/edge-deck.html
+test/deck-stress.html
+test/deck.pdf
+test/figures.json
 
 # Real quote books and order logs contain customer names, prices and staff
 # emails. This repository is public - fixtures stay local, never committed.

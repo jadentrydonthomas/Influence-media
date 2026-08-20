@@ -3,7 +3,8 @@
 Offline, single-file management dashboard that turns Nucor Building Systems weekly
 quote books and order-log exports into a quote-to-order outcome view.
 
-Five screens, all reading one record set:
+Five screens, all reading one record set, plus a sixth that appears only when a
+prior period has been loaded:
 
 | # | Screen | The question it answers |
 | --- | --- | --- |
@@ -11,7 +12,8 @@ Five screens, all reading one record set:
 | 02 | Team performance | Who owned it, how did their book behave, and what did it cost to produce? |
 | 03 | Customers | Who asks, who actually books, and what did each account book? |
 | 04 | Timelines | How long does it take to come back? |
-| 05 | Data mapping | Where did every number come from, and what did the source get wrong? |
+| 05 | Year over year | Is this better or worse than the same weeks a year ago? *(only with a prior period loaded)* |
+| 06 | Data mapping | Where did every number come from, and what did the source get wrong? |
 
 A **What the numbers mean** drawer opens from any screen with the definition,
 source column and live value of every term.
@@ -19,7 +21,7 @@ source column and live value of every term.
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.2). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.3). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
@@ -40,6 +42,8 @@ source column and live value of every term.
 | `test/glossary.mjs` | The definitions drawer opens before and after a run. |
 | `test/spec-check.mjs` | The markdown and designed spec agree on every requirement ID and version. |
 | `test/deck-stress.mjs` | Inflates every number in the deck and checks nothing collides at three viewport sizes. |
+| `test/year-screen.mjs` | The Year over year screen appears only with a prior period, matches weeks, and survives the dark theme. |
+| `test/deck-year.mjs` | The deck grows a six-slide chapter when a prior period is loaded, and stays nine slides when it is not. |
 
 ## Running the regression suite
 
@@ -73,7 +77,14 @@ node test/sorts.mjs         # customer sorts, and a deck exported while filtered
 node test/glossary.mjs      # the definitions drawer
 node test/spec-check.mjs    # the two spec documents agree
 node test/deck-stress.mjs   # the deck holds its layout when the numbers get bigger
+node test/year-screen.mjs   # the Year over year screen, in both themes
+node test/deck-year.mjs     # the deck chapter appears with a prior period and not without
 ```
+
+Every one of these writes into `test/` — screenshots, exported decks, a PDF, and
+`figures.json`. Those outputs are rendered from the real fixtures and therefore carry
+customer names, prices and staff names, so they are gitignored rather than committed.
+Regenerate them locally; do not add them to the repository.
 
 `audit.py` reads the workbooks with openpyxl and recomputes every headline figure
 from scratch, sharing no code with the dashboard, then compares against what the
@@ -206,14 +217,35 @@ carry:
 > optimistic read by construction, stated on the panel. The ones with no answer are
 > counted in the open book instead, rather than folded in as an open-ended wait.
 
-## Prior period
+## Prior period and year over year
 
-An optional third intake step takes an earlier set of quote weeks. They run through
-the same parser and join the same order source, then stay in their own model: they
-never enter the live scopes, so loading a baseline cannot move a headline figure.
-The **Compare** lens prefers the loaded baseline when there is one, on the same
-exposure lens and the same filters — except a quoted-week filter, which has no
-counterpart in another period and narrows the live side only.
+A compact intake bar under the run console takes an earlier set of quote weeks and,
+optionally, that period's own order log. They run through the same parser and stay
+in their own model: they never enter the live scopes, so loading a baseline cannot
+move a headline figure.
+
+Where a prior order log is supplied, the prior quotes are joined to it. Where it is
+not, they are joined to this period's order log, which will find almost nothing — the
+banner says which of the two happened, because the difference is the difference
+between a real conversion and a missing file.
+
+Everything downstream reads the weeks the two periods **share**. Ten prior weeks
+against three live ones would report a collapse in demand that is really a difference
+in what was uploaded, so both sides are narrowed to the shared week numbers and the
+screen states which weeks it matched on. Filters apply to both sides, except a
+quoted-week filter, which has no counterpart in another year and narrows the live
+side only. The exposure lens is measured inside each period against that period's own
+last day, so both sides answer the same question about their own quotes.
+
+Two surfaces read that one model, so they cannot disagree:
+
+- **Screen 05 — Year over year.** Headline deltas, every measure in one table, week
+  by week, the cumulative race, where the value mix moved, who carried it, and which
+  accounts grew, shrank, arrived or stopped asking. Selecting a moved account opens
+  its record on Customers.
+- **Deck chapter two.** Six slides appended to the export — a chapter divider, the
+  headline, week against week, the race, where the mix moved, and account movement.
+  With no prior period loaded the deck is the nine slides it has always been.
 
 ## Definitions
 

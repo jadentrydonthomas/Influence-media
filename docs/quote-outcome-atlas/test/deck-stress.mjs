@@ -3,16 +3,24 @@
 // becomes $18,431.7M - and re-measures. Anything that only fits because the
 // fixture numbers are small shows up here as text sitting on other text.
 import { chromium } from 'playwright';
-import path from 'path'; import fs from 'fs'; import { fileURLToPath } from 'url';
+import path from 'path'; import fs from 'fs'; import os from 'os'; import { fileURLToPath } from 'url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIX = path.join(root,'fixtures');
 const CHROME = process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const b = await chromium.launch({executablePath:CHROME});
+// A prior period is loaded so the year-over-year chapter is stressed too. It
+// does not touch the live figures, so slides one to nine are the same deck
+// they have always been - this only adds the six chapter slides to the audit.
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(),'stress-prior-'));
+const prior = [1,2].map(n => { const d = path.join(tmp,`Week ${n} - 2025.xlsm`); fs.copyFileSync(path.join(FIX,`Week ${n} - 2026.xlsm`), d); return d; });
+const priorOrder = path.join(tmp,'OrderLog_prior.xlsx'); fs.copyFileSync(path.join(FIX,'OrderLog_1-10.xlsx'), priorOrder);
 
 const app = await b.newPage({viewport:{width:1440,height:900}});
 await app.goto('file://'+path.join(root,'app','quote-conversion-atlas-shareable.html'));
 await app.setInputFiles('#quoteFiles',['Week 1 - 2026.xlsm','Week 2 - 2026.xlsm','Week 3 - 2026.xlsm'].map(f=>path.join(FIX,f)));
 await app.setInputFiles('#orderFiles',[path.join(FIX,'OrderLog_1-10.xlsx')]);
+await app.setInputFiles('#priorFiles', prior);
+await app.setInputFiles('#priorOrderFiles',[priorOrder]);
 await app.click('#runDashboard');
 await app.waitForFunction(()=>/refreshed/i.test(document.getElementById('runStatusTitle').textContent),null,{timeout:90000});
 const [dl] = await Promise.all([app.waitForEvent('download',{timeout:40000}), app.click('#reviewMode')]);
@@ -29,6 +37,7 @@ const p = await b.newPage({viewport:{width:W,height:H}});
 p.on('pageerror',e=>errs.push(e.message));
 await p.goto('file://'+deck);
 const n = await p.$$eval('.deck-slide', s=>s.length);
+console.log('stressing', n, 'slides at', W+'x'+H);
 
 // Inflate every number in every text node, keeping the shape of the string,
 // and lengthen the longest words - a real account name is longer than a fixture.
@@ -111,4 +120,5 @@ findings.slice(0, 30).forEach(f => console.log('   ', JSON.stringify(f)));
 console.log('JS errors:', errs.length?errs:'none');
 fs.unlinkSync(deck);
 await b.close();
+fs.rmSync(tmp,{recursive:true,force:true});
 process.exit(findings.length || errs.length ? 1 : 0);

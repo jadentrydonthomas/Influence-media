@@ -5,7 +5,7 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.2 |
+| **Spec version** | 2.3 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
 | **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
@@ -124,8 +124,12 @@ Stating these prevents well-meant scope drift:
 | **P-20** | One question, one screen | Two screens MUST NOT answer the same question. Where a view is a thinner copy of another, it is removed rather than kept as a second answer — the cost of a duplicate is not screen count but the reader having to work out which of two numbers is the real one. |
 | **P-21** | A slide is a fixed box | Every deck slide MUST fit the space it has at any figure and any window size. Content MUST be measured against the height available and scaled to fit, so a larger number changes the size of the type rather than pushing text under the navigation or off the page. Overlap is a correctness defect, not a style one: two figures on top of each other cannot both be read. |
 | **P-22** | The mark travels | The Nucor mark MUST appear on every exported slide and MUST be embedded once and referenced, never repeated per slide. |
+| **P-23** | A surface appears only when it can answer | A screen or a deck chapter that exists to compare two periods MUST NOT be shown when only one period is loaded. An empty comparison is worse than no comparison: it invites a reader to draw a conclusion from a missing file. The navigation entry, the screen, and the deck chapter MUST all appear and disappear together with the data behind them. |
+| **P-24** | One model behind two surfaces | Where the same comparison is shown on screen and in the deck, both MUST read one model. Two code paths computing the same year-over-year figure will disagree, and the disagreement will be found in the meeting. |
 
 > **P-14 is new in v2.0** and closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See [Appendix A, A-1](#appendix-a--defect-log).
+>
+> **P-23 and P-24 are new in v2.3** and govern the year-over-year surfaces: they appear only when a prior period is loaded, and the screen and the deck chapter read one model.
 >
 > **P-16 to P-19 are new in v2.1.** P-17 closes a defect found by review: the rail was written for five screens, clipped the last two silently once it carried seven, and the screen the user starts on was the one that disappeared.
 
@@ -379,6 +383,9 @@ Three stages, each measured from dates the source already carries, each scored *
 - **M-22** — The dashboard MUST accept an optional prior set of quote weeks, parsed through the same pipeline and joined to the same order source.
 - **M-23** — Prior-period records MUST NOT enter any live scope. Loading a baseline MUST NOT change conversion, quoted value, quote count, or any other headline figure. This is a required regression assertion.
 - **M-24** — The comparison MUST apply the active exposure lens and the active filters to both sides, with one exception: a quoted-week filter has no counterpart in another period and narrows the live side only. The surface MUST say when that has happened.
+- **M-30** — Where a prior-period order log is supplied it MUST be used to join that period's quotes. Where it is not, the live order log is used, which will match almost nothing across a year boundary — and the surface MUST state which of the two happened. A prior conversion produced by a missing file is not a low conversion, and MUST NOT be presented as one.
+- **M-31** — The exposure lens MUST be measured inside each period against that period's own last day, so both sides answer the same question about their own quotes. Measuring the prior period against this period's cutoff would pass its entire book while filtering this one, which is a comparison of ages rather than of work.
+- **M-32** — Year-over-year account movement MUST separate accounts present in both periods (grown or shrunk by value) from those present in only one (arrived or lapsed). Averaging the four into a single change figure hides the two categories most worth acting on.
 - **M-29** — Where the two sides share week numbers, **both** MUST be narrowed to the shared set before measuring, and the surface MUST name the weeks it matched on and the weeks it left out. Comparing ten prior weeks against three live ones reports a collapse in demand that is really a difference in how much was uploaded. With no shared weeks the comparison falls back to whole period against whole period and MUST say so.
 
 ### 8.7 Definitions surface
@@ -438,6 +445,12 @@ The strongest design on the page.
 - **V-23** — AA contrast where practical, visible focus states, keyboard operation, descriptive chart text, and meaningful button labels.
 - **V-24** — Color MUST NOT be the only outcome cue. Because green/copper is a red-green-deficiency risk, every outcome marker MUST also carry a label, a value, or a distinct shape.
 
+### 9.7 Year-over-year encoding
+
+- **V-26** — Across every chart, table and card that compares two periods, **this period is green and the prior period is steel**, in that order, with the same paired shape reused. The eye should learn the encoding once on the first chart and read the rest without a legend. Reversing the order or recolouring one panel is a defect.
+- **V-27** — Direction MUST be judged, not signed. More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. The surface MUST say that it is doing this, so a green figure is never mistaken for an arithmetic sign.
+- **V-28** — A filled header band MUST use a token that stays dark in both themes. A token defined as dark ink for light-theme text will invert under the dark theme and take white text with it. See [Appendix A, A-30](#appendix-a--defect-log).
+
 ---
 
 ## 10. Team report deck requirements
@@ -448,15 +461,26 @@ The export creates a separate, self-contained HTML slide report presented with a
 
 | # | Slide | Content |
 | --- | --- | --- |
-| 1 | Executive outcome | Conversion, quoted value, confirmed value, Wilson interval. |
+| 1 | Executive outcome | Conversion, quoted value, confirmed value. |
 | 2 | Quote outcome | Confirmed vs unconverted opportunities and value. |
-| 3 | Weekly performance pulse | Quote volume and conversion on separate lanes. |
-| 4 | Value band analysis | Conversion by quoted value band, with each band's own count. |
-| 5 | Quote release timing | On-time definition, result, **and coverage**. |
-| 6 | Customer demand | Quotes asked against orders booked per account; accounts that asked twice or more and booked nothing, by the value that returned as nothing; district mix; booked tons. |
-| 7 | Lifecycle and decision window | The three measured stages, the decision curve, and the ageing of the open book. |
-| 8 | Estimating capacity | Scheduled against actual engineering hours by engineer, with the turnaround mix. |
-| 9 | Review agenda | Highest-value work with no linked order, by quote, owner, exposure and value. |
+| 3 | Weekly performance pulse | Quote volume and conversion on separate lanes, week by week. |
+| 4 | Value band analysis | Dollars asked for against dollars that came back, by band, with each band's own count and rate. |
+| 5 | Speed and release timing | Turnaround mix, on-time result **and coverage**. |
+| 6 | Customer demand | Who asks against who books, who pays the most, and the accounts that asked repeatedly and booked nothing. |
+| 7 | Lifecycle and decision window | The three measured stages as dials, the decision curve, and the ageing of the open book. |
+| 8 | Cohort maturity | Every quoted week read at the same age, with weeks too young to answer excluded rather than shown as zero ([M-28](#8-required-calculations-and-analytics)). |
+| 9 | The work that came back | The highest-value **booked** jobs, with everyone who priced, sold and ran each one. |
+
+**Chapter two — appended only when a prior period is loaded** ([P-23](#2-non-negotiable-product-requirements), [K-14](#10-team-report-deck-requirements)):
+
+| # | Slide | Content |
+| --- | --- | --- |
+| 10 | Chapter divider | What is being compared, what it matched on, and the three headline deltas. |
+| 11 | Year-over-year headline | Conversion as two dials, over a delta table of every measure. |
+| 12 | Week against week | Paired extruded columns, one pair per matched week. |
+| 13 | The race | Cumulative quoted and returned value in both periods, with the gap drawn as a filled band. |
+| 14 | Where the mix moved | Returned value by band, both periods. |
+| 15 | Account movement | Grown, shrunk, arrived, lapsed ([M-32](#8-required-calculations-and-analytics)). |
 
 **Deck requirements**
 
@@ -466,6 +490,7 @@ The export creates a separate, self-contained HTML slide report presented with a
 - **K-10** — Layout auditing MUST measure **each slide in turn**. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See [Appendix A, A-19](#appendix-a--defect-log).
 - **K-12** — Layout MUST be verified against **inflated figures**, not only against the fixture. A layout that holds only because the sample numbers are small is not repeatable. See [`test/deck-stress.mjs`](#12-verification-baseline) and [P-21](#2-non-negotiable-product-requirements).
 - **K-13** — The navigation MUST occupy a reserved band that no slide content can enter, rather than overlaying the content area.
+- **K-14** — A deck chapter that depends on optional data MUST be appended only when that data is loaded, MUST carry a divider slide that names the chapter, and MUST continue the deck's slide numbering. Every slide in it is bound by [P-21](#2-non-negotiable-product-requirements) and MUST be included in the stress audit ([K-12](#10-team-report-deck-requirements)).
 - **K-11** — Text overlap against the fixed navigation MUST be measured on the **text**, not on its container. A running-text block's box starts at the left margin and never reaches the nav, so element-level measurement misses a final line sitting underneath it. See [Appendix A, A-20](#appendix-a--defect-log).
 - **K-3** — Standard, bold, readable fonts; large headings and clear body text. Condensed display faces are permitted for headlines only, per [V-17](#95-type-color-and-spacing).
 - **K-4** — Enough spacing around charts and cards that printing and laptop presentation stay legible.
@@ -717,6 +742,8 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-25** | The 10% reference label sat on the reference line, exactly where a week's own conversion value lands whenever the rate is near the reference. | [V-11](#93-encoding-integrity) | **Fixed** — it is axis furniture and now lives with the axis maximum. |
 | **A-26** | The Nucor mark was embedded once per slide, so a nine-slide deck carried nine copies of the same 40KB payload — a 475KB file. | [P-22](#2-non-negotiable-product-requirements), [P-1](#2-non-negotiable-product-requirements) | **Fixed** — embedded once in the deck stylesheet and referenced; 108KB. |
 | **A-27** | Three regression checks asserted the deck contains no `NaN`. The mark's base64 payload contains the letters N-a-N, so embedding it turned three passing checks into false failures. | [T-16](#113-code-rules) | **Fixed** — figure checks read the deck with data URIs stripped; markup checks read the raw text. |
+| **A-29** | Average quote was computed from a quoted value already carried in millions and then divided by a million again, so every average quote on the year-over-year table read `$0.0M`. The same class of defect as [A-18](#appendix-a--defect-log). | [M-24](#8-required-calculations-and-analytics) | **Fixed** — the second division removed, and averages below a million are now shown in thousands, where `$850k` says what `$0.9M` hides. |
+| **A-30** | The account-movement headers were filled with `--green-dark` and white text. That token inverts to a pale green in the dark theme, so four headers went white-on-pale and became unreadable in one of the two themes the dashboard ships with. | [V-23](#96-themes-and-accessibility) | **Fixed** — a dedicated header token that stays dark in both themes, plus a contrast check across the whole screen in the dark theme as a standing test. |
 | **A-28** | A prior period with more weeks than the live set was compared whole against whole, reporting a difference in how much was uploaded as a change in demand. | [M-29](#8-required-calculations-and-analytics) | **Fixed** — both sides are narrowed to the weeks they share, and the surface names what it matched and what it left out. |
 
 ### Confirmed by the real data
@@ -729,6 +756,19 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.3 — 20 Aug 2026
+
+**Year over year**
+
+- **A prior order log of its own** ([M-30](#8-required-calculations-and-analytics)). The intake takes both halves of the prior period. Joining last year's quotes to this year's orders finds almost nothing and reports a collapse in conversion that is really a missing file, so where the prior order log is absent the surface says so rather than showing the number as a fact.
+- **A sixth screen, conditional** ([P-23](#2-non-negotiable-product-requirements)). Year over year appears in the navigation only when a prior period is loaded, and leaves when it is unloaded. It carries the headline deltas, every measure in one table, week by week, the cumulative race, where the value mix moved, who carried it, and which accounts grew, shrank, arrived or stopped asking. Selecting a moved account opens its record on Customers.
+- **A second chapter in the deck** ([P-23](#2-non-negotiable-product-requirements), [K-14](#10-team-report-deck-requirements)). Six slides appended behind a chapter divider — the headline as two dials over a delta table, week against week as paired extruded columns, the cumulative race with the gap between the periods drawn as a filled band, the value mix, and account movement. With no prior period the deck is the nine slides it has always been.
+- **One model behind both** ([P-24](#2-non-negotiable-product-requirements)). The screen and the chapter read the same function, so they cannot disagree in a meeting.
+- **Exposure is measured inside each period** ([M-31](#8-required-calculations-and-analytics)), against that period's own last day.
+- **Movement is categorised rather than averaged** ([M-32](#8-required-calculations-and-analytics)): grown, shrunk, arrived, lapsed.
+
+**Defects logged and fixed:** [A-29](#appendix-a--defect-log), [A-30](#appendix-a--defect-log).
 
 ### v2.2 — 19 Aug 2026
 
