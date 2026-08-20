@@ -146,11 +146,16 @@ if (!download) {
   check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 9);
   checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 9</);
   checkMatch('deck has no NaN or undefined', deck, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);
-  checkMatch('deck agenda lists real quote numbers', deck, /class="quote">[A-Z0-9]+-\d+</);
-  checkMatch('deck value-band chart present', deck, /conversion by quoted value band/i);
+  // The closing slide lists booked jobs, not the biggest open quotes: real
+  // order-log job numbers, with the people who priced and delivered them.
+  checkMatch('deck closes on real booked job numbers', deck, /class="quote"><b>[A-Z0-9]+-\d+</);
+  checkMatch('deck names who priced each booked job', deck, /class="team">[^<]*\((engineer|estimator|scheduler|all three|[a-z]+ & [a-z]+)\)/);
+  checkMatch('deck still surfaces the largest open work', deck, /and the largest still open/i);
+  checkMatch('deck value-band chart present', deck, /quotes issued in each value band/i);
   // Slide 7 reads the same dates as the old lag buckets, as a decision curve.
   checkMatch('deck decision curve present', deck, /cumulative share of booked orders by day/i);
-  checkMatch('deck lifecycle stages present', deck, /Date In &rarr; Done|Date In → Done/);
+  checkMatch('deck states both sides of the clock', deck, /producing the quote/i);
+  checkMatch('deck states the customer side', deck, /their side — deciding|their side &mdash; deciding/i);
   checkMatch('deck asked-against-booked chart present', deck, /quotes asked against orders booked/i);
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);

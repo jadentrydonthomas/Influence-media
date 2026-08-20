@@ -5296,7 +5296,8 @@
       function deckIsoColumns(items, options) {
         const config = options || {};
         if (!items.length) return '<div class="deck-empty">' + escape(config.empty || "No weeks in this source set yet.") + "</div>";
-        const width = 1240, height = 250, padTop = 34, padBottom = 40, padLeft = 40, padRight = 24;
+        const width = config.compact ? 640 : 1240, height = config.compact ? 300 : 250;
+        const padTop = config.caption ? 58 : 30, padBottom = 40, padLeft = 40, padRight = 24;
         const depth = Math.min(16, Math.max(7, 120 / items.length));
         const plotW = width - padLeft - padRight - depth;
         const plotH = height - padTop - padBottom - depth;
@@ -5336,7 +5337,7 @@
         ].join(" ") + '"></polygon>';
         return '<svg class="deck-chart deck-iso" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Column chart") + '">'
           + floor + columns
-          + (config.caption ? '<text class="deck-axis-note" x="' + padLeft + '" y="16">' + escape(config.caption) + "</text>" : "")
+          + (config.caption ? '<text class="deck-axis-note" x="' + padLeft + '" y="14">' + escape(config.caption) + "</text>" : "")
           + "</svg>";
       }
 
@@ -5372,7 +5373,7 @@
       // had booked by each day. Drawn as one path so it can animate on.
       function deckCurveChart(curve, booked) {
         if (!booked) return '<div class="deck-empty">No booked quote in this cohort carries a dated order entry, so there is no decision curve to draw.</div>';
-        const width = 470, height = 340, padLeft = 42, padBottom = 36, padTop = 18, padRight = 14;
+        const width = 620, height = 330, padLeft = 46, padBottom = 38, padTop = 20, padRight = 16;
         const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
         const maxDay = curve[curve.length - 1].day;
         const x = day => padLeft + day / maxDay * plotW;
@@ -5415,11 +5416,31 @@
             }).join("");
       }
 
+      // One person often holds two of the three roles on a quote, and printing
+      // their name twice reads as a duplicate rather than as two jobs. Names
+      // are merged and the roles they held are named beside them.
+      function deckTeamLine(roles) {
+        const order = [];
+        const byName = new Map();
+        roles.filter(entry => entry.name && entry.name !== "No initials supplied").forEach(entry => {
+          if (!byName.has(entry.name)) { byName.set(entry.name, []); order.push(entry.name); }
+          byName.get(entry.name).push(entry.role);
+        });
+        if (!order.length) return "No named owner";
+        return order.map(name => {
+          const held = byName.get(name);
+          const short = name.length > 18 ? name.slice(0, 17) + "\u2026" : name;
+          return short + " (" + (held.length === 3 ? "all three" : held.join(" & ")) + ")";
+        }).join(" · ");
+      }
+
       function deckMetric(label, value, note) {
-        // Long values (a confidence range, a big dollar figure) get a step down
-        // so they stay on one line instead of breaking mid-number.
-        const compact = String(value).length > 8 ? " is-compact" : "";
-        return '<div class="deck-metric"><span>' + label + '</span><strong class="' + compact.trim() + '">' + value + '</strong><small>' + note + "</small></div>";
+        // A figure that wraps is a figure that has been cut in half. The card
+        // steps its own type down as the value gets longer, so $1,482.6M holds
+        // one line the same way $18.0M does.
+        const length = String(value).length;
+        const size = length > 12 ? " is-longer" : length > 8 ? " is-long" : "";
+        return '<div class="deck-metric"><span>' + label + '</span><strong class="' + size.trim() + '">' + value + '</strong><small>' + note + "</small></div>";
       }
       // The Nucor mark is already embedded in this file; the deck reads it from
       // the page rather than carrying a second copy of the same 40KB.
@@ -5455,8 +5476,10 @@
           + '.deck-fit h1{margin-bottom:22px}'
           + '.deck-fit>*{min-width:0}'
           + '.deck-metrics{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}'
-          + '.deck-metric strong{overflow-wrap:anywhere}'
-          + '.deck-metric strong.is-compact{font-size:23px;letter-spacing:-.03em}'
+          + '.deck-metric strong{white-space:nowrap;overflow:visible}'
+          + '.deck-metric strong.is-long{font-size:26px;letter-spacing:-.05em}'
+          + '.deck-metric strong.is-longer{font-size:22px;letter-spacing:-.04em}'
+          
           + '.deck-metric{display:flex;flex-direction:column;justify-content:flex-start}'
           + '.source-chip{overflow-wrap:anywhere;max-width:100%}'
           /* charts */
@@ -5654,14 +5677,91 @@
           /* A quiet ground plane behind every slide, so the cards sit on
              something rather than floating on flat paper. */
           + '.deck-slide:before{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;background:linear-gradient(180deg,rgba(15,74,40,0) 0%,rgba(15,74,40,.045) 100%);pointer-events:none}'
+          + '.booked-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 18px}'
+          + '.booked-head b{color:var(--green-deep);font-size:13px;font-weight:800}'
           + '.booked-strip{margin-top:16px;padding:15px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
           + '.booked-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 22px;margin-top:10px}'
           + '.booked-row{display:grid;grid-template-columns:minmax(0,1fr) 52px;grid-template-areas:\'name rate\' \'note note\' \'bar bar\';align-items:baseline;gap:3px 10px}'
           + '.booked-row b{grid-area:name;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
           + '.booked-row span{grid-area:note;color:var(--muted);font-size:11.5px}'
-          + '.booked-row em{grid-area:rate;color:var(--green-deep);font-family:Consolas,monospace;font-size:14px;font-style:normal;font-weight:800;text-align:right}'
+          + '.booked-row em{grid-area:rate;color:var(--green-deep);font-family:Consolas,monospace;font-size:16px;font-style:normal;font-weight:900;text-align:right}'
           + '.booked-row i{grid-area:bar;display:block;height:7px;margin-top:4px;border-radius:4px;background:#e4ede7}'
           + '.booked-row i u{display:block;height:100%;border-radius:4px;background:var(--green);text-decoration:none}'
+          + '.band-grid,.speed-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:20px;align-items:stretch}'
+          + '.band-main,.band-rates,.speed-main,.speed-side{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
+          + '.speed-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}'
+          + '.speed-side .timing-disc{width:min(21vw,215px)}'
+          + '.speed-side .timing-disc strong{font-size:clamp(26px,2.5vw,36px)}'
+          + '.speed-side .timing-disc span{font-size:9px;margin-top:7px}'
+          + '.speed-side .timing-disc:before{inset:20px}'
+          + '.speed-side .coverage-band{margin:0;width:100%}'
+          + '.band-row{display:grid;grid-template-columns:minmax(0,1fr) 58px;grid-template-areas:\'name rate\' \'bar bar\' \'note note\';align-items:baseline;gap:3px 10px;padding:10px 0;border-top:1px solid var(--line)}'
+          + '.band-row:first-of-type{border-top:0}'
+          + '.band-row b{grid-area:name;font-size:14px;font-weight:800}'
+          + '.band-row em{grid-area:rate;color:var(--green-deep);font-family:Consolas,monospace;font-size:16px;font-style:normal;font-weight:900;text-align:right}'
+          + '.band-row.is-zero em{color:var(--copper)}'
+          + '.band-row i{grid-area:bar;display:block;height:9px;margin-top:2px;border-radius:5px;background:#e4ede7}'
+          + '.band-row i u{display:block;height:100%;border-radius:5px;background:var(--green);text-decoration:none}'
+          + '.band-row.is-zero i u{background:var(--copper);min-width:3px}'
+          + '.band-row small{grid-area:note;color:var(--muted);font-size:11.5px}'
+          + '@media(max-width:900px){.band-grid,.speed-grid{grid-template-columns:1fr}}'
+          /* cohort matrix on a slide: colour carries the share so the shape is
+             readable before any single figure is */
+          + '.cohort-deck-wrap{overflow-x:auto;padding:14px 16px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
+          + '.cohort-deck{width:100%;border-collapse:collapse;font-size:13px}'
+          + '.cohort-deck th{padding:9px 8px;border-bottom:1.5px solid var(--green-deep);background:#e9f4ed;color:var(--green-deep);font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;text-align:left;white-space:nowrap}'
+          + '.cohort-deck th.num,.cohort-deck td.num{text-align:right}'
+          + '.cohort-deck td{padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}'
+          + '.cohort-deck td b{font-family:Consolas,monospace;font-size:13.5px;font-weight:800}'
+          + '.cohort-deck td span{display:block;margin-top:2px;color:#8b9c91;font-family:Consolas,monospace;font-size:10px}'
+          + '.cohort-deck td.age{color:var(--muted);font-family:Consolas,monospace}'
+          + '.cohort-deck td.c{box-shadow:inset 0 0 0 1px #fff}'
+          + '.cohort-deck td.c.hi{background:var(--green);color:#fff}'
+          + '.cohort-deck td.c.hi span{color:rgba(255,255,255,.72)}'
+          + '.cohort-deck td.c.mid{background:#daf0e3}'
+          + '.cohort-deck td.c.lo{background:#eef5f0}'
+          + '.cohort-deck td.c.none b{color:#9aaba0}'
+          + '.cohort-deck td.c.young{color:#b3c2b8;font-size:17px;text-align:center}'
+          + '.cohort-deck td.c.total{background:transparent;box-shadow:inset 1px 0 0 var(--line)}'
+          + '.cohort-deck tr.foot td{border-bottom:0;border-top:1.5px solid var(--line);color:var(--muted);font-family:Consolas,monospace;font-size:12px}'
+          + '.cohort-deck tr.foot td:first-child{color:#7d8f84;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}'
+          /* the closing slide: booked work, with the people on it */
+          + '.agenda-table .team{color:var(--muted);font-size:11.5px;white-space:normal;min-width:150px}'
+          + '.agenda-table .team span{display:block;margin-top:2px;color:#98a89e;font-size:10.5px}'
+          + '.agenda-table .quote span{display:block;margin-top:2px;color:var(--muted);font-size:10.5px;font-weight:600}'
+          + '.open-list{display:grid;gap:0;margin-bottom:6px}'
+          + '.open-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px solid rgba(147,229,173,.2)}'
+          + '.open-row b{font-family:Consolas,monospace;font-size:12.5px;font-weight:800}'
+          + '.open-row em{color:#93e5ad;font-family:Consolas,monospace;font-size:12.5px;font-style:normal;font-weight:800;text-align:right}'
+          + '.open-row span{grid-column:1/-1;color:rgba(239,255,242,.62);font-size:11px}'
+          + '.agenda-empty{margin:8px 0 0;color:rgba(239,255,242,.7);font-size:12px}'
+          /* the two clocks, at slide scale */
+          + '.deck-clocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px;margin-bottom:18px}'
+          + '.deck-clock{display:grid;grid-template-columns:150px minmax(0,1fr);gap:22px;align-items:center;padding:20px 24px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 16px 34px -20px rgba(6,39,18,.55)}'
+          + '.deck-clock-dial{--clock:0%;--clock-color:var(--green);display:grid;place-items:center;width:150px;height:150px;border-radius:50%;background:conic-gradient(var(--clock-color) var(--clock),#e4ede7 0);box-shadow:inset 0 2px 5px rgba(255,255,255,.85),0 22px 40px -22px rgba(6,39,18,.6)}'
+          + '.deck-clock-dial>div{display:grid;place-items:center;width:74%;height:74%;border-radius:50%;background:#0b1d12;color:#f1fff3;text-align:center;box-shadow:inset 0 4px 12px rgba(0,0,0,.55)}'
+          + '.deck-clock-dial strong{display:block;font-family:Consolas,monospace;font-size:34px;font-weight:500;letter-spacing:-.06em}'
+          + '.deck-clock-dial span{display:block;margin-top:3px;color:rgba(241,255,243,.6);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}'
+          + '.deck-clock-copy>span{display:block;color:var(--green-deep);font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}'
+          + '.deck-clock-copy>b{display:block;margin-top:8px;font-size:19px;font-weight:800;line-height:1.24;letter-spacing:-.01em}'
+          + '.deck-clock-copy>small{display:block;margin-top:8px;color:var(--muted);font-size:12.5px;line-height:1.5}'
+          + '.deck-clock-scale{height:9px;margin-top:13px;border-radius:5px;background:#e4ede7;overflow:hidden}'
+          + '.deck-clock-scale i{display:block;height:100%;border-radius:5px;background:var(--clock-color,var(--green))}'
+          + '.deck-clock-copy>u,.deck-clock-copy>em{display:inline-block;margin-top:5px;color:#8b9c91;font-family:Consolas,monospace;font-size:10.5px;font-style:normal;text-decoration:none}'
+          + '.deck-clock-copy>em{float:right}'
+          /* the curve, given room */
+          + '.curve-slab{padding:18px 22px 20px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 16px 34px -20px rgba(6,39,18,.55)}'
+          + '.curve-slab-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:12px}'
+          + '.curve-slab-head b{font-size:17px;font-weight:800;color:var(--green-deep)}'
+          + '.curve-slab-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(250px,.85fr);gap:26px;align-items:stretch}'
+          + '.curve-slab-body .deck-curve{height:300px;width:100%}'
+          + '.curve-marks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);align-content:stretch}'
+          + '.curve-mark{display:flex;flex-direction:column;justify-content:center}'
+          + '.curve-mark{padding:11px 10px;background:#fff}'
+          + '.curve-mark b{display:block;font-family:Consolas,monospace;font-size:19px;font-weight:800;letter-spacing:-.04em}'
+          + '.curve-mark span{display:block;margin-top:3px;color:#7d8f84;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}'
+          + '.curve-mark small{display:block;margin-top:3px;color:var(--muted);font-family:Consolas,monospace;font-size:10.5px}'
+          + '@media(max-width:900px){.curve-slab-body{grid-template-columns:1fr}}'
           + '.deck-progress{position:fixed;left:0;top:0;height:3px;background:var(--green);z-index:9;transition:width .35s cubic-bezier(.2,.7,.3,1)}'
 + '.weekly-summary{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}'
           + '.weekly-summary>div{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}'
@@ -5762,10 +5862,9 @@
           + '<div class="hero-mark"><i class="deck-mark is-large" role="img" aria-label="Nucor Building Systems"></i><span>Building Systems<br />Estimating</span></div>'
           + '<p class="lead">Every quote in the selected source set, followed through to a confirmed order or an outcome that still needs an owner. Figures come from the weekly quote books joined to the order logs on quote number.</p>'
           + '<div class="deck-metrics">'
-          + deckMetric("Quote conversion", pct(data.conversion), data.orders + " confirmed order links")
-          + deckMetric("Quoted work", money(data.quoteValue), data.quotes + " quote opportunities")
-          + deckMetric("Confirmed value", money(data.orderValue), pct(data.valueCapture) + " value capture")
-          + deckMetric("95% confidence", confidence, "Wilson interval on " + data.quotes + " records")
+          + deckMetric("Quote conversion", pct(data.conversion), data.orders + " of " + data.quotes + " quotes came back")
+          + deckMetric("Quoted work", money(data.quoteValue), opsNumber(data.quotes) + " quote opportunities")
+          + deckMetric("Confirmed value", money(data.orderValue), pct(data.valueCapture) + " of quoted value returned")
           + '</div><div class="source-chip"><i></i>' + escape(sourceState) + " · " + escape(data.period) + " · " + escape(data.label) + " · exported " + escape(exportDate) + "</div></div>"
           + '<div class="hero-disc" style="--deck-conversion:' + data.conversion + '%"><div><strong>' + pct(data.conversion) + '</strong><span>confirmed<br />conversion</span></div></div></div>';
 
@@ -5778,6 +5877,8 @@
           + '<div class="outcome-card neutral"><span>Value concentration</span><strong>' + pct(data.valueCapture) + '</strong><b>of quoted value returned</b><p>Conversion counts records; value capture weights them by price.</p></div></div>'
           + "</div>"
           + '<div class="deck-callout"><strong>Management read:</strong> ' + data.unconverted + ' quote records remain visible as follow-up work — not assumed losses — until a confirmed order or a named outcome is recorded against them.</div>';
+
+        const line0 = data.timeline || nucorTimeline(data.records || [], data.cutoff);
 
         // ---- 03 Weekly pulse -------------------------------------------------
         const peakWeek = data.weekly.length ? data.weekly.reduce((best, item) => item.quotes > best.quotes ? item : best, data.weekly[0]) : null;
@@ -5799,38 +5900,79 @@
               : 'Every loaded week sits at or above the 10% reference on this cohort.')
           + '</p>';
 
-        // ---- 04 Where the value sits (new) -----------------------------------
-        const worstBand = valueBands.bands.filter(band => band.quotes >= 3).sort((a, b) => a.conversion - b.conversion)[0];
-        const bigBand = valueBands.bands.length ? valueBands.bands[valueBands.bands.length - 1] : null;
-        const valueRead = bigBand && bigBand.wins === 0
-          ? "The largest band — " + bigBand.quotes + " quotes carrying " + money(bigBand.value / 1000000) + " — has returned no linked order in this cohort. That single row is worth more than every confirmed win combined."
-          : worstBand
-            ? worstBand.label + " converts at " + pct(worstBand.conversion) + ", the weakest scored band, across " + money(worstBand.value / 1000000) + " of quoted work."
-            : "Quoted value is spread evenly enough that no band stands out as the constraint.";
-        const valueSlide = '<div class="analysis-grid"><div class="analysis-main">'
-          + deckSegmentChart(valueBands.bands, { label: "Quote conversion by quoted value band", empty: "No priced quote records in this cohort yet." })
-          + '</div><aside class="analysis-side"><span class="section-label">Read the split</span>'
-          + '<p>' + escape(valueRead) + '</p>'
-          + '<div class="side-stat"><span>Priced records scored</span><strong>' + valueBands.scored + " / " + data.quotes + '</strong></div>'
-          + '<div class="side-stat"><span>Revised quotes convert at</span><strong>' + pct(revisions.revised.conversion) + '</strong><small>' + revisions.revised.quotes + ' revised vs ' + pct(revisions.single.conversion) + ' on ' + revisions.single.quotes + ' single-pass' + (revisions.revised.quotes < 10 ? ' · thin sample' : '') + '</small></div>'
-          + "</aside></div>"
-          + '<div class="deck-callout"><strong>Where to look first:</strong> conversion is a rate, but the follow-up list should be ordered by value. The bands above show which size of work is actually returning, and which is quoted heavily but rarely booked.</div>';
+        // ---- 04 Where the value sits ------------------------------------------
+        // The old chart put a count bar and a rate marker on the same row, which
+        // asked the reader to hold two scales at once and answered neither
+        // question cleanly. Volume is now a column chart and return is a rate
+        // beside the money, so "where the work is" and "what came back from it"
+        // are read one after the other rather than on top of each other.
+        const bands = valueBands.bands || [];
+        const bandTotalValue = bands.reduce((sum, band) => sum + band.value, 0);
+        const bandTopRate = Math.max(0, ...bands.map(band => band.conversion));
+        const zeroBands = bands.filter(band => band.quotes > 0 && band.wins === 0);
+        const zeroValue = zeroBands.reduce((sum, band) => sum + band.value, 0);
+        const bestBand = bands.filter(band => band.quotes >= 3).slice().sort((a, b) => b.conversion - a.conversion)[0];
+        const worstBand = bands.filter(band => band.quotes >= 3).slice().sort((a, b) => a.conversion - b.conversion)[0];
+        const valueRead = zeroBands.length
+          ? zeroBands.length === 1
+            ? "Nothing in " + zeroBands[0].label + " came back — " + zeroBands[0].quotes + " quotes carrying " + money(zeroBands[0].value / 1000000) + "."
+            : zeroBands.length + " bands returned nothing at all, carrying " + money(zeroValue / 1000000) + " between them."
+          : bestBand && worstBand && bestBand.label !== worstBand.label
+            ? bestBand.label + " returns at " + pct(bestBand.conversion) + " against " + pct(worstBand.conversion) + " for " + worstBand.label + "."
+            : "Return is even enough across the bands that size is not the constraint.";
+        const valueSlide = '<div class="weekly-summary">'
+          + '<div><span>Priced records</span><strong>' + opsNumber(valueBands.scored) + " / " + opsNumber(data.quotes) + '</strong><small>carry a value to band</small></div>'
+          + '<div><span>Biggest band by value</span><strong>' + (bands.length ? money(bands.slice().sort((a, b) => b.value - a.value)[0].value / 1000000) : "—")
+          + '</strong><small>' + (bands.length ? escape(bands.slice().sort((a, b) => b.value - a.value)[0].label) : "no priced work") + '</small></div>'
+          + '<div><span>Best returning band</span><strong>' + (bestBand ? pct(bestBand.conversion) : "—") + '</strong><small>' + (bestBand ? escape(bestBand.label) + " · " + bestBand.quotes + " quotes" : "needs three quotes in a band") + '</small></div>'
+          + '<div><span>Returned nothing</span><strong>' + (zeroBands.length ? money(zeroValue / 1000000) : "none") + '</strong><small>' + (zeroBands.length ? zeroBands.length + " band" + (zeroBands.length === 1 ? "" : "s") + " with no linked order" : "every band booked something") + "</small></div></div>"
+          + '<div class="band-grid"><div class="band-main">'
+          + deckIsoColumns(bands.map(band => ({
+              label: band.label,
+              value: band.quotes,
+              value_label: band.quotes + " quotes",
+              tone: band.wins === 0 ? "copper" : band.conversion >= 15 ? "green" : "deep"
+            })), { label: "Quotes issued in each value band", caption: "HOW MUCH WORK SITS IN EACH BAND", compact: true })
+          + '</div><div class="band-rates"><span class="section-label">And what came back from it</span>'
+          + (bands.length
+              ? bands.map(band => '<div class="band-row' + (band.wins === 0 ? " is-zero" : "") + '"><b>' + escape(band.label) + "</b>"
+                  + '<i><u style="width:' + (bandTopRate ? Math.max(band.wins ? 2 : 0, band.conversion / bandTopRate * 100) : 0).toFixed(1) + '%"></u></i>'
+                  + "<em>" + pct(band.conversion) + "</em>"
+                  + "<small>" + band.wins + " of " + band.quotes + " booked · " + money(band.value / 1000000) + " quoted"
+                  + (bandTotalValue ? " · " + pct(percentage(band.value, bandTotalValue)) + " of the book" : "") + "</small></div>").join("")
+              : '<div class="deck-empty">No priced quote records in this cohort yet.</div>')
+          + "</div></div>"
+          + '<div class="deck-callout"><strong>Read it this way:</strong> ' + escape(valueRead)
+          + ' Conversion is a rate, so a band with three quotes moves by thirty points on one order — the money beside it is what says whether that matters.</div>';
 
-        // ---- 05 Release timing -----------------------------------------------
-        const timingRows = onTimeAvailable(data)
-          ? deckBarChart(data.weekly.map(item => ({
-              label: item.week,
-              value: item.onTimeScored === false ? 0 : item.onTime,
-              value_label: item.onTimeScored === false ? "not scored" : item.onTime + "%",
-              tone: item.onTimeScored === false ? "copper" : item.onTime >= 90 ? "green" : "deep"
-            })), { label: "On-time release rate by quoted week" })
-          : '<div class="deck-empty">Release timing is not scored in this source set. The <b>On-Time</b> column needs a release result against the requested due date.</div>';
-        const timing = '<div class="timing-layout"><div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>on-time<br />release</span></div>'
-          + '<div class="timing-copy"><span class="section-label">Release discipline</span>'
-          + '<h2>Speed, measured only where it was scored.</h2>'
-          + '<p>On-time release compares each requested due date with its sent quote date. It is independent of conversion — a late quote can still win, and an early one can still go unanswered.</p>'
-          + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Delivered on the due date counts as on time; the workbook writes that result as N/A. Only rows with no release result at all are excluded from both halves of the rate.</span></div>'
-          + "</div></div>" + timingRows;
+        // ---- 05 How fast we answer --------------------------------------------
+        // Release timing on its own was one dial and a wall of supporting text.
+        // The question a manager actually asks is "how fast do we turn work
+        // around, and do we hit the date we promised" — two halves of one
+        // answer, so they share a slide: the production time distribution on
+        // the left, and whether the promised date was met on the right.
+        const turnDeck = data.turn;
+        const turnBands = [
+          { label: "1 day", value: turnDeck.oneDay, tone: "green" },
+          { label: "2–3 days", value: turnDeck.threeDay, tone: "deep" },
+          { label: "4–5 days", value: turnDeck.fourFive, tone: "deep" },
+          { label: "6+ days", value: turnDeck.sixPlus, tone: "copper" }
+        ];
+        const timing = '<div class="weekly-summary">'
+          + '<div><span>Median time to price</span><strong>' + (line0.produce.median === null ? "—" : dayText(line0.produce.median)) + '</strong><small>Date In to Done on ' + opsNumber(line0.produce.scored) + ' quotes</small></div>'
+          + '<div><span>Inside three days</span><strong>' + pct(percentage(turnDeck.withinThree, turnDeck.scored)) + '</strong><small>' + opsNumber(turnDeck.withinThree) + ' of ' + opsNumber(turnDeck.scored) + ' scored quotes</small></div>'
+          + '<div><span>Met the promised date</span><strong>' + timingText + '</strong><small>' + escape(coverage) + '</small></div>'
+          + '<div><span>Slowest tenth</span><strong>' + (line0.produce.p90 === null ? "—" : dayText(line0.produce.p90)) + '</strong><small>9 in 10 quotes are out inside this</small></div></div>'
+          + '<div class="speed-grid"><div class="speed-main">'
+          + deckIsoColumns(turnBands.map(band => ({ label: band.label, value: band.value, value_label: String(band.value), tone: band.tone })),
+              { label: "How long quotes took to produce", caption: "QUOTES BY TIME TO PRODUCE", compact: true })
+          + '<p class="chart-note">Date In to Done. ' + turnDeck.excluded + ' quotes are excluded at or beyond ' + TURN_LIMIT
+          + ' days, which reads as a stale date rather than a slow quote. This measure does not care whether the quote converted.</p>'
+          + '</div><div class="speed-side">'
+          + '<div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>met the<br />promised date</span></div>'
+          + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Delivered on the due date counts as met; the workbook writes that result as N/A. Only rows with no release result at all are excluded from both halves.</span></div>'
+          + "</div></div>"
+          + '<div class="deck-callout"><strong>Two different promises:</strong> the columns are how long the work took, the dial is whether it landed by the date the customer was given. A quote can be quick and late, or slow and on time — a long due date is not the same as a fast quote.</div>';
 
         // ---- 06 Customer demand ----------------------------------------------
         // Two questions on one slide: who asks the most, and who asks without
@@ -5840,7 +5982,10 @@
           .sort((a, b) => b.quotes - a.quotes || b.quoteValue - a.quoteValue).slice(0, 6);
         const neverBooked = (customerSignals.askedNeverBooked || []).slice(0, 4);
         const neverBookedHours = (customerSignals.askedNeverBooked || []).reduce((sum, account) => sum + account.hours, 0);
-        const topBooked = (customerSignals.topWinAccounts || []).slice(0, 4);
+        const topBooked = (customerSignals.accounts || []).filter(account => account.wonValue > 0)
+          .slice().sort((a, b) => b.wonValue - a.wonValue).slice(0, 4);
+        const returnedAll = (customerSignals.accounts || []).reduce((sum, account) => sum + account.wonValue, 0);
+        const topBookedValue = topBooked.reduce((sum, account) => sum + account.wonValue, 0);
         const operations = '<div class="weekly-summary">'
           + '<div><span>Accounts quoted</span><strong>' + customerSignals.total + '</strong><small>' + customerSignals.multiWeek + ' asked in more than one week</small></div>'
           + '<div><span>Accounts that booked</span><strong>' + customerSignals.withWin + '</strong><small>' + pct(percentage(customerSignals.withWin, customerSignals.total)) + ' of accounts returned work</small></div>'
@@ -5860,116 +6005,156 @@
           + '</strong><small>Read off the quote key.</small></div>'
           + "</aside></div>"
           + (topBooked.length
-              ? '<div class="booked-strip"><span class="section-label">Where the booked work came from</span><div class="booked-rows">'
-                + topBooked.map(account => '<div class="booked-row"><b>' + escape(account.name.length > 28 ? account.name.slice(0, 27) + "…" : account.name) + "</b>"
-                    + "<span>" + account.wins + " job" + (account.wins === 1 ? "" : "s") + " · " + money(account.wonValue) + " returned of " + money(account.quoteValue) + " asked</span>"
-                    + '<i><u style="width:' + Math.min(100, account.quoteValue ? account.wonValue / account.quoteValue * 100 : 0).toFixed(1) + '%"></u></i>'
-                    + "<em>" + pct(account.conversion) + "</em></div>").join("")
+              ? '<div class="booked-strip"><div class="booked-head"><span class="section-label">Who brought us the most money</span>'
+                + '<b>' + money(topBookedValue) + ' of the ' + money(returnedAll) + ' that came back'
+                + (returnedAll ? ' — ' + pct(percentage(topBookedValue, returnedAll)) + ' of every booked dollar' : '') + '</b></div><div class="booked-rows">'
+                + topBooked.map(account => '<div class="booked-row"><b>' + escape(account.name.length > 26 ? account.name.slice(0, 25) + "…" : account.name) + "</b>"
+                    + "<em>" + money(account.wonValue) + "</em>"
+                    + "<span>" + account.wins + " of " + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " booked · " + pct(account.conversion) + " · " + money(account.quoteValue) + " asked</span>"
+                    + '<i><u style="width:' + Math.min(100, topBooked[0].wonValue ? account.wonValue / topBooked[0].wonValue * 100 : 0).toFixed(1) + '%"></u></i>'
+                    + "</div>").join("")
                 + "</div></div>"
               : "")
           + '<div class="deck-callout"><strong>Operating read:</strong> ' + (customerSignals.askedNeverBooked || []).length
           + ' accounts asked at least twice and booked nothing, carrying ' + money(customerSignals.askedNeverBookedValue) + ' of quoted value and '
           + neverBookedHours.toFixed(0) + ' engineering hours — a follow-up queue, not a loss list.</div>';
 
-        // ---- 07 How long it takes to come back --------------------------------
-        // Replaces the old lag-bucket slide. Same underlying dates, read as a
-        // lifecycle and a decision curve rather than four bars, and carrying the
-        // ageing of the work that has had no answer at all.
-        const line = data.timeline || nucorTimeline(data.records || [], data.cutoff);
+        // ---- 07 How long it takes to come back ---------------------------------
+        // This was a dense screen dropped onto a slide: three stage bars, an
+        // ageing table, a curve and four cards, all small. A slide holds one
+        // idea at a size a room can read. The idea here is two clocks — ours
+        // and the customer's — and the curve that shows when the answers land.
+        const line = line0;
         const halfMark = line.curve.find(mark => mark.share >= 50);
-        const stageRows = deckStageRows([
-          { label: "Produce the quote", from: "Date In", to: "Done", stat: line.produce, tone: "green" },
-          { label: "Customer answers", from: "Done", to: "order entry", stat: line.decide, tone: "steel" },
-          { label: "Whole cycle", from: "Date In", to: "booked work", stat: line.total, tone: "copper" }
-        ]);
-        const ageMax = Math.max(1, ...line.ageing.map(band => band.count));
-        const ageRows = line.ageing.map((band, index) => '<div class="deck-age" style="--deck-bar-delay:' + (index * 70) + 'ms"><span>' + escape(band.label) + "</span>"
-          + '<i><u class="is-' + band.tone + '" style="width:' + (band.count / ageMax * 100).toFixed(1) + '%"></u></i>'
-          + "<b>" + opsNumber(band.count) + "</b><em>" + money(band.value) + "</em></div>").join("");
-        const speedBody = '<div class="weekly-summary">'
-          + '<div><span>Median time to price</span><strong>' + dayText(line.produce.median) + '</strong><small>Date In to Done on ' + opsNumber(line.produce.scored) + ' quotes</small></div>'
-          + '<div><span>Median time to answer</span><strong>' + dayText(line.decide.median) + '</strong><small>Done to order entry on ' + opsNumber(line.decide.scored) + ' booked quotes</small></div>'
-          + '<div><span>Half of orders land by</span><strong>' + (halfMark ? "day " + halfMark.day : "—") + '</strong><small>of ' + opsNumber(line.bookedScored) + ' quotes that booked</small></div>'
-          + '<div><span>Open book</span><strong>' + money(line.openValue) + '</strong><small>' + opsNumber(line.openCount) + ' quotes with no linked order</small></div></div>'
-          + '<div class="cycle-grid"><div class="cycle-main"><span class="section-label">Lifecycle</span>'
-          + stageRows
-          + '<p class="chart-note">The three stages are measured separately and do not add up: every quote has a Date In and a Done, but only a booked one has an order date.</p>'
-          + '<span class="section-label" style="margin-top:14px">The open book, by how long it has waited</span>'
-          + ageRows
-          + '<p class="chart-note">' + (data.exposure
-              ? 'The ' + escape(data.label) + ' lens already excludes anything younger than ' + data.exposure + ' days, so the bands below that are empty by definition rather than because no fresh work exists.'
-              : 'Aged against the order-log cutoff. An unconverted quote is work still needing a named current status, not a recorded loss.') + '</p>'
-          + '</div><div class="cycle-side"><span class="section-label">When the orders arrive</span>'
-          + deckCurveChart(line.curve, line.bookedScored)
-          + '<p class="chart-note">Of everything that eventually booked, the share that had booked by each day after the quoted week. '
-          + (halfMark ? 'Half had landed by day ' + halfMark.day + '. ' : '')
-          + 'Where the curve flattens is where waiting stops paying.</p>'
-          + '</div></div>';
         const oldest = line.ageing[line.ageing.length - 1];
-        const speedCallout = '<div class="deck-callout"><strong>What to do with this:</strong> '
+        const deckClock = item => {
+          const share = item.value === null ? 0 : Math.min(100, item.value / item.scale * 100);
+          return '<article class="deck-clock"><div class="deck-clock-dial" style="--clock:' + share.toFixed(1) + '%;--clock-color:' + item.color + '">'
+            + "<div><strong>" + (item.value === null ? "—" : dayText(item.value)) + "</strong><span>median</span></div></div>"
+            + '<div class="deck-clock-copy"><span>' + escape(item.label) + "</span><b>" + escape(item.headline) + "</b>"
+            + "<small>" + escape(item.note) + "</small>"
+            + '<div class="deck-clock-scale"><i style="width:' + share.toFixed(1) + '%"></i></div>'
+            + "<u>0</u><em>" + item.scale + " day scale</em></div></article>";
+        };
+        const speedBody = '<div class="deck-clocks">'
+          + deckClock({
+              label: "Our side — producing the quote",
+              value: line.produce.median, scale: 14, color: "var(--green)",
+              headline: line.produce.scored ? "Half of quotes are out inside " + dayText(line.produce.median) : "Not scored in this set",
+              note: "Date In to Done on " + opsNumber(line.produce.scored) + " of " + opsNumber(data.quotes) + " quotes · 9 in 10 inside " + dayText(line.produce.p90)
+            })
+          + deckClock({
+              label: "Their side — deciding",
+              value: line.decide.median, scale: 90, color: "var(--steel)",
+              headline: line.decide.scored ? "Half of orders land inside " + dayText(line.decide.median) + " of release" : "Not scored in this set",
+              note: line.decide.scored
+                ? "Done to order entry on " + opsNumber(line.decide.scored) + " booked quotes · 9 in 10 inside " + dayText(line.decide.p90) + ". Scored on the ones that said yes."
+                : "No booked quote carries both a Done date and an order date."
+            })
+          + "</div>"
+          + '<div class="curve-slab"><div class="curve-slab-head"><span class="section-label">When the orders actually arrive</span>'
+          + "<b>" + (halfMark ? "Half had landed by day " + halfMark.day : "Not enough booked lag to draw a curve") + "</b></div>"
+          + '<div class="curve-slab-body"><div>' + deckCurveChart(line.curve, line.bookedScored) + "</div>"
+          + '<div class="curve-marks">' + line.curve.map(mark => '<div class="curve-mark"><b>' + pct(mark.share) + "</b><span>by day " + mark.day + "</span><small>" + mark.count + " of " + line.bookedScored + "</small></div>").join("") + "</div></div></div>"
+          + '<div class="deck-callout"><strong>What to do with this:</strong> '
           + (halfMark
               ? "half of everything that booked had done so by day " + halfMark.day + ", so a quote past that point is past the window most of this book decides in — not lost, but worth a named next step. "
               : "the decision window is not scored in this cohort yet. ")
           + (oldest.count
-              ? opsNumber(oldest.count) + " quotes carrying " + money(oldest.value) + " have now waited more than sixty days. That is the follow-up list, ordered by value on the closing slide."
+              ? opsNumber(oldest.count) + " quotes carrying " + money(oldest.value) + " have now waited more than sixty days."
               : "Nothing in this cohort has waited more than sixty days without an answer.")
           + '</div>';
-        const speed = speedBody + speedCallout;
+        const speed = speedBody;
 
-        // ---- 08 Review agenda (replaces the old generic action cards) ---------
-        const followUpRows = followUp.length ? followUp.map((item, index) =>
-          '<tr><td class="rank">' + (index + 1) + '</td><td class="quote">' + escape(item.quote) + '</td><td class="cust" title="' + escape(item.customer) + '">' + escape(item.customer.slice(0, 30)) + '</td><td>' + escape(item.owner) + '</td><td class="week">' + escape(item.week) + '</td><td class="age">' + (item.exposure === null ? "—" : item.exposure + " d") + '</td><td class="val">' + money(item.value / 1000000) + "</td></tr>"
-        ).join("") : '<tr><td colspan="7" class="empty-row">Every priced opportunity in this cohort has a linked order.</td></tr>';
-        const followUpValue = followUp.reduce((sum, item) => sum + item.value, 0);
-        const weakSize = sizeBands.bands.filter(band => band.quotes >= 3).sort((a, b) => a.conversion - b.conversion)[0];
+        // ---- 09 The work that came back ----------------------------------------
+        // The closing slide used to list the biggest quotes with no order. That
+        // is a follow-up queue and it still belongs here, but the review opens
+        // on what was actually won — real booked jobs with real tonnage and
+        // everyone who touched them — not on a list of the largest things that
+        // did not happen.
+        const bookedJobs = (data.records || []).filter(record => record.won)
+          .reduce((all, record) => all.concat((record.jobsDetail || []).map(job => ({
+            job: job.id, name: job.name || "", customer: customerName(record.customer) || job.customer || "",
+            entryDate: job.entryDate, tons: Number(job.tons) || 0,
+            value: Number(record.price) || 0, quote: record.key, lag: record.lag,
+            engineer: deckOwnerLabel(record.engineer), estimator: deckOwnerLabel(record.estimator),
+            scheduler: deckOwnerLabel(record.scheduler), salesEngineer: job.salesEngineer || "", csr: job.csr || ""
+          }))), [])
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 8);
+        const bookedValue = bookedJobs.reduce((sum, item) => sum + item.value, 0);
+        const bookedTonsTop = bookedJobs.reduce((sum, item) => sum + item.tons, 0);
+        const shortName = (value, limit) => { const text = String(value || "").trim(); return text.length > limit ? text.slice(0, limit - 1) + "…" : text; };
+        const bookedRows = bookedJobs.length ? bookedJobs.map((item, index) =>
+          '<tr><td class="rank">' + (index + 1) + '</td>'
+          + '<td class="quote"><b>' + escape(item.job) + "</b>" + (item.name ? "<span>" + escape(shortName(item.name, 30)) + "</span>" : "") + "</td>"
+          + '<td class="cust" title="' + escape(item.customer) + '">' + escape(shortName(item.customer, 26)) + "</td>"
+          + '<td class="week">' + (item.entryDate ? fullDate(item.entryDate) : "no entry date") + "</td>"
+          + '<td class="age">' + (item.tons ? tons(item.tons) : "—") + "</td>"
+          + '<td class="val">' + money(item.value / 1000000) + "</td>"
+          + '<td class="team">' + escape(deckTeamLine([
+              { role: "engineer", name: item.engineer },
+              { role: "estimator", name: item.estimator },
+              { role: "scheduler", name: item.scheduler }
+            ]))
+          + (item.salesEngineer || item.csr ? '<span>' + escape([item.salesEngineer, item.csr].filter(Boolean).join(" · ")) + "</span>" : "") + "</td></tr>"
+        ).join("") : '<tr><td colspan="7" class="empty-row">No quote in this cohort has a linked order yet.</td></tr>';
+        const openTop = followUp.slice(0, 4);
         const agenda = '<div class="agenda-grid"><div class="agenda-table-wrap">'
-          + '<div class="agenda-head"><span class="section-label">Highest-value work with no linked order</span><b>' + money(followUpValue / 1000000) + ' across the top ' + followUp.length + '</b></div>'
-          + '<table class="agenda-table"><thead><tr><th></th><th>Quote</th><th>Customer</th><th>Quote owner</th><th>Week</th><th>Open</th><th>Value</th></tr></thead><tbody>' + followUpRows + "</tbody></table>"
-          + '<p class="chart-note">Ordered by quoted value, not by age. Each row needs one of three answers at the review: still live, lost with a reason, or an owner-held next step and a date.</p>'
+          + '<div class="agenda-head"><span class="section-label">Our best booked work in this cohort</span><b>' + money(bookedValue / 1000000)
+          + " across the top " + bookedJobs.length + (bookedTonsTop ? " · " + tons(bookedTonsTop) + " tons" : "") + '</b></div>'
+          + '<table class="agenda-table"><thead><tr><th></th><th>Job</th><th>Customer</th><th>Entered</th><th>Tons</th><th>Value</th><th>Quoted by / booked by</th></tr></thead><tbody>' + bookedRows + "</tbody></table>"
+          + '<p class="chart-note">Every row is a real order-log job matched to the quote that priced it. Value is the quoted value of that quote; tonnage and the entry date come from the order log. The first three names priced it, the names beneath sold and ran it.</p>'
           + "</div>"
-          + '<aside class="agenda-side"><span class="section-label">Three things this data says</span>'
+          + '<aside class="agenda-side"><span class="section-label">And the largest still open</span>'
+          + (openTop.length
+              ? '<div class="open-list">' + openTop.map(item => '<div class="open-row"><b>' + escape(item.quote) + "</b><em>" + money(item.value / 1000000) + "</em>"
+                  + "<span>" + escape(shortName(item.customer, 24)) + " · " + escape(item.owner) + (item.exposure === null ? "" : " · open " + item.exposure + "d") + "</span></div>").join("") + "</div>"
+              : '<p class="agenda-empty">Every priced opportunity in this cohort has a linked order.</p>')
           + '<div class="agenda-point"><b>01</b><p>' + escape(valueRead) + '</p></div>'
-          + '<div class="agenda-point"><b>02</b><p>' + (weakSize ? escape(weakSize.label + " converts at " + pct(weakSize.conversion) + " across " + weakSize.quotes + " quotes — the weakest scored size band.") : "Size banding needs square-foot values to produce a read.") + '</p></div>'
-          + '<div class="agenda-point"><b>03</b><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'
+          + '<div class="agenda-point"><b>02</b><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'
           + "</aside></div>";
 
-        // ---- 08 Estimating capacity (new) -------------------------------------
-        const eng = data.engineering || { byEngineer: [], totalHours: 0, scheduledHours: 0, perQuote: 0, fivePlus: 0 };
-        const turnData = data.turn || { average: null, scored: 0, oneDay: 0, threeDay: 0, fourFive: 0, sixPlus: 0, withinThree: 0, excluded: 0 };
-        const capVariance = eng.scheduledHours - eng.totalHours;
-        const capPct = eng.scheduledHours ? capVariance / eng.scheduledHours * 100 : null;
-        const capEngineers = (eng.byEngineer || []).filter(item => item.hours > 0 && item.code !== "(none)").slice(0, 8);
+        // ---- 08 Cohort maturity -----------------------------------------------
+        // Replaces the capacity slide. Scheduled against actual hours is a real
+        // measure and it stays on the dashboard, but it is an internal one — it
+        // did not earn a slide in a meeting about whether work comes back. This
+        // does: comparing a week quoted six days ago against one quoted sixty
+        // days ago compares a decision that has not been made yet against one
+        // that has, and every conversation about "is this week bad" runs into it.
+        const cohortDeck = data.cohort || { marks: [], rows: [], matureAt: [] };
+        const matureRows = cohortDeck.rows.filter(row => row.cells.some(cell => cell.mature));
+        const cohortCell = cell => cell.mature
+          ? '<td class="num c' + (cell.share >= 20 ? " hi" : cell.share >= 10 ? " mid" : cell.share > 0 ? " lo" : " none") + '"><b>' + pct(cell.share) + "</b><span>" + cell.count + "</span></td>"
+          : '<td class="num c young">·</td>';
+        const day30 = cohortDeck.matureAt.find(mark => mark.day === 30);
+        const best30 = matureRows.slice().sort((a, b) => {
+          const av = (a.cells.find(c => c.day === 30) || {}).share, bv = (b.cells.find(c => c.day === 30) || {}).share;
+          return (bv === null || bv === undefined ? -1 : bv) - (av === null || av === undefined ? -1 : av);
+        })[0];
         const capacityBody = '<div class="weekly-summary">'
-          + '<div><span>Scheduled hours</span><strong>' + eng.scheduledHours.toFixed(0) + '</strong><small>set aside for this work</small></div>'
-          + '<div><span>Actual hours</span><strong>' + eng.totalHours.toFixed(0) + '</strong><small>' + eng.perQuote.toFixed(2) + ' per quote</small></div>'
-          + '<div><span>' + (capVariance >= 0 ? "Under plan by" : "Over plan by") + '</span><strong>' + Math.abs(capVariance).toFixed(0) + ' hrs</strong><small>' + (capPct === null ? "\u2014" : Math.abs(capPct).toFixed(1) + "% " + (capVariance >= 0 ? "under" : "over") + " plan") + '</small></div>'
-          + '<div><span>Average turnaround</span><strong>' + (turnData.average === null ? "\u2014" : turnData.average.toFixed(1) + " d") + '</strong><small>' + pct(percentage(turnData.withinThree, turnData.scored)) + ' inside three days</small></div></div>'
-          + '<div class="analysis-grid"><div class="analysis-main">'
-          + (capEngineers.length
-              ? '<p class="chart-note" style="margin:0 0 10px">Scheduled engineering time against the hours actually spent. Green came in under the time set aside; copper ran over.</p>'
-                + deckBarChart(capEngineers.map(item => ({
-                    label: item.code,
-                    value: Math.abs(item.variance),
-                    value_label: (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + " hrs \u00b7 " + item.scheduled.toFixed(0) + " sched / " + item.hours.toFixed(0) + " act",
-                    tone: item.variance >= 0 ? "green" : "copper"
-                  })), { label: "Engineering hours against schedule, by engineer", labelWidth: 96, valueWidth: 244 })
-              : '<div class="deck-empty">Scheduled engineering hours are not populated in this source set.</div>')
-          + '</div><aside class="analysis-side"><span class="section-label">Turnaround</span>'
-          + '<div class="timing-list">'
-          + [["\u22641 day", turnData.oneDay], ["2\u20133 days", turnData.threeDay], ["4\u20135 days", turnData.fourFive], ["6+ days", turnData.sixPlus]]
-              .map(pair => '<div class="timing-row"><span>' + escape(pair[0]) + '</span><i><b style="width:'
-                + (turnData.scored ? Math.max(3, pair[1] / turnData.scored * 100) : 0).toFixed(1) + '%"></b></i><strong>' + pair[1] + "</strong></div>").join("")
-          + '</div><div class="side-stat"><span>Quotes at 5+ engineering hours</span><strong>' + eng.fivePlus + '</strong><small>of ' + data.quotes + ' in this cohort</small></div>'
-          + "</aside></div>"
-          + '<div class="deck-callout"><strong>Why this sits beside conversion:</strong> conversion says whether quoted work came back. This says what it cost to produce. '
-          + (capVariance >= 0
-              ? "Engineering came in under the scheduled time across this run."
-              : "Engineering ran " + Math.abs(capVariance).toFixed(0) + " hours over the time set aside, " + Math.abs(capPct).toFixed(1) + "% above plan.")
-          + ' A single engineer well over the line is a scheduling question, not a performance one \u2014 the hours were booked against an estimate made before the work started.</div>';
+          + '<div><span>Weeks old enough to read</span><strong>' + matureRows.length + " / " + cohortDeck.rows.length + '</strong><small>at least one column answered</small></div>'
+          + '<div><span>Booked by day 30</span><strong>' + (day30 && day30.share !== null ? pct(day30.share) : "—") + '</strong><small>' + (day30 ? opsNumber(day30.booked) + " of " + opsNumber(day30.quotes) + " quotes across " + day30.weeks + " week" + (day30.weeks === 1 ? "" : "s") : "no week has reached thirty days") + '</small></div>'
+          + '<div><span>Strongest week at 30 days</span><strong>' + (best30 && (best30.cells.find(c => c.day === 30) || {}).share !== null && (best30.cells.find(c => c.day === 30) || {}).share !== undefined ? escape(best30.label) : "—")
+          + '</strong><small>' + (best30 && (best30.cells.find(c => c.day === 30) || {}).mature ? pct((best30.cells.find(c => c.day === 30)).share) + " booked inside a month" : "needs a week past thirty days") + '</small></div>'
+          + '<div><span>Median decision</span><strong>' + (line0.decide.median === null ? "—" : dayText(line0.decide.median)) + '</strong><small>Done to order entry on the ones that booked</small></div></div>'
+          + (cohortDeck.rows.length
+              ? '<div class="cohort-deck-wrap"><table class="cohort-deck"><thead><tr><th>Quoted week</th><th class="num">Quotes</th><th class="num">Age</th>'
+                + cohortDeck.marks.map(day => '<th class="num">By day ' + day + "</th>").join("")
+                + '<th class="num">To date</th></tr></thead><tbody>'
+                + cohortDeck.rows.map(row => "<tr><td><b>" + escape(row.label) + '</b></td><td class="num">' + row.quotes + '</td><td class="num age">' + (row.age === null ? "—" : row.age + "d") + "</td>"
+                    + row.cells.map(cohortCell).join("")
+                    + '<td class="num c total"><b>' + pct(row.conversion) + "</b><span>" + row.wins + "</span></td></tr>").join("")
+                + '<tr class="foot"><td>All weeks old enough</td><td class="num"></td><td class="num"></td>'
+                + cohortDeck.matureAt.map(mark => '<td class="num">' + (mark.share === null ? "—" : pct(mark.share)) + "<span>" + mark.weeks + " wk</span></td>").join("")
+                + '<td class="num">' + pct(data.conversion) + "</td></tr></tbody></table></div>"
+              : '<div class="deck-empty">No dated quoted week in this cohort, so there is nothing to age.</div>')
+          + '<div class="deck-callout"><strong>A dot is not a zero.</strong> It means the week has not lived long enough to answer that column. Every figure in a column counts only the weeks that have had that many days, so two weeks are only ever compared at the same age — which is the only honest way to ask whether a recent week is behind.</div>';
 
-        // The old third point told you to widen release-timing coverage even
-        // when coverage was already complete. It now says the most actionable
-        // true thing about this cohort.
+        // The most actionable true thing about this cohort. Partial release-timing
+        // coverage still gets the coverage message; a complete one gets the
+        // open book, because telling a reader to widen coverage that is already
+        // complete is advice that contradicts the figure beside it.
         function agendaThirdPoint(scope, coverageText) {
           if (!onTimeAvailable(scope)) {
             return "Release timing is unscored in this set. Populating the On-Time column would add a delivery measure that is independent of conversion.";
@@ -5993,11 +6178,11 @@
           + deckSlide(2, "Quote outcome overview", "One quote book.<br /><em>Two visible outcomes.</em>", outcomes)
           + deckSlide(3, "Weekly performance pulse", "Volume above.<br /><em>Conversion below.</em>", weekly, true)
           + deckSlide(4, "Value band analysis", "Not all quoted work<br /><em>behaves the same.</em>", valueSlide, true)
-          + deckSlide(5, "Quote release timing", "Work delivered<br /><em>when it was needed.</em>", timing, true)
+          + deckSlide(5, "Speed and release timing", "How fast we answer,<br /><em>and whether we hit the date.</em>", timing, true)
           + deckSlide(6, "Customer demand", "Who asks, and who<br /><em>actually books.</em>", operations, true)
           + deckSlide(7, "Lifecycle and decision window", "How long it takes<br /><em>to come back.</em>", speed, true)
-          + deckSlide(8, "Estimating capacity", "What the work cost<br /><em>to produce.</em>", capacityBody, true)
-          + deckSlide(9, "Review agenda", "The next review,<br /><em>already prioritised.</em>", agenda, true);
+          + deckSlide(8, "Cohort maturity", "Every week read<br /><em>at the same age.</em>", capacityBody, true)
+          + deckSlide(9, "The work that came back", "Our best booked work,<br /><em>and who delivered it.</em>", agenda, true);
         return deckDocument(slides);
       }
 
