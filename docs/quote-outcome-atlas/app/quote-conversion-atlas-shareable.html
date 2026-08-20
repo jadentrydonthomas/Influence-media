@@ -5293,6 +5293,55 @@
       // isometric offset. It is the same value read three ways, so the chart
       // has depth without any of it being decoration: the top face is what
       // makes a short column readable next to a tall one.
+      // Two extruded columns per group on one scale: what was asked for and
+      // what came back. One column can only say how big a band is; the pair is
+      // the comparison, and the gap between them is the answer.
+      function deckIsoPairs(groups, options) {
+        const config = options || {};
+        if (!groups.length) return '<div class="deck-empty">' + escape(config.empty || "Nothing to compare in this source set yet.") + "</div>";
+        const width = 1240, height = 310, padTop = 58, padBottom = 52, padLeft = 44, padRight = 26;
+        const depth = 14;
+        const plotW = width - padLeft - padRight - depth;
+        const plotH = height - padTop - padBottom - depth;
+        const step = plotW / groups.length;
+        const barW = Math.min(74, Math.max(13, step * 0.3));
+        const gap = Math.max(5, barW * 0.22);
+        const max = Math.max.apply(null, groups.map(group => Math.max(Number(group.a) || 0, Number(group.b) || 0))) || 1;
+        const baseY = padTop + plotH;
+        const column = (x, value, tone, label) => {
+          const h = value > 0 ? Math.max(3, plotH * value / max) : 0;
+          const y = baseY - h;
+          if (!h) return '<text class="deck-col-value is-zero" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY - 8) + '" text-anchor="middle">' + escape(label) + "</text>";
+          return '<polygon class="iso-side" points="' + [
+              (x + barW) + "," + y, (x + barW + depth) + "," + (y - depth),
+              (x + barW + depth) + "," + (baseY - depth), (x + barW) + "," + baseY].join(" ") + '" fill="' + tone + '"></polygon>'
+            + '<polygon class="iso-top" points="' + [
+              x + "," + y, (x + depth) + "," + (y - depth),
+              (x + barW + depth) + "," + (y - depth), (x + barW) + "," + y].join(" ") + '" fill="' + tone + '"></polygon>'
+            + '<rect class="iso-face deck-col-fill" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + tone + '"></rect>'
+            + '<text class="deck-col-value" x="' + (x + barW / 2 + depth / 2).toFixed(1) + '" y="' + (y - depth - 7).toFixed(1) + '" text-anchor="middle">' + escape(label) + "</text>";
+        };
+        const columns = groups.map((group, index) => {
+          const centre = padLeft + step * index + step / 2;
+          const left = centre - barW - gap / 2;
+          return '<g class="iso-col" style="--deck-bar-delay:' + (index * 60) + 'ms">'
+            + column(left, Number(group.a) || 0, config.toneA || "var(--steel)", group.labelA)
+            + column(left + barW + gap, Number(group.b) || 0, (Number(group.b) || 0) > 0 ? (config.toneB || "var(--green)") : "var(--copper)", group.labelB)
+            + '<text class="deck-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
+            + (group.note ? '<text class="deck-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 33) + '" text-anchor="middle">' + escape(group.note) + "</text>" : "")
+            + "</g>";
+        }).join("");
+        const floor = '<polygon class="iso-floor" points="' + [
+          padLeft + "," + baseY, (padLeft + depth) + "," + (baseY - depth),
+          (width - padRight) + "," + (baseY - depth), (width - padRight - depth) + "," + baseY].join(" ") + '"></polygon>';
+        return '<svg class="deck-chart deck-iso" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Paired column chart") + '">'
+          + floor + columns
+          + (config.caption ? '<text class="deck-axis-note" x="' + padLeft + '" y="14">' + escape(config.caption) + "</text>" : "")
+          + "</svg>"
+          + '<div class="deck-key"><span><b class="k-ask"></b>' + escape(config.keyA || "Asked for") + "</span>"
+          + '<span><b class="k-book"></b>' + escape(config.keyB || "Came back") + "</span></div>";
+      }
+
       function deckIsoColumns(items, options) {
         const config = options || {};
         if (!items.length) return '<div class="deck-empty">' + escape(config.empty || "No weeks in this source set yet.") + "</div>";
@@ -5496,7 +5545,7 @@
           + '.deck-seg-marker line{stroke:#0b1d12;stroke-width:2}'
           + '.deck-seg-marker circle{fill:#0b1d12}'
           + '.deck-axis-note{fill:#8b9c91;font-size:9px;font-weight:800;letter-spacing:.12em}'
-          + '.deck-col-fill{fill:var(--green-deep)}'
+          
           + '.deck-col-value{fill:#2b4034;font-size:12px;font-weight:800}'
           + '.deck-col-label{fill:#6c8174;font-size:11px;font-weight:700}'
           + '.deck-chart .grid{stroke:#d2ded6;stroke-width:1}'
@@ -5661,6 +5710,8 @@
           + '.deck-iso .iso-side{filter:brightness(.62)}'
           + '.deck-iso .iso-face{filter:none}'
           + '.deck-iso .deck-col-value{fill:#1d3527;font-size:12px;font-weight:800}'
+          + '.deck-iso .deck-col-value.is-zero{fill:#a34a21;font-size:11px;font-weight:800}'
+          + '.deck-iso .deck-col-note{fill:#8b9c91;font-size:10px;font-weight:700}'
           + '.deck-metric,.weekly-summary,.outcome-card,.outcome-intro,.analysis-main,.analysis-side,.agenda-table-wrap,.cycle-main,.cycle-side,.dual-charts>div{box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5),0 3px 8px -6px rgba(6,39,18,.35)}'
           + '.deck-metrics{position:relative}'
           + '.deck-metric{position:relative;background:linear-gradient(180deg,#fff 0%,#fbfdfb 100%)}'
@@ -5678,16 +5729,20 @@
              something rather than floating on flat paper. */
           + '.deck-slide:before{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;background:linear-gradient(180deg,rgba(15,74,40,0) 0%,rgba(15,74,40,.045) 100%);pointer-events:none}'
           + '.booked-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 18px}'
-          + '.booked-head b{color:var(--green-deep);font-size:13px;font-weight:800}'
-          + '.booked-strip{margin-top:16px;padding:15px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
-          + '.booked-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 22px;margin-top:10px}'
-          + '.booked-row{display:grid;grid-template-columns:minmax(0,1fr) 52px;grid-template-areas:\'name rate\' \'note note\' \'bar bar\';align-items:baseline;gap:3px 10px}'
-          + '.booked-row b{grid-area:name;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-          + '.booked-row span{grid-area:note;color:var(--muted);font-size:11.5px}'
-          + '.booked-row em{grid-area:rate;color:var(--green-deep);font-family:Consolas,monospace;font-size:16px;font-style:normal;font-weight:900;text-align:right}'
-          + '.booked-row i{grid-area:bar;display:block;height:7px;margin-top:4px;border-radius:4px;background:#e4ede7}'
-          + '.booked-row i u{display:block;height:100%;border-radius:4px;background:var(--green);text-decoration:none}'
-          + '.band-grid,.speed-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:20px;align-items:stretch}'
+          + '.booked-head b{color:var(--green-deep);font-size:14px;font-weight:800}'
+          + '.booked-strip{margin-top:18px;padding:17px 20px 19px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
+          + '.booked-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;margin-top:12px;background:var(--line);border:1px solid var(--line)}'
+          + '.payer{position:relative;padding:16px 18px 15px;background:#fff}'
+          + '.payer-rank{position:absolute;top:14px;right:16px;color:#c3d2c8;font-family:Consolas,monospace;font-size:22px;font-weight:900;line-height:1}'
+          + '.payer-name{display:block;padding-right:26px;font-size:14px;font-weight:800;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+          + '.payer-value{display:block;margin-top:8px;color:var(--green-deep);font-family:Consolas,monospace;font-size:32px;font-weight:900;letter-spacing:-.06em;line-height:1}'
+          + '.payer-bar{height:9px;margin-top:11px;border-radius:5px;background:#e4ede7}'
+          + '.payer-bar i{display:block;height:100%;border-radius:5px;background:var(--green);box-shadow:0 1px 1px rgba(6,39,18,.25)}'
+          + '.payer-note{display:block;margin-top:9px;color:var(--muted);font-size:11.5px;line-height:1.4}'
+          + '.speed-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:20px;align-items:stretch}'
+          + '.band-stack{display:grid;gap:16px}'
+          + '.band-rates{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 26px}'
+          + '.band-rates .section-label{grid-column:1/-1;margin-bottom:4px}'
           + '.band-main,.band-rates,.speed-main,.speed-side{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
           + '.speed-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}'
           + '.speed-side .timing-disc{width:min(21vw,215px)}'
@@ -5697,6 +5752,7 @@
           + '.speed-side .coverage-band{margin:0;width:100%}'
           + '.band-row{display:grid;grid-template-columns:minmax(0,1fr) 58px;grid-template-areas:\'name rate\' \'bar bar\' \'note note\';align-items:baseline;gap:3px 10px;padding:10px 0;border-top:1px solid var(--line)}'
           + '.band-row:first-of-type{border-top:0}'
+          + '@media(min-width:901px){.band-rates .band-row{border-top:0}}'
           + '.band-row b{grid-area:name;font-size:14px;font-weight:800}'
           + '.band-row em{grid-area:rate;color:var(--green-deep);font-family:Consolas,monospace;font-size:16px;font-style:normal;font-weight:900;text-align:right}'
           + '.band-row.is-zero em{color:var(--copper)}'
@@ -5704,7 +5760,7 @@
           + '.band-row i u{display:block;height:100%;border-radius:5px;background:var(--green);text-decoration:none}'
           + '.band-row.is-zero i u{background:var(--copper);min-width:3px}'
           + '.band-row small{grid-area:note;color:var(--muted);font-size:11.5px}'
-          + '@media(max-width:900px){.band-grid,.speed-grid{grid-template-columns:1fr}}'
+          + '@media(max-width:900px){.speed-grid,.band-rates{grid-template-columns:1fr}}'
           /* cohort matrix on a slide: colour carries the share so the shape is
              readable before any single figure is */
           + '.cohort-deck-wrap{overflow-x:auto;padding:14px 16px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 14px 30px -18px rgba(6,39,18,.5)}'
@@ -5926,14 +5982,21 @@
           + '</strong><small>' + (bands.length ? escape(bands.slice().sort((a, b) => b.value - a.value)[0].label) : "no priced work") + '</small></div>'
           + '<div><span>Best returning band</span><strong>' + (bestBand ? pct(bestBand.conversion) : "—") + '</strong><small>' + (bestBand ? escape(bestBand.label) + " · " + bestBand.quotes + " quotes" : "needs three quotes in a band") + '</small></div>'
           + '<div><span>Returned nothing</span><strong>' + (zeroBands.length ? money(zeroValue / 1000000) : "none") + '</strong><small>' + (zeroBands.length ? zeroBands.length + " band" + (zeroBands.length === 1 ? "" : "s") + " with no linked order" : "every band booked something") + "</small></div></div>"
-          + '<div class="band-grid"><div class="band-main">'
-          + deckIsoColumns(bands.map(band => ({
+          + '<div class="band-stack"><div class="band-main">'
+          + deckIsoPairs(bands.map(band => ({
               label: band.label,
-              value: band.quotes,
-              value_label: band.quotes + " quotes",
-              tone: band.wins === 0 ? "copper" : band.conversion >= 15 ? "green" : "deep"
-            })), { label: "Quotes issued in each value band", caption: "HOW MUCH WORK SITS IN EACH BAND", compact: true })
-          + '</div><div class="band-rates"><span class="section-label">And what came back from it</span>'
+              note: band.quotes + " quote" + (band.quotes === 1 ? "" : "s") + " · " + band.wins + " booked",
+              a: band.value / 1000000,
+              labelA: money(band.value / 1000000),
+              b: band.wonValue / 1000000,
+              labelB: band.wins ? money(band.wonValue / 1000000) : "nothing back"
+            })), {
+              label: "Quoted value against returned value, by value band",
+              caption: "DOLLARS ASKED FOR AGAINST DOLLARS THAT CAME BACK",
+              keyA: "Quoted value", keyB: "Returned value",
+              empty: "No priced quote records in this cohort yet."
+            })
+          + '</div><div class="band-rates"><span class="section-label">And the rate each band returned at</span>'
           + (bands.length
               ? bands.map(band => '<div class="band-row' + (band.wins === 0 ? " is-zero" : "") + '"><b>' + escape(band.label) + "</b>"
                   + '<i><u style="width:' + (bandTopRate ? Math.max(band.wins ? 2 : 0, band.conversion / bandTopRate * 100) : 0).toFixed(1) + '%"></u></i>'
@@ -6008,11 +6071,12 @@
               ? '<div class="booked-strip"><div class="booked-head"><span class="section-label">Who brought us the most money</span>'
                 + '<b>' + money(topBookedValue) + ' of the ' + money(returnedAll) + ' that came back'
                 + (returnedAll ? ' — ' + pct(percentage(topBookedValue, returnedAll)) + ' of every booked dollar' : '') + '</b></div><div class="booked-rows">'
-                + topBooked.map(account => '<div class="booked-row"><b>' + escape(account.name.length > 26 ? account.name.slice(0, 25) + "…" : account.name) + "</b>"
-                    + "<em>" + money(account.wonValue) + "</em>"
-                    + "<span>" + account.wins + " of " + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " booked · " + pct(account.conversion) + " · " + money(account.quoteValue) + " asked</span>"
-                    + '<i><u style="width:' + Math.min(100, topBooked[0].wonValue ? account.wonValue / topBooked[0].wonValue * 100 : 0).toFixed(1) + '%"></u></i>'
-                    + "</div>").join("")
+                + topBooked.map((account, index) => '<article class="payer"><span class="payer-rank">' + (index + 1) + "</span>"
+                    + '<b class="payer-name" title="' + escape(account.name) + '">' + escape(account.name.length > 24 ? account.name.slice(0, 23) + "…" : account.name) + "</b>"
+                    + '<strong class="payer-value">' + money(account.wonValue) + "</strong>"
+                    + '<div class="payer-bar"><i style="width:' + Math.min(100, topBooked[0].wonValue ? account.wonValue / topBooked[0].wonValue * 100 : 0).toFixed(1) + '%"></i></div>'
+                    + '<span class="payer-note">' + account.wins + " of " + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " booked · " + pct(account.conversion)
+                    + " · " + money(account.quoteValue) + " asked</span></article>").join("")
                 + "</div></div>"
               : "")
           + '<div class="deck-callout"><strong>Operating read:</strong> ' + (customerSignals.askedNeverBooked || []).length
@@ -6115,41 +6179,56 @@
           + '<div class="agenda-point"><b>02</b><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'
           + "</aside></div>";
 
-        // ---- 08 Cohort maturity -----------------------------------------------
-        // Replaces the capacity slide. Scheduled against actual hours is a real
-        // measure and it stays on the dashboard, but it is an internal one — it
-        // did not earn a slide in a meeting about whether work comes back. This
-        // does: comparing a week quoted six days ago against one quoted sixty
-        // days ago compares a decision that has not been made yet against one
-        // that has, and every conversation about "is this week bad" runs into it.
+        // ---- 08 Every week at the same age --------------------------------------
+        // This was the full cohort matrix, which is the right shape on a screen
+        // someone can lean into and the wrong one across a room: six columns of
+        // small percentages that nobody reads. One column per week at one
+        // chosen age says the same thing at a size the room can see.
+        //
+        // The age is chosen from the data: the deepest checkpoint that most of
+        // the loaded weeks are old enough to answer. Fixing it at thirty days
+        // would empty the chart the moment someone loads three recent weeks.
         const cohortDeck = data.cohort || { marks: [], rows: [], matureAt: [] };
-        const matureRows = cohortDeck.rows.filter(row => row.cells.some(cell => cell.mature));
-        const cohortCell = cell => cell.mature
-          ? '<td class="num c' + (cell.share >= 20 ? " hi" : cell.share >= 10 ? " mid" : cell.share > 0 ? " lo" : " none") + '"><b>' + pct(cell.share) + "</b><span>" + cell.count + "</span></td>"
-          : '<td class="num c young">·</td>';
-        const day30 = cohortDeck.matureAt.find(mark => mark.day === 30);
-        const best30 = matureRows.slice().sort((a, b) => {
-          const av = (a.cells.find(c => c.day === 30) || {}).share, bv = (b.cells.find(c => c.day === 30) || {}).share;
-          return (bv === null || bv === undefined ? -1 : bv) - (av === null || av === undefined ? -1 : av);
-        })[0];
+        // Prefer the deepest checkpoint every loaded week can answer, so no week
+        // is dropped from the comparison. Only when none qualifies does it fall
+        // back to the deepest that most can, and then to whichever reads widest.
+        const marks = (cohortDeck.matureAt || []).filter(mark => mark.weeks > 0);
+        const readableMark = marks.filter(mark => mark.weeks === cohortDeck.rows.length).sort((a, b) => b.day - a.day)[0]
+          || marks.filter(mark => mark.weeks >= Math.ceil(cohortDeck.rows.length / 2)).sort((a, b) => b.day - a.day)[0]
+          || marks.slice().sort((a, b) => b.weeks - a.weeks || a.day - b.day)[0]
+          || null;
+        const markDay = readableMark ? readableMark.day : null;
+        const cellFor = row => markDay === null ? null : row.cells.find(cell => cell.day === markDay) || null;
+        const readable = cohortDeck.rows.filter(row => { const cell = cellFor(row); return cell && cell.mature; });
+        const tooYoung = cohortDeck.rows.filter(row => { const cell = cellFor(row); return !cell || !cell.mature; });
+        const bestCohortWeek = readable.slice().sort((a, b) => cellFor(b).share - cellFor(a).share)[0];
+        const weakCohortWeek = readable.slice().sort((a, b) => cellFor(a).share - cellFor(b).share)[0];
+        const cohortAverage = readableMark && readableMark.share !== null ? readableMark.share : null;
         const capacityBody = '<div class="weekly-summary">'
-          + '<div><span>Weeks old enough to read</span><strong>' + matureRows.length + " / " + cohortDeck.rows.length + '</strong><small>at least one column answered</small></div>'
-          + '<div><span>Booked by day 30</span><strong>' + (day30 && day30.share !== null ? pct(day30.share) : "—") + '</strong><small>' + (day30 ? opsNumber(day30.booked) + " of " + opsNumber(day30.quotes) + " quotes across " + day30.weeks + " week" + (day30.weeks === 1 ? "" : "s") : "no week has reached thirty days") + '</small></div>'
-          + '<div><span>Strongest week at 30 days</span><strong>' + (best30 && (best30.cells.find(c => c.day === 30) || {}).share !== null && (best30.cells.find(c => c.day === 30) || {}).share !== undefined ? escape(best30.label) : "—")
-          + '</strong><small>' + (best30 && (best30.cells.find(c => c.day === 30) || {}).mature ? pct((best30.cells.find(c => c.day === 30)).share) + " booked inside a month" : "needs a week past thirty days") + '</small></div>'
-          + '<div><span>Median decision</span><strong>' + (line0.decide.median === null ? "—" : dayText(line0.decide.median)) + '</strong><small>Done to order entry on the ones that booked</small></div></div>'
-          + (cohortDeck.rows.length
-              ? '<div class="cohort-deck-wrap"><table class="cohort-deck"><thead><tr><th>Quoted week</th><th class="num">Quotes</th><th class="num">Age</th>'
-                + cohortDeck.marks.map(day => '<th class="num">By day ' + day + "</th>").join("")
-                + '<th class="num">To date</th></tr></thead><tbody>'
-                + cohortDeck.rows.map(row => "<tr><td><b>" + escape(row.label) + '</b></td><td class="num">' + row.quotes + '</td><td class="num age">' + (row.age === null ? "—" : row.age + "d") + "</td>"
-                    + row.cells.map(cohortCell).join("")
-                    + '<td class="num c total"><b>' + pct(row.conversion) + "</b><span>" + row.wins + "</span></td></tr>").join("")
-                + '<tr class="foot"><td>All weeks old enough</td><td class="num"></td><td class="num"></td>'
-                + cohortDeck.matureAt.map(mark => '<td class="num">' + (mark.share === null ? "—" : pct(mark.share)) + "<span>" + mark.weeks + " wk</span></td>").join("")
-                + '<td class="num">' + pct(data.conversion) + "</td></tr></tbody></table></div>"
-              : '<div class="deck-empty">No dated quoted week in this cohort, so there is nothing to age.</div>')
-          + '<div class="deck-callout"><strong>A dot is not a zero.</strong> It means the week has not lived long enough to answer that column. Every figure in a column counts only the weeks that have had that many days, so two weeks are only ever compared at the same age — which is the only honest way to ask whether a recent week is behind.</div>';
+          + '<div><span>Read at</span><strong>' + (markDay === null ? "—" : "day " + markDay) + '</strong><small>'
+          + (markDay === null ? "no week is old enough to compare yet"
+              : tooYoung.length ? "the deepest checkpoint most loaded weeks can answer"
+                : "the deepest checkpoint every loaded week can answer") + '</small></div>'
+          + '<div><span>Booked by then</span><strong>' + (cohortAverage === null ? "—" : pct(cohortAverage)) + '</strong><small>' + (readableMark ? opsNumber(readableMark.booked) + " of " + opsNumber(readableMark.quotes) + " quotes across " + readable.length + " week" + (readable.length === 1 ? "" : "s") : "nothing to average") + '</small></div>'
+          + '<div><span>Strongest week</span><strong>' + (bestCohortWeek ? escape(bestCohortWeek.label) : "—") + '</strong><small>' + (bestCohortWeek ? pct(cellFor(bestCohortWeek).share) + " booked by day " + markDay : "needs a week old enough to read") + '</small></div>'
+          + '<div><span>Weeks still too young</span><strong>' + opsNumber(tooYoung.length) + '</strong><small>' + (tooYoung.length ? "not yet " + markDay + " days old, so they are left out rather than shown as zero" : "every loaded week can answer") + '</small></div></div>'
+          + (readable.length
+              ? deckIsoColumns(readable.map(row => {
+                  const cell = cellFor(row);
+                  return {
+                    label: row.label,
+                    value: cell.share,
+                    value_label: pct(cell.share),
+                    tone: cohortAverage !== null && cell.share >= cohortAverage ? "green" : cell.share > 0 ? "deep" : "copper"
+                  };
+                }), { label: "Share of each week's quotes booked by day " + markDay,
+                      caption: "SHARE OF EACH WEEK'S QUOTES BOOKED BY DAY " + markDay })
+              : '<div class="deck-empty">No loaded week has been exposed long enough to be read at a shared age yet. This chart fills in as the book matures.</div>')
+          + '<div class="deck-callout"><strong>Why not just compare the weeks?</strong> A week quoted six days ago has not had a chance to answer; a week quoted sixty days ago has. Every column here is measured at the same age, so the comparison is real. '
+          + (bestCohortWeek && weakCohortWeek && bestCohortWeek.label !== weakCohortWeek.label
+              ? escape(bestCohortWeek.label) + " was at " + pct(cellFor(bestCohortWeek).share) + " by day " + markDay + " where " + escape(weakCohortWeek.label) + " was at " + pct(cellFor(weakCohortWeek).share) + "."
+              : "As more weeks mature, the spread between them becomes the read.")
+          + '</div>';
 
         // The most actionable true thing about this cohort. Partial release-timing
         // coverage still gets the coverage message; a complete one gets the
@@ -6181,7 +6260,7 @@
           + deckSlide(5, "Speed and release timing", "How fast we answer,<br /><em>and whether we hit the date.</em>", timing, true)
           + deckSlide(6, "Customer demand", "Who asks, and who<br /><em>actually books.</em>", operations, true)
           + deckSlide(7, "Lifecycle and decision window", "How long it takes<br /><em>to come back.</em>", speed, true)
-          + deckSlide(8, "Cohort maturity", "Every week read<br /><em>at the same age.</em>", capacityBody, true)
+          + deckSlide(8, "Cohort maturity", "Every week measured<br /><em>at the same age.</em>", capacityBody, true)
           + deckSlide(9, "The work that came back", "Our best booked work,<br /><em>and who delivered it.</em>", agenda, true);
         return deckDocument(slides);
       }

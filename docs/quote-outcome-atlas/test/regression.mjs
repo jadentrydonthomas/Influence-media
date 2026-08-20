@@ -151,7 +151,8 @@ if (!download) {
   checkMatch('deck closes on real booked job numbers', deck, /class="quote"><b>[A-Z0-9]+-\d+</);
   checkMatch('deck names who priced each booked job', deck, /class="team">[^<]*\((engineer|estimator|scheduler|all three|[a-z]+ & [a-z]+)\)/);
   checkMatch('deck still surfaces the largest open work', deck, /and the largest still open/i);
-  checkMatch('deck value-band chart present', deck, /quotes issued in each value band/i);
+  checkMatch('deck value bands compare asked against returned', deck, /quoted value against returned value, by value band/i);
+  checkMatch('deck value bands name both columns', deck, /Quoted value<\/span>[\s\S]{0,120}Returned value/);
   // Slide 7 reads the same dates as the old lag buckets, as a decision curve.
   checkMatch('deck decision curve present', deck, /cumulative share of booked orders by day/i);
   checkMatch('deck states both sides of the clock', deck, /producing the quote/i);
