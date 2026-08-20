@@ -429,6 +429,127 @@
     .cmp-move-row.is-lapsed { border-left-color: var(--amber); }
     .cmp-move-row.is-lapsed em { color: var(--amber); }
     .cmp-move .ops-note { margin: 0; padding: 12px; }
+    /* Year over year is a dashboard inside a dashboard: six labelled views,
+       one question each, rather than one long column of figures. */
+    .cmp-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 1px; margin: 0 0 20px; padding: 1px; background: var(--line); }
+    .cmp-tab { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "num name" "num note"; align-items: baseline; gap: 1px 9px; padding: 12px 14px; border: 0; background: var(--surface); text-align: left; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+    .cmp-tab b { grid-area: num; align-self: center; color: var(--ink-faint); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+    .cmp-tab span { grid-area: name; color: var(--ink); font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .cmp-tab small { grid-area: note; color: var(--ink-faint); font-size: 9.5px; }
+    .cmp-tab:hover { background: var(--surface-soft); }
+    .cmp-tab[aria-pressed="true"] { background: var(--green-head); }
+    .cmp-tab[aria-pressed="true"] b { color: var(--green-bright); }
+    .cmp-tab[aria-pressed="true"] span { color: #ffffff; }
+    .cmp-tab[aria-pressed="true"] small { color: rgba(255,255,255,.62); }
+    .cmp-tab-badge { position: absolute; top: 7px; right: 9px; min-width: 17px; padding: 1px 4px; border-radius: 9px; background: var(--red-deep); color: #ffffff; font-family: var(--mono); font-size: 9.5px; font-style: normal; line-height: 15px; text-align: center; }
+    .cmp-tab-badge[hidden] { display: none; }
+    .cmp-tab { position: relative; }
+    .cmp-view.is-entering > * { animation: cmpRise 340ms var(--ease) both; }
+    .cmp-view.is-entering > *:nth-child(2) { animation-delay: 60ms; }
+    .cmp-view.is-entering > *:nth-child(3) { animation-delay: 120ms; }
+    .cmp-view.is-entering > *:nth-child(4) { animation-delay: 180ms; }
+    .cmp-view.is-entering > *:nth-child(n+5) { animation-delay: 220ms; }
+    @keyframes cmpRise { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .cmp-view.is-entering > * { animation: none; } }
+
+    .cmp-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 1px; margin: 0 0 20px; padding: 1px; background: var(--line); }
+    .cmp-hero-card { display: flex; flex-direction: column; gap: 6px; padding: 17px 19px 18px; background: var(--surface); border-top: 3px solid var(--line-strong); }
+    .cmp-hero-card.is-up { border-top-color: var(--green); }
+    .cmp-hero-card.is-down { border-top-color: var(--red); }
+    .cmp-hero-card.is-flat { border-top-color: var(--steel); }
+    .cmp-hero-card > span { color: var(--ink-faint); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .cmp-hero-card > strong { color: var(--ink); font-family: var(--mono); font-size: 30px; font-weight: 500; letter-spacing: -.05em; line-height: 1; }
+    .cmp-hero-delta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+    .cmp-hero-delta u { font-family: var(--mono); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .cmp-hero-delta u.is-up { color: var(--green-dark); }
+    .cmp-hero-delta u.is-down { color: var(--red-deep); }
+    .cmp-hero-delta u.is-flat { color: var(--ink-faint); }
+    .cmp-hero-delta i { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
+    .cmp-hero-card > p { margin: 2px 0 0; color: var(--ink-muted); font-size: 11px; line-height: 1.45; }
+
+    .chg-scale { display: grid; grid-template-columns: minmax(0, 186px) minmax(0, 1fr) 62px 132px; align-items: center; gap: 12px; margin-bottom: 6px; color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .chg-scale span { grid-column: 2; text-align: left; }
+    .chg-scale span:last-of-type { grid-column: 2; text-align: right; }
+    .chg-scale i { display: none; }
+    .chg-row { display: grid; grid-template-columns: minmax(0, 186px) minmax(0, 1fr) 62px 132px; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+    .chg-label { overflow: hidden; color: var(--ink); font-size: 11.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .chg-track { position: relative; height: 20px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .chg-track::before { content: ""; position: absolute; top: -2px; bottom: -2px; left: 50%; width: 1.5px; background: var(--line-strong); }
+    .chg-fill { position: absolute; top: 3px; bottom: 3px; display: block; }
+    .chg-fill.is-right { left: 50%; }
+    .chg-fill.is-left { right: 50%; }
+    .chg-fill.is-up { background: var(--green); }
+    .chg-fill.is-down { background: var(--red); }
+    .chg-fill.is-flat { background: var(--steel); }
+    .chg-fill.is-capped.is-right { border-right: 3px solid var(--green-dark); }
+    .chg-fill.is-capped.is-left { border-left: 3px solid var(--red-deep); }
+    .chg-none { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; font-weight: 400; white-space: nowrap; }
+    .chg-delta { font-family: var(--mono); font-size: 12px; font-style: normal; font-weight: 600; text-align: right; }
+    .chg-delta.is-up { color: var(--green-dark); }
+    .chg-delta.is-down { color: var(--red-deep); }
+    .chg-delta.is-flat { color: var(--ink-faint); }
+    .chg-values { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; text-align: right; }
+    @media (max-width: 900px) {
+      .chg-scale, .chg-row { grid-template-columns: minmax(0, 1fr) 58px; grid-template-areas: "label delta" "track track" "values values"; gap: 4px 10px; }
+      .chg-label { grid-area: label; } .chg-track { grid-area: track; } .chg-delta { grid-area: delta; } .chg-values { grid-area: values; text-align: left; }
+      .chg-scale span:last-of-type { grid-area: delta; }
+    }
+
+    .cmp-bridge, .cmp-columns, .cmp-quadrant { display: block; width: 100%; height: auto; }
+    .cmp-bridge .grid, .cmp-columns .grid { stroke: var(--line); stroke-width: 1; }
+    .cmp-bridge .axis, .cmp-columns .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
+    .bridge-bar.is-total { fill: var(--green-dark); }
+    .bridge-bar.is-up { fill: var(--green); }
+    .bridge-bar.is-down { fill: var(--red); }
+    .bridge-link { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+    .bridge-value { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+    .bridge-value.is-total { fill: var(--green-dark); }
+    .bridge-value.is-up { fill: var(--green-dark); }
+    .bridge-value.is-down { fill: var(--red-deep); }
+    .bridge-label { fill: var(--ink); font-family: var(--display); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .bridge-count { fill: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; }
+    .cmp-col.is-now { fill: var(--green); }
+    .cmp-col.is-then { fill: var(--steel); }
+    .cmp-col-value { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+    .cmp-col-value.is-now { fill: var(--green-dark); }
+    .cmp-col-value.is-then { fill: var(--steel); }
+    .cmp-col-label { fill: var(--ink); font-family: var(--display); font-size: 10.5px; font-weight: 700; letter-spacing: .05em; }
+    .cmp-col-note { fill: var(--ink-faint); font-family: var(--mono); font-size: 9px; }
+
+    .quad-field.is-good { fill: var(--green-soft); opacity: .5; }
+    .quad-field.is-bad { fill: var(--red-soft); opacity: .5; }
+    .quad-axis { stroke: var(--line-strong); stroke-width: 1.5; }
+    .quad-axis-label { fill: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
+    .quad-corner { fill: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .quad-dot { stroke: var(--surface); stroke-width: 1.5; }
+    .quad-dot.is-up { fill: var(--green); }
+    .quad-dot.is-down { fill: var(--red); }
+    .quad-dot.is-flat { fill: var(--steel); }
+    .quad-name { fill: var(--ink); font-family: var(--mono); font-size: 10px; }
+
+    .acct-table-wrap { overflow-x: auto; }
+    .acct-table { width: 100%; border-collapse: collapse; }
+    .acct-table th, .acct-table td { padding: 9px 11px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .acct-table thead th { position: sticky; top: 0; z-index: 1; color: #ffffff; background: var(--green-head); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .acct-table tbody tr { cursor: pointer; }
+    .acct-table tbody tr:hover, .acct-table tbody tr:focus-visible { background: var(--green-soft); outline: none; }
+    .acct-table tbody tr:focus-visible { box-shadow: inset 0 0 0 2px var(--green); }
+    .acct-table tbody th { color: var(--ink); font-size: 11.5px; font-weight: 600; }
+    .acct-table tbody th b { display: block; font-weight: 600; }
+    .acct-table td { color: var(--ink-muted); font-size: 11px; }
+    .acct-table td.num { font-family: var(--mono); font-size: 12px; text-align: right; white-space: nowrap; }
+    .acct-table td.is-lead { color: var(--ink); font-size: 13px; font-weight: 600; }
+    .acct-flag { display: inline-block; margin-top: 3px; padding: 1px 5px; border: 1px solid var(--amber); color: var(--amber); font-family: var(--display); font-size: 8px; font-style: normal; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .acct-change { display: block; color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; font-weight: 400; }
+    .acct-change.is-up { color: var(--green-dark); }
+    .acct-change.is-down { color: var(--red-deep); }
+    .acct-never { color: var(--red-deep); font-family: var(--body); font-size: 10px; }
+    .panel.is-alert { border-color: var(--red); box-shadow: inset 4px 0 0 var(--red); }
+
+    .cmp-method { margin: 0; padding-left: 0; counter-reset: method; list-style: none; }
+    .cmp-method li { position: relative; padding: 9px 0 9px 38px; border-bottom: 1px solid var(--line); color: var(--ink-muted); font-size: 11.5px; line-height: 1.5; counter-increment: method; }
+    .cmp-method li:last-child { border-bottom: 0; }
+    .cmp-method li::before { content: counter(method, decimal-leading-zero); position: absolute; top: 9px; left: 0; color: var(--green-dark); font-family: var(--mono); font-size: 11px; font-weight: 600; }
     .filter-bar { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 13px; border: 1px solid var(--green); background: var(--green-soft); }
     .filter-bar[hidden] { display: none; }
     .filter-lead { color: var(--green-dark); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
@@ -1449,36 +1570,101 @@
       <section class="screen" id="compare" aria-labelledby="compareTitle">
         <div class="screen-heading">
           <div><div class="eyebrow">Year over year</div><h2 id="compareTitle" class="is-compact">The same weeks, <em>a year apart.</em></h2></div>
-          <p id="compareIntro">A prior period is loaded and measured through the same pipeline. Everything on this screen reads the weeks the two periods share, on the active exposure lens and the active filters &mdash; so a difference here is a difference in the work, not in what was uploaded.</p>
+          <p id="compareIntro">A prior period is loaded and measured through the same pipeline. Six views, each answering one question &mdash; so the comparison is read a page at a time rather than as one long column of figures.</p>
         </div>
         <section class="cmp-banner" id="compareBanner" aria-live="polite"></section>
-        <section class="ops-kpis" id="compareKpis" aria-label="Year over year headline figures"></section>
-        <section class="panel" aria-labelledby="cmpTableTitle">
-          <div class="panel-head"><span class="ops-step">01 &middot; The headline</span><h2 id="cmpTableTitle">Every measure, both periods</h2><p>Direction is judged rather than signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way.</p></div>
-          <div class="ops-body" id="cmpTable"></div>
-        </section>
-        <section class="panel" aria-labelledby="cmpWeekTitle">
-          <div class="panel-head"><span class="ops-step">02 &middot; Week by week</span><h2 id="cmpWeekTitle">Which weeks moved</h2><p id="cmpWeekNote"></p></div>
-          <div class="ops-body" id="cmpWeeks"></div>
-        </section>
-        <section class="panel" aria-labelledby="cmpRaceTitle">
-          <div class="panel-head"><span class="ops-step">03 &middot; The race</span><h2 id="cmpRaceTitle">Ahead or behind, at the same point</h2><p>Quoted value and returned value accumulating week by week in both periods. The gap between the pairs at any week is how far ahead or behind this period is at that point &mdash; not at the end.</p></div>
-          <div class="ops-body" id="cmpRace"></div>
-        </section>
-        <div class="ops-pair">
-          <section class="panel ops-panel" aria-labelledby="cmpBandTitle">
-            <div class="panel-head"><span class="ops-step">04 &middot; The mix</span><h2 id="cmpBandTitle">Where the work moved</h2><p>Quoted value by band, both periods. A book that is the same size can still be a different book.</p></div>
-            <div class="ops-body" id="cmpBands"></div>
+        <nav class="cmp-tabs" id="compareTabs" aria-label="Year over year views">
+          <button type="button" class="cmp-tab" data-compare-view="headline" aria-pressed="true"><b>01</b><span>Headline</span><small>Better or worse</small></button>
+          <button type="button" class="cmp-tab" data-compare-view="momentum" aria-pressed="false"><b>02</b><span>Momentum</span><small>Week by week</small></button>
+          <button type="button" class="cmp-tab" data-compare-view="mix" aria-pressed="false"><b>03</b><span>The mix</span><small>What kind of work</small></button>
+          <button type="button" class="cmp-tab" data-compare-view="customers" aria-pressed="false"><b>04</b><span>Customers</span><small>Kept, lost, won</small><i class="cmp-tab-badge" id="cmpLostBadge" hidden></i></button>
+          <button type="button" class="cmp-tab" data-compare-view="people" aria-pressed="false"><b>05</b><span>People</span><small>Who carried it</small></button>
+          <button type="button" class="cmp-tab" data-compare-view="ledger" aria-pressed="false"><b>06</b><span>Ledger</span><small>Every measure</small></button>
+        </nav>
+
+        <div class="cmp-view" id="cmpViewHeadline" data-compare-panel="headline">
+          <section class="cmp-hero" id="cmpHero" aria-label="Year over year headline"></section>
+          <section class="panel" aria-labelledby="cmpChangeTitle">
+            <div class="panel-head"><span class="ops-step">What moved</span><h2 id="cmpChangeTitle">Every measure, ranked by how far it moved</h2><p>Bars run right when the measure improved and left when it worsened. Direction is judged, not signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way.</p></div>
+            <div class="ops-body" id="cmpChange"></div>
           </section>
-          <section class="panel ops-panel" aria-labelledby="cmpPeopleTitle">
-            <div class="panel-head"><span class="ops-step">05 &middot; Who carried it</span><h2 id="cmpPeopleTitle">Load and return by person</h2><p id="cmpPeopleNote"></p></div>
-            <div class="ops-body" id="cmpPeople"></div>
+          <section class="panel" aria-labelledby="cmpBridgeTitle">
+            <div class="panel-head"><span class="ops-step">The bridge</span><h2 id="cmpBridgeTitle">How last year&rsquo;s book became this year&rsquo;s</h2><p id="cmpBridgeNote"></p></div>
+            <div class="ops-body" id="cmpBridge"></div>
           </section>
         </div>
-        <section class="panel" aria-labelledby="cmpCustTitle">
-          <div class="panel-head"><span class="ops-step">06 &middot; Accounts</span><h2 id="cmpCustTitle">Who grew, who shrank, who stopped asking</h2><p id="cmpCustNote"></p></div>
-          <div class="ops-body" id="cmpCustomers"></div>
-        </section>
+
+        <div class="cmp-view" id="cmpViewMomentum" data-compare-panel="momentum" hidden>
+          <section class="panel" aria-labelledby="cmpWeekTitle">
+            <div class="panel-head"><span class="ops-step">Week against week</span><h2 id="cmpWeekTitle">Which weeks carried more, and which carried less</h2><p id="cmpWeekNote"></p></div>
+            <div class="ops-body" id="cmpWeekChart"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpWeekValueTitle">
+            <div class="panel-head"><span class="ops-step">The money, week by week</span><h2 id="cmpWeekValueTitle">Quoted value in each matched week</h2><p>The same weeks measured in dollars rather than in count. A week can carry fewer quotes and still be worth more.</p></div>
+            <div class="ops-body" id="cmpWeekValueChart"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpRaceTitle">
+            <div class="panel-head"><span class="ops-step">The race</span><h2 id="cmpRaceTitle">Ahead or behind, at the same point</h2><p>Quoted value and returned value accumulating week by week in both periods. The gap between the pairs at any week is how far ahead or behind this period is at that point &mdash; not at the end.</p></div>
+            <div class="ops-body" id="cmpRace"></div>
+          </section>
+        </div>
+
+        <div class="cmp-view" id="cmpViewMix" data-compare-panel="mix" hidden>
+          <section class="panel" aria-labelledby="cmpBandTitle">
+            <div class="panel-head"><span class="ops-step">Quote size</span><h2 id="cmpBandTitle">The value that came back, by how big the quote was</h2><p>Ordered value, not quote count &mdash; this is where the money actually came from in each period.</p></div>
+            <div class="ops-body" id="cmpBandChart"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpShiftTitle">
+            <div class="panel-head"><span class="ops-step">Shape</span><h2 id="cmpShiftTitle">Where the shape of the book moved</h2><p>Each band&rsquo;s share of quoted value, this period against last, in points of share. A book that grew everywhere has not changed shape at all; these are the bands that took a bigger or smaller slice of it.</p></div>
+            <div class="ops-body" id="cmpMixShift"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpDistrictTitle">
+            <div class="panel-head"><span class="ops-step">Districts</span><h2 id="cmpDistrictTitle">Quoted value by district</h2><p id="cmpDistrictNote"></p></div>
+            <div class="ops-body" id="cmpDistricts"></div>
+          </section>
+        </div>
+
+        <div class="cmp-view" id="cmpViewCustomers" data-compare-panel="customers" hidden>
+          <section class="cmp-hero is-retention" id="cmpRetention" aria-label="Account retention"></section>
+          <section class="panel is-alert" aria-labelledby="cmpLostTitle">
+            <div class="panel-head"><span class="ops-step">Stopped asking</span><h2 id="cmpLostTitle">Accounts that quoted with us last period and have not this one</h2><p id="cmpLostNote"></p></div>
+            <div class="ops-body" id="cmpLost"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpRiskTitle">
+            <div class="panel-head"><span class="ops-step">Slipping</span><h2 id="cmpRiskTitle">Still asking, but for a lot less</h2><p>Accounts present in both periods whose quoted value has fallen by at least 40%. They have not gone, which is what makes them worth a call now rather than next year.</p></div>
+            <div class="ops-body" id="cmpAtRisk"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpGainedTitle">
+            <div class="panel-head"><span class="ops-step">Won</span><h2 id="cmpGainedTitle">Accounts quoting with us for the first time this period</h2><p id="cmpGainedNote"></p></div>
+            <div class="ops-body" id="cmpGained"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpQuadTitle">
+            <div class="panel-head"><span class="ops-step">Every kept account</span><h2 id="cmpQuadTitle">More work or less, bigger work or smaller</h2><p>One dot per account present in both periods. Across: how many more or fewer quotes they asked for. Up and down: how much more or less that work was worth. The dot&rsquo;s size is what they are worth to us now.</p></div>
+            <div class="ops-body" id="cmpQuadrant"></div>
+          </section>
+        </div>
+
+        <div class="cmp-view" id="cmpViewPeople" data-compare-panel="people" hidden>
+          <section class="panel" aria-labelledby="cmpPeopleTitle">
+            <div class="panel-head"><span class="ops-step">Load</span><h2 id="cmpPeopleTitle">Quotes owned, both periods</h2><p id="cmpPeopleNote"></p></div>
+            <div class="ops-body" id="cmpPeopleChart"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpPeopleRateTitle">
+            <div class="panel-head"><span class="ops-step">Return</span><h2 id="cmpPeopleRateTitle">What came back from each book</h2><p>Conversion on the left of each pair is last period, on the right is this one. A book that grew without its conversion falling is the one to point at.</p></div>
+            <div class="ops-body" id="cmpPeopleRate"></div>
+          </section>
+        </div>
+
+        <div class="cmp-view" id="cmpViewLedger" data-compare-panel="ledger" hidden>
+          <section class="panel" aria-labelledby="cmpTableTitle">
+            <div class="panel-head"><span class="ops-step">The ledger</span><h2 id="cmpTableTitle">Every measure, both periods</h2><p>The reference sheet behind the other five views. Nothing here is derived differently &mdash; it is the same figures without the charts.</p></div>
+            <div class="ops-body" id="cmpTable"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpMethodTitle">
+            <div class="panel-head"><span class="ops-step">Method</span><h2 id="cmpMethodTitle">What is being compared to what</h2><p>The rules this screen follows, so a figure on it can be defended in the room.</p></div>
+            <div class="ops-body" id="cmpMethod"></div>
+          </section>
+        </div>
       </section>
 
       <section class="screen" id="data" aria-labelledby="dataTitle">
@@ -1535,7 +1721,7 @@
   <script>
     (() => {
       const app = document.getElementById("app");
-      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, baseline: null, intake: { quoteFiles: [], orderFiles: [], priorFiles: [], priorOrderFiles: [], quoteError: "", orderError: "", priorError: "", running: false, hasRun: false, feedback: null } };
+      const state = { screen: "overview", scope: "mature", analysis: "outcomes", theme: "light", role: "engineers", teamMetric: "volume", selectedPerson: 0, selectedQuote: "W1J-26001-R1", review: false, flowFocus: "", model: null, filters: { estimator: "", engineer: "", scheduler: "", district: "", outcome: "", week: "", band: "", turn: "", customer: "" }, compareView: "headline", baseline: null, intake: { quoteFiles: [], orderFiles: [], priorFiles: [], priorOrderFiles: [], quoteError: "", orderError: "", priorError: "", running: false, hasRun: false, feedback: null } };
       const scopes = {
         all: {
           label: "Full quote book", title: "The complete conversion picture.", period: "W1—W10", quotes: 614, quoteValue: 461, orders: 40, orderValue: 25, unconverted: 574, unconvertedValue: 436,
@@ -1661,6 +1847,7 @@
       const fineMoney = value => {
         const amount = Number(value) || 0;
         const size = Math.abs(amount);
+        if (size < 0.0005) return "$0";
         return (amount < 0 ? "-" : "") + (size >= 1 ? money(size) : "$" + Math.round(size * 1000) + "k");
       };
       const tons = value => new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(Number(value) || 0);
@@ -1909,12 +2096,30 @@
         const priorWeeks = new Set(priorRecords.map(weekOf).filter(Boolean));
         const shared = Array.from(liveWeeks).filter(number => priorWeeks.has(number)).sort((a, b) => a - b);
         const aligned = shared.length > 0;
+        // Everything loaded on each side, before the shared-week narrowing.
+        // Volume is compared like week against like week; presence is not.
+        const liveAll = liveRecords.slice();
+        const priorAll = priorRecords.slice();
         if (aligned) {
           const keep = new Set(shared);
           liveRecords = liveRecords.filter(record => keep.has(weekOf(record)));
           priorRecords = priorRecords.filter(record => keep.has(weekOf(record)));
         }
         if (!liveRecords.length || !priorRecords.length) return { ready: false, empty: true, priorLabel: baseline.label };
+
+        // Both sides are named by their year wherever the two years differ. A
+        // legend reading "2026" against "2025" is read at a glance; one reading
+        // "W1-W3" against "W1-W2" has to be worked out. If someone loads a
+        // prior set from the same year the years stop telling them apart, so
+        // the wording falls back to this period against the prior one.
+        const liveYears = Array.from(new Set((state.model.records || [])
+          .filter(record => record.date).map(record => record.date.getFullYear()))).sort();
+        const liveYearLabel = liveYears.length === 1 ? String(liveYears[0])
+          : liveYears.length ? liveYears[0] + "\u2013" + liveYears[liveYears.length - 1] : "";
+        const priorYearLabel = baseline.shortLabel || "";
+        const yearsDiffer = Boolean(liveYearLabel) && Boolean(priorYearLabel) && liveYearLabel !== priorYearLabel;
+        const currentShortFor = yearsDiffer ? liveYearLabel : "This period";
+        const priorShortFor = yearsDiffer ? priorYearLabel : "Prior";
 
         const measure = records => {
           const summary = nucorSummary(records);
@@ -1978,6 +2183,182 @@
           current: liveBands.find(band => band.label === label) || blankBand,
           prior: priorBands.find(band => band.label === label) || blankBand
         }));
+
+        // ---- Accounts ----------------------------------------------------
+        // Presence is a different question from volume, and it needs a
+        // different base. Volume has to be compared like week against like
+        // week. Whether an account has stopped asking has to look at every
+        // week that was loaded on both sides — narrowing to the matched weeks
+        // would report an account that quoted in week seven as lost when it
+        // simply quoted outside the window being compared.
+        const topKey = counts => {
+          let best = "", most = 0;
+          counts.forEach((count, key) => { if (count > most) { most = count; best = key; } });
+          return best;
+        };
+        const accountProfile = records => {
+          const map = new Map();
+          records.forEach(record => {
+            const name = customerName(record.customer);
+            const key = customerKey(name);
+            if (!key) return;
+            if (!map.has(key)) map.set(key, { key: key, name: name, quotes: 0, value: 0, wins: 0, wonValue: 0,
+              weeks: new Set(), districts: new Map(), owners: new Map(), last: null, first: null });
+            const entry = map.get(key);
+            entry.quotes += 1;
+            entry.value += Number(record.price) || 0;
+            if (record.won) { entry.wins += 1; entry.wonValue += Number(record.price) || 0; }
+            const week = Number(record.week) || 0;
+            if (week) entry.weeks.add(week);
+            const district = String(record.key || "").split("-")[0];
+            if (district) entry.districts.set(district, (entry.districts.get(district) || 0) + 1);
+            const owner = normaliseRosterCode(record.engineer);
+            if (owner && owner !== "(none)") entry.owners.set(owner, (entry.owners.get(owner) || 0) + 1);
+            if (record.date) {
+              if (!entry.last || record.date > entry.last) entry.last = record.date;
+              if (!entry.first || record.date < entry.first) entry.first = record.date;
+            }
+          });
+          map.forEach(entry => {
+            entry.weekCount = entry.weeks.size;
+            entry.district = topKey(entry.districts);
+            entry.owner = topKey(entry.owners);
+          });
+          return map;
+        };
+        const liveBook = accountProfile(liveAll);
+        const priorBook = accountProfile(priorAll);
+        const blankAccount = { quotes: 0, value: 0, wins: 0, wonValue: 0, weekCount: 0, district: "", owner: "", last: null, name: "" };
+        const roster = [];
+        const accountKeys = new Set(Array.from(liveBook.keys()).concat(Array.from(priorBook.keys())));
+        accountKeys.forEach(key => {
+          const nowSide = liveBook.get(key) || null;
+          const thenSide = priorBook.get(key) || null;
+          const entry = {
+            key: key,
+            name: (nowSide || thenSide).name,
+            current: nowSide || blankAccount,
+            prior: thenSide || blankAccount,
+            district: (nowSide && nowSide.district) || (thenSide && thenSide.district) || "",
+            ownerCode: (nowSide && nowSide.owner) || (thenSide && thenSide.owner) || "",
+            state: nowSide && thenSide ? "kept" : nowSide ? "new" : "lost"
+          };
+          entry.owner = entry.ownerCode ? resolvedNucorPerson(entry.ownerCode, state.model && state.model.roster).name : "";
+          entry.valueChange = (entry.current.value - entry.prior.value) / 1000000;
+          entry.quoteChange = entry.current.quotes - entry.prior.quotes;
+          entry.valueShift = entry.prior.value ? (entry.current.value - entry.prior.value) / entry.prior.value * 100 : null;
+          // "Recurring" is the whole point of a churn list. One quote a year
+          // ago that did not repeat is noise; a name that appeared in several
+          // separate weeks and has now gone silent is a phone call.
+          entry.recurring = entry.prior.weekCount >= 2;
+          roster.push(entry);
+        });
+        const sumValue = list => list.reduce((total, item) => total + item, 0) / 1000000;
+        const lost = roster.filter(item => item.state === "lost").sort((a, b) => b.prior.value - a.prior.value);
+        const gained = roster.filter(item => item.state === "new").sort((a, b) => b.current.value - a.current.value);
+        const kept = roster.filter(item => item.state === "kept");
+        const atRisk = kept.filter(item => item.valueShift !== null && item.valueShift <= -40)
+          .sort((a, b) => a.valueChange - b.valueChange);
+        const climbing = kept.filter(item => item.valueShift !== null && item.valueShift >= 40)
+          .sort((a, b) => b.valueChange - a.valueChange);
+        const keptPriorValue = sumValue(kept.map(item => item.prior.value));
+        const keptCurrentValue = sumValue(kept.map(item => item.current.value));
+        const growth = sumValue(kept.filter(item => item.current.value > item.prior.value).map(item => item.current.value - item.prior.value));
+        const shrink = sumValue(kept.filter(item => item.current.value < item.prior.value).map(item => item.prior.value - item.current.value));
+        const lostValue = sumValue(lost.map(item => item.prior.value));
+        const gainedValue = sumValue(gained.map(item => item.current.value));
+        const priorBookValue = keptPriorValue + lostValue;
+        const currentBookValue = keptCurrentValue + gainedValue;
+        const retention = {
+          priorCount: priorBook.size,
+          currentCount: liveBook.size,
+          keptCount: kept.length,
+          lostCount: lost.length,
+          gainedCount: gained.length,
+          keepRate: priorBook.size ? percentage(kept.length, priorBook.size) : 0,
+          priorValue: priorBookValue,
+          currentValue: currentBookValue,
+          lostValue: lostValue,
+          gainedValue: gainedValue,
+          growth: growth,
+          shrink: shrink,
+          recurringLost: lost.filter(item => item.recurring).length,
+          recurringLostValue: sumValue(lost.filter(item => item.recurring).map(item => item.prior.value)),
+          atRiskCount: atRisk.length,
+          atRiskValue: sumValue(atRisk.map(item => item.prior.value - item.current.value))
+        };
+        // A bridge that has to close: prior book − lost − shrink + growth +
+        // new = current book. Every step is a real group of accounts, so a
+        // reader can point at a bar and ask who is in it.
+        //
+        // Unlike the churn lists above, this is built on the weeks the two
+        // periods share. It is a story about money, and an extra week loaded
+        // on one side would appear in it as new business won.
+        const liveMatched = accountProfile(liveRecords);
+        const priorMatched = accountProfile(priorRecords);
+        const matchedKeys = new Set(Array.from(liveMatched.keys()).concat(Array.from(priorMatched.keys())));
+        let bridgeLost = 0, bridgeGained = 0, bridgeGrowth = 0, bridgeShrink = 0;
+        let lostCount = 0, gainedCount = 0, grewCount = 0, shrankCount = 0;
+        let priorMatchedValue = 0, currentMatchedValue = 0;
+        matchedKeys.forEach(key => {
+          const nowSide = liveMatched.get(key);
+          const thenSide = priorMatched.get(key);
+          const nowValue = nowSide ? nowSide.value : 0;
+          const thenValue = thenSide ? thenSide.value : 0;
+          priorMatchedValue += thenValue;
+          currentMatchedValue += nowValue;
+          if (nowSide && thenSide) {
+            if (nowValue > thenValue) { bridgeGrowth += nowValue - thenValue; grewCount += 1; }
+            else if (nowValue < thenValue) { bridgeShrink += thenValue - nowValue; shrankCount += 1; }
+          } else if (nowSide) { bridgeGained += nowValue; gainedCount += 1; }
+          else { bridgeLost += thenValue; lostCount += 1; }
+        });
+        const bridge = [
+          { label: priorShortFor + " book", value: priorMatchedValue / 1000000, kind: "total" },
+          { label: "Accounts lost", value: -bridgeLost / 1000000, kind: "down", count: lostCount },
+          { label: "Spent less", value: -bridgeShrink / 1000000, kind: "down", count: shrankCount },
+          { label: "Spent more", value: bridgeGrowth / 1000000, kind: "up", count: grewCount },
+          { label: "Accounts gained", value: bridgeGained / 1000000, kind: "up", count: gainedCount },
+          { label: currentShortFor + " book", value: currentMatchedValue / 1000000, kind: "total" }
+        ];
+
+        // District mix, on the matched weeks, so it lines up with the volume view.
+        const districtMap = records => {
+          const map = new Map();
+          records.forEach(record => {
+            const district = String(record.key || "").split("-")[0] || "—";
+            if (!map.has(district)) map.set(district, { label: district, quotes: 0, value: 0, wins: 0, wonValue: 0 });
+            const entry = map.get(district);
+            entry.quotes += 1;
+            entry.value += Number(record.price) || 0;
+            if (record.won) { entry.wins += 1; entry.wonValue += Number(record.price) || 0; }
+          });
+          return map;
+        };
+        const liveDistricts = districtMap(liveRecords);
+        const priorDistricts = districtMap(priorRecords);
+        const blankDistrict = { quotes: 0, value: 0, wins: 0, wonValue: 0 };
+        const districts = Array.from(new Set(Array.from(liveDistricts.keys()).concat(Array.from(priorDistricts.keys()))))
+          .map(label => ({
+            label: label,
+            current: liveDistricts.get(label) || blankDistrict,
+            prior: priorDistricts.get(label) || blankDistrict
+          }))
+          .sort((a, b) => (b.current.value + b.prior.value) - (a.current.value + a.prior.value));
+
+        // Where the shape of the book moved, in points of share rather than in
+        // dollars — a book that grew everywhere has not changed shape at all.
+        const shareOf = (part, whole) => whole ? part / whole * 100 : 0;
+        const liveBandTotal = bands.reduce((total, band) => total + band.current.value, 0);
+        const priorBandTotal = bands.reduce((total, band) => total + band.prior.value, 0);
+        const mixShift = bands.map(band => ({
+          label: band.label,
+          currentShare: shareOf(band.current.value, liveBandTotal),
+          priorShare: shareOf(band.prior.value, priorBandTotal),
+          points: shareOf(band.current.value, liveBandTotal) - shareOf(band.prior.value, priorBandTotal),
+          current: band.current,
+          prior: band.prior
+        })).sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
 
         // Which accounts grew, shrank, arrived, or stopped asking.
         const accountMap = records => {
@@ -2056,23 +2437,12 @@
         const weekSpan = numbers => !numbers.length ? "" : numbers.length === 1 ? "week " + numbers[0]
           : "weeks " + numbers[0] + "–" + numbers[numbers.length - 1];
 
-        // Both sides are named by their year wherever the two years differ.
-        // A legend reading "2026" against "2025" is read at a glance; one
-        // reading "W1–W3" against "W1–W2" has to be worked out, and if someone
-        // loads a prior set from the same year the years stop telling them
-        // apart, so the wording falls back to this period against the prior one.
-        const liveYears = Array.from(new Set((state.model.records || [])
-          .filter(record => record.date).map(record => record.date.getFullYear()))).sort();
-        const liveYearLabel = liveYears.length === 1 ? String(liveYears[0])
-          : liveYears.length ? liveYears[0] + "–" + liveYears[liveYears.length - 1] : "";
-        const priorYearLabel = baseline.shortLabel || "";
-        const yearsDiffer = Boolean(liveYearLabel) && Boolean(priorYearLabel) && liveYearLabel !== priorYearLabel;
         return {
           ready: true,
           currentLabel: (yearsDiffer ? liveYearLabel + " (" + liveScope.period + ")" : liveScope.period),
           priorLabel: yearsDiffer ? baseline.label : "the prior period (" + (baseline.model.scopes.all.period || "") + ")",
-          currentShort: yearsDiffer ? liveYearLabel : "This period",
-          priorShort: yearsDiffer ? priorYearLabel : "Prior",
+          currentShort: currentShortFor,
+          priorShort: priorShortFor,
           lens: meta.label,
           ownOrders: Boolean(baseline.ownOrders),
           aligned: aligned,
@@ -2086,7 +2456,25 @@
           weekly: weekly,
           cumulative: cumulative,
           bands: bands,
+          mixShift: mixShift,
+          districts: districts,
           customers: customers,
+          roster: roster,
+          lost: lost,
+          gained: gained,
+          kept: kept,
+          atRisk: atRisk,
+          climbing: climbing,
+          retention: retention,
+          bridge: bridge,
+          // Presence is measured on everything loaded, so the panels that read
+          // it have to be able to say what "everything" was on each side.
+          span: {
+            current: liveWeeks.size,
+            prior: priorWeeks.size,
+            currentPeriod: liveScope.period,
+            priorPeriod: (baseline.model.scopes.all && baseline.model.scopes.all.period) || ""
+          },
           people: people,
           roleLabel: state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer"
         };
@@ -2582,26 +2970,247 @@
 
       // ---- Year over year ----------------------------------------------------
       const cmpDelta = (now, before, invert) => {
-        if (now === null || before === null || now === undefined || before === undefined) return { text: "—", tone: "flat" };
-        if (!before) return { text: now ? "new" : "—", tone: now ? (invert ? "down" : "up") : "flat" };
+        if (now === null || before === null || now === undefined || before === undefined) return { text: "—", tone: "flat", change: null };
+        if (!before) return { text: now ? "new" : "—", tone: now ? (invert ? "down" : "up") : "flat", change: null };
         const change = (now - before) / Math.abs(before) * 100;
         const good = invert ? change < 0 : change > 0;
-        return { text: (change > 0 ? "+" : "") + change.toFixed(1) + "%", tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down") };
+        return {
+          text: (change > 0 ? "+" : "") + change.toFixed(1) + "%",
+          tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down"),
+          change: change
+        };
       };
+      const cmpSigned = value => (value > 0 ? "+" : value < 0 ? "−" : "") + fineMoney(Math.abs(value));
+      const cmpPoints = value => (value > 0 ? "+" : value < 0 ? "−" : "") + Math.abs(value).toFixed(1) + " pts";
+      const cmpClip = (text, limit) => { const value = String(text || "").trim(); return value.length > limit ? value.slice(0, limit - 1) + "…" : value; };
 
-      // Two bars on one scale, one row. Used everywhere on this screen so the
-      // eye learns the shape once: the top bar is this period, the bar under it
-      // is the same measure a year ago.
-      function cmpPairRow(label, currentValue, priorValue, max, format, note, invert) {
-        const delta = cmpDelta(currentValue, priorValue, invert);
-        const width = value => max ? Math.max(value > 0 ? 1.5 : 0, Math.min(100, value / max * 100)) : 0;
-        return '<div class="cmp-pair"><span class="cmp-pair-label">' + escape(label) + "</span>"
-          + '<div class="cmp-pair-bars">'
-          + '<div class="cmp-bar is-now"><i style="width:' + width(currentValue).toFixed(1) + '%"></i><b>' + format(currentValue) + "</b></div>"
-          + '<div class="cmp-bar is-then"><i style="width:' + width(priorValue).toFixed(1) + '%"></i><b>' + format(priorValue) + "</b></div>"
-          + "</div>"
-          + '<em class="is-' + delta.tone + '">' + delta.text + "</em>"
-          + (note ? "<small>" + escape(note) + "</small>" : "") + "</div>";
+      // One row shape used by every ranked comparison on this screen: a label,
+      // a bar that runs right for better and left for worse from a centre line,
+      // the change, and the two figures it came from. The eye learns it once.
+      function cmpChangeRows(rows, options) {
+        const config = options || {};
+        const measured = rows.map(row => {
+          const delta = cmpDelta(row.now, row.was, row.invert);
+          return { row: row, delta: delta, size: delta.change === null ? 0 : Math.abs(delta.change) };
+        }).sort((a, b) => config.keepOrder ? 0 : b.size - a.size);
+        if (!measured.length) return '<p class="ops-note">Nothing to rank on this lens.</p>';
+        // The scale is capped so one runaway measure cannot flatten the rest,
+        // and a bar that hits the cap says so rather than pretending to fit.
+        const largest = Math.max.apply(null, measured.map(item => item.size));
+        const scale = Math.max(5, Math.min(config.cap || 120, largest));
+        return '<div class="chg-scale"><span>worse</span><i></i><span>better</span></div>'
+          + measured.map(item => {
+              const delta = item.delta;
+              const width = delta.change === null ? 0 : Math.min(100, item.size / scale * 100);
+              const positive = delta.tone === "up";
+              const capped = item.size > scale + 0.01;
+              return '<div class="chg-row"><span class="chg-label">' + escape(item.row.label) + "</span>"
+                + '<div class="chg-track">'
+                // The fill starts at the centre line, so a bar at full scale is
+                // half the track, not all of it.
+                + (delta.change === null ? '<b class="chg-none">not scored in both periods</b>'
+                    : '<i class="chg-fill is-' + delta.tone + (positive ? " is-right" : " is-left") + (capped ? " is-capped" : "")
+                      + '" style="width:' + (width / 2).toFixed(2) + '%"></i>')
+                + "</div>"
+                + '<em class="chg-delta is-' + delta.tone + '">' + escape(delta.text) + "</em>"
+                + '<small class="chg-values">' + escape(item.row.fmt(item.row.was)) + " → " + escape(item.row.fmt(item.row.now)) + "</small>"
+                + "</div>";
+            }).join("");
+      }
+
+      // Last period's book, the four things that happened to it, and this
+      // period's book. Every step is a real group of accounts, so a reader can
+      // point at a bar and ask who is in it — and the bridge has to close.
+      function cmpBridgeChart(bridge, data) {
+        if (!bridge || bridge.length < 3) return '<p class="ops-note">Not enough of a book on either side to bridge.</p>';
+        const width = 940, height = 320, padTop = 34, padBottom = 74, padLeft = 66, padRight = 18;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const step = plotW / bridge.length;
+        const barW = Math.min(96, step * 0.56);
+        let running = 0;
+        const placed = bridge.map(entry => {
+          const isTotal = entry.kind === "total";
+          const from = isTotal ? 0 : running;
+          const to = isTotal ? entry.value : running + entry.value;
+          if (!isTotal) running = to;
+          else running = entry.value;
+          return { entry: entry, from: from, to: to, isTotal: isTotal };
+        });
+        const top = Math.max.apply(null, placed.map(item => Math.max(item.from, item.to))) || 1;
+        const y = value => padTop + (1 - value / top) * plotH;
+        const baseY = padTop + plotH;
+        const ticks = [0, top / 2, top];
+        return '<svg class="cmp-bridge" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="How the prior book became the current book">'
+          + ticks.map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
+              + '<text class="axis" x="' + (padLeft - 8) + '" y="' + (y(value) + 4).toFixed(1) + '" text-anchor="end">' + escape(money(value)) + "</text>").join("")
+          + placed.map((item, index) => {
+              const x = padLeft + step * index + (step - barW) / 2;
+              const highY = y(Math.max(item.from, item.to));
+              const barH = Math.max(2, Math.abs(y(item.from) - y(item.to)));
+              const tone = item.isTotal ? "is-total" : item.entry.value >= 0 ? "is-up" : "is-down";
+              const connector = index < placed.length - 1
+                ? '<line class="bridge-link" x1="' + (x + barW).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2).toFixed(1)
+                  + '" y1="' + y(item.to).toFixed(1) + '" y2="' + y(item.to).toFixed(1) + '" />'
+                : "";
+              return connector
+                + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" />'
+                + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2).toFixed(1) + '" y="' + (highY - 8).toFixed(1) + '" text-anchor="middle">'
+                + escape(item.isTotal ? money(item.entry.value) : cmpSigned(item.entry.value)) + "</text>"
+                + '<text class="bridge-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 20) + '" text-anchor="middle">' + escape(item.entry.label) + "</text>"
+                + (item.entry.count === undefined ? ""
+                    : '<text class="bridge-count" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 36) + '" text-anchor="middle">'
+                      + escape(item.entry.count + " account" + (item.entry.count === 1 ? "" : "s")) + "</text>");
+            }).join("")
+          + "</svg>";
+      }
+
+      // Grouped extruded-free columns: prior beside current, one pair per
+      // group. Used for weeks, bands and districts so all three read the same.
+      function cmpColumnPairs(groups, options) {
+        const config = options || {};
+        if (!groups.length) return '<p class="ops-note">' + escape(config.empty || "Nothing appears in both periods yet.") + "</p>";
+        const width = 940, height = 300;
+        const padTop = 30, padBottom = config.note === false ? 40 : 56, padLeft = 62, padRight = 16;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        // A pair of columns stranded at each end of a wide plot is not a
+        // comparison, so the step is capped and the block is centred. The two
+        // label rows are drawn only where the step is wide enough to hold them
+        // — twelve districts cannot carry two money labels each without the
+        // labels printing on top of one another.
+        const step = Math.min(plotW / groups.length, 300);
+        const originX = padLeft + (plotW - step * groups.length) / 2;
+        const showValues = step >= 96;
+        const showNotes = config.note !== false && step >= 104;
+        const barW = Math.max(4, Math.min(38, step * 0.34));
+        const gap = Math.max(2, barW * 0.16);
+        const format = config.format || (value => String(value));
+        const top = Math.max.apply(null, groups.map(group => Math.max(Number(group.current) || 0, Number(group.prior) || 0))) || 1;
+        const y = value => padTop + (1 - Math.max(0, value) / top) * plotH;
+        const baseY = padTop + plotH;
+        const every = Math.max(1, Math.ceil(groups.length / 16));
+        const ticks = [0, top / 2, top];
+        return '<svg class="cmp-columns" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Paired columns") + '">'
+          + ticks.map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
+              + '<text class="axis" x="' + (padLeft - 8) + '" y="' + (y(value) + 4).toFixed(1) + '" text-anchor="end">' + escape(format(value)) + "</text>").join("")
+          + groups.map((group, index) => {
+              const centre = originX + step * index + step / 2;
+              const left = centre - barW - gap / 2;
+              const bar = (x, value, tone) => {
+                const height = Math.max(value > 0 ? 2 : 0, (baseY - y(value)));
+                return height ? '<rect class="cmp-col ' + tone + '" x="' + x.toFixed(1) + '" y="' + (baseY - height).toFixed(1)
+                  + '" width="' + barW.toFixed(1) + '" height="' + height.toFixed(1) + '" />' : "";
+              };
+              const priorValue = Number(group.prior) || 0, currentValue = Number(group.current) || 0;
+              return bar(left, priorValue, "is-then") + bar(left + barW + gap, currentValue, "is-now")
+                + (showValues
+                    ? '<text class="cmp-col-value is-then" x="' + (left + barW / 2).toFixed(1) + '" y="' + (y(priorValue) - 6).toFixed(1) + '" text-anchor="middle">' + escape(format(priorValue)) + "</text>"
+                      + '<text class="cmp-col-value is-now" x="' + (left + barW + gap + barW / 2).toFixed(1) + '" y="' + (y(currentValue) - 6).toFixed(1) + '" text-anchor="middle">' + escape(format(currentValue)) + "</text>"
+                    : "")
+                + (index % every === 0 || index === groups.length - 1
+                    ? '<text class="cmp-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
+                    : "")
+                + (group.note && showNotes
+                    ? '<text class="cmp-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + 34) + '" text-anchor="middle">' + escape(group.note) + "</text>"
+                    : "");
+            }).join("")
+          + "</svg>"
+          + '<div class="cmp-legend"><span><b class="is-then"></b>' + escape(config.keyPrior || "Prior") + "</span>"
+          + '<span><b class="is-now"></b>' + escape(config.keyCurrent || "This period") + "</span></div>";
+      }
+
+      // Every account that quoted in both periods, on two axes that mean
+      // something on their own: across is more or fewer quotes, up and down is
+      // more or less money. The four corners are four different conversations.
+      function cmpQuadrant(accounts, data) {
+        const points = accounts.filter(item => item.quoteChange !== 0 || Math.abs(item.valueChange) > 0.0001);
+        if (points.length < 2) return '<p class="ops-note">Fewer than two accounts moved in both directions, so there is nothing to plot yet.</p>';
+        const width = 940, height = 420, pad = 58;
+        const plotW = width - pad * 2, plotH = height - pad * 2;
+        const maxQuote = Math.max(1, Math.max.apply(null, points.map(item => Math.abs(item.quoteChange))));
+        const maxValue = Math.max(0.05, Math.max.apply(null, points.map(item => Math.abs(item.valueChange))));
+        const cx = pad + plotW / 2, cy = pad + plotH / 2;
+        const x = value => cx + value / maxQuote * (plotW / 2 - 16);
+        const y = value => cy - value / maxValue * (plotH / 2 - 16);
+        const biggest = Math.max.apply(null, points.map(item => item.current.value)) || 1;
+        const radius = value => 4 + Math.sqrt(Math.max(0, value) / biggest) * 13;
+        // Only the four largest movers are named, so the labels cannot pile up.
+        const named = points.slice().sort((a, b) => Math.abs(b.valueChange) - Math.abs(a.valueChange)).slice(0, 4);
+        const namedKeys = new Set(named.map(item => item.key));
+        const corner = (text, atX, atY, anchor) => '<text class="quad-corner" x="' + atX + '" y="' + atY + '" text-anchor="' + anchor + '">' + escape(text) + "</text>";
+        return '<svg class="cmp-quadrant" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Change in quotes against change in quoted value, one dot per account">'
+          + '<rect class="quad-field is-good" x="' + cx + '" y="' + pad + '" width="' + (plotW / 2) + '" height="' + (plotH / 2) + '" />'
+          + '<rect class="quad-field is-bad" x="' + pad + '" y="' + cy + '" width="' + (plotW / 2) + '" height="' + (plotH / 2) + '" />'
+          + '<line class="quad-axis" x1="' + pad + '" x2="' + (width - pad) + '" y1="' + cy + '" y2="' + cy + '" />'
+          + '<line class="quad-axis" x1="' + cx + '" x2="' + cx + '" y1="' + pad + '" y2="' + (height - pad) + '" />'
+          + corner("More quotes, worth more", width - pad - 6, pad + 16, "end")
+          + corner("Fewer quotes, worth more", pad + 6, pad + 16, "start")
+          + corner("More quotes, worth less", width - pad - 6, height - pad - 8, "end")
+          + corner("Fewer quotes, worth less", pad + 6, height - pad - 8, "start")
+          + '<text class="quad-axis-label" x="' + (width - pad + 4) + '" y="' + (cy + 17) + '" text-anchor="end">quotes →</text>'
+          + '<text class="quad-axis-label" x="' + (cx + 6) + '" y="' + (pad - 6) + '">↑ value</text>'
+          + points.map(item => {
+              const tone = item.valueChange > 0 ? "is-up" : item.valueChange < 0 ? "is-down" : "is-flat";
+              return '<circle class="quad-dot ' + tone + '" cx="' + x(item.quoteChange).toFixed(1) + '" cy="' + y(item.valueChange).toFixed(1)
+                + '" r="' + radius(item.current.value).toFixed(1) + '"><title>' + escape(item.name + " · " + cmpSigned(item.valueChange)
+                + " · " + (item.quoteChange > 0 ? "+" : "") + item.quoteChange + " quotes") + "</title></circle>";
+            }).join("")
+          + named.map(item => '<text class="quad-name" x="' + (x(item.quoteChange) + radius(item.current.value) + 5).toFixed(1)
+              + '" y="' + (y(item.valueChange) + 4).toFixed(1) + '">' + escape(cmpClip(item.name, 18)) + "</text>").join("")
+          + "</svg>"
+          + '<p class="ops-note">Dot size is what the account is worth to us this period. ' + escape(namedKeys.size + " largest mover" + (namedKeys.size === 1 ? " is" : "s are") + " named; hover any dot for the rest.") + "</p>";
+      }
+
+      // A churn list is only useful if it says who to ring and why. Value, how
+      // often they used to come, whether they ever booked, when they were last
+      // seen, and whose account it was.
+      function cmpAccountTable(items, options) {
+        const config = options || {};
+        if (!items.length) return '<div class="analysis-empty"><div><b>' + escape(config.emptyTitle || "Nothing here")
+          + "</b><span>" + escape(config.empty || "") + "</span></div></div>";
+        const side = config.side || "prior";
+        const rows = items.slice(0, config.limit || 12);
+        return '<div class="acct-table-wrap"><table class="acct-table">'
+          + "<thead><tr><th>Account</th><th>" + escape(config.valueHead || "Quoted value") + "</th><th>Quotes</th><th>Booked</th><th>"
+          + escape(config.lastHead || "Last quoted") + "</th><th>District</th><th>Owner</th></tr></thead><tbody>"
+          + rows.map(item => {
+              const measured = item[side];
+              const other = item[side === "prior" ? "current" : "prior"];
+              return '<tr data-open-account="' + escape(item.key) + '" tabindex="0" role="button">'
+                + '<th scope="row"><b>' + escape(cmpClip(item.name, 30)) + "</b>"
+                + (item.recurring && side === "prior" ? '<i class="acct-flag">recurring</i>' : "")
+                + "</th>"
+                + '<td class="num is-lead">' + escape(fineMoney(measured.value / 1000000))
+                + (config.showChange ? '<span class="acct-change is-' + (item.valueChange > 0 ? "up" : "down") + '">' + escape(cmpSigned(item.valueChange)) + " vs " + escape(fineMoney(other.value / 1000000)) + "</span>" : "")
+                + "</td>"
+                + '<td class="num">' + measured.quotes + (measured.weekCount ? '<span class="acct-change">across ' + measured.weekCount + " week" + (measured.weekCount === 1 ? "" : "s") + "</span>" : "") + "</td>"
+                + '<td class="num">' + (measured.wins ? measured.wins + '<span class="acct-change">' + escape(fineMoney(measured.wonValue / 1000000)) + "</span>" : '<span class="acct-never">never</span>') + "</td>"
+                + "<td>" + escape(measured.last ? fullDate(measured.last) : "—") + "</td>"
+                + "<td>" + escape(item.district || "—") + "</td>"
+                + "<td>" + escape(cmpClip(item.owner || "—", 20)) + "</td>"
+                + "</tr>";
+            }).join("")
+          + "</tbody></table></div>"
+          + (items.length > rows.length ? '<p class="ops-note">' + escape("Showing the " + rows.length + " largest of " + items.length + " by value. The Customers screen carries the full list.") + "</p>" : "")
+          + '<p class="ops-note">Selecting a row opens that account&rsquo;s record on the Customers screen.</p>';
+      }
+
+      function cmpHeroCard(label, valueText, delta, priorText, read, tone) {
+        return '<article class="cmp-hero-card is-' + (tone || delta.tone) + '">'
+          + "<span>" + escape(label) + "</span>"
+          + "<strong>" + escape(valueText) + "</strong>"
+          + '<div class="cmp-hero-delta"><u class="is-' + delta.tone + '">' + escape(delta.text) + "</u><i>" + escape(priorText) + "</i></div>"
+          + "<p>" + escape(read) + "</p></article>";
+      }
+
+      function setCompareView(view) {
+        state.compareView = view;
+        $$("[data-compare-panel]").forEach(node => { node.hidden = node.dataset.comparePanel !== view; });
+        $$("[data-compare-view]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.compareView === view)));
+        const active = $('[data-compare-panel="' + view + '"]');
+        if (active) {
+          const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          if (!reduced) { active.classList.remove("is-entering"); void active.offsetWidth; active.classList.add("is-entering"); }
+        }
       }
 
       function renderCompare() {
@@ -2612,86 +3221,99 @@
           if (state.screen === "compare") setScreen("overview");
           return;
         }
+        const blank = ["#cmpHero", "#cmpChange", "#cmpBridge", "#cmpWeekChart", "#cmpWeekValueChart", "#cmpRace",
+          "#cmpBandChart", "#cmpMixShift", "#cmpDistricts", "#cmpRetention", "#cmpLost", "#cmpAtRisk",
+          "#cmpGained", "#cmpQuadrant", "#cmpPeopleChart", "#cmpPeopleRate", "#cmpTable", "#cmpMethod"];
         if (!data.ready) {
           $("#compareBanner").innerHTML = '<div class="analysis-empty"><div><b>Nothing to compare on this lens</b><span>'
-            + (data.empty ? "The prior period is loaded, but no record on either side survives the active filters." : "The prior period holds no record at this exposure lens. Switch to the full quote book to read it.")
+            + (data.empty ? "The prior period is loaded, but no record on either side survives the active filters."
+                : "The prior period holds no record at this exposure lens. Switch to the full quote book to read it.")
             + "</span></div></div>";
-          ["#compareKpis", "#cmpTable", "#cmpWeeks", "#cmpRace", "#cmpBands", "#cmpPeople", "#cmpCustomers"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          blank.forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           return;
         }
+        const tabs = $("#compareTabs");
+        if (tabs) tabs.hidden = false;
+        setCompareView(state.compareView || "headline");
 
         // ---- What is being compared, said before anything is compared --------
         $("#compareBanner").innerHTML = '<div class="cmp-banner-main"><span>Comparing</span><strong>' + escape(data.currentLabel)
           + '</strong><i>against</i><strong class="is-then">' + escape(data.priorLabel) + "</strong></div>"
-          + '<p>' + (data.aligned
-              ? "Matched on " + escape(data.alignedOn) + ", present in both periods"
+          + "<p>" + (data.aligned
+              ? "Volume and rates are matched on " + escape(data.alignedOn) + ", present in both periods"
                 + (data.priorExcluded ? " — " + data.priorExcluded + " prior week" + (data.priorExcluded === 1 ? "" : "s") + " left out" : "")
                 + (data.liveExcluded ? (data.priorExcluded ? ", and " : " — ") + data.liveExcluded + " live week" + (data.liveExcluded === 1 ? "" : "s") + " likewise" : "")
                 + "."
               : "The two periods share no week numbers, so this compares whole period against whole period. Load the matching weeks from each year for a like-for-like read.")
-          + " " + escape(data.lens) + " lens, measured inside each period against that period's own last day, so both sides answer the same question about their own quotes."
+          + " Account presence is measured on every loaded week instead. " + escape(data.lens) + " lens."
           + (data.ownOrders ? " The prior period was joined to its own order log." : " The prior period was joined to this period's order log, so its conversion is only as complete as that file — add a prior order log for a true read.")
           + (data.weekFilterIgnored ? " The quoted-week filter narrows this period only, since a week number has no counterpart in another year." : "")
           + "</p>";
 
-        // ---- Headline --------------------------------------------------------
-        const kpi = (label, now, before, format, invert, note) => {
-          const delta = cmpDelta(now, before, invert);
-          return '<article class="ops-kpi cmp-kpi is-' + delta.tone + '"><span>' + escape(label) + "</span>"
-            + "<strong>" + format(now) + "</strong>"
-            + '<u class="is-' + delta.tone + '">' + delta.text + "</u>"
-            + "<small>" + format(before) + " a year ago" + (note ? " · " + escape(note) : "") + "</small></article>";
+        const badge = $("#cmpLostBadge");
+        if (badge) {
+          badge.hidden = !data.retention.lostCount;
+          badge.textContent = String(data.retention.lostCount);
+          badge.setAttribute("aria-label", data.retention.lostCount + " accounts stopped asking");
+        }
+
+        // ---- 01 Headline ------------------------------------------------------
+        const now = data.current, then = data.prior;
+        const pointMove = (a, b) => {
+          const move = a - b;
+          return (move > 0 ? "+" : move < 0 ? "−" : "") + Math.abs(move).toFixed(1) + " points";
         };
-        $("#compareKpis").innerHTML =
-          kpi("Quotes issued", data.current.quotes, data.prior.quotes, opsNumber)
-          + kpi("Quoted value", data.current.value, data.prior.value, money)
-          + kpi("Quote wins", data.current.wins, data.prior.wins, opsNumber)
-          + kpi("Conversion", data.current.conversion, data.prior.conversion, pct)
-          + kpi("Value returned", data.current.wonValue, data.prior.wonValue, money)
-          + kpi("Average turnaround", data.current.turn, data.prior.turn, value => value === null ? "—" : value.toFixed(1) + "d", true);
+        $("#cmpHero").innerHTML =
+          cmpHeroCard("Quoted value", money(now.value), cmpDelta(now.value, then.value), money(then.value) + " last period",
+            now.value >= then.value ? "We priced more work than a year ago on the same weeks." : "We priced less work than a year ago on the same weeks.")
+          + cmpHeroCard("Value returned", money(now.wonValue), cmpDelta(now.wonValue, then.wonValue), money(then.wonValue) + " last period",
+            "The share of what we quoted that turned into an order moved " + pointMove(now.valueCapture, then.valueCapture) + ".")
+          + cmpHeroCard("Conversion", pct(now.conversion), cmpDelta(now.conversion, then.conversion), pct(then.conversion) + " last period",
+            opsNumber(now.wins) + " wins from " + opsNumber(now.quotes) + " quotes, against " + opsNumber(then.wins) + " from " + opsNumber(then.quotes) + ".")
+          + cmpHeroCard("Accounts kept", pct(data.retention.keepRate),
+            { text: data.retention.lostCount ? data.retention.lostCount + " lost" : "none lost", tone: data.retention.lostCount ? "down" : "up" },
+            data.retention.lostCount + " of " + data.retention.priorCount + " stopped asking",
+            data.retention.lostCount
+              ? data.retention.lostCount + " account" + (data.retention.lostCount === 1 ? "" : "s") + " that quoted with us last period have not this one, worth " + fineMoney(data.retention.lostValue) + " then."
+              : "Every account that quoted with us last period has quoted again.",
+            data.retention.lostCount ? (data.retention.keepRate >= 85 ? "flat" : "down") : "up");
 
-        // ---- 01 The headline table -------------------------------------------
-        const rows = [
-          { label: "Quotes issued", now: data.current.quotes, was: data.prior.quotes, fmt: opsNumber },
-          { label: "Alternates", now: data.current.alts, was: data.prior.alts, fmt: opsNumber },
-          { label: "Quoted value", now: data.current.value, was: data.prior.value, fmt: money },
-          { label: "Average quote", now: data.current.averageQuote, was: data.prior.averageQuote, fmt: fineMoney },
-          { label: "Quote wins", now: data.current.wins, was: data.prior.wins, fmt: opsNumber },
-          { label: "Booked jobs", now: data.current.jobs, was: data.prior.jobs, fmt: opsNumber },
-          { label: "Conversion", now: data.current.conversion, was: data.prior.conversion, fmt: pct },
-          { label: "Value returned", now: data.current.wonValue, was: data.prior.wonValue, fmt: money },
-          { label: "Value capture", now: data.current.valueCapture, was: data.prior.valueCapture, fmt: pct },
-          { label: "Booked tons", now: data.current.tons, was: data.prior.tons, fmt: value => value ? tons(value) : "—" },
-          { label: "Met the due date", now: data.current.onTime, was: data.prior.onTime, fmt: value => value === null ? "not scored" : pct(value) },
-          { label: "Average turnaround", now: data.current.turn, was: data.prior.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
-          { label: "Inside three days", now: data.current.withinThree, was: data.prior.withinThree, fmt: value => value === null ? "—" : pct(value) },
-          { label: "Median time to price", now: data.current.produce, was: data.prior.produce, fmt: value => value === null ? "—" : dayText(value), invert: true },
-          { label: "Median decision time", now: data.current.decide, was: data.prior.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
-          { label: "Engineering hours", now: data.current.hours, was: data.prior.hours, fmt: value => value.toFixed(0), invert: true },
-          { label: "Hours per quote", now: data.current.hoursPerQuote, was: data.prior.hoursPerQuote, fmt: value => value.toFixed(2), invert: true }
-        ];
-        $("#cmpTable").innerHTML = '<div class="cmp-head"><span></span><b class="is-then">' + escape(data.priorShort) + '</b><b class="is-now">' + escape(data.currentShort) + "</b><span>Change</span></div>"
-          + rows.map(row => {
-              const delta = cmpDelta(row.now, row.was, row.invert);
-              return '<div class="cmp-row"><span>' + escape(row.label) + "</span>"
-                + "<i>" + row.fmt(row.was) + "</i><b>" + row.fmt(row.now) + "</b>"
-                + '<em class="is-' + delta.tone + '">' + delta.text + "</em></div>";
-            }).join("");
+        $("#cmpChange").innerHTML = cmpChangeRows([
+          { label: "Quotes issued", now: now.quotes, was: then.quotes, fmt: opsNumber },
+          { label: "Quoted value", now: now.value, was: then.value, fmt: money },
+          { label: "Average quote", now: now.averageQuote, was: then.averageQuote, fmt: fineMoney },
+          { label: "Quote wins", now: now.wins, was: then.wins, fmt: opsNumber },
+          { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: money },
+          { label: "Conversion", now: now.conversion, was: then.conversion, fmt: pct },
+          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct },
+          { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
+          { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value) },
+          { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
+          { label: "Median decision time", now: now.decide, was: then.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
+          { label: "Engineering hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true }
+        ]);
 
-        // ---- 02 Week by week --------------------------------------------------
-        const weekMax = Math.max(1, ...data.weekly.map(row => Math.max(row.current.quotes, row.prior.quotes)));
-        const valueMax = Math.max(0.0001, ...data.weekly.map(row => Math.max(row.current.value, row.prior.value)));
-        $("#cmpWeeks").innerHTML = '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + "</span><span><b class=\"is-then\"></b>" + escape(data.priorShort) + "</span></div>"
-          + '<div class="ops-subhead">Quotes issued</div>'
-          + data.weekly.map(row => cmpPairRow(row.label, row.current.quotes, row.prior.quotes, weekMax, opsNumber,
-              pct(row.current.conversion) + " conversion this period against " + pct(row.prior.conversion) + " last")).join("")
-          + '<div class="ops-subhead" style="margin-top:16px">Quoted value</div>'
-          + data.weekly.map(row => cmpPairRow(row.label, row.current.value, row.prior.value, valueMax, money,
-              money(row.current.wonValue) + " returned against " + money(row.prior.wonValue))).join("");
-        setText("#cmpWeekNote", "Every week number present in both periods, quoted volume above quoted value. "
+        $("#cmpBridge").innerHTML = cmpBridgeChart(data.bridge, data);
+        setText("#cmpBridgeNote", "Last period's quoted book, the four things that happened to it, and this period's. "
+          + "Accounts lost and gained are whole accounts appearing on only one side; spent less and spent more are the accounts on both sides, "
+          + "netted within each group. The five steps close exactly onto the last bar. "
+          + (data.aligned
+              ? "Measured on the matched weeks only — " + data.alignedOn + " — because an extra week loaded on one side would show up here as business won."
+              : "Measured on whole period against whole period, since the two sets share no week numbers."));
+
+        // ---- 02 Momentum ------------------------------------------------------
+        $("#cmpWeekChart").innerHTML = cmpColumnPairs(data.weekly.map(row => ({
+            label: row.label, prior: row.prior.quotes, current: row.current.quotes,
+            note: pct(row.prior.conversion) + " → " + pct(row.current.conversion)
+          })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort + " quotes", keyCurrent: data.currentShort + " quotes",
+            label: "Quotes issued per matched week in both periods" });
+        setText("#cmpWeekNote", "Quotes issued in every week number present in both periods, with that week's conversion underneath — "
           + data.weekly.length + " week" + (data.weekly.length === 1 ? "" : "s") + " matched.");
-
-        // ---- 03 The race ------------------------------------------------------
+        $("#cmpWeekValueChart").innerHTML = cmpColumnPairs(data.weekly.map(row => ({
+            label: row.label, prior: row.prior.value, current: row.current.value,
+            note: money(row.prior.wonValue) + " → " + money(row.current.wonValue) + " back"
+          })), { format: money, keyPrior: data.priorShort + " quoted", keyCurrent: data.currentShort + " quoted",
+            label: "Quoted value per matched week in both periods" });
         $("#cmpRace").innerHTML = cmpRaceSvg(data.cumulative, data)
           + '<p class="ops-note">Both periods start at zero on their own week one, so the lines are read against each other rather than against a calendar. '
           + (data.cumulative.length
@@ -2701,44 +3323,141 @@
               : "")
           + "</p>";
 
-        // ---- 04 The mix -------------------------------------------------------
-        const bandMax = Math.max(0.0001, ...data.bands.map(band => Math.max(band.current.value, band.prior.value))) / 1000000;
-        $("#cmpBands").innerHTML = '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + "</span><span><b class=\"is-then\"></b>" + escape(data.priorShort) + "</span></div>"
-          + data.bands.map(band => cmpPairRow(band.label, band.current.value / 1000000, band.prior.value / 1000000, bandMax, money,
-              band.current.quotes + " quotes at " + pct(band.current.conversion) + " against " + band.prior.quotes + " at " + pct(band.prior.conversion))).join("")
-          + '<p class="ops-note">Two books of the same size can be made of different work. This is where it moved.</p>';
+        // ---- 03 The mix -------------------------------------------------------
+        $("#cmpBandChart").innerHTML = cmpColumnPairs(data.bands.map(band => ({
+            label: band.label, prior: band.prior.wonValue / 1000000, current: band.current.wonValue / 1000000,
+            note: band.prior.quotes + " → " + band.current.quotes + " quotes"
+          })), { format: money, keyPrior: data.priorShort + " returned", keyCurrent: data.currentShort + " returned",
+            label: "Returned value by quote size band in both periods",
+            empty: "No priced quote in either period falls into a band yet." });
+        $("#cmpMixShift").innerHTML = cmpChangeRows(data.mixShift.map(band => ({
+            label: band.label, now: band.currentShare, was: band.priorShare, fmt: pct
+          })), { cap: 60 })
+          + '<p class="ops-note">Read as share of quoted value, so the four bands sum to the whole book in each period. A band moving right took a bigger slice of the book this period than last.</p>';
+        $("#cmpDistricts").innerHTML = cmpColumnPairs(data.districts.slice(0, 12).map(district => ({
+            label: district.label, prior: district.prior.value / 1000000, current: district.current.value / 1000000,
+            note: district.prior.quotes + " → " + district.current.quotes + " quotes"
+          })), { format: money, keyPrior: data.priorShort, keyCurrent: data.currentShort,
+            label: "Quoted value by district in both periods",
+            empty: "No district prefix could be read from the quote numbers." });
+        setText("#cmpDistrictNote", "Districts read from the quote-number prefix, largest first, on the matched weeks. "
+          + data.districts.length + " district" + (data.districts.length === 1 ? "" : "s") + " appear across the two periods.");
 
-        // ---- 05 Who carried it ------------------------------------------------
-        const people = data.people.slice(0, 10);
-        const peopleMax = Math.max(1, ...people.map(person => Math.max(person.current.quotes, person.prior.quotes)));
-        $("#cmpPeople").innerHTML = people.length
-          ? '<div class="cmp-legend"><span><b class="is-now"></b>' + escape(data.currentShort) + "</span><span><b class=\"is-then\"></b>" + escape(data.priorShort) + "</span></div>"
-            + people.map(person => cmpPairRow(person.name, person.current.quotes, person.prior.quotes, peopleMax, opsNumber,
-                person.current.wins + " booked at " + pct(percentage(person.current.wins, person.current.quotes)) + " against "
-                + person.prior.wins + " at " + pct(percentage(person.prior.wins, person.prior.quotes)))).join("")
-          : '<p class="ops-note">No named owner appears in either period.</p>';
-        setText("#cmpPeopleNote", data.roleLabel + " ownership, both periods, on the shared weeks. Switch the role on Team performance to change whose book this is.");
+        // ---- 04 Customers -----------------------------------------------------
+        const keep = data.retention;
+        $("#cmpRetention").innerHTML =
+          cmpHeroCard("Accounts last period", opsNumber(keep.priorCount), { text: "base", tone: "flat" }, "the book we started from",
+            "Every account that sent us at least one quote in the prior period.", "flat")
+          + cmpHeroCard("Still asking", opsNumber(keep.keptCount), { text: pct(keep.keepRate) + " kept", tone: keep.keepRate >= 85 ? "up" : keep.keepRate >= 70 ? "flat" : "down" }, "of the prior book",
+            "They came back this period, together worth " + fineMoney(keep.currentValue - keep.gainedValue) + " now against " + fineMoney(keep.priorValue - keep.lostValue) + " then.",
+            keep.keepRate >= 85 ? "up" : keep.keepRate >= 70 ? "flat" : "down")
+          + cmpHeroCard("Stopped asking", opsNumber(keep.lostCount), { text: fineMoney(keep.lostValue) + " gone", tone: keep.lostCount ? "down" : "up" },
+            keep.recurringLost + " of them quoted in more than one week",
+            keep.lostCount
+              ? "This is the phone-call list. " + fineMoney(keep.recurringLostValue) + " of the loss came from accounts that were quoting with us repeatedly."
+              : "Nothing was lost from the prior book.",
+            keep.lostCount ? "down" : "up")
+          + cmpHeroCard("New this period", opsNumber(keep.gainedCount), { text: fineMoney(keep.gainedValue) + " added", tone: keep.gainedCount ? "up" : "flat" },
+            "names that were not there last period",
+            keep.gainedCount
+              ? "New demand replacing " + (keep.gainedValue >= keep.lostValue ? "more than " : "less than ") + "what walked away."
+              : "No account is new to us this period.",
+            keep.gainedCount ? "up" : "flat");
 
-        // ---- 06 Accounts ------------------------------------------------------
-        const movers = data.customers;
-        const list = (title, items, tone, empty) => '<section class="cmp-move"><div class="cmp-move-head"><span>' + escape(title) + "</span><b>" + items.length + "</b></div>"
-          + (items.length
-              ? items.slice(0, 6).map(item => '<div class="cmp-move-row is-' + tone + '" data-open-account="' + escape(item.key) + '" role="button" tabindex="0">'
-                  + '<b title="' + escape(item.name) + '">' + escape(item.name) + "</b>"
-                  + "<em>" + (item.valueChange > 0 ? "+" : "") + fineMoney(item.valueChange) + "</em>"
-                  + "<span>" + fineMoney(item.current.value / 1000000) + " this period against " + fineMoney(item.prior.value / 1000000) + " last · "
-                  + item.current.quotes + " quotes against " + item.prior.quotes + "</span></div>").join("")
-              : '<p class="ops-note">' + escape(empty) + "</p>") + "</section>";
-        $("#cmpCustomers").innerHTML = '<div class="cmp-move-grid">'
-          + list("Grew the most", movers.grown, "good", "No account quoted more this period than last.")
-          + list("Fell the most", movers.shrunk, "bad", "No account quoted less this period than last.")
-          + list("New this period", movers.arrived, "new", "Every account also appears in the prior period.")
-          + list("Stopped asking", movers.lapsed, "lapsed", "Every prior account also appears this period.")
-          + "</div>";
-        setText("#cmpCustNote", movers.both + " account" + (movers.both === 1 ? "" : "s") + " appear in both periods, "
-          + movers.arrived.length + " only in this one, and " + movers.lapsed.length + " only in the prior one. Selecting an account opens its record on the Customers screen.");
-        $$("[data-open-account]", $("#cmpCustomers")).forEach(node => {
-          const open = () => { selectedAccount = node.dataset.openAccount; customerSearch = ""; const box = $("#custSearch"); if (box) box.value = ""; renderCustomers(); setScreen("customers"); };
+        $("#cmpLost").innerHTML = cmpAccountTable(data.lost, {
+          side: "prior", valueHead: "Was worth", lastHead: "Last quote", limit: 12,
+          emptyTitle: "Nobody stopped asking",
+          empty: "Every account that quoted with us in the prior period has quoted again in this one."
+        });
+        setText("#cmpLostNote", "Presence is measured across every loaded week on both sides — " + data.span.prior + " prior week"
+          + (data.span.prior === 1 ? "" : "s") + " against " + data.span.current + " this period"
+          + (data.span.current < data.span.prior
+              ? ". Fewer weeks are loaded for this period than for the prior one, so an account that quotes rarely may read as quiet when it has simply not come round yet. The recurring flag marks the ones that were appearing in more than one week."
+              : ". The recurring flag marks accounts that were appearing in more than one week rather than once.")
+          + " Sorted by what they were worth.");
+
+        $("#cmpAtRisk").innerHTML = cmpAccountTable(data.atRisk, {
+          side: "current", valueHead: "Worth now", lastHead: "Last quote", limit: 10, showChange: true,
+          emptyTitle: "Nobody is sliding",
+          empty: "No account present in both periods has dropped 40% or more of its quoted value."
+        });
+        $("#cmpGained").innerHTML = cmpAccountTable(data.gained, {
+          side: "current", valueHead: "Worth now", lastHead: "Last quote", limit: 10,
+          emptyTitle: "No new names",
+          empty: "Every account quoting this period also quoted in the prior one."
+        });
+        setText("#cmpGainedNote", opsNumber(keep.gainedCount) + " account" + (keep.gainedCount === 1 ? "" : "s")
+          + " with no quote in the prior period, worth " + fineMoney(keep.gainedValue) + " of quoted work so far, sorted by value.");
+        $("#cmpQuadrant").innerHTML = cmpQuadrant(data.kept, data);
+
+        // ---- 05 People --------------------------------------------------------
+        const people = data.people.slice(0, 12);
+        $("#cmpPeopleChart").innerHTML = cmpColumnPairs(people.map(person => ({
+            label: cmpClip(person.name, 14), prior: person.prior.quotes, current: person.current.quotes
+          })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort, keyCurrent: data.currentShort,
+            label: "Quotes owned per person in both periods", note: false,
+            empty: "No named owner appears in either period." });
+        setText("#cmpPeopleNote", data.roleLabel + " ownership on the matched weeks, both periods. Switch the role on Team performance to change whose book this is.");
+        $("#cmpPeopleRate").innerHTML = cmpColumnPairs(people.map(person => ({
+            label: cmpClip(person.name, 14),
+            prior: percentage(person.prior.wins, person.prior.quotes),
+            current: percentage(person.current.wins, person.current.quotes),
+            note: person.prior.wins + " → " + person.current.wins + " booked"
+          })), { format: pct, keyPrior: data.priorShort + " conversion", keyCurrent: data.currentShort + " conversion",
+            label: "Conversion per person in both periods",
+            empty: "No named owner appears in either period." });
+
+        // ---- 06 Ledger --------------------------------------------------------
+        const rows = [
+          { label: "Quotes issued", now: now.quotes, was: then.quotes, fmt: opsNumber },
+          { label: "Alternates", now: now.alts, was: then.alts, fmt: opsNumber },
+          { label: "Quoted value", now: now.value, was: then.value, fmt: money },
+          { label: "Average quote", now: now.averageQuote, was: then.averageQuote, fmt: fineMoney },
+          { label: "Quote wins", now: now.wins, was: then.wins, fmt: opsNumber },
+          { label: "Booked jobs", now: now.jobs, was: then.jobs, fmt: opsNumber },
+          { label: "Conversion", now: now.conversion, was: then.conversion, fmt: pct },
+          { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: money },
+          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct },
+          { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
+          { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value) },
+          { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
+          { label: "Inside three days", now: now.withinThree, was: then.withinThree, fmt: value => value === null ? "—" : pct(value) },
+          { label: "Median time to price", now: now.produce, was: then.produce, fmt: value => value === null ? "—" : dayText(value), invert: true },
+          { label: "Median decision time", now: now.decide, was: then.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
+          { label: "Engineering hours", now: now.hours, was: then.hours, fmt: value => value.toFixed(0), invert: true },
+          { label: "Hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true },
+          { label: "Accounts quoting", now: keep.currentCount, was: keep.priorCount, fmt: opsNumber }
+        ];
+        $("#cmpTable").innerHTML = '<div class="cmp-head"><span></span><b class="is-then">' + escape(data.priorShort) + '</b><b class="is-now">' + escape(data.currentShort) + "</b><span>Change</span></div>"
+          + rows.map(row => {
+              const delta = cmpDelta(row.now, row.was, row.invert);
+              return '<div class="cmp-row"><span>' + escape(row.label) + "</span>"
+                + "<i>" + escape(row.fmt(row.was)) + "</i><b>" + escape(row.fmt(row.now)) + "</b>"
+                + '<em class="is-' + delta.tone + '">' + escape(delta.text) + "</em></div>";
+            }).join("");
+
+        $("#cmpMethod").innerHTML = '<ol class="cmp-method">'
+          + ["Both periods run through the same parser, the same quote-key normalisation and the same revision collapse. Nothing on this screen is entered by hand.",
+             "Volume, value and every rate are measured on the week numbers the two periods share" + (data.aligned ? " — " + data.alignedOn + "." : ", and there are none, so whole period is compared against whole period."),
+             "Account presence — kept, lost, won — is measured on every week loaded on each side, because an account that quoted outside the matched window has not stopped asking.",
+             "The active exposure lens is applied to both sides, measured inside each period against that period's own last day.",
+             "Every filter applies to both sides except a quoted-week filter, which has no counterpart in another year.",
+             data.ownOrders
+               ? "Each period is joined to its own order log, so both conversions are complete."
+               : "The prior period is joined to this period's order log. Across a year boundary that will match almost nothing, so its conversion is a floor rather than a fact.",
+             "Direction is judged rather than signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way."
+            ].map(step => "<li>" + escape(step) + "</li>").join("")
+          + "</ol>";
+
+        $$("[data-open-account]", $("#compare")).forEach(node => {
+          const open = () => {
+            selectedAccount = node.dataset.openAccount;
+            customerSearch = "";
+            const box = $("#custSearch");
+            if (box) box.value = "";
+            renderCustomers();
+            setScreen("customers");
+          };
           node.addEventListener("click", open);
           node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
         });
@@ -6056,6 +6775,87 @@
         return img && img.getAttribute("src") ? img.getAttribute("src") : "";
       }
 
+      // The bridge, at slide scale. Five steps between two totals, each step a
+      // real group of accounts, so the whole year's move is one picture rather
+      // than a list of differences.
+      function deckBridgeChart(bridge) {
+        if (!bridge || bridge.length < 3) return '<div class="deck-empty">Not enough of a book on either side to bridge.</div>';
+        const width = 1240, height = 330, padTop = 44, padBottom = 76, padLeft = 92, padRight = 26;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const step = plotW / bridge.length;
+        const barW = Math.min(122, step * 0.58);
+        let running = 0;
+        const placed = bridge.map(entry => {
+          const isTotal = entry.kind === "total";
+          const from = isTotal ? 0 : running;
+          const to = isTotal ? entry.value : running + entry.value;
+          running = isTotal ? entry.value : to;
+          return { entry: entry, from: from, to: to, isTotal: isTotal };
+        });
+        const top = Math.max.apply(null, placed.map(item => Math.max(item.from, item.to))) || 1;
+        const y = value => padTop + (1 - value / top) * plotH;
+        const baseY = padTop + plotH;
+        return '<svg class="deck-chart deck-bridge" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="How the prior book became the current book">'
+          + [0, top / 2, top].map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
+              + '<text class="axis" x="' + (padLeft - 12) + '" y="' + (y(value) + 5).toFixed(1) + '" text-anchor="end">' + escape(money(value)) + "</text>").join("")
+          + placed.map((item, index) => {
+              const x = padLeft + step * index + (step - barW) / 2;
+              const highY = y(Math.max(item.from, item.to));
+              const barH = Math.max(3, Math.abs(y(item.from) - y(item.to)));
+              const tone = item.isTotal ? "is-total" : item.entry.value >= 0 ? "is-up" : "is-down";
+              return (index < placed.length - 1
+                  ? '<line class="bridge-link" x1="' + (x + barW).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2).toFixed(1)
+                    + '" y1="' + y(item.to).toFixed(1) + '" y2="' + y(item.to).toFixed(1) + '" />'
+                  : "")
+                + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" />'
+                + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2).toFixed(1) + '" y="' + (highY - 11).toFixed(1) + '" text-anchor="middle">'
+                + escape(item.isTotal ? money(item.entry.value) : cmpSigned(item.entry.value)) + "</text>"
+                + '<text class="bridge-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 26) + '" text-anchor="middle">' + escape(item.entry.label) + "</text>"
+                + (item.entry.count === undefined ? ""
+                    : '<text class="bridge-count" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 46) + '" text-anchor="middle">'
+                      + escape(item.entry.count + " account" + (item.entry.count === 1 ? "" : "s")) + "</text>");
+            }).join("")
+          + "</svg>";
+      }
+
+      // Gains to the right of a centre line, losses to the left, biggest first.
+      // A list of four boxes says who moved; this says how much, against each
+      // other, in one shape.
+      function deckMoverChart(movers, options) {
+        const config = options || {};
+        if (!movers.length) return '<div class="deck-empty">' + escape(config.empty || "No account moved between the two periods.") + "</div>";
+        // The quote note rides under the account name rather than beside the
+        // value, where a long name and a long figure met in the middle.
+        // Half a slide wide, not the whole slide: a 1240-wide viewBox dropped
+        // into one column of a two-column layout is scaled down until its own
+        // labels are unreadable.
+        const rowHeight = 40, labelWidth = 196, valueWidth = 92;
+        const width = 720, height = movers.length * rowHeight + 42;
+        const plot = width - labelWidth - valueWidth;
+        const centre = labelWidth + plot / 2;
+        const scale = Math.max.apply(null, movers.map(item => Math.abs(item.change))) || 1;
+        const maxChars = Math.max(8, Math.floor((labelWidth - 10) / 7.2));
+        const clip = text => { const value = String(text || ""); return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value; };
+        return '<svg class="deck-chart deck-movers" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Account movement") + '">'
+          + '<text class="mover-axis" x="' + (centre - 10) + '" y="14" text-anchor="end">' + escape(config.left || "lost") + "</text>"
+          + '<text class="mover-axis" x="' + (centre + 10) + '" y="14">' + escape(config.right || "gained") + "</text>"
+          + '<line class="mover-centre" x1="' + centre + '" x2="' + centre + '" y1="22" y2="' + (height - 12) + '" />'
+          + movers.map((item, index) => {
+              const y = 26 + index * rowHeight;
+              const length = Math.max(3, Math.abs(item.change) / scale * (plot / 2 - 14));
+              const positive = item.change >= 0;
+              return '<g class="mover-row" style="--deck-bar-delay:' + (index * 55) + 'ms">'
+                + '<text class="mover-name" x="0" y="' + (y + 12) + '">' + escape(clip(item.name)) + "<title>" + escape(item.name) + "</title></text>"
+                + (item.note ? '<text class="mover-note" x="0" y="' + (y + 27) + '">' + escape(item.note) + "</text>" : "")
+                + '<rect class="mover-bar ' + (positive ? "is-up" : "is-down") + '" x="' + (positive ? centre : centre - length).toFixed(1)
+                + '" y="' + (y + 6) + '" width="' + length.toFixed(1) + '" height="16" />'
+                + '<text class="mover-value ' + (positive ? "is-up" : "is-down") + '" x="' + (width - 6) + '" y="' + (y + 19) + '" text-anchor="end">'
+                + escape(cmpSigned(item.change)) + "</text>"
+                + "</g>";
+            }).join("")
+          + "</svg>";
+      }
+
       // ---- Chapter two: the same weeks, a year apart -------------------------
       // Appended to the deck only when a prior period has been loaded. It is a
       // chapter rather than one more slide because a year-over-year read is its
@@ -6193,33 +6993,50 @@
                   + biggestBandMove.current.quotes + " quotes against " + biggestBandMove.prior.quotes + ".") + "</div>"
               : "");
 
+        // ---- The bridge ---------------------------------------------------------
+        const bridgeSlide = deckBridgeChart(cmp.bridge)
+          + '<div class="deck-callout"><strong>How to read it:</strong> the first bar is what the accounts quoting with us a year ago were worth on these weeks, '
+          + "the last is what they are worth now, and the four bars between are everything that happened in between. "
+          + escape("Accounts lost took " + fineMoney(Math.abs(cmp.bridge[1].value)) + " out of the book; accounts gained brought "
+            + fineMoney(cmp.bridge[4].value) + " in.") + "</div>";
+
         // ---- Who grew, who stopped asking ---------------------------------------
-        const moveCard = (title, items, tone, empty, valueOf) =>
-          '<article class="move-card is-' + tone + '"><span class="section-label">' + escape(title) + "</span>"
-          + "<strong>" + items.length + "</strong>"
-          + (items.length
-              ? '<div class="move-list">' + items.slice(0, 5).map(item =>
-                  '<div class="move-row"><b>' + escape(item.name.length > 24 ? item.name.slice(0, 23) + "…" : item.name) + "</b>"
-                  + "<em>" + escape(valueOf(item)) + "</em></div>").join("") + "</div>"
-              : '<p>' + escape(empty) + "</p>")
-          + "</article>";
-        const signed = value => (value > 0 ? "+" : value < 0 ? "−" : "") + fineMoney(Math.abs(value));
-        const accounts = '<div class="move-grid">'
-          + moveCard("Grew the most", cmp.customers.grown, "good", "No account quoted more than a year ago.", item => signed(item.valueChange))
-          + moveCard("Fell the most", cmp.customers.shrunk, "bad", "No account quoted less than a year ago.", item => signed(item.valueChange))
-          + moveCard("New this period", cmp.customers.arrived, "new", "Every account also appears a year ago.", item => fineMoney(item.current.value / 1000000))
-          + moveCard("Stopped asking", cmp.customers.lapsed, "lapsed", "Every account from a year ago is still asking.", item => fineMoney(item.prior.value / 1000000))
-          + "</div>"
-          + '<p class="chart-note">' + escape(cmp.customers.both + " account" + (cmp.customers.both === 1 ? "" : "s") + " appear in both periods, "
-              + cmp.customers.arrived.length + " only in this one, and " + cmp.customers.lapsed.length + " only a year ago. "
-              + "Figures are quoted value, and the arrivals and departures are the ones worth a phone call.") + "</p>";
+        const keepStat = cmp.retention;
+        const movers = cmp.customers.grown.slice(0, 5).map(item => ({ name: item.name, change: item.valueChange,
+            note: item.prior.quotes + " → " + item.current.quotes + " quotes" }))
+          .concat(cmp.customers.shrunk.slice(0, 5).map(item => ({ name: item.name, change: item.valueChange,
+            note: item.prior.quotes + " → " + item.current.quotes + " quotes" })))
+          .sort((a, b) => b.change - a.change);
+        const quiet = cmp.lost.slice(0, 6);
+        const accounts = '<div class="weekly-summary is-four">'
+          + '<div><span>Quoting a year ago</span><strong>' + opsNumber(keepStat.priorCount) + '</strong><small>the book we started from</small></div>'
+          + '<div><span>Still asking</span><strong>' + pct(keepStat.keepRate) + '</strong><small>' + opsNumber(keepStat.keptCount) + ' of them came back</small></div>'
+          + '<div><span>Stopped asking</span><strong>' + opsNumber(keepStat.lostCount) + '</strong><small>' + escape(fineMoney(keepStat.lostValue)) + ' of quoted work gone quiet</small></div>'
+          + '<div><span>New to us</span><strong>' + opsNumber(keepStat.gainedCount) + '</strong><small>' + escape(fineMoney(keepStat.gainedValue)) + ' of quoted work arrived</small></div></div>'
+          + '<div class="dual-charts is-churn">'
+          + '<div><span class="section-label">The biggest moves, both directions</span>'
+          + deckMoverChart(movers, { label: "Accounts by change in quoted value", left: "spending less", right: "spending more",
+              empty: "No account present in both periods changed what it asked for." }) + "</div>"
+          + '<div><span class="section-label">Gone quiet</span>'
+          + (quiet.length
+              ? '<table class="quiet-table"><thead><tr><th>Account</th><th>Was worth</th><th>Last quote</th><th>Owner</th></tr></thead><tbody>'
+                + quiet.map(item => "<tr><td>" + escape(cmpClip(item.name, 26)) + (item.recurring ? ' <i>recurring</i>' : "") + "</td>"
+                    + '<td class="num">' + escape(fineMoney(item.prior.value / 1000000)) + "</td>"
+                    + "<td>" + escape(item.prior.last ? fullDate(item.prior.last) : "—") + "</td>"
+                    + "<td>" + escape(cmpClip(item.owner || "—", 16)) + "</td></tr>").join("")
+                + "</tbody></table>"
+                + '<p class="chart-note">' + escape("Accounts that quoted with us in the prior period and have not in this one, largest first"
+                    + (keepStat.lostCount > quiet.length ? " — " + quiet.length + " of " + keepStat.lostCount + " shown" : "") + ". Presence is read across every loaded week on both sides.") + "</p>"
+              : '<div class="deck-empty">Every account that quoted with us a year ago has quoted again.</div>')
+          + "</div></div>";
 
         return deckSlide(startNumber, "Chapter two · Year over year", "The same weeks,<br /><em>a year apart.</em>", opener, false, "is-chapter")
           + deckSlide(startNumber + 1, "Year over year headline", "Better or worse<br /><em>than last time.</em>", headline, true)
           + deckSlide(startNumber + 2, "Week against week", "Every matched week,<br /><em>side by side.</em>", weeks, true)
           + deckSlide(startNumber + 3, "The race", "Ahead or behind<br /><em>at the same point.</em>", race, true)
           + deckSlide(startNumber + 4, "Where the mix moved", "The money came back<br /><em>from a different place.</em>", mix, true)
-          + deckSlide(startNumber + 5, "Account movement", "Who grew, and who<br /><em>stopped asking.</em>", accounts, true);
+          + deckSlide(startNumber + 5, "The bridge", "How last year's book<br /><em>became this one.</em>", bridgeSlide, true)
+          + deckSlide(startNumber + 6, "Account movement", "Who grew, and who<br /><em>stopped asking.</em>", accounts, true);
       }
 
       // Two periods accumulating week by week, both starting at their own week
@@ -6694,6 +7511,39 @@
           + '.move-card.is-bad .move-row em{color:var(--copper)}.move-card.is-lapsed .move-row em{color:#a66917}'
           + '@media(max-width:900px){.vs-layout{grid-template-columns:1fr}.move-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}'
           + '@media(max-width:720px){.move-grid{grid-template-columns:1fr}.deck-race{width:900px;max-width:none}}'
+          + ''
+          + '.weekly-summary.is-four{grid-template-columns:repeat(4,1fr)}'
+          + '.dual-charts.is-churn{grid-template-columns:minmax(0,1.25fr) minmax(0,.95fr);gap:24px;align-items:start}'
+          + '.deck-bridge,.deck-movers{display:block;width:100%;height:auto}'
+          + '.deck-bridge .grid{stroke:#dce5de;stroke-width:1}'
+          + '.deck-bridge .axis{fill:#718277;font-family:Consolas,monospace;font-size:12px}'
+          + '.deck-bridge .bridge-bar.is-total{fill:var(--green-deep)}'
+          + '.deck-bridge .bridge-bar.is-up{fill:var(--green)}'
+          + '.deck-bridge .bridge-bar.is-down{fill:var(--copper)}'
+          + '.deck-bridge .bridge-link{stroke:#b9c9bd;stroke-width:1;stroke-dasharray:4 4}'
+          + '.deck-bridge .bridge-value{font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:900;letter-spacing:-.02em}'
+          + '.deck-bridge .bridge-value.is-total{fill:var(--green-deep)}'
+          + '.deck-bridge .bridge-value.is-up{fill:var(--green-deep)}'
+          + '.deck-bridge .bridge-value.is-down{fill:var(--copper)}'
+          + '.deck-bridge .bridge-label{fill:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}'
+          + '.deck-bridge .bridge-count{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
+          + '.deck-movers .mover-centre{stroke:#c3d2c7;stroke-width:1.5}'
+          + '.deck-movers .mover-axis{fill:#8b9c91;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}'
+          + '.deck-movers .mover-name{fill:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700}'
+          + '.deck-movers .mover-bar.is-up{fill:var(--green)}'
+          + '.deck-movers .mover-bar.is-down{fill:var(--copper)}'
+          + '.deck-movers .mover-value{font-family:Consolas,monospace;font-size:13px;font-weight:700}'
+          + '.deck-movers .mover-value.is-up{fill:var(--green-deep)}'
+          + '.deck-movers .mover-value.is-down{fill:var(--copper)}'
+          + '.deck-movers .mover-note{fill:#8b9c91;font-family:Consolas,monospace;font-size:10.5px}'
+          + '.quiet-table{width:100%;margin-top:11px;border-collapse:collapse;background:#fff;border:1px solid var(--line)}'
+          + '.quiet-table th{padding:8px 11px;border-bottom:1px solid var(--line);color:#799084;font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;text-align:left}'
+          + '.quiet-table th.num,.quiet-table td.num{text-align:right;white-space:nowrap}'
+          + '.quiet-table td{padding:8px 11px;border-bottom:1px solid #eef3ef;font-size:12.5px}'
+          + '.quiet-table td.num{font-family:Consolas,monospace;font-weight:700}'
+          + '.quiet-table tr:last-child td{border-bottom:0}'
+          + '.quiet-table i{display:inline-block;margin-left:5px;padding:0 4px;border:1px solid #bd7b21;color:#a66917;font-size:8.5px;font-style:normal;font-weight:800;letter-spacing:.08em;text-transform:uppercase;vertical-align:1px}'
+          + '@media(max-width:900px){.dual-charts.is-churn{grid-template-columns:1fr}.weekly-summary.is-four{grid-template-columns:repeat(2,1fr)}}'
           + '@media print{.deck-slide *{animation:none!important}.deck-progress{display:none}.dual-charts{grid-template-columns:1fr 1fr}.analysis-grid,.agenda-grid{grid-template-columns:minmax(0,1.6fr) minmax(0,.4fr)}}'
           + "</style>";
       }
@@ -7364,6 +8214,7 @@
           }
         }
       }));
+      $$("[data-compare-view]").forEach(button => button.addEventListener("click", () => setCompareView(button.dataset.compareView)));
       $$("[data-flow-focus]").forEach(button => button.addEventListener("click", () => setFlowFocus(button.dataset.flowFocus)));
       $$("[data-screen]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.screen)));
       $(".brand").addEventListener("click", event => { event.preventDefault(); setScreen("overview"); });

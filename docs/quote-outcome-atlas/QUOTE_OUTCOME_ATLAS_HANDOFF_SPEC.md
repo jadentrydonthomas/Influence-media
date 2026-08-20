@@ -5,7 +5,7 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.3 |
+| **Spec version** | 2.4 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
 | **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
@@ -125,6 +125,8 @@ Stating these prevents well-meant scope drift:
 | **P-21** | A slide is a fixed box | Every deck slide MUST fit the space it has at any figure and any window size. Content MUST be measured against the height available and scaled to fit, so a larger number changes the size of the type rather than pushing text under the navigation or off the page. Overlap is a correctness defect, not a style one: two figures on top of each other cannot both be read. |
 | **P-22** | The mark travels | The Nucor mark MUST appear on every exported slide and MUST be embedded once and referenced, never repeated per slide. |
 | **P-23** | A surface appears only when it can answer | A screen or a deck chapter that exists to compare two periods MUST NOT be shown when only one period is loaded. An empty comparison is worse than no comparison: it invites a reader to draw a conclusion from a missing file. The navigation entry, the screen, and the deck chapter MUST all appear and disappear together with the data behind them. |
+| **P-25** | A long screen is a failed screen | Where one screen answers more than about three questions, it MUST be split into labelled views with one question each, switched in place, rather than stacked into a single column. A reader scrolling past six panels to find one figure has been given a document, not a dashboard. |
+| **P-26** | A figure needs its question | Every headline figure MUST carry what it is, what it was, and one line of plain English saying what the move means. A number beside another number is a comparison the reader has to construct; the surface MUST construct it for them. |
 | **P-24** | One model behind two surfaces | Where the same comparison is shown on screen and in the deck, both MUST read one model. Two code paths computing the same year-over-year figure will disagree, and the disagreement will be found in the meeting. |
 
 > **P-14 is new in v2.0** and closes a real defect: on-time release is currently presented as a full-book figure when it is scored on a small minority of records. See [Appendix A, A-1](#appendix-a--defect-log).
@@ -386,6 +388,9 @@ Three stages, each measured from dates the source already carries, each scored *
 - **M-30** — Where a prior-period order log is supplied it MUST be used to join that period's quotes. Where it is not, the live order log is used, which will match almost nothing across a year boundary — and the surface MUST state which of the two happened. A prior conversion produced by a missing file is not a low conversion, and MUST NOT be presented as one.
 - **M-31** — The exposure lens MUST be measured inside each period against that period's own last day, so both sides answer the same question about their own quotes. Measuring the prior period against this period's cutoff would pass its entire book while filtering this one, which is a comparison of ages rather than of work.
 - **M-32** — Year-over-year account movement MUST separate accounts present in both periods (grown or shrunk by value) from those present in only one (arrived or lapsed). Averaging the four into a single change figure hides the two categories most worth acting on.
+- **M-33** — **Presence is measured on a different base from volume.** Volume, value and every rate are compared on the weeks the two periods share ([M-29](#8-required-calculations-and-analytics)). Whether an account has stopped asking MUST be measured on **every loaded week on both sides**, because an account that quoted in a week outside the matched window has not gone quiet. Any surface showing both MUST name which base each panel is using, and MUST warn when fewer weeks are loaded for the current period than for the prior one.
+- **M-34** — A churn list MUST be actionable, not a count. Each named account MUST carry what it was worth, how many quotes it sent, across how many separate weeks, whether it ever booked, the date it last quoted, its district, and the person who owned it. An account that appeared in more than one week MUST be marked as recurring, because one quote that did not repeat is noise and a name that kept coming back is a phone call.
+- **M-35** — The value bridge — prior book, accounts lost, spent less, spent more, accounts gained, current book — MUST close exactly onto the closing total, and MUST be built on the shared weeks. Built on everything loaded, an extra week on one side appears in it as business won.
 - **M-29** — Where the two sides share week numbers, **both** MUST be narrowed to the shared set before measuring, and the surface MUST name the weeks it matched on and the weeks it left out. Comparing ten prior weeks against three live ones reports a collapse in demand that is really a difference in how much was uploaded. With no shared weeks the comparison falls back to whole period against whole period and MUST say so.
 
 ### 8.7 Definitions surface
@@ -449,6 +454,8 @@ The strongest design on the page.
 
 - **V-26** — Across every chart, table and card that compares two periods, **this period is green and the prior period is steel**, in that order, with the same paired shape reused. The eye should learn the encoding once on the first chart and read the rest without a legend. Reversing the order or recolouring one panel is a defect.
 - **V-27** — Direction MUST be judged, not signed. More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. The surface MUST say that it is doing this, so a green figure is never mistaken for an arithmetic sign.
+- **V-29** — A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.
+- **V-30** — Chart labels MUST be drawn only where the geometry has room for them. Value labels on paired columns MUST be suppressed once the step between groups is too narrow to hold two of them, and a chart with few groups MUST centre its columns rather than stranding a pair at each end of the plot.
 - **V-28** — A filled header band MUST use a token that stays dark in both themes. A token defined as dark ink for light-theme text will invert under the dark theme and take white text with it. See [Appendix A, A-30](#appendix-a--defect-log).
 
 ---
@@ -480,7 +487,8 @@ The export creates a separate, self-contained HTML slide report presented with a
 | 12 | Week against week | Paired extruded columns, one pair per matched week. |
 | 13 | The race | Cumulative quoted and returned value in both periods, with the gap drawn as a filled band. |
 | 14 | Where the mix moved | Returned value by band, both periods. |
-| 15 | Account movement | Grown, shrunk, arrived, lapsed ([M-32](#8-required-calculations-and-analytics)). |
+| 15 | The bridge | Prior book, lost, spent less, spent more, gained, current book ([M-35](#8-required-calculations-and-analytics)). |
+| 16 | Account movement | The biggest movers both directions, beside the accounts that went quiet, named ([M-32](#8-required-calculations-and-analytics), [M-34](#8-required-calculations-and-analytics)). |
 
 **Deck requirements**
 
@@ -742,6 +750,8 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-25** | The 10% reference label sat on the reference line, exactly where a week's own conversion value lands whenever the rate is near the reference. | [V-11](#93-encoding-integrity) | **Fixed** — it is axis furniture and now lives with the axis maximum. |
 | **A-26** | The Nucor mark was embedded once per slide, so a nine-slide deck carried nine copies of the same 40KB payload — a 475KB file. | [P-22](#2-non-negotiable-product-requirements), [P-1](#2-non-negotiable-product-requirements) | **Fixed** — embedded once in the deck stylesheet and referenced; 108KB. |
 | **A-27** | Three regression checks asserted the deck contains no `NaN`. The mark's base64 payload contains the letters N-a-N, so embedding it turned three passing checks into false failures. | [T-16](#113-code-rules) | **Fixed** — figure checks read the deck with data URIs stripped; markup checks read the raw text. |
+| **A-31** | The centre-line change bar was given its width as a percentage of the whole track while starting at the 50% mark, so a bar at full scale ran half its length outside the track it belonged to. | [V-30](#97-year-over-year-encoding) | **Fixed** — the fill is half the track at full scale, since it starts at the centre. |
+| **A-32** | The value bridge was built on every loaded week while the periods carried different numbers of weeks, so an extra week of quoting on one side was reported as new business won. | [M-35](#8-required-calculations-and-analytics), [M-33](#8-required-calculations-and-analytics) | **Fixed** — the bridge is built on the shared weeks and says so; the churn lists keep the wider base and say that. |
 | **A-29** | Average quote was computed from a quoted value already carried in millions and then divided by a million again, so every average quote on the year-over-year table read `$0.0M`. The same class of defect as [A-18](#appendix-a--defect-log). | [M-24](#8-required-calculations-and-analytics) | **Fixed** — the second division removed, and averages below a million are now shown in thousands, where `$850k` says what `$0.9M` hides. |
 | **A-30** | The account-movement headers were filled with `--green-dark` and white text. That token inverts to a pale green in the dark theme, so four headers went white-on-pale and became unreadable in one of the two themes the dashboard ships with. | [V-23](#96-themes-and-accessibility) | **Fixed** — a dedicated header token that stays dark in both themes, plus a contrast check across the whole screen in the dark theme as a standing test. |
 | **A-28** | A prior period with more weeks than the live set was compared whole against whole, reporting a difference in how much was uploaded as a change in demand. | [M-29](#8-required-calculations-and-analytics) | **Fixed** — both sides are narrowed to the weeks they share, and the surface names what it matched and what it left out. |
@@ -756,6 +766,21 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.4 — 20 Aug 2026
+
+**Year over year became a dashboard rather than a page**
+
+- **Six labelled views, one question each** ([P-25](#2-non-negotiable-product-requirements)): Headline, Momentum, The mix, Customers, People, Ledger. The full measure table stays, as the reference view rather than the front door ([V-29](#97-year-over-year-encoding)).
+- **Charts carry the comparison** ([V-29](#97-year-over-year-encoding)): every measure ranked on a centre-line change bar; a value bridge from last period's book to this one; paired columns for weeks, bands, districts and people; a share-shift chart in points; a scatter of every kept account on quotes against value.
+- **The value bridge** ([M-35](#8-required-calculations-and-analytics)) — prior book, lost, spent less, spent more, gained, current book — closes exactly, on the shared weeks.
+- **Presence and volume are measured on different bases, and both are stated** ([M-33](#8-required-calculations-and-analytics)).
+- **Churn is a phone-call list, not a count** ([M-34](#8-required-calculations-and-analytics)): who, what they were worth, how often they used to come, whether they ever booked, when they last quoted, their district and their owner, with recurring accounts flagged. A slipping list and a first-time list sit beside it.
+- **Headline figures say what they mean** ([P-26](#2-non-negotiable-product-requirements)) in a line of plain English under each one.
+- **A seventh chapter slide**, the bridge, and the account slide rebuilt from four boxes into a diverging mover chart beside the named accounts that went quiet.
+- **Chart labels are gated on the geometry** ([V-30](#97-year-over-year-encoding)) and verified by a standing SVG-collision check on every view.
+
+**Defects logged and fixed:** [A-31](#appendix-a--defect-log), [A-32](#appendix-a--defect-log).
 
 ### v2.3 — 20 Aug 2026
 

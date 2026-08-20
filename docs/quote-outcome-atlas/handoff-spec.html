@@ -307,7 +307,7 @@ footer.colophon{
     <div class="tb-cell"><dt>Product owner</dt><dd>Nucor Building Systems — Estimating</dd></div>
     <div class="tb-cell"><dt>Primary deliverable</dt><dd><code>quote-conversion-atlas-shareable.html</code></dd></div>
     <div class="tb-cell"><dt>Companion refs</dt><dd><code>DATA-EXTRACTION-MAP.md</code><br /><code>SHARE-README.md</code></dd></div>
-    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.3</dd></div>
+    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.4</dd></div>
     <div class="tb-cell"><dt>Last revised</dt><dd class="num">17 Aug 2026</dd></div>
     <div class="tb-cell"><dt>Status</dt><dd><span class="pill ok">Active — source of truth</span></dd></div>
   </dl>
@@ -462,6 +462,8 @@ footer.colophon{
       <tr><td><span class="rid">P-21</span></td><td>A slide is a fixed box</td><td>Every deck slide MUST fit the space it has at any figure and any window size. Content MUST be measured against the height available and scaled to fit, so a larger number changes the size of the type rather than pushing text under the navigation or off the page. Overlap is a correctness defect, not a style one: two figures on top of each other cannot both be read.</td></tr>
       <tr><td><span class="rid">P-22</span></td><td>The mark travels</td><td>The Nucor mark MUST appear on every exported slide and MUST be embedded once and referenced, never repeated per slide.</td></tr>
       <tr><td><span class="rid">P-23</span></td><td>A surface appears only when it can answer</td><td>A screen or a deck chapter that exists to compare two periods MUST NOT be shown when only one period is loaded. An empty comparison is worse than no comparison: it invites a reader to draw a conclusion from a missing file. The navigation entry, the screen, and the deck chapter MUST appear and disappear together with the data behind them.</td></tr>
+      <tr><td><span class="rid">P-25</span></td><td>A long screen is a failed screen</td><td>Where one screen answers more than about three questions, it MUST be split into labelled views with one question each, switched in place, rather than stacked into a single column. A reader scrolling past six panels to find one figure has been given a document, not a dashboard.</td></tr>
+      <tr><td><span class="rid">P-26</span></td><td>A figure needs its question</td><td>Every headline figure MUST carry what it is, what it was, and one line of plain English saying what the move means. A number beside another number is a comparison the reader has to construct; the surface MUST construct it for them.</td></tr>
       <tr><td><span class="rid">P-24</span></td><td>One model behind two surfaces</td><td>Where the same comparison is shown on screen and in the deck, both MUST read one model. Two code paths computing the same year-over-year figure will disagree, and the disagreement will be found in the meeting.</td></tr>
     </tbody>
   </table></div>
@@ -726,6 +728,9 @@ footer.colophon{
       <tr><td><span class="rid">M-30</span></td><td>Where a prior-period order log is supplied it MUST be used to join that period's quotes. Where it is not, the live order log is used, which will match almost nothing across a year boundary &mdash; and the surface MUST state which of the two happened. A prior conversion produced by a missing file is not a low conversion, and MUST NOT be presented as one.</td></tr>
       <tr><td><span class="rid">M-31</span></td><td>The exposure lens MUST be measured inside each period against that period's own last day, so both sides answer the same question about their own quotes. Measuring the prior period against this period's cutoff would pass its entire book while filtering this one, which is a comparison of ages rather than of work.</td></tr>
       <tr><td><span class="rid">M-32</span></td><td>Year-over-year account movement MUST separate accounts present in both periods (grown or shrunk by value) from those present in only one (arrived or lapsed). Averaging the four into a single change figure hides the two categories most worth acting on.</td></tr>
+      <tr><td><span class="rid">M-33</span></td><td><strong>Presence is measured on a different base from volume.</strong> Volume, value and every rate are compared on the weeks the two periods share (<span class="rid">M-29</span>). Whether an account has stopped asking MUST be measured on <strong>every loaded week on both sides</strong>, because an account that quoted in a week outside the matched window has not gone quiet. Any surface showing both MUST name which base each panel is using, and MUST warn when fewer weeks are loaded for the current period than for the prior one.</td></tr>
+      <tr><td><span class="rid">M-34</span></td><td>A churn list MUST be actionable, not a count. Each named account MUST carry what it was worth, how many quotes it sent, across how many separate weeks, whether it ever booked, the date it last quoted, its district, and the person who owned it. An account that appeared in more than one week MUST be marked as recurring, because one quote that did not repeat is noise and a name that kept coming back is a phone call.</td></tr>
+      <tr><td><span class="rid">M-35</span></td><td>The value bridge &mdash; prior book, accounts lost, spent less, spent more, accounts gained, current book &mdash; MUST close exactly onto the closing total, and MUST be built on the shared weeks. Built on everything loaded, an extra week on one side appears in it as business won.</td></tr>
       <tr><td><span class="rid">M-29</span></td><td>Where the two sides share week numbers, <strong>both</strong> MUST be narrowed to the shared set before measuring, and the surface MUST name the weeks it matched on and the weeks it left out. Comparing ten prior weeks against three live ones reports a collapse in demand that is really a difference in how much was uploaded. With no shared weeks it falls back to whole period against whole period and says so.</td></tr>
     </tbody>
   </table></div>
@@ -808,6 +813,8 @@ footer.colophon{
     <tbody>
       <tr><td><span class="rid">V-26</span></td><td>Across every chart, table and card that compares two periods, <strong>this period is green and the prior period is steel</strong>, in that order, with the same paired shape reused. The eye should learn the encoding once on the first chart and read the rest without a legend. Reversing the order or recolouring one panel is a defect.</td></tr>
       <tr><td><span class="rid">V-27</span></td><td>Direction MUST be judged, not signed. More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. The surface MUST say that it is doing this, so a green figure is never mistaken for an arithmetic sign.</td></tr>
+      <tr><td><span class="rid">V-29</span></td><td>A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.</td></tr>
+      <tr><td><span class="rid">V-30</span></td><td>Chart labels MUST be drawn only where the geometry has room for them. Value labels on paired columns MUST be suppressed once the step between groups is too narrow to hold two of them, and a chart with few groups MUST centre its columns rather than stranding a pair at each end of the plot.</td></tr>
       <tr><td><span class="rid">V-28</span></td><td>A filled header band MUST use a token that stays dark in both themes. A token defined as dark ink for light-theme text will invert under the dark theme and take white text with it. See <a href="#sa">A-30</a>.</td></tr>
     </tbody>
   </table></div>
@@ -840,7 +847,8 @@ footer.colophon{
       <tr><td class="num">12</td><td>Week against week</td><td>Paired extruded columns, one pair per matched week.</td></tr>
       <tr><td class="num">13</td><td>The race</td><td>Cumulative quoted and returned value in both periods, with the gap drawn as a filled band.</td></tr>
       <tr><td class="num">14</td><td>Where the mix moved</td><td>Returned value by band, both periods.</td></tr>
-      <tr><td class="num">15</td><td>Account movement</td><td>Grown, shrunk, arrived, lapsed (<span class="rid">M-32</span>).</td></tr>
+      <tr><td class="num">15</td><td>The bridge</td><td>Prior book, lost, spent less, spent more, gained, current book (<span class="rid">M-35</span>).</td></tr>
+      <tr><td class="num">16</td><td>Account movement</td><td>The biggest movers both directions, beside the accounts that went quiet, named (<span class="rid">M-32 · M-34</span>).</td></tr>
     </tbody>
   </table></div>
   <div class="tw"><table>
@@ -1115,6 +1123,8 @@ build/         single-file bundling / inlining</code></pre>
       <tr><td><span class="rid">A-25</span></td><td>The 10% reference label sat on the reference line, exactly where a week's own conversion value lands whenever the rate is near the reference.</td><td><span class="rid">V-11</span></td><td><strong>Fixed</strong> &mdash; it is axis furniture and now lives with the axis maximum.</td></tr>
       <tr><td><span class="rid">A-26</span></td><td>The Nucor mark was embedded once per slide, so a nine-slide deck carried nine copies of the same 40KB payload &mdash; a 475KB file.</td><td><span class="rid">P-22 · P-1</span></td><td><strong>Fixed</strong> &mdash; embedded once in the deck stylesheet and referenced; 108KB.</td></tr>
       <tr><td><span class="rid">A-27</span></td><td>Three regression checks asserted the deck contains no <code>NaN</code>. The mark's base64 payload contains the letters N-a-N, so embedding it turned three passing checks into false failures.</td><td><span class="rid">T-16</span></td><td><strong>Fixed</strong> &mdash; figure checks read the deck with data URIs stripped; markup checks read the raw text.</td></tr>
+      <tr><td><span class="rid">A-31</span></td><td>The centre-line change bar was given its width as a percentage of the whole track while starting at the 50% mark, so a bar at full scale ran half its length outside the track it belonged to.</td><td><span class="rid">V-30</span></td><td><strong>Fixed</strong> &mdash; the fill is half the track at full scale, since it starts at the centre.</td></tr>
+      <tr><td><span class="rid">A-32</span></td><td>The value bridge was built on every loaded week while the periods carried different numbers of weeks, so an extra week of quoting on one side was reported as new business won.</td><td><span class="rid">M-35 · M-33</span></td><td><strong>Fixed</strong> &mdash; the bridge is built on the shared weeks and says so; the churn lists keep the wider base and say that.</td></tr>
       <tr><td><span class="rid">A-29</span></td><td>Average quote was computed from a quoted value already carried in millions and then divided by a million again, so every average quote on the year-over-year table read <code>$0.0M</code>. The same class of defect as A-18.</td><td><span class="rid">M-24</span></td><td><strong>Fixed</strong> &mdash; the second division removed, and averages below a million are now shown in thousands, where <code>$850k</code> says what <code>$0.9M</code> hides.</td></tr>
       <tr><td><span class="rid">A-30</span></td><td>The account-movement headers were filled with <code>--green-dark</code> and white text. That token inverts to a pale green in the dark theme, so four headers went white-on-pale and became unreadable in one of the two themes the dashboard ships with.</td><td><span class="rid">V-23</span></td><td><strong>Fixed</strong> &mdash; a dedicated header token that stays dark in both themes, plus a contrast check across the whole screen in the dark theme as a standing test.</td></tr>
       <tr><td><span class="rid">A-28</span></td><td>A prior period with more weeks than the live set was compared whole against whole, reporting a difference in how much was uploaded as a change in demand.</td><td><span class="rid">M-29</span></td><td><strong>Fixed</strong> &mdash; both sides are narrowed to the weeks they share, and the surface names what it matched and what it left out.</td></tr>
@@ -1134,6 +1144,20 @@ build/         single-file bundling / inlining</code></pre>
 
 <section id="sb">
   <div class="sec-head"><span class="sec-num">B</span><h2 class="sec-title">Change log</h2></div>
+  <h3>v2.4 &mdash; 20 Aug 2026</h3>
+  <h4>Year over year became a dashboard rather than a page</h4>
+  <ul>
+    <li><strong>Six labelled views, one question each</strong> (<span class="rid">P-25</span>): Headline, Momentum, The mix, Customers, People, Ledger. The full measure table stays, as the reference view rather than the front door (<span class="rid">V-29</span>).</li>
+    <li><strong>Charts carry the comparison</strong> (<span class="rid">V-29</span>): every measure ranked on a centre-line change bar; a value bridge from last period's book to this one; paired columns for weeks, bands, districts and people; a share-shift chart in points; a scatter of every kept account on quotes against value.</li>
+    <li><strong>The value bridge</strong> (<span class="rid">M-35</span>) &mdash; prior book, lost, spent less, spent more, gained, current book &mdash; closes exactly, on the shared weeks.</li>
+    <li><strong>Presence and volume are measured on different bases, and both are stated</strong> (<span class="rid">M-33</span>).</li>
+    <li><strong>Churn is a phone-call list, not a count</strong> (<span class="rid">M-34</span>): who, what they were worth, how often they used to come, whether they ever booked, when they last quoted, their district and their owner, with recurring accounts flagged. A slipping list and a first-time list sit beside it.</li>
+    <li><strong>Headline figures say what they mean</strong> (<span class="rid">P-26</span>) in a line of plain English under each one.</li>
+    <li><strong>A seventh chapter slide</strong>, the bridge, and the account slide rebuilt from four boxes into a diverging mover chart beside the named accounts that went quiet.</li>
+    <li><strong>Chart labels are gated on the geometry</strong> (<span class="rid">V-30</span>) and verified by a standing SVG-collision check on every view.</li>
+  </ul>
+  <p class="note"><strong>Defects logged and fixed:</strong> <a href="#sa">A-31</a>, <a href="#sa">A-32</a>.</p>
+
   <h3>v2.3 &mdash; 20 Aug 2026</h3>
   <h4>Year over year</h4>
   <ul>

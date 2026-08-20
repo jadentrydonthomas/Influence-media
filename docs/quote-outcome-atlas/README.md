@@ -21,7 +21,7 @@ source column and live value of every term.
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.3). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.4). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
@@ -42,8 +42,8 @@ source column and live value of every term.
 | `test/glossary.mjs` | The definitions drawer opens before and after a run. |
 | `test/spec-check.mjs` | The markdown and designed spec agree on every requirement ID and version. |
 | `test/deck-stress.mjs` | Inflates every number in the deck and checks nothing collides at three viewport sizes. |
-| `test/year-screen.mjs` | The Year over year screen appears only with a prior period, matches weeks, and survives the dark theme. |
-| `test/deck-year.mjs` | The deck grows a six-slide chapter when a prior period is loaded, and stays nine slides when it is not. |
+| `test/year-screen.mjs` | All six Year over year views draw real marks, no chart label collides, and the screen survives the dark theme. |
+| `test/deck-year.mjs` | The deck grows a seven-slide chapter when a prior period is loaded, and stays nine slides when it is not. |
 
 ## Running the regression suite
 
@@ -237,15 +237,35 @@ quoted-week filter, which has no counterpart in another year and narrows the liv
 side only. The exposure lens is measured inside each period against that period's own
 last day, so both sides answer the same question about their own quotes.
 
-Two surfaces read that one model, so they cannot disagree:
+### Two bases, both stated
 
-- **Screen 05 — Year over year.** Headline deltas, every measure in one table, week
-  by week, the cumulative race, where the value mix moved, who carried it, and which
-  accounts grew, shrank, arrived or stopped asking. Selecting a moved account opens
-  its record on Customers.
-- **Deck chapter two.** Six slides appended to the export — a chapter divider, the
-  headline, week against week, the race, where the mix moved, and account movement.
-  With no prior period loaded the deck is the nine slides it has always been.
+Volume, value and every rate are compared on the weeks the two periods **share**.
+Whether an account has stopped asking is measured on **every loaded week** on both
+sides — an account that quoted in a week outside the matched window has not gone
+quiet, it simply quoted elsewhere. Each panel names which of the two it is using.
+
+### Screen 05 — Year over year
+
+A dashboard inside the dashboard: six labelled views, one question each, rather than
+one long column of figures.
+
+| View | The question it answers |
+| --- | --- |
+| 01 Headline | Better or worse? Four hero figures, every measure ranked by how far it moved, and the value bridge. |
+| 02 Momentum | Which weeks carried more and which carried less, in count and in dollars, plus the cumulative race. |
+| 03 The mix | What kind of work came back, how the shape of the book moved in points of share, and district by district. |
+| 04 Customers | Kept, lost, slipping and won — with the churn list naming who to ring, and every kept account plotted on quotes against value. |
+| 05 People | Quotes owned and conversion, per person, both periods. |
+| 06 Ledger | Every measure in one table, and the method the screen follows. |
+
+Selecting any named account opens that account's record on Customers.
+
+### Deck chapter two
+
+Seven slides appended to the export, behind a chapter divider: the headline as two
+dials over a delta table, week against week, the race, where the mix moved, the value
+bridge, and account movement with the accounts that went quiet named. With no prior
+period loaded the deck is the nine slides it has always been.
 
 ## Definitions
 
