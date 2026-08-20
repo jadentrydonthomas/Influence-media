@@ -17,7 +17,7 @@ await p.click('[data-screen="customers"]'); await p.waitForTimeout(500);
 
 const firstRow = () => p.$eval('#custRows .account-row', n=>n.innerText.replace(/\s+/g,' ').trim());
 const seen = new Map();
-for (const sort of ['quotes','value','wins','unreturned','effort']) {
+for (const sort of ['returned','quotes','value','wins','unreturned','effort']) {
   await p.click(`[data-cust-sort="${sort}"]`); await p.waitForTimeout(350);
   const top = await firstRow();
   const pressed = await p.$eval(`[data-cust-sort="${sort}"]`, n=>n.getAttribute('aria-pressed'));
@@ -34,13 +34,21 @@ await p.click('[data-cust-sort="quotes"]'); await p.waitForTimeout(350);
 const quotesCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/(\d+) quote/)||[0,0])[1])));
 check('most quotes is ordered by quotes', quotesCol.every((v,i)=>i===0||quotesCol[i-1]>=v), quotesCol.slice(0,6).join(','));
 await p.click('[data-cust-sort="value"]'); await p.waitForTimeout(350);
-const valueCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/\$([\d.]+)M/)||[0,0])[1])));
-check('most quoted value is ordered by value', valueCol.every((v,i)=>i===0||valueCol[i-1]>=v), valueCol.slice(0,6).join(','));
+const askedCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/of \$([\d.]+)M/)||[0,0])[1])));
+check('most quoted value is ordered by what was asked for', askedCol.every((v,i)=>i===0||askedCol[i-1]>=v), askedCol.slice(0,6).join(','));
+await p.click('[data-cust-sort="returned"]'); await p.waitForTimeout(350);
+const returnedCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/\$([\d.]+)M/)||[0,0])[1])));
+check('most value returned is ordered by the money that came back', returnedCol.every((v,i)=>i===0||returnedCol[i-1]>=v), returnedCol.slice(0,6).join(','));
 // Opening an account must show its own jobs and its own quotes.
 await p.click('[data-cust-sort="wins"]'); await p.waitForTimeout(350);
 await p.click('#custRows .account-row'); await p.waitForTimeout(500);
 const profile = await p.$eval('#custProfile', n=>n.innerText.replace(/\s+/g,' '));
 check('the account record lists its booked jobs', /JOBS BOOKED \d+ job/.test(profile), profile.slice(0,90));
+// A job opens in place with both sides of its record.
+await p.click('#custProfile [data-job]'); await p.waitForTimeout(400);
+const opened = await p.$eval('#custProfile', n=>n.innerText.replace(/\s+/g,' '));
+check('a job opens its own record', /THE JOB/.test(opened) && /THE QUOTE IT CAME FROM/.test(opened), opened.slice(opened.indexOf('THE JOB'), opened.indexOf('THE JOB')+50));
+check('the job record names everyone on it', /EVERYONE ON IT/.test(opened));
 check('the account record lists every quote it sent', /EVERY QUOTE FROM THIS ACCOUNT/.test(profile));
 check('booked jobs carry an entry date', /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d+, 20\d\d/.test(profile));
 

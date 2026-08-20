@@ -496,6 +496,7 @@
     .profile-block-head span { color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
     .profile-block-head b { color: var(--green-dark); font-family: var(--mono); font-size: 12px; font-weight: 600; }
     .profile-table-wrap { max-height: 330px; overflow: auto; }
+    .profile-table-wrap.is-jobs { max-height: none; overflow: visible; }
     .profile-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .profile-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--ink-faint); font-family: var(--display); font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
     .profile-table td { padding: 9px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
@@ -511,6 +512,61 @@
     .outcome-pill.is-open { color: var(--red-deep); background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
     .profile-table tr.is-won b { color: var(--green-dark); }
     .cap-full { grid-column: 1 / -1; margin-top: 18px; }
+
+    /* The two clocks: ours and theirs. A dial against a scale the reader can
+       hold in their head — a fortnight for our side, a quarter for the
+       customer's — so the number becomes a position, not just a figure. */
+    .clock-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-bottom: 20px; }
+    .clock { display: grid; grid-template-columns: 122px minmax(0, 1fr); gap: 20px; align-items: center; padding: 20px 22px; border: 1px solid var(--line); background: var(--surface); }
+    .clock-dial { --clock: 0%; --clock-color: var(--green); display: grid; place-items: center; width: 122px; height: 122px; border-radius: 50%;
+      background: conic-gradient(var(--clock-color) var(--clock), var(--surface-soft) 0);
+      box-shadow: inset 0 2px 4px rgba(255,255,255,.7), 0 16px 30px -18px rgba(6,39,18,.55); }
+    .clock-dial > div { display: grid; place-items: center; width: 76%; height: 76%; border-radius: 50%; background: var(--rail); color: #f4fff7; text-align: center; box-shadow: inset 0 3px 10px rgba(0,0,0,.5); }
+    .clock-dial strong { display: block; font-family: var(--mono); font-size: 26px; font-weight: 500; letter-spacing: -.05em; }
+    .clock-dial span { display: block; margin-top: 2px; color: rgba(244,255,247,.6); font-family: var(--display); font-size: 8px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .clock-copy > span { display: block; color: var(--green-dark); font-family: var(--display); font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .clock-copy > b { display: block; margin-top: 6px; color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .clock-copy > small { display: block; margin-top: 6px; color: var(--ink-muted); font-size: 11px; line-height: 1.45; }
+    .clock-scale { height: 7px; margin-top: 11px; border-radius: 4px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+    .clock-scale i { display: block; height: 100%; border-radius: 4px; background: var(--clock-color, var(--green)); }
+    .clock-copy > u, .clock-copy > em { display: inline-block; margin-top: 4px; color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; font-style: normal; text-decoration: none; }
+    .clock-copy > em { float: right; }
+    @media (max-width: 560px) { .clock { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+
+    /* Table headers were the same faint grey as every other caption on the
+       page, so nothing told you which row was a heading. They now read as
+       headings: Nucor green on a green ground, with the rule underneath. */
+    .profile-table th, .cohort th, .ops-table th, .account-head, .week-head {
+      color: var(--green-dark); background: var(--green-soft); border-bottom-color: var(--green);
+    }
+    .profile-table th, .cohort th, .ops-table th { font-size: 9.5px; letter-spacing: .09em; }
+    .account-head { border-bottom: 1.5px solid var(--green); }
+    .week-head { border-bottom: 1.5px solid var(--green); }
+    .profile-block-head span, .panel-head .ops-step { color: var(--green-dark); }
+
+    /* A booked job opens where it sits, so the account record stays one page. */
+    .profile-table tr.is-openable { cursor: pointer; }
+    .profile-table tr.is-openable:hover td { background: var(--surface-soft); }
+    .profile-table tr.is-openable[aria-expanded="true"] td { background: var(--green-soft); }
+    .open-hint { display: block; margin-top: 3px; color: var(--green-dark); font-family: var(--display); font-size: 8.5px; font-weight: 700; font-style: normal; letter-spacing: .1em; text-transform: uppercase; }
+    .profile-table tr.is-openable[aria-expanded="true"] .open-hint { color: var(--ink-faint); }
+    .profile-table tr.is-openable[aria-expanded="true"] .open-hint:after { content: " \2014 close"; }
+    .job-detail td { padding: 0; background: var(--surface-soft); }
+    .job-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; padding: 16px 12px 18px; }
+    .jd-block > span { display: block; margin-bottom: 8px; color: var(--green-dark); font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .jd-block dl { display: grid; gap: 0; margin: 0; }
+    .jd-block dl > div { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); }
+    .jd-block dt { color: var(--ink-muted); font-size: 11px; }
+    .jd-block dd { margin: 0; color: var(--ink); font-size: 11.5px; font-weight: 600; overflow-wrap: anywhere; }
+    .jd-block dd i { display: block; margin-top: 1px; color: var(--ink-faint); font-size: 9px; font-style: normal; font-weight: 400; letter-spacing: .04em; text-transform: uppercase; }
+    .jd-block small { display: block; margin-top: 8px; color: var(--ink-faint); font-size: 9.5px; line-height: 1.45; }
+
+    /* The two account blocks read as opposites, so their bars do too. */
+    .cust-diag.is-good .cust-diag-track i { background: var(--green); }
+    .cust-diag.is-good > b { color: var(--green-dark); }
+    .account-value { display: block; text-align: right; }
+    .account-value b { display: block; color: var(--green-dark); font-family: var(--mono); font-size: 13px; font-weight: 600; }
+    .account-value small { display: block; margin-top: 2px; color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; }
 
     /* Cohort maturity. Colour carries the share, so the shape of the table is
        readable before any single number is. A dot is a week that has not lived
@@ -1241,16 +1297,22 @@
               <input class="quote-search" id="custSearch" type="search" placeholder="Search account, quote number, or job number" />
             </div>
             <div class="cust-sort" id="custSort" role="group" aria-label="Sort accounts"></div>
-            <div class="account-head" id="custListTitle"><span>Account</span><span>Asked vs booked</span><span class="num">Quoted</span></div>
+            <div class="account-head" id="custListTitle"><span>Account</span><span>Asked vs booked</span><span class="num">Returned</span></div>
             <div class="account-scroll"><div id="custRows"></div></div>
             <p class="quote-count" id="custTableNote" aria-live="polite"></p>
           </section>
           <aside class="account-profile" id="custProfile" aria-live="polite"></aside>
         </div>
-        <section class="panel" aria-labelledby="custDiagTitle">
-          <div class="panel-head"><span class="ops-step">The question worth asking</span><h2 id="custDiagTitle">Repeat demand that returned nothing</h2></div>
-          <div class="ops-body" id="custDiagnostic"></div>
-        </section>
+        <div class="ops-pair">
+          <section class="panel ops-panel" aria-labelledby="custValueTitle">
+            <div class="panel-head"><span class="ops-step">Where the money came from</span><h2 id="custValueTitle">Who actually pays us</h2><p>Accounts ranked by the value that came back, not by how much they asked for.</p></div>
+            <div class="ops-body" id="custValueBlock"></div>
+          </section>
+          <section class="panel ops-panel" aria-labelledby="custDiagTitle">
+            <div class="panel-head"><span class="ops-step">Where the time went</span><h2 id="custDiagTitle">Who asks and never books</h2><p>Accounts that asked at least twice and booked nothing, by the value that returned as nothing.</p></div>
+            <div class="ops-body" id="custDiagnostic"></div>
+          </section>
+        </div>
       </section>
 
       <section class="screen" id="timeline" aria-labelledby="timelineTitle">
@@ -1258,6 +1320,7 @@
           <div><div class="eyebrow">Timelines</div><h2 id="timelineTitle" class="is-compact">How long it takes <em>to come back.</em></h2></div>
           <p>The quote book read along a calendar rather than a list. Every figure here is measured from dates the workbooks already carry — Date In, Done, and the order-log entry date — so nothing is modelled or assumed.</p>
         </div>
+        <section class="clock-pair" id="timelineClocks" aria-label="The two figures this screen is about"></section>
         <section class="ops-kpis" id="timelineKpis" aria-label="Lifecycle headline figures"></section>
         <section class="panel" aria-labelledby="lifecycleTitle">
           <div class="panel-head"><span class="ops-step">01 &middot; Lifecycle</span><h2 id="lifecycleTitle">From request to booked work</h2><p>Three measured stages. A quote only counts toward a stage when it carries both of that stage&rsquo;s own dates, so each bar states its own denominator.</p></div>
@@ -2307,7 +2370,7 @@
         const line = data.timeline;
         if (data.empty || !line || !data.records || !data.records.length) {
           $("#timelineKpis").innerHTML = '<div class="analysis-empty"><div><b>No lifecycle dates yet</b><span>Run the weekly quote books and an order log to measure how long work takes to come back.</span></div></div>';
-          ["#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart", "#tlArrivals", "#tlTurn", "#tlCohort", "#opsWeek"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          ["#timelineClocks", "#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart", "#tlArrivals", "#tlTurn", "#tlCohort", "#opsWeek"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           setText("#cumulativeNote", "");
           return;
         }
@@ -2315,11 +2378,48 @@
         const half = line.curve.find(mark => mark.share >= 50);
         const oldest = line.ageing[line.ageing.length - 1];
         const weeks = Math.max(1, (data.weekly || []).length);
+
+        // Two clocks: ours and theirs. The dial fills against a scale the reader
+        // can hold in their head — a fortnight for our side of the work, a
+        // quarter for the customer's — so a number becomes a position.
+        const clock = (item) => {
+          const share = item.value === null ? 0 : Math.min(100, item.value / item.scale * 100);
+          return '<article class="clock"><div class="clock-dial" style="--clock:' + share.toFixed(1) + '%;--clock-color:' + item.color + '">'
+            + "<div><strong>" + (item.value === null ? "—" : dayText(item.value)) + "</strong><span>" + escape(item.unit) + "</span></div></div>"
+            + '<div class="clock-copy"><span>' + escape(item.label) + "</span><b>" + escape(item.headline) + "</b>"
+            + "<small>" + escape(item.note) + "</small>"
+            + '<div class="clock-scale"><i style="width:' + share.toFixed(1) + '%"></i></div>'
+            + '<u>0</u><em>' + item.scale + ' day scale</em></div></article>';
+        };
+        $("#timelineClocks").innerHTML =
+          clock({
+            label: "Our quote processing time",
+            value: line.produce.median,
+            scale: 14,
+            color: "var(--green)",
+            unit: "median",
+            headline: line.produce.scored ? "Half of quotes are out inside " + dayText(line.produce.median) : "Not scored yet",
+            note: "Date In to Done on " + opsNumber(line.produce.scored) + " of " + opsNumber(data.quotes) + " quotes · average "
+              + dayText(line.produce.average) + " · 9 in 10 inside " + dayText(line.produce.p90)
+          })
+          + clock({
+            label: "Customer decision time",
+            value: line.decide.median,
+            scale: 90,
+            color: "var(--steel)",
+            unit: "median",
+            headline: line.decide.scored ? "Half of orders land inside " + dayText(line.decide.median) + " of release" : "Not scored yet",
+            note: line.decide.scored
+              ? "Done to order entry on " + opsNumber(line.decide.scored) + " booked quotes · average " + dayText(line.decide.average)
+                + " · 9 in 10 inside " + dayText(line.decide.p90) + ". Scored on the customers who said yes."
+              : "No booked quote in this cohort carries both a Done date and an order date."
+          });
+
         $("#timelineKpis").innerHTML = [
           { label: "Quote load", value: (data.quotes / weeks).toFixed(1), note: "quotes per week · " + opsNumber(data.quotes) + " across " + weeks + " week" + (weeks === 1 ? "" : "s") },
           { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · priced but never counted" },
-          { label: "Median time to price", value: dayText(line.produce.median), note: "Date In to Done on " + opsNumber(line.produce.scored) + " of " + opsNumber(data.quotes) + " quotes" },
-          { label: "Median time to answer", value: dayText(line.decide.median), note: line.decide.scored ? "Done to order entry on " + opsNumber(line.decide.scored) + " booked quotes" : "no booked quote carries both dates" },
+          { label: "Whole cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + opsNumber(line.total.scored) + " quotes" : "needs a Date In and a booked order" },
+          { label: "Inside three days", value: pct(percentage(data.turn.withinThree, data.turn.scored)), note: opsNumber(data.turn.withinThree) + " of " + opsNumber(data.turn.scored) + " quotes priced in three days or less" },
           { label: "Open book", value: money(line.openValue), note: opsNumber(line.openCount) + " quotes with no linked order" },
           { label: "Sitting past 60 days", value: opsNumber(oldest.count), note: money(oldest.value) + " · " + pct(oldest.share) + " of the open book", tone: oldest.count ? "bad" : "good" }
         ].map(item => '<article class="ops-kpi' + (item.tone ? " is-" + item.tone : "") + '"><span>' + escape(item.label) + '</span><strong>' + item.value + '</strong><small>' + escape(item.note) + "</small></article>").join("");
@@ -2556,14 +2656,18 @@
       // ---- Customers ---------------------------------------------------------
       // One table, several questions. Sorting changes which question is being
       // asked rather than adding another table to read.
+      // "Most booked" counts jobs; "Most value returned" counts dollars, and the
+      // two disagree often — an account with one large job outranks one with
+      // four small ones. The money question needs its own answer.
       const CUSTOMER_SORTS = {
-        quotes: { label: "Most quotes", note: "Accounts ranked by how often they asked.", get: a => a.quotes },
+        returned: { label: "Most value returned", note: "Accounts ranked by the money that actually came back.", get: a => a.wonValue },
+        wins: { label: "Most jobs booked", note: "Accounts ranked by how many jobs came back, whatever they were worth.", get: a => a.wins || 0 },
         value: { label: "Most quoted value", note: "Accounts ranked by the size of what they asked for.", get: a => a.quoteValue },
-        wins: { label: "Most booked", note: "Accounts ranked by the work that actually came back.", get: a => a.wins || 0 },
+        quotes: { label: "Most quotes", note: "Accounts ranked by how often they asked.", get: a => a.quotes },
         unreturned: { label: "Largest unreturned", note: "Accounts ranked by quoted value that has not come back. High rows asked for a lot and booked little.", get: a => a.unreturnedValue },
         effort: { label: "Most engineering time", note: "Accounts ranked by the engineering hours spent quoting them.", get: a => a.hours }
       };
-      let customerSort = "value";
+      let customerSort = "returned";
       // The panel scrolls, so the list is the answer rather than a preview. The
       // cap only exists to keep a multi-year load from building a DOM nobody reads.
       const CUSTOMER_ROW_CAP = 250;
@@ -2577,7 +2681,7 @@
         const accounts = signals.accounts || [];
         if (data.empty || !accounts.length) {
           $("#custKpis").innerHTML = '<div class="analysis-empty"><div><b>No customer records yet</b><span>Run the weekly quote books to build the account view.</span></div></div>';
-          ["#custDiagnostic", "#custRows", "#custSort"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
+          ["#custDiagnostic", "#custValueBlock", "#custRows", "#custSort"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           renderAccountProfile(null);
           setText("#custTableNote", "");
           return;
@@ -2621,7 +2725,7 @@
                 + '<span class="account-name"><strong title="' + escape(account.name) + '">' + escape(account.name) + "</strong>"
                 + '<span>' + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " · " + account.wins + " booked · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week" : " weeks") + "</span></span>"
                 + '<span class="askbook-track" title="' + account.quotes + ' quoted, ' + account.wins + ' booked"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></span>'
-                + '<span class="account-value">' + money(account.quoteValue) + "</span></button>";
+                + '<span class="account-value"><b>' + money(account.wonValue) + "</b><small>of " + money(account.quoteValue) + "</small></span></button>";
             }).join("")
           : '<div class="quote-empty">No account matches that search. Try an account name, a quote number, or a job number.</div>';
         $$("[data-account]", $("#custRows")).forEach(button => button.addEventListener("click", () => {
@@ -2636,14 +2740,32 @@
 
         renderAccountProfile(visible.find(account => account.key === selectedAccount) || null, quotesFor);
 
+        // Where the money came from. Ordered by returned value, because an
+        // account with one large job outranks one with four small ones and the
+        // job count alone hides that.
+        const payers = accounts.filter(account => account.wonValue > 0)
+          .slice().sort((a, b) => b.wonValue - a.wonValue).slice(0, 8);
+        const topReturn = Math.max(1, ...payers.map(account => account.wonValue));
+        const returnedTotal = accounts.reduce((sum, account) => sum + account.wonValue, 0);
+        const payerShare = returnedTotal ? percentage(payers.reduce((sum, account) => sum + account.wonValue, 0), returnedTotal) : 0;
+        $("#custValueBlock").innerHTML = payers.length
+          ? '<p class="ops-note" style="margin:0 0 12px">' + payers.length + ' accounts returned ' + money(payers.reduce((sum, a) => sum + a.wonValue, 0))
+            + ' of the ' + money(returnedTotal) + ' that came back — ' + pct(payerShare) + ' of every booked dollar in this cohort.</p>'
+            + payers.map(account => '<div class="cust-diag is-good" data-open-account="' + escape(account.key) + '" role="button" tabindex="0">'
+                + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
+                + '<div class="cust-diag-track"><i style="width:' + (account.wonValue / topReturn * 100).toFixed(1) + '%"></i></div>'
+                + '<b>' + money(account.wonValue) + "</b>"
+                + '<small>' + account.wins + " of " + account.quotes + " quotes booked · " + pct(account.conversion) + " · " + money(account.quoteValue) + " asked</small></div>").join("")
+          : '<p class="ops-note">No account in this cohort has a linked order yet, so there is no returned value to rank.</p>';
+
         // The diagnostic the estimating group cannot get out of its own reporting.
         const never = (signals.askedNeverBooked || []).slice(0, 8);
         const worst = Math.max(1, ...never.map(account => account.quoteValue));
         $("#custDiagnostic").innerHTML = never.length
           ? '<p class="ops-note" style="margin:0 0 12px">' + (signals.askedNeverBooked || []).length + ' accounts asked at least twice and booked nothing, carrying '
             + money(signals.askedNeverBookedValue) + ' of quoted value and '
-            + (signals.askedNeverBooked || []).reduce((sum, a) => sum + a.hours, 0).toFixed(0) + ' engineering hours. That is the cost of demand that did not return.</p>'
-            + never.map(account => '<div class="cust-diag" data-open-account="' + escape(account.key) + '" role="button" tabindex="0">'
+            + (signals.askedNeverBooked || []).reduce((sum, a) => sum + a.hours, 0).toFixed(0) + ' engineering hours of work that was priced and never returned.</p>'
+            + never.map(account => '<div class="cust-diag is-bad" data-open-account="' + escape(account.key) + '" role="button" tabindex="0">'
                 + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
                 + '<div class="cust-diag-track"><i style="width:' + (account.quoteValue / worst * 100).toFixed(1) + '%"></i></div>'
                 + '<b>' + money(account.quoteValue) + "</b>"
@@ -2664,6 +2786,59 @@
         });
       }
 
+      // Everything the order log carries about one booked job, beside the quote
+      // it came from. The order log holds the post-order side — who sold it, who
+      // is running it, what it weighs — and the weekly workbook holds who priced
+      // it. Neither file has both, which is the reason this panel exists.
+      function jobDetailMarkup(job) {
+        const record = job.__record || null;
+        const roster = state.model && state.model.roster;
+        const person = code => {
+          const resolved = resolvedNucorPerson(code, roster);
+          return resolved.matched ? resolved.name : resolved.code === "(none)" ? "" : resolved.code;
+        };
+        const rows = [
+          { label: "Job name", value: job.name },
+          { label: "Order-log customer", value: job.customer },
+          { label: "Entered", value: job.entryDate ? fullDate(job.entryDate) : "" },
+          { label: "Total tons", value: job.tons ? tons(job.tons) : "" },
+          { label: "Total hours", value: job.totalHours ? job.totalHours.toFixed(1) : "" },
+          { label: "Category", value: job.category },
+          { label: "Schedule", value: job.schedule },
+          { label: "GL", value: job.gl }
+        ].filter(row => String(row.value || "").trim() !== "");
+        const people = [
+          { label: "Sales engineer", value: job.salesEngineer, source: "order log" },
+          { label: "CSR", value: job.csr, source: "order log" }
+        ].concat((job.postOrderRoles || []).map(role => ({ label: role.label, value: role.name, source: "order log" })))
+         .concat(record ? [
+          { label: "Quote engineer", value: person(record.engineer), source: "quote book" },
+          { label: "Estimator", value: person(record.estimator), source: "quote book" },
+          { label: "Scheduler", value: person(record.scheduler), source: "quote book" }
+        ] : []).filter(role => String(role.value || "").trim() !== "");
+        const quoteRows = record ? [
+          { label: "Quoted value", value: money((Number(record.price) || 0) / 1000000) },
+          { label: "Quoted", value: record.date ? fullDate(record.date) : nucorWeekLabel(record.week) },
+          { label: "Date In", value: record.dateIn ? fullDate(record.dateIn) : "" },
+          { label: "Done", value: record.done ? fullDate(record.done) : "" },
+          { label: "Turnaround", value: Number.isFinite(record.turnaround) ? record.turnaround + " days" : "" },
+          { label: "Alternates", value: record.alts ? String(record.alts) : "" },
+          { label: "Engineering hours", value: Number(record.hours) ? Number(record.hours).toFixed(1) : "" },
+          { label: "Decision lag", value: Number.isFinite(job.lag) ? job.lag + " days from quoting" : "" }
+        ].filter(row => String(row.value || "").trim() !== "") : [];
+        const block = (title, items, note) => items.length
+          ? '<div class="jd-block"><span>' + escape(title) + "</span><dl>"
+            + items.map(item => "<div><dt>" + escape(item.label) + "</dt><dd>" + escape(item.value)
+                + (item.source ? '<i>' + escape(item.source) + "</i>" : "") + "</dd></div>").join("")
+            + "</dl>" + (note ? '<small>' + escape(note) + "</small>" : "") + "</div>"
+          : "";
+        return '<div class="job-detail-grid">'
+          + block("The job", rows)
+          + block("The quote it came from", quoteRows, record ? "Quote " + record.key : "")
+          + block("Everyone on it", people, "Order-log names describe the job after it was booked; quote-book names priced it. Neither overwrites the other.")
+          + "</div>";
+      }
+
       // The account record. The quote list lives here now: a quote only means
       // something beside the account that sent it and the job that came back
       // from it, so the three are read together rather than on two screens.
@@ -2681,7 +2856,7 @@
         const records = (quotesFor ? quotesFor(account) : []).slice()
           .sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
         const jobs = records.filter(record => record.won).reduce((all, record) => all.concat((record.jobsDetail || []).map(job => Object.assign({}, job, {
-          quoteKey: record.key, quoteValue: Number(record.price) || 0, lag: record.lag
+          quoteKey: record.key, quoteValue: Number(record.price) || 0, lag: record.lag, __record: record
         }))), []).sort((a, b) => (b.entryDate ? b.entryDate.getTime() : 0) - (a.entryDate ? a.entryDate.getTime() : 0));
         const bookedTons = jobs.reduce((sum, job) => sum + (Number(job.tons) || 0), 0);
         const filtered = state.filters.customer === account.key;
@@ -2701,12 +2876,13 @@
           + '<div><span>Average turn</span><strong>' + (account.turnAverage === null ? "—" : account.turnAverage.toFixed(1) + "d") + '</strong><small>Date In to Done</small></div></div>'
           + (jobs.length
               ? '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>' + jobs.length + " job" + (jobs.length === 1 ? "" : "s") + " · " + tons(bookedTons) + ' tons</b></div>'
-                + '<div class="profile-table-wrap"><table class="profile-table"><thead><tr><th>Job</th><th>Entered</th><th class="num">Tons</th><th class="num">Quote value</th><th>From quote</th></tr></thead><tbody>'
-                + jobs.map(job => '<tr><td><b>' + escape(job.id) + '</b>' + (job.name ? '<span class="job-name" title="' + escape(job.name) + '">' + escape(job.name) + "</span>" : "") + "</td>"
+                + '<div class="profile-table-wrap is-jobs"><table class="profile-table"><thead><tr><th>Job</th><th>Entered</th><th class="num">Tons</th><th class="num">Quote value</th><th>From quote</th></tr></thead><tbody>'
+                + jobs.map((job, index) => '<tr class="is-openable" data-job="' + index + '" role="button" tabindex="0" aria-expanded="false"><td><b>' + escape(job.id) + '</b>' + (job.name ? '<span class="job-name" title="' + escape(job.name) + '">' + escape(job.name) + "</span>" : "") + "</td>"
                     + '<td class="date">' + (job.entryDate ? fullDate(job.entryDate) : "no entry date") + "</td>"
                     + '<td class="num">' + (job.tons ? tons(job.tons) : "—") + "</td>"
                     + '<td class="num">' + money(job.quoteValue / 1000000) + "</td>"
-                    + '<td class="quote-ref">' + escape(job.quoteKey) + (Number.isFinite(job.lag) ? '<span>' + job.lag + "d after quoting</span>" : "") + "</td></tr>").join("")
+                    + '<td class="quote-ref">' + escape(job.quoteKey) + (Number.isFinite(job.lag) ? '<span>' + job.lag + "d after quoting</span>" : "") + '<i class="open-hint" aria-hidden="true">open</i></td></tr>'
+                    + '<tr class="job-detail" data-job-detail="' + index + '" hidden><td colspan="5">' + jobDetailMarkup(job) + "</td></tr>").join("")
                 + "</tbody></table></div></section>"
               : '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>none yet</b></div>'
                 + '<p class="ops-note">No order-log row in the loaded window carries a quote number from this account. That is a follow-up queue, not a recorded loss.</p></section>')
@@ -2726,6 +2902,19 @@
           + "</tbody></table></div></section>";
         const filterButton = $(".profile-filter", panel);
         if (filterButton) filterButton.addEventListener("click", () => setFilter("customer", account.key));
+        $$("[data-job]", panel).forEach(row => {
+          const toggle = () => {
+            const detail = $('[data-job-detail="' + row.dataset.job + '"]', panel);
+            if (!detail) return;
+            const opening = detail.hidden;
+            $$("[data-job-detail]", panel).forEach(node => { node.hidden = true; });
+            $$("[data-job]", panel).forEach(node => node.setAttribute("aria-expanded", "false"));
+            detail.hidden = !opening;
+            row.setAttribute("aria-expanded", String(opening));
+          };
+          row.addEventListener("click", toggle);
+          row.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggle(); } });
+        });
       }
 
       function getPeople() {
