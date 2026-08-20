@@ -46,19 +46,20 @@ check('the banner separates the two bases', /matched on/i.test(banner) && /every
 check('the banner credits the prior order log', /joined to its own order log/.test(banner));
 
 // One view visible at a time is the whole point of the sub-dashboard.
-const views = ['headline', 'momentum', 'mix', 'customers', 'people', 'ledger'];
-check('there are six views', await p.$$eval('[data-compare-panel]', n => n.length) === 6);
+const views = ['headline', 'momentum', 'speed', 'mix', 'customers', 'people', 'ledger'];
+check('there are seven views', await p.$$eval('[data-compare-panel]', n => n.length) === 7);
 check('exactly one view is open at a time',
   await p.$$eval('[data-compare-panel]', n => n.filter(x => !x.hidden).length) === 1);
 
 // Every view must draw real marks, not empty boxes.
 const wants = {
-  headline: ['#cmpHero .cmp-hero-card', '#cmpChange .chg-row', '#cmpBridge .bridge-bar'],
-  momentum: ['#cmpWeekChart .cmp-col', '#cmpWeekValueChart .cmp-col', '#cmpRace path'],
-  mix: ['#cmpBandChart .cmp-col', '#cmpMixShift .chg-row', '#cmpDistricts .cmp-col'],
-  customers: ['#cmpRetention .cmp-hero-card', '#cmpLost .acct-table tbody tr, #cmpLost .analysis-empty',
+  headline: ['#cmpHeadlineLede .yoy-stat', '#cmpAttribution .attr-ribbon', '#cmpAttribution .attr-name', '#cmpChange .chg-row'],
+  momentum: ['#cmpMomentumLede .yoy-stat', '#cmpWeekChart .cmp-col', '#cmpWeekValueChart .cmp-col', '#cmpRace path'],
+  speed: ['#cmpSpeedLede .yoy-stat', '#cmpSurvival .surv-line, #cmpSurvival .ops-note', '#cmpTiming .chg-row'],
+  mix: ['#cmpMixLede .yoy-stat', '#cmpLorenz .lorenz-line', '#cmpBandChart .cmp-col', '#cmpMixShift .chg-row', '#cmpDistricts .cmp-col'],
+  customers: ['#cmpCustomerLede .yoy-stat', '#cmpFlow .flow-block', '#cmpLost .acct-table tbody tr, #cmpLost .analysis-empty',
               '#cmpGained .acct-table tbody tr, #cmpGained .analysis-empty', '#cmpQuadrant .quad-dot'],
-  people: ['#cmpPeopleChart .cmp-col', '#cmpPeopleRate .cmp-col'],
+  people: ['#cmpPeopleLede .yoy-stat', '#cmpPeopleChart .slope-line, #cmpPeopleChart .ops-note', '#cmpPeopleRate .slope-line, #cmpPeopleRate .ops-note'],
   ledger: ['#cmpTable .cmp-row', '#cmpMethod li']
 };
 for (const view of views) {
@@ -100,9 +101,9 @@ for (const view of views) {
 // The churn view is the point of the exercise: it has to name who to ring.
 await p.click('[data-compare-view="customers"]');
 await p.waitForTimeout(400);
-const retention = await text('#cmpRetention');
-check('retention states the base, the keepers, the losses and the wins',
-  /accounts last period/i.test(retention) && /still asking/i.test(retention) && /stopped asking/i.test(retention) && /new this period/i.test(retention));
+const retention = await text('#cmpCustomerLede');
+check('the customer lede states the base, the keepers and the losses',
+  /quoting last period/i.test(retention) && /came back/i.test(retention) && /gone quiet/i.test(retention) && /slipping/i.test(retention));
 const lostHeads = await p.$$eval('#cmpLost thead th, #cmpLost .analysis-empty b', n => n.map(x => x.textContent.trim()).join('|'));
 check('the churn list carries who, how much, how often and whose account it was',
   /Account/.test(lostHeads) && /Quotes/.test(lostHeads) && /Owner/.test(lostHeads) || /Nobody stopped asking/.test(lostHeads),
@@ -180,5 +181,5 @@ check('a prior period with no order log of its own says so', /add a prior order 
 check('no JS errors', errs.length === 0, errs.slice(0, 2).join('; '));
 await b.close();
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('\n' + (fails.length ? 'FAILURES:\n  ' + fails.join('\n  ') : 'Year over year renders six views, names who left, and states its own limits.'));
+console.log('\n' + (fails.length ? 'FAILURES:\n  ' + fails.join('\n  ') : 'Year over year renders seven views, states its finding, names who left, and declares its own limits.'));
 process.exit(fails.length ? 1 : 0);

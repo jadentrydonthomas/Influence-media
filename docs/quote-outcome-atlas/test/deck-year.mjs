@@ -38,7 +38,7 @@ check('with no prior period the deck is nine slides',
 const deck = await buildDeck(true);
 const html = fs.readFileSync(deck, 'utf8');
 check('with a prior period the chapter is appended',
-  (html.match(/class="deck-slide[ "]/g) || []).length === 16,
+  (html.match(/class="deck-slide[ "]/g) || []).length === 18,
   String((html.match(/class="deck-slide[ "]/g) || []).length));
 check('the deck is still self-contained', !/https?:\/\/(?!www\.w3\.org)/.test(html));
 
@@ -46,7 +46,7 @@ const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto('file://' + deck);
 const total = await p.$$eval('.deck-slide', n => n.length);
-check('the counter reads the full deck', /1 \/ 16/.test(await p.$eval('#deckPage', n => n.textContent)));
+check('the counter reads the full deck', /1 \/ 18/.test(await p.$eval('#deckPage', n => n.textContent)));
 check('the chapter divider is marked', await p.$$eval('.deck-slide.is-chapter', n => n.length) === 1);
 
 // Every chapter slide, measured on its own: nothing may leave the slide, sit

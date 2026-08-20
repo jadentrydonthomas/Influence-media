@@ -21,7 +21,7 @@ source column and live value of every term.
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.4). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.5). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
@@ -42,8 +42,8 @@ source column and live value of every term.
 | `test/glossary.mjs` | The definitions drawer opens before and after a run. |
 | `test/spec-check.mjs` | The markdown and designed spec agree on every requirement ID and version. |
 | `test/deck-stress.mjs` | Inflates every number in the deck and checks nothing collides at three viewport sizes. |
-| `test/year-screen.mjs` | All six Year over year views draw real marks, no chart label collides, and the screen survives the dark theme. |
-| `test/deck-year.mjs` | The deck grows a seven-slide chapter when a prior period is loaded, and stays nine slides when it is not. |
+| `test/year-screen.mjs` | All seven Year over year views draw real marks, no chart label collides, and the screen survives the dark theme. |
+| `test/deck-year.mjs` | The deck grows a nine-slide chapter when a prior period is loaded, and stays nine slides when it is not. |
 
 ## Running the regression suite
 
@@ -246,26 +246,50 @@ quiet, it simply quoted elsewhere. Each panel names which of the two it is using
 
 ### Screen 05 — Year over year
 
-A dashboard inside the dashboard: six labelled views, one question each, rather than
-one long column of figures.
+A dashboard inside the dashboard: seven labelled views, each opening with a **reading
+band** that states in one generated sentence what the view is about to show. A figure
+beside another figure is a comparison the reader has to construct; the band constructs
+it for them.
 
 | View | The question it answers |
 | --- | --- |
-| 01 Headline | Better or worse? Four hero figures, every measure ranked by how far it moved, and the value bridge. |
+| 01 Headline | What actually changed the money — the three-way decomposition, then every measure ranked by how far it moved. |
 | 02 Momentum | Which weeks carried more and which carried less, in count and in dollars, plus the cumulative race. |
-| 03 The mix | What kind of work came back, how the shape of the book moved in points of share, and district by district. |
-| 04 Customers | Kept, lost, slipping and won — with the churn list naming who to ring, and every kept account plotted on quotes against value. |
-| 05 People | Quotes owned and conversion, per person, both periods. |
-| 06 Ledger | Every measure in one table, and the method the screen follows. |
+| 03 Speed | How quickly the work comes back, read at equal age, and the two halves of the clock. |
+| 04 The mix | How much of the book rests on how few names, what kind of work came back, and how the shape moved in points of share. |
+| 05 Customers | Where the account base went — kept, lost, slipping, won — with the churn list naming who to ring. |
+| 06 People | Quotes owned and conversion per person, as slopes from last period to this. |
+| 07 Ledger | Every measure in one table, and the method the screen follows. |
 
 Selecting any named account opens that account's record on Customers.
 
+### The three analyses that carry it
+
+**The decomposition.** Returned value is `quotes × average quote × value capture`. A
+Shapley split attributes the whole change in returned value to those three factors —
+exactly, with no residual and no dependence on the order the factors are taken in. So
+the answer is never "we returned more"; it is "we returned $X more, and $Y of it came
+from winning a higher share rather than from pricing more work." Drawn as one
+continuous ribbon that steps once per factor. Where the level dwarfs the movement the
+ribbon zooms its axis and says so, with a break marker.
+
+**Speed at equal age.** At each checkpoint — day 7, 14, 21, 30, 45, 60, 90 — only the
+quotes that have been open at least that long are asked whether they booked, on both
+sides. A book quoted three weeks ago is never scored as though it had a year to
+answer, which makes a young period comparable to a finished one.
+
+**Concentration.** Accounts sorted largest first and accumulated. The further the
+curve bows above the even-split diagonal, the more of the quoted book rests on a
+handful of names — a risk that a total will never show. Reported as the share held by
+the top five and top ten, this period against last.
+
 ### Deck chapter two
 
-Seven slides appended to the export, behind a chapter divider: the headline as two
-dials over a delta table, week against week, the race, where the mix moved, the value
-bridge, and account movement with the accounts that went quiet named. With no prior
-period loaded the deck is the nine slides it has always been.
+Nine slides appended to the export, behind a chapter divider: the headline as two
+dials over a delta table, week against week, the race, where the mix moved, the
+decomposition ribbon, speed at equal age, the value bridge, and account movement with
+the accounts that went quiet named. With no prior period loaded the deck is the nine
+slides it has always been.
 
 ## Definitions
 
