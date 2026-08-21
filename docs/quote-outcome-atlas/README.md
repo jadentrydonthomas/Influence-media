@@ -21,9 +21,9 @@ source column and live value of every term.
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.6). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.7). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
-| `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
+| `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. `fixtures/yoy/` additionally holds the matched Week 2 pair for 2025 and 2026 with an order log each, used by the year-over-year audits. Never committed — this repository is public. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
 | `test/edge-cases.mjs` | Runs seven awkward source combinations (single week, gaps, duplicates, out-of-order, 20 weeks). |
 | `test/scale-check.mjs` | Renders the weekly chart at 1, 4, 12, 26 and 52 weeks and checks no axis labels collide. |
@@ -43,7 +43,10 @@ source column and live value of every term.
 | `test/spec-check.mjs` | The markdown and designed spec agree on every requirement ID and version. |
 | `test/deck-stress.mjs` | Inflates every number in the deck and checks nothing collides at three viewport sizes. |
 | `test/year-screen.mjs` | All seven Year over year views draw real marks, no chart label collides, and the screen survives the dark theme. |
-| `test/deck-year.mjs` | The deck grows a nine-slide chapter when a prior period is loaded, and stays nine slides when it is not. |
+| `test/deck-year.mjs` | The deck grows a year-over-year chapter when a prior period is loaded, closes on its own slide, and stays nine slides when there is no prior period. |
+| `test/visual-audit.mjs` | Every screen and every Year over year view at five widths and both themes: figures that formatted to nothing, panels that drew nothing, anything painted outside its screen, and any two pieces of text whose ink lands on the same pixels. Needs the real books in `fixtures/yoy/`; skips without them. |
+| `test/deck-audit.mjs` | Every slide of the real-data deck at three projector widths — the same formatting classes, plus empty bodies and any slide the fit had to shrink below 0.72. Skips without `fixtures/yoy/`. |
+| `test/yoy-real.mjs` | Opens the real 2025/2026 pair and screenshots all seven Year over year views. Skips without `fixtures/yoy/`. |
 
 ## Running the regression suite
 
@@ -52,7 +55,7 @@ npm install
 node test/regression.mjs
 ```
 
-48 assertions cover the core outcome figures, the data-quality exceptions, coverage
+55 assertions cover the core outcome figures, the data-quality exceptions, coverage
 labelling, and the exported deck. Spec `T-16` requires these to stay green after any
 change to parsing, joins, ownership, exposure, or metrics.
 

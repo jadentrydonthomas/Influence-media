@@ -11,7 +11,11 @@ await p.setInputFiles('#orderFiles',[path.join(FIX,'OrderLog_1-10.xlsx')]);
 await p.click('#runDashboard');
 await p.waitForFunction(()=>/refreshed/i.test(document.getElementById('runStatusTitle').textContent),null,{timeout:90000});
 await p.waitForTimeout(2200);
-for (const s of ['overview','people','quotes','data']) {
+// Every screen the rail can actually reach. The old list still named a
+// "quotes" screen that was folded into Customers, so this walks the rail
+// rather than a copy of it that can rot.
+const screens = await p.$$eval('[data-screen]', nodes => nodes.map(n => n.getAttribute('data-screen')));
+for (const s of screens) {
   await p.click(`[data-screen="${s}"]`);
   await p.waitForTimeout(1100);
   await p.screenshot({path:path.join(root,'test',`screen-${s}.png`), fullPage:true});

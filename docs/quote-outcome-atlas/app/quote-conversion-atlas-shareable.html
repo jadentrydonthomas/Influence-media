@@ -472,12 +472,12 @@
     .cmp-hero-delta i { color: var(--ink-faint); font-family: var(--mono); font-size: 11.5px; font-style: normal; }
     .cmp-hero-card > p { margin: 2px 0 0; color: var(--ink-muted); font-size: 12px; line-height: 1.45; }
 
-    .chg-scale { display: grid; grid-template-columns: minmax(0, 186px) minmax(0, 1fr) 62px 132px; align-items: center; gap: 12px; margin-bottom: 6px; color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .chg-scale { display: grid; grid-template-columns: minmax(0, 232px) minmax(0, 1fr) 74px 136px; align-items: center; gap: 12px; margin-bottom: 6px; color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .chg-scale span { grid-column: 2; text-align: left; }
     .chg-scale span:last-of-type { grid-column: 2; text-align: right; }
     .chg-scale i { display: none; }
-    .chg-row { display: grid; grid-template-columns: minmax(0, 186px) minmax(0, 1fr) 62px 132px; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-    .chg-label { overflow: hidden; color: var(--ink); font-size: 12.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .chg-row { display: grid; grid-template-columns: minmax(0, 232px) minmax(0, 1fr) 74px 136px; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+    .chg-label { color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.3; }
     .chg-track { position: relative; height: 20px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
     .chg-track::before { content: ""; position: absolute; top: -2px; bottom: -2px; left: 50%; width: 1.5px; background: var(--line-strong); }
     .chg-fill { position: absolute; top: 3px; bottom: 3px; display: block; }
@@ -526,6 +526,7 @@
     .quad-axis { stroke: var(--line-strong); stroke-width: 1.5; }
     .quad-axis-label { fill: var(--ink-faint); font-family: var(--mono); font-size: 11px; }
     .quad-corner { fill: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .quad-scale { fill: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
     .quad-dot { stroke: var(--surface); stroke-width: 1.5; }
     .quad-dot.is-up { fill: var(--green); }
     .quad-dot.is-down { fill: var(--red); }
@@ -642,6 +643,8 @@
     .flow-block-tiny { fill: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; }
     .flow-head { fill: var(--ink); font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .flow-foot { fill: var(--ink-faint); font-family: var(--mono); font-size: 12px; }
+    .flow-foot.is-lost { fill: var(--red-deep); }
+    .flow-foot.is-new { fill: var(--green-dark); }
 
     /* Concentration. */
     .cmp-lorenz { display: block; width: 100%; height: auto; }
@@ -685,7 +688,7 @@
     .because-card { display: flex; flex-direction: column; padding: 19px; border: 1px solid var(--line); background: var(--surface); }
     .because-card.is-lead { border-color: var(--green); box-shadow: inset 0 3px 0 var(--green); }
     .because-rank { color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
-    .because-cause { margin: 11px 0 0; color: var(--ink); font-size: 14px; font-weight: 600; line-height: 1.4; }
+    .because-cause { flex: 1 1 auto; margin: 11px 0 0; color: var(--ink); font-size: 14px; font-weight: 600; line-height: 1.4; }
     .because-amount { display: block; margin-top: 12px; font-family: var(--mono); font-size: 30px; font-weight: 600; letter-spacing: -.05em; line-height: 1; }
     .because-card.is-up .because-amount { color: var(--green-dark); }
     .because-card.is-down .because-amount { color: var(--red-deep); }
@@ -728,6 +731,11 @@
        reader learns it once and never has to work out which number is which. */
     .pair-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); border-top: 1px solid var(--line); background: var(--surface); }
     .pair-grid.is-dense { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+    .pair-grid.is-fixed { grid-template-columns: repeat(var(--pair-columns, 4), minmax(0, 1fr)); }
+    /* Below the width where four columns would crush a figure, step down to
+       two and then to one - both still divide a twelve-cell grid evenly. */
+    @media (max-width: 1180px) { .pair-grid.is-fixed { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 620px) { .pair-grid.is-fixed { grid-template-columns: minmax(0, 1fr); } }
     .pair-cell { display: flex; flex-direction: column; gap: 2px; padding: 11px 13px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); }
     .pair-cell > span { color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
     .pair-cell > strong { color: var(--ink); font-family: var(--mono); font-size: 18px; font-weight: 600; letter-spacing: -.03em; }
@@ -795,10 +803,10 @@
     .brief-year-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 14px; background: var(--green-head); }
     .brief-year-head span { color: #ffffff; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .brief-year-head b { color: var(--green-bright); font-family: var(--mono); font-size: 12.5px; }
-    .brief-quote { display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr) auto; grid-template-areas: "id project value" "date date state"; gap: 2px 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+    .brief-quote { display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr) minmax(64px, auto); grid-template-areas: "id project value" "date date state"; gap: 2px 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
     .brief-quote:last-of-type { border-bottom: 0; }
-    .brief-quote b { grid-area: id; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; }
-    .brief-quote span { grid-area: project; overflow: hidden; color: var(--ink-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .brief-quote b { grid-area: id; min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .brief-quote span { grid-area: project; min-width: 0; overflow: hidden; color: var(--ink-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
     .brief-quote em { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12px; font-style: normal; font-weight: 700; text-align: right; }
     .brief-quote i { grid-area: date; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
     .brief-quote u { grid-area: state; font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-align: right; text-decoration: none; text-transform: uppercase; }
@@ -809,21 +817,21 @@
     @media (max-width: 1080px) { .brief-layout { grid-template-columns: 1fr; } .brief-list { max-height: 320px; } }
 
     /* The ledger, given the width of the page it lives on. */
-    .ledger-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(432px, 1fr)); gap: 22px; }
-    .ledger-group { border: 1px solid var(--line); background: var(--surface); }
+    .ledger-grid { columns: 432px 2; column-gap: 22px; margin-bottom: -22px; }
+    .ledger-group { break-inside: avoid; margin: 0 0 22px; border: 1px solid var(--line); background: var(--surface); }
     .ledger-head { padding: 12px 16px; background: var(--green-head); }
     .ledger-head span { color: #ffffff; font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
     .ledger-head p { margin: 4px 0 0; color: rgba(255,255,255,.66); font-size: 11.5px; line-height: 1.4; }
-    .ledger-row { display: grid; grid-template-columns: minmax(0, 1fr) 78px 78px 74px; align-items: baseline; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--line); }
+    .ledger-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px 84px 78px; align-items: baseline; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
     .ledger-row:last-child { border-bottom: 0; }
-    .ledger-row > span { color: var(--ink); font-size: 12.5px; font-weight: 600; }
+    .ledger-row > span { color: var(--ink); font-size: 13px; font-weight: 600; }
     .ledger-row > i { color: var(--ink-faint); font-family: var(--mono); font-size: 13px; font-style: normal; text-align: right; }
-    .ledger-row > b { color: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 700; text-align: right; }
-    .ledger-row > em { font-family: var(--mono); font-size: 12px; font-style: normal; font-weight: 700; text-align: right; }
+    .ledger-row > b { color: var(--ink); font-family: var(--mono); font-size: 16px; font-weight: 700; text-align: right; }
+    .ledger-row > em { font-family: var(--mono); font-size: 12.5px; font-style: normal; font-weight: 700; text-align: right; }
     .ledger-row > em.is-up { color: var(--green-dark); }
     .ledger-row > em.is-down { color: var(--red-deep); }
     .ledger-row > em.is-flat { color: var(--ink-faint); }
-    .ledger-legend { display: grid; grid-template-columns: minmax(0, 1fr) 78px 78px 74px; gap: 10px; padding: 9px 16px; border-bottom: 1.5px solid var(--line-strong); color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .ledger-legend { display: grid; grid-template-columns: minmax(0, 1fr) 82px 84px 78px; gap: 10px; padding: 9px 16px; border-bottom: 1.5px solid var(--line-strong); color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .ledger-legend b, .ledger-legend span:last-child { text-align: right; }
     .ledger-legend b.is-now { color: var(--green-dark); }
     .filter-bar { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 13px; border: 1px solid var(--green); background: var(--green-soft); }
@@ -964,7 +972,7 @@
     .profile-block-head span { color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .profile-block-head b { color: var(--green-dark); font-family: var(--mono); font-size: 12px; font-weight: 600; }
     .profile-table-wrap { max-height: 330px; overflow: auto; }
-    .profile-table-wrap.is-jobs { max-height: none; overflow: visible; }
+    .profile-table-wrap.is-jobs { max-height: none; overflow-y: visible; overflow-x: auto; }
     .profile-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .profile-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
     .profile-table td { padding: 9px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
@@ -1406,7 +1414,7 @@
 
     /* The prior period is an addition, not a third of the job, so it sits under
        the run console as one compact bar rather than as an equal column. */
-    .prior-bar { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1.35fr) auto minmax(150px,.5fr); gap: 14px 20px; align-items: center; margin-top: 14px; padding: 14px 16px; border: 1px dotted rgba(222,247,228,.3); background: rgba(255,255,255,.03); transition: border-color 180ms var(--ease), background 180ms var(--ease); }
+    .prior-bar { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 14px 20px; align-items: center; margin-top: 14px; padding: 14px 16px; border: 1px dotted rgba(222,247,228,.3); background: rgba(255,255,255,.03); transition: border-color 180ms var(--ease), background 180ms var(--ease); }
     .prior-bar[data-state="ready"] { border-style: solid; border-color: rgba(83,231,142,.55); background: rgba(0,189,87,.08); }
     .prior-bar[data-state="error"] { border-style: solid; border-color: rgba(239,152,115,.7); background: rgba(188,104,71,.1); }
     .prior-bar[data-state="drag"] { border-color: var(--green-bright); background: rgba(0,189,87,.12); }
@@ -1418,7 +1426,7 @@
     .prior-add:hover { border-color: var(--green-bright); background: rgba(0,189,87,.14); }
     .prior-status strong { display: block; color: #eefaf0; font-family: var(--mono); font-size: 12px; }
     .prior-status span { display: block; margin-top: 3px; color: rgba(235,248,237,.45); font-family: var(--mono); font-size: 10.5px; overflow-wrap: anywhere; }
-    @media (max-width: 900px) { .prior-bar { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .prior-bar { grid-template-columns: 1fr; } }
     /* The prior period is optional, and reads that way until something is in it. */
     .intake-step.is-optional[data-state="empty"] { border-style: dotted; opacity: .78; }
     .intake-step { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 185px; padding: 15px; border: 1px dashed rgba(222,247,228,.27); background: rgba(255,255,255,.028); transition: border-color 180ms var(--ease), background 180ms var(--ease), transform 180ms var(--ease); }
@@ -1889,7 +1897,7 @@
             <div class="ops-body" id="cmpAttribution"></div>
           </section>
           <section class="panel" aria-labelledby="cmpChangeTitle">
-            <div class="panel-head"><span class="ops-step">Everything else</span><h2 id="cmpChangeTitle">Every measure, ranked by how far it moved</h2><p>Bars run right when the measure improved and left when it worsened. Direction is judged, not signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way.</p></div>
+            <div class="panel-head"><span class="ops-step">Everything else</span><h2 id="cmpChangeTitle">Every measure, ranked by how far it moved</h2><p>Bars run right when the measure improved and left when it worsened. Direction is judged, not signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. A rate is reported in points, because that is what a rate moves in, but ranked by the size of its move relative to where it started &mdash; so bar length and stated figure answer two different questions.</p></div>
             <div class="ops-body" id="cmpChange"></div>
           </section>
         </div>
@@ -1901,11 +1909,11 @@
             <div class="ops-body" id="cmpWeekChart"></div>
           </section>
           <section class="panel" aria-labelledby="cmpWeekValueTitle">
-            <div class="panel-head"><span class="ops-step">Value</span><h2 id="cmpWeekValueTitle">Quoted value in each matched week</h2><p>The same weeks measured in dollars rather than in count. A week can carry fewer quotes and still be worth more.</p></div>
+            <div class="panel-head"><span class="ops-step">Value</span><h2 id="cmpWeekValueTitle">Quoted value in each matched week</h2><p id="cmpWeekValueNote">The same weeks measured in dollars rather than in count. A week can carry fewer quotes and still be worth more.</p></div>
             <div class="ops-body" id="cmpWeekValueChart"></div>
           </section>
           <section class="panel is-feature" aria-labelledby="cmpRaceTitle">
-            <div class="panel-head"><span class="ops-step">The race</span><h2 id="cmpRaceTitle">Ahead or behind, at the same point</h2><p>Quoted value and returned value accumulating week by week in both periods. The gap between the pairs at any week is how far ahead or behind this period is at that point &mdash; not at the end.</p></div>
+            <div class="panel-head"><span class="ops-step">The race</span><h2 id="cmpRaceTitle">Ahead or behind, at the same point</h2><p id="cmpRaceNote">Quoted value and returned value accumulating week by week in both periods. The gap between the pairs at any week is how far ahead or behind this period is at that point &mdash; not at the end.</p></div>
             <div class="ops-body" id="cmpRace"></div>
           </section>
         </div>
@@ -2174,7 +2182,11 @@
 
       const $ = (selector, parent = document) => parent.querySelector(selector);
       const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
-      const money = value => "$" + (value < 1 ? value.toFixed(1) : value.toFixed(value % 1 ? 1 : 0)) + "M";
+      const money = value => {
+        const amount = Number(value) || 0;
+        if (Math.abs(amount) < 0.05) return "$0";
+        return "$" + (Math.abs(amount) < 1 ? amount.toFixed(1) : amount.toFixed(amount % 1 ? 1 : 0)) + "M";
+      };
       // Millions, but readable below a million: an average quote of $850k
       // says something that "$0.9M" does not.
       const fineMoney = value => {
@@ -2498,6 +2510,30 @@
           };
         };
         const weekly = (aligned ? shared : Array.from(new Set(Array.from(liveWeeks).concat(Array.from(priorWeeks)))).sort((a, b) => a - b)).map(weekRow);
+        // A single matched week has no week-against-week shape to draw, but the
+        // week itself has five days in it and those do. Rather than stand one
+        // pair of columns in an empty plot, the momentum view falls through to
+        // the days inside the week both periods share.
+        const weekdayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+        const daySide = (source, weekNumber, weekday) => {
+          const rows = source.filter(record => weekOf(record) === weekNumber
+            && record.date && record.date.getDay() === weekday);
+          const wins = rows.filter(record => record.won);
+          return {
+            quotes: rows.length, wins: wins.length,
+            value: sumNucor(rows, record => record.price) / 1000000,
+            wonValue: sumNucor(wins, record => record.price) / 1000000,
+            conversion: rows.length ? percentage(wins.length, rows.length) : 0
+          };
+        };
+        const daily = weekly.length === 1
+          ? weekdayNames.map((name, index) => ({
+              label: name.slice(0, 3),
+              full: name,
+              current: daySide(liveRecords, weekly[0].week, index + 1),
+              prior: daySide(priorRecords, weekly[0].week, index + 1)
+            })).filter(row => row.current.quotes || row.prior.quotes)
+          : [];
         let runningCurrent = 0, runningPrior = 0, runningCurrentWins = 0, runningPriorWins = 0;
         const cumulative = weekly.map(row => {
           runningCurrent += row.current.value;
@@ -2593,7 +2629,7 @@
             const key = customerKey(name);
             if (!key) return;
             if (!map.has(key)) map.set(key, { key: key, name: name, quotes: 0, value: 0, wins: 0, wonValue: 0,
-              jobs: 0, tons: 0, hours: 0, records: [],
+              jobs: 0, tons: 0, hours: 0, records: [], lagTotal: 0, lagCount: 0,
               weeks: new Set(), districts: new Map(), owners: new Map(), last: null, first: null });
             const entry = map.get(key);
             entry.quotes += 1;
@@ -2604,6 +2640,9 @@
               entry.wins += 1;
               entry.wonValue += Number(record.price) || 0;
               (record.jobsDetail || []).forEach(job => { entry.jobs += 1; entry.tons += Number(job.tons) || 0; });
+              // How long this customer took to say yes, averaged over the ones
+              // that did. The silent quotes have no decision to time yet.
+              if (record.lag !== null && record.lag !== undefined) { entry.lagTotal += record.lag; entry.lagCount += 1; }
             }
             const week = Number(record.week) || 0;
             if (week) entry.weeks.add(week);
@@ -2623,6 +2662,7 @@
             entry.conversion = entry.quotes ? percentage(entry.wins, entry.quotes) : 0;
             entry.capture = entry.value ? entry.wonValue / entry.value * 100 : 0;
             entry.average = entry.quotes ? entry.value / entry.quotes : 0;
+            entry.lag = entry.lagCount ? entry.lagTotal / entry.lagCount : null;
             entry.records.sort((a, b) => (a.date || 0) - (b.date || 0));
           });
           return map;
@@ -2630,6 +2670,7 @@
         const liveBook = accountProfile(liveAll);
         const priorBook = accountProfile(priorAll);
         const blankAccount = { quotes: 0, value: 0, wins: 0, wonValue: 0, jobs: 0, tons: 0, hours: 0, records: [],
+          lagTotal: 0, lagCount: 0, lag: null,
           weekCount: 0, district: "", owner: "", last: null, name: "", conversion: 0, capture: 0, average: 0 };
         const roster = [];
         const accountKeys = new Set(Array.from(liveBook.keys()).concat(Array.from(priorBook.keys())));
@@ -2891,12 +2932,19 @@
         });
         const people = Array.from(new Set(Array.from(livePeople.keys()).concat(Array.from(priorPeople.keys()))))
           .filter(code => code !== "(none)")
-          .map(code => ({
-            code: code,
-            name: resolvedNucorPerson(code, state.model && state.model.roster).name,
-            current: personShape(livePeople.get(code) || blankPerson),
-            prior: personShape(priorPeople.get(code) || blankPerson)
-          }))
+          .map(code => {
+            const who = resolvedNucorPerson(code, state.model && state.model.roster);
+            return {
+              code: code,
+              name: who.name,
+              // A code that no Inventory sheet names is shown as itself rather
+              // than dropped, and says so on the card - a silent initial reads
+              // as a person the reader should recognise and does not.
+              named: who.matched,
+              current: personShape(livePeople.get(code) || blankPerson),
+              prior: personShape(priorPeople.get(code) || blankPerson)
+            };
+          })
           .sort((a, b) => (b.current.quotes + b.prior.quotes) - (a.current.quotes + a.prior.quotes));
 
         const weekSpan = numbers => !numbers.length ? "" : numbers.length === 1 ? "week " + numbers[0]
@@ -2919,6 +2967,7 @@
           current: current,
           prior: prior,
           weekly: weekly,
+          daily: daily,
           cumulative: cumulative,
           bands: bands,
           mixShift: mixShift,
@@ -3394,7 +3443,7 @@
               + '<td class="load"><i style="width:' + (item.perWeek / maxLoad * 100).toFixed(1) + '%"></i></td>'
               + '<td class="num">' + item.alts + '</td><td class="num">' + opsTurnText(item.turn.average) + '</td>'
               + '<td class="num">' + pct(percentage(item.turn.sixPlus, item.turn.scored)) + '</td>'
-              + '<td class="num">' + money(item.value / 1000000) + '</td><td class="num">' + pct(percentage(item.wins, item.quotes)) + "</td></tr>").join("")
+              + '<td class="num">' + fineMoney(item.value / 1000000) + '</td><td class="num">' + pct(percentage(item.wins, item.quotes)) + "</td></tr>").join("")
           + '<tr class="is-total"><td>Total</td><td class="num">' + data.quotes + '</td><td class="num">' + (data.quotes / weeks).toFixed(1) + '</td><td></td><td class="num">' + data.alts
           + '</td><td class="num">' + opsTurnText(data.turn.average) + '</td><td class="num">' + pct(percentage(data.turn.sixPlus, data.turn.scored))
           + '</td><td class="num">' + money(data.quoteValue) + '</td><td class="num">' + pct(data.conversion) + "</td></tr></tbody></table></div>";
@@ -3463,7 +3512,12 @@
         const config = options || {};
         const measured = rows.map(row => {
           const delta = cmpDelta(row.now, row.was, row.invert);
-          return { row: row, delta: delta, size: delta.change === null ? 0 : Math.abs(delta.change) };
+          // A rate that goes 23.8% to 16.7% has moved 7.1 points, and saying
+          // "−29.8%" for it disagrees with every other surface in the file.
+          const shown = row.points && delta.change !== null && row.now !== null && row.was !== null
+            ? Object.assign({}, delta, { text: cmpPoints(row.now - row.was) })
+            : delta;
+          return { row: row, delta: shown, size: delta.change === null ? 0 : Math.abs(delta.change) };
         }).sort((a, b) => config.keepOrder ? 0 : b.size - a.size);
         if (!measured.length) return '<p class="ops-note">Nothing to rank on this lens.</p>';
         // The scale is capped so one runaway measure cannot flatten the rest,
@@ -3599,40 +3653,64 @@
       function cmpQuadrant(accounts, data) {
         const points = accounts.filter(item => item.quoteChange !== 0 || Math.abs(item.valueChange) > 0.0001);
         if (points.length < 2) return '<p class="ops-note">Fewer than two accounts moved in both directions, so there is nothing to plot yet.</p>';
-        const width = 940, height = 420, pad = 58;
-        const plotW = width - pad * 2, plotH = height - pad * 2;
+        const width = 940, height = 460, pad = 62;
+        // The corner captions live in a reserved band above and below the
+        // plotting field rather than inside it, so no dot can ever be printed
+        // through one however the book falls.
+        const capBand = 26;
+        const fieldLeft = pad, fieldRight = width - pad;
+        const fieldTop = pad + capBand, fieldBottom = height - pad - capBand;
         const maxQuote = Math.max(1, Math.max.apply(null, points.map(item => Math.abs(item.quoteChange))));
         const maxValue = Math.max(0.05, Math.max.apply(null, points.map(item => Math.abs(item.valueChange))));
-        const cx = pad + plotW / 2, cy = pad + plotH / 2;
-        const x = value => cx + value / maxQuote * (plotW / 2 - 16);
-        const y = value => cy - value / maxValue * (plotH / 2 - 16);
+        const cx = (fieldLeft + fieldRight) / 2, cy = (fieldTop + fieldBottom) / 2;
+        const x = value => cx + value / maxQuote * ((fieldRight - fieldLeft) / 2 - 18);
+        const y = value => cy - value / maxValue * ((fieldBottom - fieldTop) / 2 - 18);
         const biggest = Math.max.apply(null, points.map(item => item.current.value)) || 1;
         const radius = value => 4 + Math.sqrt(Math.max(0, value) / biggest) * 13;
         // Only the four largest movers are named, so the labels cannot pile up.
         const named = points.slice().sort((a, b) => Math.abs(b.valueChange) - Math.abs(a.valueChange)).slice(0, 4);
         const namedKeys = new Set(named.map(item => item.key));
         const corner = (text, atX, atY, anchor) => '<text class="quad-corner" x="' + atX + '" y="' + atY + '" text-anchor="' + anchor + '">' + escape(text) + "</text>";
+        const scale = (text, atX, atY, anchor) => '<text class="quad-scale" x="' + atX.toFixed(1) + '" y="' + atY.toFixed(1) + '" text-anchor="' + anchor + '">' + escape(text) + "</text>";
         return '<svg class="cmp-quadrant" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Change in quotes against change in quoted value, one dot per account">'
-          + '<rect class="quad-field is-good" x="' + cx + '" y="' + pad + '" width="' + (plotW / 2) + '" height="' + (plotH / 2) + '" />'
-          + '<rect class="quad-field is-bad" x="' + pad + '" y="' + cy + '" width="' + (plotW / 2) + '" height="' + (plotH / 2) + '" />'
-          + '<line class="quad-axis" x1="' + pad + '" x2="' + (width - pad) + '" y1="' + cy + '" y2="' + cy + '" />'
-          + '<line class="quad-axis" x1="' + cx + '" x2="' + cx + '" y1="' + pad + '" y2="' + (height - pad) + '" />'
-          + corner("More quotes, worth more", width - pad - 6, pad + 16, "end")
-          + corner("Fewer quotes, worth more", pad + 6, pad + 16, "start")
-          + corner("More quotes, worth less", width - pad - 6, height - pad - 8, "end")
-          + corner("Fewer quotes, worth less", pad + 6, height - pad - 8, "start")
-          + '<text class="quad-axis-label" x="' + (width - pad + 4) + '" y="' + (cy + 17) + '" text-anchor="end">quotes →</text>'
-          + '<text class="quad-axis-label" x="' + (cx + 6) + '" y="' + (pad - 6) + '">↑ value</text>'
+          + '<rect class="quad-field is-good" x="' + cx + '" y="' + fieldTop + '" width="' + (fieldRight - cx) + '" height="' + (cy - fieldTop) + '" />'
+          + '<rect class="quad-field is-bad" x="' + fieldLeft + '" y="' + cy + '" width="' + (cx - fieldLeft) + '" height="' + (fieldBottom - cy) + '" />'
+          + '<line class="quad-axis" x1="' + fieldLeft + '" x2="' + fieldRight + '" y1="' + cy + '" y2="' + cy + '" />'
+          + '<line class="quad-axis" x1="' + cx + '" x2="' + cx + '" y1="' + fieldTop + '" y2="' + fieldBottom + '" />'
+          + corner("More quotes, worth more", fieldRight, fieldTop - 9, "end")
+          + corner("Fewer quotes, worth more", fieldLeft, fieldTop - 9, "start")
+          + corner("More quotes, worth less", fieldRight, fieldBottom + 20, "end")
+          + corner("Fewer quotes, worth less", fieldLeft, fieldBottom + 20, "start")
+          // Both axes carry their own magnitude, in the margin, so the reader
+          // knows whether a dot at the edge moved by one quote or by twenty.
+          + scale("+" + fineMoney(maxValue), fieldLeft - 9, fieldTop + 22, "end")
+          + scale("$0", fieldLeft - 9, cy + 4, "end")
+          + scale("−" + fineMoney(maxValue), fieldLeft - 9, fieldBottom - 14, "end")
+          + scale("−" + opsNumber(maxQuote) + " quotes", fieldLeft, height - 16, "start")
+          + scale("no change", cx, height - 16, "middle")
+          + scale("+" + opsNumber(maxQuote) + " quotes", fieldRight, height - 16, "end")
+          + '<text class="quad-axis-label" x="' + cx + '" y="' + (fieldTop - 9) + '" text-anchor="middle">↑ worth more</text>'
           + points.map(item => {
               const tone = item.valueChange > 0 ? "is-up" : item.valueChange < 0 ? "is-down" : "is-flat";
               return '<circle class="quad-dot ' + tone + '" cx="' + x(item.quoteChange).toFixed(1) + '" cy="' + y(item.valueChange).toFixed(1)
                 + '" r="' + radius(item.current.value).toFixed(1) + '"><title>' + escape(item.name + " · " + cmpSigned(item.valueChange)
                 + " · " + (item.quoteChange > 0 ? "+" : "") + item.quoteChange + " quotes") + "</title></circle>";
             }).join("")
-          + named.map(item => '<text class="quad-name" x="' + (x(item.quoteChange) + radius(item.current.value) + 5).toFixed(1)
-              + '" y="' + (y(item.valueChange) + 4).toFixed(1) + '">' + escape(cmpClip(item.name, 18)) + "</text>").join("")
+          // A name sits to the right of its dot unless the dot is far enough
+          // right that the name would run off the field, in which case it sits
+          // to the left instead.
+          + named.map(item => {
+              const at = x(item.quoteChange), r = radius(item.current.value);
+              const flip = at > fieldLeft + (fieldRight - fieldLeft) * 0.62;
+              return '<text class="quad-name" x="' + (flip ? at - r - 5 : at + r + 5).toFixed(1)
+                + '" y="' + (y(item.valueChange) + 4).toFixed(1) + '" text-anchor="' + (flip ? "end" : "start") + '">'
+                + escape(cmpClip(item.name, 18)) + "</text>";
+            }).join("")
           + "</svg>"
-          + '<p class="ops-note">Dot size is what the account is worth to us this period. ' + escape(namedKeys.size + " largest mover" + (namedKeys.size === 1 ? " is" : "s are") + " named; hover any dot for the rest.") + "</p>";
+          + '<p class="ops-note">Dot size is what the account is worth to us this period. '
+          + escape(namedKeys.size
+              ? namedKeys.size + " largest mover" + (namedKeys.size === 1 ? " is" : "s are") + " named; hover any dot for the rest."
+              : "Hover any dot to read the account behind it.") + "</p>";
       }
 
       // A churn list is only useful if it says who to ring and why. Value, how
@@ -3786,6 +3864,39 @@
       // Every quote is asked only a question it has had time to answer, so a
       // young book is never read as a losing one. The shaded band between the
       // curves is the whole finding.
+      // The gap between the two booking curves, filled one segment at a time
+      // and coloured by who is in front over that segment, splitting exactly at
+      // a crossing. Colouring the whole band by the final checkpoint told the
+      // reader the book was behind at day 14 when it was in front.
+      function survivalBandSegments(marks, x, y) {
+        const out = [];
+        const quad = (xa, curA, priA, xb, curB, priB) => {
+          const mid = ((curA - priA) + (curB - priB)) / 2;
+          out.push({ ahead: mid >= 0,
+            d: "M" + xa.toFixed(1) + " " + y(curA).toFixed(1)
+              + " L" + xb.toFixed(1) + " " + y(curB).toFixed(1)
+              + " L" + xb.toFixed(1) + " " + y(priB).toFixed(1)
+              + " L" + xa.toFixed(1) + " " + y(priA).toFixed(1) + " Z" });
+        };
+        for (let index = 0; index < marks.length - 1; index += 1) {
+          const xa = x(index), xb = x(index + 1);
+          const curA = marks[index].current.share, priA = marks[index].prior.share;
+          const curB = marks[index + 1].current.share, priB = marks[index + 1].prior.share;
+          const before = curA - priA, after = curB - priB;
+          if (before !== 0 && after !== 0 && (before > 0) !== (after > 0)) {
+            const t = before / (before - after);
+            const xc = xa + (xb - xa) * t;
+            const cross = curA + (curB - curA) * t;
+            quad(xa, curA, priA, xc, cross, cross);
+            quad(xc, cross, cross, xb, curB, priB);
+          } else {
+            quad(xa, curA, priA, xb, curB, priB);
+          }
+        }
+        return out.map(segment => '<path class="surv-band ' + (segment.ahead ? "is-ahead" : "is-behind")
+          + '" d="' + segment.d + '" />').join("");
+      }
+
       function cmpSurvivalChart(survival, data) {
         const marks = survival.filter(mark => mark.answerable);
         if (marks.length < 2) return '<p class="ops-note">Neither period has enough quotes old enough to answer two of the checkpoints yet. This chart fills in as the book matures.</p>';
@@ -3795,14 +3906,12 @@
         const x = index => padLeft + (marks.length === 1 ? plotW / 2 : index / (marks.length - 1) * plotW);
         const y = value => padTop + (1 - value / top) * plotH;
         const line = key => marks.map((mark, index) => (index ? "L" : "M") + x(index).toFixed(1) + " " + y(mark[key].share).toFixed(1)).join(" ");
-        const band = line("current")
-          + " " + marks.slice().reverse().map((mark, index) => "L" + x(marks.length - 1 - index).toFixed(1) + " " + y(mark.prior.share).toFixed(1)).join(" ") + " Z";
         const last = marks[marks.length - 1];
         const ahead = last.current.share >= last.prior.share;
         return '<svg class="cmp-survival" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Share of quotes booked by each age, both periods">'
           + [0, top / 2, top].map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
               + '<text class="axis" x="' + (padLeft - 9) + '" y="' + (y(value) + 4).toFixed(1) + '" text-anchor="end">' + escape(pct(value)) + "</text>").join("")
-          + '<path class="surv-band ' + (ahead ? "is-ahead" : "is-behind") + '" d="' + band + '" />'
+          + survivalBandSegments(marks, x, y)
           + '<path class="surv-line is-then" d="' + line("prior") + '" />'
           + '<path class="surv-line is-now" d="' + line("current") + '" />'
           + marks.map((mark, index) => '<circle class="surv-dot is-then" cx="' + x(index).toFixed(1) + '" cy="' + y(mark.prior.share).toFixed(1) + '" r="4" />'
@@ -3815,7 +3924,7 @@
           + '<text class="surv-end is-then" x="' + (width - padRight + 12) + '" y="' + (y(last.prior.share) + (Math.abs(y(last.current.share) - y(last.prior.share)) < 32 ? (ahead ? 30 : -18) : 1)).toFixed(1) + '">' + escape(pct(last.prior.share)) + "</text>"
           + '<text class="surv-end-label is-then" x="' + (width - padRight + 12) + '" y="' + (y(last.prior.share) + (Math.abs(y(last.current.share) - y(last.prior.share)) < 32 ? (ahead ? 44 : -4) : 15)).toFixed(1) + '">' + escape(data.priorShort) + "</text>"
           + "</svg>"
-          + '<p class="ops-note">Read down each checkpoint: of the quotes that had been open at least that many days, this is the share that had booked by then. The pair of counts under each day is how many quotes could answer it, this period against last.</p>';
+          + '<p class="ops-note">Read down each checkpoint: of the quotes that had been open at least that many days, this is the share that had booked by then. The pair of counts under each day is how many quotes could answer it, this period against last. The gap between the lines is shaded green where this period is in front and red where it is behind, so a book that starts ahead and ends behind reads as exactly that.</p>';
       }
 
       // ---- Where the account base went --------------------------------------
@@ -3826,46 +3935,77 @@
         const keep = data.retention;
         const thin = data.span && data.span.thin;
         const words = thin
-          ? { kept: "quoted in both", lost: "not in these weeks", arrived: "only this period", foot: "only last period, %L; only this period, %N" }
-          : { kept: "came back", lost: "stopped asking", arrived: "new to us", foot: "%L left, %N arrived" };
+          ? { kept: "quoted in both", lost: "not in these weeks", arrived: "only this period",
+              lostEnd: "only last period", newEnd: "only this period" }
+          : { kept: "came back", lost: "stopped asking", arrived: "new to us",
+              lostEnd: "stopped asking", newEnd: "arrived this period" };
         const total = Math.max(keep.priorCount, keep.currentCount, 1);
-        const width = 940, height = 330, padTop = 40, padBottom = 52;
+        // The top band has to hold both column headings and the caption on the
+        // ribbon that arrives from off the picture, on two separate lines.
+        const width = 940, height = 356, padTop = 58, padBottom = 46;
         const colW = 132, leftX = 96, rightX = width - 96 - colW;
         const plotH = height - padTop - padBottom;
         const scale = value => value / total * plotH;
-        const leftH = scale(keep.priorCount), rightH = scale(keep.currentCount);
         const keptH = scale(keep.keptCount), lostH = scale(keep.lostCount), newH = scale(keep.gainedCount);
         const leftTop = padTop, rightTop = padTop;
+        const gapLeft = leftX + colW, gapRight = rightX, gapW = gapRight - gapLeft;
         // Kept sits at the top of both stacks so the through-line is straight.
-        const ribbon = (y0, h0, y1, h1, cls) => {
-          const x0 = leftX + colW, x1 = rightX, mid = (x0 + x1) / 2;
-          return '<path class="flow-ribbon ' + cls + '" d="M' + x0 + " " + y0.toFixed(1)
-            + " C" + mid + " " + y0.toFixed(1) + " " + mid + " " + y1.toFixed(1) + " " + x1 + " " + y1.toFixed(1)
-            + " L" + x1 + " " + (y1 + h1).toFixed(1)
-            + " C" + mid + " " + (y1 + h1).toFixed(1) + " " + mid + " " + (y0 + h0).toFixed(1) + " " + x0 + " " + (y0 + h0).toFixed(1)
+        // The other two ribbons stop short of the far column on purpose: what
+        // leaves does not arrive anywhere on this picture, and what arrives did
+        // not come from last period's names.
+        const ribbon = (x0, y0, h0, x1, y1, h1, cls) => {
+          const mid = (x0 + x1) / 2;
+          return '<path class="flow-ribbon ' + cls + '" d="M' + x0.toFixed(1) + " " + y0.toFixed(1)
+            + " C" + mid.toFixed(1) + " " + y0.toFixed(1) + " " + mid.toFixed(1) + " " + y1.toFixed(1) + " " + x1.toFixed(1) + " " + y1.toFixed(1)
+            + " L" + x1.toFixed(1) + " " + (y1 + h1).toFixed(1)
+            + " C" + mid.toFixed(1) + " " + (y1 + h1).toFixed(1) + " " + mid.toFixed(1) + " " + (y0 + h0).toFixed(1) + " " + x0.toFixed(1) + " " + (y0 + h0).toFixed(1)
             + " Z" + '" />';
         };
-        const block = (x, y, h, cls, label, value, note) =>
-          '<rect class="flow-block ' + cls + '" x="' + x + '" y="' + y.toFixed(1) + '" width="' + colW + '" height="' + Math.max(2, h).toFixed(1) + '" />'
-          + (h > 26
-              ? '<text class="flow-block-value" x="' + (x + colW / 2) + '" y="' + (y + h / 2 + 1).toFixed(1) + '" text-anchor="middle">' + escape(value) + "</text>"
-                + '<text class="flow-block-label" x="' + (x + colW / 2) + '" y="' + (y + h / 2 + 16).toFixed(1) + '" text-anchor="middle">' + escape(label) + "</text>"
-              : '<text class="flow-block-tiny" x="' + (x + colW + 9) + '" y="' + (y + h / 2 + 4).toFixed(1) + '">' + escape(value + " " + label) + "</text>")
-          + (note && h > 74 ? '<text class="flow-block-note" x="' + (x + colW / 2) + '" y="' + (y + h / 2 + 30).toFixed(1) + '" text-anchor="middle">' + escape(note) + "</text>" : "");
+        // A label wider than the column it sits in is broken over two lines at
+        // the space nearest its middle rather than allowed to run into the
+        // margin. Roughly 7.6px a character at this size and tracking.
+        const labelLines = text => {
+          const value = String(text || "").toUpperCase();
+          if (value.length * 7.6 <= colW - 10) return [value];
+          const spaces = [];
+          for (let index = 0; index < value.length; index += 1) if (value[index] === " ") spaces.push(index);
+          if (!spaces.length) return [value];
+          const middle = value.length / 2;
+          const at = spaces.reduce((best, index) => Math.abs(index - middle) < Math.abs(best - middle) ? index : best, spaces[0]);
+          return [value.slice(0, at), value.slice(at + 1)];
+        };
+        const block = (x, y, h, cls, label, value, note) => {
+          const lines = labelLines(label);
+          const drop = (lines.length - 1) * 12;
+          return '<rect class="flow-block ' + cls + '" x="' + x + '" y="' + y.toFixed(1) + '" width="' + colW + '" height="' + Math.max(2, h).toFixed(1) + '" />'
+            + (h > 26
+                ? '<text class="flow-block-value" x="' + (x + colW / 2) + '" y="' + (y + h / 2 - drop / 2 + 1).toFixed(1) + '" text-anchor="middle">' + escape(value) + "</text>"
+                  + lines.map((line, index) => '<text class="flow-block-label" x="' + (x + colW / 2) + '" y="'
+                      + (y + h / 2 - drop / 2 + 16 + index * 12).toFixed(1) + '" text-anchor="middle">' + escape(line) + "</text>").join("")
+                : '<text class="flow-block-tiny" x="' + (x + colW + 9) + '" y="' + (y + h / 2 + 4).toFixed(1) + '">' + escape(value + " " + label) + "</text>")
+            + (note && h > 74 + drop ? '<text class="flow-block-note" x="' + (x + colW / 2) + '" y="' + (y + h / 2 - drop / 2 + 30 + drop).toFixed(1) + '" text-anchor="middle">' + escape(note) + "</text>" : "");
+        };
+        const lostEndX = gapLeft + gapW * 0.56, lostEndY = height - padBottom + 4, lostEndH = 30;
+        const newStartX = gapLeft + gapW * 0.44, newStartY = padTop - 34, newStartH = 30;
         return '<svg class="cmp-flow" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Accounts kept, lost and gained between the two periods">'
           + '<text class="flow-head" x="' + (leftX + colW / 2) + '" y="24" text-anchor="middle">' + escape(data.priorShort + " · " + opsNumber(keep.priorCount) + " accounts") + "</text>"
           + '<text class="flow-head" x="' + (rightX + colW / 2) + '" y="24" text-anchor="middle">' + escape(data.currentShort + " · " + opsNumber(keep.currentCount) + " accounts") + "</text>"
-          + ribbon(leftTop, keptH, rightTop, keptH, "is-kept")
-          + (keep.lostCount ? ribbon(leftTop + keptH, lostH, height - padBottom + 14, Math.max(3, lostH * 0.35), "is-lost") : "")
-          + (keep.gainedCount ? ribbon(padTop - 26, Math.max(3, newH * 0.35), rightTop + keptH, newH, "is-new") : "")
+          + ribbon(gapLeft, leftTop, keptH, gapRight, rightTop, keptH, "is-kept")
+          + (keep.lostCount ? ribbon(gapLeft, leftTop + keptH, lostH, lostEndX, lostEndY, lostEndH, "is-lost") : "")
+          + (keep.gainedCount ? ribbon(newStartX, newStartY, newStartH, gapRight, rightTop + keptH, newH, "is-new") : "")
           + block(leftX, leftTop, keptH, "is-kept", words.kept, opsNumber(keep.keptCount), pct(keep.keepRate) + " of the base")
           + (keep.lostCount ? block(leftX, leftTop + keptH, lostH, "is-lost", words.lost, opsNumber(keep.lostCount), fineMoney(keep.lostValue) + " quoted then") : "")
           + block(rightX, rightTop, keptH, "is-kept", thin ? "quoted in both" : "returning", opsNumber(keep.keptCount), "")
           + (keep.gainedCount ? block(rightX, rightTop + keptH, newH, "is-new", words.arrived, opsNumber(keep.gainedCount), fineMoney(keep.gainedValue) + " quoted now") : "")
-          + '<text class="flow-foot" x="' + (width / 2) + '" y="' + (height - 12) + '" text-anchor="middle">'
-          + escape(keep.lostCount || keep.gainedCount
-              ? words.foot.replace("%L", opsNumber(keep.lostCount)).replace("%N", opsNumber(keep.gainedCount))
-              : "the same names, both periods") + "</text>"
+          // Each loose ribbon names itself where it leaves or joins the picture,
+          // so neither has to be traced back to a caption somewhere else.
+          + (keep.lostCount ? '<text class="flow-foot is-lost" x="' + (lostEndX + 10).toFixed(1) + '" y="' + (lostEndY + lostEndH / 2 + 4).toFixed(1) + '">'
+              + escape(opsNumber(keep.lostCount) + " " + words.lostEnd + " · " + fineMoney(keep.lostValue)) + "</text>" : "")
+          + (keep.gainedCount ? '<text class="flow-foot is-new" x="' + (newStartX - 10).toFixed(1) + '" y="' + (newStartY + newStartH / 2 + 4).toFixed(1) + '" text-anchor="end">'
+              + escape(opsNumber(keep.gainedCount) + " " + words.newEnd + " · " + fineMoney(keep.gainedValue)) + "</text>" : "")
+          + (!keep.lostCount && !keep.gainedCount
+              ? '<text class="flow-foot" x="' + (width / 2) + '" y="' + (height - 12) + '" text-anchor="middle">the same names, both periods</text>'
+              : "")
           + "</svg>";
       }
 
@@ -4026,7 +4166,12 @@
       // manager can read down, not a chart they have to decode.
       function cmpMetricGrid(rows, options) {
         const config = options || {};
-        return '<div class="pair-grid' + (config.dense ? " is-dense" : "") + '">'
+        // An explicit column count is offered because auto-fit will happily
+        // leave a row of holes when the measure count does not divide by the
+        // number of columns it happens to land on.
+        return '<div class="pair-grid' + (config.dense ? " is-dense" : "")
+            + (config.columns ? " is-fixed" : "") + '"'
+            + (config.columns ? ' style="--pair-columns:' + config.columns + '"' : "") + ">"
           + rows.map(row => {
               // A rate moves in points, not in percent of itself: a due-date
               // score going 0% to 25% is +25 points, not "new".
@@ -4066,11 +4211,16 @@
           const bar = value => Math.max(value > 0 ? 3 : 0, Math.min(100, value / biggest * 100));
           return '<article class="roster-card is-' + state + '">'
             + '<header><div><h4>' + escape(person.name) + "</h4>"
-            + "<span>" + escape(person.code) + " · " + escape(data.roleLabel.toLowerCase()) + "</span></div>"
+            + "<span>" + (person.named === false
+                ? escape(person.code) + " · no roster name in either Inventory sheet"
+                : escape(person.code) + " · " + escape(data.roleLabel.toLowerCase())) + "</span></div>"
             + '<b class="roster-state is-' + state + '">' + escape(stateText) + "</b></header>"
             + '<div class="roster-load"><div class="roster-bar is-then" style="width:' + bar(then.quotes).toFixed(1) + '%"><i>' + opsNumber(then.quotes) + "</i></div>"
             + '<div class="roster-bar is-now" style="width:' + bar(now.quotes).toFixed(1) + '%"><i>' + opsNumber(now.quotes) + "</i></div></div>"
             + '<p class="roster-load-note">' + escape(opsNumber(then.quotes) + " quotes last period, " + opsNumber(now.quotes) + " this one") + "</p>"
+            // Twelve measures, not ten: the grid resolves to two, three, four or
+            // six columns depending on how wide the card lands, and twelve
+            // divides by all of them, so no card ever ends on a half-empty row.
             + cmpMetricGrid([
                 { label: "Quoted value", now: now.value, was: then.value, fmt: fineMoney },
                 { label: "Wins", now: now.wins, was: then.wins, fmt: opsNumber },
@@ -4078,8 +4228,10 @@
                 { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: fineMoney },
                 { label: "Value capture", now: now.capture, was: then.capture, fmt: pct, points: true },
                 { label: "Average quote", now: now.average, was: then.average, fmt: fineMoney },
-                { label: "Hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true },
+                { label: "Booked jobs", now: now.jobs, was: then.jobs, fmt: opsNumber },
+                { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
                 { label: "Accounts served", now: now.accounts, was: then.accounts, fmt: opsNumber },
+                { label: "Hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true },
                 { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value), points: true },
                 { label: "Days to book", now: now.lag, was: then.lag, fmt: value => value === null ? "—" : value.toFixed(0) + "d", invert: true }
               ], { dense: true })
@@ -4161,8 +4313,9 @@
               { label: "Booked jobs", now: now.jobs, was: then.jobs, fmt: opsNumber },
               { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "0" },
               { label: "Weeks they appeared in", now: now.weekCount, was: then.weekCount, fmt: opsNumber },
+              { label: "Days to decide", now: now.lag, was: then.lag, fmt: value => value === null ? "—" : value.toFixed(0) + "d", invert: true },
               { label: "Engineering hours", now: now.hours, was: then.hours, fmt: value => value ? value.toFixed(0) : "0", invert: true }
-            ])
+            ], { columns: 4 })
           + '<div class="brief-years">' + jobList(then, data.priorShort) + jobList(now, data.currentShort) + "</div>"
           + '<p class="ops-note">' + escape("Every quote this account sent in each period, largest first, with whether an order came back against it. "
             + (then.last ? "Last quoted " + fullDate(then.last) + " in " + data.priorShort + "" : "")
@@ -4218,6 +4371,7 @@
       // Paired columns per week turn into a picket fence once there are more
       // than a handful. One signed bar per week says the same thing at a
       // glance: right is a better week than the same week last year.
+      let swingClipSeq = 0;
       function cmpWeekSwing(weekly, options) {
         const config = options || {};
         if (!weekly.length) return '<div class="' + (config.deck ? "deck-empty" : "ops-note") + '">No week number appears in both periods.</div>';
@@ -4228,12 +4382,25 @@
             + " · " + pct(row.prior.conversion) + " → " + pct(row.current.conversion)
         }));
         const scale = Math.max.apply(null, rows.map(row => Math.abs(row.change))) || 1;
-        const rowHeight = config.deck ? 46 : 38, labelWidth = config.deck ? 96 : 78, valueWidth = config.deck ? 250 : 210;
+        const rowHeight = config.deck ? 46 : 38, labelWidth = config.deck ? 96 : 78, valueWidth = config.deck ? 296 : 226;
         const width = config.deck ? 1240 : 940, height = rows.length * rowHeight + 40;
         const plot = width - labelWidth - valueWidth;
         const centre = labelWidth + plot / 2;
+        // Monospace at the note's own size, so the clip is the column width and
+        // not a guess: the value pair leads, and the conversions go first if
+        // there is not room for both.
+        const noteChars = Math.max(10, Math.floor((valueWidth - 20) / (config.deck ? 6.9 : 5.7)));
+        const clipNote = text => text.length > noteChars ? text.slice(0, noteChars - 1) + "…" : text;
+        // A character clip only holds for the string this code writes. A figure
+        // that grows later — a bigger book, a longer name — needs the chart
+        // itself to refuse to draw outside the column, so the column is a real
+        // clip path rather than an assumption about how wide text will be.
+        swingClipSeq += 1;
+        const clipId = "swingClip" + swingClipSeq;
         return '<svg class="' + (config.deck ? "deck-chart deck-swing" : "cmp-swing") + '" viewBox="0 0 ' + width + " " + height
           + '" role="img" aria-label="Change in quoted value by week against the same week a year ago">'
+          + '<defs><clipPath id="' + clipId + '"><rect x="' + (width - valueWidth + 6) + '" y="0" width="' + (valueWidth - 12) + '" height="' + height + '" /></clipPath>'
+          + '<clipPath id="' + clipId + 'L"><rect x="0" y="0" width="' + (labelWidth - 8) + '" height="' + height + '" /></clipPath></defs>'
           + '<text class="swing-axis" x="' + (centre - 12) + '" y="16" text-anchor="end">worse than last year</text>'
           + '<text class="swing-axis" x="' + (centre + 12) + '" y="16">better than last year</text>'
           + '<line class="swing-centre" x1="' + centre + '" x2="' + centre + '" y1="26" y2="' + (height - 12) + '" />'
@@ -4242,12 +4409,12 @@
               const length = Math.max(3, Math.abs(row.change) / scale * (plot / 2 - 14));
               const up = row.change >= 0;
               return '<g class="swing-row" style="--deck-bar-delay:' + (index * 55) + 'ms">'
-                + '<text class="swing-week" x="0" y="' + (y + 18) + '">' + escape(row.label) + "</text>"
+                + '<text class="swing-week" x="0" y="' + (y + 18) + '" clip-path="url(#' + clipId + 'L)">' + escape(row.label) + "</text>"
                 + '<rect class="swing-bar ' + (up ? "is-up" : "is-down") + '" x="' + (up ? centre : centre - length).toFixed(1)
                 + '" y="' + (y + 4) + '" width="' + length.toFixed(1) + '" height="' + (rowHeight - 18) + '" />'
-                + '<text class="swing-value ' + (up ? "is-up" : "is-down") + '" x="' + (width - valueWidth + 12) + '" y="' + (y + 15) + '">'
+                + '<text class="swing-value ' + (up ? "is-up" : "is-down") + '" x="' + (width - valueWidth + 12) + '" y="' + (y + 15) + '" clip-path="url(#' + clipId + ')">'
                 + escape(cmpSigned(row.change)) + "</text>"
-                + '<text class="swing-note" x="' + (width - valueWidth + 12) + '" y="' + (y + 30) + '">' + escape(row.note) + "</text>"
+                + '<text class="swing-note" x="' + (width - valueWidth + 12) + '" y="' + (y + 30) + '" clip-path="url(#' + clipId + ')">' + escape(clipNote(row.note)) + "</text>"
                 + "</g>";
             }).join("")
           + "</svg>";
@@ -4378,10 +4545,10 @@
           { label: "Average quote", now: now.averageQuote, was: then.averageQuote, fmt: fineMoney },
           { label: "Quote wins", now: now.wins, was: then.wins, fmt: opsNumber },
           { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: money },
-          { label: "Conversion", now: now.conversion, was: then.conversion, fmt: pct },
-          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct },
+          { label: "Conversion", now: now.conversion, was: then.conversion, fmt: pct, points: true },
+          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct, points: true },
           { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
-          { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value) },
+          { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value), points: true },
           { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
           { label: "Median decision time", now: now.decide, was: then.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
           { label: "Engineering hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true },
@@ -4393,42 +4560,106 @@
           .sort((a, b) => b.move - a.move);
         const bestWeekRow = weekMoves[0], worstWeekRow = weekMoves[weekMoves.length - 1];
         const aheadWeeks = data.weekly.filter(row => row.current.value > row.prior.value).length;
-        $("#cmpMomentumLede").innerHTML = cmpLede("Week against week", weekMoves.length
-          ? [
-              opsNumber(aheadWeeks) + " of " + opsNumber(data.weekly.length) + " matched week" + (data.weekly.length === 1 ? "" : "s") + " quoted more than the same week a year ago. ",
-              { text: bestWeekRow.row.label, tone: "now" },
-              " was the strongest at ",
-              { text: cmpSigned(bestWeekRow.move), tone: toneOf(bestWeekRow.move) },
-              bestWeekRow === worstWeekRow ? "." : ", and ",
-              bestWeekRow === worstWeekRow ? "" : { text: worstWeekRow.row.label, tone: "then" },
-              bestWeekRow === worstWeekRow ? "" : " the weakest at ",
-              bestWeekRow === worstWeekRow ? "" : { text: cmpSigned(worstWeekRow.move), tone: toneOf(worstWeekRow.move) },
-              bestWeekRow === worstWeekRow ? "" : "."
-            ]
-          : ["No week number appears in both periods, so there is no week-against-week read."],
-          [
-            { label: "Weeks matched", value: opsNumber(data.weekly.length), note: data.aligned ? data.alignedOn : "no overlap" },
-            { label: "Weeks ahead", value: opsNumber(aheadWeeks), note: "on quoted value" },
-            { label: "Best week", value: bestWeekRow ? bestWeekRow.row.label : "—", note: bestWeekRow ? cmpSigned(bestWeekRow.move) : "", tone: bestWeekRow ? toneOf(bestWeekRow.move) : "plain" },
-            { label: "Weakest week", value: worstWeekRow ? worstWeekRow.row.label : "—", note: worstWeekRow ? cmpSigned(worstWeekRow.move) : "", tone: worstWeekRow ? toneOf(worstWeekRow.move) : "plain" }
-          ]);
-        $("#cmpWeekChart").innerHTML = cmpWeekSwing(data.weekly)
-          + '<div class="ops-subhead" style="margin-top:20px">Quotes issued, side by side</div>'
-          + cmpColumnPairs(data.weekly.map(row => ({
+        // One matched week has no shape to read, and naming the same week as
+        // both the best and the weakest is how a surface loses a reader's
+        // trust. It says what it has instead.
+        const single = data.weekly.length === 1 ? data.weekly[0] : null;
+        $("#cmpMomentumLede").innerHTML = cmpLede("Week against week",
+          single
+            ? [
+                "Only ",
+                { text: single.label, tone: "plain" },
+                " is present in both periods, so there is no week-against-week shape to read yet. That week quoted ",
+                { text: money(single.current.value), tone: "now" },
+                " against ",
+                { text: money(single.prior.value), tone: "then" },
+                " and converted ",
+                { text: pct(single.current.conversion), tone: toneOf(single.current.conversion - single.prior.conversion) },
+                " against " + pct(single.prior.conversion)
+                  + ". The panels below read the five days inside that week instead; load more matching weeks from each year and they become a trend."
+              ]
+            : weekMoves.length
+              ? [
+                  opsNumber(aheadWeeks) + " of " + opsNumber(data.weekly.length) + " matched weeks quoted more than the same week a year ago. ",
+                  { text: bestWeekRow.row.label, tone: "now" },
+                  " was the strongest at ",
+                  { text: cmpSigned(bestWeekRow.move), tone: toneOf(bestWeekRow.move) },
+                  ", and ",
+                  { text: worstWeekRow.row.label, tone: "then" },
+                  " the weakest at ",
+                  { text: cmpSigned(worstWeekRow.move), tone: toneOf(worstWeekRow.move) },
+                  "."
+                ]
+              : ["No week number appears in both periods, so there is no week-against-week read."],
+          single
+            ? [
+                { label: "Weeks matched", value: "1", note: data.alignedOn || "one week", tone: "flat" },
+                { label: "Quoted", value: money(single.current.value), note: cmpDelta(single.current.value, single.prior.value).text + " on " + money(single.prior.value), tone: cmpDelta(single.current.value, single.prior.value).tone },
+                { label: "Returned", value: money(single.current.wonValue), note: cmpDelta(single.current.wonValue, single.prior.wonValue).text + " on " + money(single.prior.wonValue), tone: cmpDelta(single.current.wonValue, single.prior.wonValue).tone },
+                { label: "Conversion", value: pct(single.current.conversion), note: pointMove(single.current.conversion, single.prior.conversion), tone: toneOf(single.current.conversion - single.prior.conversion) }
+              ]
+            : [
+                { label: "Weeks matched", value: opsNumber(data.weekly.length), note: data.aligned ? data.alignedOn : "no overlap" },
+                { label: "Weeks ahead", value: opsNumber(aheadWeeks), note: "on quoted value" },
+                { label: "Best week", value: bestWeekRow ? bestWeekRow.row.label : "—", note: bestWeekRow ? cmpSigned(bestWeekRow.move) : "", tone: bestWeekRow ? toneOf(bestWeekRow.move) : "plain" },
+                { label: "Weakest week", value: worstWeekRow ? worstWeekRow.row.label : "—", note: worstWeekRow ? cmpSigned(worstWeekRow.move) : "", tone: worstWeekRow ? toneOf(worstWeekRow.move) : "plain" }
+              ]);
+        // With one matched week the three panels below fall through to the days
+        // inside that week. The question the view asks does not change — which
+        // stretch carried more, and which carried less — only its grain, and a
+        // five-day plot is a chart rather than one pair of columns in a field
+        // of white.
+        const grain = single && data.daily.length > 1 ? data.daily : data.weekly;
+        const byDay = grain !== data.weekly;
+        setText("#cmpWeekTitle", byDay ? "Which days carried more, and which carried less"
+          : "Which weeks carried more, and which carried less");
+        setText("#cmpWeekValueTitle", byDay ? "Quoted value on each day of the matched week"
+          : "Quoted value in each matched week");
+        setText("#cmpWeekValueNote", byDay
+          ? "The same five days measured in dollars rather than in count. A day can carry fewer quotes than the year before and still be worth more."
+          : "The same weeks measured in dollars rather than in count. A week can carry fewer quotes and still be worth more.");
+        $("#cmpWeekChart").innerHTML = (grain.length > 1 && !byDay
+            ? cmpWeekSwing(data.weekly) + '<div class="ops-subhead" style="margin-top:20px">Quotes issued, side by side</div>'
+            : "")
+          + cmpColumnPairs(grain.map(row => ({
               label: row.label, prior: row.prior.quotes, current: row.current.quotes,
               note: pct(row.prior.conversion) + " → " + pct(row.current.conversion)
             })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort + " quotes", keyCurrent: data.currentShort + " quotes",
-              label: "Quotes issued per matched week in both periods" });
-        setText("#cmpWeekNote", "Quotes issued in every week number present in both periods, with that week's conversion underneath — "
-          + data.weekly.length + " week" + (data.weekly.length === 1 ? "" : "s") + " matched.");
-        $("#cmpWeekValueChart").innerHTML = cmpColumnPairs(data.weekly.map(row => ({
+              label: byDay ? "Quotes issued on each day of the matched week in both periods"
+                : "Quotes issued per matched week in both periods" });
+        setText("#cmpWeekNote", byDay
+          ? "One matched week is loaded, so this reads the five days inside it rather than a run of weeks. Quotes issued each day, with that day's conversion underneath."
+          : "Quotes issued in every week number present in both periods, with that week's conversion underneath — "
+            + data.weekly.length + " week" + (data.weekly.length === 1 ? "" : "s") + " matched.");
+        $("#cmpWeekValueChart").innerHTML = cmpColumnPairs(grain.map(row => ({
             label: row.label, prior: row.prior.value, current: row.current.value,
             note: money(row.prior.wonValue) + " → " + money(row.current.wonValue) + " back"
           })), { format: money, keyPrior: data.priorShort + " quoted", keyCurrent: data.currentShort + " quoted",
-            label: "Quoted value per matched week in both periods" });
-        const finish = data.cumulative.length ? data.cumulative[data.cumulative.length - 1] : null;
-        $("#cmpRace").innerHTML = cmpRaceSvg(data.cumulative, data)
-          + '<p class="ops-note">Both periods start at zero on their own week one, so the lines are read against each other rather than against a calendar. '
+            label: byDay ? "Quoted value on each day of the matched week in both periods"
+              : "Quoted value per matched week in both periods" });
+        // The race accumulates over whatever grain the view is reading at, so a
+        // single week still races - day one against day one.
+        const raceRows = byDay
+          ? (function () {
+              let quoted = 0, priorQuoted = 0, back = 0, priorBack = 0;
+              return grain.map(row => {
+                quoted += row.current.value; priorQuoted += row.prior.value;
+                back += row.current.wonValue; priorBack += row.prior.wonValue;
+                return { label: row.label, current: quoted, prior: priorQuoted, currentWon: back, priorWon: priorBack };
+              });
+            }())
+          : data.cumulative;
+        const finish = raceRows.length ? raceRows[raceRows.length - 1] : null;
+        setText("#cmpRaceTitle", byDay ? "Ahead or behind, at the same day of the week"
+          : "Ahead or behind, at the same point");
+        setText("#cmpRaceNote", byDay
+          ? "Quoted value and returned value accumulating day by day through the matched week in both periods. The gap between the pairs on any day is how far ahead or behind this period was by the end of that day — not by Friday."
+          : "Quoted value and returned value accumulating week by week in both periods. The gap between the pairs at any week is how far ahead or behind this period is at that point — not at the end.");
+        $("#cmpRace").innerHTML = cmpRaceSvg(raceRows, data)
+          + '<p class="ops-note">'
+          + (byDay
+              ? "Both periods start at zero on the Monday of the matched week, so the lines are read against each other rather than against a calendar. "
+              : "Both periods start at zero on their own week one, so the lines are read against each other rather than against a calendar. ")
           + (finish
               ? "By " + escape(finish.label) + " this period had quoted " + money(finish.current) + " against " + money(finish.prior)
                 + ", and returned " + money(finish.currentWon) + " against " + money(finish.priorWon) + "."
@@ -4464,8 +4695,8 @@
           { label: "Median time to price", now: now.produce, was: then.produce, fmt: value => value === null ? "—" : dayText(value), invert: true },
           { label: "Median decision time", now: now.decide, was: then.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
           { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
-          { label: "Answered inside three days", now: now.withinThree, was: then.withinThree, fmt: value => value === null ? "—" : pct(value) },
-          { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value) }
+          { label: "Answered inside three days", now: now.withinThree, was: then.withinThree, fmt: value => value === null ? "—" : pct(value), points: true },
+          { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value), points: true }
         ], { keepOrder: true })
           + '<p class="ops-note">Time to price is our half of the clock and decision time is the customer’s. The decision figure is measured on quotes that came back, so it is the time taken by the customers who said yes — an optimistic read by construction, and the ones still silent sit in the open book instead.</p>';
 
@@ -4488,7 +4719,15 @@
           [
             { label: "Top 5 hold", value: pct(data.concentration.current.top5), note: "was " + pct(data.concentration.prior.top5), tone: toneOf(-concentrationMove) },
             { label: "Top 10 hold", value: pct(data.concentration.current.top10), note: "was " + pct(data.concentration.prior.top10), tone: toneOf(-(data.concentration.current.top10 - data.concentration.prior.top10)) },
-            { label: "Accounts quoting", value: opsNumber(data.concentration.current.accounts), note: "was " + opsNumber(data.concentration.prior.accounts), tone: toneOf(data.concentration.current.accounts - data.concentration.prior.accounts) },
+            { label: "Accounts priced", value: opsNumber(data.concentration.current.accounts),
+              // The curve is drawn over accounts that carry a price, which is
+              // not always every account that quoted. Where the two bases part
+              // company the stat says so rather than quietly disagreeing with
+              // the ledger two views along.
+              note: (data.concentration.current.accounts === data.matchedAccounts.current
+                  ? "" : "of " + opsNumber(data.matchedAccounts.current) + " quoting · ")
+                + "was " + opsNumber(data.concentration.prior.accounts),
+              tone: toneOf(data.concentration.current.accounts - data.concentration.prior.accounts) },
             { label: "Biggest shift", value: topShift ? topShift.label : "—", note: topShift ? cmpPoints(topShift.points) + " of the book" : "", tone: topShift ? toneOf(topShift.points) : "plain" }
           ]);
         $("#cmpLorenz").innerHTML = cmpConcentrationChart(data.concentration, data)
@@ -4498,14 +4737,27 @@
                 : concentrationMove > 0
                   ? "It has tightened by " + Math.abs(concentrationMove).toFixed(1) + " points on the top five since last period."
                   : "It has loosened by " + Math.abs(concentrationMove).toFixed(1) + " points on the top five since last period.")) + "</p>";
+        // A band can stand empty for two very different reasons - nobody asked
+        // for work that size, or they asked and none of it came back - and the
+        // columns alone cannot tell them apart. The note underneath does.
+        const emptyBands = data.bands.filter(band => !band.current.wonValue && !band.prior.wonValue);
+        const bandSentence = emptyBands.map(band => {
+          const askedNow = band.current.quotes, askedThen = band.prior.quotes;
+          if (!askedNow && !askedThen) return "The " + band.label + " band was neither quoted nor booked in either period.";
+          if (!askedNow) return "No quote in the " + band.label + " band was issued this period at all, against "
+            + opsNumber(askedThen) + " last, which is why its column is empty rather than unlucky.";
+          return opsNumber(askedNow) + " quote" + (askedNow === 1 ? "" : "s") + " in the " + band.label
+            + " band went out this period and none has come back yet.";
+        }).join(" ");
         $("#cmpBandChart").innerHTML = cmpColumnPairs(data.bands.map(band => ({
             label: band.label, prior: band.prior.wonValue / 1000000, current: band.current.wonValue / 1000000,
             note: band.prior.quotes + " → " + band.current.quotes + " quotes"
           })), { format: money, keyPrior: data.priorShort + " returned", keyCurrent: data.currentShort + " returned",
             label: "Returned value by quote size band in both periods",
-            empty: "No priced quote in either period falls into a band yet." });
+            empty: "No priced quote in either period falls into a band yet." })
+          + (bandSentence ? '<p class="ops-note">' + escape(bandSentence) + "</p>" : "");
         $("#cmpMixShift").innerHTML = cmpChangeRows(data.mixShift.map(band => ({
-            label: band.label, now: band.currentShare, was: band.priorShare, fmt: pct
+            label: band.label, now: band.currentShare, was: band.priorShare, fmt: pct, points: true
           })), { cap: 60 })
           + '<p class="ops-note">Read as share of quoted value, so the four bands sum to the whole book in each period. A band moving right took a bigger slice of the book this period than last.</p>';
         $("#cmpDistricts").innerHTML = cmpColumnPairs(data.districts.slice(0, 12).map(district => ({
@@ -4514,8 +4766,11 @@
           })), { format: money, keyPrior: data.priorShort, keyCurrent: data.currentShort,
             label: "Quoted value by district in both periods",
             empty: "No district prefix could be read from the quote numbers." });
-        setText("#cmpDistrictNote", "Districts read from the quote-number prefix, largest first, on the matched weeks. "
-          + data.districts.length + " district" + (data.districts.length === 1 ? "" : "s") + " appear across the two periods.");
+        const districtsDrawn = Math.min(12, data.districts.length);
+        setText("#cmpDistrictNote", "Districts read from the quote-number prefix, on the matched weeks. "
+          + (data.districts.length > districtsDrawn
+              ? "The " + districtsDrawn + " largest of " + data.districts.length + " districts are drawn; the rest are smaller than the smallest shown."
+              : data.districts.length + " district" + (data.districts.length === 1 ? "" : "s") + " appear across the two periods, largest first."));
 
         // ---- 05 Customers -----------------------------------------------------
         const shape = data.lossShape;
@@ -4596,7 +4851,10 @@
         $("#cmpQuadrant").innerHTML = cmpQuadrant(data.kept, data);
 
         // ---- 06 People --------------------------------------------------------
-        const people = data.people.slice(0, 10);
+        // Twelve, not ten: a Nucor estimating roster runs to about a dozen, and
+        // cutting two of them off the bottom of the grid hid people who owned
+        // real quotes for no reason other than a round number.
+        const people = data.people.slice(0, 12);
         const peopleMoves = people.map(person => ({
           label: person.name,
           prior: person.prior.quotes, current: person.current.quotes,
@@ -4607,6 +4865,9 @@
         const improved = peopleMoves.filter(person => person.prior >= 3 && person.current >= 3)
           .sort((a, b) => (b.rateAfter - b.rateBefore) - (a.rateAfter - a.rateBefore))[0];
         const loadMoved = busiest && busiest.current !== busiest.prior;
+        // An initial that no Inventory sheet names is still an owner. It is
+        // counted and said out loud rather than quietly folded into the total.
+        const unnamedOwners = data.people.filter(person => person.named === false).length;
         $("#cmpPeopleLede").innerHTML = cmpLede(data.roleLabel + " ownership", peopleMoves.length
           ? (loadMoved
               ? [
@@ -4627,13 +4888,23 @@
                 ])
           : ["No named owner appears in either period on this role."],
           [
-            { label: "Owners", value: opsNumber(data.people.length), note: "named on both sides" },
+            { label: "Owners", value: opsNumber(data.people.length), note: unnamedOwners
+                ? opsNumber(unnamedOwners) + (unnamedOwners === 1 ? " initial has no roster name" : " initials have no roster name")
+                : "every one named by the roster" },
             { label: "Biggest load move", value: loadMoved ? cmpClip(busiest.label, 16) : "none", note: loadMoved ? (busiest.current - busiest.prior > 0 ? "+" : "") + (busiest.current - busiest.prior) + " quotes" : "every book the same size", tone: loadMoved ? toneOf(busiest.current - busiest.prior) : "flat" },
             { label: "Quotes per owner", value: data.people.length ? (now.quotes / data.people.length).toFixed(1) : "—", note: data.people.length ? "was " + (then.quotes / data.people.length).toFixed(1) : "" },
             { label: "Hours per quote", value: now.hoursPerQuote.toFixed(2), note: "was " + then.hoursPerQuote.toFixed(2), tone: toneOf(now.hoursPerQuote - then.hoursPerQuote, true) }
           ]);
         $("#cmpPeopleCards").innerHTML = cmpPersonCards(people, data);
         setText("#cmpPeopleNote", data.roleLabel + " ownership on the matched weeks, every measure the team screen carries, each one shown for both periods. "
+          + (data.people.length > people.length
+              ? "The " + opsNumber(people.length) + " busiest of " + opsNumber(data.people.length) + " owners are shown. "
+              : "")
+          + (unnamedOwners
+              ? opsNumber(unnamedOwners) + (unnamedOwners === 1 ? " initial carries" : " initials carry")
+                + " quotes without a matching name in either Inventory sheet, so " + (unnamedOwners === 1 ? "it is" : "they are")
+                + " shown by code and marked as such rather than dropped. "
+              : "")
           + "Switch the role on Team performance to change whose book this is.");
         $("#cmpPeopleChart").innerHTML = cmpColumnPairs(people.map(person => ({
             label: person.code, prior: person.prior.quotes, current: person.current.quotes
@@ -5004,7 +5275,7 @@
           + "</div>"
           + line.ageing.map(band => '<div class="age-row"><span><b class="is-' + band.tone + '"></b>' + escape(band.label) + "</span>"
               + '<div class="age-track"><i class="is-' + band.tone + '" style="width:' + (band.count / ageMax * 100).toFixed(1) + '%"></i></div>'
-              + "<b>" + opsNumber(band.count) + "</b><u>" + money(band.value) + "</u>"
+              + "<b>" + opsNumber(band.count) + "</b><u>" + fineMoney(band.value) + "</u>"
               + '<small>' + pct(band.share) + " of the open book</small></div>").join("")
           + '<p class="ops-note">' + opsNumber(line.openCount) + ' quotes carrying ' + money(line.openValue)
           + ' have no linked order, aged against the ' + (data.cutoff ? shortDate(data.cutoff) : "order-log") + ' cutoff. '
@@ -5165,8 +5436,12 @@
         const linePath = key => series.map((point, index) => (index ? "L" : "M") + x(point.date).toFixed(1) + " " + y(point[key]).toFixed(1)).join(" ");
         const band = linePath("quotes") + " " + series.slice().reverse().map(point => "L" + x(point.date).toFixed(1) + " " + y(point.orders).toFixed(1)).join(" ") + " Z";
         const ticks = [0, Math.round(top / 2), top];
-        // At most six date labels, whatever the span.
-        const every = Math.max(1, Math.ceil(series.length / 6));
+        // Spaced by the width a date label actually needs, and the regular
+        // label nearest the end is dropped because the final one is always
+        // drawn whether or not it falls on the interval.
+        const labelWidth = 74;
+        const every = Math.max(1, Math.ceil(series.length / Math.max(2, Math.floor(plotW / labelWidth))));
+        const crowdsEnd = index => (series.length - 1 - index) * (plotW / Math.max(1, series.length - 1)) < labelWidth;
         return '<svg class="cum-svg" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative quotes issued against orders booked over the loaded span">'
           + ticks.map(value => '<line x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" class="grid" />'
               + '<text x="' + (padLeft - 6) + '" y="' + (y(value) + 3.5).toFixed(1) + '" class="axis" text-anchor="end">' + value + "</text>").join("")
@@ -5174,7 +5449,8 @@
           + '<path d="' + linePath("quotes") + '" class="cum-quotes" />'
           + '<path d="' + linePath("orders") + '" class="cum-orders" />'
           + series.map((point, index) => {
-              if (index % every !== 0 && index !== series.length - 1) return "";
+              const last = index === series.length - 1;
+              if (!last && (index % every !== 0 || crowdsEnd(index))) return "";
               // The first and last labels are anchored inward so neither hangs
               // off the edge of the plot.
               const anchor = index === 0 ? "start" : index === series.length - 1 ? "end" : "middle";
@@ -5258,7 +5534,7 @@
                 + '<span class="account-name"><strong title="' + escape(account.name) + '">' + escape(account.name) + "</strong>"
                 + '<span>' + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " · " + account.wins + " booked · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week" : " weeks") + "</span></span>"
                 + '<span class="askbook-track" title="' + account.quotes + ' quoted, ' + account.wins + ' booked"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></span>'
-                + '<span class="account-value"><b>' + money(account.wonValue) + "</b><small>of " + money(account.quoteValue) + "</small></span></button>";
+                + '<span class="account-value"><b>' + fineMoney(account.wonValue) + "</b><small>of " + fineMoney(account.quoteValue) + "</small></span></button>";
             }).join("")
           : '<div class="quote-empty">No account matches that search. Try an account name, a quote number, or a job number.</div>';
         $$("[data-account]", $("#custRows")).forEach(button => button.addEventListener("click", () => {
@@ -5543,7 +5819,7 @@
           const personOnTime = person.onTimeScored === false
             ? "—"
             : person.onTime + "% (" + (Number(person.onTimeScoredCount) || 0) + "/" + person.quotes + ")" + (person.onTimeThin ? " thin" : "");
-          rows += '<button class="team-row" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + person.quotes + " quotes · " + person.orders + ' orders</span></span></span><span class="member-metric">' + metricValue(person, metric) + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + money(person.value) + '</span></button>';
+          rows += '<button class="team-row" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + person.quotes + " quotes · " + person.orders + ' orders</span></span></span><span class="member-metric">' + metricValue(person, metric) + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
@@ -6969,7 +7245,10 @@
       // How long after the quoted week the booked orders actually arrived. Read
       // as: by day N, this share of everything that ever booked had booked. The
       // point where the curve flattens is the point where waiting stops paying.
-      const DECISION_MARKS = [7, 14, 21, 30, 45, 60, 90];
+      // Eight, not seven: the slide lays these out two abreast, and an odd
+      // count left a hole in the last row. Day 120 is also the checkpoint the
+      // year-over-year read lands on, so the two surfaces now finish together.
+      const DECISION_MARKS = [7, 14, 21, 30, 45, 60, 90, 120];
       // How long work has sat with no answer, against the exposure it has had.
       const AGEING_BANDS = [
         { label: "Under 15 days", min: 0, max: 14, tone: "green" },
@@ -8351,15 +8630,13 @@
         const x = index => padLeft + (marks.length === 1 ? plotW / 2 : index / (marks.length - 1) * plotW);
         const y = value => padTop + (1 - value / top) * plotH;
         const line = key => marks.map((mark, index) => (index ? "L" : "M") + x(index).toFixed(1) + " " + y(mark[key].share).toFixed(1)).join(" ");
-        const band = line("current") + " " + marks.slice().reverse().map((mark, index) =>
-          "L" + x(marks.length - 1 - index).toFixed(1) + " " + y(mark.prior.share).toFixed(1)).join(" ") + " Z";
         const last = marks[marks.length - 1];
         const ahead = last.current.share >= last.prior.share;
         const gap = Math.abs(y(last.current.share) - y(last.prior.share)) < 44;
         return '<svg class="deck-chart deck-survival" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Share of quotes booked by each age, both periods">'
           + [0, top / 2, top].map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
               + '<text class="axis" x="' + (padLeft - 12) + '" y="' + (y(value) + 5).toFixed(1) + '" text-anchor="end">' + escape(pct(value)) + "</text>").join("")
-          + '<path class="surv-band ' + (ahead ? "is-ahead" : "is-behind") + '" d="' + band + '" />'
+          + survivalBandSegments(marks, x, y)
           + '<path class="surv-line is-then" d="' + line("prior") + '" />'
           + '<path class="surv-line is-now" d="' + line("current") + '" />'
           + marks.map((mark, index) => '<circle class="surv-dot is-then" cx="' + x(index).toFixed(1) + '" cy="' + y(mark.prior.share).toFixed(1) + '" r="5" />'
@@ -8514,8 +8791,8 @@
       function deckReturnLedger(accounts, options) {
         const config = options || {};
         if (!accounts.length) return '<div class="deck-empty">' + escape(config.empty || "No account carries a priced quote in this cohort.") + "</div>";
-        const rowHeight = 44, labelWidth = 232, valueWidth = 186;
-        const width = 1240, height = accounts.length * rowHeight + 30;
+        const rowHeight = 38, labelWidth = 232, valueWidth = 186;
+        const width = 1240, height = accounts.length * rowHeight + 26;
         const plot = width - labelWidth - valueWidth;
         const scale = Math.max.apply(null, accounts.map(account => account.quoteValue)) || 1;
         const maxChars = Math.max(10, Math.floor((labelWidth - 12) / 8.6));
@@ -8526,14 +8803,14 @@
               const asked = Math.max(3, account.quoteValue / scale * plot);
               const back = account.wonValue > 0 ? Math.max(3, account.wonValue / scale * plot) : 0;
               return '<g class="ledger-row-g" style="--deck-bar-delay:' + (index * 60) + 'ms">'
-                + '<text class="ledger-name" x="0" y="' + (y + 17) + '">' + escape(clip(account.name)) + "<title>" + escape(account.name) + "</title></text>"
-                + '<text class="ledger-sub" x="0" y="' + (y + 33) + '">' + escape(opsNumber(account.quotes) + " quote" + (account.quotes === 1 ? "" : "s")
+                + '<text class="ledger-name" x="0" y="' + (y + 15) + '">' + escape(clip(account.name)) + "<title>" + escape(account.name) + "</title></text>"
+                + '<text class="ledger-sub" x="0" y="' + (y + 30) + '">' + escape(opsNumber(account.quotes) + " quote" + (account.quotes === 1 ? "" : "s")
                     + " · " + opsNumber(account.wins) + " booked" + (account.hours ? " · " + account.hours.toFixed(0) + " eng hrs" : "")) + "</text>"
-                + '<rect class="ledger-asked" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + asked.toFixed(1) + '" height="22" />'
-                + (back ? '<rect class="ledger-back" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + back.toFixed(1) + '" height="22" />' : "")
-                + '<text class="ledger-value' + (back ? " is-back" : " is-none") + '" x="' + (width - valueWidth + 12) + '" y="' + (y + 16) + '">'
+                + '<rect class="ledger-asked" x="' + labelWidth + '" y="' + (y + 5) + '" width="' + asked.toFixed(1) + '" height="20" />'
+                + (back ? '<rect class="ledger-back" x="' + labelWidth + '" y="' + (y + 5) + '" width="' + back.toFixed(1) + '" height="20" />' : "")
+                + '<text class="ledger-value' + (back ? " is-back" : " is-none") + '" x="' + (width - valueWidth + 12) + '" y="' + (y + 14) + '">'
                 + escape(back ? money(account.wonValue) + " back" : "nothing back") + "</text>"
-                + '<text class="ledger-asked-value" x="' + (width - valueWidth + 12) + '" y="' + (y + 32) + '">'
+                + '<text class="ledger-asked-value" x="' + (width - valueWidth + 12) + '" y="' + (y + 29) + '">'
                 + escape("of " + money(account.quoteValue) + " asked" + (account.quotes ? " · " + pct(account.conversion) : "")) + "</text>"
                 + "</g>";
             }).join("")
@@ -8555,16 +8832,21 @@
         if (!cmp || !cmp.ready) return "";
         const now = cmp.current, then = cmp.prior;
         const delta = (a, b, invert) => cmpDelta(a, b, invert);
-        const chip = (a, b, invert) => {
+        // A rate moves in points, so its chip says points. Reading "−7.2%"
+        // above a note that says "−1.9 points" is two answers to one question.
+        const chip = (a, b, invert, points) => {
           const move = delta(a, b, invert);
-          return '<u class="deck-delta is-' + move.tone + '">' + escape(move.text) + "</u>";
+          const text = points && a !== null && b !== null && a !== undefined && b !== undefined
+            ? (a - b > 0 ? "+" : a - b < 0 ? "−" : "") + Math.abs(a - b).toFixed(1) + " pts"
+            : move.text;
+          return '<u class="deck-delta is-' + move.tone + '">' + escape(text) + "</u>";
         };
         // Same step-down as deckMetric: a figure that wraps is a figure cut in half.
         const sized = value => { const length = String(value).length; return length > 12 ? " is-longer" : length > 8 ? " is-long" : ""; };
-        const deltaMetric = (label, a, b, format, invert, note) =>
+        const deltaMetric = (label, a, b, format, invert, note, points) =>
           '<div class="deck-metric is-delta"><span>' + escape(label) + "</span>"
           + '<strong class="' + sized(format(a)).trim() + '">' + escape(format(a)) + "</strong>"
-          + chip(a, b, invert)
+          + chip(a, b, invert, points)
           + "<small>" + escape(format(b)) + " in " + escape(cmp.priorShort) + (note ? " · " + escape(note) : "") + "</small></div>";
         const pointMove = (a, b) => {
           const move = a - b;
@@ -8584,7 +8866,7 @@
           + '<div class="deck-metrics">'
           + deltaMetric("Quoted value", now.value, then.value, money, false, cmp.matchedWeeks + " matched week" + (cmp.matchedWeeks === 1 ? "" : "s"))
           + deltaMetric("Value returned", now.wonValue, then.wonValue, money, false, "orders joined to these quotes")
-          + deltaMetric("Conversion", now.conversion, then.conversion, pct, false, pointMove(now.conversion, then.conversion))
+          + deltaMetric("Conversion", now.conversion, then.conversion, pct, false, "quote wins over quotes issued", true)
           + "</div>"
           + '<div class="source-chip"><i></i>' + escape(cmp.currentLabel + " against " + cmp.priorLabel + " · " + cmp.lens + " lens") + "</div>";
 
@@ -8601,7 +8883,7 @@
           { label: "Quoted value", now: now.value, was: then.value, fmt: money },
           { label: "Quote wins", now: now.wins, was: then.wins, fmt: opsNumber },
           { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: money },
-          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct },
+          { label: "Value capture", now: now.valueCapture, was: then.valueCapture, fmt: pct, points: true },
           { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
           { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
           { label: "Engineering hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true }
@@ -8618,8 +8900,13 @@
           + '<table class="yoy-table"><thead><tr><th>Measure</th><th>' + escape(cmp.priorShort) + "</th><th>" + escape(cmp.currentShort) + "</th><th>Change</th></tr></thead><tbody>"
           + headlineRows.map(row => {
               const move = delta(row.now, row.was, row.invert);
+              // Rates read in points here too, so the table agrees with the
+              // divider before it and the ledger on the screen behind it.
+              const text = row.points && row.now !== null && row.was !== null
+                ? (row.now - row.was > 0 ? "+" : row.now - row.was < 0 ? "−" : "") + Math.abs(row.now - row.was).toFixed(1) + " pts"
+                : move.text;
               return "<tr><td>" + escape(row.label) + '</td><td class="then">' + escape(row.fmt(row.was))
-                + '</td><td class="now">' + escape(row.fmt(row.now)) + '</td><td class="chg is-' + move.tone + '">' + escape(move.text) + "</td></tr>";
+                + '</td><td class="now">' + escape(row.fmt(row.now)) + '</td><td class="chg is-' + move.tone + '">' + escape(text) + "</td></tr>";
             }).join("")
           + "</tbody></table>";
 
@@ -8678,7 +8965,9 @@
 
         // ---- The decomposition ---------------------------------------------------
         const ranked = cmp.attribution.factors.slice().sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
-        const attrSlide = cmpBecauseCards(cmp.attribution, cmp, { deck: true });
+        const attrSlide = cmpBecauseCards(cmp.attribution, cmp, { deck: true })
+          + '<div class="deck-subhead">The same three steps, drawn</div>'
+          + deckAttributionRibbon(cmp.attribution, cmp);
 
         // ---- Speed at equal age ---------------------------------------------------
         const deepMark = cmp.survivalDeepest;
@@ -8701,13 +8990,17 @@
               : '<div class="deck-callout"><strong>Not yet answerable.</strong> Neither period has enough quotes old enough to share a checkpoint. This fills in as the book matures.</div>');
 
         // ---- The bridge ---------------------------------------------------------
-        const bridgeSlide = '<p class="lead" style="margin-bottom:18px">'
+        const bridgeSlide = '<p class="lead is-wide" style="margin-bottom:18px">'
           + escape("Start at what last period's accounts were worth on these weeks. Take out the ones that did not come back, take out what the returning accounts stopped spending, "
             + "add what they spent more of, add the accounts that are new. You land on this period's book. Every bar is a real group of accounts you can name.") + "</p>"
           + deckBridgeChart(cmp.bridge)
           + '<div class="deck-callout"><strong>The two ends of it:</strong> '
           + escape("accounts that did not come back took " + fineMoney(Math.abs(cmp.bridge[1].value)) + " out of the book; accounts new to us brought "
-            + fineMoney(cmp.bridge[4].value) + " in. The returning accounts moved the rest.") + "</div>";
+            + fineMoney(cmp.bridge[4].value) + " in. The returning accounts moved the rest."
+            + (cmp.span && cmp.span.thin
+                ? " On " + cmp.span.prior + " prior week" + (cmp.span.prior === 1 ? "" : "s") + " against " + cmp.span.current
+                  + ", read the two outer bars as accounts that quoted in one week and not the other rather than as accounts won and lost."
+                : "")) + "</div>";
 
         // ---- Who we kept, and who we lost ---------------------------------------
         const keepStat = cmp.retention;
@@ -8797,16 +9090,90 @@
             + fineMoney(keepStat.lostValue) + " that went quiet. "
             + (keepStat.gainedValue >= keepStat.lostValue ? "More came in than went out." : "Less came in than went out.")) + "</div>";
 
-                return deckSlide(startNumber, "Chapter two · Year over year", "The same weeks,<br /><em>a year apart.</em>", opener, false, "is-chapter")
-          + deckSlide(startNumber + 1, "Year over year headline", "Better or worse<br /><em>than last time.</em>", headline, true)
-          + deckSlide(startNumber + 2, "Week against week", "Every matched week,<br /><em>side by side.</em>", weeks, true)
-          + deckSlide(startNumber + 3, "The race", "Ahead or behind<br /><em>at the same point.</em>", race, true)
-          + deckSlide(startNumber + 4, "Where the mix moved", "The money came back<br /><em>from a different place.</em>", mix, true)
-          + deckSlide(startNumber + 5, "The decomposition", "What actually changed<br /><em>the money.</em>", attrSlide, true)
-          + deckSlide(startNumber + 6, "Speed at equal age", "How quickly the work<br /><em>comes back.</em>", speedSlide, true)
-          + deckSlide(startNumber + 7, "The bridge", "How last year's book<br /><em>became this one.</em>", bridgeSlide, true)
-          + deckSlide(startNumber + 8, "Accounts kept and lost", "Who came back, and<br /><em>who we should ring.</em>", keptSlide, true)
-          + deckSlide(startNumber + 9, "Accounts won and slipping", "Who is new, and who<br /><em>is quietly going.</em>", accounts, true);
+        // ---- The close -----------------------------------------------------
+        // The chapter used to stop on an account table, which reads as the
+        // projector being switched off mid-sentence. This is the slide that
+        // says what the whole comparison came to and what to do about it, and
+        // every action on it is derived from the figures behind it rather than
+        // written in advance.
+        const ranked3 = cmp.attribution.factors.slice().sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+        const lead3 = ranked3[0];
+        const moved = now.wonValue - then.wonValue;
+        const chasing = cmp.lost.filter(item => item.prior.wins > 0)
+          .slice().sort((a, b) => b.prior.wonValue - a.prior.wonValue);
+        const chasingValue = chasing.reduce((sum, item) => sum + item.prior.wonValue, 0) / 1000000;
+        const closingMoves = [];
+        if (lead3 && Math.abs(lead3.amount) > 0.05) {
+          const head = lead3.key === "size" ? (lead3.amount < 0 ? "Ask why the work got smaller" : "Understand the bigger work")
+            : lead3.key === "rate" ? (lead3.amount < 0 ? "Win a bigger share of what we price" : "Hold the win rate")
+            : (lead3.amount < 0 ? "Get more work in front of us" : "Keep the volume up");
+          closingMoves.push({ head: head,
+            body: "The single largest reason returned value moved " + cmpSigned(moved) + " was " + lead3.label
+              + ", worth " + cmpSigned(lead3.amount) + " on its own. " + lead3.measure.charAt(0).toUpperCase() + lead3.measure.slice(1)
+              + " went from " + lead3.fmt(lead3.was) + " to " + lead3.fmt(lead3.now) + "." });
+        }
+        if (chasing.length) {
+          closingMoves.push({ head: "Ring the ones who used to pay",
+            body: opsNumber(chasing.length) + " account" + (chasing.length === 1 ? "" : "s") + " that booked "
+              + fineMoney(chasingValue) + " with us last period " + (chasing.length === 1 ? "has" : "have")
+              + " not quoted in these weeks"
+              + (chasing[0] ? "; the largest of them is " + cmpClip(chasing[0].name, 28) : "")
+              + ". They are a call list, not a statistic." });
+        } else if (cmp.atRisk.length) {
+          closingMoves.push({ head: "Call the ones still slipping",
+            body: opsNumber(cmp.atRisk.length) + " account" + (cmp.atRisk.length === 1 ? " is" : "s are")
+              + " still asking but for at least 40% less than last period. They have not gone, which is what makes the call worth making now." });
+        }
+        if (deepMark && deepMark.current.share < deepMark.prior.share) {
+          closingMoves.push({ head: "Chase the middle of the book",
+            body: "At day " + deepMark.day + " — the deepest age both books can answer — " + pct(deepMark.current.share)
+              + " had booked this period against " + pct(deepMark.prior.share) + " last. The work is answering slower at the same age, "
+              + "so the quotes past that point are the ones needing a named status." });
+        }
+        if (cmp.concentration.current.top5 > cmp.concentration.prior.top5 + 2) {
+          closingMoves.push({ head: "Spread the book", body: "The top five accounts now hold "
+            + pct(cmp.concentration.current.top5) + " of everything we priced, against " + pct(cmp.concentration.prior.top5)
+            + ". That is five phone calls the book cannot afford to lose." });
+        }
+        if (cmp.retention.gainedCount) {
+          closingMoves.push({ head: "Convert the new names", body: opsNumber(cmp.retention.gainedCount)
+            + " accounts quoted with us for the first time this period, carrying " + fineMoney(cmp.retention.gainedValue)
+            + " of work. Nothing about them is habit yet, so the second quote matters more than the first." });
+        }
+        const closingChapter = '<p class="lead">' + escape("Both periods ran through the same parser, the same lens and the same filters, "
+            + "matched on the weeks they share. " + (cmp.ownOrders ? "Each is joined to its own order log." : "The prior period is joined to this period's order log.")
+            + " Nothing on these slides was typed in.") + "</p>"
+          + '<div class="deck-metrics">'
+          + deltaMetric("Quoted value", now.value, then.value, money, false, cmp.matchedWeeks + " matched week" + (cmp.matchedWeeks === 1 ? "" : "s"))
+          + deltaMetric("Value returned", now.wonValue, then.wonValue, money, false, "orders joined to these quotes")
+          + deltaMetric("Value capture", now.valueCapture, then.valueCapture, pct, false, "of everything we priced", true)
+          + "</div>"
+          + '<div class="closing-actions">' + closingMoves.slice(0, 3).map((action, index) =>
+              '<article><span>' + String(index + 1).padStart(2, "0") + "</span><strong>" + escape(action.head)
+              + "</strong><p>" + escape(action.body) + "</p></article>").join("")
+          + "</div>"
+          + '<div class="source-chip"><i></i>' + escape(cmp.currentLabel + " against " + cmp.priorLabel + " · " + cmp.lens + " lens") + "</div>";
+
+        // A slide with nothing to say is worse than no slide. Anything that
+        // cannot be drawn from the loaded weeks is dropped, and the numbering
+        // closes up behind it rather than leaving a gap.
+        const chapter = [
+          { eyebrow: "Chapter two · Year over year", title: "The same weeks,<br /><em>a year apart.</em>", body: opener, dense: false, cls: "is-chapter" },
+          { eyebrow: "Year over year headline", title: "Better or worse<br /><em>than last time.</em>", body: headline },
+          // One matched week is not a week-against-week read; the headline
+          // slide already carries that period's totals.
+          { eyebrow: "Week against week", title: "Every matched week,<br /><em>side by side.</em>", body: weeks, when: cmp.weekly.length > 1 },
+          { eyebrow: "The race", title: "Ahead or behind<br /><em>at the same point.</em>", body: race, when: cmp.cumulative.length > 1 },
+          { eyebrow: "Where the mix moved", title: "The money came back<br /><em>from a different place.</em>", body: mix, when: cmp.bands.length > 0 },
+          { eyebrow: "The decomposition", title: "What actually changed<br /><em>the money.</em>", body: attrSlide },
+          { eyebrow: "Speed at equal age", title: "How quickly the work<br /><em>comes back.</em>", body: speedSlide, when: cmp.survival.some(mark => mark.answerable) },
+          { eyebrow: "The bridge", title: "How last year's book<br /><em>became this one.</em>", body: bridgeSlide, when: cmp.bridge.length > 2 },
+          { eyebrow: "Accounts kept and lost", title: "Who came back, and<br /><em>who we should ring.</em>", body: keptSlide, when: cmp.retention.priorCount > 0 },
+          { eyebrow: "Accounts won and slipping", title: "Who is new, and who<br /><em>is quietly going.</em>", body: accounts, when: cmp.retention.gainedCount > 0 || cmp.customers.grown.length > 0 || cmp.customers.shrunk.length > 0 },
+          { eyebrow: "Where the year leaves us", title: "That is the year.<br /><em>Here is the work.</em>", body: closingChapter, dense: false, when: closingMoves.length > 0 }
+        ].filter(item => item.when === undefined || item.when);
+        return chapter.map((item, index) =>
+          deckSlide(startNumber + index, item.eyebrow, item.title, item.body, item.dense !== false, item.cls)).join("");
       }
 
       // Two periods accumulating week by week, both starting at their own week
@@ -9334,6 +9701,8 @@
           + '.deck-ledger .ledger-value.is-none{fill:var(--copper)}'
           + '.deck-ledger .ledger-asked-value{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
           + '.ledger-split{display:grid;gap:20px}'
+          + '.lead.is-wide{max-width:100ch}'
+          + '.agenda-grid{grid-template-columns:minmax(0,1.55fr) minmax(268px,.72fr)}'
           + '.ledger-split section{border:1px solid var(--line);background:#fff}'
           + '.ledger-split-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 16px}'
           + '.ledger-split-head.is-good{background:var(--green-deep)}'
@@ -9352,12 +9721,13 @@
           + '.closing-actions article:first-child p{color:rgba(239,255,242,.68)}'
           + '@media(max-width:900px){.closing-actions{grid-template-columns:1fr}}'
           + ''
+          + '.deck-subhead{margin:22px 0 10px;color:#799084;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}'
           + '.because-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}'
           + '.because-card{display:flex;flex-direction:column;padding:24px;border:1px solid var(--line);background:#fff}'
           + '.because-card.is-lead{background:#0b1d12;border-color:#0b1d12;color:#effff2}'
           + '.because-rank{display:block;color:#799084;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}'
           + '.because-card.is-lead .because-rank{color:#4bea8c}'
-          + '.because-cause{margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:19px;font-weight:800;line-height:1.28;letter-spacing:-.01em}'
+          + '.because-cause{flex:1 1 auto;margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:19px;font-weight:800;line-height:1.28;letter-spacing:-.01em}'
           + '.because-amount{display:block;margin-top:16px;font-family:Arial,Helvetica,sans-serif;font-size:40px;font-weight:900;letter-spacing:-.05em;line-height:1}'
           + '.because-card.is-up .because-amount{color:var(--green-deep)}'
           + '.because-card.is-down .because-amount{color:var(--copper)}'
@@ -9397,6 +9767,35 @@
           + '.acct-slide-table tr:last-child td{border-bottom:0}'
           + '.acct-flag-slide{display:inline-block;margin-left:5px;padding:0 4px;border:1px solid #bd7b21;color:#a66917;font-size:8.5px;font-style:normal;font-weight:800;letter-spacing:.08em;text-transform:uppercase;vertical-align:1px}'
           + '@media(max-width:900px){.because-grid{grid-template-columns:1fr}.because-total{grid-template-columns:1fr}.because-arrow{border:0;padding:12px 0;text-align:left}}'
+          + ''
+          // A 768-tall window is the machine this deck is opened on. Left
+          // alone the fit scaled four slides to two-thirds, which is legible
+          // on a desk and not from across a room. The furniture gives up its
+          // space before the content does.
+          + '@media(max-height:830px){'
+          // The bottom band is the navigation's, and content may not enter it
+          // (K-13). Short windows give up their top padding instead.
+          + '.deck-slide{padding:18px clamp(26px,6vw,84px) 80px}'
+          + '.deck-content h1{font-size:clamp(36px,4.4vw,54px);margin-bottom:16px}'
+          + '.deck-metrics{margin-top:16px}'
+          + '.deck-metric{min-height:92px;padding:13px}'
+          + '.deck-metric strong{font-size:26px}'
+          + '.deck-callout{margin-top:12px;padding:11px 15px;font-size:13px;line-height:1.5}'
+          + '.weekly-summary{margin-bottom:14px}'
+          + '.weekly-summary>div{min-height:84px;padding:12px 14px}'
+          + '.weekly-summary strong{font-size:25px}'
+          + '.chart-note{font-size:12.5px;margin-top:6px}'
+          + '.lead{font-size:15px;line-height:1.5}'
+          + '.because-card{padding:17px}.because-cause{font-size:16px;margin-top:10px}'
+          + '.because-amount{font-size:31px;margin-top:11px}.because-effect{font-size:12.5px;margin-top:10px}'
+          + '.because-total{padding:13px 18px;margin-top:13px}.because-total>div>b{font-size:23px}'
+          + '.closing-actions{gap:13px;margin-top:18px}.closing-actions article{padding:16px}'
+          + '.closing-actions strong{font-size:19px;margin-top:9px}.closing-actions p{font-size:12.5px;margin-top:8px}'
+          + '.ledger-split{gap:13px}.ledger-split .deck-chart{padding:9px 14px 0}'
+          + '.curve-slab-body{gap:14px}.curve-mark{padding:8px 10px}'
+          + '.agenda-table td,.agenda-table th{padding:7px 9px}'
+          + '.acct-slide-table td{padding:7px 10px;font-size:12.5px}'
+          + '}'
           + '.deck-attr,.deck-survival{display:block;width:100%;height:auto}'
           + '.deck-attr .attr-stop-a{stop-color:var(--steel);stop-opacity:.30}'
           + '.deck-attr .attr-stop-b{stop-color:var(--green);stop-opacity:.32}'
@@ -9622,8 +10021,11 @@
           + '<div class="speed-grid"><div class="speed-main">'
           + deckIsoColumns(turnBands.map(band => ({ label: band.label, value: band.value, value_label: String(band.value), tone: band.tone })),
               { label: "How long quotes took to produce", caption: "QUOTES BY TIME TO PRODUCE", compact: true })
-          + '<p class="chart-note">Date In to Done. ' + turnDeck.excluded + ' quotes are excluded at or beyond ' + TURN_LIMIT
-          + ' days, which reads as a stale date rather than a slow quote. This measure does not care whether the quote converted.</p>'
+          + '<p class="chart-note">Date In to Done. ' + (turnDeck.excluded
+              ? turnDeck.excluded + (turnDeck.excluded === 1 ? ' quote is' : ' quotes are') + ' excluded at or beyond ' + TURN_LIMIT
+                + ' days, which reads as a stale date rather than a slow quote.'
+              : 'No quote sat at or beyond ' + TURN_LIMIT + ' days, so nothing is excluded as a stale date.')
+          + ' This measure does not care whether the quote converted.</p>'
           + '</div><div class="speed-side">'
           + '<div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>met the<br />promised date</span></div>'
           + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Delivered on the due date counts as met; the workbook writes that result as N/A. Only rows with no release result at all are excluded from both halves.</span></div>'
@@ -9647,11 +10049,11 @@
         // The top list is who books; the bottom is who does not, ordered by the
         // money that never returned rather than by the number of requests.
         const ledgerBooked = (customerSignals.accounts || []).filter(account => account.wonValue > 0)
-          .slice().sort((a, b) => b.wonValue - a.wonValue).slice(0, 5);
+          .slice().sort((a, b) => b.wonValue - a.wonValue).slice(0, 4);
         const ledgerCost = (customerSignals.accounts || [])
           .map(account => Object.assign({}, account, { unreturned: account.quoteValue - account.wonValue }))
           .filter(account => account.unreturned > 0 && account.quotes >= 2)
-          .sort((a, b) => b.unreturned - a.unreturned).slice(0, 5);
+          .sort((a, b) => b.unreturned - a.unreturned).slice(0, 4);
         const costValue = ledgerCost.reduce((sum, account) => sum + account.unreturned, 0);
         const costAll = (customerSignals.accounts || []).reduce((sum, account) => sum + Math.max(0, account.quoteValue - account.wonValue), 0);
         const costHours = ledgerCost.reduce((sum, account) => sum + (account.hours || 0), 0);
@@ -9671,10 +10073,9 @@
           + deckReturnLedger(ledgerCost, { label: "Quoted value that did not return, by account",
               keyA: "Quoted", keyB: "Came back", empty: "Every repeat account here has booked at least one job." })
           + "</section></div>"
-          + '<div class="deck-callout"><strong>The two lists are the same measure read from both ends:</strong> '
-          + escape("the accounts above returned the most of what we priced for them; the accounts below asked at least twice and left "
-            + money(costValue) + " of priced work on the table, at " + costHours.toFixed(0)
-            + " engineering hours. That is a follow-up queue and a qualification question, not a loss list.") + "</div>";
+          + '<div class="deck-callout"><strong>Same measure, both ends:</strong> '
+          + escape("the accounts below asked at least twice and left " + money(costValue) + " of priced work on the table at "
+            + costHours.toFixed(0) + " engineering hours — a follow-up queue and a qualification question, not a loss list.") + "</div>";
 
         // ---- 07 How long it takes to come back ---------------------------------
         // This was a dense screen dropped onto a slide: three stage bars, an
@@ -9742,14 +10143,14 @@
               { role: "estimator", name: item.estimator },
               { role: "scheduler", name: item.scheduler }
             ]))
-          + (item.salesEngineer || item.csr ? '<span>' + escape([item.salesEngineer, item.csr].filter(Boolean).join(" · ")) + "</span>" : "") + "</td></tr>"
+          + (item.salesEngineer || item.csr ? '<span>' + escape([item.salesEngineer ? "sold by " + item.salesEngineer : "", item.csr ? "CSR " + item.csr : ""].filter(Boolean).join(" · ")) + "</span>" : "") + "</td></tr>"
         ).join("") : '<tr><td colspan="7" class="empty-row">No quote in this cohort has a linked order yet.</td></tr>';
         const openTop = followUp.slice(0, 4);
         const agenda = '<div class="agenda-grid"><div class="agenda-table-wrap">'
           + '<div class="agenda-head"><span class="section-label">Our best booked work in this cohort</span><b>' + money(bookedValue / 1000000)
           + " across the top " + bookedJobs.length + (bookedTonsTop ? " · " + tons(bookedTonsTop) + " tons" : "") + '</b></div>'
           + '<table class="agenda-table"><thead><tr><th></th><th>Job</th><th>Customer</th><th>Entered</th><th>Tons</th><th>Value</th><th>Quoted by / booked by</th></tr></thead><tbody>' + bookedRows + "</tbody></table>"
-          + '<p class="chart-note">Every row is a real order-log job matched to the quote that priced it. Value is the quoted value of that quote; tonnage and the entry date come from the order log. The first three names priced it, the names beneath sold and ran it.</p>'
+          + '<p class="chart-note">Every row is a real order-log job matched to the quote that priced it. Value is the quoted value of that quote; tonnage and the entry date come from the order log. The first three names priced it; the line beneath carries the order log&rsquo;s sales engineer and CSR.</p>'
           + "</div>"
           + '<aside class="agenda-side"><span class="section-label">And the largest still open</span>'
           + (openTop.length
@@ -9873,18 +10274,27 @@
           + "</div>"
           + '<div class="source-chip"><i></i>' + escape("Rebuilt from source on every run · " + data.period + " · " + data.label) + "</div>";
 
-        const slides = deckSlide(1, "Executive outcome", "See the quote book<br /><em>through to outcome.</em>", opening)
-          + deckSlide(2, "Quote outcome overview", "One quote book.<br /><em>Two visible outcomes.</em>", outcomes)
-          + deckSlide(3, "Weekly performance pulse", "Volume above.<br /><em>Conversion below.</em>", weekly, true)
-          + deckSlide(4, "Value band analysis", "Not all quoted work<br /><em>behaves the same.</em>", valueSlide, true)
-          + deckSlide(5, "Speed · our half of the clock", "How fast we answer,<br /><em>and whether we hit the date.</em>", timing, true)
-          + deckSlide(6, "Speed · the whole clock", "How long the whole thing<br /><em>actually takes.</em>", speed, true)
-          + deckSlide(7, "Customer demand", "Who asks, and who<br /><em>actually books.</em>", operations, true)
-          + deckSlide(8, "The work that came back", "Our best booked work,<br /><em>and who delivered it.</em>", agenda, true)
-          + deckSlide(9, "Where this leaves us", "The book says this.<br /><em>Here is what to do.</em>", closing)
+        // A slide with nothing to say is worse than no slide: the weekly pulse
+        // is a chart of weeks against each other, and one loaded week is a
+        // single column floating in an empty plot. Anything that cannot answer
+        // its own question is dropped and the numbering closes up behind it.
+        const weekCount = (data.weekly || []).length;
+        const deckPlan = [
+          { eyebrow: "Executive outcome", title: "See the quote book<br /><em>through to outcome.</em>", body: opening, dense: false },
+          { eyebrow: "Quote outcome overview", title: "One quote book.<br /><em>Two visible outcomes.</em>", body: outcomes, dense: false },
+          { eyebrow: "Weekly performance pulse", title: "Volume above.<br /><em>Conversion below.</em>", body: weekly, when: weekCount > 1 },
+          { eyebrow: "Value band analysis", title: "Not all quoted work<br /><em>behaves the same.</em>", body: valueSlide, when: bands.length > 0 },
+          { eyebrow: "Speed · our half of the clock", title: "How fast we answer,<br /><em>and whether we hit the date.</em>", body: timing },
+          { eyebrow: "Speed · the whole clock", title: "How long the whole thing<br /><em>actually takes.</em>", body: speed },
+          { eyebrow: "Customer demand", title: "Who asks, and who<br /><em>actually books.</em>", body: operations, when: (customerSignals.accounts || []).length > 0 },
+          { eyebrow: "The work that came back", title: "Our best booked work,<br /><em>and who delivered it.</em>", body: agenda },
+          { eyebrow: "Where this leaves us", title: "The book says this.<br /><em>Here is what to do.</em>", body: closing, dense: false }
+        ].filter(item => item.when === undefined || item.when);
+        const slides = deckPlan.map((item, index) =>
+            deckSlide(index + 1, item.eyebrow, item.title, item.body, item.dense !== false)).join("")
           // Chapter two only exists when a prior period has been loaded. With
-          // no baseline the deck is the nine slides it has always been.
-          + deckYearChapter(10);
+          // no baseline the deck is the core slides and nothing more.
+          + deckYearChapter(deckPlan.length + 1);
         return deckDocument(slides);
       }
 

@@ -307,7 +307,7 @@ footer.colophon{
     <div class="tb-cell"><dt>Product owner</dt><dd>Nucor Building Systems — Estimating</dd></div>
     <div class="tb-cell"><dt>Primary deliverable</dt><dd><code>quote-conversion-atlas-shareable.html</code></dd></div>
     <div class="tb-cell"><dt>Companion refs</dt><dd><code>DATA-EXTRACTION-MAP.md</code><br /><code>SHARE-README.md</code></dd></div>
-    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.6</dd></div>
+    <div class="tb-cell"><dt>Spec version</dt><dd class="num">2.7</dd></div>
     <div class="tb-cell"><dt>Last revised</dt><dd class="num">17 Aug 2026</dd></div>
     <div class="tb-cell"><dt>Status</dt><dd><span class="pill ok">Active — source of truth</span></dd></div>
   </dl>
@@ -737,6 +737,9 @@ footer.colophon{
       <tr><td><span class="rid">M-40</span></td><td><strong>Report what was not merged.</strong> Names that look like one company and were deliberately left as two MUST be listed with their quote counts on the data-mapping surface, beside every merge that was made and its reason. A rule that guesses silently is worse than one that reports.</td></tr>
       <tr><td><span class="rid">M-41</span></td><td><strong>A rate moves in points.</strong> Percentage change computed on a percentage is the wrong arithmetic, and a rate that was zero has not gone "new". Every comparison of two rates MUST report the move in percentage points.</td></tr>
       <tr><td><span class="rid">M-42</span></td><td><strong>Presence needs a span.</strong> Where fewer than four weeks are loaded on either side, a surface MUST NOT describe absent accounts as churn, and MUST replace any retention figure in a headline with a measure that holds at any span.</td></tr>
+      <tr><td><span class="rid">M-44</span></td><td><strong>A view MUST read at a grain it can actually draw.</strong> Where a comparison has fewer than two units on the axis it plots against &mdash; one matched week, say &mdash; it MUST fall through to the next finer grain it holds (the days inside that week) rather than stand a single pair of columns in an empty plot. Every heading and note MUST change with the grain, and the view MUST say which grain it is reading at.</td></tr>
+      <tr><td><span class="rid">M-45</span></td><td><strong>A code with no name is a code, and MUST say so.</strong> Where a role initial carries quotes but appears in no <code>Inventory</code> block, the surface MUST show it by code, mark it as unnamed, and count it in the surrounding stat rather than presenting it as a named person or dropping its quotes.</td></tr>
+      <tr><td><span class="rid">M-46</span></td><td><strong>A customer record MUST carry how long that customer takes to decide</strong>, averaged over the quotes of theirs that booked, alongside what they asked for and what came back.</td></tr>
       <tr><td><span class="rid">M-43</span></td><td><strong>The whole clock.</strong> The dashboard MUST report the end-to-end duration &mdash; request landing to order entered &mdash; as a first-class figure beside the two halves it is made of, and MUST state that the two halves are medians in their own right and will not always sum to the whole.</td></tr>
       <tr><td><span class="rid">M-36</span></td><td><strong>Attribution, not narration.</strong> Where a headline figure is a product of factors, a surface reporting its change MUST attribute that change to the factors rather than merely reporting it. Returned value is <code>quotes × average quote × value capture</code>; the change in it MUST be split across those three by a <strong>Shapley decomposition</strong>, which is exact and order-independent. The three contributions MUST sum to the change with no residual, and the surface MUST say so. "We returned more" is not a finding; "we returned $X more, and $Y of it came from winning a higher share rather than pricing more work" is.</td></tr>
       <tr><td><span class="rid">M-37</span></td><td><strong>Equal-age reading.</strong> Any comparison of how quickly work comes back MUST ask each quote only a question it has had time to answer: at a checkpoint of D days, only quotes with at least D days of exposure are scored, on <strong>both</strong> sides. The surface MUST show the base count answering each checkpoint. A checkpoint that fewer than eight quotes on either side can answer MUST render as unanswerable rather than as a rate.</td></tr>
@@ -827,6 +830,10 @@ footer.colophon{
       <tr><td><span class="rid">V-29</span></td><td>A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.</td></tr>
       <tr><td><span class="rid">V-31</span></td><td>Where labels cannot sit beside the marks they belong to &mdash; values clustered in a narrow band on a slope chart, for instance &mdash; the labels MUST be de-crowded <strong>locally</strong> and tied back to their marks with leader lines. Shifting the whole stack to make room silently separates every label from its own point.</td></tr>
       <tr><td><span class="rid">V-33</span></td><td>A comparison of one entity across two periods is a <strong>card</strong>, not a line on a chart with a name beside it. Where the entity is a person or an account, the card MUST carry the same measures the dedicated screen carries, each shown for both periods with its move. A slope chart is a summary of many entities, never a substitute for the detail of one.</td></tr>
+      <tr><td><span class="rid">V-35</span></td><td>A band drawn between two series MUST be coloured by which series is in front <strong>over each segment of it</strong>, split at the crossing. One colour taken from the last point tells a reader the wrong thing about every point before it.</td></tr>
+      <tr><td><span class="rid">V-36</span></td><td>A measure grid MUST NOT end on a partly filled row. The count of measures MUST divide by every column count the grid can resolve to, or the grid MUST fix its column count explicitly. A row of holes reads as missing data.</td></tr>
+      <tr><td><span class="rid">V-37</span></td><td>A caption naming a region of a plot MUST sit outside the plotting field, in a band reserved for it. A plot whose axes carry direction MUST also carry magnitude, in the margin.</td></tr>
+      <tr><td><span class="rid">V-38</span></td><td>In a flow diagram, a ribbon that does not connect the two columns MUST stop short of the far column and name itself where it enters or leaves the picture. A ribbon drawn from the opposite column's edge asserts a relationship that does not exist.</td></tr>
       <tr><td><span class="rid">V-34</span></td><td>A grid that draws its dividers as a gap over a coloured container paints every unfilled cell as a block of border colour. Dividers MUST be borders on the cells themselves. (Third occurrence: <a href="#sa">A-23</a>.)</td></tr>
       <tr><td><span class="rid">V-32</span></td><td>Each view's reading band is a dark editorial block carrying the eyebrow, the generated sentence, and no more than four supporting figures. It is the one place on the screen that speaks in prose; everything below it is a chart.</td></tr>
       <tr><td><span class="rid">V-30</span></td><td>Chart labels MUST be drawn only where the geometry has room for them. Value labels on paired columns MUST be suppressed once the step between groups is too narrow to hold two of them, and a chart with few groups MUST centre its columns rather than stranding a pair at each end of the plot.</td></tr>
@@ -865,9 +872,12 @@ footer.colophon{
       <tr><td class="num">15</td><td>The decomposition</td><td>The change in returned value split across volume, size and win rate (<span class="rid">M-36</span>).</td></tr>
       <tr><td class="num">16</td><td>Speed at equal age</td><td>Share booked by each checkpoint, both periods, with the base answering each (<span class="rid">M-37</span>).</td></tr>
       <tr><td class="num">17</td><td>The bridge</td><td>Prior book, lost, spent less, spent more, gained, current book (<span class="rid">M-35</span>).</td></tr>
-      <tr><td class="num">18</td><td>Account movement</td><td>The biggest movers both directions, beside the accounts that went quiet, named (<span class="rid">M-32 · M-34</span>).</td></tr>
+      <tr><td class="num">18</td><td>Accounts kept and lost</td><td>Who came back, who used to pay and has gone quiet, and who cost engineering time and never booked (<span class="rid">M-32 · M-34</span>).</td></tr>
+      <tr><td class="num">19</td><td>Accounts won and slipping</td><td>The biggest movers both directions, the names new to us, and the ones still asking for a lot less.</td></tr>
+      <tr><td class="num">20</td><td>Where the year leaves us</td><td>The move, and up to three actions derived from the chapter&rsquo;s own figures (<span class="rid">K-16</span>).</td></tr>
     </tbody>
-  </table></div>
+  </table>
+  <p class="note">Slide numbering is contiguous, not fixed: a slide that cannot answer its own question from the loaded weeks is dropped and the numbering closes up behind it.</p></div>
   <div class="tw"><table>
     <caption>Deck requirements</caption>
     <thead><tr><th style="width:64px">ID</th><th>Requirement</th></tr></thead>
@@ -885,6 +895,7 @@ footer.colophon{
       <tr><td><span class="rid">K-10</span></td><td>Layout auditing MUST measure <strong>each slide in turn</strong>. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See <a href="#sa">A-19</a>.</td></tr>
       <tr><td><span class="rid">K-12</span></td><td>Layout MUST be verified against <strong>inflated figures</strong>, not only against the fixture. A layout that holds only because the sample numbers are small is not repeatable. See <span class="rid">P-21</span>.</td></tr>
       <tr><td><span class="rid">K-13</span></td><td>The navigation MUST occupy a reserved band that no slide content can enter, rather than overlaying the content area.</td></tr>
+      <tr><td><span class="rid">K-16</span></td><td>Every chapter of the deck MUST close on its own slide: what the chapter came to, and the work it implies. Each action on it MUST be derived from the figures in that chapter and MUST name them. A chapter that stops on a table has not finished.</td></tr>
       <tr><td><span class="rid">K-15</span></td><td>Slides answering the same question MUST sit together, and a slide MUST sit next to the slide it explains. The deck MUST close on a slide that states what to do next; a deck that stops on a table has not finished. Any slide reporting a rate MUST also carry the count and the money that rate was measured on.</td></tr>
       <tr><td><span class="rid">K-14</span></td><td>A deck chapter that depends on optional data MUST be appended only when that data is loaded, MUST carry a divider slide that names the chapter, and MUST continue the deck's slide numbering. Every slide in it is bound by <span class="rid">P-21</span> and MUST be included in the stress audit (<span class="rid">K-12</span>).</td></tr>
       <tr><td><span class="rid">K-11</span></td><td>Text overlap against the fixed navigation MUST be measured on the <strong>text</strong>, not on its container. A running-text block's box starts at the left margin and never reaches the nav, so element-level measurement misses a final line sitting underneath it. See <a href="#sa">A-20</a>.</td></tr>
@@ -1145,6 +1156,14 @@ build/         single-file bundling / inlining</code></pre>
       <tr><td><span class="rid">A-37</span></td><td>Percentage change was computed on percentages, so a due-date score moving 0% to 25% reported as "new" and a conversion moving 23.8% to 16.7% reported as &minus;29.8% rather than &minus;7.1 points.</td><td><span class="rid">M-41</span></td><td><strong>Fixed</strong> &mdash; every rate comparison reports points.</td></tr>
       <tr><td><span class="rid">A-38</span></td><td>With one week loaded on each side, 40 of 51 accounts were reported as having stopped asking. They had not; they simply quoted in a different week.</td><td><span class="rid">M-42</span></td><td><strong>Fixed</strong> &mdash; under four weeks a side the surface reframes the view, and the headline drops the retention figure.</td></tr>
       <tr><td><span class="rid">A-39</span></td><td>The customer slide's "who costs us" header read <code>$0.0M priced and not returned</code> while the rows beneath it read $11.1M, $8.7M, $5.9M. Account value is carried in millions and was divided by a million again &mdash; the fourth occurrence of that class of defect.</td><td><span class="rid">M-24</span></td><td><strong>Fixed</strong>, and the deck regression now asserts the header against the rows.</td></tr>
+      <tr><td><span class="rid">A-41</span></td><td>The equal-age booking band was filled in one colour taken from the last checkpoint, so a book ahead at days 14, 30 and 45 and behind only at day 90 was shaded red across its whole length.</td><td><span class="rid">V-35</span></td><td><strong>Fixed</strong> &mdash; the band is filled one segment at a time, split exactly at a crossing, and coloured by whoever is in front over that segment.</td></tr>
+      <tr><td><span class="rid">A-42</span></td><td>A measure grid whose cell count did not divide by the column count it landed at left a row of holes at the bottom of every person card and every account brief.</td><td><span class="rid">V-36</span></td><td><strong>Fixed</strong> &mdash; twelve measures per card, and the brief on an explicit four-column grid.</td></tr>
+      <tr><td><span class="rid">A-43</span></td><td>The ranked change list clipped a measure name to an ellipsis, so <em>Engineering hours per q&hellip;</em> could not be told from any other engineering measure.</td><td><span class="rid">P-29</span></td><td><strong>Fixed</strong> &mdash; the label column is wider and wraps rather than clipping.</td></tr>
+      <tr><td><span class="rid">A-44</span></td><td>Corner captions on the movement quadrant were drawn inside the plotting field, so a dot in a corner printed through the caption naming that corner.</td><td><span class="rid">V-37</span></td><td><strong>Fixed</strong> &mdash; the captions sit in a reserved band above and below the field, and both axes carry their own magnitude.</td></tr>
+      <tr><td><span class="rid">A-45</span></td><td>The account flow drew its arriving and departing ribbons from the far column&rsquo;s edge, so accounts that never existed last period appeared to come from last period&rsquo;s names; a block label wider than its column ran into the margin.</td><td><span class="rid">V-38</span></td><td><strong>Fixed</strong> &mdash; the loose ribbons stop short of the opposite column and name themselves at the edge, and a long label breaks over two lines.</td></tr>
+      <tr><td><span class="rid">A-46</span></td><td>With one matched week, three panels of the Momentum view each drew a single pair of columns in an empty plot.</td><td><span class="rid">M-44</span></td><td><strong>Fixed</strong> &mdash; under two matched weeks the view reads the five days inside the week both periods share, and says so.</td></tr>
+      <tr><td><span class="rid">A-47</span></td><td>The Mix view reported <em>accounts quoting 49</em> beside a ledger reading 50; the two counts have different bases and neither said which.</td><td><span class="rid">M-33</span></td><td><strong>Fixed</strong> &mdash; the stat is named <em>accounts priced</em> and states the quoting base whenever the two differ.</td></tr>
+      <tr><td><span class="rid">A-48</span></td><td>The year-over-year chapter ended on an account table.</td><td><span class="rid">K-16</span></td><td><strong>Fixed</strong> &mdash; the chapter closes on a slide that states the move and carries up to three actions derived from the comparison itself.</td></tr>
       <tr><td><span class="rid">A-40</span></td><td>A caption positioned from an estimated glyph width collided with the figure beside it as soon as the number got longer; a short segment on the process bar centred its caption off the left edge of the chart.</td><td><span class="rid">V-30</span></td><td><strong>Fixed</strong> &mdash; captions sit on their own line, and any caption whose centre falls near an edge is anchored to that edge.</td></tr>
       <tr><td><span class="rid">A-33</span></td><td>The decomposition ribbon was drawn against a zero baseline, so a $50k move on an $11.5M level rendered as a flat rectangle &mdash; the chart existed to show the move and showed nothing.</td><td><span class="rid">P-28 · M-36</span></td><td><strong>Fixed</strong> &mdash; the ribbon zooms to the band the steps occupy, draws a break marker, and states its floor.</td></tr>
       <tr><td><span class="rid">A-34</span></td><td>The slope chart resolved label crowding by shifting the whole stack, which moved every label away from its own point &mdash; a person at 27% had their label printed level with a person at 0%.</td><td><span class="rid">V-31</span></td><td><strong>Fixed</strong> &mdash; crowding is resolved locally by a forward-and-back pass, and every label carries a leader line to its mark.</td></tr>
@@ -1170,6 +1189,45 @@ build/         single-file bundling / inlining</code></pre>
 
 <section id="sb">
   <div class="sec-head"><span class="sec-num">B</span><h2 class="sec-title">Change log</h2></div>
+  <h3>v2.7 &mdash; 21 Aug 2026</h3>
+  <p class="note">Driven end to end on the real 2025 and 2026 books rather than on a fixture week copied twice, and measured rather than looked at.</p>
+  <h4>Reading the data honestly</h4>
+  <ul>
+    <li><strong>Rates move in points everywhere they are shown</strong> &mdash; the ranked change lists, the mix-shift rows, the deck&rsquo;s chapter divider and its headline table. Ranking still uses the relative move, and the note says so.</li>
+    <li><strong>An initial with no roster name is named as such</strong> (<span class="rid">M-45</span>). Four codes in the real books appear in no <code>Inventory</code> sheet; they are shown by code, marked, and counted rather than presented as people.</li>
+    <li><strong>A band that stands empty says why</strong> &mdash; nothing was quoted that size, or it was quoted and none came back.</li>
+    <li><strong>The Mix view&rsquo;s account count states its base</strong> whenever it differs from the ledger&rsquo;s, and the district chart says how many districts it drew.</li>
+    <li><strong>A customer brief carries days to decide</strong> (<span class="rid">M-46</span>).</li>
+  </ul>
+  <h4>Where a surface had nothing to draw</h4>
+  <ul>
+    <li><strong>One matched week is read at day grain</strong> (<span class="rid">M-44</span>). Volume, value and the race all fall through to Monday&ndash;Friday inside the week both periods share.</li>
+  </ul>
+  <h4>Charts that were saying the wrong thing</h4>
+  <ul>
+    <li><strong>The equal-age band is coloured by who is in front over each segment</strong> (<span class="rid">V-35</span>), split at the crossing, on the screen and on the slide.</li>
+    <li><strong>The movement quadrant reserves a band for its corner captions</strong> (<span class="rid">V-37</span>) and carries a magnitude on each axis.</li>
+    <li><strong>The account flow&rsquo;s loose ribbons stop short of the opposite column</strong> (<span class="rid">V-38</span>) and name themselves at the edge they cross.</li>
+  </ul>
+  <h4>Design</h4>
+  <ul>
+    <li><strong>No grid ends on a half-empty row</strong> (<span class="rid">V-36</span>): twelve measures per person card, twelve per account brief, eight decision checkpoints on the deck.</li>
+    <li><strong>The ledger packs by content</strong> rather than stretching every card to the tallest in its row, and its type is a step larger.</li>
+    <li><strong>Cause cards bottom-align</strong>, and the decomposition slide carries the ribbon again beneath the three sentences.</li>
+    <li><strong>A three-letter code is labelled</strong> &mdash; the best-work slide says <em>sold by</em> and <em>CSR</em>.</li>
+  </ul>
+  <h4>The deck</h4>
+  <ul>
+    <li><strong>A closing slide for the year chapter</strong> (<span class="rid">K-16</span>): the move, and up to three actions derived from the comparison &mdash; the largest reason the money moved, the accounts that used to pay and have gone quiet, the checkpoint the book is answering slower at, concentration, and the new names.</li>
+  </ul>
+  <h4>Tests</h4>
+  <ul>
+    <li><code>test/visual-audit.mjs</code> &mdash; every screen and every year-over-year view at five widths and both themes, checking formatted-to-nothing figures, panels that drew nothing, anything painted outside its screen, and any two pieces of text whose <strong>ink</strong> lands on the same pixels. Respects clip chains and horizontal scrollers.</li>
+    <li><code>test/deck-audit.mjs</code> &mdash; every slide of the real-data deck at three projector widths.</li>
+    <li><code>test/deck-year.mjs</code> no longer asserts a fixed slide count, and <code>test/screens.mjs</code> walks the rail instead of a stale copy of it.</li>
+  </ul>
+  <p class="note"><strong>Defects logged and fixed:</strong> <a href="#sa">A-41</a> through <a href="#sa">A-48</a>.</p>
+
   <h3>v2.6 &mdash; 21 Aug 2026</h3>
   <h4>The data, first</h4>
   <ul>

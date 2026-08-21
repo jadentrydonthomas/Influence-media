@@ -34,10 +34,20 @@ await p.click('[data-cust-sort="quotes"]'); await p.waitForTimeout(350);
 const quotesCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/(\d+) quote/)||[0,0])[1])));
 check('most quotes is ordered by quotes', quotesCol.every((v,i)=>i===0||quotesCol[i-1]>=v), quotesCol.slice(0,6).join(','));
 await p.click('[data-cust-sort="value"]'); await p.waitForTimeout(350);
-const askedCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/of \$([\d.]+)M/)||[0,0])[1])));
-check('most quoted value is ordered by what was asked for', askedCol.every((v,i)=>i===0||askedCol[i-1]>=v), askedCol.slice(0,6).join(','));
+// Money under a million is written in thousands, so the two figures on a row
+// carry different units and have to be read from their own elements rather
+// than pattern-matched out of the row's text.
+const readMoney = text => {
+  const m = String(text).match(/\$([\d.,]+)\s*([Mk])?/);
+  if (!m) return 0;
+  const n = Number(m[1].replace(/,/g, ''));
+  return m[2] === 'k' ? n / 1000 : n;
+};
+const askedCol = await p.$$eval('#custRows .account-row .account-value small', ns=>ns.map(n=>n.textContent));
+check('most quoted value is ordered by what was asked for',
+  askedCol.map(readMoney).every((v,i,a)=>i===0||a[i-1]>=v), askedCol.slice(0,6).join(' | '));
 await p.click('[data-cust-sort="returned"]'); await p.waitForTimeout(350);
-const returnedCol = await p.$$eval('#custRows .account-row', ns=>ns.map(n=>Number((n.innerText.match(/\$([\d.]+)M/)||[0,0])[1])));
+const returnedCol = (await p.$$eval('#custRows .account-row .account-value b', ns=>ns.map(n=>n.textContent))).map(readMoney);
 check('most value returned is ordered by the money that came back', returnedCol.every((v,i)=>i===0||returnedCol[i-1]>=v), returnedCol.slice(0,6).join(','));
 // Opening an account must show its own jobs and its own quotes.
 await p.click('[data-cust-sort="wins"]'); await p.waitForTimeout(350);
@@ -66,7 +76,9 @@ const deck = fs.readFileSync(out,'utf8').replace(/data:image\/[a-z+]+;base64,[A-
 check('a filtered deck exports', deck.length>20000, deck.length+' bytes');
 check('the filtered deck has no NaN', !/NaN|undefined|Infinity/.test(deck));
 check('the filtered deck carries the narrowed count', deck.includes('>'+railFiltered+'<'), 'expected '+railFiltered);
-check('the filtered deck still has nine slides', (deck.match(/class="deck-slide[ "]/g)||[]).length===9);
+// Slides that cannot answer their own question are dropped, so the count
+// follows the data rather than being fixed.
+check('the filtered deck still carries its core slides', (deck.match(/class="deck-slide[ \"]/g)||[]).length>=7, String((deck.match(/class="deck-slide[ \"]/g)||[]).length));
 fs.unlinkSync(out);
 check('no JS errors', errs.length===0, errs.slice(0,2).join('; '));
 await b.close();

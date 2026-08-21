@@ -37,16 +37,20 @@ check('with no prior period the deck is nine slides',
 
 const deck = await buildDeck(true);
 const html = fs.readFileSync(deck, 'utf8');
-check('with a prior period the chapter is appended',
-  (html.match(/class="deck-slide[ "]/g) || []).length === 19,
-  String((html.match(/class="deck-slide[ "]/g) || []).length));
+// The chapter drops any slide it cannot answer, so its length is a property
+// of the data rather than a constant. What has to hold is that the chapter is
+// there, sits behind the nine base slides, and closes on its own last word.
+const chapterSlides = (html.match(/class="deck-slide[ "]/g) || []).length - 9;
+check('with a prior period the chapter is appended', chapterSlides >= 6, chapterSlides + ' chapter slides');
+check('the chapter closes rather than stopping', /Where the year leaves us/.test(html));
 check('the deck is still self-contained', !/https?:\/\/(?!www\.w3\.org)/.test(html));
 
 const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto('file://' + deck);
 const total = await p.$$eval('.deck-slide', n => n.length);
-check('the counter reads the full deck', /1 \/ 19/.test(await p.$eval('#deckPage', n => n.textContent)));
+check('the counter reads the full deck', new RegExp('1 / ' + total).test(await p.$eval('#deckPage', n => n.textContent)),
+  await p.$eval('#deckPage', n => n.textContent.trim()));
 check('the chapter divider is marked', await p.$$eval('.deck-slide.is-chapter', n => n.length) === 1);
 
 // Every chapter slide, measured on its own: nothing may leave the slide, sit

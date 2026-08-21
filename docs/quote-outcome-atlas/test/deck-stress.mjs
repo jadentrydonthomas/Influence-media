@@ -72,10 +72,33 @@ for (let i = 0; i < n; i++) {
     const out = [];
     const slide = document.querySelectorAll('.deck-slide')[index];
     const sr = slide.getBoundingClientRect();
-    // 1. Nothing may leave the slide.
+    // 1. Nothing may leave the slide. A clip-path is a promise the chart makes
+    // about where it will paint, so the rect is intersected with it rather than
+    // taken at face value — an element's box is unaffected by clipping.
+    const clipBox = el => {
+      let node = el, box = null;
+      while (node && node.nodeType === 1 && node !== slide) {
+        const ref = node.getAttribute && node.getAttribute('clip-path');
+        const id = ref && (ref.match(/url\(#([^)]+)\)/) || [])[1];
+        const shape = id && document.getElementById(id) && document.getElementById(id).querySelector('rect');
+        if (shape) {
+          const r = shape.getBoundingClientRect();
+          box = box ? { left: Math.max(box.left, r.left), right: Math.min(box.right, r.right),
+            top: Math.max(box.top, r.top), bottom: Math.min(box.bottom, r.bottom) } : r;
+        }
+        node = node.parentNode;
+      }
+      return box;
+    };
     slide.querySelectorAll('*').forEach(el => {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) return;
+      const raw = el.getBoundingClientRect();
+      if (raw.width === 0 || raw.height === 0) return;
+      const clip = clipBox(el);
+      const r = clip
+        ? { left: Math.max(raw.left, clip.left), right: Math.min(raw.right, clip.right),
+            top: Math.max(raw.top, clip.top), bottom: Math.min(raw.bottom, clip.bottom) }
+        : raw;
+      if (r.right - r.left <= 0 || r.bottom - r.top <= 0) return;
       if (r.right > sr.right + 1.5 || r.left < sr.left - 1.5 || r.bottom > sr.bottom + 1.5)
         out.push({ slide: index+1, kind: 'spills', what: (el.className.baseVal||el.className||el.tagName||'').toString().slice(0,40), text: (el.textContent||'').trim().slice(0,40) });
     });
