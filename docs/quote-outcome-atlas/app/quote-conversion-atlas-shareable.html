@@ -10281,9 +10281,22 @@
         // money that never returned rather than by the number of requests.
         const ledgerBooked = (customerSignals.accounts || []).filter(account => account.wonValue > 0)
           .slice().sort((a, b) => b.wonValue - a.wonValue).slice(0, 4);
+        // An account cannot be both. The cost side is not "whoever left the most
+        // unpriced money" — our best payers ask for a lot and so leave a lot on
+        // the table by arithmetic alone, and naming one of them as a cost while
+        // naming them as a payer two inches above is a straight contradiction.
+        // The cost side is the accounts that asked repeatedly and got us little
+        // or nothing back: capture under a fifth of what they asked for.
+        const LEDGER_COST_CAPTURE = 20;
+        const paysAlready = new Set(ledgerBooked.map(account => account.key || account.name));
         const ledgerCost = (customerSignals.accounts || [])
-          .map(account => Object.assign({}, account, { unreturned: account.quoteValue - account.wonValue }))
-          .filter(account => account.unreturned > 0 && account.quotes >= 2)
+          .map(account => Object.assign({}, account, {
+            unreturned: account.quoteValue - account.wonValue,
+            capture: account.quoteValue ? account.wonValue / account.quoteValue * 100 : 0
+          }))
+          .filter(account => account.unreturned > 0 && account.quotes >= 2
+            && !paysAlready.has(account.key || account.name)
+            && account.capture < LEDGER_COST_CAPTURE)
           .sort((a, b) => b.unreturned - a.unreturned).slice(0, 4);
         const costValue = ledgerCost.reduce((sum, account) => sum + account.unreturned, 0);
         const costAll = (customerSignals.accounts || []).reduce((sum, account) => sum + Math.max(0, account.quoteValue - account.wonValue), 0);
@@ -10299,14 +10312,16 @@
           + deckReturnLedger(ledgerBooked, { label: "Quoted value against value returned, best-paying accounts",
               keyA: "Quoted", keyB: "Came back", empty: "No account has booked a job in this cohort." })
           + "</section>"
-          + '<section><div class="ledger-split-head is-bad"><span>Who costs us the most to serve</span><b>'
+          + '<section><div class="ledger-split-head is-bad"><span>Who asks the most and returns the least</span><b>'
           + money(costValue) + " priced and not returned · " + costHours.toFixed(0) + " engineering hours</b></div>"
           + deckReturnLedger(ledgerCost, { label: "Quoted value that did not return, by account",
               keyA: "Quoted", keyB: "Came back", empty: "Every repeat account here has booked at least one job." })
           + "</section></div>"
           + '<div class="deck-callout"><strong>Same measure, both ends:</strong> '
-          + escape("the accounts below asked at least twice and left " + money(costValue) + " of priced work on the table at "
-            + costHours.toFixed(0) + " engineering hours — a follow-up queue and a qualification question, not a loss list.") + "</div>";
+          + escape("the accounts above pay us; the accounts below asked at least twice, got less than "
+            + LEDGER_COST_CAPTURE + "% of it back, and left " + money(costValue) + " of priced work on the table at "
+            + costHours.toFixed(0) + " engineering hours. No account can appear in both lists — a payer is not a cost. "
+            + "This is a follow-up queue and a qualification question, not a loss list.") + "</div>";
 
         // ---- 07 How long it takes to come back ---------------------------------
         // This was a dense screen dropped onto a slide: three stage bars, an

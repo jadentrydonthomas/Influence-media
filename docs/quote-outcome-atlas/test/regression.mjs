@@ -161,7 +161,24 @@ if (!download) {
   checkMatch('deck names the customer half', deck, /THEIR HALF[\s\S]{0,400}deciding/i);
   // Each decision-curve checkpoint carries the money, not only the percentage.
   checkMatch('deck decision checkpoints carry value', deck, /booked by day \d+<\/span><small>\$/);
-  checkMatch('deck separates who pays from who costs', deck, /Who actually pays us[\s\S]{0,4000}Who costs us the most to serve/i);
+  checkMatch('deck separates who pays from who costs', deck, /Who actually pays us[\s\S]{0,4000}Who asks the most and returns the least/i);
+  // An account cannot be a payer and a cost at the same time. It was, because
+  // the cost side ranked on unreturned value and our best payers ask for the
+  // most, so they leave the most on the table by arithmetic alone.
+  {
+    const half = body => {
+      // The name is followed by its own <title> for the hover, so the full
+      // name is read from there rather than from the clipped label.
+      return [...body.matchAll(/class="ledger-name"[^>]*>[^<]*<title>([^<]+)<\/title>/g)].map(m => m[1].trim());
+    };
+    const pays = deck.split('Who actually pays us')[1] || '';
+    const costs = deck.split('Who asks the most and returns the least')[1] || '';
+    const paysNames = half(pays.split('Who asks the most and returns the least')[0] || '');
+    const costNames = half(costs);
+    const both = paysNames.filter(name => costNames.indexOf(name) > -1);
+    check('no account appears as both a payer and a cost', both.join(' | '), '');
+    check('both halves of the ledger drew accounts', paysNames.length > 0 && costNames.length > 0, true);
+  }
   checkMatch('deck closes on what to do next', deck, /class="closing-actions"/);
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
