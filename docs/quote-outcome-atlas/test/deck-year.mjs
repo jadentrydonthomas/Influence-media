@@ -38,7 +38,7 @@ check('with no prior period the deck is nine slides',
 const deck = await buildDeck(true);
 const html = fs.readFileSync(deck, 'utf8');
 check('with a prior period the chapter is appended',
-  (html.match(/class="deck-slide[ "]/g) || []).length === 18,
+  (html.match(/class="deck-slide[ "]/g) || []).length === 19,
   String((html.match(/class="deck-slide[ "]/g) || []).length));
 check('the deck is still self-contained', !/https?:\/\/(?!www\.w3\.org)/.test(html));
 
@@ -46,7 +46,7 @@ const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto('file://' + deck);
 const total = await p.$$eval('.deck-slide', n => n.length);
-check('the counter reads the full deck', /1 \/ 18/.test(await p.$eval('#deckPage', n => n.textContent)));
+check('the counter reads the full deck', /1 \/ 19/.test(await p.$eval('#deckPage', n => n.textContent)));
 check('the chapter divider is marked', await p.$$eval('.deck-slide.is-chapter', n => n.length) === 1);
 
 // Every chapter slide, measured on its own: nothing may leave the slide, sit
@@ -119,9 +119,11 @@ const wide = [1, 2, 3].map(n => { const d = path.join(tmp, `Week ${n} - 2025.xls
   q.on('pageerror', e => errs.push(e.message));
   await q.goto('file://' + churnDeck);
   const total2 = await q.$$eval('.deck-slide', n => n.length);
-  await q.evaluate(index => document.querySelectorAll('.deck-slide').forEach((s, j) => s.classList.toggle('is-active', j === index)), total2 - 1);
+  // The kept-and-lost slide sits one before the last; it is the one that must
+  // name names when there is churn to name.
+  await q.evaluate(index => document.querySelectorAll('.deck-slide').forEach((s, j) => s.classList.toggle('is-active', j === index)), total2 - 2);
   await q.waitForTimeout(500);
-  const rows = await q.$$eval('.quiet-table tbody tr', n => n.length);
+  const rows = await q.$$eval('.acct-slide-table tbody tr', n => n.length);
   check('the account slide names who went quiet when there is churn', rows > 0, rows + ' named');
   const problems2 = await q.evaluate(index => {
     const out = [];
@@ -139,7 +141,7 @@ const wide = [1, 2, 3].map(n => { const d = path.join(tmp, `Week ${n} - 2025.xls
         out.push('overlap "' + texts[a].t.textContent.slice(0, 14) + '" / "' + texts[c].t.textContent.slice(0, 14) + '"');
     }
     return out.slice(0, 4);
-  }, total2 - 1);
+  }, total2 - 2);
   check('the populated account slide holds its own slide', problems2.length === 0, problems2.join(' | '));
   await q.screenshot({ path: path.join(root, 'test', 'deck-yoy-churn.png') });
   await q.close();

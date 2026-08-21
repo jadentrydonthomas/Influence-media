@@ -53,14 +53,15 @@ check('exactly one view is open at a time',
 
 // Every view must draw real marks, not empty boxes.
 const wants = {
-  headline: ['#cmpHeadlineLede .yoy-stat', '#cmpAttribution .attr-ribbon', '#cmpAttribution .attr-name', '#cmpChange .chg-row'],
-  momentum: ['#cmpMomentumLede .yoy-stat', '#cmpWeekChart .cmp-col', '#cmpWeekValueChart .cmp-col', '#cmpRace path'],
-  speed: ['#cmpSpeedLede .yoy-stat', '#cmpSurvival .surv-line, #cmpSurvival .ops-note', '#cmpTiming .chg-row'],
+  headline: ['#cmpHeadlineLede .yoy-stat', '#cmpAttribution .because-card', '#cmpAttribution .attr-ribbon', '#cmpChange .chg-row'],
+  momentum: ['#cmpMomentumLede .yoy-stat', '#cmpWeekChart .swing-bar', '#cmpWeekChart .cmp-col', '#cmpWeekValueChart .cmp-col', '#cmpRace path'],
+  speed: ['#cmpSpeedLede .yoy-stat', '#cmpSurvival .cmp-col, #cmpSurvival .ops-note', '#cmpTiming .chg-row'],
   mix: ['#cmpMixLede .yoy-stat', '#cmpLorenz .lorenz-line', '#cmpBandChart .cmp-col', '#cmpMixShift .chg-row', '#cmpDistricts .cmp-col'],
-  customers: ['#cmpCustomerLede .yoy-stat', '#cmpFlow .flow-block', '#cmpLost .acct-table tbody tr, #cmpLost .analysis-empty',
+  customers: ['#cmpCustomerLede .yoy-stat', '#cmpBrief .brief-row', '#cmpBrief .pair-cell', '#cmpFlow .flow-block',
+              '#cmpLost .acct-table tbody tr, #cmpLost .analysis-empty',
               '#cmpGained .acct-table tbody tr, #cmpGained .analysis-empty', '#cmpQuadrant .quad-dot'],
-  people: ['#cmpPeopleLede .yoy-stat', '#cmpPeopleChart .slope-line, #cmpPeopleChart .ops-note', '#cmpPeopleRate .slope-line, #cmpPeopleRate .ops-note'],
-  ledger: ['#cmpTable .cmp-row', '#cmpMethod li']
+  people: ['#cmpPeopleLede .yoy-stat', '#cmpPeopleCards .roster-card', '#cmpPeopleCards .pair-cell', '#cmpPeopleChart .cmp-col'],
+  ledger: ['#cmpTable .ledger-group', '#cmpTable .ledger-row', '#cmpMethod li']
 };
 for (const view of views) {
   await p.click(`[data-compare-view="${view}"]`);
@@ -103,7 +104,9 @@ await p.click('[data-compare-view="customers"]');
 await p.waitForTimeout(400);
 const retention = await text('#cmpCustomerLede');
 check('the customer lede states the base, the keepers and the losses',
-  /quoting last period/i.test(retention) && /came back/i.test(retention) && /gone quiet/i.test(retention) && /slipping/i.test(retention));
+  (/quoting last period/i.test(retention) && /came back/i.test(retention) && /gone quiet/i.test(retention) && /slipping/i.test(retention))
+  || (/quoted in both/i.test(retention) && /only last period/i.test(retention) && /only this period/i.test(retention) && /weeks loaded/i.test(retention)),
+  retention.slice(0, 90));
 const lostHeads = await p.$$eval('#cmpLost thead th, #cmpLost .analysis-empty b', n => n.map(x => x.textContent.trim()).join('|'));
 check('the churn list carries who, how much, how often and whose account it was',
   /Account/.test(lostHeads) && /Quotes/.test(lostHeads) && /Owner/.test(lostHeads) || /Nobody stopped asking/.test(lostHeads),
@@ -115,15 +118,14 @@ check('no figure resolves to NaN or undefined', !/NaN|undefined/.test(html.repla
   (html.match(/.{0,40}(NaN|undefined).{0,40}/) || [])[0] || '');
 
 // Selecting a named account must land on that account's record.
-const opener = await p.$('#compare [data-open-account]');
+const opener = await p.$('#cmpLost [data-open-account], #cmpGained [data-open-account]');
 if (opener) {
   const key = await opener.getAttribute('data-open-account');
-  await opener.click(); await p.waitForTimeout(500);
-  check('selecting an account opens its record',
-    await p.$eval('#customers', n => n.classList.contains('is-active')) &&
-    (await p.$eval('#custProfile', n => n.innerText.length)) > 40, key.slice(0, 30));
-  await p.click('[data-screen="compare"]'); await p.waitForTimeout(400);
-} else check('selecting an account opens its record', false, 'no account row rendered');
+  await opener.click(); await p.waitForTimeout(600);
+  const shown = await p.$eval('#cmpBrief .brief-head h3', n => n.textContent.trim());
+  check('selecting an account opens its brief without leaving the screen',
+    await p.$eval('#compare', n => n.classList.contains('is-active')) && shown.length > 1, key.slice(0, 24) + ' → ' + shown.slice(0, 24));
+} else check('selecting an account opens its brief without leaving the screen', false, 'no account row rendered');
 
 // The dark theme flips half the palette; a filled header must survive it.
 await p.click('#themeButton');
