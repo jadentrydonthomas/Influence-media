@@ -5,7 +5,7 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.5 |
+| **Spec version** | 2.6 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
 | **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
@@ -125,6 +125,7 @@ Stating these prevents well-meant scope drift:
 | **P-21** | A slide is a fixed box | Every deck slide MUST fit the space it has at any figure and any window size. Content MUST be measured against the height available and scaled to fit, so a larger number changes the size of the type rather than pushing text under the navigation or off the page. Overlap is a correctness defect, not a style one: two figures on top of each other cannot both be read. |
 | **P-22** | The mark travels | The Nucor mark MUST appear on every exported slide and MUST be embedded once and referenced, never repeated per slide. |
 | **P-23** | A surface appears only when it can answer | A screen or a deck chapter that exists to compare two periods MUST NOT be shown when only one period is loaded. An empty comparison is worse than no comparison: it invites a reader to draw a conclusion from a missing file. The navigation entry, the screen, and the deck chapter MUST all appear and disappear together with the data behind them. |
+| **P-29** | The screen holds the deck's standard | Where a slide and a screen show the same thing, the screen MUST NOT be the weaker of the two. Panel headers stack — eyebrow, then title, then description — with the title set as a title and the description at reading size, rather than pushing three elements to three edges. No text on any surface may fall below 9.5px. |
 | **P-27** | Say the finding, then show it | Every view of a comparison MUST open by stating, in one generated sentence built from the figures, what it is about to show. The sentence MUST name the largest mover and its size, not merely restate that a change occurred. A reader who has to derive the finding from a chart has been given data, not analysis. |
 | **P-28** | A scale that hides the finding is the wrong scale | Where the level of a figure dwarfs its movement, a chart anchored at zero renders the movement invisible. Such a chart MUST zoom to the band the movement occupies **and** declare it — a break marker and the stated floor — rather than either hiding the move or rescaling silently. |
 | **P-25** | A long screen is a failed screen | Where one screen answers more than about three questions, it MUST be split into labelled views with one question each, switched in place, rather than stacked into a single column. A reader scrolling past six panels to find one figure has been given a document, not a dashboard. |
@@ -398,6 +399,14 @@ Three stages, each measured from dates the source already carries, each scored *
 - **M-35** — The value bridge — prior book, accounts lost, spent less, spent more, accounts gained, current book — MUST close exactly onto the closing total, and MUST be built on the shared weeks. Built on everything loaded, an extra week on one side appears in it as business won.
 - **M-29** — Where the two sides share week numbers, **both** MUST be narrowed to the shared set before measuring, and the surface MUST name the weeks it matched on and the weeks it left out. Comparing ten prior weeks against three live ones reports a collapse in demand that is really a difference in how much was uploaded. With no shared weeks the comparison falls back to whole period against whole period and MUST say so.
 
+### 8.6a Customer identity
+
+- **M-39** — **One company is one account.** The same customer is typed differently from week to week — *GREYSTONE*, *GREYSTONE CONSTRUCTION*, *Greystone Constr. Inc.* Every customer string MUST be resolved to one account **before any figure is calculated**, across the live period and any prior period **together**, or a customer who booked with us reads as one who never has. Resolution runs in two passes: a pure pass that strips punctuation and trailing legal forms (INC, LLC, CO, CORP, LTD…) and merges names that are the same letters spaced differently; then a dataset-aware pass that folds a longer name onto a shorter one **only** when the shorter name appears in the data in its own right and every extra word is a generic trade word. *Greystone Construction* joins *Greystone* because *Greystone* is there; *Smith Builders* and *Smith Construction* both stay put because no bare *Smith* exists.
+- **M-40** — **Report what was not merged.** Names that look like one company and were deliberately left as two — the same words in a different order, one name extending the other with non-generic words, or two spellings within two characters of each other — MUST be listed with their quote counts on the data-mapping surface. Every merge that *was* made MUST be listed beside them with its reason. A rule that guesses silently is worse than one that reports; the fix for a typo belongs in the source workbook, not in a heuristic.
+- **M-41** — **A rate moves in points.** Percentage change computed on a percentage is the wrong arithmetic, and a rate that was zero has not gone "new". Every comparison of two rates MUST report the move in percentage points.
+- **M-42** — **Presence needs a span.** Where fewer than four weeks are loaded on either side, a surface MUST NOT describe absent accounts as churn. It MUST say instead that this is which accounts happened to quote in the loaded weeks, and MUST replace any retention figure in a headline with a measure that holds at any span.
+- **M-43** — **The whole clock.** The dashboard MUST report the end-to-end duration — the request landing to the order being entered — as a first-class figure beside the two halves it is made of, not as one entry in a row of small numbers. The surface MUST state that the two halves are medians in their own right and will not always sum to the whole.
+
 ### 8.7 Definitions surface
 
 - **M-25** — Every term the dashboard displays MUST be reachable from a definitions surface available on **every** screen, carrying (a) what the term is, (b) the source file and column it is measured from, and (c) its live value in the active cohort. A definition without its own denominator is how a number gets misread ([P-14](#2-non-negotiable-product-requirements)).
@@ -461,6 +470,8 @@ The strongest design on the page.
 - **V-27** — Direction MUST be judged, not signed. More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. The surface MUST say that it is doing this, so a green figure is never mistaken for an arithmetic sign.
 - **V-29** — A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.
 - **V-31** — Where labels cannot sit beside the marks they belong to — values clustered in a narrow band on a slope chart, for instance — the labels MUST be de-crowded **locally** and tied back to their marks with leader lines. Shifting the whole stack to make room silently separates every label from its own point.
+- **V-33** — A comparison of one entity across two periods is a **card**, not a line on a chart with a name beside it. Where the entity is a person or an account, the card MUST carry the same measures the dedicated screen carries, each shown for both periods with its move. A slope chart is a summary of many entities, never a substitute for the detail of one.
+- **V-34** — A grid that draws its dividers as a gap over a coloured container paints every unfilled cell as a block of border colour. Dividers MUST be borders on the cells themselves. (Third occurrence: [A-23](#appendix-a--defect-log), and again in the paired-metric grid and the decision-curve marks.)
 - **V-32** — Each view's reading band is a dark editorial block carrying the eyebrow, the generated sentence, and no more than four supporting figures. It is the one place on the screen that speaks in prose; everything below it is a chart.
 - **V-30** — Chart labels MUST be drawn only where the geometry has room for them. Value labels on paired columns MUST be suppressed once the step between groups is too narrow to hold two of them, and a chart with few groups MUST centre its columns rather than stranding a pair at each end of the plot.
 - **V-28** — A filled header band MUST use a token that stays dark in both themes. A token defined as dark ink for light-theme text will invert under the dark theme and take white text with it. See [Appendix A, A-30](#appendix-a--defect-log).
@@ -479,11 +490,11 @@ The export creates a separate, self-contained HTML slide report presented with a
 | 2 | Quote outcome | Confirmed vs unconverted opportunities and value. |
 | 3 | Weekly performance pulse | Quote volume and conversion on separate lanes, week by week. |
 | 4 | Value band analysis | Dollars asked for against dollars that came back, by band, with each band's own count and rate. |
-| 5 | Speed and release timing | Turnaround mix, on-time result **and coverage**. |
-| 6 | Customer demand | Who asks against who books, who pays the most, and the accounts that asked repeatedly and booked nothing. |
-| 7 | Lifecycle and decision window | The three measured stages as dials, the decision curve, and the ageing of the open book. |
-| 8 | Cohort maturity | Every quoted week read at the same age, with weeks too young to answer excluded rather than shown as zero ([M-28](#8-required-calculations-and-analytics)). |
-| 9 | The work that came back | The highest-value **booked** jobs, with everyone who priced, sold and ran each one. |
+| 5 | Speed · our half of the clock | Turnaround mix, on-time result **and coverage**. |
+| 6 | Speed · the whole clock | Request in to order entered, split where the work leaves us, with every decision checkpoint carrying its money ([M-43](#8-required-calculations-and-analytics)). |
+| 7 | Customer demand | Who actually pays us and who costs the most to serve, as one shape read from both ends. |
+| 8 | The work that came back | The highest-value **booked** jobs, with everyone who priced, sold and ran each one. |
+| 9 | Where this leaves us | The headline figures and the three things to do next ([K-15](#10-team-report-deck-requirements)). |
 
 **Chapter two — appended only when a prior period is loaded** ([P-23](#2-non-negotiable-product-requirements), [K-14](#10-team-report-deck-requirements)):
 
@@ -507,6 +518,7 @@ The export creates a separate, self-contained HTML slide report presented with a
 - **K-10** — Layout auditing MUST measure **each slide in turn**. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See [Appendix A, A-19](#appendix-a--defect-log).
 - **K-12** — Layout MUST be verified against **inflated figures**, not only against the fixture. A layout that holds only because the sample numbers are small is not repeatable. See [`test/deck-stress.mjs`](#12-verification-baseline) and [P-21](#2-non-negotiable-product-requirements).
 - **K-13** — The navigation MUST occupy a reserved band that no slide content can enter, rather than overlaying the content area.
+- **K-15** — Slides answering the same question MUST sit together, and a slide MUST sit next to the slide it explains. The deck MUST close on a slide that states what to do next; a deck that stops on a table has not finished. Any slide reporting a rate MUST also carry the count and the money that rate was measured on.
 - **K-14** — A deck chapter that depends on optional data MUST be appended only when that data is loaded, MUST carry a divider slide that names the chapter, and MUST continue the deck's slide numbering. Every slide in it is bound by [P-21](#2-non-negotiable-product-requirements) and MUST be included in the stress audit ([K-12](#10-team-report-deck-requirements)).
 - **K-11** — Text overlap against the fixed navigation MUST be measured on the **text**, not on its container. A running-text block's box starts at the left margin and never reaches the nav, so element-level measurement misses a final line sitting underneath it. See [Appendix A, A-20](#appendix-a--defect-log).
 - **K-3** — Standard, bold, readable fonts; large headings and clear body text. Condensed display faces are permitted for headlines only, per [V-17](#95-type-color-and-spacing).
@@ -759,6 +771,11 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-25** | The 10% reference label sat on the reference line, exactly where a week's own conversion value lands whenever the rate is near the reference. | [V-11](#93-encoding-integrity) | **Fixed** — it is axis furniture and now lives with the axis maximum. |
 | **A-26** | The Nucor mark was embedded once per slide, so a nine-slide deck carried nine copies of the same 40KB payload — a 475KB file. | [P-22](#2-non-negotiable-product-requirements), [P-1](#2-non-negotiable-product-requirements) | **Fixed** — embedded once in the deck stylesheet and referenced; 108KB. |
 | **A-27** | Three regression checks asserted the deck contains no `NaN`. The mark's base64 payload contains the letters N-a-N, so embedding it turned three passing checks into false failures. | [T-16](#113-code-rules) | **Fixed** — figure checks read the deck with data URIs stripped; markup checks read the raw text. |
+| **A-36** | *GREYSTONE* and *GREYSTONE CONSTRUCTION* were two accounts, so a customer who booked with us appeared in the churn list as one who never had. The same split affected *BAYLAND* / *BAYLAND BUILDINGS*, *KAISER MARTIN* / *KAISER MARTIN GROUP*, *TEDESCO* / *TEDESCO CONSTRUCTION SERVICES*, *STEEL TECH* / *STEELTECH* and *DESIGN BUILDERS* / *DESIGN BUILDERS & CONTRACTORS*. | [M-39](#8-required-calculations-and-analytics) | **Fixed** — identity resolution runs before any figure is calculated, across both periods together, and reports both what it merged and what it deliberately did not. |
+| **A-37** | Percentage change was computed on percentages, so a due-date score moving 0% to 25% reported as "new" and a conversion moving 23.8% to 16.7% reported as −29.8% rather than −7.1 points. | [M-41](#8-required-calculations-and-analytics) | **Fixed** — every rate comparison reports points. |
+| **A-38** | With one week loaded on each side, 40 of 51 accounts were reported as having stopped asking. They had not; they simply quoted in a different week. | [M-42](#8-required-calculations-and-analytics) | **Fixed** — under four weeks a side, the surface reframes the whole view as which accounts quoted in the loaded weeks, and the headline drops the retention figure. |
+| **A-39** | The customer slide's "who costs us" header read `$0.0M priced and not returned` while the rows beneath it read $11.1M, $8.7M, $5.9M. Account value is carried in millions and was divided by a million again. Fourth occurrence of the same class of defect. | [M-24](#8-required-calculations-and-analytics) | **Fixed**, and the deck regression now asserts the header against the rows. |
+| **A-40** | A caption positioned from an estimated glyph width collided with the figure beside it as soon as the number got longer; a short segment on the process bar centred its caption off the left edge of the chart. | [V-30](#97-year-over-year-encoding) | **Fixed** — captions sit on their own line, and any caption whose centre falls near an edge is anchored to that edge instead of being clipped by it. |
 | **A-33** | The decomposition ribbon was drawn against a zero baseline, so a $50k move on an $11.5M level rendered as a flat rectangle — the chart existed to show the move and showed nothing. | [P-28](#2-non-negotiable-product-requirements), [M-36](#8-required-calculations-and-analytics) | **Fixed** — the ribbon zooms to the band the steps occupy, draws a break marker, and states its floor. |
 | **A-34** | The slope chart resolved label crowding by shifting the whole stack, which moved every label away from its own point — a person at 27% had their label printed level with a person at 0%. | [V-31](#97-year-over-year-encoding) | **Fixed** — crowding is resolved locally by a forward-and-back pass, and every label carries a leader line to its mark. |
 | **A-35** | Account counts measured across every loaded week were placed in a ranked list where every other row was matched week for week, so a third loaded week read as a 33% growth in customers. | [M-33](#8-required-calculations-and-analytics) | **Fixed** — matched-week account counts are carried separately, and the ledger reports both bases under their own names. |
@@ -778,6 +795,36 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.6 — 21 Aug 2026
+
+**The data, first**
+
+- **Customer identity resolution** ([M-39](#8-required-calculations-and-analytics)). The same company typed three ways was three accounts, so one that booked with us read as one that never had. Names are resolved to one account before any figure is calculated, across both periods at once, in two conservative passes.
+- **What was not merged is reported** ([M-40](#8-required-calculations-and-analytics)) on Data mapping, with quote counts and the reason, beside every merge that was made.
+
+**Year over year, rebuilt**
+
+- **The decomposition as three sentences**: cause and dollar effect, with the ribbon kept underneath as the picture of the arithmetic.
+- **People as a card per person** ([V-33](#97-year-over-year-encoding)), carrying every measure the team screen carries for both periods.
+- **A full account brief**: search the roster, select a name, and its whole record opens — eleven paired measures and every quote it sent in each period with what came back. Selecting a name in any churn list opens the brief in place.
+- **The ledger grouped** by what the measure is about, across the width of the page.
+- **Rates move in points** ([M-41](#8-required-calculations-and-analytics)) everywhere.
+- **A thin span is not churn** ([M-42](#8-required-calculations-and-analytics)).
+
+**The deck**
+
+- **Reordered** ([K-15](#10-team-report-deck-requirements)): the two timing slides adjacent, the customer slide immediately before the booked work it explains, the equal-age cohort slide removed, and a closing slide that names what to do next.
+- **The whole clock** ([M-43](#8-required-calculations-and-analytics)) on both the slide and the Timelines screen: request in, quote out, order entered.
+- **Who pays and who costs**, as one shape read from both ends.
+- **In the chapter**: weeks as one signed bar each; booked-by-age as paired columns; the bridge explained before the chart; and the account story split into who came back and who to ring, then who is new and who is going.
+
+**Design**
+
+- **Panel headers stack** and the type floor rises to 9.5px ([P-29](#2-non-negotiable-product-requirements)).
+- **Cell borders, not gaps** ([V-34](#97-year-over-year-encoding)).
+
+**Defects logged and fixed:** [A-36](#appendix-a--defect-log) through [A-40](#appendix-a--defect-log).
 
 ### v2.5 — 20 Aug 2026
 

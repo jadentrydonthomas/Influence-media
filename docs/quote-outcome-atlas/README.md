@@ -21,7 +21,7 @@ source column and live value of every term.
 | Path | What it is |
 | --- | --- |
 | `app/quote-conversion-atlas-shareable.html` | The deliverable. One self-contained file — open by double-click, no server, no network. |
-| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.5). |
+| `QUOTE_OUTCOME_ATLAS_HANDOFF_SPEC.md` | Product and engineering contract (v2.6). |
 | `handoff-spec.html` | Designed reading version of the same spec. |
 | `fixtures/` | Real Week 1–3 2026 quote books and `OrderLog_1-10.xlsx`, used by the tests. |
 | `test/regression.mjs` | Drives the real dashboard in Chromium against the fixtures and asserts the baseline. |
@@ -138,6 +138,30 @@ These reproduce the full Week 1–10 baseline behaviour in §12 of the spec: the
 72/1/87 split of order rows and the same single non-standard reference
 (`P-0287-025-2`).
 
+## Customer identity
+
+The same company is typed differently from one week to the next — *GREYSTONE*,
+*GREYSTONE CONSTRUCTION*, *Greystone Constr. Inc.* Left alone that is three
+accounts, and a customer who booked with us reads as one who never has. Every
+name is resolved to one account **before any figure is calculated**, across the
+live period and any prior period together.
+
+Two passes, both conservative:
+
+1. Strip punctuation and trailing legal forms — *Carl A. Nelson Co.* and *CARL A
+   NELSON* are the same company by any reading — and merge names that are the
+   same letters spaced differently, so *STEEL TECH* joins *STEELTECH*.
+2. Fold a longer name onto a shorter one **only** when the shorter name appears
+   in the data in its own right and every extra word is a generic trade word.
+   *Greystone Construction* joins *Greystone*; *Smith Builders* and *Smith
+   Construction* both stay put, because no bare *Smith* exists to fold them into.
+
+What it will not do is guess. Names that look like one company and were left as
+two — *RAECCO BUILDERS* against *RAECO BUILDERS*, *WEAVER COMMERCIAL
+CONSTRUCTION* against *WEAVER COMMERCIAL CONTRUCTION* — are listed on **Data
+mapping** with their quote counts, beside every merge that was made and its
+reason. The fix for a typo belongs in the source workbook.
+
 ## Segmentation
 
 Every view derives from `currentScope().records`, so filtering there narrows the
@@ -253,13 +277,13 @@ it for them.
 
 | View | The question it answers |
 | --- | --- |
-| 01 Headline | What actually changed the money — the three-way decomposition, then every measure ranked by how far it moved. |
-| 02 Momentum | Which weeks carried more and which carried less, in count and in dollars, plus the cumulative race. |
+| 01 Headline | What actually changed the money — the decomposition as three sentences with dollar effects, then every measure ranked by how far it moved. |
+| 02 Momentum | Which weeks were up and which were down as one signed bar each, then side by side, plus the cumulative race. |
 | 03 Speed | How quickly the work comes back, read at equal age, and the two halves of the clock. |
 | 04 The mix | How much of the book rests on how few names, what kind of work came back, and how the shape moved in points of share. |
-| 05 Customers | Where the account base went — kept, lost, slipping, won — with the churn list naming who to ring. |
-| 06 People | Quotes owned and conversion per person, as slopes from last period to this. |
-| 07 Ledger | Every measure in one table, and the method the screen follows. |
+| 05 Customers | A full account brief — search the roster, select a name, and its whole record opens beside it — then the flow of the account base, who went quiet, who is slipping, and who is new. |
+| 06 People | A card per person carrying every measure the team screen carries, for both periods. |
+| 07 Ledger | Every measure, grouped by what it is about, across the width of the page. |
 
 Selecting any named account opens that account's record on Customers.
 
@@ -283,13 +307,36 @@ curve bows above the even-split diagonal, the more of the quoted book rests on a
 handful of names — a risk that a total will never show. Reported as the share held by
 the top five and top ten, this period against last.
 
-### Deck chapter two
+### The account brief
 
-Nine slides appended to the export, behind a chapter divider: the headline as two
-dials over a delta table, week against week, the race, where the mix moved, the
-decomposition ribbon, speed at equal age, the value bridge, and account movement with
-the accounts that went quiet named. With no prior period loaded the deck is the nine
-slides it has always been.
+Selecting any named account — in the churn list, the slipping list, the new-name
+list — opens its brief in place rather than throwing the reader onto another
+screen. The brief carries eleven paired measures (quotes, quoted value, average
+quote, quotes booked, booked value, conversion, value capture, booked jobs,
+booked tons, weeks appeared in, engineering hours) and then every quote that
+account sent in each period, largest first, with whether an order came back
+against it.
+
+### A thin span is not churn
+
+With one or two weeks loaded on each side, whether an account appears is mostly
+about which week it happened to quote in. Under four weeks a side the whole
+customer view reframes itself — *quoted in both* / *only last period* / *only
+this period* rather than kept and lost — and the headline drops the retention
+figure for one that holds at any span.
+
+### The deck
+
+Nine slides, in the order the questions get asked: the outcome, the two visible
+outcomes, the weekly pulse, the value bands, our half of the clock, the whole
+clock, who pays us against who costs us to serve, the best booked work, and a
+closing slide naming what to do next.
+
+Ten more are appended behind a chapter divider when a prior period is loaded: the
+headline, week against week, the race, where the mix moved, the decomposition,
+speed at equal age, the value bridge, and the account story across two slides —
+who came back and who to ring, then who is new and who is quietly going. With no
+prior period the deck is the nine slides it has always been.
 
 ## Definitions
 
