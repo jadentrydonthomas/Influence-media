@@ -5,7 +5,7 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.7 |
+| **Spec version** | 2.8 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
 | **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
@@ -405,6 +405,8 @@ Three stages, each measured from dates the source already carries, each scored *
 - **M-40** — **Report what was not merged.** Names that look like one company and were deliberately left as two — the same words in a different order, one name extending the other with non-generic words, or two spellings within two characters of each other — MUST be listed with their quote counts on the data-mapping surface. Every merge that *was* made MUST be listed beside them with its reason. A rule that guesses silently is worse than one that reports; the fix for a typo belongs in the source workbook, not in a heuristic.
 - **M-41** — **A rate moves in points.** Percentage change computed on a percentage is the wrong arithmetic, and a rate that was zero has not gone "new". Every comparison of two rates MUST report the move in percentage points.
 - **M-42** — **Presence needs a span.** Where fewer than four weeks are loaded on either side, a surface MUST NOT describe absent accounts as churn. It MUST say instead that this is which accounts happened to quote in the loaded weeks, and MUST replace any retention figure in a headline with a measure that holds at any span.
+- **M-47** — **A derived measure does not exist on a side with no book.** A rate, a per-quote figure or an average MUST be reported as unavailable — never as zero — on any side where the denominator is absent. Reporting `0.00` hours per quote for a person who owned no quotes renders as a hundred per cent improvement, in the improvement colour, for having done no work. Counts and sums are real zeros and are reported as zero.
+- **M-48** — **A rate ranked must be a rate that can carry a ranking.** Where a list is ordered by a rate, any entity below the thin-sample floor of [M-9](#4-metric-definitions-and-formulas) MUST be marked as thin, drawn without an emphasis bar, and ordered below every entity that clears the floor. The generated sentence above such a list MUST read off the same floor, and MUST say so when nothing clears it.
 - **M-44** — **A view MUST read at a grain it can actually draw.** Where a comparison has fewer than two units on the axis it plots against — one matched week, say — it MUST fall through to the next finer grain it holds (the days inside that week) rather than stand a single pair of columns in an empty plot. Every heading and note on the view MUST change with the grain, and the view MUST say which grain it is reading at.
 - **M-45** — **A code with no name is a code, and MUST say so.** Where a role initial carries quotes but appears in no `Inventory` block, the surface MUST show it by code, mark it as unnamed, and count it in the surrounding stat rather than presenting it as a named person or dropping its quotes.
 - **M-46** — **A customer record MUST carry how long that customer takes to decide**, averaged over the quotes of theirs that booked, alongside what they asked for and what came back.
@@ -474,6 +476,7 @@ The strongest design on the page.
 - **V-29** — A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.
 - **V-31** — Where labels cannot sit beside the marks they belong to — values clustered in a narrow band on a slope chart, for instance — the labels MUST be de-crowded **locally** and tied back to their marks with leader lines. Shifting the whole stack to make room silently separates every label from its own point.
 - **V-33** — A comparison of one entity across two periods is a **card**, not a line on a chart with a name beside it. Where the entity is a person or an account, the card MUST carry the same measures the dedicated screen carries, each shown for both periods with its move. A slope chart is a summary of many entities, never a substitute for the detail of one.
+- **V-39** — **A comparison of many entities is a list, not a wall of cards.** Where a screen compares a roster across two periods it MUST follow the shape of the dedicated screen for that roster: one measure chosen at a time, the roster ranked by it, and the full detail shown for **one** selected entity beside the list — not every measure for every person at once. Twelve cards of twelve cells is a hundred and forty-four figures with no order to them, and a reader cannot find anything in it.
 - **V-35** — A band drawn between two series MUST be coloured by which series is in front **over each segment of it**, split at the crossing. One colour taken from the last point tells a reader the wrong thing about every point before it.
 - **V-36** — A measure grid MUST NOT end on a partly filled row. The count of measures MUST divide by every column count the grid can resolve to, or the grid MUST fix its column count explicitly. A row of holes reads as missing data.
 - **V-37** — A caption naming a region of a plot MUST sit outside the plotting field, in a band reserved for it. A caption inside the field will eventually have a mark printed through it. A plot whose axes carry direction MUST also carry magnitude, in the margin.
@@ -788,6 +791,10 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-38** | With one week loaded on each side, 40 of 51 accounts were reported as having stopped asking. They had not; they simply quoted in a different week. | [M-42](#8-required-calculations-and-analytics) | **Fixed** — under four weeks a side, the surface reframes the whole view as which accounts quoted in the loaded weeks, and the headline drops the retention figure. |
 | **A-39** | The customer slide's "who costs us" header read `$0.0M priced and not returned` while the rows beneath it read $11.1M, $8.7M, $5.9M. Account value is carried in millions and was divided by a million again. Fourth occurrence of the same class of defect. | [M-24](#8-required-calculations-and-analytics) | **Fixed**, and the deck regression now asserts the header against the rows. |
 | **A-40** | A caption positioned from an estimated glyph width collided with the figure beside it as soon as the number got longer; a short segment on the process bar centred its caption off the left edge of the chart. | [V-30](#97-year-over-year-encoding) | **Fixed** — captions sit on their own line, and any caption whose centre falls near an edge is anchored to that edge instead of being clipped by it. |
+| **A-49** | The year-over-year People view was twelve cards of twelve cells — a hundred and forty-four figures with no ordering principle, no way to focus on one person, and no relationship to the Team performance screen it was meant to mirror. | [V-39](#97-year-over-year-encoding) | **Fixed** — rebuilt on the Team performance skeleton: a measure switcher, a roster ranked by that measure, one person open beside the list, one chart, one reference sheet. |
+| **A-50** | On hours per quote, four engineers who owned no quotes at all this period reported `0.25 → 0.00`, drawn as −100% in the improvement colour: the largest apparent gains on the roster belonged to the people with no book. | [M-47](#8-required-calculations-and-analytics) | **Fixed** — a derived measure reads as a dash on a side with no denominator, carries no move and draws no bar. |
+| **A-51** | On close rate, an engineer who owned one quote and booked it sat at the top of the roster at 100%, above the engineer carrying thirteen. | [M-48](#8-required-calculations-and-analytics) | **Fixed** — thin books are marked, drawn without a bar, and ranked below every book that clears the floor; the sentence above the list reads off the same floor. |
+| **A-52** | The People lede reported the biggest *increase* in load while calling it the biggest *change*, so an engineer who gained four quotes was named ahead of one whose book fell by ten. | [P-27](#2-non-negotiable-product-requirements) | **Fixed** — the sentence ranks by the size of the move in either direction. |
 | **A-41** | The equal-age booking band was filled in one colour taken from the last checkpoint, so a book that was ahead at day 14, 30 and 45 and behind only at day 90 was shaded red across its whole length. | [V-35](#97-year-over-year-encoding) | **Fixed** — the band is filled one segment at a time, split exactly at a crossing, and coloured by whoever is in front over that segment. |
 | **A-42** | A measure grid whose cell count did not divide by the column count it landed at left a row of holes at the bottom of every person card and every account brief. | [V-36](#97-year-over-year-encoding) | **Fixed** — the person card carries twelve measures and the brief twelve on an explicit four-column grid; twelve divides by every column count either grid resolves to. |
 | **A-43** | The ranked change list clipped a measure name to an ellipsis, so a reader could not tell *Engineering hours per q…* from any other engineering measure. | [P-29](#2-non-negotiable-product-requirements) | **Fixed** — the label column is wider and wraps rather than clipping. |
@@ -815,6 +822,29 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.8 — 21 Aug 2026
+
+**The year-over-year People view, rebuilt on the Team performance skeleton** ([V-39](#97-year-over-year-encoding))
+
+The previous build stacked twelve cards carrying twelve measures each and called it a roster. It was a hundred and forty-four figures with no ordering principle and no way to hold one person in view. It now follows the screen it was always meant to mirror:
+
+- **A measure switcher** — quote volume, close rate, value returned, on time, hours per quote — so the view answers one question at a time.
+- **A ranked list**, ordered by that measure, one row a person: the two figures, a bar that runs right for better and left for worse from a centre line, and what came back.
+- **One person open beside the list**, carrying all twelve measures for both periods. The detail belongs to the person being read, not to all twelve at once.
+- **One chart** of the whole roster, and **one reference sheet** underneath with every owner and every measure, grey for last period and bold for this one.
+
+**Three correctness rules the rebuild exposed**
+
+- **A derived measure does not exist on a side with no book** ([M-47](#8-required-calculations-and-analytics)). Four engineers who owned no quotes were reporting a hundred per cent improvement in hours per quote, in green.
+- **A rate ranked must be able to carry a ranking** ([M-48](#8-required-calculations-and-analytics)). One quote booked is not a 100% close rate worth putting at the top of a roster.
+- **The biggest change is not the biggest increase** ([A-52](#appendix-a--defect-log)). The sentence now names the engineer whose book fell by ten rather than the one who gained four.
+
+**Tests**
+
+- `test/year-screen.mjs` now asserts the roster's ranking order, that choosing a measure re-heads and re-ranks the list, that thin rates sink and are marked, that a derived measure with no book reads as a dash and never as an improvement, that selecting a row opens exactly one person, and that the reference sheet carries a row for every owner in the list.
+
+**Defects logged and fixed:** [A-49](#appendix-a--defect-log) through [A-52](#appendix-a--defect-log).
 
 ### v2.7 — 21 Aug 2026
 

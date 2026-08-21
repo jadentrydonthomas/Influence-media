@@ -60,7 +60,10 @@ const wants = {
   customers: ['#cmpCustomerLede .yoy-stat', '#cmpBrief .brief-row', '#cmpBrief .pair-cell', '#cmpFlow .flow-block',
               '#cmpLost .acct-table tbody tr, #cmpLost .analysis-empty',
               '#cmpGained .acct-table tbody tr, #cmpGained .analysis-empty', '#cmpQuadrant .quad-dot'],
-  people: ['#cmpPeopleLede .yoy-stat', '#cmpPeopleCards .roster-card', '#cmpPeopleCards .pair-cell', '#cmpPeopleChart .cmp-col'],
+  // The roster reads like Team performance now: a ranked list, one person open
+  // beside it, a chart, and a reference sheet. Each of those four has to draw.
+  people: ['#cmpPeopleLede .yoy-stat', '#cmpPeopleLayout .team-row', '#cmpPeopleLayout .person-card .pair-cell',
+    '#cmpPeopleChart .cmp-col', '#cmpPeopleTable .ops-table tbody tr'],
   ledger: ['#cmpTable .ledger-group', '#cmpTable .ledger-row', '#cmpMethod li']
 };
 for (const view of views) {
@@ -174,6 +177,62 @@ check('the churn note warns when fewer weeks are loaded on this side',
 check('the badge on the customers tab counts the losses',
   await p.$eval('#cmpLostBadge', n => !n.hidden && Number(n.textContent) > 0));
 await p.screenshot({ path: path.join(root, 'test', 'yoy-churn.png'), fullPage: true });
+
+// ---- The roster reads one question at a time -------------------------------
+// It is built on the Team performance skeleton: pick a measure, rank by it,
+// open one person beside the list. Three rules keep it honest and each has
+// already been broken once, so each is asserted here.
+await p.click('[data-compare-view="people"]');
+await p.waitForTimeout(600);
+const rosterHead = () => p.$eval('#cmpPeopleLayout .team-list-head', n => n.innerText.replace(/\s+/g, ' ').trim());
+const rosterRows = () => p.$$eval('#cmpPeopleLayout .team-row', rows => rows.map(row => ({
+  code: (row.querySelector('.member-initials') || {}).textContent || '',
+  measure: (row.querySelector('.cmp-then-now') || {}).innerText.replace(/\s+/g, ' ').trim(),
+  move: (row.querySelector('.member-bar span') || {}).innerText.replace(/\s+/g, ' ').trim(),
+  thin: !!row.querySelector('.cmp-thin'),
+  tone: ((row.querySelector('.cmp-move-track b') || {}).className || '')
+})));
+
+const byVolume = await rosterRows();
+check('the roster ranks by the measure on show, largest first',
+  byVolume.length > 1 && byVolume.every((row, i) =>
+    i === 0 || Number(byVolume[i - 1].measure.split('→').pop()) >= Number(row.measure.split('→').pop())),
+  byVolume.slice(0, 3).map(r => r.code + ' ' + r.measure).join(' | '));
+
+await p.click('[data-cmp-person-metric="conversion"]');
+await p.waitForTimeout(450);
+check('choosing a measure re-heads and re-ranks the list', /close rate/i.test(await rosterHead()), await rosterHead());
+const byRate = await rosterRows();
+const firstThin = byRate.findIndex(row => row.thin);
+check('a rate on a thin book is marked and ranked below every solid one',
+  firstThin === -1 || byRate.slice(firstThin).every(row => row.thin),
+  firstThin === -1 ? 'no thin books' : byRate.filter(r => r.thin).length + ' thin, first at ' + (firstThin + 1));
+
+// A person who owned no quotes has no hours per quote. Reporting 0.00 against
+// last period's 0.25 painted a hundred per cent improvement, in green, for
+// having no book at all.
+await p.click('[data-cmp-person-metric="hoursPerQuote"]');
+await p.waitForTimeout(450);
+const byHours = await rosterRows();
+const empty = byHours.filter(row => /→ *—$/.test(row.measure));
+check('a derived measure with no book reads as a dash, never as an improvement',
+  empty.every(row => row.move === '—' && /is-flat/.test(row.tone)),
+  empty.length + ' owners with no book this period');
+
+// Selecting a person opens that person and nobody else.
+const second = byHours[1] && byHours[1].code.trim();
+if (second) {
+  await p.click(`[data-cmp-person="${second}"]`);
+  await p.waitForTimeout(400);
+  check('selecting a row opens that person beside the list',
+    (await p.$eval('#cmpPeopleLayout .person-card h3', n => n.textContent.trim())).length > 0
+    && await p.$$eval('#cmpPeopleLayout .team-row[aria-pressed="true"]', rows => rows.length) === 1);
+}
+check('the roster sheet carries a row for every owner in the list',
+  await p.$$eval('#cmpPeopleTable .ops-table tbody tr', rows => rows.length) === byHours.length,
+  await p.$$eval('#cmpPeopleTable .ops-table tbody tr', rows => rows.length) + ' rows');
+await p.click('[data-cmp-person-metric="quotes"]');
+await p.waitForTimeout(400);
 
 // Borrowed order log: the screen must say so rather than imply a real read.
 await load({ withPrior: true, withPriorOrder: false });

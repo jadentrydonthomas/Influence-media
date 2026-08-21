@@ -1316,12 +1316,45 @@
     .member-bar i b { display: block; width: var(--member-bar); height: 100%; background: var(--green); animation: grow-width 560ms var(--ease) both; }
     .member-bar span { display: block; margin-top: 6px; color: var(--ink-faint); font-size: 11px; text-align: right; }
     .member-value { color: var(--ink-muted); font-family: var(--mono); font-size: 12px; font-weight: 600; text-align: right; }
+    /* The year-over-year roster: the Team performance list with a second
+       figure in every row, so the same eye movement reads both periods. */
+    .cmp-view .team-list-head, .cmp-view .team-row { grid-template-columns: minmax(200px,1.15fr) 132px minmax(112px,.75fr) 82px; }
+    .cmp-view .team-row { min-height: 76px; }
+    .cmp-then-now { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; min-width: 0; }
+    .cmp-then-now i { color: var(--ink-faint); font-family: var(--mono); font-size: 12px; font-style: normal; }
+    .cmp-then-now em { color: var(--ink-faint); font-size: 11px; font-style: normal; }
+    .cmp-then-now b { color: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 600; }
+    .cmp-then-now.is-thin b { color: var(--ink-muted); font-weight: 500; }
+    .cmp-thin { display: inline-block; margin-left: 5px; padding: 0 4px; color: var(--ink-faint); border: 1px solid var(--line-strong); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
+    /* The move bar grows from a centre line: right for better, left for worse,
+       so the shape of the roster is readable without reading a single figure. */
+    .cmp-move-track { position: relative; display: block; height: 8px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .cmp-move-track::before { content: ""; position: absolute; top: -3px; bottom: -3px; left: 50%; width: 1px; background: var(--line-strong); }
+    .cmp-move-track b { position: absolute; top: 0; bottom: 0; width: var(--member-bar); animation: grow-width 560ms var(--ease) both; }
+    .cmp-move-track b.is-up { left: 50%; background: var(--green); }
+    .cmp-move-track b.is-down { right: 50%; background: var(--red); }
+    .cmp-move-track b.is-flat { left: 50%; width: 2px; background: var(--steel); }
+    .cmp-view .member-bar span.is-up { color: var(--green-dark); }
+    .cmp-view .member-bar span.is-down { color: var(--red-deep); }
+    .person-heading strong.is-up { color: #7ce6a4; }
+    .person-heading strong.is-down { color: #f0a98f; }
+    .person-card .pair-grid { border-top: 1px solid var(--line); }
+    /* The roster sheet: two figures and a move in one cell, three lines deep. */
+    .ops-table.is-yoy td.num { line-height: 1.3; white-space: nowrap; }
+    .ops-table.is-yoy .yoy-then { display: block; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
+    .ops-table.is-yoy td.num b { display: block; color: var(--ink); font-family: var(--mono); font-size: 13px; font-weight: 700; }
+    .ops-table.is-yoy td.num em { display: block; font-family: var(--mono); font-size: 10.5px; font-style: normal; font-weight: 700; }
+    .ops-table.is-yoy td.num em.is-up { color: var(--green-dark); }
+    .ops-table.is-yoy td.num em.is-down { color: var(--red-deep); }
+    .ops-table.is-yoy td.num em.is-flat { color: var(--ink-faint); }
     .person-card { overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
     .person-top { position: relative; overflow: hidden; padding: 21px 20px 19px; color: #eff8f0; background: var(--night); }
     .person-top::after { content: ""; position: absolute; right: -42px; bottom: -47px; width: 156px; height: 156px; border: 1px solid rgba(230,247,234,.22); border-radius: 50%; box-shadow: 0 0 0 20px rgba(230,247,234,.035); }
     .person-top .eyebrow { color: #a0d8ad; }
     .person-heading { position: relative; z-index: 1; display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 7px; }
-    .person-heading h3 { margin: 0; color: #fff; font-family: var(--display); font-size: 28px; letter-spacing: .02em; line-height: .92; text-transform: uppercase; }
+    .person-heading h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; color: #fff; font-family: var(--display); font-size: 28px; letter-spacing: .02em; line-height: .92; text-transform: uppercase; }
+    .cmp-view .person-heading h3 { font-size: 22px; }
+    .cmp-view .person-heading strong { font-size: 25px; white-space: nowrap; }
     .person-heading strong { color: var(--green-bright); font-family: var(--mono); font-size: 31px; font-weight: 500; letter-spacing: -.09em; }
     .person-top p { position: relative; z-index: 1; margin: 11px 0 0; color: rgba(239,248,240,.59); font-size: 11px; }
     .person-body { padding: 17px 20px 20px; }
@@ -1511,6 +1544,9 @@
       .metric-ring { flex-basis: 56px; width: 56px; height: 56px; }
       .outcome-atlas { grid-template-columns: minmax(170px,.72fr) minmax(280px,1.06fr) minmax(235px,.9fr); }
       .team-list-head, .team-row { grid-template-columns: minmax(205px,1fr) 87px minmax(104px,.72fr) 76px; gap: 8px; }
+      /* The year-over-year row carries two figures in its measure column, so it
+         gives that column the width the single-figure row does not need. */
+      .cmp-view .team-list-head, .cmp-view .team-row { grid-template-columns: minmax(168px,1fr) 118px minmax(96px,.7fr) 72px; gap: 8px; }
     }
 
     @media (max-width: 940px) {
@@ -1980,13 +2016,24 @@
 
         <div class="cmp-view" id="cmpViewPeople" data-compare-panel="people" hidden>
           <div id="cmpPeopleLede"></div>
-          <section class="panel is-feature" aria-labelledby="cmpPeopleTitle">
-            <div class="panel-head"><span class="ops-step">The roster</span><h2 id="cmpPeopleTitle">Every owner, both periods</h2><p id="cmpPeopleNote"></p></div>
-            <div class="ops-body" id="cmpPeopleCards"></div>
-          </section>
-          <section class="panel" aria-labelledby="cmpPeopleRateTitle">
-            <div class="panel-head"><span class="ops-step">Where the load moved</span><h2 id="cmpPeopleRateTitle">Quotes owned, side by side</h2><p>The same roster as one chart, so the shape of the whole team is visible at once rather than card by card.</p></div>
+          <div class="team-controls">
+            <div class="button-group comparison-switch" id="cmpPeopleMetrics" aria-label="Select the measure to rank the roster by">
+              <button class="control-button" type="button" data-cmp-person-metric="quotes" aria-pressed="true">Quote volume</button>
+              <button class="control-button" type="button" data-cmp-person-metric="conversion" aria-pressed="false">Close rate</button>
+              <button class="control-button" type="button" data-cmp-person-metric="wonValue" aria-pressed="false">Value returned</button>
+              <button class="control-button" type="button" data-cmp-person-metric="onTime" aria-pressed="false">On time</button>
+              <button class="control-button" type="button" data-cmp-person-metric="hoursPerQuote" aria-pressed="false">Hrs / quote</button>
+            </div>
+          </div>
+          <p class="team-summary" id="cmpPeopleSummary"></p>
+          <div class="team-layout" id="cmpPeopleLayout"></div>
+          <section class="team-chart-panel" aria-labelledby="cmpPeopleRateTitle">
+            <div class="panel-head"><span class="ops-step">Where the load moved</span><h2 id="cmpPeopleRateTitle">Quotes owned, side by side</h2><p id="cmpPeopleChartNote">The same roster as one chart, so the shape of the whole team is visible at once rather than card by card.</p></div>
             <div class="ops-body" id="cmpPeopleChart"></div>
+          </section>
+          <section class="panel" aria-labelledby="cmpPeopleTableTitle">
+            <div class="panel-head"><span class="ops-step">The roster sheet</span><h2 id="cmpPeopleTableTitle">Every owner, every measure, both periods</h2><p id="cmpPeopleNote"></p></div>
+            <div class="ops-body" id="cmpPeopleTable"></div>
           </section>
         </div>
 
@@ -4198,45 +4245,183 @@
           + "</div>";
       }
 
-      // ---- The roster, person by person -------------------------------------
-      function cmpPersonCards(people, data) {
-        if (!people.length) return '<p class="ops-note">No named owner appears in either period on this role.</p>';
-        const biggest = Math.max.apply(null, people.map(person => Math.max(person.current.quotes, person.prior.quotes))) || 1;
-        return '<div class="roster-grid">' + people.map(person => {
-          const now = person.current, then = person.prior;
-          const move = now.quotes - then.quotes;
-          const state = now.quotes && !then.quotes ? "new" : !now.quotes && then.quotes ? "gone"
-            : move > 0 ? "busier" : move < 0 ? "quieter" : "level";
-          const stateText = { new: "new to this book", gone: "no quotes this period", busier: "busier", quieter: "quieter", level: "same load" }[state];
-          const bar = value => Math.max(value > 0 ? 3 : 0, Math.min(100, value / biggest * 100));
-          return '<article class="roster-card is-' + state + '">'
-            + '<header><div><h4>' + escape(person.name) + "</h4>"
-            + "<span>" + (person.named === false
-                ? escape(person.code) + " · no roster name in either Inventory sheet"
-                : escape(person.code) + " · " + escape(data.roleLabel.toLowerCase())) + "</span></div>"
-            + '<b class="roster-state is-' + state + '">' + escape(stateText) + "</b></header>"
-            + '<div class="roster-load"><div class="roster-bar is-then" style="width:' + bar(then.quotes).toFixed(1) + '%"><i>' + opsNumber(then.quotes) + "</i></div>"
-            + '<div class="roster-bar is-now" style="width:' + bar(now.quotes).toFixed(1) + '%"><i>' + opsNumber(now.quotes) + "</i></div></div>"
-            + '<p class="roster-load-note">' + escape(opsNumber(then.quotes) + " quotes last period, " + opsNumber(now.quotes) + " this one") + "</p>"
-            // Twelve measures, not ten: the grid resolves to two, three, four or
-            // six columns depending on how wide the card lands, and twelve
-            // divides by all of them, so no card ever ends on a half-empty row.
-            + cmpMetricGrid([
-                { label: "Quoted value", now: now.value, was: then.value, fmt: fineMoney },
-                { label: "Wins", now: now.wins, was: then.wins, fmt: opsNumber },
-                { label: "Conversion", now: now.conversion, was: then.conversion, fmt: pct, points: true },
-                { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: fineMoney },
-                { label: "Value capture", now: now.capture, was: then.capture, fmt: pct, points: true },
-                { label: "Average quote", now: now.average, was: then.average, fmt: fineMoney },
-                { label: "Booked jobs", now: now.jobs, was: then.jobs, fmt: opsNumber },
-                { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
-                { label: "Accounts served", now: now.accounts, was: then.accounts, fmt: opsNumber },
-                { label: "Hours per quote", now: now.hoursPerQuote, was: then.hoursPerQuote, fmt: value => value.toFixed(2), invert: true },
-                { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value), points: true },
-                { label: "Days to book", now: now.lag, was: then.lag, fmt: value => value === null ? "—" : value.toFixed(0) + "d", invert: true }
-              ], { dense: true })
-            + "</article>";
-        }).join("") + "</div>";
+      // ---- The roster, read the way Team performance reads it ----------------
+      // Twelve cards of twelve cells is not organisation, it is a hundred and
+      // forty-four numbers with no order to them. This mirrors the Team
+      // performance screen instead: choose one measure, rank the roster by how
+      // far it moved, and open one person at a time beside the list. The full
+      // detail lives in the selected person, not in every card at once.
+      // Below this many quotes on a side, a rate is arithmetic rather than
+      // evidence. Same floor the team screen uses (M-9).
+      const CMP_THIN_BOOK = 10;
+      const CMP_PERSON_METRICS = {
+        quotes: { label: "Quote volume", head: "Quotes owned", fmt: opsNumber, points: false, invert: false,
+          note: "Quotes owned in each period, matched week for week." },
+        conversion: { label: "Close rate", head: "Close rate", fmt: value => value === null ? "—" : pct(value), points: true, invert: false, derived: true,
+          note: "Quote wins over quotes owned, so a small book moves a long way on one order." },
+        wonValue: { label: "Value returned", head: "Value returned", fmt: fineMoney, points: false, invert: false,
+          note: "The money that came back against the quotes this person owned." },
+        onTime: { label: "On time", head: "Met the due date", fmt: value => value === null ? "—" : pct(value), points: true, invert: false, derived: true,
+          note: "Release against the promised date, scored only on the quotes that carry a result." },
+        hoursPerQuote: { label: "Hrs / quote", head: "Hours per quote", fmt: value => value === null ? "—" : value.toFixed(2), points: false, invert: true, derived: true,
+          note: "Engineering hours per quote owned. Fewer is better, which is why the bars run the other way." }
+      };
+
+      // A rate or a per-quote figure only exists on a side where that side owned
+      // a quote. Without this, an engineer who owned nothing this period reads
+      // as 0.00 hours per quote — a hundred per cent improvement, in green, for
+      // having no book at all. Counts and money are real zeros and stay.
+      function cmpPersonSide(person, side, key) {
+        const from = side === "current" ? person.current : person.prior;
+        const value = from[key];
+        if (CMP_PERSON_METRICS[key] && CMP_PERSON_METRICS[key].derived && !from.quotes) return null;
+        return value === undefined ? null : value;
+      }
+
+      function cmpPersonMove(person, key) {
+        const now = cmpPersonSide(person, "current", key), was = cmpPersonSide(person, "prior", key);
+        if (now === null || was === null || now === undefined || was === undefined) return { size: 0, text: "—", tone: "flat" };
+        const spec = CMP_PERSON_METRICS[key];
+        const move = now - was;
+        const good = spec.invert ? move < 0 : move > 0;
+        return {
+          size: spec.points ? Math.abs(move) : (was ? Math.abs(move / was) * 100 : 0),
+          raw: move,
+          text: spec.points ? cmpPoints(move) : cmpDelta(now, was, spec.invert).text,
+          tone: Math.abs(move) < 0.0005 ? "flat" : good ? "up" : "down"
+        };
+      }
+
+      // The ranked list: one row a person, sorted by how far the chosen measure
+      // moved, with the two figures and a bar that runs right for better.
+      function cmpPersonList(people, data, key) {
+        const spec = CMP_PERSON_METRICS[key];
+        // A side with no figure sorts last rather than as a zero, because "no
+        // book" is not the bottom of a ranking, it is absence from it.
+        const level = person => {
+          const value = cmpPersonSide(person, "current", key);
+          return value === null ? -Infinity : value;
+        };
+        // M-9: a rate on a handful of quotes is not evidence of anything, and a
+        // person who owned one quote and booked it MUST NOT sit at the top of a
+        // close-rate table above the person carrying thirteen. Thin rows stay
+        // visible and stay in the list; they are marked, drawn neutral, and
+        // ranked below every row that can actually carry the rate.
+        const thinOn = person => spec.points
+          && Math.min(person.current.quotes, person.prior.quotes) < CMP_THIN_BOOK;
+        const ranked = people.map(person => ({ person: person, move: cmpPersonMove(person, key), thin: thinOn(person) }))
+          .sort((a, b) => (a.thin === b.thin ? 0 : a.thin ? 1 : -1)
+            || level(b.person) - level(a.person)
+            || (b.person.current.quotes + b.person.prior.quotes) - (a.person.current.quotes + a.person.prior.quotes));
+        const widest = Math.max.apply(null, ranked.filter(item => !item.thin).map(item => item.move.size))
+          || Math.max.apply(null, ranked.map(item => item.move.size)) || 1;
+        const rows = ranked.map(item => {
+          const person = item.person;
+          const move = item.thin ? Object.assign({}, item.move, { tone: "flat" }) : item.move;
+          const now = cmpPersonSide(person, "current", key), was = cmpPersonSide(person, "prior", key);
+          const width = Math.min(100, move.size / widest * 100);
+          const evidence = opsNumber(person.prior.quotes) + " → " + opsNumber(person.current.quotes) + " quotes"
+            + (person.named === false ? " · not on the roster" : "");
+          return '<button type="button" class="team-row" data-cmp-person="' + escape(person.code) + '"'
+            + ' aria-pressed="' + String(person.code === comparePerson) + '">'
+            + '<span class="member"><i class="member-initials">' + escape(person.code) + "</i>"
+            + '<span class="member-name"><strong>' + escape(cmpClip(person.name, 26)) + "</strong>"
+            + "<span>" + escape(evidence) + "</span></span></span>"
+            + '<span class="cmp-then-now' + (item.thin ? " is-thin" : "") + '"><i>' + escape(spec.fmt(was))
+            + '</i><em>&rarr;</em><b>' + escape(spec.fmt(now)) + "</b></span>"
+            + '<span class="member-bar"><i class="cmp-move-track"><b class="is-' + move.tone
+            + '" style="--member-bar:' + width.toFixed(1) + '%"></b></i>'
+            + '<span class="is-' + move.tone + '">' + escape(move.text)
+            + (item.thin ? ' <u class="cmp-thin">thin</u>' : "") + "</span></span>"
+            + '<span class="member-value">' + escape(fineMoney(person.current.wonValue)) + "</span>"
+            + "</button>";
+        }).join("");
+        return '<section class="team-list" aria-label="Roster ranked by ' + escape(spec.label.toLowerCase()) + '">'
+          + '<div class="team-list-head"><span>Person / evidence</span><span>' + escape(spec.head)
+          + "</span><span>Move</span><span>Returned</span></div>" + rows + "</section>";
+      }
+
+      // One person, in full, beside the list — the twelve measures the team
+      // screen carries, each shown for both periods. This is where the detail
+      // belongs: for the person being read, not for all twelve at once.
+      function cmpPersonPanel(people, data, key) {
+        const chosen = people.find(person => person.code === comparePerson) || people[0];
+        if (!chosen) return '<aside class="person-card"><div class="person-body"><p class="ops-note">No owner appears in either period on this role.</p></div></aside>';
+        const spec = CMP_PERSON_METRICS[key];
+        const move = cmpPersonMove(chosen, key);
+        const now = chosen.current, then = chosen.prior;
+        const state = now.quotes && !then.quotes ? "new to this book" : !now.quotes && then.quotes ? "no quotes this period"
+          : now.quotes > then.quotes ? "busier" : now.quotes < then.quotes ? "quieter" : "same load";
+        const read = !now.quotes && then.quotes
+          ? "Owned " + opsNumber(then.quotes) + " quotes last period and none on these weeks. That is a load question, not a performance one."
+          : !then.quotes
+            ? "New to this book: " + opsNumber(now.quotes) + " quotes owned this period against none last, so nothing here has a prior to be read against."
+            : opsNumber(then.quotes) + " quotes then and " + opsNumber(now.quotes) + " now, "
+              + opsNumber(then.wins) + " wins then and " + opsNumber(now.wins) + " now, and "
+              + fineMoney(then.wonValue) + " back then against " + fineMoney(now.wonValue) + " now"
+              + (Math.min(now.quotes, then.quotes) < 10
+                  ? ". Under ten quotes on one side, so every rate on this card moves a long way on a single order."
+                  : ".");
+        return '<aside class="person-card" aria-live="polite">'
+          + '<div class="person-top"><div class="eyebrow">' + escape(data.roleLabel) + " · both periods</div>"
+          + '<div class="person-heading"><h3>' + escape(chosen.name) + '</h3><strong class="is-' + move.tone + '">' + escape(move.text) + "</strong></div>"
+          + "<p>" + escape(spec.head + " went from " + spec.fmt(cmpPersonSide(chosen, "prior", key))
+              + " to " + spec.fmt(cmpPersonSide(chosen, "current", key)) + " · " + state) + "</p></div>"
+          + cmpMetricGrid([
+              { label: "Quotes owned", now: now.quotes, was: then.quotes, fmt: opsNumber },
+              { label: "Wins", now: now.wins, was: then.wins, fmt: opsNumber },
+              { label: "Conversion", now: now.quotes ? now.conversion : null, was: then.quotes ? then.conversion : null, fmt: value => value === null ? "—" : pct(value), points: true },
+              { label: "Quoted value", now: now.value, was: then.value, fmt: fineMoney },
+              { label: "Value returned", now: now.wonValue, was: then.wonValue, fmt: fineMoney },
+              { label: "Value capture", now: now.quotes ? now.capture : null, was: then.quotes ? then.capture : null, fmt: value => value === null ? "—" : pct(value), points: true },
+              { label: "Average quote", now: now.quotes ? now.average : null, was: then.quotes ? then.average : null, fmt: value => value === null ? "—" : fineMoney(value) },
+              { label: "Booked jobs", now: now.jobs, was: then.jobs, fmt: opsNumber },
+              { label: "Booked tons", now: now.tons, was: then.tons, fmt: value => value ? tons(value) : "—" },
+              { label: "Accounts served", now: now.accounts, was: then.accounts, fmt: opsNumber },
+              { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "—" : pct(value), points: true },
+              { label: "Days to book", now: now.lag, was: then.lag, fmt: value => value === null ? "—" : value.toFixed(0) + "d", invert: true }
+            ], { dense: true, columns: 2 })
+          + '<div class="person-body"><div class="person-insight"><strong>Read this:</strong> ' + escape(read)
+          + (chosen.named === false ? " These initials appear in no Inventory sheet on either side, so the book is theirs but the name is not recorded." : "")
+          + "</div></div></aside>";
+      }
+
+      // The reference sheet under the charts: every owner, every measure, both
+      // periods. One table, sorted by size of book, rather than a grid of cards.
+      function cmpPersonTable(people, data) {
+        if (!people.length) return '<p class="ops-note">No owner appears in either period on this role.</p>';
+        const cell = (was, now, format, points, invert) => {
+          const move = points && was !== null && now !== null && was !== undefined && now !== undefined
+            ? (function () {
+                const step = now - was, good = invert ? step < 0 : step > 0;
+                return { text: cmpPoints(step), tone: Math.abs(step) < 0.05 ? "flat" : good ? "up" : "down" };
+              }())
+            : cmpDelta(now, was, invert);
+          return '<td class="num"><i class="yoy-then">' + escape(format(was)) + '</i><b>' + escape(format(now))
+            + '</b><em class="is-' + move.tone + '">' + escape(move.text) + "</em></td>";
+        };
+        return '<div class="ops-table-wrap"><table class="ops-table is-wide is-yoy">'
+          + "<thead><tr><th>" + escape(data.roleLabel) + '</th><th class="num">Quotes</th><th class="num">Wins</th><th class="num">Conversion</th>'
+          + '<th class="num">Quoted</th><th class="num">Returned</th><th class="num">Value capture</th>'
+          + '<th class="num">Accounts</th><th class="num">Hrs / quote</th><th class="num">Met the due date</th></tr></thead><tbody>'
+          + people.slice().sort((a, b) => (b.current.quotes + b.prior.quotes) - (a.current.quotes + a.prior.quotes)).map(person => {
+              const now = person.current, then = person.prior;
+              return '<tr><td><b>' + escape(person.code) + '</b> <span class="est-name">' + escape(cmpClip(person.name, 34))
+                + (person.named === false ? " · no roster name" : "") + "</span></td>"
+                + cell(then.quotes, now.quotes, opsNumber, false, false)
+                + cell(then.wins, now.wins, opsNumber, false, false)
+                + cell(then.quotes ? then.conversion : null, now.quotes ? now.conversion : null, value => value === null ? "—" : pct(value), true, false)
+                + cell(then.value, now.value, fineMoney, false, false)
+                + cell(then.wonValue, now.wonValue, fineMoney, false, false)
+                + cell(then.quotes ? then.capture : null, now.quotes ? now.capture : null, value => value === null ? "—" : pct(value), true, false)
+                + cell(then.accounts, now.accounts, opsNumber, false, false)
+                + cell(then.quotes ? then.hoursPerQuote : null, now.quotes ? now.hoursPerQuote : null, value => value === null ? "—" : value.toFixed(2), false, true)
+                + cell(then.onTime, now.onTime, value => value === null ? "—" : pct(value), true, false)
+                + "</tr>";
+            }).join("")
+          + "</tbody></table></div>"
+          + '<p class="ops-note">Grey is ' + escape(data.priorShort) + ", bold is " + escape(data.currentShort)
+          + ". Rates move in points; counts and money move in percent. Sorted by the size of the book across both periods.</p>";
       }
 
       // ---- One account, both periods ----------------------------------------
@@ -4861,9 +5046,20 @@
           rateBefore: percentage(person.prior.wins, person.prior.quotes),
           rateAfter: percentage(person.current.wins, person.current.quotes)
         }));
-        const busiest = peopleMoves.slice().sort((a, b) => (b.current - b.prior) - (a.current - a.prior))[0];
-        const improved = peopleMoves.filter(person => person.prior >= 3 && person.current >= 3)
-          .sort((a, b) => (b.rateAfter - b.rateBefore) - (a.rateAfter - a.rateBefore))[0];
+        // The biggest change in load, not the biggest increase in it. On the
+        // real roster the largest move is an engineer whose book halved, and
+        // sorting by signed move buried that under a colleague who gained four.
+        const busiest = peopleMoves.slice()
+          .sort((a, b) => Math.abs(b.current - b.prior) - Math.abs(a.current - a.prior))[0];
+        // The conversion sentence reads off the same floor the roster list uses
+        // (M-9): a rate on four quotes is arithmetic. Where no book clears the
+        // floor the sentence still gets made, but it says what it stood on.
+        const byRateMove = list => list.slice()
+          .sort((a, b) => Math.abs(b.rateAfter - b.rateBefore) - Math.abs(a.rateAfter - a.rateBefore))[0];
+        const solidBooks = peopleMoves.filter(person => Math.min(person.prior, person.current) >= CMP_THIN_BOOK);
+        const improved = byRateMove(solidBooks.length ? solidBooks
+          : peopleMoves.filter(person => person.prior >= 3 && person.current >= 3));
+        const improvedThin = Boolean(improved) && !solidBooks.length;
         const loadMoved = busiest && busiest.current !== busiest.prior;
         // An initial that no Inventory sheet names is still an owner. It is
         // counted and said out loud rather than quietly folded into the total.
@@ -4875,7 +5071,8 @@
                   { text: cmpClip(busiest.label, 26), tone: toneOf(busiest.current - busiest.prior) },
                   ", from " + opsNumber(busiest.prior) + " quotes to " + opsNumber(busiest.current) + ". ",
                   improved && Math.abs(improved.rateAfter - improved.rateBefore) > 0.05
-                    ? "On conversion, " + cmpClip(improved.label, 26) + " moved furthest, " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter) + "."
+                    ? "On conversion, " + cmpClip(improved.label, 26) + " moved furthest, " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter)
+                      + (improvedThin ? ", on a book too small to read as a trend." : ".")
                     : "Conversion moved little across the roster."
                 ]
               : [
@@ -4883,7 +5080,8 @@
                   { text: data.roleLabel.toLowerCase(), tone: "plain" },
                   " owns the same number of quotes on these weeks as they did a year ago. ",
                   improved && Math.abs(improved.rateAfter - improved.rateBefore) > 0.05
-                    ? "Conversion did move — " + cmpClip(improved.label, 26) + " went from " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter) + "."
+                    ? "Conversion did move — " + cmpClip(improved.label, 26) + " went from " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter)
+                      + (improvedThin ? ", on a book too small to read as a trend." : ".")
                     : "Conversion did not move either."
                 ])
           : ["No named owner appears in either period on this role."],
@@ -4895,23 +5093,14 @@
             { label: "Quotes per owner", value: data.people.length ? (now.quotes / data.people.length).toFixed(1) : "—", note: data.people.length ? "was " + (then.quotes / data.people.length).toFixed(1) : "" },
             { label: "Hours per quote", value: now.hoursPerQuote.toFixed(2), note: "was " + then.hoursPerQuote.toFixed(2), tone: toneOf(now.hoursPerQuote - then.hoursPerQuote, true) }
           ]);
-        $("#cmpPeopleCards").innerHTML = cmpPersonCards(people, data);
-        setText("#cmpPeopleNote", data.roleLabel + " ownership on the matched weeks, every measure the team screen carries, each one shown for both periods. "
-          + (data.people.length > people.length
-              ? "The " + opsNumber(people.length) + " busiest of " + opsNumber(data.people.length) + " owners are shown. "
-              : "")
-          + (unnamedOwners
-              ? opsNumber(unnamedOwners) + (unnamedOwners === 1 ? " initial carries" : " initials carry")
-                + " quotes without a matching name in either Inventory sheet, so " + (unnamedOwners === 1 ? "it is" : "they are")
-                + " shown by code and marked as such rather than dropped. "
-              : "")
-          + "Switch the role on Team performance to change whose book this is.");
+        renderComparePeople(people, data);
         $("#cmpPeopleChart").innerHTML = cmpColumnPairs(people.map(person => ({
             label: person.code, prior: person.prior.quotes, current: person.current.quotes
           })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort, keyCurrent: data.currentShort,
             label: "Quotes owned per person in both periods", note: false,
-            empty: "No named owner appears in either period." })
-          + '<p class="ops-note">Initials on the axis; the cards above carry the names.</p>';
+            empty: "No owner appears in either period." })
+          + '<p class="ops-note">Initials on the axis; the list above carries the names.</p>';
+        $("#cmpPeopleTable").innerHTML = cmpPersonTable(people, data);
 
         // ---- 07 Ledger --------------------------------------------------------
         const rows = [
@@ -5483,6 +5672,8 @@
       let selectedAccount = "";
       let compareAccount = "";
       let compareAccountSearch = "";
+      let comparePerson = "";
+      let comparePersonMetric = "quotes";
 
       function renderCustomers() {
         const data = currentScope();
@@ -5593,6 +5784,46 @@
           node.addEventListener("click", open);
           node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
         });
+      }
+
+      // The roster list, the person beside it and the summary above them are one
+      // unit: choosing a measure or a person redraws all three and nothing else,
+      // the same way Team performance behaves.
+      function renderComparePeople(people, data) {
+        const layout = $("#cmpPeopleLayout");
+        if (!layout) return;
+        if (!people.some(person => person.code === comparePerson)) comparePerson = people.length ? people[0].code : "";
+        const key = CMP_PERSON_METRICS[comparePersonMetric] ? comparePersonMetric : "quotes";
+        const spec = CMP_PERSON_METRICS[key];
+        $$("[data-cmp-person-metric]").forEach(button =>
+          button.setAttribute("aria-pressed", String(button.dataset.cmpPersonMetric === key)));
+        const moved = people.map(person => ({ person: person, move: cmpPersonMove(person, key) }))
+          .filter(item => item.move.tone !== "flat");
+        const better = moved.filter(item => item.move.tone === "up").length;
+        const thin = spec.points
+          ? people.filter(person => Math.min(person.current.quotes, person.prior.quotes) < CMP_THIN_BOOK).length
+          : 0;
+        const absent = people.filter(person => cmpPersonSide(person, "current", key) === null
+          && cmpPersonSide(person, "prior", key) === null).length;
+        const role = data.roleLabel.toLowerCase();
+        setText("#cmpPeopleSummary", opsNumber(people.length) + " " + (people.length === 1 ? role : role + "s")
+          + (people.length === 1 ? " owns" : " own") + " a quote in one period or the other · listed by "
+          + spec.label.toLowerCase() + ", largest first · " + opsNumber(better) + " moved the right way, "
+          + opsNumber(moved.length - better) + " the other · " + spec.note
+          + (thin ? " " + opsNumber(thin) + (thin === 1 ? " book is" : " books are") + " under "
+              + CMP_THIN_BOOK + " quotes on one side, marked thin and ranked last." : "")
+          + (absent ? " " + opsNumber(absent) + (absent === 1 ? " owner has" : " owners have")
+              + " no quote on either side to measure this on, so the cell reads as a dash rather than a zero." : ""));
+        layout.innerHTML = cmpPersonList(people, data, key) + cmpPersonPanel(people, data, key);
+        $$("[data-cmp-person]", layout).forEach(node => node.addEventListener("click", () => {
+          comparePerson = node.dataset.cmpPerson;
+          renderComparePeople(people, data);
+        }));
+        setText("#cmpPeopleNote", data.roleLabel + " ownership on the matched weeks, every measure the team screen carries, each shown for both periods. "
+          + (data.people.length > people.length
+              ? "The " + opsNumber(people.length) + " busiest of " + opsNumber(data.people.length) + " owners are listed. "
+              : "")
+          + "Switch the role on Team performance to change whose book this is.");
       }
 
       // Re-bound after the brief redraws itself, which it does on every
@@ -10547,6 +10778,14 @@
         }
       }));
       $$("[data-compare-view]").forEach(button => button.addEventListener("click", () => setCompareView(button.dataset.compareView)));
+      // The roster answers one question at a time. Choosing a different measure
+      // redraws the list, the person beside it and the summary above them, and
+      // touches nothing else on the screen.
+      $$("[data-cmp-person-metric]").forEach(button => button.addEventListener("click", () => {
+        comparePersonMetric = button.dataset.cmpPersonMetric;
+        const data = buildYearComparison();
+        if (data && data.ready) renderComparePeople(data.people.slice(0, 12), data);
+      }));
       $$("[data-flow-focus]").forEach(button => button.addEventListener("click", () => setFlowFocus(button.dataset.flowFocus)));
       $$("[data-screen]").forEach(button => button.addEventListener("click", () => setScreen(button.dataset.screen)));
       $(".brand").addEventListener("click", event => { event.preventDefault(); setScreen("overview"); });
