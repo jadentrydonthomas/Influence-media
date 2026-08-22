@@ -48,6 +48,16 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **A bar and its own figure now answer the same question** (2026-08-22).
+      The ranked-measure lists mixed money, counts and rates on one scale: the
+      bar was drawn on the relative move while the figure beside it was stated
+      in points, so value capture drew a longer bar than quoted value while
+      reporting a smaller number. Documenting that in the caption was not a fix.
+      Each list is now two blocks — counts and money ranked and scaled in
+      percent, rates ranked and scaled in points — each internally consistent,
+      each under its own heading. `test/year-screen.mjs` asserts that within
+      each unit a bigger stated figure draws a longer bar.
+
 - [x] **The two surfaces share one type scale** (2026-08-22). The deck's
       headings were set heavier and tighter than the dashboard's, which was the
       last place the surfaces visibly diverged. Panel headings move to the

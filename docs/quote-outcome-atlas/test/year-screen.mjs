@@ -204,6 +204,31 @@ check('the churn note warns when fewer weeks are loaded on this side',
   await p.waitForTimeout(300);
 }
 
+// Money and counts move in percent, rates move in points. A bar scaled on one
+// unit printed beside a figure stated in the other is two answers to one
+// question, and it read as a −7.1 pts bar longer than a −30.7% bar.
+{
+  await p.click('[data-compare-view="headline"]');
+  await p.waitForTimeout(500);
+  const blocks = await p.$$eval('#cmpChange .ops-subhead', n => n.map(x => x.textContent.trim()));
+  check('the ranked list separates counts and money from rates', blocks.length === 2, blocks.join(' | '));
+  const rows = await p.$$eval('#cmpChange .chg-row', list => list.map(row => ({
+    label: (row.querySelector('.chg-label') || {}).textContent.trim(),
+    delta: (row.querySelector('.chg-delta') || {}).textContent.trim(),
+    // A row whose measure is not scored in both periods draws no fill at all.
+    width: (() => { const fill = row.querySelector('.chg-fill'); return fill ? Number((fill.getAttribute('style') || '').replace(/[^\d.]/g, '')) || 0 : 0; })()
+  })));
+  const pts = rows.filter(r => /pts/.test(r.delta));
+  const pct = rows.filter(r => /%$/.test(r.delta));
+  check('both units are present', pts.length > 0 && pct.length > 0, pct.length + ' in percent, ' + pts.length + ' in points');
+  // Within each unit, a bigger stated figure must draw a longer bar.
+  const consistent = list => list.slice().sort((a, b) => b.width - a.width).every((row, i, sorted) =>
+    i === 0 || Math.abs(parseFloat(sorted[i - 1].delta.replace(/[^\d.]/g, ''))) + 0.05
+      >= Math.abs(parseFloat(row.delta.replace(/[^\d.]/g, ''))));
+  check('bar length agrees with the figure beside it, in percent', consistent(pct), pct.map(r => r.label + ' ' + r.delta).join(' | ').slice(0, 90));
+  check('bar length agrees with the figure beside it, in points', consistent(pts), pts.map(r => r.label + ' ' + r.delta).join(' | ').slice(0, 90));
+}
+
 check('the badge on the customers tab counts the losses',
   await p.$eval('#cmpLostBadge', n => !n.hidden && Number(n.textContent) > 0));
 await p.screenshot({ path: path.join(root, 'test', 'yoy-churn.png'), fullPage: true });

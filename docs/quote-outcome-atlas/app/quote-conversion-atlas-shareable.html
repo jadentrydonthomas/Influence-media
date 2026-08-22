@@ -2075,7 +2075,7 @@
             <div class="ops-body" id="cmpAttribution"></div>
           </section>
           <section class="panel" aria-labelledby="cmpChangeTitle">
-            <div class="panel-head"><span class="ops-step">Everything else</span><h2 id="cmpChangeTitle">Every measure, ranked by how far it moved</h2><p>Bars run right when the measure improved and left when it worsened. Direction is judged, not signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. A rate is reported in points, because that is what a rate moves in, but ranked by the size of its move relative to where it started &mdash; so bar length and stated figure answer two different questions.</p></div>
+            <div class="panel-head"><span class="ops-step">Everything else</span><h2 id="cmpChangeTitle">Every measure, ranked by how far it moved</h2><p>Bars run right when the measure improved and left when it worsened. Direction is judged, not signed: more quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. Money and counts move in percent and rates move in points, so the two are ranked and drawn on separate scales: every bar means the same thing as the figure printed beside it.</p></div>
             <div class="ops-body" id="cmpChange"></div>
           </section>
         </div>
@@ -3726,6 +3726,28 @@
       // One row shape used by every ranked comparison on this screen: a label,
       // a bar that runs right for better and left for worse from a centre line,
       // the change, and the two figures it came from. The eye learns it once.
+      // A bar scaled on relative move printed beside a figure stated in points
+      // is two answers to one question: value capture drew a longer bar than
+      // quoted value while reporting a smaller number. Money and counts move in
+      // percent, rates move in points, and the two do not belong on one scale.
+      // Each half is ranked and scaled on its own unit, under its own heading.
+      function cmpRankedMeasures(rows, options) {
+        const config = options || {};
+        const moves = rows.filter(row => !row.points);
+        const rates = rows.filter(row => row.points);
+        const block = (list, head, note, opts) => !list.length ? ""
+          : (head ? '<div class="ops-subhead">' + escape(head) + "</div>" : "")
+            + (note ? '<p class="ops-note" style="margin:0 0 10px">' + escape(note) + "</p>" : "")
+            + cmpChangeRows(list, opts);
+        return block(moves, moves.length && rates.length ? "Counts and money, by how far they moved" : "", "", config)
+          + (moves.length && rates.length ? '<div style="height:20px"></div>' : "")
+          + block(rates, moves.length && rates.length ? "Rates, by the points they moved" : "",
+              moves.length && rates.length
+                ? "A rate moves in points, not in percent of itself, so these are ranked and drawn on their own scale rather than against the money above."
+                : "",
+              Object.assign({}, config, { rankByPoints: true }));
+      }
+
       function cmpChangeRows(rows, options) {
         const config = options || {};
         const measured = rows.map(row => {
@@ -3735,13 +3757,20 @@
           const shown = row.points && delta.change !== null && row.now !== null && row.was !== null
             ? Object.assign({}, delta, { text: cmpPoints(row.now - row.was) })
             : delta;
-          return { row: row, delta: shown, size: delta.change === null ? 0 : Math.abs(delta.change) };
+          // Where a block is all rates, the bar is scaled on the points too, so
+          // the bar and the figure beside it answer the same question.
+          const size = config.rankByPoints && row.points && row.now !== null && row.was !== null
+            ? Math.abs(row.now - row.was)
+            : (delta.change === null ? 0 : Math.abs(delta.change));
+          return { row: row, delta: shown, size: size };
         }).sort((a, b) => config.keepOrder ? 0 : b.size - a.size);
         if (!measured.length) return '<p class="ops-note">Nothing to rank on this lens.</p>';
         // The scale is capped so one runaway measure cannot flatten the rest,
         // and a bar that hits the cap says so rather than pretending to fit.
         const largest = Math.max.apply(null, measured.map(item => item.size));
-        const scale = Math.max(5, Math.min(config.cap || 120, largest));
+        const scale = config.rankByPoints
+          ? Math.max(1, largest)
+          : Math.max(5, Math.min(config.cap || 120, largest));
         return '<div class="chg-scale"><span>worse</span><i></i><span>better</span></div>'
           + measured.map(item => {
               const delta = item.delta;
@@ -4997,7 +5026,7 @@
           + ", steps once for each of the three, and arrives at " + escape(money(attribution.to))
           + ". A step up added money, a step down took it out.</p>";
 
-        $("#cmpChange").innerHTML = cmpChangeRows([
+        $("#cmpChange").innerHTML = cmpRankedMeasures([
           { label: "Quotes issued", now: now.quotes, was: then.quotes, fmt: opsNumber },
           { label: "Quoted value", now: now.value, was: then.value, fmt: money },
           { label: "Average quote", now: now.averageQuote, was: then.averageQuote, fmt: fineMoney },
@@ -5149,13 +5178,13 @@
         $("#cmpSurvival").innerHTML = cmpSurvivalColumns(data.survival, data)
           + '<div class="ops-subhead" style="margin-top:22px">The same checkpoints as a curve</div>'
           + cmpSurvivalChart(data.survival, data);
-        $("#cmpTiming").innerHTML = cmpChangeRows([
+        $("#cmpTiming").innerHTML = cmpRankedMeasures([
           { label: "Median time to price", now: now.produce, was: then.produce, fmt: value => value === null ? "—" : dayText(value), invert: true },
           { label: "Median decision time", now: now.decide, was: then.decide, fmt: value => value === null ? "—" : dayText(value), invert: true },
           { label: "Average turnaround", now: now.turn, was: then.turn, fmt: value => value === null ? "—" : value.toFixed(1) + "d", invert: true },
           { label: "Answered inside three days", now: now.withinThree, was: then.withinThree, fmt: value => value === null ? "—" : pct(value), points: true },
           { label: "Met the due date", now: now.onTime, was: then.onTime, fmt: value => value === null ? "not scored" : pct(value), points: true }
-        ], { keepOrder: true })
+        ], {})
           + '<p class="ops-note">Time to price is our half of the clock and decision time is the customer’s. The decision figure is measured on quotes that came back, so it is the time taken by the customers who said yes — an optimistic read by construction, and the ones still silent sit in the open book instead.</p>';
 
         // ---- 04 The mix -------------------------------------------------------
