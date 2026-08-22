@@ -44,13 +44,20 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 - [ ] **3D and depth across the deck** — extruded columns exist on some slides;
       every chart that can carry depth should, consistently lit from one angle.
-- [ ] **3D and depth in the dashboard**, matching the deck so the two read as
-      one product.
 - [ ] **Motion** — considered entrance and transition motion on every surface,
       honouring `prefers-reduced-motion`.
 - [ ] **Logo placement** — the mark should be placed, not parked.
 
 ## Done
+
+- [x] **The deck's isometric columns are now the dashboard's** (2026-08-22).
+      Every paired-column chart on Year over year and the weekly pulse on the
+      Outcome dashboard draw the same three-face extrusion the slides do, on the
+      same offset and the same light source, with the top face brighter and the
+      turned-away side darker. The two surfaces read as one product rather than
+      as a report and the tool that happened to produce it. A tall column's own
+      value label used to be clamped inside the bar where dark ink on a dark
+      face was unreadable; it now switches to white when it lands inside.
 
 - [x] **Year-over-year customers filled in** (2026-08-22). Three gaps against
       the main Customers screen, all closed. The account list now has six sorts

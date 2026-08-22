@@ -351,7 +351,12 @@
     .weekly-chart .lane-label { fill: var(--ink-muted); font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
     .weekly-chart .axis-label, .weekly-chart .week-label { fill: var(--ink-faint); font-family: var(--mono); font-size: 11px; }
     .weekly-chart .quote-value { fill: var(--ink-muted); font-family: var(--mono); font-size: 10px; }
-    .weekly-chart .quote-bar { fill: url(#quoteFill); transform-box: fill-box; transform-origin: bottom; animation: bar-rise 560ms var(--ease) both; animation-delay: var(--delay); }
+    .weekly-chart .quote-value.is-inside { fill: #ffffff; font-weight: 700; }
+    .weekly-chart .quote-bar { fill: url(#quoteFill); }
+    .weekly-chart .quote-top { fill: var(--then-bright); }
+    .weekly-chart .quote-side { fill: var(--then-deep); }
+    .weekly-chart .quote-floor { fill: var(--line); opacity: .45; }
+    .weekly-chart .quote-col > * { transform-box: fill-box; transform-origin: bottom; animation: bar-rise 560ms var(--ease) both; animation-delay: var(--delay); }
     .weekly-chart .conversion-area { fill: url(#rateFill); opacity: .82; animation: area-in 700ms var(--ease) 180ms both; }
     .weekly-chart .rate-line { fill: none; stroke: var(--green); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw-line 850ms var(--ease) 180ms forwards; }
     .weekly-chart .rate-dot { fill: var(--green); stroke: var(--surface); stroke-width: 3; animation: dot-in 380ms var(--ease) both; animation-delay: var(--delay); }
@@ -549,6 +554,22 @@
     .bridge-label { fill: var(--ink); font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
     .bridge-count { fill: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
     .app-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+    /* The extruded column, matching the deck: a lit front face, a brighter top
+       catching the light, and a darker side turned away from it. One light
+       source for the whole product. */
+    .cmp-iso-floor { fill: var(--line); opacity: .5; }
+    .cmp-iso-top.is-now { fill: #35e281; }
+    .cmp-iso-side.is-now { fill: #005c2c; }
+    .cmp-iso-top.is-then { fill: #6fdcf3; }
+    .cmp-iso-side.is-then { fill: #0b5a72; }
+    [data-theme="dark"] .cmp-iso-floor { fill: var(--line); opacity: .7; }
+    [data-theme="dark"] .cmp-iso-top.is-now { fill: #8dffc0; }
+    [data-theme="dark"] .cmp-iso-side.is-now { fill: #0c7a41; }
+    [data-theme="dark"] .cmp-iso-top.is-then { fill: #b3f2ff; }
+    [data-theme="dark"] .cmp-iso-side.is-then { fill: #146a85; }
+    .cmp-iso-group .cmp-col, .cmp-iso-group .cmp-iso-top, .cmp-iso-group .cmp-iso-side {
+      transform-box: fill-box; transform-origin: bottom; animation: iso-rise 620ms var(--ease-out) both; animation-delay: var(--cmp-bar-delay, 0ms); }
+    @keyframes iso-rise { from { transform: scaleY(.02); opacity: .25; } to { transform: scaleY(1); opacity: 1; } }
     .cmp-col.is-now { fill: url(#cmpFillNow); }
     .fill-now-a { stop-color: #00d763; } .fill-now-b { stop-color: #00a44b; } .fill-now-c { stop-color: #00773a; }
     .fill-then-a { stop-color: #46cbe8; } .fill-then-b { stop-color: #1f9fbe; } .fill-then-c { stop-color: #0f6d88; }
@@ -3312,7 +3333,13 @@
         const pointData = [];
         const volumeTicks = [0, maxQuotes / 2, maxQuotes];
         const rateTicks = [...new Set([0, 5, 10, maxRate])].filter(value => value <= maxRate).sort((a, b) => a - b);
-        chart.push('<defs><linearGradient id="quoteFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--steel)" stop-opacity=".95"></stop><stop offset="100%" stop-color="var(--steel)" stop-opacity=".35"></stop></linearGradient><linearGradient id="rateFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".3"></stop><stop offset="100%" stop-color="var(--green)" stop-opacity="0"></stop></linearGradient></defs>');
+        chart.push('<defs><linearGradient id="quoteFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--then-bright)"></stop><stop offset="55%" stop-color="var(--then)"></stop><stop offset="100%" stop-color="var(--then-deep)"></stop></linearGradient><linearGradient id="rateFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".3"></stop><stop offset="100%" stop-color="var(--green)" stop-opacity="0"></stop></linearGradient></defs>');
+        // The extrusion offset for this chart: enough to read as depth, small
+        // enough that a narrow bar is still mostly its own front face.
+        const weeklyDepth = Math.min(9, Math.max(4, barWidth * 0.3));
+        chart.push('<polygon class="quote-floor" points="' + [
+            left + "," + volumeBottom, (left + weeklyDepth) + "," + (volumeBottom - weeklyDepth),
+            (width - right) + "," + (volumeBottom - weeklyDepth), (width - right - weeklyDepth) + "," + volumeBottom].join(" ") + '"></polygon>');
         chart.push('<text class="lane-label" x="' + left + '" y="18">QUOTES ISSUED</text><text class="lane-label" x="' + left + '" y="166">CONFIRMED CONVERSION</text>');
         volumeTicks.forEach(value => {
           const y = volumeBottom - volumeHeight * value / maxQuotes;
@@ -3333,8 +3360,25 @@
           const barHeight = volumeHeight * item.quotes / maxQuotes;
           const barY = volumeBottom - barHeight;
           const pointY = conversionBottom - conversionHeight * item.rate / maxRate;
-          chart.push('<rect class="quote-bar" x="' + x.toFixed(1) + '" y="' + barY.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '" rx="2" style="--delay:' + (index * 45) + 'ms"></rect>');
-          chart.push('<text class="quote-value" x="' + pointX.toFixed(1) + '" y="' + Math.max(volumeTop + 10, barY - 6).toFixed(1) + '" text-anchor="middle">' + item.quotes + '</text>');
+          if (barHeight > 0) {
+            chart.push('<g class="quote-col" style="--delay:' + (index * 45) + 'ms">'
+              + '<polygon class="quote-side" points="' + [
+                  (x + barWidth).toFixed(1) + "," + barY.toFixed(1),
+                  (x + barWidth + weeklyDepth).toFixed(1) + "," + (barY - weeklyDepth).toFixed(1),
+                  (x + barWidth + weeklyDepth).toFixed(1) + "," + (volumeBottom - weeklyDepth).toFixed(1),
+                  (x + barWidth).toFixed(1) + "," + volumeBottom.toFixed(1)].join(" ") + '"></polygon>'
+              + '<polygon class="quote-top" points="' + [
+                  x.toFixed(1) + "," + barY.toFixed(1),
+                  (x + weeklyDepth).toFixed(1) + "," + (barY - weeklyDepth).toFixed(1),
+                  (x + barWidth + weeklyDepth).toFixed(1) + "," + (barY - weeklyDepth).toFixed(1),
+                  (x + barWidth).toFixed(1) + "," + barY.toFixed(1)].join(" ") + '"></polygon>'
+              + '<rect class="quote-bar" x="' + x.toFixed(1) + '" y="' + barY.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '"></rect>'
+              + "</g>");
+          }
+          const wanted = barY - weeklyDepth - 5;
+          const labelY = Math.max(volumeTop + 12, wanted);
+          chart.push('<text class="quote-value' + (labelY > wanted + 0.5 ? " is-inside" : "") + '" x="' + (pointX + weeklyDepth / 2).toFixed(1)
+            + '" y="' + labelY.toFixed(1) + '" text-anchor="middle">' + item.quotes + '</text>');
           labels.push('<text class="week-label" x="' + pointX.toFixed(1) + '" y="316" text-anchor="middle">' + item.week + '</text>');
           pointData.push({ x: pointX, y: pointY });
           dots.push('<circle class="rate-dot' + (index === data.weekly.length - 1 ? ' latest-dot' : '') + '" cx="' + pointX.toFixed(1) + '" cy="' + pointY.toFixed(1) + '" r="' + (index === data.weekly.length - 1 ? '5.5' : '4.5') + '" style="--delay:' + (250 + index * 45) + 'ms"></circle>');
@@ -3743,9 +3787,12 @@
       function cmpColumnPairs(groups, options) {
         const config = options || {};
         if (!groups.length) return '<p class="ops-note">' + escape(config.empty || "Nothing appears in both periods yet.") + "</p>";
-        const width = 940, height = 300;
-        const padTop = 30, padBottom = config.note === false ? 40 : 56, padLeft = 62, padRight = 16;
-        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const width = 940, height = 316;
+        // The extrusion needs room above and to the right of the plot, or the
+        // top face of the tallest column is clipped by the frame.
+        const depth = 11;
+        const padTop = 34, padBottom = config.note === false ? 44 : 60, padLeft = 62, padRight = 20;
+        const plotW = width - padLeft - padRight - depth, plotH = height - padTop - padBottom - depth;
         // A pair of columns stranded at each end of a wide plot is not a
         // comparison, so the step is capped and the block is centred. The two
         // label rows are drawn only where the step is wide enough to hold them
@@ -3766,29 +3813,47 @@
         const baseY = padTop + plotH;
         const every = Math.max(1, Math.ceil(groups.length / 16));
         const ticks = [0, top / 2, top];
+        // The same column the deck draws: three faces on one fixed isometric
+        // offset, so the two surfaces read as one product rather than as a
+        // report and the dashboard that happened to produce it. The top face
+        // is what makes a short column legible beside a tall one.
+        const column = (x, value, tone) => {
+          const h = Math.max(value > 0 ? 2 : 0, baseY - y(value));
+          if (!h) return "";
+          const topY = baseY - h;
+          return '<polygon class="cmp-iso-side ' + tone + '" points="' + [
+              (x + barW) + "," + topY.toFixed(1), (x + barW + depth) + "," + (topY - depth).toFixed(1),
+              (x + barW + depth) + "," + (baseY - depth), (x + barW) + "," + baseY].join(" ") + '" />'
+            + '<polygon class="cmp-iso-top ' + tone + '" points="' + [
+              x.toFixed(1) + "," + topY.toFixed(1), (x + depth).toFixed(1) + "," + (topY - depth).toFixed(1),
+              (x + barW + depth).toFixed(1) + "," + (topY - depth).toFixed(1), (x + barW).toFixed(1) + "," + topY.toFixed(1)].join(" ") + '" />'
+            + '<rect class="cmp-col ' + tone + '" x="' + x.toFixed(1) + '" y="' + topY.toFixed(1)
+            + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" />';
+        };
         return '<svg class="cmp-columns" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(config.label || "Paired columns") + '">'
           + ticks.map(value => '<line class="grid" x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" />'
               + '<text class="axis" x="' + (padLeft - 8) + '" y="' + (y(value) + 4).toFixed(1) + '" text-anchor="end">' + escape(format(value)) + "</text>").join("")
+          // The floor the columns stand on, at the same offset as their sides.
+          + '<polygon class="cmp-iso-floor" points="' + [
+              padLeft + "," + baseY, (padLeft + depth) + "," + (baseY - depth),
+              (width - padRight) + "," + (baseY - depth), (width - padRight - depth) + "," + baseY].join(" ") + '" />'
           + groups.map((group, index) => {
               const centre = originX + step * index + step / 2;
               const left = centre - barW - gap / 2;
-              const bar = (x, value, tone) => {
-                const height = Math.max(value > 0 ? 2 : 0, (baseY - y(value)));
-                return height ? '<rect class="cmp-col ' + tone + '" x="' + x.toFixed(1) + '" y="' + (baseY - height).toFixed(1)
-                  + '" width="' + barW.toFixed(1) + '" height="' + height.toFixed(1) + '" />' : "";
-              };
               const priorValue = Number(group.prior) || 0, currentValue = Number(group.current) || 0;
-              return bar(left, priorValue, "is-then") + bar(left + barW + gap, currentValue, "is-now")
+              return '<g class="cmp-iso-group" style="--cmp-bar-delay:' + (index * 55) + 'ms">'
+                + column(left, priorValue, "is-then") + column(left + barW + gap, currentValue, "is-now")
                 + (showValues
-                    ? '<text class="cmp-col-value is-then" x="' + (left + barW / 2).toFixed(1) + '" y="' + (y(priorValue) - 6).toFixed(1) + '" text-anchor="middle">' + escape(format(priorValue)) + "</text>"
-                      + '<text class="cmp-col-value is-now" x="' + (left + barW + gap + barW / 2).toFixed(1) + '" y="' + (y(currentValue) - 6).toFixed(1) + '" text-anchor="middle">' + escape(format(currentValue)) + "</text>"
+                    ? '<text class="cmp-col-value is-then" x="' + (left + barW / 2 + depth / 2).toFixed(1) + '" y="' + (y(priorValue) - depth - 6).toFixed(1) + '" text-anchor="middle">' + escape(format(priorValue)) + "</text>"
+                      + '<text class="cmp-col-value is-now" x="' + (left + barW + gap + barW / 2 + depth / 2).toFixed(1) + '" y="' + (y(currentValue) - depth - 6).toFixed(1) + '" text-anchor="middle">' + escape(format(currentValue)) + "</text>"
                     : "")
                 + (index % every === 0 || index === groups.length - 1
-                    ? '<text class="cmp-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
+                    ? '<text class="cmp-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
                     : "")
                 + (group.note && showNotes
-                    ? '<text class="cmp-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + 34) + '" text-anchor="middle">' + escape(group.note) + "</text>"
-                    : "");
+                    ? '<text class="cmp-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 34) + '" text-anchor="middle">' + escape(group.note) + "</text>"
+                    : "")
+                + "</g>";
             }).join("")
           + "</svg>"
           + '<div class="cmp-legend"><span><b class="is-then"></b>' + escape(config.keyPrior || "Prior") + "</span>"
