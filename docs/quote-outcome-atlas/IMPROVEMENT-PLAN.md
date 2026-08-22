@@ -30,6 +30,16 @@ standing sentiments, not a task list — the task list is below.
 7. **Every part gets reviewed, repeatedly.** Text too small, a label unbolded,
    a graph that could be better — all of it counts.
 
+## The loop
+
+An hourly Routine (`trig_017GXmQZZNrGNFxAAfDyGcq9`, "Quote Outcome Atlas —
+continuous improvement") fires back into the originating session at :47 past
+each hour and runs the protocol at the top of this file. It stops at
+**2026-08-24 13:00 UTC — Monday 9am Eastern**. A session waking after that time
+does no further work: it deletes the Routine and posts a summary of the run. If
+the Routine cannot be deleted from the fired session, say so plainly and ask the
+product owner to disable it from the Routines list rather than leaving it firing.
+
 ## Open
 
 - [ ] **3D and depth across the deck** — extruded columns exist on some slides;
@@ -38,14 +48,33 @@ standing sentiments, not a task list — the task list is below.
       one product.
 - [ ] **Motion** — considered entrance and transition motion on every surface,
       honouring `prefers-reduced-motion`.
-- [ ] **Custom cursor** — a designed pointer that reacts to interactive targets.
-- [ ] **Colour vibrancy** — the palette is currently very restrained. Raise it
-      without losing the Nucor identity or dark-theme contrast.
 - [ ] **Logo placement** — the mark should be placed, not parked.
 - [ ] **Year-over-year customers: fill every panel** the main Customers screen
-      carries.
+      carries. The main screen was called out as the good one; the comparison
+      view is visibly missing detail the reader can see exists elsewhere.
 
 ## Done
+
+- [x] **Colour vibrancy and a second real hue** (2026-08-22). The prior period
+      was flat grey, so every comparison read as "colour versus absence of
+      colour". It is now a cool teal against the green: the two periods separate
+      at a glance and neither looks like the failure state. Columns carry lit
+      gradient faces from one document-wide gradient pair rather than flat fills,
+      and a three-step elevation scale (`--lift-1/2/3` plus a lit top edge) gives
+      every panel real depth from one light source.
+- [x] **Custom pointer** (2026-08-22). A ring that eases toward the cursor and
+      opens over anything actionable, with a press state. Purely additive — the
+      system cursor is never hidden — and withdrawn entirely for coarse pointers
+      and for `prefers-reduced-motion`.
+- [x] **Deck: the week-against-week slide is gone** (2026-08-22). A row of
+      paired columns, one pair a week, is a table drawn as a chart. The race
+      carries the same weeks as one shape and the decomposition says why it
+      moved; both of those a room can read.
+
+- [x] **The deck ends on a Nucor outro** (2026-08-22). The last slide is now a
+      dark closing mark: the logo on its white plate, the unit and the plant,
+      four figures, and the provenance line. No instructions, no conclusion. The
+      year chapter no longer closes on a list of orders either.
 
 - [x] **Pays / costs contradiction** (2026-08-21). An account appeared as both a
       best payer and a top cost, because the cost side ranked on unreturned

@@ -58,7 +58,9 @@ console.log('focused elements without an obvious ring:', uniqueInvisible.length,
 
 // 3. Charts and figures carry text alternatives.
 const chartText = await p.evaluate(() => {
-  const svgs = [...document.querySelectorAll('svg')];
+  // An SVG marked aria-hidden is correctly out of the accessibility tree — the
+  // gradient definitions block carries no meaning and must not be announced.
+  const svgs = [...document.querySelectorAll('svg')].filter(s => s.getAttribute('aria-hidden') !== 'true');
   return { total: svgs.length, described: svgs.filter(s => s.getAttribute('aria-label') || s.querySelector('title') || s.getAttribute('role') === 'img').length };
 });
 console.log('svg charts:', chartText.total, 'with a text alternative:', chartText.described);

@@ -143,8 +143,12 @@ if (!download) {
   // happily contains the letters N-a-N. Figure checks read the deck with the
   // payloads stripped; anything checking markup uses the raw text.
   const deck = deckRaw.replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, 'data:image/png;base64,MARK');
-  check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 9);
-  checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 9</);
+  // Nine content slides and the outro that closes on the mark.
+  check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 10);
+  checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 10</);
+  check('the outro is last and there is only one', (deck.match(/deck-slide is-outro/g) || []).length, 1);
+  checkMatch('the outro closes on the mark and the run, not on instructions', deck,
+    /is-outro[\s\S]*deck-mark is-huge[\s\S]*outro-source/);
   checkMatch('deck has no NaN or undefined', deck, /^(?!.*(NaN|undefined|Infinity))[\s\S]*$/);
   // The closing slide lists booked jobs, not the biggest open quotes: real
   // order-log job numbers, with the people who priced and delivered them.
@@ -179,7 +183,10 @@ if (!download) {
     check('no account appears as both a payer and a cost', both.join(' | '), '');
     check('both halves of the ledger drew accounts', paysNames.length > 0 && costNames.length > 0, true);
   }
-  checkMatch('deck closes on what to do next', deck, /class="closing-actions"/);
+  // The deck reports; it does not instruct. The penultimate slide states the
+  // book in three figures and the last one is a closing mark.
+  checkMatch('deck states the book before it closes', deck, /class="closing-facts"/);
+  checkMatch('deck no longer issues instructions', deck, /^(?!.*class="closing-actions")[\s\S]*$/);
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
   // The timing disc's conic arc used to be painted over from both sides by an

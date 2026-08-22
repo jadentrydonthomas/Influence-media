@@ -31,8 +31,8 @@ async function buildDeck(withPrior) {
 }
 
 const plain = await buildDeck(false);
-check('with no prior period the deck is nine slides',
-  (fs.readFileSync(plain, 'utf8').match(/class="deck-slide[ "]/g) || []).length === 9,
+check('with no prior period the deck is nine slides and the outro',
+  (fs.readFileSync(plain, 'utf8').match(/class="deck-slide[ "]/g) || []).length === 10,
   String((fs.readFileSync(plain, 'utf8').match(/class="deck-slide[ "]/g) || []).length));
 
 const deck = await buildDeck(true);
@@ -40,9 +40,11 @@ const html = fs.readFileSync(deck, 'utf8');
 // The chapter drops any slide it cannot answer, so its length is a property
 // of the data rather than a constant. What has to hold is that the chapter is
 // there, sits behind the nine base slides, and closes on its own last word.
-const chapterSlides = (html.match(/class="deck-slide[ "]/g) || []).length - 9;
+const chapterSlides = (html.match(/class="deck-slide[ "]/g) || []).length - 10;
 check('with a prior period the chapter is appended', chapterSlides >= 6, chapterSlides + ' chapter slides');
 check('the chapter closes rather than stopping', /Where the year leaves us/.test(html));
+check('the outro is the last slide of the whole deck',
+  html.lastIndexOf('deck-slide is-outro') > html.lastIndexOf('Where the year leaves us'));
 check('the deck is still self-contained', !/https?:\/\/(?!www\.w3\.org)/.test(html));
 
 const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
