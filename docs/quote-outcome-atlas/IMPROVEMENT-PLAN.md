@@ -42,13 +42,24 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Open
 
-- [ ] **3D and depth across the deck** — extruded columns exist on some slides;
-      every chart that can carry depth should, consistently lit from one angle.
-- [ ] **Motion** — considered entrance and transition motion on every surface,
-      honouring `prefers-reduced-motion`.
 - [ ] **Logo placement** — the mark should be placed, not parked.
 
 ## Done
+
+- [x] **Every deck chart that can carry depth now does** (2026-08-22). The
+      bridge waterfall and the who-pays / who-returns-least ledger were the two
+      flat ones left. The bridge's connectors now run along the top faces so
+      they meet the next column where it actually starts once extruded; the
+      horizontal ledger bars take their depth on the top edge and the right end,
+      which is the same light source read sideways.
+- [x] **Deck motion** (2026-08-22). A slide's content rises and fades in with a
+      stagger, the header and footer wipe in, and every extruded face grows from
+      its own base in reading order. The children of `.deck-fit` are animated
+      rather than `.deck-fit` itself, because the fit-to-slide pass owns that
+      element's transform and an animation on it would fight the scale — and
+      since neither transform nor opacity affects layout, the height the fit
+      pass measures is unchanged. All of it collapses under
+      `prefers-reduced-motion`.
 
 - [x] **The deck's isometric columns are now the dashboard's** (2026-08-22).
       Every paired-column chart on Year over year and the weekly pulse on the

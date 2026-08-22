@@ -197,8 +197,14 @@ if (!download) {
   // quoted, the green inside it is what came back. The green can never be
   // longer than the track it sits in, and an account with nothing back must
   // draw no green at all.
-  const ledgerRows = [...deck.matchAll(/<rect class="ledger-asked"[^>]*?width="([\d.]+)"[^>]*\/>(<rect class="ledger-back"[^>]*?width="([\d.]+)"[^>]*\/>)?[\s\S]{0,400}?class="ledger-value(?: is-back| is-none)?"[^>]*>([^<]*)</g)]
-    .map(m => ({ asked: Number(m[1]), back: Number(m[3] || 0), label: m[4] }));
+  // Read one row group at a time rather than assuming the two rects are
+  // adjacent — the extruded faces sit between them now, and a regex that
+  // depended on adjacency reported every returned bar as zero.
+  const ledgerRows = [...deck.matchAll(/<g class="ledger-row-g"[\s\S]*?<\/g>/g)].map(m => m[0]).map(row => ({
+    asked: Number((row.match(/<rect class="ledger-asked"[^>]*?width="([\d.]+)"/) || [])[1] || 0),
+    back: Number((row.match(/<rect class="ledger-back"[^>]*?width="([\d.]+)"/) || [])[1] || 0),
+    label: (row.match(/class="ledger-value(?: is-back| is-none)?"[^>]*>([^<]*)</) || [])[1] || ''
+  }));
   const nested = ledgerRows.every(row => row.back <= row.asked + 0.1);
   const zeroed = ledgerRows.every(row => /nothing back/.test(row.label) === (row.back === 0));
   checks.push({ name: 'returned bar never exceeds the quoted track it sits inside', actual: JSON.stringify(ledgerRows.filter(r => r.back > r.asked + 0.1)), expected: '[]', pass: ledgerRows.length > 0 && nested });

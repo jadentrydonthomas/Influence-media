@@ -9164,8 +9164,11 @@
       // than a list of differences.
       function deckBridgeChart(bridge) {
         if (!bridge || bridge.length < 3) return '<div class="deck-empty">Not enough of a book on either side to bridge.</div>';
-        const width = 1240, height = 330, padTop = 44, padBottom = 76, padLeft = 92, padRight = 26;
-        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
+        const width = 1240, height = 344, padTop = 52, padBottom = 76, padLeft = 92, padRight = 34;
+        // The extrusion needs headroom and a right margin, or the top face of
+        // the opening total is clipped by the frame.
+        const depth = 15;
+        const plotW = width - padLeft - padRight - depth, plotH = height - padTop - padBottom - depth;
         const step = plotW / bridge.length;
         const barW = Math.min(122, step * 0.58);
         let running = 0;
@@ -9184,15 +9187,31 @@
               + '<text class="axis" x="' + (padLeft - 12) + '" y="' + (y(value) + 5).toFixed(1) + '" text-anchor="end">' + escape(money(value)) + "</text>").join("")
           + placed.map((item, index) => {
               const x = padLeft + step * index + (step - barW) / 2;
+              const rise = ' style="--deck-bar-delay:' + (140 + index * 90) + 'ms"';
               const highY = y(Math.max(item.from, item.to));
               const barH = Math.max(3, Math.abs(y(item.from) - y(item.to)));
               const tone = item.isTotal ? "is-total" : item.entry.value >= 0 ? "is-up" : "is-down";
+              // The connector runs along the top face rather than the front
+              // one, so it meets the next column where that column actually
+              // starts once both are extruded.
               return (index < placed.length - 1
-                  ? '<line class="bridge-link" x1="' + (x + barW).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2).toFixed(1)
-                    + '" y1="' + y(item.to).toFixed(1) + '" y2="' + y(item.to).toFixed(1) + '" />'
+                  ? '<line class="bridge-link" x1="' + (x + barW + depth).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2 + depth).toFixed(1)
+                    + '" y1="' + (y(item.to) - depth).toFixed(1) + '" y2="' + (y(item.to) - depth).toFixed(1) + '" />'
                   : "")
+                + '<g class="bridge-col"' + rise + '>'
+                + '<polygon class="bridge-side ' + tone + '" points="' + [
+                    (x + barW).toFixed(1) + "," + highY.toFixed(1),
+                    (x + barW + depth).toFixed(1) + "," + (highY - depth).toFixed(1),
+                    (x + barW + depth).toFixed(1) + "," + (highY + barH - depth).toFixed(1),
+                    (x + barW).toFixed(1) + "," + (highY + barH).toFixed(1)].join(" ") + '" />'
+                + '<polygon class="bridge-top ' + tone + '" points="' + [
+                    x.toFixed(1) + "," + highY.toFixed(1),
+                    (x + depth).toFixed(1) + "," + (highY - depth).toFixed(1),
+                    (x + barW + depth).toFixed(1) + "," + (highY - depth).toFixed(1),
+                    (x + barW).toFixed(1) + "," + highY.toFixed(1)].join(" ") + '" />'
                 + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" />'
-                + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2).toFixed(1) + '" y="' + (highY - 11).toFixed(1) + '" text-anchor="middle">'
+                + "</g>"
+                + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2 + depth / 2).toFixed(1) + '" y="' + (highY - depth - 10).toFixed(1) + '" text-anchor="middle">'
                 + escape(item.isTotal ? money(item.entry.value) : cmpSigned(item.entry.value)) + "</text>"
                 + '<text class="bridge-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 26) + '" text-anchor="middle">' + escape(item.entry.label) + "</text>"
                 + (item.entry.count === undefined ? ""
@@ -9300,6 +9319,9 @@
         const config = options || {};
         if (!accounts.length) return '<div class="deck-empty">' + escape(config.empty || "No account carries a priced quote in this cohort.") + "</div>";
         const rowHeight = 38, labelWidth = 232, valueWidth = 186;
+        // A horizontal bar takes its depth on the top edge and the right end,
+        // which is the same light source read sideways.
+        const depth = 6;
         const width = 1240, height = accounts.length * rowHeight + 26;
         const plot = width - labelWidth - valueWidth;
         const scale = Math.max.apply(null, accounts.map(account => account.quoteValue)) || 1;
@@ -9314,8 +9336,22 @@
                 + '<text class="ledger-name" x="0" y="' + (y + 15) + '">' + escape(clip(account.name)) + "<title>" + escape(account.name) + "</title></text>"
                 + '<text class="ledger-sub" x="0" y="' + (y + 30) + '">' + escape(opsNumber(account.quotes) + " quote" + (account.quotes === 1 ? "" : "s")
                     + " · " + opsNumber(account.wins) + " booked" + (account.hours ? " · " + account.hours.toFixed(0) + " eng hrs" : "")) + "</text>"
+                + '<polygon class="ledger-asked-top" points="' + [
+                    labelWidth + "," + (y + 5), (labelWidth + depth) + "," + (y + 5 - depth),
+                    (labelWidth + asked + depth).toFixed(1) + "," + (y + 5 - depth), (labelWidth + asked).toFixed(1) + "," + (y + 5)].join(" ") + '" />'
+                + '<polygon class="ledger-asked-end" points="' + [
+                    (labelWidth + asked).toFixed(1) + "," + (y + 5), (labelWidth + asked + depth).toFixed(1) + "," + (y + 5 - depth),
+                    (labelWidth + asked + depth).toFixed(1) + "," + (y + 25 - depth), (labelWidth + asked).toFixed(1) + "," + (y + 25)].join(" ") + '" />'
                 + '<rect class="ledger-asked" x="' + labelWidth + '" y="' + (y + 5) + '" width="' + asked.toFixed(1) + '" height="20" />'
-                + (back ? '<rect class="ledger-back" x="' + labelWidth + '" y="' + (y + 5) + '" width="' + back.toFixed(1) + '" height="20" />' : "")
+                + (back
+                    ? '<polygon class="ledger-back-top" points="' + [
+                        labelWidth + "," + (y + 5), (labelWidth + depth) + "," + (y + 5 - depth),
+                        (labelWidth + back + depth).toFixed(1) + "," + (y + 5 - depth), (labelWidth + back).toFixed(1) + "," + (y + 5)].join(" ") + '" />'
+                      + '<polygon class="ledger-back-end" points="' + [
+                        (labelWidth + back).toFixed(1) + "," + (y + 5), (labelWidth + back + depth).toFixed(1) + "," + (y + 5 - depth),
+                        (labelWidth + back + depth).toFixed(1) + "," + (y + 25 - depth), (labelWidth + back).toFixed(1) + "," + (y + 25)].join(" ") + '" />'
+                      + '<rect class="ledger-back" x="' + labelWidth + '" y="' + (y + 5) + '" width="' + back.toFixed(1) + '" height="20" />'
+                    : "")
                 + '<text class="ledger-value' + (back ? " is-back" : " is-none") + '" x="' + (width - valueWidth + 12) + '" y="' + (y + 14) + '">'
                 + escape(back ? money(account.wonValue) + " back" : "nothing back") + "</text>"
                 + '<text class="ledger-asked-value" x="' + (width - valueWidth + 12) + '" y="' + (y + 29) + '">'
@@ -10183,6 +10219,11 @@
           + '.deck-bridge .bridge-bar.is-total{fill:var(--green-deep)}'
           + '.deck-bridge .bridge-bar.is-up{fill:var(--green)}'
           + '.deck-bridge .bridge-bar.is-down{fill:var(--copper)}'
+          /* Same light as every other column in the deck: the top face catches
+             it, the side is turned away from it. */
+          + '.deck-bridge .bridge-top.is-total{fill:#0f9a52}.deck-bridge .bridge-side.is-total{fill:#00512a}'
+          + '.deck-bridge .bridge-top.is-up{fill:#35e281}.deck-bridge .bridge-side.is-up{fill:#00863f}'
+          + '.deck-bridge .bridge-top.is-down{fill:#e29c7c}.deck-bridge .bridge-side.is-down{fill:#94512f}'
           + '.deck-bridge .bridge-link{stroke:#b9c9bd;stroke-width:1;stroke-dasharray:4 4}'
           + '.deck-bridge .bridge-value{font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:900;letter-spacing:-.02em}'
           + '.deck-bridge .bridge-value.is-total{fill:var(--green-deep)}'
@@ -10221,7 +10262,9 @@
           + '.deck-ledger .ledger-name{fill:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:800}'
           + '.deck-ledger .ledger-sub{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
           + '.deck-ledger .ledger-asked{fill:#dfe8e1}'
+          + '.deck-ledger .ledger-asked-top{fill:#eef3ef}.deck-ledger .ledger-asked-end{fill:#c4d2c8}'
           + '.deck-ledger .ledger-back{fill:var(--green)}'
+          + '.deck-ledger .ledger-back-top{fill:#35e281}.deck-ledger .ledger-back-end{fill:#00863f}'
           + '.deck-ledger .ledger-value{font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:900}'
           + '.deck-ledger .ledger-value.is-back{fill:var(--green-deep)}'
           + '.deck-ledger .ledger-value.is-none{fill:var(--copper)}'
@@ -10270,6 +10313,27 @@
           + '.outro-source{max-width:76ch;margin:clamp(26px,4vh,46px) 0 0;color:rgba(206,232,214,.62);font-size:13.5px;line-height:1.65}'
           + '@media(max-width:900px){.outro-grid{grid-template-columns:1fr;gap:26px}.outro-rule{display:none}}'
           + ''
+          /* Slide entrance. The children of .deck-fit are animated rather than
+             .deck-fit itself, because the fit-to-slide pass owns that element's
+             transform and an animation on it would fight the scale. Transforms
+             and opacity do not affect layout, so the measured height the fit
+             pass reads is the same either way. */
+          + '@keyframes deckRise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}'
+          + '@keyframes deckWipe{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}'
+          + '.deck-slide.is-active .deck-fit>*{animation:deckRise 560ms cubic-bezier(.16,1,.3,1) both}'
+          + '.deck-slide.is-active .deck-fit>*:nth-child(2){animation-delay:90ms}'
+          + '.deck-slide.is-active .deck-fit>*:nth-child(3){animation-delay:160ms}'
+          + '.deck-slide.is-active .deck-fit>*:nth-child(n+4){animation-delay:210ms}'
+          + '.deck-slide.is-active header,.deck-slide.is-active footer{animation:deckWipe 460ms cubic-bezier(.16,1,.3,1) both}'
+          /* Every extruded face in the deck rises from its own base, in the
+             order the eye reads them. */
+          + '.deck-slide.is-active .iso-col>*,.deck-slide.is-active .ledger-row-g>*,'
+          + '.deck-slide.is-active .bridge-col>*{transform-box:fill-box;transform-origin:bottom;'
+          + 'animation:deckGrow 640ms cubic-bezier(.16,1,.3,1) both;animation-delay:var(--deck-bar-delay,120ms)}'
+          + '@keyframes deckGrow{from{opacity:.15;transform:scaleY(.04)}to{opacity:1;transform:none}}'
+          + '@media(prefers-reduced-motion:reduce){.deck-slide.is-active .deck-fit>*,.deck-slide.is-active header,'
+          + '.deck-slide.is-active footer,.deck-slide.is-active .iso-col>*,.deck-slide.is-active .ledger-row-g>*,'
+          + '.deck-slide.is-active .bridge-col>*{animation:none!important;opacity:1;transform:none}}'
           + '.deck-subhead{margin:22px 0 10px;color:#799084;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}'
           + '.because-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}'
           + '.because-card{display:flex;flex-direction:column;padding:24px;border:1px solid var(--line);background:#fff}'
