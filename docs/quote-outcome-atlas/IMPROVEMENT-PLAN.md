@@ -49,11 +49,20 @@ product owner to disable it from the Routines list rather than leaving it firing
 - [ ] **Motion** — considered entrance and transition motion on every surface,
       honouring `prefers-reduced-motion`.
 - [ ] **Logo placement** — the mark should be placed, not parked.
-- [ ] **Year-over-year customers: fill every panel** the main Customers screen
-      carries. The main screen was called out as the good one; the comparison
-      view is visibly missing detail the reader can see exists elsewhere.
 
 ## Done
+
+- [x] **Year-over-year customers filled in** (2026-08-22). Three gaps against
+      the main Customers screen, all closed. The account list now has six sorts
+      — biggest overall, biggest fall, biggest rise, most returned now, booked
+      then gone now, asked never booked — so "who fell furthest", the whole
+      point of a comparison, can actually be asked. The brief now carries the
+      order log's job detail under each won quote (job number, entry date,
+      tonnage) and a period footer with booked count, value, tons and hours.
+      And a new panel, *Who actually paid us, then and now*: presence and
+      payment are different questions and the churn lists only answered the
+      first. It is ranked by the larger of the two periods, so Hamstra at
+      $4.1M → $0 sits where its money says rather than at the bottom.
 
 - [x] **Colour vibrancy and a second real hue** (2026-08-22). The prior period
       was flat grey, so every comparison read as "colour versus absence of

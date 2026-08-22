@@ -57,7 +57,8 @@ const wants = {
   momentum: ['#cmpMomentumLede .yoy-stat', '#cmpWeekChart .swing-bar', '#cmpWeekChart .cmp-col', '#cmpWeekValueChart .cmp-col', '#cmpRace path'],
   speed: ['#cmpSpeedLede .yoy-stat', '#cmpSurvival .cmp-col, #cmpSurvival .ops-note', '#cmpTiming .chg-row'],
   mix: ['#cmpMixLede .yoy-stat', '#cmpLorenz .lorenz-line', '#cmpBandChart .cmp-col', '#cmpMixShift .chg-row', '#cmpDistricts .cmp-col'],
-  customers: ['#cmpCustomerLede .yoy-stat', '#cmpBrief .brief-row', '#cmpBrief .pair-cell', '#cmpFlow .flow-block',
+  customers: ['#cmpCustomerLede .yoy-stat', '#cmpBrief .brief-row', '#cmpBrief .pair-cell', '#cmpBrief .cust-sort-btn',
+              '#cmpPayers .payer-row', '#cmpPayers .payer-strip', '#cmpFlow .flow-block',
               '#cmpLost .acct-table tbody tr, #cmpLost .analysis-empty',
               '#cmpGained .acct-table tbody tr, #cmpGained .analysis-empty', '#cmpQuadrant .quad-dot'],
   // The roster reads like Team performance now: a ranked list, one person open
@@ -174,6 +175,35 @@ check('the churn list carries a name, a value and a last-quote date',
   /\$/.test(churn) && /20\d\d/.test(churn), churn.slice(0, 110));
 check('the churn note warns when fewer weeks are loaded on this side',
   /may read as quiet/.test(await text('#cmpLostNote')));
+// Who paid, both periods: the comparison the Customers screen has and this one
+// did not. An account can quote in both periods and have stopped paying, and
+// ranking on this period alone buried every one of them.
+{
+  await p.click('[data-compare-view="customers"]');
+  await p.waitForTimeout(500);
+  const payers = await p.$$eval('#cmpPayers .payer-row', rows => rows.map(row => ({
+    name: (row.querySelector('.payer-name b') || {}).textContent || '',
+    state: (row.querySelector('.payer-name i') || {}).textContent || '',
+    then: (row.querySelector('.payer-figures i') || {}).textContent || '',
+    now: (row.querySelector('.payer-figures b') || {}).textContent || ''
+  })));
+  check('the payer list names accounts and both periods',
+    payers.length > 0 && payers.every(row => row.name && row.then && row.now),
+    payers.length + ' payers, first ' + (payers[0] ? payers[0].name + ' ' + payers[0].then + '→' + payers[0].now : '—'));
+  const strip = await p.$$eval('#cmpPayers .payer-strip > div', cells => cells.map(c => c.innerText.replace(/\s+/g, ' ').trim()));
+  check('the payer strip states both bases and both directions', strip.length === 4, strip.join(' | ').slice(0, 110));
+  // A sort the reader cannot reach is a sort that does not exist.
+  const sorts = await p.$$eval('#cmpBrief .cust-sort-btn', b => b.length);
+  check('the account list can be reordered by the question being asked', sorts >= 5, sorts + ' sorts');
+  const before = await p.$eval('#cmpBrief .brief-row b', n => n.textContent.trim());
+  await p.click('#cmpBrief [data-cmp-sort="fell"]');
+  await p.waitForTimeout(400);
+  const after = await p.$eval('#cmpBrief .brief-row b', n => n.textContent.trim());
+  check('choosing a sort actually reorders the list', before !== after, before + ' → ' + after);
+  await p.click('#cmpBrief [data-cmp-sort="combined"]');
+  await p.waitForTimeout(300);
+}
+
 check('the badge on the customers tab counts the losses',
   await p.$eval('#cmpLostBadge', n => !n.hidden && Number(n.textContent) > 0));
 await p.screenshot({ path: path.join(root, 'test', 'yoy-churn.png'), fullPage: true });

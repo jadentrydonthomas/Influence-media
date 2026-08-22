@@ -843,7 +843,7 @@
     .brief-year-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 14px; background: var(--green-head); }
     .brief-year-head span { color: #ffffff; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .brief-year-head b { color: var(--green-bright); font-family: var(--mono); font-size: 12.5px; }
-    .brief-quote { display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr) minmax(64px, auto); grid-template-areas: "id project value" "date date state"; gap: 2px 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+    .brief-quote { display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr) minmax(64px, auto); grid-template-areas: "id project value" "date date state" "jobs jobs jobs"; gap: 2px 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
     .brief-quote:last-of-type { border-bottom: 0; }
     .brief-quote b { grid-area: id; min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .brief-quote span { grid-area: project; min-width: 0; overflow: hidden; color: var(--ink-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
@@ -1384,6 +1384,41 @@
     .cmp-then-now em { color: var(--ink-faint); font-size: 11px; font-style: normal; }
     .cmp-then-now b { color: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 600; }
     .cmp-then-now i { color: var(--then-deep); }
+    /* What the order log knows about a booked job, under the quote that won it. */
+    .brief-quote .brief-jobs { grid-area: jobs; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; overflow: visible; white-space: normal; }
+    .brief-quote .brief-job { display: inline-flex; align-items: baseline; gap: 6px; overflow: visible; padding: 2px 7px; border: 1px solid var(--line); background: var(--surface); white-space: nowrap; }
+    .brief-quote .brief-job b { color: var(--green-dark); font-family: var(--mono); font-size: 10.5px; font-weight: 700; }
+    .brief-quote .brief-job i, .brief-quote .brief-job em { color: var(--ink-faint); font-family: var(--mono); font-size: 10px; font-style: normal; }
+    .brief-quote .brief-job.is-more { color: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
+    .brief-year-foot { padding: 8px 11px; border-top: 1px solid var(--line); background: var(--surface-soft); }
+    .brief-year-foot span { color: var(--ink-muted); font-family: var(--mono); font-size: 11px; }
+    /* Who actually paid, both periods. One row an account: the name and what
+       changed about it, the two bars, the two figures, the move. */
+    .payer-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); margin: 0 0 2px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+    .payer-strip > div { padding: 13px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+    .payer-strip span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .payer-strip strong { display: block; margin-top: 5px; color: var(--ink); font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -.05em; }
+    .payer-strip small { display: block; margin-top: 3px; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
+    .payer-list { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .payer-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(120px, 1fr) 128px 74px; align-items: center; gap: 14px; width: 100%; padding: 11px 16px; border: 0; border-bottom: 1px solid var(--line); background: var(--surface); text-align: left; transition: background 200ms var(--ease-out); }
+    .payer-row:last-child { border-bottom: 0; }
+    .payer-row:hover { background: var(--surface-soft); }
+    .payer-name { min-width: 0; }
+    .payer-name b { display: block; overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .payer-name i { display: block; overflow: hidden; margin-top: 3px; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+    .payer-bars { display: grid; gap: 3px; min-width: 0; }
+    .payer-bars u { display: block; height: 8px; text-decoration: none; }
+    .payer-bars u.is-then { background: var(--then-soft); box-shadow: inset 0 0 0 1px var(--then); }
+    .payer-bars u.is-now { background: var(--fill-now); }
+    .payer-figures { display: flex; align-items: baseline; justify-content: flex-end; gap: 7px; }
+    .payer-figures i { color: var(--then-deep); font-family: var(--mono); font-size: 11.5px; font-style: normal; }
+    .payer-figures b { color: var(--ink); font-family: var(--mono); font-size: 14px; font-weight: 700; }
+    .payer-row > em { font-family: var(--mono); font-size: 12px; font-style: normal; font-weight: 700; text-align: right; }
+    .payer-row > em.is-up { color: var(--green-dark); } .payer-row > em.is-down { color: var(--red-deep); } .payer-row > em.is-flat { color: var(--ink-faint); }
+    @media (max-width: 940px) {
+      .payer-row { grid-template-columns: minmax(0, 1fr) 110px 66px; grid-template-areas: "name figures move" "bars bars bars"; gap: 6px 10px; }
+      .payer-name { grid-area: name; } .payer-bars { grid-area: bars; } .payer-figures { grid-area: figures; } .payer-row > em { grid-area: move; }
+    }
     .cmp-then-now.is-thin b { color: var(--ink-muted); font-weight: 500; }
     .cmp-thin { display: inline-block; margin-left: 5px; padding: 0 4px; color: var(--ink-faint); border: 1px solid var(--line-strong); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
     /* The move bar grows from a centre line: right for better, left for worse,
@@ -2057,6 +2092,10 @@
           <section class="panel is-feature" aria-labelledby="cmpBriefTitle">
             <div class="panel-head"><span class="ops-step">Account brief</span><h2 id="cmpBriefTitle">One account, both periods, in full</h2><p>Every account that quoted in either period. Select one and its whole record opens beside the list &mdash; what it asked for, what it booked, and what it was worth, each period against the other.</p></div>
             <div class="ops-body" id="cmpBrief"></div>
+          </section>
+          <section class="panel is-feature" aria-labelledby="cmpPayersTitle">
+            <div class="panel-head"><span class="ops-step">Where the money came from</span><h2 id="cmpPayersTitle">Who actually paid us, then and now</h2><p id="cmpPayersNote"></p></div>
+            <div class="ops-body" id="cmpPayers"></div>
           </section>
           <section class="panel is-alert" aria-labelledby="cmpLostTitle">
             <div class="panel-head"><span class="ops-step">Stopped asking</span><h2 id="cmpLostTitle">Accounts that quoted with us last period and have not this one</h2><p id="cmpLostNote"></p></div>
@@ -4448,6 +4487,58 @@
           + "</div></div></aside>";
       }
 
+      // The comparison the Customers screen has and this one did not: not who
+      // asked, but who actually paid, with both periods side by side. Presence
+      // and money are different questions and the churn lists only answer the
+      // first — an account can quote in both periods and have stopped paying
+      // entirely, and nothing on this screen used to say so.
+      function cmpPayerTable(data) {
+        const weight = item => Math.max(item.current.wonValue, item.prior.wonValue);
+        const payers = data.roster
+          .filter(item => item.current.wonValue > 0 || item.prior.wonValue > 0)
+          .sort((a, b) => weight(b) - weight(a) || b.current.wonValue - a.current.wonValue);
+        if (!payers.length) return '<div class="analysis-empty"><div><b>No account has booked in either period</b>'
+          + "<span>Nothing has come back against the loaded weeks on either side, so there is no payer to rank.</span></div></div>";
+        const shown = payers.slice(0, 16);
+        const scale = Math.max.apply(null, payers.map(item => Math.max(item.current.wonValue, item.prior.wonValue))) || 1;
+        const width = value => Math.max(value > 0 ? 1.5 : 0, Math.min(100, value / scale * 100));
+        const nowTotal = payers.reduce((sum, item) => sum + item.current.wonValue, 0) / 1000000;
+        const thenTotal = payers.reduce((sum, item) => sum + item.prior.wonValue, 0) / 1000000;
+        const stopped = payers.filter(item => item.prior.wonValue > 0 && !item.current.wonValue);
+        const stoppedValue = stopped.reduce((sum, item) => sum + item.prior.wonValue, 0) / 1000000;
+        const started = payers.filter(item => item.current.wonValue > 0 && !item.prior.wonValue);
+        const startedValue = started.reduce((sum, item) => sum + item.current.wonValue, 0) / 1000000;
+        return '<div class="payer-strip">'
+          + '<div><span>Accounts that paid</span><strong>' + opsNumber(payers.filter(item => item.current.wonValue > 0).length)
+          + "</strong><small>was " + opsNumber(payers.filter(item => item.prior.wonValue > 0).length) + "</small></div>"
+          + '<div><span>They returned</span><strong>' + escape(fineMoney(nowTotal)) + "</strong><small>was " + escape(fineMoney(thenTotal)) + "</small></div>"
+          + '<div><span>Paid then, not now</span><strong>' + opsNumber(stopped.length) + "</strong><small>"
+          + escape(fineMoney(stoppedValue)) + " of booked work</small></div>"
+          + '<div><span>Paying for the first time</span><strong>' + opsNumber(started.length) + "</strong><small>"
+          + escape(fineMoney(startedValue)) + " of booked work</small></div>"
+          + "</div>"
+          + '<div class="payer-list">' + shown.map(item => {
+              const move = cmpDelta(item.current.wonValue, item.prior.wonValue);
+              const state = item.current.wonValue && !item.prior.wonValue ? "new payer"
+                : !item.current.wonValue && item.prior.wonValue ? "stopped paying"
+                : item.current.wonValue >= item.prior.wonValue ? "paying more" : "paying less";
+              return '<button type="button" class="payer-row" data-open-account="' + escape(item.key) + '">'
+                + '<span class="payer-name"><b>' + escape(cmpClip(item.name, 30)) + "</b><i>" + escape(state
+                    + " · " + opsNumber(item.prior.wins) + " → " + opsNumber(item.current.wins) + " booked"
+                    + (item.owner ? " · " + cmpClip(item.owner, 22) : "")) + "</i></span>"
+                + '<span class="payer-bars"><u class="is-then" style="width:' + width(item.prior.wonValue).toFixed(1) + '%"></u>'
+                + '<u class="is-now" style="width:' + width(item.current.wonValue).toFixed(1) + '%"></u></span>'
+                + '<span class="payer-figures"><i>' + escape(fineMoney(item.prior.wonValue / 1000000)) + "</i>"
+                + "<b>" + escape(fineMoney(item.current.wonValue / 1000000)) + "</b></span>"
+                + '<em class="is-' + move.tone + '">' + escape(move.text) + "</em></button>";
+            }).join("") + "</div>"
+          + '<p class="ops-note">' + escape((payers.length > shown.length
+                ? "Showing the " + shown.length + " largest of " + payers.length + " accounts that booked in either period. "
+                : "")
+              + "Ranked by the larger of the two periods, so an account that paid us well last period and nothing this one "
+              + "appears where its money says it should rather than at the bottom. Select a row to open its full record above.") + "</p>";
+      }
+
       // The reference sheet under the charts: every owner, every measure, both
       // periods. One table, sorted by size of book, rather than a grid of cards.
       function cmpPersonTable(people, data) {
@@ -4488,17 +4579,24 @@
 
       // ---- One account, both periods ----------------------------------------
       function cmpAccountBrief(data) {
+        const sort = COMPARE_SORTS[compareSort] ? COMPARE_SORTS[compareSort] : COMPARE_SORTS.combined;
+        // A sort that cannot apply to a row parks it at the bottom rather than
+        // ranking it as a zero — an account that never left is not the smallest
+        // possible loss, it is not a loss at all.
         const roster = data.roster.slice().sort((a, b) =>
-          (b.current.value + b.prior.value) - (a.current.value + a.prior.value));
+          sort.get(b) - sort.get(a)
+          || (b.current.value + b.prior.value) - (a.current.value + a.prior.value)
+          || a.name.localeCompare(b.name));
         if (!roster.length) return '<p class="ops-note">No account carries a quote in either period.</p>';
         const term = String(compareAccountSearch || "").trim().toLowerCase();
-        const listed = term ? roster.filter(item => item.name.toLowerCase().indexOf(term) > -1) : roster;
+        const listed = (term ? roster.filter(item => item.name.toLowerCase().indexOf(term) > -1) : roster)
+          .filter(item => sort.get(item) > -1);
         let chosen = listed.find(item => item.key === compareAccount) || roster.find(item => item.key === compareAccount);
         if (!chosen) chosen = listed.find(item => item.state === "kept") || listed[0] || roster[0];
         const stateText = { kept: "quoted in both", lost: "not this period", new: "new this period" };
         const rows = listed.slice(0, 120).map(item => {
           const scale = Math.max(item.current.value, item.prior.value,
-            Math.max.apply(null, roster.slice(0, 12).map(entry => Math.max(entry.current.value, entry.prior.value))) || 1);
+            Math.max.apply(null, listed.slice(0, 12).map(entry => Math.max(entry.current.value, entry.prior.value))) || 1);
           const width = value => Math.max(value > 0 ? 2 : 0, Math.min(100, value / scale * 100));
           return '<button type="button" class="brief-row is-' + item.state + (item === chosen ? " is-active" : "")
             + '" data-brief-account="' + escape(item.key) + '">'
@@ -4513,8 +4611,13 @@
           + '<div class="brief-list-panel">'
           + '<div class="brief-search"><label class="sr-only" for="cmpAccountSearch">Search accounts</label>'
           + '<input id="cmpAccountSearch" type="search" placeholder="Search ' + roster.length + ' accounts" value="' + escape(compareAccountSearch || "") + '" autocomplete="off" /></div>'
-          + '<div class="brief-list">' + (rows || '<p class="ops-note">No account matches that search.</p>') + "</div>"
-          + '<p class="ops-note">Largest first by combined value across both periods. The upper bar is last period, the lower is this one.</p>'
+          + '<div class="cust-sort" role="group" aria-label="Sort accounts">'
+          + Object.keys(COMPARE_SORTS).map(key => '<button type="button" class="cust-sort-btn" data-cmp-sort="' + key
+              + '" aria-pressed="' + String(key === compareSort) + '">' + escape(COMPARE_SORTS[key].label) + "</button>").join("")
+          + "</div>"
+          + '<div class="brief-list">' + (rows || '<p class="ops-note">No account matches that sort or search.</p>') + "</div>"
+          + '<p class="ops-note">' + escape(sort.note + " Showing " + opsNumber(Math.min(listed.length, 120))
+              + " of " + opsNumber(roster.length) + " accounts. The upper bar is last period, the lower is this one.") + "</p>"
           + "</div>"
           + '<div class="brief-detail">' + cmpAccountDetail(chosen, data) + "</div>"
           + "</div>";
@@ -4538,9 +4641,26 @@
                     + "<em>" + escape(fineMoney((Number(record.price) || 0) / 1000000)) + "</em>"
                     + '<u class="' + (record.won ? "is-won" : "is-open") + '">' + (record.won
                         ? "booked" + ((record.jobsDetail || []).length ? " · " + escape((record.jobsDetail || []).map(job => job.id).slice(0, 2).join(", ")) : "")
-                        : "no order") + "</u></div>").join("")
+                        : "no order") + "</u>"
+                    // The main Customers profile carries what the order log knows
+                    // about a booked job — when it was entered and what it
+                    // weighs. The comparison brief said only "booked", which is
+                    // the one place a reader most wants that detail.
+                    + ((record.jobsDetail || []).length
+                        ? '<span class="brief-jobs">' + (record.jobsDetail || []).slice(0, 3).map(job =>
+                            '<span class="brief-job"><b>' + escape(job.id || "job") + "</b>"
+                            + (job.entryDate ? "<i>" + escape(fullDate(job.entryDate)) + "</i>" : "")
+                            + (Number(job.tons) ? "<em>" + escape(tons(Number(job.tons)) + " t") + "</em>" : "")
+                            + "</span>").join("")
+                          + ((record.jobsDetail || []).length > 3
+                              ? '<span class="brief-job is-more">+' + ((record.jobsDetail || []).length - 3) + " more</span>" : "")
+                          + "</span>"
+                        : "")
+                    + "</div>").join("")
                 : '<p class="ops-note">Nothing quoted in this period.</p>')
             + (side.quotes > records.length ? '<p class="ops-note">' + (side.quotes - records.length) + " more not shown.</p>" : "")
+            + '<div class="brief-year-foot"><span>' + escape(opsNumber(side.wins) + " booked · " + fineMoney(side.wonValue / 1000000)
+                + (side.tons ? " · " + tons(side.tons) + " tons" : "") + (side.hours ? " · " + side.hours.toFixed(0) + " eng hrs" : "")) + "</span></div>"
             + "</div>";
         };
         return '<div class="brief-head"><div><span class="brief-eyebrow">Account brief</span>'
@@ -5068,6 +5188,10 @@
             { label: "Slipping", value: opsNumber(keep.atRiskCount), note: "still asking, down 40%+", tone: keep.atRiskCount ? "down" : "up" }
           ]);
         $("#cmpBrief").innerHTML = cmpAccountBrief(data);
+        $("#cmpPayers").innerHTML = cmpPayerTable(data);
+        setText("#cmpPayersNote", "Presence and payment are different questions, and the lists below only answer the first: "
+          + "an account can quote in both periods and have stopped paying entirely. This is the money that actually came back, "
+          + "account by account, this period against last. The upper bar is " + data.priorShort + ", the lower is " + data.currentShort + ".");
         $("#cmpFlow").innerHTML = cmpFlowDiagram(data);
         setText("#cmpFlowNote", "Every account that quoted in either period, by what happened to it. Presence is measured on every loaded week on both sides — "
           + spanLine + " — because an account that quoted in a week outside the matched window has not gone quiet."
@@ -5734,6 +5858,25 @@
       let selectedAccount = "";
       let compareAccount = "";
       let compareAccountSearch = "";
+      // The main Customers screen lets a reader reorder the account list by the
+      // question they are actually asking. The comparison list had one fixed
+      // order, which meant "who fell furthest" — the whole point of a
+      // comparison — could not be asked at all.
+      const COMPARE_SORTS = {
+        combined: { label: "Biggest overall", note: "Largest first by what they asked for across both periods.",
+          get: item => item.current.value + item.prior.value },
+        fell: { label: "Biggest fall", note: "Accounts whose quoted value dropped the furthest, in money.",
+          get: item => item.prior.value - item.current.value },
+        rose: { label: "Biggest rise", note: "Accounts whose quoted value grew the furthest, in money.",
+          get: item => item.current.value - item.prior.value },
+        returned: { label: "Most returned now", note: "Accounts ranked by the money that actually came back this period.",
+          get: item => item.current.wonValue },
+        lostValue: { label: "Booked then, gone now", note: "Accounts that booked with us last period and have not quoted in these weeks, by what they booked.",
+          get: item => item.state === "lost" ? item.prior.wonValue : -1 },
+        neverBooked: { label: "Asked, never booked", note: "Accounts that have asked across both periods and never had an order come back, by what they asked for.",
+          get: item => (item.current.wins + item.prior.wins) === 0 ? item.current.value + item.prior.value : -1 }
+      };
+      let compareSort = "combined";
       let comparePerson = "";
       let comparePersonMetric = "quotes";
 
@@ -5896,6 +6039,13 @@
           node.addEventListener("click", () => {
             compareAccount = node.dataset.briefAccount;
             $("#cmpBrief").innerHTML = cmpAccountBrief(data);
+            wireCompareBrief();
+          });
+        });
+        $$("[data-cmp-sort]", $("#cmpBrief")).forEach(node => {
+          node.addEventListener("click", () => {
+            compareSort = node.dataset.cmpSort;
+            $("#cmpBrief").innerHTML = cmpAccountBrief(buildYearComparison());
             wireCompareBrief();
           });
         });
