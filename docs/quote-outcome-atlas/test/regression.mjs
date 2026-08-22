@@ -187,6 +187,16 @@ if (!download) {
   // book in three figures and the last one is a closing mark.
   checkMatch('deck states the book before it closes', deck, /class="closing-facts"/);
   checkMatch('deck no longer issues instructions', deck, /^(?!.*class="closing-actions")[\s\S]*$/);
+  // The class rename was not the point: the cards themselves used to be
+  // imperatives ("Qualify the repeat askers", "Ring the ones who used to pay").
+  // A deck that reports states what is true and leaves the orders to the room.
+  {
+    const heads = [...deck.matchAll(/class="closing-facts"[\s\S]*?<\/div>/g)]
+      .flatMap(m => [...m[0].matchAll(/<strong>([^<]+)<\/strong>/g)].map(h => h[1].trim()));
+    const orders = heads.filter(head => /^(Qualify|Answer|Hold|Finish|Protect|Ring|Call|Chase|Spread|Convert|Ask|Win|Get|Keep|Understand)\b/.test(head));
+    check('closing cards state findings, not orders', orders.join(' | '), '');
+    check('the closing cards drew', heads.length > 0, true);
+  }
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
   // The timing disc's conic arc used to be painted over from both sides by an

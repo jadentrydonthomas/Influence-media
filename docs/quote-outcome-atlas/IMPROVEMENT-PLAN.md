@@ -42,11 +42,23 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Open
 
-- [ ] **Review pass 2** — walk every screen and every slide again with fresh
-      eyes and fix whatever the first pass left. Charts that state a total but
-      never name the finding inside them are the recurring failure.
+- [ ] **Review pass 4** — the deck's display type still runs larger and heavier
+      than the dashboard's panel headings. That is the last place the two
+      surfaces visibly diverge.
 
 ## Done
+
+- [x] **Review pass 3 — the deck still gave orders** (2026-08-22). Renaming the
+      class was not the fix. Both closing slides carried imperative headings
+      ("Qualify the repeat askers", "Ring the ones who used to pay") and bodies
+      that ended in instructions. Same figures, restated as findings: "7
+      accounts asked twice and booked nothing", "13 accounts that paid us last
+      period did not quote in these weeks". Also caught by looking: a company
+      name ending in a full stop collected a second one at the end of a
+      generated sentence, a slide titled "the year in four numbers" showed
+      three, and a one-line heading beside a two-line one left the three card
+      bodies on three different baselines. `test/regression.mjs` now fails if a
+      closing card heading ever starts with an imperative again.
 
 - [x] **Every bar in the product is a lit object** (2026-08-22). The extruded
       columns landed first; horizontal bars were still flat. The account list's

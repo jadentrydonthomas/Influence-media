@@ -3718,6 +3718,9 @@
       const cmpSigned = value => (value > 0 ? "+" : value < 0 ? "−" : "") + fineMoney(Math.abs(value));
       const cmpPoints = value => (value > 0 ? "+" : value < 0 ? "−" : "") + Math.abs(value).toFixed(1) + " pts";
       const cmpClip = (text, limit) => { const value = String(text || "").trim(); return value.length > limit ? value.slice(0, limit - 1) + "…" : value; };
+      // A company name that already ends in a full stop must not collect a
+      // second one when it lands at the end of a generated sentence.
+      const cmpEndClip = (text, limit) => cmpClip(text, limit).replace(/\.$/, "");
 
       // One row shape used by every ranked comparison on this screen: a label,
       // a bar that runs right for better and left for worse from a centre line,
@@ -9681,41 +9684,42 @@
         const chasingValue = chasing.reduce((sum, item) => sum + item.prior.wonValue, 0) / 1000000;
         const closingMoves = [];
         if (lead3 && Math.abs(lead3.amount) > 0.05) {
-          const head = lead3.key === "size" ? (lead3.amount < 0 ? "Ask why the work got smaller" : "Understand the bigger work")
-            : lead3.key === "rate" ? (lead3.amount < 0 ? "Win a bigger share of what we price" : "Hold the win rate")
-            : (lead3.amount < 0 ? "Get more work in front of us" : "Keep the volume up");
+          // A finding, not an order: the chapter says what moved the money, and
+          // what to do about it is the room's conversation, not the deck's.
+          const head = lead3.key === "size" ? (lead3.amount < 0 ? "The work got smaller" : "The work got bigger")
+            : lead3.key === "rate" ? (lead3.amount < 0 ? "We won a smaller share of it" : "We won a bigger share of it")
+            : (lead3.amount < 0 ? "We priced less work" : "We priced more work");
           closingMoves.push({ head: head,
             body: "The single largest reason returned value moved " + cmpSigned(moved) + " was " + lead3.label
               + ", worth " + cmpSigned(lead3.amount) + " on its own. " + lead3.measure.charAt(0).toUpperCase() + lead3.measure.slice(1)
               + " went from " + lead3.fmt(lead3.was) + " to " + lead3.fmt(lead3.now) + "." });
         }
         if (chasing.length) {
-          closingMoves.push({ head: "Ring the ones who used to pay",
-            body: opsNumber(chasing.length) + " account" + (chasing.length === 1 ? "" : "s") + " that booked "
-              + fineMoney(chasingValue) + " with us last period " + (chasing.length === 1 ? "has" : "have")
-              + " not quoted in these weeks"
-              + (chasing[0] ? "; the largest of them is " + cmpClip(chasing[0].name, 28) : "")
-              + ". They are a call list, not a statistic." });
+          closingMoves.push({ head: opsNumber(chasing.length) + " account" + (chasing.length === 1 ? "" : "s")
+              + " that paid us last period did not quote in these weeks",
+            body: "They booked " + fineMoney(chasingValue) + " with us last period"
+              + (chasing[0] ? "; the largest of them is " + cmpEndClip(chasing[0].name, 28) : "")
+              + ". Presence and payment are different questions, and this is the second one." });
         } else if (cmp.atRisk.length) {
-          closingMoves.push({ head: "Call the ones still slipping",
-            body: opsNumber(cmp.atRisk.length) + " account" + (cmp.atRisk.length === 1 ? " is" : "s are")
-              + " still asking but for at least 40% less than last period. They have not gone, which is what makes the call worth making now." });
+          closingMoves.push({ head: opsNumber(cmp.atRisk.length) + " account" + (cmp.atRisk.length === 1 ? " is" : "s are")
+              + " still asking for a lot less",
+            body: "Each is present in both periods with quoted value down at least 40%. They have not gone quiet; they have got smaller, which no churn list shows." });
         }
         if (deepMark && deepMark.current.share < deepMark.prior.share) {
-          closingMoves.push({ head: "Chase the middle of the book",
+          closingMoves.push({ head: "The book is answering slower at the same age",
             body: "At day " + deepMark.day + " — the deepest age both books can answer — " + pct(deepMark.current.share)
-              + " had booked this period against " + pct(deepMark.prior.share) + " last. The work is answering slower at the same age, "
-              + "so the quotes past that point are the ones needing a named status." });
+              + " had booked this period against " + pct(deepMark.prior.share) + " last. Both sides are read at equal age, "
+              + "so a younger book is never scored as a losing one." });
         }
         if (cmp.concentration.current.top5 > cmp.concentration.prior.top5 + 2) {
-          closingMoves.push({ head: "Spread the book", body: "The top five accounts now hold "
-            + pct(cmp.concentration.current.top5) + " of everything we priced, against " + pct(cmp.concentration.prior.top5)
-            + ". That is five phone calls the book cannot afford to lose." });
+          closingMoves.push({ head: "The book leans on fewer names than it did",
+            body: "The top five accounts now hold " + pct(cmp.concentration.current.top5) + " of everything we priced, against "
+              + pct(cmp.concentration.prior.top5) + " last period — a concentration no total on its own would show." });
         }
         if (cmp.retention.gainedCount) {
-          closingMoves.push({ head: "Convert the new names", body: opsNumber(cmp.retention.gainedCount)
-            + " accounts quoted with us for the first time this period, carrying " + fineMoney(cmp.retention.gainedValue)
-            + " of work. Nothing about them is habit yet, so the second quote matters more than the first." });
+          closingMoves.push({ head: opsNumber(cmp.retention.gainedCount) + " accounts quoted with us for the first time",
+            body: "They carry " + fineMoney(cmp.retention.gainedValue) + " of work between them. None of them appears anywhere in last period's book, "
+              + "so nothing about them is habit yet." });
         }
         const closingChapter = '<p class="lead">' + escape("Both periods ran through the same parser, the same lens and the same filters, "
             + "matched on the weeks they share. " + (cmp.ownOrders ? "Each is joined to its own order log." : "The prior period is joined to this period's order log.")
@@ -9749,7 +9753,7 @@
           { eyebrow: "The bridge", title: "How last year's book<br /><em>became this one.</em>", body: bridgeSlide, when: cmp.bridge.length > 2 },
           { eyebrow: "Accounts kept and lost", title: "Who came back, and<br /><em>who we should ring.</em>", body: keptSlide, when: cmp.retention.priorCount > 0 },
           { eyebrow: "Accounts won and slipping", title: "Who is new, and who<br /><em>is quietly going.</em>", body: accounts, when: cmp.retention.gainedCount > 0 || cmp.customers.grown.length > 0 || cmp.customers.shrunk.length > 0 },
-          { eyebrow: "Where the year leaves us", title: "The year in<br /><em>four numbers.</em>", body: closingChapter, dense: false, when: closingMoves.length > 0 }
+          { eyebrow: "Where the year leaves us", title: "Where the year<br /><em>landed.</em>", body: closingChapter, dense: false, when: closingMoves.length > 0 }
         ].filter(item => item.when === undefined || item.when);
         return chapter.map((item, index) =>
           deckSlide(startNumber + index, item.eyebrow, item.title, item.body, item.dense !== false, item.cls)).join("");
@@ -10325,11 +10329,11 @@
           + '.ledger-split .deck-chart{padding:12px 16px 0}'
           + '.ledger-split .deck-key{padding:0 16px 12px}'
           + '.closing-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}'
-          + '.closing-facts article{position:relative;padding:22px;border:1px solid var(--line);background:#fff}'
+          + '.closing-facts article{position:relative;display:flex;flex-direction:column;padding:22px;border:1px solid var(--line);background:#fff}'
           + '.closing-facts article:first-child{background:#0b1d12;border-color:#0b1d12;color:#effff2}'
           + '.closing-facts span{display:block;color:#93b7a1;font-family:Consolas,monospace;font-size:13px;font-weight:700}'
           + '.closing-facts article:first-child span{color:#4bea8c}'
-          + '.closing-facts strong{display:block;margin-top:12px;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:900;letter-spacing:-.02em;line-height:1.08}'
+          + '.closing-facts strong{display:block;flex:1 1 auto;margin-top:12px;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:900;letter-spacing:-.02em;line-height:1.08}'
           + '.closing-facts p{margin:11px 0 0;color:var(--muted);font-size:13.5px;line-height:1.55}'
           + '.closing-facts article:first-child p{color:rgba(239,255,242,.68)}'
           + '@media(max-width:900px){.closing-facts{grid-template-columns:1fr}}'
@@ -10910,29 +10914,28 @@
         // ---- Closing ------------------------------------------------------------
         const closingActions = [];
         if ((customerSignals.askedNeverBooked || []).length) {
-          closingActions.push({ head: "Qualify the repeat askers",
-            body: (customerSignals.askedNeverBooked || []).length + " accounts asked at least twice and booked nothing, carrying "
-              + money(customerSignals.askedNeverBookedValue) + " of priced work and " + neverBookedHours.toFixed(0)
-              + " engineering hours. Each needs a named owner and a yes or a no." });
+          const asked = (customerSignals.askedNeverBooked || []).length;
+          closingActions.push({ head: opsNumber(asked) + " account" + (asked === 1 ? "" : "s") + " asked twice and booked nothing",
+            body: "Between them they carry " + money(customerSignals.askedNeverBookedValue) + " of priced work and "
+              + neverBookedHours.toFixed(0) + " engineering hours, all of it quoted and none of it returned." });
         }
         if (oldest && oldest.count) {
-          closingActions.push({ head: "Answer the open book",
-            body: opsNumber(oldest.count) + " quotes carrying " + money(oldest.value) + " have waited more than sixty days with no linked order"
+          closingActions.push({ head: opsNumber(oldest.count) + " quotes have waited past sixty days",
+            body: "They carry " + money(oldest.value) + " with no linked order"
               + (halfMark ? ", against a book where half of everything that booked had done so by day " + halfMark.day : "")
-              + ". They need a current status, not a follow-up email." });
+              + ". Unconverted is not lost; it is work without a recorded outcome." });
         }
         if (!onTimeAvailable(data) || data.onTimeCoverage < 95) {
-          closingActions.push({ head: "Finish the release column",
-            body: "Release timing is scored on " + coverage + ". Filling it in turns delivery discipline into a measure that stands on its own, independent of whether the quote converted." });
+          closingActions.push({ head: "Release timing is scored on " + coverage,
+            body: "Where the release column is blank the row is excluded from both halves of the measure rather than counted as a miss, so the figure stands on the rows that carry a result." });
         } else if (line.produce.median !== null) {
-          closingActions.push({ head: "Hold the clock",
-            body: "Half of quotes are out inside " + dayText(line.produce.median) + " and " + timingText
-              + " met the promised date. That is the number to defend when volume rises." });
+          closingActions.push({ head: "Half of quotes are out inside " + dayText(line.produce.median),
+            body: timingText + " met the promised date across " + coverage + ". Speed and delivery are measured separately from whether the quote converted." });
         }
         if (closingActions.length < 3 && topBooked.length) {
-          closingActions.push({ head: "Protect the payers",
-            body: topBooked.length + " accounts returned " + money(topBookedValue) + " of the " + money(returnedAll)
-              + " that came back. Concentration that high is worth naming an owner for." });
+          closingActions.push({ head: opsNumber(topBooked.length) + " accounts returned " + money(topBookedValue),
+            body: "That is " + pct(percentage(topBookedValue, returnedAll)) + " of the " + money(returnedAll)
+              + " that came back in this cohort, concentrated in " + opsNumber(topBooked.length) + " names." });
         }
         const closing = '<p class="lead">' + escape("Everything in this deck comes from the weekly quote books and the order log, joined on the quote number and nothing else. "
             + "No figure was typed in, and every rate on every slide carries the count it was measured on.") + "</p>"
