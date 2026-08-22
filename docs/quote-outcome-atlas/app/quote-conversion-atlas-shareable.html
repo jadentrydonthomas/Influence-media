@@ -925,15 +925,15 @@
        much they asked for; the green sitting inside it is how much came back,
        so an account that asks a lot and books nothing reads as a bare bar. */
     .askbook { width: 132px; padding-right: 12px !important; }
-    .askbook-track { position: relative; height: 9px; border-radius: 5px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
-    .askbook-track i { position: absolute; top: 0; left: 0; height: 100%; border-radius: 5px; }
-    .askbook-track .ask { background: var(--steel); opacity: .55; }
-    .askbook-track .book { background: var(--green); }
+    .askbook-track { position: relative; height: 10px; border-radius: 5px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
+    .askbook-track i { position: absolute; top: 0; left: 0; height: 100%; border-radius: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,.45); }
+    .askbook-track .ask { background: linear-gradient(180deg, var(--then-bright), var(--then)); opacity: .8; }
+    .askbook-track .book { background: var(--fill-now); }
     .ops-table td.num.is-zero { color: var(--red-deep); }
     .cust-diag { display: grid; grid-template-columns: minmax(0,1fr) 150px 74px; grid-template-areas: "name track value" "note note note"; align-items: center; gap: 2px 10px; padding: 7px 0; border-top: 1px solid var(--line); }
     .cust-diag > span { grid-area: name; overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
     .cust-diag-track { grid-area: track; height: 10px; overflow: hidden; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); border-radius: 5px; }
-    .cust-diag-track i { display: block; height: 100%; background: var(--red); border-radius: 5px; }
+    .cust-diag-track i { display: block; height: 100%; background: var(--fill-warn); border-radius: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
     .cust-diag > b { grid-area: value; color: var(--red-deep); font-family: var(--mono); font-size: 12px; text-align: right; }
     .cust-diag > small { grid-area: note; color: var(--ink-faint); font-size: 10.5px; }
     .ops-week { padding: 0 17px 15px; }
@@ -1110,7 +1110,7 @@
     .jd-block small { display: block; margin-top: 8px; color: var(--ink-faint); font-size: 10.5px; line-height: 1.45; }
 
     /* The two account blocks read as opposites, so their bars do too. */
-    .cust-diag.is-good .cust-diag-track i { background: var(--green); }
+    .cust-diag.is-good .cust-diag-track i { background: var(--fill-now); }
     .cust-diag.is-good > b { color: var(--green-dark); }
     .account-value { display: block; text-align: right; }
     .account-value b { display: block; color: var(--green-dark); font-family: var(--mono); font-size: 13px; font-weight: 600; }

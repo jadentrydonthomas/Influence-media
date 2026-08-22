@@ -48,6 +48,13 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **Every bar in the product is a lit object** (2026-08-22). The extruded
+      columns landed first; horizontal bars were still flat. The account list's
+      asked-against-booked track, the who-pays bars and the who-never-books bars
+      now carry the same lit face and top highlight the deck's ledger rows do. A
+      later flat rule was overriding the lit one on the payer bars — found by
+      looking rather than by any assertion.
+
 - [x] **Review pass 2 — Timelines and Data mapping** (2026-08-22). Three things
       the first pass left. The open-book composition strip was an unlabelled
       slab of colour above a table of zeros; it now carries a heading, its total,
