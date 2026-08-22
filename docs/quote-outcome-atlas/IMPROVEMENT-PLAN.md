@@ -42,11 +42,18 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Open
 
-- [ ] **Review pass 4** — the deck's display type still runs larger and heavier
-      than the dashboard's panel headings. That is the last place the two
-      surfaces visibly diverge.
+- [ ] **Review pass 5** — keep walking the surfaces. The recurring failure is
+      a shape that carries a real finding and never names it; the second is a
+      figure that disagrees with another figure elsewhere in the product.
 
 ## Done
+
+- [x] **The two surfaces share one type scale** (2026-08-22). The deck's
+      headings were set heavier and tighter than the dashboard's, which was the
+      last place the surfaces visibly diverged. Panel headings move to the
+      deck's weight, size and negative tracking, and each eyebrow now carries a
+      short green rule beside it so a panel head reads as a titled section
+      rather than three stacked lines. Clean at all five widths in both themes.
 
 - [x] **Review pass 3 — the deck still gave orders** (2026-08-22). Renaming the
       class was not the fix. Both closing slides carried imperative headings
