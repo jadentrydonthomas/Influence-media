@@ -128,7 +128,12 @@
       radial-gradient(circle at calc(100% - 34px) calc(100% - 25px), transparent 119px, rgba(132,214,150,.04) 119px 157px, transparent 157px),
       radial-gradient(circle at calc(100% - 34px) calc(100% - 25px), transparent 157px, rgba(132,214,150,.018) 157px 195px, transparent 195px);
       background-repeat: no-repeat; }
-    .brand { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 151px; min-height: 42px; padding: 6px 8px; background: #fff; }
+    .brand { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 151px; min-height: 46px; padding: 8px 10px; background: #fff;
+      box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 18px 36px -22px rgba(0,0,0,.85), 0 2px 6px -3px rgba(0,0,0,.5);
+      transition: transform 320ms var(--ease-spring), box-shadow 320ms var(--ease-out); }
+    .brand::after { content: ""; position: absolute; right: 10px; bottom: -13px; left: 10px; height: 2px;
+      background: linear-gradient(90deg, var(--green-bright), rgba(0,189,87,0)); }
+    .brand:hover, .brand:focus-visible { transform: translateY(-2px); box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 26px 46px -22px rgba(0,0,0,.9), 0 3px 9px -3px rgba(0,0,0,.55); }
     .brand img { display: block; width: 135px; max-width: 100%; height: auto; }
     .rail-label { position: relative; z-index: 1; margin-top: 19px; color: rgba(235,248,237,.55); font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
     .rail-title { position: relative; z-index: 1; margin: 8px 0 0; max-width: 180px; color: #f7fff8; font-family: var(--display); font-size: 31px; letter-spacing: .02em; line-height: .88; text-transform: uppercase; }
@@ -1196,8 +1201,13 @@
     .cum-svg { display: block; width: 100%; height: auto; }
     .cum-svg .grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
     .cum-svg .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
-    .cum-svg .cum-gap { fill: var(--red); opacity: .13; }
-    .cum-svg .cum-quotes { fill: none; stroke: var(--steel); stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+    .cum-svg .cum-gap { fill: url(#cumGapFill); }
+    .cum-gap-a { stop-color: var(--red); stop-opacity: .22; }
+    .cum-gap-b { stop-color: var(--red); stop-opacity: .04; }
+    .cum-svg .cum-brace { stroke: var(--red-deep); stroke-width: 1.2; opacity: .7; }
+    .cum-svg .cum-brace-label { fill: var(--red-deep); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .cum-svg .cum-brace-sub { fill: var(--ink-faint); font-family: var(--mono); font-size: 10px; }
+    .cum-svg .cum-quotes { fill: none; stroke: var(--then); stroke-width: 2.2; vector-effect: non-scaling-stroke; }
     .cum-svg .cum-orders { fill: none; stroke: var(--green); stroke-width: 2.6; vector-effect: non-scaling-stroke; }
     .cum-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; color: var(--ink-muted); font-size: 11.5px; }
     .cum-legend span { display: flex; align-items: center; gap: 7px; }
@@ -5885,9 +5895,27 @@
         return '<svg class="cum-svg" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Cumulative quotes issued against orders booked over the loaded span">'
           + ticks.map(value => '<line x1="' + padLeft + '" x2="' + (width - padRight) + '" y1="' + y(value).toFixed(1) + '" y2="' + y(value).toFixed(1) + '" class="grid" />'
               + '<text x="' + (padLeft - 6) + '" y="' + (y(value) + 3.5).toFixed(1) + '" class="axis" text-anchor="end">' + value + "</text>").join("")
+          + '<defs><linearGradient id="cumGapFill" x1="0" y1="0" x2="0" y2="1">'
+          + '<stop offset="0%" class="cum-gap-a" /><stop offset="100%" class="cum-gap-b" /></linearGradient></defs>'
           + '<path d="' + band + '" class="cum-gap" />'
           + '<path d="' + linePath("quotes") + '" class="cum-quotes" />'
           + '<path d="' + linePath("orders") + '" class="cum-orders" />'
+          // The vertical distance between the two lines at the last date IS the
+          // open book. It was drawn as a flat wash of colour and never named,
+          // so the chart's whole finding was the one thing it did not say.
+          + (function () {
+              const last = series[series.length - 1];
+              const open = Math.max(0, last.quotes - last.orders);
+              if (!open) return "";
+              const atX = x(last.date), topY = y(last.quotes), lowY = y(last.orders);
+              if (lowY - topY < 16) return "";
+              const capX = atX - 9;
+              return '<line class="cum-brace" x1="' + capX.toFixed(1) + '" x2="' + capX.toFixed(1) + '" y1="' + topY.toFixed(1) + '" y2="' + lowY.toFixed(1) + '" />'
+                + '<line class="cum-brace" x1="' + (capX - 4).toFixed(1) + '" x2="' + (capX + 4).toFixed(1) + '" y1="' + topY.toFixed(1) + '" y2="' + topY.toFixed(1) + '" />'
+                + '<line class="cum-brace" x1="' + (capX - 4).toFixed(1) + '" x2="' + (capX + 4).toFixed(1) + '" y1="' + lowY.toFixed(1) + '" y2="' + lowY.toFixed(1) + '" />'
+                + '<text class="cum-brace-label" x="' + (capX - 8).toFixed(1) + '" y="' + ((topY + lowY) / 2 - 3).toFixed(1) + '" text-anchor="end">' + opsNumber(open) + " open</text>"
+                + '<text class="cum-brace-sub" x="' + (capX - 8).toFixed(1) + '" y="' + ((topY + lowY) / 2 + 11).toFixed(1) + '" text-anchor="end">no linked order</text>';
+            }())
           + series.map((point, index) => {
               const last = index === series.length - 1;
               if (!last && (index % every !== 0 || crowdsEnd(index))) return "";
@@ -9995,7 +10023,8 @@
           + '.deck-eyebrow{display:inline-flex;align-items:center;gap:11px}'
           + '.deck-mark{display:block;width:88px;height:22px;background-image:url(' + deckMarkSource() + ');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#fff;padding:5px 7px;box-shadow:0 2px 10px rgba(6,39,18,.12),0 0 0 1px rgba(6,39,18,.06)}'
           + '.deck-mark.is-large{width:150px;height:36px;padding:0;background-color:transparent;box-shadow:none}'
-          + '.hero-mark{display:inline-flex;align-items:center;gap:15px;margin-bottom:26px;padding:11px 16px;background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 16px 34px -20px rgba(6,39,18,.55),0 3px 8px -6px rgba(6,39,18,.35)}'
+          + '.hero-mark{position:relative;display:inline-flex;align-items:center;gap:17px;margin-bottom:30px;padding:14px 20px;background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 22px 44px -22px rgba(6,39,18,.6),0 4px 10px -6px rgba(6,39,18,.38)}'
+          + '.hero-mark:after{content:"";position:absolute;left:20px;right:20px;bottom:-3px;height:3px;background:linear-gradient(90deg,var(--green),rgba(0,189,87,0))}'
           + '.hero-mark span{color:#5d7266;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:800;letter-spacing:.13em;line-height:1.35;text-transform:uppercase;border-left:1px solid var(--line);padding-left:15px}'
           /* ---- depth ----------------------------------------------------------
              One light source, top-left. The top face of a column is lit, the

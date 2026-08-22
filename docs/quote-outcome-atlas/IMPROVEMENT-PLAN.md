@@ -42,9 +42,22 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Open
 
-- [ ] **Logo placement** — the mark should be placed, not parked.
+- [ ] **Review pass 2** — walk every screen and every slide again with fresh
+      eyes and fix whatever the first pass left. Charts that state a total but
+      never name the finding inside them are the recurring failure.
 
 ## Done
+
+- [x] **The mark is placed, not parked** (2026-08-22). The rail mark sits on a
+      lifted plate with a green hairline running out from under it, and lifts
+      again on hover because it is the home control. The deck cover's mark gets
+      the same rule beneath it, so cover, header and outro are one treatment at
+      three sizes.
+- [x] **The calendar chart names its own finding** (2026-08-22). The space
+      between quotes issued and orders booked *is* the open book, and it was
+      drawn as a flat wash of pink that never said so. It now fades downward and
+      carries a brace at the last date reading "52 open · no linked order" —
+      the chart's whole point, which was the one thing it did not state.
 
 - [x] **Every deck chart that can carry depth now does** (2026-08-22). The
       bridge waterfall and the who-pays / who-returns-least ledger were the two
