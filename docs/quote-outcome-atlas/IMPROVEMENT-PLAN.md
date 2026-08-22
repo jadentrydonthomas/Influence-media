@@ -48,6 +48,17 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **Review pass 2 — Timelines and Data mapping** (2026-08-22). Three things
+      the first pass left. The open-book composition strip was an unlabelled
+      slab of colour above a table of zeros; it now carries a heading, its total,
+      and a label inside any segment wide enough to hold one. The calendar
+      chart's legend swatch still said grey while its line had moved to the
+      period hue. And the primary Run action was a flat green rectangle
+      stretched to the height of the panel beside it — the loudest thing on the
+      screen and the least considered. It now sizes to itself and carries the
+      product's lit face, elevation and press. An empty duplicate of the console
+      container was also rendering a gap above it.
+
 - [x] **The mark is placed, not parked** (2026-08-22). The rail mark sits on a
       lifted plate with a green hairline running out from under it, and lifts
       again on hover because it is the home control. The deck cover's mark gets

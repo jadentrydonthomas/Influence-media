@@ -994,6 +994,12 @@
     .turn-band i { display: block; min-width: 3px; }
     .is-green { background: var(--green); } .is-green-soft { background: var(--green-dark); }
     .is-steel { background: var(--steel); } .is-copper { background: var(--red); }
+    /* The composition strip says what it is and, where a band is wide enough to
+       hold it, which band each segment is. */
+    .age-strip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 7px; }
+    .age-strip-head span { color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .age-strip-head b { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+    .turn-band i span { display: block; padding: 0 9px; overflow: hidden; color: #ffffff; font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; line-height: 26px; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
     .turn-legend { display: grid; gap: 5px; margin-top: 12px; }
     .turn-legend span { display: flex; align-items: center; gap: 7px; color: var(--ink-muted); font-size: 11.5px; }
     .turn-legend b { width: 9px; height: 9px; flex: none; border-radius: 2px; }
@@ -1213,6 +1219,7 @@
     .cum-legend span { display: flex; align-items: center; gap: 7px; }
     .cum-legend b { width: 12px; height: 4px; border-radius: 2px; }
     .cum-legend b.is-gap { height: 9px; background: var(--red); opacity: .3; }
+    .cum-legend b.is-then { background: var(--then); }
     .cap-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; padding: 13px; background: var(--surface-soft); border-left: 3px solid var(--steel); }
     .cap-hero.is-good { border-left-color: var(--green); }
     .cap-hero.is-bad { border-left-color: var(--red); }
@@ -1607,13 +1614,19 @@
     .intake-divider { position: relative; display: grid; place-items: center; }
     .intake-divider::before { content: ""; width: 1px; height: calc(100% - 32px); background: rgba(210,242,217,.2); }
     .intake-divider span { position: absolute; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid rgba(210,242,217,.32); border-radius: 50%; color: #e5f6e8; background: #102419; font-family: var(--mono); font-size: 12px; }
-    .run-console { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) minmax(170px,.62fr); align-items: stretch; gap: 12px; margin-top: 15px; }
-    .run-dashboard { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 59px; padding: 12px 15px; border: 1px solid var(--green-bright); color: #062211; background: var(--green-bright); text-align: left; transition: transform 180ms var(--ease), background 180ms var(--ease), color 180ms var(--ease), border-color 180ms var(--ease); }
-    .run-dashboard span { font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: .08em; line-height: .9; text-transform: uppercase; }
-    .run-dashboard small { max-width: 170px; font-size: 10px; line-height: 1.28; text-align: right; }
-    .run-dashboard:not(:disabled):hover { border-color: #d8ffe2; background: #d8ffe2; transform: translateY(-2px); }
-    .run-dashboard:disabled { border-color: rgba(225,247,229,.17); color: rgba(238,248,240,.38); background: rgba(255,255,255,.055); cursor: not-allowed; }
-    .run-dashboard.is-running { border-color: #d8ffe2; color: #e3fae8; background: #15552d; cursor: progress; }
+    .run-console { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) minmax(170px,.62fr); align-items: start; gap: 12px; margin-top: 15px; }
+    .run-dashboard { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 66px; padding: 14px 18px; border: 0; color: #04240f;
+      background: linear-gradient(160deg, #6bffab 0%, #16d76e 42%, #00a851 100%); text-align: left;
+      box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 20px 38px -18px rgba(0,120,58,.85), 0 3px 9px -4px rgba(0,60,30,.6);
+      transition: transform 220ms var(--ease-spring), box-shadow 220ms var(--ease-out), filter 220ms var(--ease-out); }
+    .run-dashboard::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, rgba(255,255,255,.42), rgba(255,255,255,0) 42%); pointer-events: none; }
+    .run-dashboard span { position: relative; z-index: 1; font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: .08em; line-height: .9; text-transform: uppercase; }
+    .run-dashboard small { position: relative; z-index: 1; max-width: 190px; font-size: 10.5px; line-height: 1.3; text-align: right; }
+    .run-dashboard:not(:disabled):hover { transform: translateY(-2px); filter: saturate(1.08); box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 28px 48px -18px rgba(0,120,58,.95), 0 4px 12px -4px rgba(0,60,30,.65); }
+    .run-dashboard:not(:disabled):active { transform: translateY(0); box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 10px 20px -12px rgba(0,120,58,.8); }
+    .run-dashboard:disabled { color: rgba(238,248,240,.38); background: rgba(255,255,255,.055); box-shadow: inset 0 0 0 1px rgba(225,247,229,.17); cursor: not-allowed; }
+    .run-dashboard:disabled::after { display: none; }
+    .run-dashboard.is-running { color: #e3fae8; background: linear-gradient(160deg, #1d7a45, #0e4425); box-shadow: inset 0 0 0 1px #4bea8c; cursor: progress; }
     .run-status { display: flex; flex-direction: column; justify-content: center; padding: 10px 12px; border: 1px solid rgba(225,247,229,.15); background: rgba(255,255,255,.03); }
     .run-status span { color: #bde8c6; font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .run-status strong { margin-top: 5px; color: rgba(238,248,240,.68); font-size: 10px; font-weight: 500; line-height: 1.35; }
@@ -2205,7 +2218,6 @@
               </article>
             </div>
 
-            <div class="run-console">            </div>
             <div class="run-console">
               <button class="run-dashboard" id="runDashboard" type="button" disabled><span id="runButtonLabel">Run dashboard</span><small id="runButtonHelp">Join quote and order records, then refresh every visible metric.</small></button>
               <div class="run-status" id="runStatus" aria-live="polite"><span id="runStatusTitle">Source set incomplete</span><strong id="runStatusCopy">Add at least one quote-week file and one or more order-log exports to enable the run.</strong></div>
@@ -5720,8 +5732,11 @@
         // ---- 03 The open book --------------------------------------------------
         const ageMax = Math.max(1, ...line.ageing.map(band => band.count));
         $("#openAgeing").innerHTML =
-          '<div class="turn-band" role="img" aria-label="Ageing of ' + line.openCount + ' quotes with no linked order">'
-          + line.ageing.map(band => band.count ? '<i class="is-' + band.tone + '" style="flex:' + band.count + '" title="' + escape(band.label) + ': ' + band.count + '"></i>' : "").join("")
+          '<div class="age-strip-head"><span>The whole open book, by age</span><b>'
+          + escape(opsNumber(line.openCount) + " quote" + (line.openCount === 1 ? "" : "s") + " · " + money(line.openValue)) + "</b></div>"
+          + '<div class="turn-band" role="img" aria-label="Ageing of ' + line.openCount + ' quotes with no linked order">'
+          + line.ageing.map(band => band.count ? '<i class="is-' + band.tone + '" style="flex:' + band.count + '" title="' + escape(band.label) + ': ' + band.count + '"><span>'
+              + escape(band.share >= 12 ? band.label + " · " + pct(band.share) : "") + "</span></i>" : "").join("")
           + "</div>"
           + line.ageing.map(band => '<div class="age-row"><span><b class="is-' + band.tone + '"></b>' + escape(band.label) + "</span>"
               + '<div class="age-track"><i class="is-' + band.tone + '" style="width:' + (band.count / ageMax * 100).toFixed(1) + '%"></i></div>'
@@ -5925,7 +5940,7 @@
               return '<text x="' + x(point.date).toFixed(1) + '" y="' + (height - 8) + '" class="axis" text-anchor="' + anchor + '">' + escape(shortDate(point.date)) + "</text>";
             }).join("")
           + "</svg>"
-          + '<div class="cum-legend"><span><b class="is-steel"></b>Quotes issued</span><span><b class="is-green"></b>Orders booked</span><span><b class="is-gap"></b>Open, no linked order</span></div>';
+          + '<div class="cum-legend"><span><b class="is-then"></b>Quotes issued</span><span><b class="is-green"></b>Orders booked</span><span><b class="is-gap"></b>Open, no linked order</span></div>';
       }
 
       // ---- Customers ---------------------------------------------------------
