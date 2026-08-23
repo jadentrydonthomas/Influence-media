@@ -48,6 +48,28 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The whole clock stopped disagreeing with its own parts** (2026-08-23).
+      The customer's segment was drawn as whatever was left of the 43-day
+      whole-clock median and labelled 35 — its own median on a different set of
+      quotes. Medians on different denominators do not add; the bar is scaled on
+      the two parts, the whole is stated above them, and the slide says so.
+
+- [x] **Every bar carries the measure its own figures are in** (2026-08-23).
+      The Customers account bar was drawn on quote counts beside money figures;
+      two value bars were floored at 5% and 12%. Both fixed and asserted.
+
+- [x] **A bucket stopped winning a ranking of people** (2026-08-23). Seventeen
+      of sixty-nine quotes have no engineer code and were ranked first. They sit
+      at the end of every ordering now, marked, still counted. The same screen's
+      list, chart and sheet were in three different orders; one ordering
+      function serves them, and the two that are deliberately different say so.
+
+- [x] **One prior-period hue and one minus across both surfaces** (2026-08-23).
+      The deck drew last period in the neutral grey-blue that means "no change";
+      two legends were drawn in colours their charts do not contain; signed
+      percentages used a hyphen while everything else used a true minus.
+
+
 - [x] **The export reaches a real save surface** (2026-08-23). The deck button
       built a blob and clicked an anchor. A browser opening the file from disk
       honours that, which is the delivery path, so it always looked fine; a

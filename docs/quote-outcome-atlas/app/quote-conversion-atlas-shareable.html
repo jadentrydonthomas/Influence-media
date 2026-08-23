@@ -9095,6 +9095,15 @@
         const columns = groups.map((group, index) => {
           const centre = originX + step * index + step / 2;
           const left = centre - barW - gap / 2;
+          const empty = !(Number(group.a) > 0) && !(Number(group.b) > 0);
+          if (empty) {
+            return '<g class="iso-col" style="--deck-bar-delay:' + (index * 60) + 'ms">'
+              + '<text class="deck-col-value is-zero" x="' + centre.toFixed(1) + '" y="' + (baseY - 8) + '" text-anchor="middle">'
+              + escape(config.emptyPair || "nothing either period") + "</text>"
+              + '<text class="deck-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
+              + (group.note ? '<text class="deck-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 33) + '" text-anchor="middle">' + escape(group.note) + "</text>" : "")
+              + "</g>";
+          }
           return '<g class="iso-col" style="--deck-bar-delay:' + (index * 60) + 'ms">'
             + column(left, Number(group.a) || 0, config.toneA || "var(--then)", group.labelA)
             + column(left + barW + gap, Number(group.b) || 0, (Number(group.b) || 0) > 0 ? (config.toneB || "var(--green)") : "var(--copper)", group.labelB)
