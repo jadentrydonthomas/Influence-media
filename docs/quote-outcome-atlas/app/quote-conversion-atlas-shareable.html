@@ -8915,7 +8915,7 @@
           // chart says "a little" when the data says "none".
           const rowValue = Number(row.value) || 0;
           const barWidth = rowValue > 0 ? Math.max(2, plot * rowValue / max) : 0;
-          const tone = row.tone === "copper" ? "var(--copper)" : row.tone === "deep" ? "var(--green-deep)" : "var(--green)";
+          const tone = row.tone === "copper" ? "var(--copper)" : row.tone === "neutral" ? "var(--steel)" : row.tone === "deep" ? "var(--green-deep)" : "var(--green)";
           return '<g class="deck-bar-row" style="--deck-bar-delay:' + (index * 90) + 'ms">'
             + '<text class="deck-bar-label" x="0" y="' + (y + 17) + '">' + escape(clip(row.label)) + "<title>" + escape(row.label) + "</title></text>"
             + '<rect class="deck-bar-track" x="' + labelWidth + '" y="' + (y + 6) + '" width="' + plot + '" height="14" rx="7"></rect>'
@@ -9115,7 +9115,7 @@
           const h = value > 0 ? Math.max(3, plotH * value / max) : 0;
           const x = padLeft + step * index + (step - barW) / 2;
           const y = baseY - h;
-          const tone = item.tone === "copper" ? "var(--copper)" : item.tone === "deep" ? "var(--green-deep)" : "var(--green)";
+          const tone = item.tone === "copper" ? "var(--copper)" : item.tone === "neutral" ? "var(--steel)" : item.tone === "deep" ? "var(--green-deep)" : "var(--green)";
           const label = index % every === 0 || index === items.length - 1;
           if (!h) {
             return config.labels === false ? "" : '<g class="iso-col"><text class="deck-col-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + depth + 17) + '" text-anchor="middle">' + escape(item.label) + "</text></g>";
@@ -9554,7 +9554,10 @@
             }).join("")
           + "</svg>"
           + '<div class="deck-key"><span><b class="k-ask"></b>' + escape(config.keyA || "Quoted") + "</span>"
-          + '<span><b class="k-book"></b>' + escape(config.keyB || "Came back") + "</span></div>";
+          + (accounts.some(account => (account.wonValue || 0) > 0)
+              ? '<span><b class="k-book"></b>' + escape(config.keyB || "Came back") + "</span>"
+              : '<span class="is-none">' + escape("nothing came back from any of these") + "</span>")
+          + "</div>";
       }
 
       // ---- Chapter two: the same weeks, a year apart -------------------------
@@ -10148,6 +10151,7 @@
           + '.deck-key span{display:inline-flex;align-items:center;gap:7px}'
           + '.deck-key b{width:13px;height:6px;border-radius:3px;display:block}'
           + '.deck-key .k-ask{background:var(--steel);opacity:.6}.deck-key .k-book{background:var(--green)}'
+          + '.deck-key .is-none{color:#a06a4e;font-style:italic}'
           /* lifecycle + ageing */
           + '.cycle-grid{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(300px,.68fr);gap:20px;align-items:stretch}'
           + '.cycle-main,.cycle-side{min-width:0;padding:16px 18px;border:1px solid var(--line);background:#fff;box-shadow:0 10px 26px rgba(6,39,18,.05)}'
@@ -10841,7 +10845,7 @@
         const turnBands = [
           { label: "1 day", value: turnDeck.oneDay, tone: "green" },
           { label: "2–3 days", value: turnDeck.threeDay, tone: "deep" },
-          { label: "4–5 days", value: turnDeck.fourFive, tone: "deep" },
+          { label: "4–5 days", value: turnDeck.fourFive, tone: "neutral" },
           { label: "6+ days", value: turnDeck.sixPlus, tone: "copper" }
         ];
         const timing = '<div class="weekly-summary">'
@@ -10856,7 +10860,7 @@
               ? turnDeck.excluded + (turnDeck.excluded === 1 ? ' quote is' : ' quotes are') + ' excluded at or beyond ' + TURN_LIMIT
                 + ' days, which reads as a stale date rather than a slow quote.'
               : 'No quote sat at or beyond ' + TURN_LIMIT + ' days, so nothing is excluded as a stale date.')
-          + ' This measure does not care whether the quote converted.</p>'
+          + ' Green is inside the three-day mark the strip above reports, grey is four or five days, copper is six or more. This measure does not care whether the quote converted.</p>'
           + '</div><div class="speed-side">'
           + '<div class="timing-disc" style="--deck-timing:' + (onTimeAvailable(data) ? data.onTime : 0) + '%"><strong>' + timingText + '</strong><span>met the<br />promised date</span></div>'
           + '<div class="coverage-band"><b>' + escape(coverage) + '</b><span>Delivered on the due date counts as met; the workbook writes that result as N/A. Only rows with no release result at all are excluded from both halves.</span></div>'
@@ -10913,14 +10917,16 @@
               keyA: "Quoted", keyB: "Came back", empty: "No account has booked a job in this cohort." })
           + "</section>"
           + '<section><div class="ledger-split-head is-bad"><span>Who asks the most and returns the least</span><b>'
-          + money(costValue) + " priced and not returned · " + costHours.toFixed(0) + " engineering hours</b></div>"
+          + money(costValue) + " of the " + money(costAll) + " never returned"
+          + (costAll ? " · " + pct(percentage(costValue, costAll)) + " of everything left on the table" : "")
+          + " · " + countOf(Math.round(costHours), "engineering hour") + "</b></div>"
           + deckReturnLedger(ledgerCost, { label: "Quoted value that did not return, by account",
               keyA: "Quoted", keyB: "Came back", empty: "Every repeat account here has booked at least one job." })
           + "</section></div>"
           + '<div class="deck-callout"><strong>Same measure, both ends:</strong> '
           + escape("the accounts above pay us; the accounts below asked at least twice, got less than "
             + LEDGER_COST_CAPTURE + "% of it back, and left " + money(costValue) + " of priced work on the table at "
-            + costHours.toFixed(0) + " engineering hours. No account can appear in both lists — a payer is not a cost. "
+            + countOf(Math.round(costHours), "engineering hour") + ". No account can appear in both lists — a payer is not a cost. "
             + "This is a follow-up queue and a qualification question, not a loss list.") + "</div>";
 
         // ---- 07 How long it takes to come back ---------------------------------
@@ -11131,7 +11137,7 @@
           { eyebrow: "Quote outcome overview", title: "One quote book.<br /><em>Two visible outcomes.</em>", body: outcomes, dense: false },
           { eyebrow: "Weekly performance pulse", title: "Volume above.<br /><em>Conversion below.</em>", body: weekly, when: weekCount > 1 },
           { eyebrow: "Value band analysis", title: "Not all quoted work<br /><em>behaves the same.</em>", body: valueSlide, when: bands.length > 0 },
-          { eyebrow: "Speed · our half of the clock", title: "How fast we answer,<br /><em>and whether we hit the date.</em>", body: timing },
+          { eyebrow: "Speed · our part of the clock", title: "How fast we answer,<br /><em>and whether we hit the date.</em>", body: timing },
           { eyebrow: "Speed · the whole clock", title: "How long the whole thing<br /><em>actually takes.</em>", body: speed },
           { eyebrow: "Customer demand", title: "Who asks, and who<br /><em>actually books.</em>", body: operations, when: (customerSignals.accounts || []).length > 0 },
           { eyebrow: "The work that came back", title: "Our best booked work,<br /><em>and who delivered it.</em>", body: agenda },
