@@ -554,11 +554,14 @@
     .cmp-bridge .grid, .cmp-columns .grid { stroke: var(--line); stroke-width: 1; }
     .cmp-bridge .axis, .cmp-columns .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 11px; }
     .bridge-bar.is-total { fill: var(--green-dark); }
+    .bridge-bar.is-open { fill: var(--then); }
+    .bridge-top.is-open { fill: var(--then-bright); } .bridge-side.is-open { fill: var(--then-deep); }
     .bridge-bar.is-up { fill: var(--green); }
     .bridge-bar.is-down { fill: var(--red); }
     .bridge-link { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
     .bridge-value { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
     .bridge-value.is-total { fill: var(--green-dark); }
+    .bridge-value.is-open { fill: var(--then-deep); }
     .bridge-value.is-up { fill: var(--green-dark); }
     .bridge-value.is-down { fill: var(--red-deep); }
     .bridge-label { fill: var(--ink); font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
@@ -834,8 +837,8 @@
     .roster-load { display: grid; gap: 4px; padding: 14px 16px 4px; }
     .roster-bar { display: flex; align-items: center; height: 17px; min-width: 26px; padding-right: 6px; justify-content: flex-end; }
     .roster-bar i { font-family: var(--mono); font-size: 11.5px; font-style: normal; font-weight: 700; }
-    .roster-bar.is-then { background: var(--steel-soft); box-shadow: inset 0 0 0 1px var(--steel); }
-    .roster-bar.is-then i { color: var(--steel); }
+    .roster-bar.is-then { background: var(--then-soft); box-shadow: inset 0 0 0 1px var(--then); }
+    .roster-bar.is-then i { color: var(--then); }
     .roster-bar.is-now { background: var(--green); }
     .roster-bar.is-now i { color: #ffffff; }
     .roster-load-note { margin: 4px 16px 12px; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
@@ -856,7 +859,7 @@
     .brief-state.is-new { color: var(--amber); }
     .brief-bars { grid-area: bars; display: grid; gap: 2px; }
     .brief-bars u { display: block; height: 6px; min-width: 0; text-decoration: none; }
-    .brief-bars u.is-then { background: var(--steel-soft); box-shadow: inset 0 0 0 1px var(--steel); }
+    .brief-bars u.is-then { background: var(--then-soft); box-shadow: inset 0 0 0 1px var(--then); }
     .brief-bars u.is-now { background: var(--green); }
     .brief-row em { grid-area: value; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
     .brief-detail { border: 1px solid var(--line); background: var(--surface); }
@@ -1342,11 +1345,13 @@
     .donut-layout { display: grid; grid-template-columns: 146px minmax(0,1fr); align-items: center; gap: 17px; min-height: 198px; }
     .donut { position: relative; display: grid; width: 142px; height: 142px; place-items: center; border-radius: 50%; background: conic-gradient(var(--green) calc(var(--donut-value) * 1%), var(--red) 0); }
     .donut::after { content: ""; position: absolute; inset: 19px; border-radius: 50%; background: var(--surface); }
-    .donut-content { position: relative; z-index: 1; text-align: center; }
+    .donut-content { position: relative; z-index: 1; width: 88px; text-align: center; }
     .donut-content strong { display: block; color: var(--ink); font-family: var(--mono); font-size: 25px; font-weight: 500; letter-spacing: -.08em; }
-    .donut-content span { display: block; margin-top: 4px; color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .donut-content span { display: block; margin-top: 4px; color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .08em; line-height: 1.25; text-transform: uppercase; }
     .outcome-key { display: grid; gap: 14px; }
     .outcome-key div { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; align-items: center; gap: 8px; }
+    .outcome-key .key-total { margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .outcome-key .key-total span { color: var(--ink); font-weight: 700; }
     .outcome-key i { width: 10px; height: 10px; background: var(--key); }
     .outcome-key span { color: var(--ink-muted); font-size: 11px; }
     .outcome-key b { color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 500; }
@@ -1357,7 +1362,7 @@
     .waterfall-row span { color: var(--ink-muted); font-size: 11px; }
     .waterfall-row b { color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 500; }
     .waterfall-track { height: 22px; padding: 4px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
-    .waterfall-track i { display: block; width: var(--waterfall); height: 100%; background: var(--waterfall-color); transform-origin: left; animation: grow-width 600ms var(--ease) both; }
+    .waterfall-track i { display: block; width: var(--waterfall); min-width: 2px; height: 100%; background: var(--waterfall-color); transform-origin: left; animation: grow-width 600ms var(--ease) both; }
     @keyframes grow-width { from { transform: scaleX(.04); } to { transform: scaleX(1); } }
     .timeliness { display: grid; gap: 13px; padding-top: 5px; }
     .timeliness-row { display: grid; grid-template-columns: 54px minmax(0,1fr) 42px; align-items: center; gap: 9px; }
@@ -1918,9 +1923,9 @@
 
         <div class="chart-grid">
           <section class="panel" aria-labelledby="weeklyTitle">
-            <div class="panel-head"><h2 id="weeklyTitle">Weekly performance pulse</h2><p>Top lane: quotes issued. Bottom lane: confirmed conversion. The shared weeks make volume and performance easy to compare without mixing scales.</p></div>
+            <div class="panel-head"><h2 id="weeklyTitle">Weekly performance pulse</h2><p id="weeklyDescription">Top lane: quotes issued. Bottom lane: confirmed conversion. The shared weeks make volume and performance easy to compare without mixing scales.</p></div>
             <div class="weekly-wrap"><div class="weekly-reading" id="weeklyReading"></div><div class="weekly-chart" id="weeklyChart"></div><div class="weekly-insights" id="weeklyInsights"></div></div>
-            <div class="chart-legend"><span style="--legend:var(--steel)">Quote issue volume</span><span style="--legend:var(--green)">Confirmed conversion</span><span style="--legend:var(--amber)">10% reference</span></div>
+            <div class="chart-legend"><span style="--legend:var(--then)">Quote issue volume</span><span style="--legend:var(--green)">Confirmed conversion</span><span style="--legend:var(--amber)">10% reference</span></div>
           </section>
 
           <section class="panel analysis-panel" aria-labelledby="analysisTitle">
@@ -3358,7 +3363,7 @@
         const maxQuotes = Math.max(20, Math.ceil(Math.max(...data.weekly.map(item => item.quotes)) / 20) * 20);
         const maxRate = Math.max(15, Math.ceil(Math.max(...data.weekly.map(item => item.rate)) / 5) * 5);
         const xStep = plotWidth / data.weekly.length;
-        const barWidth = Math.min(35, xStep * .58);
+        const barWidth = Math.min(data.weekly.length <= 4 ? 62 : 35, xStep * .58);
         const chart = [];
         const dots = [];
         const labels = [];
@@ -3369,6 +3374,15 @@
         // The extrusion offset for this chart: enough to read as depth, small
         // enough that a narrow bar is still mostly its own front face.
         const weeklyDepth = Math.min(9, Math.max(4, barWidth * 0.3));
+        // One figure sitting inside its column while its neighbours sit above
+        // theirs reads as a difference in kind rather than in height, so the
+        // row decides together: inside only when the tallest column has run
+        // out of headroom and every column is deep enough to hold a figure.
+        const columnTop = quotes => volumeBottom - volumeHeight * quotes / maxQuotes;
+        const tallest = Math.max(...data.weekly.map(item => item.quotes));
+        const shortest = Math.min(...data.weekly.map(item => item.quotes));
+        const labelsInside = columnTop(tallest) - weeklyDepth - 6 < volumeTop + 10
+          && volumeHeight * shortest / maxQuotes >= 22;
         chart.push('<polygon class="quote-floor" points="' + [
             left + "," + volumeBottom, (left + weeklyDepth) + "," + (volumeBottom - weeklyDepth),
             (width - right) + "," + (volumeBottom - weeklyDepth), (width - right - weeklyDepth) + "," + volumeBottom].join(" ") + '"></polygon>');
@@ -3407,9 +3421,13 @@
               + '<rect class="quote-bar" x="' + x.toFixed(1) + '" y="' + barY.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '"></rect>'
               + "</g>");
           }
-          const wanted = barY - weeklyDepth - 5;
-          const labelY = Math.max(volumeTop + 12, wanted);
-          chart.push('<text class="quote-value' + (labelY > wanted + 0.5 ? " is-inside" : "") + '" x="' + (pointX + weeklyDepth / 2).toFixed(1)
+          // Above the column when there is room for it, otherwise inside the
+          // front face — never straddling the lit top, where it reads as both.
+          // A column that would push its figure off the top of the lane keeps
+          // it inside even when the rest of the row sits above.
+          const inside = labelsInside || barY - weeklyDepth - 6 < volumeTop + 4;
+          const labelY = inside ? Math.min(barY + 15, volumeBottom - 5) : barY - weeklyDepth - 6;
+          chart.push('<text class="quote-value' + (inside ? " is-inside" : "") + '" x="' + (inside ? pointX : pointX + weeklyDepth / 2).toFixed(1)
             + '" y="' + labelY.toFixed(1) + '" text-anchor="middle">' + item.quotes + '</text>');
           labels.push('<text class="week-label" x="' + pointX.toFixed(1) + '" y="316" text-anchor="middle">' + item.week + '</text>');
           pointData.push({ x: pointX, y: pointY });
@@ -3420,10 +3438,25 @@
         $("#weeklyChart").innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Weekly quotes issued and confirmed conversion"><title>Weekly performance pulse</title><desc>Top lane shows quote issue volume. Bottom lane shows confirmed conversion rate with a ten percent reference.</desc>' + chart.join("") + '<path class="conversion-area" d="' + area + '"></path><polyline class="rate-line" points="' + points.join(" ") + '"></polyline>' + dots.join("") + labels.join("") + '</svg>';
         const latest = data.weekly[data.weekly.length - 1];
         const peak = data.weekly.reduce((best, item) => item.quotes > best.quotes ? item : best, data.weekly[0]);
-        const delta = latest.rate - data.conversion;
-        const deltaLabel = Math.abs(delta).toFixed(1) + ' points ' + (delta >= 0 ? 'above' : 'below') + ' the selected-book average';
+        const single = data.weekly.length < 2;
+        setText("#weeklyDescription", single
+          ? "Top lane: quotes issued. Bottom lane: confirmed conversion. One week is loaded, so this is a reading of that week rather than a comparison between weeks."
+          : "Top lane: quotes issued. Bottom lane: confirmed conversion. The shared weeks make volume and performance easy to compare without mixing scales.");
         const latestOnTime = latest.onTimeScored === false ? "—" : latest.onTime + "%";
         const timelinessReading = latest.onTimeScored === false ? "No sent-date and requested-due-date pairs were available to score release timing." : latest.quotes + ' quotes were issued at ' + latestOnTime + ' on-time release, so the latest result can be read alongside both workload and delivery discipline.';
+        // With one week loaded there is no peak, no latest and no average to be
+        // above: the week is the whole book. Say what it holds instead of
+        // reporting it as 0.0 points from itself.
+        if (single) {
+          $("#weeklyReading").innerHTML = '<div><span>Quotes issued</span><strong>' + latest.week + ' / ' + latest.quotes + '</strong><small>the only loaded week</small></div>'
+            + '<div><span>Confirmed conversion</span><strong>' + pct(latest.rate) + '</strong><small>confirmed order rate</small></div>'
+            + '<div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div>';
+          $("#weeklyInsights").innerHTML = '<strong>One week is loaded, so there is no trend here yet.</strong> ' + escape(latest.week) + ' issued ' + latest.quotes
+            + ' quotes and converted ' + pct(latest.rate) + '. Add more weekly files on Data mapping and this becomes a pulse.';
+          return;
+        }
+        const delta = latest.rate - data.conversion;
+        const deltaLabel = Math.abs(delta).toFixed(1) + ' points ' + (delta >= 0 ? 'above' : 'below') + ' the selected-book average';
         $("#weeklyReading").innerHTML = '<div><span>Peak quote release</span><strong>' + peak.week + ' / ' + peak.quotes + '</strong><small>quotes issued</small></div><div><span>Latest conversion</span><strong>' + latest.week + ' / ' + pct(latest.rate) + '</strong><small>confirmed order rate</small></div><div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div>';
         $("#weeklyInsights").innerHTML = '<strong>' + latest.week + ' is ' + deltaLabel + '.</strong> ' + timelinessReading;
       }
@@ -3442,11 +3475,11 @@
         if (state.analysis === "outcomes") {
           title = "Outcome value mix";
           description = "How quoted value is distributed between confirmed orders and records without a linked order.";
-          html = '<div class="donut-layout"><div class="donut" style="--donut-value:' + data.valueCapture + '"><div class="donut-content"><strong>' + pct(data.valueCapture) + '</strong><span>value captured</span></div></div><div class="outcome-key"><div><i style="--key:var(--green)"></i><span>Confirmed order value</span><b>' + money(data.orderValue) + '</b></div><div><i style="--key:var(--red)"></i><span>Unconverted quote value</span><b>' + money(data.unconvertedValue) + '</b></div><div><i style="--key:var(--steel)"></i><span>Total quoted value</span><b>' + money(data.quoteValue) + '</b></div></div></div><div class="waterfall"><div class="waterfall-row"><span>Quoted value</span><div class="waterfall-track"><i style="--waterfall:100%;--waterfall-color:var(--steel)"></i></div><b>' + money(data.quoteValue) + '</b></div><div class="waterfall-row"><span>Confirmed value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(5, data.valueCapture) + '%;--waterfall-color:var(--green)"></i></div><b>' + money(data.orderValue) + '</b></div><div class="waterfall-row"><span>Unconverted value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(12, 100 - data.valueCapture) + '%;--waterfall-color:var(--red)"></i></div><b>' + money(data.unconvertedValue) + '</b></div></div><div class="analysis-foot"><strong>Professional read:</strong> unconverted opportunities remain open, lost, or not yet fully linked until a confirmed order or outcome is recorded. Focus follow-up on high-value unconverted records first.</div>';
+          html = '<div class="donut-layout"><div class="donut" style="--donut-value:' + data.valueCapture + '"><div class="donut-content"><strong>' + pct(data.valueCapture) + '</strong><span>value captured</span></div></div><div class="outcome-key"><div><i style="--key:var(--green)"></i><span>Confirmed order value</span><b>' + money(data.orderValue) + '</b></div><div><i style="--key:var(--red)"></i><span>Unconverted quote value</span><b>' + money(data.unconvertedValue) + '</b></div><div class="key-total"><i aria-hidden="true"></i><span>Total quoted value</span><b>' + money(data.quoteValue) + '</b></div></div></div><div class="waterfall"><div class="waterfall-row"><span>Quoted value</span><div class="waterfall-track"><i style="--waterfall:100%;--waterfall-color:var(--steel)"></i></div><b>' + money(data.quoteValue) + '</b></div><div class="waterfall-row"><span>Confirmed value</span><div class="waterfall-track"><i style="--waterfall:' + data.valueCapture.toFixed(1) + '%;--waterfall-color:var(--green)"></i></div><b>' + money(data.orderValue) + '</b></div><div class="waterfall-row"><span>Unconverted value</span><div class="waterfall-track"><i style="--waterfall:' + (100 - data.valueCapture).toFixed(1) + '%;--waterfall-color:var(--red)"></i></div><b>' + money(data.unconvertedValue) + '</b></div></div><div class="analysis-foot"><strong>Professional read:</strong> unconverted opportunities remain open, lost, or not yet fully linked until a confirmed order or outcome is recorded. Focus follow-up on high-value unconverted records first.</div>';
         } else if (state.analysis === "__retired_value") {
           title = "Quote value bridge";
           description = "A direct value reading of quoted work, confirmed orders, and value still unconverted to a linked order.";
-          html = '<div class="waterfall"><div class="waterfall-row"><span>Quoted value</span><div class="waterfall-track"><i style="--waterfall:100%;--waterfall-color:var(--steel)"></i></div><b>' + money(data.quoteValue) + '</b></div><div class="waterfall-row"><span>Confirmed value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(5, data.valueCapture) + '%;--waterfall-color:var(--green)"></i></div><b>' + money(data.orderValue) + '</b></div><div class="waterfall-row"><span>Unconverted value</span><div class="waterfall-track"><i style="--waterfall:' + Math.max(12, 100 - data.valueCapture) + '%;--waterfall-color:var(--red)"></i></div><b>' + money(data.unconvertedValue) + '</b></div></div><div class="analysis-foot"><strong>Seller lens:</strong> focus follow-up on high-value unconverted records, then use current status to separate active work from losses.</div>';
+          html = '<div class="waterfall"><div class="waterfall-row"><span>Quoted value</span><div class="waterfall-track"><i style="--waterfall:100%;--waterfall-color:var(--steel)"></i></div><b>' + money(data.quoteValue) + '</b></div><div class="waterfall-row"><span>Confirmed value</span><div class="waterfall-track"><i style="--waterfall:' + data.valueCapture.toFixed(1) + '%;--waterfall-color:var(--green)"></i></div><b>' + money(data.orderValue) + '</b></div><div class="waterfall-row"><span>Unconverted value</span><div class="waterfall-track"><i style="--waterfall:' + (100 - data.valueCapture).toFixed(1) + '%;--waterfall-color:var(--red)"></i></div><b>' + money(data.unconvertedValue) + '</b></div></div><div class="analysis-foot"><strong>Seller lens:</strong> focus follow-up on high-value unconverted records, then use current status to separate active work from losses.</div>';
         } else if (state.analysis === "ontime") {
           title = "On-time quote release";
           description = "The quote flow should show not just what converted, but whether the source marked the release EARLY or LATE.";
@@ -3500,7 +3533,7 @@
               if (!before) return { text: "—", tone: "flat" };
               const change = (now - before) / Math.abs(before) * 100;
               const good = invert ? change < 0 : change > 0;
-              return { text: (change > 0 ? "+" : "") + change.toFixed(1) + "%", tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down") };
+              return { text: (change > 0 ? "+" : change < 0 ? "−" : "") + Math.abs(change).toFixed(1) + "%", tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down") };
             };
             const rows = [
               { label: "Quotes issued", now: cmp.current.quotes, was: cmp.prior.quotes, fmt: v => opsNumber(v) },
@@ -3617,7 +3650,7 @@
 
       const opsChange = value => value === null || value === undefined || !Number.isFinite(value)
         ? '<span class="chg is-flat">—</span>'
-        : '<span class="chg ' + (value > 0 ? "is-up" : value < 0 ? "is-down" : "is-flat") + '">' + (value > 0 ? "+" : "") + value.toFixed(1) + "%</span>";
+        : '<span class="chg ' + (value > 0 ? "is-up" : value < 0 ? "is-down" : "is-flat") + '">' + (value > 0 ? "+" : value < 0 ? "−" : "") + Math.abs(value).toFixed(1) + "%</span>";
       const opsNumber = value => Number.isFinite(value) ? value.toLocaleString("en-US") : "—";
       const opsTurnText = value => Number.isFinite(value) ? value.toFixed(1) : "—";
 
@@ -3707,7 +3740,7 @@
               return '<div class="cap-row" data-filter="engineer" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.engineer === item.code) + '"><span title="' + escape(resolvedNucorPerson(item.code, state.model && state.model.roster).name) + '">'
                 + escape(item.code === "(none)" ? "No initials" : item.code) + "</span>"
                 + '<div class="cap-track"><i class="' + (good ? "is-good" : "is-bad") + '" style="' + (good ? "left:50%;" : "right:50%;") + "width:" + width.toFixed(1) + '%"></i></div>'
-                + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</b>"
+                + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : item.variance < 0 ? "−" : "") + Math.abs(item.variance).toFixed(1) + "</b>"
                 + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + item.quotes + " quotes</small></div>";
             }).join("") + "</div>"
           + '<div class="cap-full">' + loadTable + "</div>";
@@ -3720,7 +3753,7 @@
         const change = (now - before) / Math.abs(before) * 100;
         const good = invert ? change < 0 : change > 0;
         return {
-          text: (change > 0 ? "+" : "") + change.toFixed(1) + "%",
+          text: (change > 0 ? "+" : change < 0 ? "−" : "") + Math.abs(change).toFixed(1) + "%",
           tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down"),
           change: change
         };
@@ -3829,7 +3862,7 @@
               const x = padLeft + step * index + (step - barW) / 2;
               const highY = y(Math.max(item.from, item.to));
               const barH = Math.max(2, Math.abs(y(item.from) - y(item.to)));
-              const tone = item.isTotal ? "is-total" : item.entry.value >= 0 ? "is-up" : "is-down";
+              const tone = item.isTotal ? (index === 0 ? "is-total is-open" : "is-total is-close") : item.entry.value >= 0 ? "is-up" : "is-down";
               const connector = index < placed.length - 1
                 ? '<line class="bridge-link" x1="' + (x + barW).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2).toFixed(1)
                   + '" y1="' + y(item.to).toFixed(1) + '" y2="' + y(item.to).toFixed(1) + '" />'
@@ -3971,7 +4004,7 @@
               const tone = item.valueChange > 0 ? "is-up" : item.valueChange < 0 ? "is-down" : "is-flat";
               return '<circle class="quad-dot ' + tone + '" cx="' + x(item.quoteChange).toFixed(1) + '" cy="' + y(item.valueChange).toFixed(1)
                 + '" r="' + radius(item.current.value).toFixed(1) + '"><title>' + escape(item.name + " · " + cmpSigned(item.valueChange)
-                + " · " + (item.quoteChange > 0 ? "+" : "") + item.quoteChange + " quotes") + "</title></circle>";
+                + " · " + (item.quoteChange > 0 ? "+" : item.quoteChange < 0 ? "−" : "") + Math.abs(item.quoteChange) + " quotes") + "</title></circle>";
             }).join("")
           // A name sits to the right of its dot unless the dot is far enough
           // right that the name would run off the field, in which case it sits
@@ -5957,7 +5990,7 @@
                   + '<span class="num week-avg">' + (item.turn.average === null ? "—" : item.turn.average.toFixed(1)) + "</span>"
                   + '<span class="num week-ontime">' + (item.onTimeScored ? pct(item.onTime) : "—") + "</span>"
                   + '<span class="week-eng"><i style="width:' + (item.hours / maxWeekHours * 100).toFixed(1) + '%"></i><b>' + item.hours.toFixed(0) + "</b></span>"
-                  + '<span class="num week-var ' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : "") + item.variance.toFixed(1) + "</span>"
+                  + '<span class="num week-var ' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : item.variance < 0 ? "−" : "") + Math.abs(item.variance).toFixed(1) + "</span>"
                   + '<span class="num week-alts">' + item.alts + "</span></div>";
               }).join("") + "</div>"
             + '<div class="week-legend"><span><b class="is-green"></b>1 day</span><span><b class="is-green-soft"></b>2–3</span><span><b class="is-steel"></b>4–5</span><span><b class="is-copper"></b>6+</span>'
@@ -9041,7 +9074,7 @@
           const centre = originX + step * index + step / 2;
           const left = centre - barW - gap / 2;
           return '<g class="iso-col" style="--deck-bar-delay:' + (index * 60) + 'ms">'
-            + column(left, Number(group.a) || 0, config.toneA || "var(--steel)", group.labelA)
+            + column(left, Number(group.a) || 0, config.toneA || "var(--then)", group.labelA)
             + column(left + barW + gap, Number(group.b) || 0, (Number(group.b) || 0) > 0 ? (config.toneB || "var(--green)") : "var(--copper)", group.labelB)
             + '<text class="deck-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
             + (group.note ? '<text class="deck-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 33) + '" text-anchor="middle">' + escape(group.note) + "</text>" : "")
@@ -9054,8 +9087,8 @@
           + floor + columns
           + (config.caption ? '<text class="deck-axis-note" x="' + padLeft + '" y="14">' + escape(config.caption) + "</text>" : "")
           + "</svg>"
-          + '<div class="deck-key"><span><b class="k-ask"></b>' + escape(config.keyA || "Asked for") + "</span>"
-          + '<span><b class="k-book"></b>' + escape(config.keyB || "Came back") + "</span></div>";
+          + '<div class="deck-key"><span><b class="k-ask" style="background:' + (config.toneA || "var(--then)") + ';opacity:1"></b>' + escape(config.keyA || "Asked for") + "</span>"
+          + '<span><b class="k-book" style="background:' + (config.toneB || "var(--green)") + '"></b>' + escape(config.keyB || "Came back") + "</span></div>";
       }
 
       function deckIsoColumns(items, options) {
@@ -9339,7 +9372,7 @@
               const rise = ' style="--deck-bar-delay:' + (140 + index * 90) + 'ms"';
               const highY = y(Math.max(item.from, item.to));
               const barH = Math.max(3, Math.abs(y(item.from) - y(item.to)));
-              const tone = item.isTotal ? "is-total" : item.entry.value >= 0 ? "is-up" : "is-down";
+              const tone = item.isTotal ? (index === 0 ? "is-total is-open" : "is-total is-close") : item.entry.value >= 0 ? "is-up" : "is-down";
               // The connector runs along the top face rather than the front
               // one, so it meets the next column where that column actually
               // starts once both are extruded.
@@ -9632,7 +9665,7 @@
         const biggestBandMove = cmp.bands.slice().sort((a, b) =>
           Math.abs(b.current.wonValue - b.prior.wonValue) - Math.abs(a.current.wonValue - a.prior.wonValue))[0];
         const mix = deckIsoPairs(bandPairs, {
-            toneA: "var(--steel)", toneB: "var(--green)",
+            toneA: "var(--then)", toneB: "var(--green)",
             keyA: cmp.priorShort + " returned", keyB: cmp.currentShort + " returned",
             caption: "VALUE THAT CAME BACK, BY QUOTE SIZE, BOTH PERIODS",
             label: "Returned value by value band in both periods",
@@ -9659,7 +9692,7 @@
             a: mark.prior.share, b: mark.current.share,
             labelA: pct(mark.prior.share), labelB: pct(mark.current.share),
             note: opsNumber(mark.current.booked) + " of " + opsNumber(mark.current.base) + " quotes"
-          })), { toneA: "var(--steel)", toneB: "var(--green)",
+          })), { toneA: "var(--then)", toneB: "var(--green)",
             keyA: cmp.priorShort + " booked by then", keyB: cmp.currentShort + " booked by then",
             caption: "SHARE OF QUOTES THAT HAD BOOKED BY EACH AGE",
             label: "Share of quotes booked by each age, both periods",
@@ -9705,7 +9738,7 @@
                 + column.cell(row) + "</td>").join("") + "</tr>").join("")
             + "</tbody></table>"
           : '<div class="deck-empty">' + escape(empty) + "</div>";
-        const nameCell = item => escape(cmpClip(item.name, 26)) + (item.recurring ? ' <i class="acct-flag-slide">recurring</i>' : "");
+        const nameCell = item => escape(cmpClip(item.name, 34)) + (item.recurring ? ' <i class="acct-flag-slide">recurring</i>' : "");
         const keptSlide = '<div class="weekly-summary is-four">'
           + '<div><span>Quoting a year ago</span><strong>' + opsNumber(keepStat.priorCount) + '</strong><small>the base we started from</small></div>'
           + '<div><span>Came back to us</span><strong>' + pct(keepStat.keepRate) + '</strong><small>' + opsNumber(keepStat.keptCount) + ' accounts, ' + escape(fineMoney(heldValue)) + ' booked now</small></div>'
@@ -9756,13 +9789,22 @@
               empty: "No account present in both periods changed what it asked for." }) + "</div>"
           + '<div><span class="section-label">New names, and the ones sliding</span>'
           + acctTable(gainedTop, [
-              { head: "New this period", cell: item => escape(cmpClip(item.name, 24)) },
+              { head: "New this period", cell: item => escape(cmpClip(item.name, 34)) },
               { head: "Quoted", num: true, cell: item => escape(fineMoney(item.current.value / 1000000)) },
               { head: "Booked", num: true, cell: item => item.current.wins ? escape(fineMoney(item.current.wonValue / 1000000)) : "—" }
             ], "Every account quoting this period also quoted last period.")
+          + (cmp.gained.length
+              ? '<p class="chart-note">' + escape((function () {
+                  const booked = cmp.gained.filter(item => item.current.wins > 0);
+                  if (!booked.length) return "None of the " + opsNumber(cmp.gained.length) + " new names has booked a job yet.";
+                  return opsNumber(booked.length) + " of the " + opsNumber(cmp.gained.length) + " new names "
+                    + (booked.length === 1 ? "has" : "have") + " booked, worth "
+                    + fineMoney(booked.reduce((sum, item) => sum + item.current.wonValue, 0) / 1000000) + ".";
+                })()) + "</p>"
+              : "")
           + (riskTop.length
               ? '<div style="margin-top:14px">' + acctTable(riskTop, [
-                  { head: "Slipping", cell: item => escape(cmpClip(item.name, 24)) },
+                  { head: "Slipping", cell: item => escape(cmpClip(item.name, 34)) },
                   { head: "Was", num: true, cell: item => escape(fineMoney(item.prior.value / 1000000)) },
                   { head: "Now", num: true, cell: item => escape(fineMoney(item.current.value / 1000000)) }
                 ], "") + "</div>"
@@ -9793,7 +9835,7 @@
             : lead3.key === "rate" ? (lead3.amount < 0 ? "We won a smaller share of it" : "We won a bigger share of it")
             : (lead3.amount < 0 ? "We priced less work" : "We priced more work");
           closingMoves.push({ head: head,
-            body: "The single largest reason returned value moved " + cmpSigned(moved) + " was " + lead3.label
+            body: "Returned value moved " + cmpSigned(moved) + ", and the largest single reason was " + lead3.label
               + ", worth " + cmpSigned(lead3.amount) + " on its own. " + lead3.measure.charAt(0).toUpperCase() + lead3.measure.slice(1)
               + " went from " + lead3.fmt(lead3.was) + " to " + lead3.fmt(lead3.now) + "." });
         }
@@ -9968,7 +10010,7 @@
       // for overlapping text, and the entrance motion.
       function deckExtraStyles() {
         return '<style>'
-          + ':root{--steel:#8fa5ad}'
+          + ':root{--steel:#8fa5ad;--then:#1f8fae;--then-bright:#3fc2e0;--then-soft:#d8f0f7;--then-deep:#0d5e77}'
           + '.deck-fit h1{margin-bottom:22px}'
           + '.deck-fit>*{min-width:0}'
           + '.deck-metrics{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}'
@@ -9998,7 +10040,7 @@
           + '.deck-chart .grid{stroke:#d2ded6;stroke-width:1}'
           + '.weekly-deck-chart .axis-max{fill:#9aaba0;font-size:9px;font-weight:700}'
           + '.weekly-deck-chart .week-count{fill:#7c8f84;font-size:10px;font-weight:700}'
-          + '.deck-week-bar{fill:var(--steel)}'
+          + '.deck-week-bar{fill:var(--then)}'
           + '.dual-charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}'
           + '.dual-charts>div{min-width:0;padding:14px 16px;border:1px solid var(--line);background:#fff}'
           /* outcome split */
@@ -10312,7 +10354,7 @@
           + '.vs-disc>div{display:grid;place-items:center;width:70%;aspect-ratio:1;border-radius:50%;background:#0b1d12;color:#f2fff5}'
           + '.vs-disc strong{display:block;font-family:Consolas,monospace;font-size:34px;font-weight:500;letter-spacing:-.07em}'
           + '.vs-disc span{display:block;margin-top:3px;color:rgba(239,255,242,.6);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}'
-          + '.vs-side.is-then .vs-disc{background:conic-gradient(var(--steel) var(--vs),#e6ebe8 0)}'
+          + '.vs-side.is-then .vs-disc{background:conic-gradient(var(--then) var(--vs),#e6ebe8 0)}'
           + '.vs-side.is-then .vs-disc>div{background:#31424a}'
           + '.vs-middle{display:grid;justify-items:center;gap:5px;padding:22px 18px;border:1px solid var(--line);background:#0b1d12;color:#eefff2;text-align:center}'
           + '.vs-middle .section-label{color:#8fd4a8}'
@@ -10338,7 +10380,7 @@
           + '.deck-race .race-band.is-behind{fill:rgba(200,118,86,.16)}'
           + '.deck-race .race-line{fill:none;stroke-linecap:round;stroke-linejoin:round}'
           + '.deck-race .race-line.is-now{stroke:var(--green-deep);stroke-width:4}'
-          + '.deck-race .race-line.is-then{stroke:var(--steel);stroke-width:3}'
+          + '.deck-race .race-line.is-then{stroke:var(--then);stroke-width:3}'
           + '.deck-race .race-line.is-now-won{stroke:var(--green);stroke-width:3;stroke-dasharray:8 6}'
           + '.deck-race .race-line.is-then-won{stroke:#b6c6cc;stroke-width:2.5;stroke-dasharray:8 6}'
           + '.deck-race .race-leader{stroke:#c8d4cb;stroke-width:1}'
@@ -10373,6 +10415,10 @@
           /* Same light as every other column in the deck: the top face catches
              it, the side is turned away from it. */
           + '.deck-bridge .bridge-top.is-total{fill:#0f9a52}.deck-bridge .bridge-side.is-total{fill:#00512a}'
+          /* The book we started from, in the hue every other slide uses for
+             last period; the book we landed on stays this period's green. */
+          + '.deck-bridge .bridge-bar.is-open{fill:var(--then)}'
+          + '.deck-bridge .bridge-top.is-open{fill:var(--then-bright)}.deck-bridge .bridge-side.is-open{fill:var(--then-deep)}'
           + '.deck-bridge .bridge-top.is-up{fill:#35e281}.deck-bridge .bridge-side.is-up{fill:#00863f}'
           + '.deck-bridge .bridge-top.is-down{fill:#e29c7c}.deck-bridge .bridge-side.is-down{fill:#94512f}'
           + '.deck-bridge .bridge-link{stroke:#b9c9bd;stroke-width:1;stroke-dasharray:4 4}'
@@ -10380,6 +10426,7 @@
           + '.deck-bridge .bridge-value.is-total{fill:var(--green-deep)}'
           + '.deck-bridge .bridge-value.is-up{fill:var(--green-deep)}'
           + '.deck-bridge .bridge-value.is-down{fill:var(--copper)}'
+          + '.deck-bridge .bridge-value.is-open{fill:var(--then-deep)}'
           + '.deck-bridge .bridge-label{fill:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}'
           + '.deck-bridge .bridge-count{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
           + '.deck-movers .mover-centre{stroke:#c3d2c7;stroke-width:1.5}'
@@ -10561,7 +10608,7 @@
           + '.acct-slide-table td{padding:7px 10px;font-size:12.5px}'
           + '}'
           + '.deck-attr,.deck-survival{display:block;width:100%;height:auto}'
-          + '.deck-attr .attr-stop-a{stop-color:var(--steel);stop-opacity:.30}'
+          + '.deck-attr .attr-stop-a{stop-color:var(--then);stop-opacity:.30}'
           + '.deck-attr .attr-stop-b{stop-color:var(--green);stop-opacity:.32}'
           + '.deck-attr .attr-ribbon{fill:url(#deckAttrFill)}'
           + '.deck-attr .attr-edge{fill:none;stroke:var(--green-deep);stroke-width:3;stroke-linejoin:round}'
@@ -10569,7 +10616,7 @@
           + '.deck-attr .attr-break{fill:none;stroke:#c3d2c7;stroke-width:1.5}'
           + '.deck-attr .attr-floor{fill:#8b9c91;font-family:Consolas,monospace;font-size:12px}'
           + '.deck-attr .attr-cap{stroke-width:4}'
-          + '.deck-attr .attr-cap.is-then{stroke:var(--steel)}.deck-attr .attr-cap.is-now{stroke:var(--green)}'
+          + '.deck-attr .attr-cap.is-then{stroke:var(--then)}.deck-attr .attr-cap.is-now{stroke:var(--green)}'
           + '.deck-attr .attr-cap-value{font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:900;letter-spacing:-.03em}'
           + '.deck-attr .attr-cap-value.is-then{fill:#66808a}.deck-attr .attr-cap-value.is-now{fill:var(--green-deep)}'
           + '.deck-attr .attr-cap-label{fill:#8b9c91;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}'
@@ -10586,9 +10633,9 @@
           + '.deck-survival .surv-band.is-behind{fill:rgba(200,118,86,.18)}'
           + '.deck-survival .surv-line{fill:none;stroke-linecap:round;stroke-linejoin:round}'
           + '.deck-survival .surv-line.is-now{stroke:var(--green-deep);stroke-width:4}'
-          + '.deck-survival .surv-line.is-then{stroke:var(--steel);stroke-width:3}'
+          + '.deck-survival .surv-line.is-then{stroke:var(--then);stroke-width:3}'
           + '.deck-survival .surv-dot.is-now{fill:var(--green-deep);stroke:#fff;stroke-width:2}'
-          + '.deck-survival .surv-dot.is-then{fill:var(--steel);stroke:#fff;stroke-width:2}'
+          + '.deck-survival .surv-dot.is-then{fill:var(--then);stroke:#fff;stroke-width:2}'
           + '.deck-survival .surv-axis{fill:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800}'
           + '.deck-survival .surv-base{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
           + '.deck-survival .surv-end{font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:900;letter-spacing:-.02em}'
