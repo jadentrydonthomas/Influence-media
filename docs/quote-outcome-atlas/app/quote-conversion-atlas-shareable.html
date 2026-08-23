@@ -9942,7 +9942,7 @@
           { eyebrow: "The decomposition", title: "What actually changed<br /><em>the money.</em>", body: attrSlide },
           { eyebrow: "Speed at equal age", title: "How quickly the work<br /><em>comes back.</em>", body: speedSlide, when: cmp.survival.some(mark => mark.answerable) },
           { eyebrow: "The bridge", title: "How last year's book<br /><em>became this one.</em>", body: bridgeSlide, when: cmp.bridge.length > 2 },
-          { eyebrow: "Accounts kept and lost", title: "Who came back, and<br /><em>who we should ring.</em>", body: keptSlide, when: cmp.retention.priorCount > 0 },
+          { eyebrow: "Accounts kept and lost", title: "Who came back, and<br /><em>who did not.</em>", body: keptSlide, when: cmp.retention.priorCount > 0 },
           { eyebrow: "Accounts won and slipping", title: "Who is new, and who<br /><em>is quietly going.</em>", body: accounts, when: cmp.retention.gainedCount > 0 || cmp.customers.grown.length > 0 || cmp.customers.shrunk.length > 0 },
           { eyebrow: "Where the year leaves us", title: "Where the year<br /><em>landed.</em>", body: closingChapter, dense: false, when: closingMoves.length > 0 }
         ].filter(item => item.when === undefined || item.when);
@@ -10405,8 +10405,7 @@
           + '.vs-disc>div{display:grid;place-items:center;width:70%;aspect-ratio:1;border-radius:50%;background:#0b1d12;color:#f2fff5}'
           + '.vs-disc strong{display:block;font-family:Consolas,monospace;font-size:34px;font-weight:500;letter-spacing:-.07em}'
           + '.vs-disc span{display:block;margin-top:3px;color:rgba(239,255,242,.6);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}'
-          + '.vs-side.is-then .vs-disc{background:conic-gradient(var(--then) var(--vs),#e6ebe8 0)}'
-          + '.vs-side.is-then .vs-disc>div{background:#31424a}'
+          + '.vs-side.is-then .vs-disc{background:conic-gradient(var(--then) var(--vs),#cbdacf 0)}'
           + '.vs-middle{display:grid;justify-items:center;gap:5px;padding:22px 18px;border:1px solid var(--line);background:#0b1d12;color:#eefff2;text-align:center}'
           + '.vs-middle .section-label{color:#8fd4a8}'
           + '.vs-middle strong{font-family:Consolas,monospace;font-size:40px;font-weight:500;letter-spacing:-.07em;line-height:1}'

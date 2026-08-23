@@ -211,6 +211,19 @@ if (!download) {
     const found = (text.match(/-\$?\d[\d.,]*\s*(?:%|pts|points)/g) || []).slice(0, 5);
     check('every signed figure in the deck uses a true minus', found.join(' '), '');
   }
+  // K-17 applies to headlines too, not only to the closing cards. "Who we
+  // should ring" is the room's decision; the slide's job is to say who came
+  // back and who did not.
+  {
+    const heads = [...deck.matchAll(/<h1>([\s\S]*?)<\/h1>/g)]
+      .map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim());
+    check('the deck drew its headlines', heads.length > 8, true);
+    const directive = heads.filter(head =>
+      /\b(we should|we must|we need to|let us|let's|you should|make sure)\b/i.test(head)
+      || /^(Qualify|Ring|Call|Chase|Fix|Protect|Hold|Finish|Convert|Ask|Win|Get|Keep|Spread|Answer)\b/i.test(head));
+    check('no slide headline gives an instruction', directive.join(' | '), '');
+  }
+
   // A name clipped to an ellipsis has been found in five different places now.
   // A person or a company nobody can name is not evidence of anything, and the
   // cells this happens in have a second line they could use.
