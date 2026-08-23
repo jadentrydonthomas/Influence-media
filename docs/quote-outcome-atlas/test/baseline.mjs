@@ -54,6 +54,25 @@ check('it says which live weeks it left out', /1 live week likewise|live week/.t
 const issued = (body.match(/Quotes issued (\d+) (\d+)/)||[]);
 check('both sides carry the same weeks after matching', issued[1] === issued[2], issued.slice(1,3).join(' vs '));
 
+// M-41: a rate against a rate moves in points, not in a per cent of itself.
+// This panel was reporting 26.5% to 24.6% as −7.2% while the year-over-year
+// ledger reported the same pair as −1.9 points.
+{
+  const rateRows = await p.$$eval('#analysisBody .cmp-row', rows => rows.map(row => {
+    const label = row.querySelector('span');
+    const change = row.querySelector('em');
+    return { label: label ? label.textContent.trim() : '', change: change ? change.textContent.trim() : '' };
+  }));
+  const rates = ['Conversion', 'Inside three days', 'Met the due date'];
+  const drawn = rateRows.filter(row => rates.includes(row.label));
+  check('the rate rows are drawn', drawn.length === rates.length, drawn.map(r => r.label).join(','));
+  const wrong = drawn.filter(row => row.change !== '—' && !/pts$/.test(row.change));
+  check('a rate change is reported in points, not per cent of itself',
+    wrong.length === 0, wrong.map(r => r.label + ' ' + r.change).join(' | '));
+  const counts = rateRows.filter(row => !rates.includes(row.label) && row.change !== '—' && /pts$/.test(row.change));
+  check('a count or a sum is not reported in points', counts.length === 0, counts.map(r => r.label + ' ' + r.change).join(' | '));
+}
+
 // A filter must narrow both sides.
 await p.click('[data-analysis="districts"]'); await p.waitForTimeout(400);
 const d = await p.$eval('[data-filter="district"]', n=>n.dataset.filterValue);

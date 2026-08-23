@@ -405,7 +405,7 @@
     /* The detail panel is short and the roster is long; let it follow the list. */
     @media (min-width: 1100px) { .person-card { position: sticky; top: 18px; } }
     .screen-heading h2.is-compact { font-size: clamp(30px, 3.6vw, 48px); }
-    .cmp-head, .cmp-row { display: grid; grid-template-columns: minmax(0,1.5fr) 78px 78px 66px; align-items: center; gap: 10px; }
+    .cmp-head, .cmp-row { display: grid; grid-template-columns: minmax(0,1.35fr) 74px 74px 80px; align-items: center; gap: 10px; }
     .cmp-head { padding-bottom: 8px; border-bottom: 1.5px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .cmp-head b, .cmp-head span:last-child { text-align: right; }
     .cmp-head b.is-now { color: var(--green-dark); }
@@ -413,7 +413,7 @@
     .cmp-row span { color: var(--ink); font-size: 12.5px; }
     .cmp-row i { color: var(--ink-faint); font-family: var(--mono); font-size: 12px; font-style: normal; text-align: right; }
     .cmp-row b { color: var(--ink); font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; }
-    .cmp-row em { font-family: var(--mono); font-size: 12.5px; font-style: normal; text-align: right; }
+    .cmp-row em { font-family: var(--mono); font-size: 12.5px; font-style: normal; text-align: right; white-space: nowrap; }
     .cmp-row em.is-up { color: var(--green-dark); }
     .cmp-row em.is-down { color: var(--red-deep); }
     .cmp-row em.is-flat { color: var(--ink-faint); }
@@ -3536,33 +3536,36 @@
             html = '<div class="analysis-foot"><strong>Only one ' + (cmp ? cmp.granularity : "period") + ' is loaded.</strong> '
               + 'Comparison needs at least two. Add an earlier set of quote weeks under <b>Prior period</b> in Data mapping, or load them alongside this one — across years it compares year on year, otherwise month on month, otherwise week on week.</div>';
           } else {
-            const delta = (now, before, invert) => {
+            const delta = (now, before, invert, points) => {
               if (now === null || before === null || before === undefined || now === undefined) return { text: "—", tone: "flat" };
-              if (!before) return { text: "—", tone: "flat" };
-              const change = (now - before) / Math.abs(before) * 100;
-              const good = invert ? change < 0 : change > 0;
-              return { text: (change > 0 ? "+" : change < 0 ? "−" : "") + Math.abs(change).toFixed(1) + "%", tone: Math.abs(change) < 0.05 ? "flat" : (good ? "up" : "down") };
+              if (!points && !before) return { text: "—", tone: "flat" };
+              const move = points ? now - before : (now - before) / Math.abs(before) * 100;
+              const good = invert ? move < 0 : move > 0;
+              return {
+                text: (move > 0 ? "+" : move < 0 ? "−" : "") + Math.abs(move).toFixed(1) + (points ? " pts" : "%"),
+                tone: Math.abs(move) < 0.05 ? "flat" : (good ? "up" : "down")
+              };
             };
             const rows = [
               { label: "Quotes issued", now: cmp.current.quotes, was: cmp.prior.quotes, fmt: v => opsNumber(v) },
               { label: "Alternates", now: cmp.current.alts, was: cmp.prior.alts, fmt: v => opsNumber(v) },
               { label: "Quoted value", now: cmp.current.value, was: cmp.prior.value, fmt: v => money(v / 1000000) },
               { label: "Quote wins", now: cmp.current.wins, was: cmp.prior.wins, fmt: v => opsNumber(v) },
-              { label: "Conversion", now: cmp.current.conversion, was: cmp.prior.conversion, fmt: v => pct(v) },
+              { label: "Conversion", now: cmp.current.conversion, was: cmp.prior.conversion, fmt: v => pct(v), points: true },
               { label: "Average turnaround", now: cmp.current.turn, was: cmp.prior.turn, fmt: v => v === null ? "—" : v.toFixed(1) + "d", invert: true },
-              { label: "Inside three days", now: cmp.current.withinThree, was: cmp.prior.withinThree, fmt: v => v === null ? "—" : pct(v) },
-              { label: "Met the due date", now: cmp.current.onTime, was: cmp.prior.onTime, fmt: v => v === null ? "—" : pct(v) },
+              { label: "Inside three days", now: cmp.current.withinThree, was: cmp.prior.withinThree, fmt: v => v === null ? "—" : pct(v), points: true },
+              { label: "Met the due date", now: cmp.current.onTime, was: cmp.prior.onTime, fmt: v => v === null ? "—" : pct(v), points: true },
               { label: "Engineering hours", now: cmp.current.hours, was: cmp.prior.hours, fmt: v => v.toFixed(0), invert: true },
               { label: "Eng hours per quote", now: cmp.current.hoursPerQuote, was: cmp.prior.hoursPerQuote, fmt: v => v.toFixed(2), invert: true }
             ];
             html = '<div class="cmp-head"><span></span><b>' + escape(cmp.priorLabel) + '</b><b class="is-now">' + escape(cmp.currentLabel) + '</b><span>Change</span></div>'
               + rows.map(row => {
-                  const d = delta(row.now, row.was, row.invert);
+                  const d = delta(row.now, row.was, row.invert, row.points);
                   return '<div class="cmp-row"><span>' + escape(row.label) + '</span>'
                     + '<i>' + row.fmt(row.was) + '</i><b>' + row.fmt(row.now) + '</b>'
                     + '<em class="is-' + d.tone + '">' + d.text + "</em></div>";
                 }).join("")
-              + '<div class="analysis-foot"><strong>Direction is judged, not just signed.</strong> More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. '
+              + '<div class="analysis-foot"><strong>Direction is judged, not just signed, and a rate moves in points.</strong> More quotes, more value and higher conversion read as improvement; longer turnaround and more engineering hours per quote read the other way. Conversion, inside-three-days and met-the-due-date are rates, so their change is the gap in points rather than a per cent of themselves. '
               + (cmp.baseline
                   ? 'This compares the live book (' + escape(cmp.currentLabel) + ') against the separately loaded ' + escape(cmp.priorLabel)
                     + '. The prior period is never added to the live conversion figures — it exists only here. '
