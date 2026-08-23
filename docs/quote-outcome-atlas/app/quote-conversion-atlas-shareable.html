@@ -380,7 +380,9 @@
     .weekly-insights { margin-top: 6px; padding: 10px 11px; border-left: 3px solid var(--green); color: var(--ink-muted); background: var(--surface-soft); font-size: 11px; line-height: 1.45; }
     .weekly-insights strong { color: var(--ink); font-family: var(--mono); font-weight: 500; }
     .chart-legend { display: flex; flex-wrap: wrap; gap: 13px; padding: 0 19px 16px; color: var(--ink-muted); font-size: 10px; }
-    .chart-legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; background: var(--legend); vertical-align: 1px; }
+    .chart-legend span::before { content: ""; display: inline-block; width: 12px; height: 8px; margin-right: 5px; background: var(--legend); vertical-align: 1px; }
+    .chart-legend span.is-dashed::before { height: 2px; vertical-align: 4px; background: repeating-linear-gradient(90deg, var(--legend) 0 4px, transparent 4px 7px); }
+    .chart-legend span.is-line::before { height: 3px; vertical-align: 3px; border-radius: 2px; }
 
     .analysis-panel { min-height: 354px; }
     .analysis-tabs { display: flex; flex-wrap: wrap; gap: 5px 4px; padding: 13px 17px 0; }
@@ -451,8 +453,8 @@
     .cmp-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; color: var(--ink-muted); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .cmp-legend span { display: inline-flex; align-items: center; gap: 6px; }
     .cmp-legend b { display: block; width: 15px; height: 7px; }
-    .cmp-legend b.is-now { background: var(--green); }
-    .cmp-legend b.is-then { background: var(--then-soft); box-shadow: inset 0 0 0 1px var(--then); }
+    .cmp-legend b.is-now { background: linear-gradient(180deg, var(--now-a), var(--now-b) 55%, var(--now-c)); }
+    .cmp-legend b.is-then { background: linear-gradient(180deg, var(--then-a), var(--then-b) 55%, var(--then-c)); }
     .cmp-legend b.is-now-won { height: 3px; background: repeating-linear-gradient(90deg, var(--green-bright) 0 5px, transparent 5px 8px); }
     .cmp-legend b.is-then-won { height: 3px; background: repeating-linear-gradient(90deg, var(--then) 0 5px, transparent 5px 8px); }
     .cmp-race { display: block; width: 100%; height: auto; }
@@ -584,10 +586,10 @@
       transform-box: fill-box; transform-origin: bottom; animation: iso-rise 620ms var(--ease-out) both; animation-delay: var(--cmp-bar-delay, 0ms); }
     @keyframes iso-rise { from { transform: scaleY(.02); opacity: .25; } to { transform: scaleY(1); opacity: 1; } }
     .cmp-col.is-now { fill: url(#cmpFillNow); }
-    .fill-now-a { stop-color: #00d763; } .fill-now-b { stop-color: #00a44b; } .fill-now-c { stop-color: #00773a; }
-    .fill-then-a { stop-color: #46cbe8; } .fill-then-b { stop-color: #1f9fbe; } .fill-then-c { stop-color: #0f6d88; }
-    [data-theme="dark"] .fill-now-a { stop-color: #5cf0a0; } [data-theme="dark"] .fill-now-b { stop-color: #23cc75; } [data-theme="dark"] .fill-now-c { stop-color: #12a058; }
-    [data-theme="dark"] .fill-then-a { stop-color: #7fe4ff; } [data-theme="dark"] .fill-then-b { stop-color: #3fbfe0; } [data-theme="dark"] .fill-then-c { stop-color: #1e8fae; }
+    :root { --now-a: #00d763; --now-b: #00a44b; --now-c: #00773a; --then-a: #46cbe8; --then-b: #1f9fbe; --then-c: #0f6d88; }
+    [data-theme="dark"] { --now-a: #5cf0a0; --now-b: #23cc75; --now-c: #12a058; --then-a: #7fe4ff; --then-b: #3fbfe0; --then-c: #1e8fae; }
+    .fill-now-a { stop-color: var(--now-a); } .fill-now-b { stop-color: var(--now-b); } .fill-now-c { stop-color: var(--now-c); }
+    .fill-then-a { stop-color: var(--then-a); } .fill-then-b { stop-color: var(--then-b); } .fill-then-c { stop-color: var(--then-c); }
     .cmp-col.is-then { fill: url(#cmpFillThen); }
     .cmp-col-value { font-family: var(--mono); font-size: 11px; font-weight: 600; }
     .cmp-col-value.is-now { fill: var(--green-dark); }
@@ -1889,7 +1891,7 @@
                 <h3>Quoted work</h3>
                 <strong id="quotedCount">614</strong>
                 <p id="quotedLabel">quote records sent</p>
-                <div class="quote-field-facts"><div><span>Average quote</span><b id="quotedAverage">—</b></div><div><span>Alternates</span><b id="quotedAlts">—</b></div></div>
+                <div class="quote-field-facts"><div><span>Average quote</span><b id="quotedAverage">—</b></div><div><span>Alternates priced</span><b id="quotedAlts">—</b></div></div>
                 <div class="quote-field-value"><b id="quotedValue">$461M quoted value</b><span id="quotedPeriod">W1 to W10</span></div>
               </article>
 
@@ -1930,7 +1932,7 @@
           <section class="panel" aria-labelledby="weeklyTitle">
             <div class="panel-head"><h2 id="weeklyTitle">Weekly performance pulse</h2><p id="weeklyDescription">Top lane: quotes issued. Bottom lane: confirmed conversion. The shared weeks make volume and performance easy to compare without mixing scales.</p></div>
             <div class="weekly-wrap"><div class="weekly-reading" id="weeklyReading"></div><div class="weekly-chart" id="weeklyChart"></div><div class="weekly-insights" id="weeklyInsights"></div></div>
-            <div class="chart-legend"><span style="--legend:var(--then)">Quote issue volume</span><span style="--legend:var(--green)">Confirmed conversion</span><span style="--legend:var(--amber)">10% reference</span></div>
+            <div class="chart-legend"><span style="--legend:linear-gradient(180deg,var(--then-bright),var(--then) 55%,var(--then-deep))">Quote issue volume</span><span class="is-line" style="--legend:var(--green)">Confirmed conversion</span><span class="is-dashed" style="--legend:var(--amber)">10% reference</span></div>
           </section>
 
           <section class="panel analysis-panel" aria-labelledby="analysisTitle">
@@ -3318,7 +3320,7 @@
         setText("#quotedCount", data.quotes);
         setText("#quotedLabel", "quote opportunities");
         setText("#quotedAverage", data.quotes ? fineMoney(data.quoteValue / data.quotes) : "—");
-        setText("#quotedAlts", opsNumber(data.alts) + (data.quotes ? " · " + (data.alts / data.quotes).toFixed(2) + " each" : ""));
+        setText("#quotedAlts", opsNumber(data.alts) + (data.quotes ? " · " + (data.alts / data.quotes).toFixed(2) + " per quote" : ""));
         setText("#quotedValue", money(data.quoteValue) + " quoted value");
         setText("#quotedPeriod", data.period);
         $("#conversionDisc").style.setProperty("--conversion", data.conversion);
