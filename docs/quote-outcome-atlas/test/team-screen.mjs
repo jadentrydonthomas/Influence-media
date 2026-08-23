@@ -97,6 +97,42 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
   check('a count of one takes a singular unit', bad.length === 0, bad.join(' '));
 }
 
+// The account list's bar used to be drawn on quote counts while the figures
+// beside it were money, so an account that booked two of three quotes drew a
+// mostly-filled bar next to "$283k of $828k".
+{
+  await page.click('[data-screen="customers"]');
+  await page.waitForTimeout(900);
+  const rows = await page.$$eval('#custRows .account-row', nodes => nodes.slice(0, 12).map(row => {
+    const ask = row.querySelector('.askbook-track .ask');
+    const book = row.querySelector('.askbook-track .book');
+    const value = row.querySelector('.account-value b');
+    const of = row.querySelector('.account-value small');
+    const num = text => {
+      const m = (text || '').replace(/[^0-9.kMB]/g, '');
+      const n = parseFloat(m);
+      if (!isFinite(n)) return null;
+      return /M/.test(text) ? n * 1000 : /B/.test(text) ? n * 1000000 : n;
+    };
+    return {
+      ask: ask ? parseFloat(ask.style.width) : null,
+      book: book ? parseFloat(book.style.width) : 0,
+      returned: num(value && value.textContent),
+      asked: num(of && of.textContent),
+    };
+  }));
+  // Without this the check below passes vacuously if the parsing ever breaks.
+  const readable = rows.filter(r => r.asked && r.ask);
+  check('the account rows parsed', readable.length >= 5, readable.length + ' of ' + rows.length);
+  const bad = rows.filter(r => r.asked && r.ask
+    // The filled share of the bar has to be the returned share of what was asked.
+    && Math.abs((r.book / r.ask) - (r.returned / r.asked)) > 0.06);
+  check('the account bar carries the same measure as the figure beside it', bad.length === 0,
+    bad.slice(0, 2).map(r => `bar ${(r.book / r.ask * 100).toFixed(0)}% vs figure ${(r.returned / r.asked * 100).toFixed(0)}%`).join(' | '));
+  const names = await page.$$eval('#custRows .account-name strong', n => n.map(x => x.textContent.trim()));
+  check('no account name is clipped to an ellipsis', names.every(n => !/…$/.test(n)), names.filter(n => /…$/.test(n)).join(' | '));
+}
+
 check('no JS errors', errs.length === 0, errs.slice(0, 2).join('; '));
 await browser.close();
 console.log('\n' + (fails.length ? 'FAILURES:\n  ' + fails.join('\n  ') : 'The roster, its chart and its sheet are one view in one order, and unowned work is counted without being ranked as a person.'));

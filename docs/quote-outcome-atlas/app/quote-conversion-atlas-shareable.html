@@ -1033,7 +1033,7 @@
     .account-row:hover { background: var(--surface-soft); }
     .account-row[aria-pressed="true"] { background: var(--green-soft); box-shadow: inset 3px 0 0 var(--green); }
     .account-name { min-width: 0; }
-    .account-name strong { display: block; overflow: hidden; color: var(--ink); font-size: 13.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .account-name strong { display: block; color: var(--ink); font-size: 13.5px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
     .account-name span { display: block; margin-top: 3px; color: var(--ink-muted); font-size: 12.5px; }
     .account-value { color: var(--ink); font-family: var(--mono); font-size: 13px; text-align: right; }
 
@@ -1199,7 +1199,7 @@
     .curve-svg .curve-line { fill: none; stroke: var(--green); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
     .curve-svg .curve-dot { fill: var(--surface); stroke: var(--green-dark); stroke-width: 2; }
     .curve-list { display: grid; align-content: start; gap: 2px; }
-    .curve-row { display: grid; grid-template-columns: 66px minmax(0,1fr) 48px 62px; align-items: center; gap: 9px; padding: 5px 0; border-top: 1px solid var(--line); color: var(--ink-muted); font-size: 12px; }
+    .curve-row { display: grid; grid-template-columns: 76px minmax(0,1fr) 48px 62px; align-items: center; gap: 9px; padding: 5px 0; border-top: 1px solid var(--line); color: var(--ink-muted); font-size: 12px; }
     .curve-track { height: 8px; border-radius: 4px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
     .curve-track i { display: block; height: 100%; background: var(--green); border-radius: 4px; }
     .curve-row b { color: var(--ink); font-family: var(--mono); font-size: 12px; text-align: right; }
@@ -2002,7 +2002,7 @@
               <input class="quote-search" id="custSearch" type="search" placeholder="Search account, quote number, or job number" />
             </div>
             <div class="cust-sort" id="custSort" role="group" aria-label="Sort accounts"></div>
-            <div class="account-head" id="custListTitle"><span>Account</span><span>Asked vs booked</span><span class="num">Returned</span></div>
+            <div class="account-head" id="custListTitle"><span>Account</span><span>Asked vs returned</span><span class="num">Returned</span></div>
             <div class="account-scroll"><div id="custRows"></div></div>
             <p class="quote-count" id="custTableNote" aria-live="polite"></p>
           </section>
@@ -2026,7 +2026,7 @@
           <p>The quote book read along a calendar rather than a list. Every figure here is measured from dates the workbooks already carry — Date In, Done, and the order-log entry date — so nothing is modelled or assumed.</p>
         </div>
         <section class="panel is-feature" aria-labelledby="wholeClockTitle">
-          <div class="panel-head"><span class="ops-step">The whole clock</span><h2 id="wholeClockTitle">How long the whole thing takes</h2><p>From the request landing on the desk to the order being entered, and where inside that the work leaves us and the customer starts deciding. The two dials underneath are the two halves of this bar.</p></div>
+          <div class="panel-head"><span class="ops-step">The whole clock</span><h2 id="wholeClockTitle">How long the whole thing takes</h2><p>From the request landing on the desk to the order being entered, and where inside that the work leaves us and the customer starts deciding. The two dials underneath are the two parts of this bar.</p></div>
           <div class="ops-body" id="timelineWhole"></div>
         </section>
         <section class="clock-pair" id="timelineClocks" aria-label="The two figures this screen is about"></section>
@@ -5791,7 +5791,7 @@
           + '<p class="ops-note">' + escape(line.total.scored
               ? "Median across " + opsNumber(line.total.scored) + " booked jobs that carry both a Date In and an order-entry date"
                 + (line.produce.median !== null && line.decide.median !== null
-                    ? ". The two halves are medians in their own right, so they will not always add to the whole: each is the middle of its own set of quotes."
+                    ? ". The two parts are medians in their own right, so they will not add to the whole: each is the middle of its own set of quotes."
                     : ".")
               : "Needs both a Date In on the quote and an entry date on the order to measure. Neither is scored in this set yet.") + "</p>";
         $("#timelineClocks").innerHTML =
@@ -5820,7 +5820,7 @@
 
         $("#timelineKpis").innerHTML = [
           { label: "Quote load", value: (data.quotes / weeks).toFixed(1), note: "quotes per week · " + opsNumber(data.quotes) + " across " + weeks + " week" + (weeks === 1 ? "" : "s") },
-          { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · priced but never counted" },
+          { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · priced work that is not a separate opportunity" },
           { label: "Whole cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + opsNumber(line.total.scored) + " quotes" : "needs a Date In and a booked order" },
           { label: "Inside three days", value: pct(percentage(data.turn.withinThree, data.turn.scored)), note: opsNumber(data.turn.withinThree) + " of " + opsNumber(data.turn.scored) + " quotes priced in three days or less" },
           { label: "Open book", value: money(line.openValue), note: opsNumber(line.openCount) + " quotes with no linked order" },
@@ -6166,17 +6166,18 @@
         };
         const visible = accounts.filter(matches)
           .sort((a, b) => CUSTOMER_SORTS[customerSort].get(b) - CUSTOMER_SORTS[customerSort].get(a) || a.name.localeCompare(b.name));
-        const maxQuotes = Math.max(1, ...visible.map(account => account.quotes));
+        const drawn = visible.slice(0, CUSTOMER_ROW_CAP);
+        const maxAsked = Math.max(1, ...drawn.map(account => account.quoteValue));
         if (!visible.some(account => account.key === selectedAccount)) selectedAccount = visible.length ? visible[0].key : "";
 
         $("#custRows").innerHTML = visible.length
-          ? visible.slice(0, CUSTOMER_ROW_CAP).map(account => {
-              const askWidth = account.quotes / maxQuotes * 100;
-              const winWidth = account.wins ? account.wins / maxQuotes * 100 : 0;
+          ? drawn.map(account => {
+              const askWidth = account.quoteValue / maxAsked * 100;
+              const winWidth = account.wonValue ? account.wonValue / maxAsked * 100 : 0;
               return '<button class="account-row" type="button" data-account="' + escape(account.key) + '" aria-pressed="' + String(account.key === selectedAccount) + '">'
                 + '<span class="account-name"><strong title="' + escape(account.name) + '">' + escape(account.name) + "</strong>"
-                + '<span>' + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " · " + account.wins + " booked · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week" : " weeks") + "</span></span>"
-                + '<span class="askbook-track" title="' + account.quotes + ' quoted, ' + account.wins + ' booked"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></span>'
+                + '<span>' + countOf(account.quotes, "quote") + " · " + account.wins + " booked · " + countOf(account.loadedWeeks, "week") + "</span></span>"
+                + '<span class="askbook-track" title="' + escape(fineMoney(account.quoteValue) + " asked, " + fineMoney(account.wonValue) + " returned") + '"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></span>'
                 + '<span class="account-value"><b>' + fineMoney(account.wonValue) + "</b><small>of " + fineMoney(account.quoteValue) + "</small></span></button>";
             }).join("")
           : '<div class="quote-empty">No account matches that search. Try an account name, a quote number, or a job number.</div>';
@@ -6188,6 +6189,7 @@
           ? CUSTOMER_SORTS[customerSort].note + " Showing " + opsNumber(Math.min(visible.length, CUSTOMER_ROW_CAP))
             + (visible.length > CUSTOMER_ROW_CAP ? " of " + opsNumber(visible.length) : "") + " account" + (visible.length === 1 ? "" : "s")
             + (term ? " matching this search." : " in the active cohort and filters.")
+            + " The bar is what each account asked for, filled with what came back, on one scale across the rows shown."
           : "No account matches this search.");
 
         renderAccountProfile(visible.find(account => account.key === selectedAccount) || null, quotesFor);
@@ -9464,7 +9466,7 @@
       // ---- The whole clock, end to end --------------------------------------
       // One bar, split where the work leaves us and the customer starts
       // thinking. The point of the slide is the total, so the total is the
-      // thing drawn full width and the two halves are read off it.
+      // thing drawn full width and the two parts are read off it.
       function deckProcessBar(line, options) {
         const config = options || {};
         const shell = config.className || "deck-chart deck-process";
@@ -9523,7 +9525,7 @@
       // ---- Who books, and who does not --------------------------------------
       // One row per account, one track. The green is the value that came back;
       // the rest of the track is what was priced and did not. It answers both
-      // halves of the customer question with the same shape.
+      // parts of the customer question with the same shape.
       function deckReturnLedger(accounts, options) {
         const config = options || {};
         if (!accounts.length) return '<div class="deck-empty">' + escape(config.empty || "No account carries a priced quote in this cohort.") + "</div>";
@@ -10853,7 +10855,7 @@
         // ---- 05 How fast we answer --------------------------------------------
         // Release timing on its own was one dial and a wall of supporting text.
         // The question a manager actually asks is "how fast do we turn work
-        // around, and do we hit the date we promised" — two halves of one
+        // around, and do we hit the date we promised" — two parts of one
         // answer, so they share a slide: the production time distribution on
         // the left, and whether the promised date was met on the right.
         const turnDeck = data.turn;
