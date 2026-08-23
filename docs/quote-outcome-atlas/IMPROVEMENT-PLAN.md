@@ -48,6 +48,14 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The deck prints** (2026-08-23). It advertises "P to print / save PDF" in
+      its own footer, and printing it produced a mess on every page: display:flex
+      forced on each slide with no direction, so the header, content and footer
+      laid out as three columns side by side and the slide was squeezed into a
+      third of the sheet with four-pixel names. The old check only counted
+      displayed slides and PDF bytes, which is why nobody knew.
+
+
 - [x] **The same rule, on every screen that needs it** (2026-08-23). Three
       rounds of the highest-value finds came from asking "which screen did this
       fix never reach?" rather than from looking at a new screen. The Outcome
