@@ -4060,7 +4060,7 @@
                 + '<td class="num">' + (measured.wins ? measured.wins + '<span class="acct-change">' + escape(fineMoney(measured.wonValue / 1000000)) + "</span>" : '<span class="acct-never">never</span>') + "</td>"
                 + "<td>" + escape(measured.last ? fullDate(measured.last) : "—") + "</td>"
                 + "<td>" + escape(item.district || "—") + "</td>"
-                + "<td>" + escape(cmpClip(item.owner || "—", 20)) + "</td>"
+                + "<td>" + escape(cmpClip(item.owner || "—", 40)) + "</td>"
                 + "</tr>";
             }).join("")
           + "</tbody></table></div>"
@@ -4739,9 +4739,9 @@
                 : !item.current.wonValue && item.prior.wonValue ? "stopped paying"
                 : item.current.wonValue >= item.prior.wonValue ? "paying more" : "paying less";
               return '<button type="button" class="payer-row" data-open-account="' + escape(item.key) + '">'
-                + '<span class="payer-name"><b>' + escape(cmpClip(item.name, 30)) + "</b><i>" + escape(state
+                + '<span class="payer-name"><b>' + escape(item.name) + "</b><i>" + escape(state
                     + " · " + opsNumber(item.prior.wins) + " → " + opsNumber(item.current.wins) + " booked"
-                    + (item.owner ? " · " + cmpClip(item.owner, 22) : "")) + "</i></span>"
+                    + (item.owner ? " · " + cmpClip(item.owner, 40) : "")) + "</i></span>"
                 + '<span class="payer-bars"><u class="is-then" style="width:' + width(item.prior.wonValue).toFixed(1) + '%"></u>'
                 + '<u class="is-now" style="width:' + width(item.current.wonValue).toFixed(1) + '%"></u></span>'
                 + '<span class="payer-figures"><i>' + escape(fineMoney(item.prior.wonValue / 1000000)) + "</i>"
@@ -5405,7 +5405,7 @@
               { text: fineMoney(keep.lostValue), tone: "down" },
               " of quoted work with them. ",
               shape.topFiveShare >= 60 && shape.biggest
-                ? "It is concentrated: " + pct(shape.topFiveShare) + " of that sits with five names, and " + cmpClip(shape.biggest.name, 28) + " alone was worth " + fineMoney(shape.biggest.prior.value / 1000000) + "."
+                ? "It is concentrated: " + pct(shape.topFiveShare) + " of that sits with five names, and " + shape.biggest.name + " alone was worth " + fineMoney(shape.biggest.prior.value / 1000000) + "."
                 : "It is spread: no five names account for more than " + pct(shape.topFiveShare) + " of it, so this is a broad softening rather than one lost relationship.",
               keep.gainedCount ? " " + opsNumber(keep.gainedCount) + " names are new to us, worth " + fineMoney(keep.gainedValue) + "." : " Nothing new arrived to replace them."
             ]
@@ -5489,10 +5489,10 @@
           ? (loadMoved
               ? [
                   "The biggest change in load was ",
-                  { text: cmpClip(busiest.label, 26), tone: toneOf(busiest.current - busiest.prior) },
+                  { text: busiest.label, tone: toneOf(busiest.current - busiest.prior) },
                   ", from " + opsNumber(busiest.prior) + " quotes to " + opsNumber(busiest.current) + ". ",
                   improved && Math.abs(improved.rateAfter - improved.rateBefore) > 0.05
-                    ? "On conversion, " + cmpClip(improved.label, 26) + " moved furthest, " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter)
+                    ? "On conversion, " + improved.label + " moved furthest, " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter)
                       + (improvedThin ? ", on a book too small to read as a trend." : ".")
                     : "Conversion moved little across the roster."
                 ]
@@ -5501,7 +5501,7 @@
                   { text: data.roleLabel.toLowerCase(), tone: "plain" },
                   " owns the same number of quotes on these weeks as they did a year ago. ",
                   improved && Math.abs(improved.rateAfter - improved.rateBefore) > 0.05
-                    ? "Conversion did move — " + cmpClip(improved.label, 26) + " went from " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter)
+                    ? "Conversion did move — " + improved.label + " went from " + pct(improved.rateBefore) + " to " + pct(improved.rateAfter)
                       + (improvedThin ? ", on a book too small to read as a trend." : ".")
                     : "Conversion did not move either."
                 ])
@@ -9258,11 +9258,7 @@
           byName.get(entry.name).push(entry.role);
         });
         if (!order.length) return "No named owner";
-        return order.map(name => {
-          const held = byName.get(name);
-          const short = name.length > 18 ? name.slice(0, 17) + "\u2026" : name;
-          return short + " (" + (held.length === 3 ? "all three" : held.join(" & ")) + ")";
-        }).join(" · ");
+        return order.map(name => name + " (" + (byName.get(name).length === 3 ? "all three" : byName.get(name).join(" & ")) + ")").join(" · ");
       }
 
       function deckMetric(label, value, note) {
@@ -9797,7 +9793,7 @@
               { head: "Account", cell: nameCell },
               { head: "Booked then", num: true, cell: item => escape(fineMoney(item.prior.wonValue / 1000000)) },
               { head: "Quoted", num: true, cell: item => escape(fineMoney(item.prior.value / 1000000)) },
-              { head: "Owner", cell: item => escape(cmpClip(item.owner || "—", 16)) }
+              { head: "Owner", cell: item => escape(cmpClip(item.owner || "—", 34)) }
             ], "Every account that booked with us last period has quoted again.")
           + '<p class="chart-note">These paid us. Ordered by what they booked, not by what they asked for.</p></div>'
           + '<div><span class="section-label">Lost, and maybe not worth chasing &mdash; they never booked</span>'
@@ -10138,13 +10134,14 @@
           + '.agenda-table tr:last-child td{border-bottom:0}'
           + '.agenda-table .rank{width:22px;color:#a4b3a9;font-weight:900}'
           + '.agenda-table .quote{font-weight:800;white-space:nowrap}'
-          + '.agenda-table .cust{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+          + '.agenda-table .cust{max-width:210px;line-height:1.3;overflow-wrap:anywhere}'
           + '.agenda-table .week,.agenda-table .age{color:var(--muted);white-space:nowrap}'
           + '.agenda-table .val{text-align:right;font-weight:900;white-space:nowrap;color:var(--green-deep)}'
           + '.agenda-table .empty-row{padding:18px 8px;color:var(--muted);text-align:center}'
           + '.agenda-side{min-width:0;padding:19px;border:1px solid var(--line);background:#0b1d12;color:#effff2}'
           + '.agenda-side .section-label{color:#93e5ad}'
-          + '.agenda-point{display:grid;grid-template-columns:26px minmax(0,1fr);gap:9px;padding:12px 0;border-top:1px solid rgba(147,229,173,.2)}'
+          + '.agenda-point{padding:2px 0 0}'
+          + '.agenda-note{margin-top:16px;padding-top:14px;border-top:1px solid rgba(147,229,173,.2)}'
           + '.agenda-point b{color:#93e5ad;font-size:12px;font-weight:900}'
           + '.agenda-point p{margin:0;color:rgba(239,255,242,.76);font-size:12.5px;line-height:1.55}'
           /* ---- motion: layered on top of an already-correct static state ---- */
@@ -11015,11 +11012,11 @@
         const shortName = (value, limit) => { const text = String(value || "").trim(); return text.length > limit ? text.slice(0, limit - 1) + "…" : text; };
         const bookedRows = bookedJobs.length ? bookedJobs.map((item, index) =>
           '<tr><td class="rank">' + (index + 1) + '</td>'
-          + '<td class="quote"><b>' + escape(item.job) + "</b>" + (item.name ? "<span>" + escape(shortName(item.name, 30)) + "</span>" : "") + "</td>"
-          + '<td class="cust" title="' + escape(item.customer) + '">' + escape(shortName(item.customer, 26)) + "</td>"
+          + '<td class="quote"><b>' + escape(item.job) + "</b>" + (item.name ? "<span>" + escape(shortName(item.name, 48)) + "</span>" : "") + "</td>"
+          + '<td class="cust" title="' + escape(item.customer) + '">' + escape(shortName(item.customer, 44)) + "</td>"
           + '<td class="week">' + (item.entryDate ? fullDate(item.entryDate) : "no entry date") + "</td>"
           + '<td class="age">' + (item.tons ? tons(item.tons) : "—") + "</td>"
-          + '<td class="val">' + money(item.value / 1000000) + "</td>"
+          + '<td class="val">' + fineMoney(item.value / 1000000) + "</td>"
           + '<td class="team">' + escape(deckTeamLine([
               { role: "engineer", name: item.engineer },
               { role: "estimator", name: item.estimator },
@@ -11036,11 +11033,11 @@
           + "</div>"
           + '<aside class="agenda-side"><span class="section-label">And the largest still open</span>'
           + (openTop.length
-              ? '<div class="open-list">' + openTop.map(item => '<div class="open-row"><b>' + escape(item.quote) + "</b><em>" + money(item.value / 1000000) + "</em>"
+              ? '<div class="open-list">' + openTop.map(item => '<div class="open-row"><b>' + escape(item.quote) + "</b><em>" + fineMoney(item.value / 1000000) + "</em>"
                   + "<span>" + escape(shortName(item.customer, 24)) + " · " + escape(item.owner) + (item.exposure === null ? "" : " · open " + item.exposure + "d") + "</span></div>").join("") + "</div>"
               : '<p class="agenda-empty">Every priced opportunity in this cohort has a linked order.</p>')
-          + '<div class="agenda-point"><b>01</b><p>' + escape(valueRead) + '</p></div>'
-          + '<div class="agenda-point"><b>02</b><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'
+          + '<div class="agenda-note"><span class="section-label">What the open book adds up to</span></div>'
+          + '<div class="agenda-point"><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'
           + "</aside></div>";
 
         // ---- 08 Every week at the same age --------------------------------------

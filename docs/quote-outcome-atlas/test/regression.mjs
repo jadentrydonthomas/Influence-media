@@ -211,6 +211,15 @@ if (!download) {
     const found = (text.match(/-\$?\d[\d.,]*\s*(?:%|pts|points)/g) || []).slice(0, 5);
     check('every signed figure in the deck uses a true minus', found.join(' '), '');
   }
+  // A name clipped to an ellipsis has been found in five different places now.
+  // A person or a company nobody can name is not evidence of anything, and the
+  // cells this happens in have a second line they could use.
+  {
+    const cells = [...deck.matchAll(/<(?:td|span|b|em)[^>]*>([^<]*…)</g)].map(m => m[1].trim());
+    // An axis tick or a deliberate truncation of free text is not a name; a
+    // name is what sits in these columns.
+    check('no name in the deck is clipped to an ellipsis', cells.slice(0, 5).join(' | '), '');
+  }
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
   // The timing disc's conic arc used to be painted over from both sides by an
