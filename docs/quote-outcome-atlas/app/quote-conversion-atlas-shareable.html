@@ -881,7 +881,7 @@
     .brief-quote { display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr) minmax(64px, auto); grid-template-areas: "id project value" "date date state" "jobs jobs jobs"; gap: 2px 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
     .brief-quote:last-of-type { border-bottom: 0; }
     .brief-quote b { grid-area: id; min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-    .brief-quote span { grid-area: project; min-width: 0; overflow: hidden; color: var(--ink-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .brief-quote span { grid-area: project; min-width: 0; color: var(--ink-muted); font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; }
     .brief-quote em { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12px; font-style: normal; font-weight: 700; text-align: right; }
     .brief-quote i { grid-area: date; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
     .brief-quote u { grid-area: state; font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-align: right; text-decoration: none; text-transform: uppercase; }
@@ -3506,7 +3506,7 @@
             return '<div class="segment-row' + (band.wins === 0 ? " is-zero" : "") + '"' + (unit && bandKey ? ' data-filter="band" data-filter-value="' + bandKey + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.band === bandKey) + '"' : "") + '><span>' + escape(band.label) + '</span>'
               + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
               + '<b>' + pct(band.conversion) + '</b>'
-              + '<small>' + band.quotes + " quotes" + (unit ? " · " + money(band.value / 1000000) : "") + " · " + band.wins + " won</small></div>";
+              + '<small>' + countOf(band.quotes, "quote") + (unit ? " · " + money(band.value / 1000000) : "") + " · " + band.wins + " won</small></div>";
           };
           html = bandData.bands.length
             ? '<div class="segment-list">' + bandData.bands.map(band => bandRow(band, true)).join("") + "</div>"
@@ -3582,7 +3582,7 @@
                 return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '" data-filter="district" data-filter-value="' + escape(district.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.district === district.code) + '"><span>' + escape(district.code) + '</span>'
                   + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
                   + '<b>' + pct(district.conversion) + '</b>'
-                  + '<small>' + district.quotes + " quotes · " + money(district.value / 1000000) + " quoted · " + district.wins + " won · "
+                  + '<small>' + countOf(district.quotes, "quote") + " · " + money(district.value / 1000000) + " quoted · " + district.wins + " won · "
                   + (district.turnAverage === null ? "turn n/a" : district.turnAverage.toFixed(1) + "d turn") + " · " + district.alts + " alts · "
                   + district.hoursPerQuote.toFixed(2) + " eng hrs/quote</small></div>";
               }).join("") + "</div>"
@@ -3653,6 +3653,9 @@
         ? '<span class="chg is-flat">—</span>'
         : '<span class="chg ' + (value > 0 ? "is-up" : value < 0 ? "is-down" : "is-flat") + '">' + (value > 0 ? "+" : value < 0 ? "−" : "") + Math.abs(value).toFixed(1) + "%</span>";
       const opsNumber = value => Number.isFinite(value) ? value.toLocaleString("en-US") : "—";
+      // "1 quotes" is the kind of thing a reader stops on. Anywhere a single
+      // count is printed with its unit, the unit agrees with the count.
+      const countOf = (value, word, plural) => opsNumber(value) + " " + (Math.abs(value) === 1 ? word : (plural || word + "s"));
       const opsTurnText = value => Number.isFinite(value) ? value.toFixed(1) : "—";
 
       // ---- Load and capacity, on the team screen -----------------------------
@@ -4839,11 +4842,11 @@
         const jobList = (side, label) => {
           const records = (side.records || []).slice().sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0)).slice(0, 8);
           return '<div class="brief-year"><div class="brief-year-head"><span>' + escape(label) + "</span><b>"
-            + escape(opsNumber(side.quotes) + " quotes · " + fineMoney(side.value / 1000000)) + "</b></div>"
+            + escape(countOf(side.quotes, "quote") + " · " + fineMoney(side.value / 1000000)) + "</b></div>"
             + (records.length
                 ? records.map(record => '<div class="brief-quote' + (record.won ? " is-won" : "") + '">'
                     + "<b>" + escape(record.quoteNumber || record.key) + "</b>"
-                    + "<span>" + escape(cmpClip(record.project || "no project name", 30)) + "</span>"
+                    + "<span>" + escape(cmpClip(record.project || "no project name", 60)) + "</span>"
                     + "<i>" + escape(record.date ? fullDate(record.date) : "—") + "</i>"
                     + "<em>" + escape(fineMoney((Number(record.price) || 0) / 1000000)) + "</em>"
                     + '<u class="' + (record.won ? "is-won" : "is-open") + '">' + (record.won
@@ -6213,7 +6216,7 @@
                 + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
                 + '<div class="cust-diag-track"><i style="width:' + (account.quoteValue / worst * 100).toFixed(1) + '%"></i></div>'
                 + '<b>' + money(account.quoteValue) + "</b>"
-                + '<small>' + account.quotes + " quotes · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week · " : " weeks · ") + account.hours.toFixed(1) + " eng hrs</small></div>").join("")
+                + '<small>' + countOf(account.quotes, "quote") + " · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week · " : " weeks · ") + account.hours.toFixed(1) + " eng hrs</small></div>").join("")
           : '<p class="ops-note">Every account that asked more than once has booked at least one job in this cohort.</p>';
         $$("[data-open-account]").forEach(node => {
           const open = () => {
@@ -6514,7 +6517,7 @@
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
-        $("#teamSummary").innerHTML = "<strong>" + people.length + " people · " + totalQuotes + " quotes · " + totalOrders + " orders · " + averageOnTimeText + "</strong> — choose a measure to compare individual contribution without hiding workload.";
+        $("#teamSummary").innerHTML = "<strong>" + countOf(people.length, "person", "people") + " · " + countOf(totalQuotes, "quote") + " · " + countOf(totalOrders, "order") + " · " + averageOnTimeText + "</strong> — choose a measure to compare individual contribution without hiding workload.";
         $$("[data-person]", $("#teamRows")).forEach(button => button.addEventListener("click", () => { state.selectedPerson = Number(button.dataset.person); renderPeople(); }));
         const totalJobs = people.reduce((sum, person) => sum + (Number(person.jobs) || Number(person.orders) || 0), 0);
         const roleLabel = state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer";
@@ -6527,7 +6530,7 @@
             const detail = $(".member-name span", button);
             // Three long words in a fixed-width column truncated to "2 boo…".
             // The row header already names what these columns are.
-            if (person && detail) detail.textContent = person.quotes + " quotes · " + person.orders + " wins · " + person.jobs + " jobs";
+            if (person && detail) detail.textContent = countOf(person.quotes, "quote") + " · " + countOf(person.orders, "win") + " · " + countOf(person.jobs, "job");
           });
         }
         const selected = people[state.selectedPerson];

@@ -16,7 +16,7 @@ const r = await p.evaluate(() => {
   return {
     screen: active ? active.id : '(none)',
     heading: [...document.querySelectorAll('.screen.is-active h1, .screen.is-active h2')]
-      .slice(0, 2).map(n => n.textContent.trim().replace(/\s+/g, ' ').slice(0, 80)),
+      .slice(0, 2).map(n => n.innerText.trim().replace(/\s+/g, ' ').slice(0, 80)),
     runButtonInViewport: runBox.height > 0 && runBox.top < window.innerHeight && runBox.bottom > 0,
     runButtonY: Math.round(runBox.top),
     status: document.getElementById('runStatusTitle').textContent.trim(),
