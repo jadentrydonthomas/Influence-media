@@ -3346,7 +3346,7 @@
           const rate = percentage(wins, group.records.length);
           const outcomeLabel = wins ? wins + " win" + (wins === 1 ? "" : "s") : "no wins";
           const cells = group.records.map((record, recordIndex) => '<i class="matrix-cell ' + (record.won ? "confirmed" : "unconverted") + '" title="' + escape(record.id) + " - " + (record.won ? "confirmed order linked" : "no linked order") + '" style="--cell-delay:' + (190 + ((groupIndex * 19 + recordIndex * 7) % 360)) + 'ms" aria-hidden="true"></i>').join("");
-          return '<section class="record-week ' + (wins ? "has-win" : "no-win") + '" aria-label="' + escape(group.label + ": " + outcomeLabel + " from " + group.records.length + " quotes") + '"><div class="record-week-head"><span>' + escape(group.label) + '</span><strong>' + outcomeLabel + '</strong><b>' + pct(rate) + '</b></div><div class="record-week-grid">' + cells + '</div><small>' + group.records.length + ' quotes issued</small></section>';
+          return '<section class="record-week ' + (wins ? "has-win" : "no-win") + '" aria-label="' + escape(group.label + ": " + outcomeLabel + " from " + countOf(group.records.length, "quote")) + '"><div class="record-week-head"><span>' + escape(group.label) + '</span><strong>' + outcomeLabel + '</strong><b>' + pct(rate) + '</b></div><div class="record-week-grid">' + cells + '</div><small>' + group.records.length + ' quotes issued</small></section>';
         }).join("");
         setFlowFocus("");
         replayFlow();
@@ -3709,13 +3709,14 @@
         });
         const rows = Array.from(groups.values()).map(group => Object.assign(group, {
           name: resolvedNucorPerson(group.code, state.model && state.model.roster).name,
+          rosterMatched: resolvedNucorPerson(group.code, state.model && state.model.roster).matched,
           perWeek: group.quotes / weeks,
           turn: nucorTurnaround(group.records)
         })).sort((a, b) => (a.code === "(none)" ? 1 : 0) - (b.code === "(none)" ? 1 : 0) || b.quotes - a.quotes);
         const maxLoad = Math.max(1, ...rows.map(item => item.perWeek));
         const loadTable = '<div class="ops-table-wrap"><table class="ops-table">'
           + '<thead><tr><th>' + escape(roleWord) + '</th><th class="num">Quotes</th><th class="num">Per week</th><th>Relative load</th><th class="num">Alts</th><th class="num">Avg turn</th><th class="num">6+ days</th><th class="num">Quoted $</th><th class="num">Conversion</th></tr></thead><tbody>'
-          + rows.map(item => '<tr data-filter="' + roleField + '" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters[roleField] === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.name) + '</span></td>'
+          + rows.map(item => '<tr data-filter="' + roleField + '" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters[roleField] === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.code === "(none)" || item.rosterMatched ? item.name : item.name + " · not on the roster") + '</span></td>'
               + '<td class="num">' + item.quotes + '</td><td class="num">' + item.perWeek.toFixed(1) + '</td>'
               + '<td class="load"><i style="width:' + (item.perWeek / maxLoad * 100).toFixed(1) + '%"></i></td>'
               + '<td class="num">' + item.alts + '</td><td class="num">' + opsTurnText(item.turn.average) + '</td>'
@@ -4319,8 +4320,8 @@
         const lostEndX = gapLeft + gapW * 0.56, lostEndY = height - padBottom + 4, lostEndH = 30;
         const newStartX = gapLeft + gapW * 0.44, newStartY = padTop - 34, newStartH = 30;
         return '<svg class="cmp-flow" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Accounts kept, lost and gained between the two periods">'
-          + '<text class="flow-head" x="' + (leftX + colW / 2) + '" y="24" text-anchor="middle">' + escape(data.priorShort + " · " + opsNumber(keep.priorCount) + " accounts") + "</text>"
-          + '<text class="flow-head" x="' + (rightX + colW / 2) + '" y="24" text-anchor="middle">' + escape(data.currentShort + " · " + opsNumber(keep.currentCount) + " accounts") + "</text>"
+          + '<text class="flow-head" x="' + (leftX + colW / 2) + '" y="24" text-anchor="middle">' + escape(data.priorShort + " · " + countOf(keep.priorCount, "account")) + "</text>"
+          + '<text class="flow-head" x="' + (rightX + colW / 2) + '" y="24" text-anchor="middle">' + escape(data.currentShort + " · " + countOf(keep.currentCount, "account")) + "</text>"
           + ribbon(gapLeft, leftTop, keptH, gapRight, rightTop, keptH, "is-kept")
           + (keep.lostCount ? ribbon(gapLeft, leftTop + keptH, lostH, lostEndX, lostEndY, lostEndH, "is-lost") : "")
           + (keep.gainedCount ? ribbon(newStartX, newStartY, newStartH, gapRight, rightTop + keptH, newH, "is-new") : "")
@@ -5428,7 +5429,7 @@
             ],
           [
             { label: "Quoting last period", value: opsNumber(keep.priorCount), note: "the base we started from" },
-            { label: "Came back", value: pct(keep.keepRate), note: opsNumber(keep.keptCount) + " accounts", tone: keep.keepRate >= 85 ? "up" : keep.keepRate >= 70 ? "flat" : "down" },
+            { label: "Came back", value: pct(keep.keepRate), note: countOf(keep.keptCount, "account"), tone: keep.keepRate >= 85 ? "up" : keep.keepRate >= 70 ? "flat" : "down" },
             { label: "Gone quiet", value: opsNumber(keep.lostCount), note: fineMoney(keep.lostValue) + " of quoted work", tone: keep.lostCount ? "down" : "up" },
             { label: "Slipping", value: opsNumber(keep.atRiskCount), note: "still asking, down 40%+", tone: keep.atRiskCount ? "down" : "up" }
           ]);
@@ -5520,7 +5521,7 @@
             { label: "Owners", value: opsNumber(data.people.length), note: unnamedOwners
                 ? opsNumber(unnamedOwners) + (unnamedOwners === 1 ? " initial has no roster name" : " initials have no roster name")
                 : "every one named by the roster" },
-            { label: "Biggest load move", name: loadMoved, value: loadMoved ? busiest.label : "none", note: loadMoved ? (busiest.current - busiest.prior > 0 ? "+" : "−") + Math.abs(busiest.current - busiest.prior) + " quotes" : "every book the same size", tone: loadMoved ? toneOf(busiest.current - busiest.prior) : "flat" },
+            { label: "Biggest load move", name: loadMoved, value: loadMoved ? busiest.label : "none", note: loadMoved ? (busiest.current - busiest.prior > 0 ? "+" : "−") + countOf(Math.abs(busiest.current - busiest.prior), "quote") : "every book the same size", tone: loadMoved ? toneOf(busiest.current - busiest.prior) : "flat" },
             { label: "Quotes per owner", value: data.people.length ? (now.quotes / data.people.length).toFixed(1) : "—", note: data.people.length ? "was " + (then.quotes / data.people.length).toFixed(1) : "" },
             { label: "Hours per quote", value: now.hoursPerQuote.toFixed(2), note: "was " + then.hoursPerQuote.toFixed(2), tone: toneOf(now.hoursPerQuote - then.hoursPerQuote, true) }
           ]);
@@ -5836,7 +5837,7 @@
         $("#timelineKpis").innerHTML = [
           { label: "Quote load", value: (data.quotes / weeks).toFixed(1), note: "quotes per week · " + opsNumber(data.quotes) + " across " + weeks + " week" + (weeks === 1 ? "" : "s") },
           { label: "Alternates", value: opsNumber(data.alts), note: data.altsPerQuote.toFixed(2) + " per quote · priced work that is not a separate opportunity" },
-          { label: "Whole cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + opsNumber(line.total.scored) + " quotes" : "needs a Date In and a booked order" },
+          { label: "Whole cycle", value: dayText(line.total.median), note: line.total.scored ? "Date In to booked work on " + countOf(line.total.scored, "quote") : "needs a Date In and a booked order" },
           { label: "Inside three days", value: pct(percentage(data.turn.withinThree, data.turn.scored)), note: opsNumber(data.turn.withinThree) + " of " + opsNumber(data.turn.scored) + " quotes priced in three days or less" },
           { label: "Open book", value: money(line.openValue), note: opsNumber(line.openCount) + " quotes with no linked order" },
           { label: "Sitting past 60 days", value: opsNumber(oldest.count), note: money(oldest.value) + " · " + pct(oldest.share) + " of the open book", tone: oldest.count ? "bad" : "good" }
@@ -6552,7 +6553,9 @@
             ? "—"
             : person.onTime + "% (" + (Number(person.onTimeScoredCount) || 0) + "/" + person.quotes + ")" + (person.onTimeThin ? " thin" : "");
           const loose = person.code === "(none)";
-          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + (loose ? "no owner code · " : "") + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "order") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
+          const unnamed = !loose && person.rosterMatched === false;
+          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + (loose ? "no owner code · " : "") + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "order")
+            + (unnamed ? " · not on the roster" : "") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
@@ -6578,7 +6581,8 @@
             // Three long words in a fixed-width column truncated to "2 boo…".
             // The row header already names what these columns are.
             if (person && detail) detail.textContent = (person.code === "(none)" ? "no owner code · " : "")
-              + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "win") + " · " + countOf(person.jobs, "job");
+              + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "win") + " · " + countOf(person.jobs, "job")
+              + (person.code !== "(none)" && person.rosterMatched === false ? " · not on the roster" : "");
           });
         }
         const selected = people[state.selectedPerson];
@@ -9564,7 +9568,7 @@
                 + "</text>"
               : "")
           + stage(padLeft, oursW, "is-ours", "OUR PART", ours === null ? "—" : dayText(ours),
-              line.produce.scored ? "pricing it · scored on " + opsNumber(line.produce.scored) + " quotes" : "not scored")
+              line.produce.scored ? "pricing it · scored on " + countOf(line.produce.scored, "quote") : "not scored")
           + stage(padLeft + oursW, theirsW, "is-theirs", "THE CUSTOMER'S PART", theirs === null ? "—" : dayText(theirs),
               line.decide.scored ? "deciding · scored on " + opsNumber(line.decide.scored) + " booked quotes" : "not scored")
           + '<line class="proc-tick" x1="' + padLeft + '" x2="' + padLeft + '" y1="' + (barY - 8) + '" y2="' + (barY + barH + 8) + '" />'

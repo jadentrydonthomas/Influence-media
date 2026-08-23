@@ -171,6 +171,32 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
   check('the sentence over the list reads off the same floor', /under 10 quotes/.test(summary), summary.slice(-70));
 }
 
+// M-45: a code with no full-name row in the roster is not somebody's name. The
+// summary claimed three codes were "visibly flagged" while the rows carried no
+// flag, so a reader could not tell which three.
+{
+  await page.click('[data-team-metric="volume"]');
+  await page.waitForTimeout(700);
+  const rows = await page.$$eval('#teamRows .team-row', nodes => nodes.map(row => ({
+    name: (row.querySelector('.member-name strong') || {}).textContent.trim(),
+    sub: (row.querySelector('.member-name span') || {}).textContent.trim(),
+  })));
+  // A row whose displayed name is just an initials code has no roster name.
+  const codes = rows.filter(r => /^[A-Z]{2,4}$/.test(r.name));
+  check('the roster carries at least one unnamed code', codes.length > 0, codes.map(r => r.name).join(','));
+  check('every unnamed code says it is not on the roster',
+    codes.every(r => /not on the roster/i.test(r.sub)),
+    codes.filter(r => !/not on the roster/i.test(r.sub)).map(r => r.name).join(' | '));
+  const named = rows.filter(r => !/^[A-Z]{2,4}$/.test(r.name) && !/no initials/i.test(r.name));
+  check('a resolved name is not marked as missing from the roster',
+    named.every(r => !/not on the roster/i.test(r.sub)),
+    named.filter(r => /not on the roster/i.test(r.sub)).map(r => r.name).join(' | '));
+  const sheet = await page.$$eval('#teamLoad .ops-table tbody tr', nodes => nodes.map(r => r.innerText.replace(/\s+/g, ' ').trim()));
+  const sheetCodes = sheet.filter(r => /^([A-Z]{2,4}) \1\b/.test(r));
+  check('the sheet marks them too', sheetCodes.length > 0 && sheetCodes.every(r => /not on the roster/i.test(r)),
+    sheetCodes.filter(r => !/not on the roster/i.test(r)).join(' | ').slice(0, 80));
+}
+
 // The analysis panels put a bar and a figure on the same row. They have to be
 // the same measure: a bar drawn on quote counts beside a conversion rate, or on
 // value beside a rate, invites a reader to take one for the other.
