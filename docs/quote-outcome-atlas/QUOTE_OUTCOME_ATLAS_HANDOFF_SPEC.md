@@ -5,7 +5,7 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.8 |
+| **Spec version** | 2.9 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
 | **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
@@ -405,6 +405,7 @@ Three stages, each measured from dates the source already carries, each scored *
 - **M-40** — **Report what was not merged.** Names that look like one company and were deliberately left as two — the same words in a different order, one name extending the other with non-generic words, or two spellings within two characters of each other — MUST be listed with their quote counts on the data-mapping surface. Every merge that *was* made MUST be listed beside them with its reason. A rule that guesses silently is worse than one that reports; the fix for a typo belongs in the source workbook, not in a heuristic.
 - **M-41** — **A rate moves in points.** Percentage change computed on a percentage is the wrong arithmetic, and a rate that was zero has not gone "new". Every comparison of two rates MUST report the move in percentage points.
 - **M-42** — **Presence needs a span.** Where fewer than four weeks are loaded on either side, a surface MUST NOT describe absent accounts as churn. It MUST say instead that this is which accounts happened to quote in the loaded weeks, and MUST replace any retention figure in a headline with a measure that holds at any span.
+- **M-49** — **A chart MUST name the row that mattered.** Where a chart draws more than a handful of paired marks, it MUST state which single unit moved furthest, by how much, and how that sits against the whole. Three cases MUST be distinguished: a share of the total move; a move larger than the total, which happens when the rest moved the other way; and a mover that went against the period entirely. A share MUST be computed across every unit in the measure, not only the units the chart happened to draw, and MUST NOT be clamped — a clamp turns "this one fell further than the whole did" into "this is the whole fall", which is false.
 - **M-47** — **A derived measure does not exist on a side with no book.** A rate, a per-quote figure or an average MUST be reported as unavailable — never as zero — on any side where the denominator is absent. Reporting `0.00` hours per quote for a person who owned no quotes renders as a hundred per cent improvement, in the improvement colour, for having done no work. Counts and sums are real zeros and are reported as zero.
 - **M-48** — **A rate ranked must be a rate that can carry a ranking.** Where a list is ordered by a rate, any entity below the thin-sample floor of [M-9](#4-metric-definitions-and-formulas) MUST be marked as thin, drawn without an emphasis bar, and ordered below every entity that clears the floor. The generated sentence above such a list MUST read off the same floor, and MUST say so when nothing clears it.
 - **M-44** — **A view MUST read at a grain it can actually draw.** Where a comparison has fewer than two units on the axis it plots against — one matched week, say — it MUST fall through to the next finer grain it holds (the days inside that week) rather than stand a single pair of columns in an empty plot. Every heading and note on the view MUST change with the grain, and the view MUST say which grain it is reading at.
@@ -476,6 +477,9 @@ The strongest design on the page.
 - **V-29** — A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.
 - **V-31** — Where labels cannot sit beside the marks they belong to — values clustered in a narrow band on a slope chart, for instance — the labels MUST be de-crowded **locally** and tied back to their marks with leader lines. Shifting the whole stack to make room silently separates every label from its own point.
 - **V-33** — A comparison of one entity across two periods is a **card**, not a line on a chart with a name beside it. Where the entity is a person or an account, the card MUST carry the same measures the dedicated screen carries, each shown for both periods with its move. A slope chart is a summary of many entities, never a substitute for the detail of one.
+- **V-40** — **One product, one surface language.** Where the deck and the dashboard draw the same kind of mark, they MUST draw it the same way: the same extrusion on the same offset from the same light source, the same type weight and tracking on a heading, the same lit face on a bar. A report and the tool that produced it reading as two products is a defect, not a matter of taste.
+- **V-41** — **A bar MUST mean the same thing as the figure printed beside it.** Where one list carries measures in different units, it MUST be split so each block is ranked and scaled in one unit. Explaining a mismatch in a caption is not a fix.
+- **V-42** — **Every view is one order.** Where a screen carries a list, a chart and a table of the same entities, all three MUST share one ordering and MUST redraw together. Each MUST state the order it is in.
 - **V-39** — **A comparison of many entities is a list, not a wall of cards.** Where a screen compares a roster across two periods it MUST follow the shape of the dedicated screen for that roster: one measure chosen at a time, the roster ranked by it, and the full detail shown for **one** selected entity beside the list — not every measure for every person at once. Twelve cards of twelve cells is a hundred and forty-four figures with no order to them, and a reader cannot find anything in it.
 - **V-35** — A band drawn between two series MUST be coloured by which series is in front **over each segment of it**, split at the crossing. One colour taken from the last point tells a reader the wrong thing about every point before it.
 - **V-36** — A measure grid MUST NOT end on a partly filled row. The count of measures MUST divide by every column count the grid can resolve to, or the grid MUST fix its column count explicitly. A row of holes reads as missing data.
@@ -532,6 +536,7 @@ Slide numbering is contiguous, not fixed: a slide that cannot answer its own que
 - **K-10** — Layout auditing MUST measure **each slide in turn**. A hidden slide measures as zero, so an audit that walks every slide at once only ever checks whichever one is active. See [Appendix A, A-19](#appendix-a--defect-log).
 - **K-12** — Layout MUST be verified against **inflated figures**, not only against the fixture. A layout that holds only because the sample numbers are small is not repeatable. See [`test/deck-stress.mjs`](#12-verification-baseline) and [P-21](#2-non-negotiable-product-requirements).
 - **K-13** — The navigation MUST occupy a reserved band that no slide content can enter, rather than overlaying the content area.
+- **K-17** — **The deck reports; it does not instruct.** No slide may carry an imperative heading or a directive body. The same figures MUST be stated as findings, and the deck MUST end on a closing mark rather than a conclusion or a list of actions. What to do about a finding is the room's conversation.
 - **K-16** — Every chapter of the deck MUST close on its own slide: what the chapter came to, and the work it implies. Each action on it MUST be derived from the figures in that chapter and MUST name them. A chapter that stops on a table has not finished.
 - **K-15** — Slides answering the same question MUST sit together, and a slide MUST sit next to the slide it explains. The deck MUST close on a slide that states what to do next; a deck that stops on a table has not finished. Any slide reporting a rate MUST also carry the count and the money that rate was measured on.
 - **K-14** — A deck chapter that depends on optional data MUST be appended only when that data is loaded, MUST carry a divider slide that names the chapter, and MUST continue the deck's slide numbering. Every slide in it is bound by [P-21](#2-non-negotiable-product-requirements) and MUST be included in the stress audit ([K-12](#10-team-report-deck-requirements)).
@@ -791,6 +796,14 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-38** | With one week loaded on each side, 40 of 51 accounts were reported as having stopped asking. They had not; they simply quoted in a different week. | [M-42](#8-required-calculations-and-analytics) | **Fixed** — under four weeks a side, the surface reframes the whole view as which accounts quoted in the loaded weeks, and the headline drops the retention figure. |
 | **A-39** | The customer slide's "who costs us" header read `$0.0M priced and not returned` while the rows beneath it read $11.1M, $8.7M, $5.9M. Account value is carried in millions and was divided by a million again. Fourth occurrence of the same class of defect. | [M-24](#8-required-calculations-and-analytics) | **Fixed**, and the deck regression now asserts the header against the rows. |
 | **A-40** | A caption positioned from an estimated glyph width collided with the figure beside it as soon as the number got longer; a short segment on the process bar centred its caption off the left edge of the chart. | [V-30](#97-year-over-year-encoding) | **Fixed** — captions sit on their own line, and any caption whose centre falls near an edge is anchored to that edge instead of being clipped by it. |
+| **A-53** | The customer slide named the same company as one of the four best payers and one of the four biggest costs, two inches apart. The cost side ranked on unreturned value, and the best payers ask for the most, so they leave the most on the table by arithmetic alone. | [M-24](#8-required-calculations-and-analytics) | **Fixed** — the cost side is accounts that asked at least twice and got under a fifth of it back, with anything on the payer side excluded outright; the regression asserts the two lists cannot intersect. |
+| **A-54** | The deck gave orders. Both closing slides carried imperative headings and bodies ending in directives, and the base deck ended on a list of three actions. | [K-17](#10-team-report-deck-requirements) | **Fixed** — same figures restated as findings, and the deck ends on a Nucor closing mark. The regression fails if a closing card heading starts with an imperative again. |
+| **A-55** | The ranked-measure lists drew a bar scaled on the relative move beside a figure stated in points, so value capture drew a longer bar than quoted value while reporting a smaller number. | [V-41](#97-year-over-year-encoding) | **Fixed** — each list splits into counts-and-money and rates, each ranked and scaled in its own unit. |
+| **A-56** | The roster list re-ranked on every measure change while the chart and the reference sheet beneath it kept a fixed order, so twelve people appeared in three sequences on one screen. | [V-42](#97-year-over-year-encoding) | **Fixed** — one ordering function serves all three and all three redraw together. |
+| **A-57** | The biggest-mover sentence clamped its share to a hundred per cent, so a day that fell further than the whole period did was reported as "100.0% of the whole fall". A later fix left a gap at 100.5%. | [M-49](#8-required-calculations-and-analytics) | **Fixed** — three cases are distinguished and nothing is clamped. |
+| **A-58** | The district biggest-mover share was computed across the twelve districts drawn rather than all forty-four, and presented as a share of the whole. | [M-49](#8-required-calculations-and-analytics) | **Fixed** — the share is computed across every district. |
+| **A-59** | With the plural derived from a day/week flag, the district chart reported "because the other weeks went the other way". | [M-49](#8-required-calculations-and-analytics) | **Fixed** — each caller names the unit it is drawing. |
+| **A-60** | The open-book composition strip was an unlabelled slab of colour above a table of zeros; the calendar chart's legend swatch stayed grey after its line moved to the period hue; the primary Run action was a flat rectangle stretched to the height of the panel beside it, above an empty duplicate of its own container. | [P-29](#2-non-negotiable-product-requirements) | **Fixed** — found by looking at the screens, not by any assertion. |
 | **A-49** | The year-over-year People view was twelve cards of twelve cells — a hundred and forty-four figures with no ordering principle, no way to focus on one person, and no relationship to the Team performance screen it was meant to mirror. | [V-39](#97-year-over-year-encoding) | **Fixed** — rebuilt on the Team performance skeleton: a measure switcher, a roster ranked by that measure, one person open beside the list, one chart, one reference sheet. |
 | **A-50** | On hours per quote, four engineers who owned no quotes at all this period reported `0.25 → 0.00`, drawn as −100% in the improvement colour: the largest apparent gains on the roster belonged to the people with no book. | [M-47](#8-required-calculations-and-analytics) | **Fixed** — a derived measure reads as a dash on a side with no denominator, carries no move and draws no bar. |
 | **A-51** | On close rate, an engineer who owned one quote and booked it sat at the top of the roster at 100%, above the engineer carrying thirteen. | [M-48](#8-required-calculations-and-analytics) | **Fixed** — thin books are marked, drawn without a bar, and ranked below every book that clears the floor; the sentence above the list reads off the same floor. |
@@ -822,6 +835,35 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.9 — 23 Aug 2026
+
+A continuous review run across the whole product, driven on the real 2025 and 2026 books. The recurring defect is no longer layout: it is **a shape that carries a finding and does not state it**, and its cousin, **a figure that quietly contradicts another**. Neither is caught by an assertion; both need somebody to look.
+
+**Correctness**
+
+- **A payer is not a cost** ([A-53](#appendix-a--defect-log)). The same company was named as a top payer and a top cost on one slide.
+- **A bar means the same thing as its own figure** ([V-41](#97-year-over-year-encoding)). Ranked lists split into counts-and-money and rates, each in its own unit.
+- **Charts name the row that mattered** ([M-49](#8-required-calculations-and-analytics)) — momentum, districts and value bands — across three honestly distinguished cases, with the share taken over every unit and never clamped.
+- **One view, one order** ([V-42](#97-year-over-year-encoding)) for the roster's list, chart and reference sheet.
+
+**The deck reports** ([K-17](#10-team-report-deck-requirements))
+
+- Imperative headings and directive bodies are gone from both closing slides; the deck ends on a Nucor closing mark.
+- The week-against-week slide is gone: a row of paired columns is a table drawn as a chart.
+
+**One product, one surface language** ([V-40](#97-year-over-year-encoding))
+
+- The deck's extruded columns are now the dashboard's, on the same offset and light source, and every horizontal bar carries the same lit face.
+- The dashboard takes the deck's type weight, size and tracking; each eyebrow carries a rule.
+- A second real hue for the prior period, lit gradient fills, a three-step elevation scale, deck slide motion, and a custom pointer that never replaces the system cursor.
+- The mark is placed rather than parked, on the rail and on the deck cover.
+
+**Year over year, filled in**
+
+- Six sorts on the account list, order-log job detail in the brief, and a new panel — *who actually paid us, then and now* — because presence and payment are different questions and every list on the screen only answered the first.
+
+**Defects logged and fixed:** [A-53](#appendix-a--defect-log) through [A-60](#appendix-a--defect-log).
 
 ### v2.8 — 21 Aug 2026
 
