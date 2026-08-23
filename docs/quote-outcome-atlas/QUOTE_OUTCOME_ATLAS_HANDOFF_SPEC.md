@@ -5,7 +5,7 @@
 | **Product owner** | Nucor Building Systems — Estimating |
 | **Primary deliverable** | `quote-conversion-atlas-shareable.html` |
 | **Companion references** | `DATA-EXTRACTION-MAP.md`, `SHARE-README.md` |
-| **Spec version** | 2.9 |
+| **Spec version** | 2.10 |
 | **Last revised** | 19 Aug 2026 |
 | **Status** | Active — single source of truth |
 | **Supersedes** | v2.1, v2.0, the v1.0 handoff spec, and the earlier engineering brief |
@@ -478,6 +478,8 @@ The strongest design on the page.
 - **V-29** — A comparison of two periods MUST be carried by charts, not by tables of paired figures. Ranked change bars, a value bridge, paired columns, a cumulative race and a scatter of movement are each a shape a reader takes in at once; the equivalent table is a set of numbers they must subtract in their head. A full table MAY be kept as a reference view, but MUST NOT be the front door.
 - **V-31** — Where labels cannot sit beside the marks they belong to — values clustered in a narrow band on a slope chart, for instance — the labels MUST be de-crowded **locally** and tied back to their marks with leader lines. Shifting the whole stack to make room silently separates every label from its own point.
 - **V-33** — A comparison of one entity across two periods is a **card**, not a line on a chart with a name beside it. Where the entity is a person or an account, the card MUST carry the same measures the dedicated screen carries, each shown for both periods with its move. A slope chart is a summary of many entities, never a substitute for the detail of one.
+- **V-43** — **One product, one minus.** Every signed figure MUST be set with a true minus, never a hyphen. Two signs on one row of cards read as two different marks. A legend swatch MUST be the colour its own series is drawn in, and MUST NOT appear for a series the chart does not contain — a total is ruled off, not given a colour of its own.
+- **V-44** — **A shape that cannot answer its own question says so.** Where a view needs more than one unit to mean anything — a trend across weeks, a comparison between periods — and only one is loaded, it MUST reframe rather than report the single unit as its own peak, its own latest and zero points from its own average.
 - **V-40** — **One product, one surface language.** Where the deck and the dashboard draw the same kind of mark, they MUST draw it the same way: the same extrusion on the same offset from the same light source, the same type weight and tracking on a heading, the same lit face on a bar. A report and the tool that produced it reading as two products is a defect, not a matter of taste.
 - **V-41** — **A bar MUST mean the same thing as the figure printed beside it.** Where one list carries measures in different units, it MUST be split so each block is ranked and scaled in one unit. Explaining a mismatch in a caption is not a fix.
 - **V-42** — **Every view is one order.** Where a screen carries a list, a chart and a table of the same entities, all three MUST share one ordering and MUST redraw together. Each MUST state the order it is in.
@@ -798,6 +800,17 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | **A-39** | The customer slide's "who costs us" header read `$0.0M priced and not returned` while the rows beneath it read $11.1M, $8.7M, $5.9M. Account value is carried in millions and was divided by a million again. Fourth occurrence of the same class of defect. | [M-24](#8-required-calculations-and-analytics) | **Fixed**, and the deck regression now asserts the header against the rows. |
 | **A-40** | A caption positioned from an estimated glyph width collided with the figure beside it as soon as the number got longer; a short segment on the process bar centred its caption off the left edge of the chart. | [V-30](#97-year-over-year-encoding) | **Fixed** — captions sit on their own line, and any caption whose centre falls near an edge is anchored to that edge instead of being clipped by it. |
 | **A-61** | The report-deck export handed the viewer a blob link. Opened from disk that saves the deck; opened inside a viewer that mediates saves the link is inert, so the primary export button silently did nothing and then reported "Report deck downloaded". | [P-30](#2-non-negotiable-product-requirements) | **Fixed** — the host save surface is asked when one exists, the anchor is used when it does not, and the button states which answered. |
+| **A-62** | The deck had no prior-period hue, so it drew last period in the neutral grey-blue that elsewhere means "no change", while the dashboard had already moved to a real teal: the same concept in two colours across the two surfaces. | [V-40](#97-year-over-year-encoding) | **Fixed** — the deck carries the same token family, and every "then" mark on both surfaces uses it. |
+| **A-63** | Two legends were drawn in colours their charts do not contain: the weekly pulse swatch was still flat steel after its columns became lit teal, and the deck's paired-column key drew a fixed swatch while the columns took their colour from the caller. The value-mix ring also listed its total with a swatch for a slice the ring has not got. | [V-43](#97-year-over-year-encoding) | **Fixed** — each legend reads its own series, and the total is ruled off rather than coloured. |
+| **A-64** | Signed percentages were formatted with a hyphen while every other signed figure used a true minus, so one row of three cards carried both. | [V-43](#97-year-over-year-encoding) | **Fixed** — every signed formatter uses a true minus, asserted on the whole year-over-year screen and on the exported deck. |
+| **A-65** | "VALUE CAPTURED" was wider than the ring it sat inside, so both ends were clipped by the ring itself. | [P-29](#2-non-negotiable-product-requirements) | **Fixed** — the label takes the hole's width and breaks over two lines. |
+| **A-66** | Two value bars were floored at 5% and 12% of their track, so at small shares the bar disagreed with the figure printed beside it. | [V-41](#97-year-over-year-encoding) | **Fixed** — the floors are gone; a hairline keeps a real but tiny share visible without inflating it. |
+| **A-67** | With one week loaded, the weekly pulse called that week both the peak release and the latest conversion, and reported it as "0.0 points above the selected-book average" — three ways of saying nothing. | [V-44](#97-year-over-year-encoding) | **Fixed** — it states what the single week holds and that there is no trend yet. |
+| **A-68** | A column figure pushed off the top of its lane was drawn onto the column's own lit top face, reading as neither on nor off the column; and one figure could sit inside while its neighbours sat above. | [P-29](#2-non-negotiable-product-requirements) | **Fixed** — the figure sits inside the front face, and the row decides together. |
+| **A-69** | The bridge drew the book we started from and the book we landed on in the same green, so the two ends could only be told apart by reading the labels. | [V-40](#97-year-over-year-encoding) | **Fixed** — the opening total takes the prior-period hue. |
+| **A-70** | The new-accounts table on the churn slide was a column of five dashes, and a name was clipped to an ellipsis beside a chart printing the same name in full. | [M-49](#8-required-calculations-and-analytics) | **Fixed** — the panel says none of the new names has booked yet, which is what the dashes meant, and the names are not clipped. |
+| **A-71** | The attribution cards were ordered by size of effect and the ribbon beneath them by the order the three factors multiply, so the same three amounts appeared in two sequences with nothing said about it. | [V-42](#97-year-over-year-encoding) | **Fixed** — both surfaces now say which order each is in. |
+| **A-72** | The report-deck export was a link the artifact viewer cannot honour, so the primary export silently did nothing. | [P-30](#2-non-negotiable-product-requirements) | **Fixed** — see A-61. |
 | **A-53** | The customer slide named the same company as one of the four best payers and one of the four biggest costs, two inches apart. The cost side ranked on unreturned value, and the best payers ask for the most, so they leave the most on the table by arithmetic alone. | [M-24](#8-required-calculations-and-analytics) | **Fixed** — the cost side is accounts that asked at least twice and got under a fifth of it back, with anything on the payer side excluded outright; the regression asserts the two lists cannot intersect. |
 | **A-54** | The deck gave orders. Both closing slides carried imperative headings and bodies ending in directives, and the base deck ended on a list of three actions. | [K-17](#10-team-report-deck-requirements) | **Fixed** — same figures restated as findings, and the deck ends on a Nucor closing mark. The regression fails if a closing card heading starts with an imperative again. |
 | **A-55** | The ranked-measure lists drew a bar scaled on the relative move beside a figure stated in points, so value capture drew a longer bar than quoted value while reporting a smaller number. | [V-41](#97-year-over-year-encoding) | **Fixed** — each list splits into counts-and-money and rates, each ranked and scaled in its own unit. |
@@ -837,6 +850,24 @@ Found by driving the dashboard against the real Week 1–3 2026 quote books and
 | Quote-number prefixes carry district | Used for the district lens, read straight off the quote key with no roster inference. |
 
 ## Appendix B — Change log
+
+### v2.10 — 23 Aug 2026
+
+A review pass driven by looking at the real screens rather than by running the assertions, which all passed throughout.
+
+**One product, one surface language** ([V-40](#97-year-over-year-encoding), [V-43](#97-year-over-year-encoding))
+
+- The deck had no prior-period hue of its own and drew last period in the neutral grey-blue that elsewhere means "no change". It now carries the dashboard's teal, and every "then" mark on both surfaces uses it: paired columns, the survival curve, the attribution ribbon, the race lines, the roster and brief bars, and the opening total of the bridge.
+- Two legends were drawn in colours their charts do not contain; both now read their own series. The value-mix total is ruled off rather than given a colour of its own.
+- Every signed figure uses a true minus. The year-over-year screen and the exported deck both assert it.
+
+**Shapes that could not answer their own question** ([V-44](#97-year-over-year-encoding))
+
+- One week loaded is not a pulse. It called that week the peak and the latest and reported it as zero points from its own average.
+- A column of five dashes on the churn slide is a finding: none of the new names has booked yet. It says so.
+- The attribution cards rank by effect and the ribbon steps in multiplication order. Both now say which order they are in.
+
+**Defects logged and fixed:** [A-62](#appendix-a--defect-log) through [A-72](#appendix-a--defect-log).
 
 ### v2.9 — 23 Aug 2026
 

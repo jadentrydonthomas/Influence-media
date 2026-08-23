@@ -197,6 +197,16 @@ if (!download) {
     check('closing cards state findings, not orders', orders.join(' | '), '');
     check('the closing cards drew', heads.length > 0, true);
   }
+  // The deck and the dashboard set the same signed figures, so they have to set
+  // them with the same character. A hyphen in front of a figure that carries a
+  // unit is the old formatter leaking through.
+  {
+    // Stylesheets and scripts are not prose: translate(-50%) is not a figure.
+    const text = deck.replace(/<(style|script)[\s\S]*?<\/\1>/g, ' ')
+      .replace(/<[^>]+>/g, ' ').replace(/&minus;/g, '−').replace(/&[a-z]+;/g, ' ');
+    const found = (text.match(/-\$?\d[\d.,]*\s*(?:%|pts|points)/g) || []).slice(0, 5);
+    check('every signed figure in the deck uses a true minus', found.join(' '), '');
+  }
   checkMatch('deck on-time carries coverage', deck, /174 of 174 scored/);
   checkMatch('deck does not call on-time a full-book figure', deck, /^(?!.*on time<\/span><strong>[^<]*<\/strong><small>full quote book)[\s\S]*$/);
   // The timing disc's conic arc used to be painted over from both sides by an

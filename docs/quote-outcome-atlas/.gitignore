@@ -12,3 +12,4 @@ test/figures.json
 # Real quote books and order logs contain customer names, prices and staff
 # emails. This repository is public - fixtures stay local, never committed.
 fixtures/
+test/look/

@@ -649,6 +649,7 @@
     .yoy-stat { padding: 13px 16px 14px; background: var(--night); }
     .yoy-stat span { display: block; color: rgba(238,255,242,.5); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
     .yoy-stat strong { display: block; margin-top: 6px; font-family: var(--mono); font-size: 23px; font-weight: 500; letter-spacing: -.05em; }
+    .yoy-stat strong.is-name { font-family: var(--display); font-size: 15px; font-weight: 800; letter-spacing: -.01em; line-height: 1.18; }
     .yoy-stat strong.is-up { color: var(--green-bright); }
     .yoy-stat strong.is-down { color: #f0a98f; }
     .yoy-stat strong.is-flat, .yoy-stat strong.is-plain { color: #ffffff; }
@@ -4090,7 +4091,7 @@
           + ((stats && stats.length)
               ? '<div class="yoy-lede-stats">' + stats.map(stat =>
                   '<div class="yoy-stat"><span>' + escape(stat.label) + "</span>"
-                  + '<strong class="is-' + (stat.tone || "plain") + '">' + escape(stat.value) + "</strong>"
+                  + '<strong class="is-' + (stat.tone || "plain") + (stat.name ? " is-name" : "") + '">' + escape(stat.value) + "</strong>"
                   + (stat.note ? "<small>" + escape(stat.note) + "</small>" : "") + "</div>").join("") + "</div>"
               : "")
           + "</section>";
@@ -5110,7 +5111,7 @@
           + cmpAttributionRibbon(attribution, data)
           + '<p class="ops-note">The ribbon leaves last period at ' + escape(money(attribution.from))
           + ", steps once for each of the three, and arrives at " + escape(money(attribution.to))
-          + ". A step up added money, a step down took it out.</p>";
+          + ". A step up added money, a step down took it out. The cards above are ordered by how much each step moved; the ribbon steps in the order the three multiply, so the same three amounts appear in a different sequence.</p>";
 
         $("#cmpChange").innerHTML = cmpRankedMeasures([
           { label: "Quotes issued", now: now.quotes, was: then.quotes, fmt: opsNumber },
@@ -5499,7 +5500,7 @@
             { label: "Owners", value: opsNumber(data.people.length), note: unnamedOwners
                 ? opsNumber(unnamedOwners) + (unnamedOwners === 1 ? " initial has no roster name" : " initials have no roster name")
                 : "every one named by the roster" },
-            { label: "Biggest load move", value: loadMoved ? cmpClip(busiest.label, 16) : "none", note: loadMoved ? (busiest.current - busiest.prior > 0 ? "+" : "") + (busiest.current - busiest.prior) + " quotes" : "every book the same size", tone: loadMoved ? toneOf(busiest.current - busiest.prior) : "flat" },
+            { label: "Biggest load move", name: loadMoved, value: loadMoved ? busiest.label : "none", note: loadMoved ? (busiest.current - busiest.prior > 0 ? "+" : "−") + Math.abs(busiest.current - busiest.prior) + " quotes" : "every book the same size", tone: loadMoved ? toneOf(busiest.current - busiest.prior) : "flat" },
             { label: "Quotes per owner", value: data.people.length ? (now.quotes / data.people.length).toFixed(1) : "—", note: data.people.length ? "was " + (then.quotes / data.people.length).toFixed(1) : "" },
             { label: "Hours per quote", value: now.hoursPerQuote.toFixed(2), note: "was " + then.hoursPerQuote.toFixed(2), tone: toneOf(now.hoursPerQuote - then.hoursPerQuote, true) }
           ]);
@@ -9683,7 +9684,11 @@
         const ranked = cmp.attribution.factors.slice().sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
         const attrSlide = cmpBecauseCards(cmp.attribution, cmp, { deck: true })
           + '<div class="deck-subhead">The same three steps, drawn</div>'
-          + deckAttributionRibbon(cmp.attribution, cmp);
+          + deckAttributionRibbon(cmp.attribution, cmp)
+          // The cards are ranked by size of effect; the ribbon steps in the
+          // order the three multiply. Side by side that reads as a
+          // disagreement about which one mattered unless it is said.
+          + '<p class="chart-note">The cards are ordered by how much each step moved. The ribbon steps in the order the three multiply, so the same three amounts appear in a different sequence.</p>';
 
         // ---- Speed at equal age ---------------------------------------------------
         const deepMark = cmp.survivalDeepest;

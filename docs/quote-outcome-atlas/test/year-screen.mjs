@@ -305,6 +305,28 @@ await p.waitForTimeout(700);
     chartOrder.slice(0, 4).join(',') + ' → ' + reordered.slice(0, 4).join(','));
 }
 
+// One product, one minus. A signed figure set with a hyphen sits next to one
+// set with a true minus and reads as two different marks; the screen carried
+// both on a single row of cards.
+{
+  await p.click('[data-screen="compare"]'); await p.waitForTimeout(500);
+  const views = await p.$$eval('[data-compare-view]', n => n.map(x => x.getAttribute('data-compare-view')));
+  const offenders = [];
+  for (const view of views) {
+    await p.click(`[data-compare-view="${view}"]`);
+    await p.waitForTimeout(600);
+    const found = await p.evaluate(() => {
+      const panel = document.querySelector('#compare');
+      const text = panel ? panel.innerText : '';
+      // A hyphen directly in front of a figure that carries a unit. Dates and
+      // ranges use other characters, so nothing else can match this.
+      return (text.match(/-\$?\d[\d.,]*\s*(?:%|pts|points|M\b|k\b)/g) || []).slice(0, 4);
+    });
+    if (found.length) offenders.push(view + ': ' + found.join(' '));
+  }
+  check('every signed figure uses a true minus, not a hyphen', offenders.length === 0, offenders.join(' | '));
+}
+
 // Borrowed order log: the screen must say so rather than imply a real read.
 await load({ withPrior: true, withPriorOrder: false });
 await p.click('[data-screen="compare"]'); await p.waitForTimeout(600);

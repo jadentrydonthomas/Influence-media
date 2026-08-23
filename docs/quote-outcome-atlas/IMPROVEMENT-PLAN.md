@@ -48,6 +48,28 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The export reaches a real save surface** (2026-08-23). The deck button
+      built a blob and clicked an anchor. A browser opening the file from disk
+      honours that, which is the delivery path, so it always looked fine; a
+      viewer that mediates saves ignores it, so the primary export did nothing
+      and then said "Report deck downloaded". It now asks the host when there
+      is one, uses the anchor when there is not, and says which answered.
+      `test/export-surface.mjs` walks all five outcomes.
+
+- [x] **One prior-period hue across both surfaces** (2026-08-23). The deck had
+      none of its own and borrowed the neutral grey-blue that everywhere else
+      means "no change", while the dashboard had already moved to a real teal.
+      Two legends were also drawn in colours their charts do not contain, and
+      signed percentages used a hyphen while every other signed figure used a
+      true minus. Locked by assertions on the screen and on the exported deck.
+
+- [x] **Shapes that carried a finding and did not state it** (2026-08-23). One
+      week loaded reported itself as its own peak, its own latest and zero
+      points from its own average; a column of five dashes meant none of the
+      new accounts has booked; the attribution cards and the ribbon under them
+      were in two different orders with nothing said about it.
+
+
 - [x] **Districts and value bands name their finding too** (2026-08-23). Twelve
       districts and four bands drawn side by side with nothing said about any of
       them. Two things had to be right to say it honestly: the share is computed
