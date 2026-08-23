@@ -1427,6 +1427,9 @@
     .member-value { color: var(--ink-muted); font-family: var(--mono); font-size: 12px; font-weight: 600; text-align: right; }
     /* The year-over-year roster: the Team performance list with a second
        figure in every row, so the same eye movement reads both periods. */
+    .team-row.is-unattributed { border-top: 2px solid var(--line-strong); background: var(--surface-soft); }
+    .team-row.is-unattributed .member-initials { color: var(--ink-faint); background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+    .team-row.is-unattributed .member-name strong { color: var(--ink-muted); }
     .cmp-view .team-list-head, .cmp-view .team-row { grid-template-columns: minmax(200px,1.15fr) 132px minmax(112px,.75fr) 82px; }
     .cmp-view .team-row { min-height: 76px; }
     .cmp-then-now { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; min-width: 0; }
@@ -3696,7 +3699,7 @@
           name: resolvedNucorPerson(group.code, state.model && state.model.roster).name,
           perWeek: group.quotes / weeks,
           turn: nucorTurnaround(group.records)
-        })).sort((a, b) => b.quotes - a.quotes);
+        })).sort((a, b) => (a.code === "(none)" ? 1 : 0) - (b.code === "(none)" ? 1 : 0) || b.quotes - a.quotes);
         const maxLoad = Math.max(1, ...rows.map(item => item.perWeek));
         const loadTable = '<div class="ops-table-wrap"><table class="ops-table">'
           + '<thead><tr><th>' + escape(roleWord) + '</th><th class="num">Quotes</th><th class="num">Per week</th><th>Relative load</th><th class="num">Alts</th><th class="num">Avg turn</th><th class="num">6+ days</th><th class="num">Quoted $</th><th class="num">Conversion</th></tr></thead><tbody>'
@@ -3721,13 +3724,14 @@
 
         // An engineer with no recorded hours has no capacity story; showing a
         // "gain" for the unassigned bucket would read as performance.
-        const engineers = eng.byEngineer.filter(item => item.hours > 0 && item.code !== "(none)");
+        const engineers = eng.byEngineer.filter(item => item.hours > 0 && item.code !== "(none)")
+          .slice().sort((a, b) => a.variance - b.variance);
         const worst = Math.max(1, ...engineers.map(item => Math.abs(item.variance)));
         panel.classList.add("is-wide");
         setText("#teamLoadStep", "Capacity");
         setText("#teamLoadTitle", "Whether it cost what was planned");
-        setText("#teamLoadNote", "Scheduled engineering time against the hours actually spent. Green came in under the time set aside; copper ran over. "
-          + pct(eng.engagementRate) + " of quotes in this cohort needed engineering time at all.");
+        setText("#teamLoadNote", "Scheduled engineering time against the hours actually spent, by owner, biggest overrun first. Green came in under the time set aside; copper ran over. "
+          + pct(eng.engagementRate) + " of quotes in this cohort needed engineering time at all. The sheet beneath is every owner ordered by quote volume, whichever measure the list above is showing.");
         panel.innerHTML =
           '<div class="cap-side"><div class="cap-hero' + (variance >= 0 ? " is-good" : " is-bad") + '"><div><span>Scheduled</span><strong>' + eng.scheduledHours.toFixed(0) + '</strong></div>'
           + '<div><span>Actual</span><strong>' + eng.totalHours.toFixed(0) + '</strong></div>'
@@ -3738,7 +3742,7 @@
               ? "Engineering came in under the scheduled time across this run."
               : "Engineering ran " + Math.abs(variance).toFixed(0) + " hours over the scheduled time, " + Math.abs(variancePct).toFixed(1) + "% above plan.")
           + " A single engineer well below the line is a scheduling problem, not a performance one.</p></div>"
-          + '<div class="cap-list"><div class="cap-scale"><span>over the time set aside</span><span>under</span></div>'
+          + '<div class="cap-list"><div class="cap-scale"><span>over the time set aside</span><span>under the time set aside</span></div>'
           + engineers.map(item => {
               const width = Math.min(48, Math.abs(item.variance) / worst * 48);
               const good = item.variance >= 0;
@@ -3746,7 +3750,7 @@
                 + escape(item.code === "(none)" ? "No initials" : item.code) + "</span>"
                 + '<div class="cap-track"><i class="' + (good ? "is-good" : "is-bad") + '" style="' + (good ? "left:50%;" : "right:50%;") + "width:" + width.toFixed(1) + '%"></i></div>'
                 + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : item.variance < 0 ? "−" : "") + Math.abs(item.variance).toFixed(1) + "</b>"
-                + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + item.quotes + " quotes</small></div>";
+                + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + countOf(item.quotes, "quote") + "</small></div>";
             }).join("") + "</div>"
           + '<div class="cap-full">' + loadTable + "</div>";
       }
@@ -6498,7 +6502,8 @@
         const groupOnTimeScored = people.reduce((sum, person) => sum + (Number(person.onTimeScoredCount) || 0), 0);
         const averageOnTimeText = timingQuoteCount ? averageOnTime + "% on time (" + coverageNote(groupOnTimeScored, totalQuotes) + ")" : "— on time (no EARLY / LATE values)";
         const groupMetric = metric.key === "conversion" ? percentage(totalOrders, totalQuotes) : metric.key === "onTime" ? averageOnTime : metric.key === "quotes" ? totalQuotes / people.length : metric.key === "effort" ? people.reduce((sum, person) => sum + (person.hours || 0), 0) / Math.max(1, totalQuotes) : people.reduce((sum, person) => sum + person.value, 0) / people.length;
-        const sorted = people.map((person, index) => ({ person, index })).sort((a, b) => metricNumber(b.person, metric) - metricNumber(a.person, metric));
+        const order = teamOrder(people, metric);
+        const sorted = order.map(person => ({ person: person, index: people.indexOf(person) }));
         let rows = "";
         sorted.forEach(item => {
           const person = item.person;
@@ -6514,24 +6519,26 @@
           const personOnTime = person.onTimeScored === false
             ? "—"
             : person.onTime + "% (" + (Number(person.onTimeScoredCount) || 0) + "/" + person.quotes + ")" + (person.onTimeThin ? " thin" : "");
-          rows += '<button class="team-row" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + person.quotes + " quotes · " + person.orders + ' orders</span></span></span><span class="member-metric">' + metricValue(person, metric) + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
+          const loose = person.code === "(none)";
+          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + (loose ? "no owner code · " : "") + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "order") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
-        $("#teamSummary").innerHTML = "<strong>" + countOf(people.length, "person", "people") + " · " + countOf(totalQuotes, "quote") + " · " + countOf(totalOrders, "order") + " · " + averageOnTimeText + "</strong> — choose a measure to compare individual contribution without hiding workload.";
         $$("[data-person]", $("#teamRows")).forEach(button => button.addEventListener("click", () => { state.selectedPerson = Number(button.dataset.person); renderPeople(); }));
         const totalJobs = people.reduce((sum, person) => sum + (Number(person.jobs) || Number(person.orders) || 0), 0);
         const roleLabel = state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer";
         const rosterException = state.model && state.model.quality.unmappedRoster ? " " + state.model.quality.unmappedRoster + " code" + (state.model.quality.unmappedRoster === 1 ? " is" : "s are") + " visibly flagged because their selected Inventory roster has no full-name row." : "";
         const sourceNote = state.model ? roleLabel + " ownership comes from the weekly quote workbook and is resolved to the full name in the selected Inventory roster when supplied; job-side names remain linked job context." + rosterException : "Design preview only. Import the quote weeks and order log, then run the dashboard to replace these example rows with the names from the workbook.";
-        $("#teamSummary").innerHTML = "<strong>" + people.length + " " + roleLabel.toLowerCase() + "s · " + totalQuotes + " quote opportunities · " + totalOrders + " quote wins · " + totalJobs + " booked jobs · " + averageOnTimeText + "</strong> — " + sourceNote;
+        $("#teamSummary").innerHTML = "<strong>" + countOf(people.length, roleLabel.toLowerCase()) + " · " + countOf(totalQuotes, "quote opportunity", "quote opportunities")
+          + " · " + countOf(totalOrders, "quote win") + " · " + countOf(totalJobs, "booked job") + " · " + averageOnTimeText + "</strong> — " + sourceNote;
         if (state.model) {
           $$("[data-person]", $("#teamRows")).forEach(button => {
             const person = people[Number(button.dataset.person)];
             const detail = $(".member-name span", button);
             // Three long words in a fixed-width column truncated to "2 boo…".
             // The row header already names what these columns are.
-            if (person && detail) detail.textContent = countOf(person.quotes, "quote") + " · " + countOf(person.orders, "win") + " · " + countOf(person.jobs, "job");
+            if (person && detail) detail.textContent = (person.code === "(none)" ? "no owner code · " : "")
+              + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "win") + " · " + countOf(person.jobs, "job");
           });
         }
         const selected = people[state.selectedPerson];
@@ -6553,6 +6560,14 @@
         renderTeamChart(people, metric, groupMetric);
         $$("[data-role]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.role === state.role)));
         $$("[data-team-metric]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.teamMetric === state.teamMetric)));
+      }
+
+      // The roster's one ordering: the chosen measure, largest first, with any
+      // unattributed bucket held at the end. It is not a person, so it cannot
+      // win a ranking of people — but it is real work, so it is not hidden.
+      function teamOrder(people, metric) {
+        const loose = person => (person.code === "(none)" ? 1 : 0);
+        return people.slice().sort((a, b) => loose(a) - loose(b) || metricNumber(b, metric) - metricNumber(a, metric));
       }
 
       function renderTeamChart(people, metric, average) {
@@ -6592,11 +6607,11 @@
           });
           $("#teamChart").innerHTML = '<div class="ci-scale"><span>0%</span><span>' + ceiling + '%</span></div>' + intervalRows;
           setText("#teamChartTitle", metric.label + " with 95% confidence");
-          setText("#teamChartDescription", "The dot is the measured rate; the bar around it is the 95% interval. Wide bars mean a small sample, not a clear result. The amber marker is the group average, and a person whose interval crosses it is not distinguishable from the group.");
+          setText("#teamChartDescription", "Most-scored first, so the rows a manager can act on sit at the top. The dot is the measured rate; the bar around it is the 95% interval. Wide bars mean a small sample, not a clear result. The amber marker is the group average, and a person whose interval crosses it is not distinguishable from the group.");
           return;
         }
         let rows = "";
-        people.forEach(person => {
+        teamOrder(people, metric).forEach(person => {
           const barValue = metricNumber(person, metric);
           // A zero must draw as zero. The old floor of 5% gave people with no
           // quotes a visible bar, which read as volume they do not have.
@@ -6608,7 +6623,7 @@
         });
         $("#teamChart").innerHTML = rows;
         setText("#teamChartTitle", metric.label + " by person");
-        setText("#teamChartDescription", "Green bars show each person. The amber marker is the " + metric.label.toLowerCase() + " average for this responsibility group.");
+        setText("#teamChartDescription", "The same order as the list above — " + metric.label.toLowerCase() + ", largest first. The amber marker is the " + metric.label.toLowerCase() + " average for this responsibility group.");
       }
 
       function outcomeLabel(status) {
