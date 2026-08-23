@@ -161,8 +161,12 @@ if (!download) {
   checkMatch('deck decision curve present', deck, /cumulative share of booked orders by day/i);
   // The lifecycle slide leads with the whole clock and names both halves of it.
   checkMatch('deck states the whole clock', deck, /median from the request landing to the order being entered/i);
-  checkMatch('deck names our half of the clock', deck, /OUR HALF[\s\S]{0,400}pricing it/i);
-  checkMatch('deck names the customer half', deck, /THEIR HALF[\s\S]{0,400}deciding/i);
+  checkMatch('deck names our part of the clock', deck, /OUR PART[\s\S]{0,400}pricing it/i);
+  checkMatch('deck names the customer part', deck, /THE CUSTOMER&#0?39;S PART[\s\S]{0,400}deciding/i);
+  // The two parts are medians on different quotes, so they cannot sum to the
+  // whole-clock median printed above them. The slide has to say so, or a
+  // reader adds 4.0 and 35 and finds 39 where the header says 43.
+  checkMatch('the clock says why its parts do not add to its whole', deck, /do not add to this/i);
   // Each decision-curve checkpoint carries the money, not only the percentage.
   checkMatch('deck decision checkpoints carry value', deck, /booked by day \d+<\/span><small>\$/);
   checkMatch('deck separates who pays from who costs', deck, /Who actually pays us[\s\S]{0,4000}Who asks the most and returns the least/i);
