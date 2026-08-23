@@ -48,6 +48,13 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The source cohort card carries its own facts** (2026-08-22). The first
+      panel of the outcome atlas was stretched to the height of the two beside
+      it, leaving a quarter of it empty under the headline number. It now
+      carries the two input-side measures a reader cannot get at a glance
+      anywhere else: what a typical quote is worth, and how much priced work is
+      riding inside quotes as alternates.
+
 - [x] **A bar and its own figure now answer the same question** (2026-08-22).
       The ranked-measure lists mixed money, counts and rates on one scale: the
       bar was drawn on the relative move while the figure beside it was stated

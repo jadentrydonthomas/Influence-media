@@ -246,6 +246,10 @@
     .quote-field h3, .outcome-tally h3 { position: relative; z-index: 1; margin: 8px 0 0; color: #fff; font-family: var(--display); font-size: 14px; letter-spacing: .1em; line-height: 1; text-transform: uppercase; }
     .quote-field > strong { position: relative; z-index: 1; display: block; margin-top: 22px; color: #fff; font-family: var(--mono); font-size: clamp(57px,5vw,78px); font-weight: 500; letter-spacing: -.12em; line-height: .73; }
     .quote-field > p { position: relative; z-index: 1; margin: 10px 0 0; color: rgba(238,248,240,.63); font-size: 11px; }
+    .quote-field-facts { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 20px; background: rgba(232,247,236,.14); }
+    .quote-field-facts > div { padding: 11px 12px 12px; background: rgba(6,18,10,.5); }
+    .quote-field-facts span { display: block; color: rgba(238,248,240,.5); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .quote-field-facts b { display: block; margin-top: 5px; color: #dff3e4; font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: -.03em; }
     .quote-field-value { position: relative; z-index: 1; display: flex; align-items: end; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 18px; border-top: 1px solid rgba(232,247,236,.14); }
     .quote-field-value b { color: #c5e8cd; font-family: var(--mono); font-size: 12px; font-weight: 500; }
     .quote-field-value span { color: rgba(238,248,240,.48); font-family: var(--mono); font-size: 10px; text-align: right; }
@@ -1875,6 +1879,7 @@
                 <h3>Quoted work</h3>
                 <strong id="quotedCount">614</strong>
                 <p id="quotedLabel">quote records sent</p>
+                <div class="quote-field-facts"><div><span>Average quote</span><b id="quotedAverage">—</b></div><div><span>Alternates</span><b id="quotedAlts">—</b></div></div>
                 <div class="quote-field-value"><b id="quotedValue">$461M quoted value</b><span id="quotedPeriod">W1 to W10</span></div>
               </article>
 
@@ -3271,6 +3276,8 @@
         if (data.empty) {
           setText("#quotedCount", "-");
           setText("#quotedLabel", "quote opportunities will appear here");
+          setText("#quotedAverage", "—");
+          setText("#quotedAlts", "—");
           setText("#quotedValue", "Quoted value is calculated after import");
           setText("#quotedPeriod", "Quote No. source");
           $("#conversionDisc").style.setProperty("--conversion", 0);
@@ -3300,6 +3307,8 @@
         const weeklyGroups = recordFieldGroups(data);
         setText("#quotedCount", data.quotes);
         setText("#quotedLabel", "quote opportunities");
+        setText("#quotedAverage", data.quotes ? fineMoney(data.quoteValue / data.quotes) : "—");
+        setText("#quotedAlts", opsNumber(data.alts) + (data.quotes ? " · " + (data.alts / data.quotes).toFixed(2) + " each" : ""));
         setText("#quotedValue", money(data.quoteValue) + " quoted value");
         setText("#quotedPeriod", data.period);
         $("#conversionDisc").style.setProperty("--conversion", data.conversion);
