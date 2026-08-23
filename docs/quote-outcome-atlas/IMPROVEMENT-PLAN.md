@@ -48,6 +48,15 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The momentum charts name the row that mattered** (2026-08-23). Both drew
+      the shape and left the reader to find it. On the real books one Friday
+      quoted $8.1M against $38.3M, and nothing said so. Each chart now names the
+      single unit that moved furthest — and distinguishes three cases honestly:
+      a share of the whole move, a move *larger* than the whole because the rest
+      went the other way, and a mover that went against the period entirely. The
+      first attempt clamped the share to 100% and so reported "100.0% of the
+      whole fall" for a day that fell further than the period did.
+
 - [x] **The roster reads in one order** (2026-08-23). The list re-ranked on
       every measure change while the chart and the reference sheet beneath it
       kept a fixed order, so the same twelve people appeared in three different
