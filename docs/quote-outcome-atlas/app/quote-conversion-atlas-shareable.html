@@ -4475,35 +4475,39 @@
           + "</div>";
       }
 
-      // A chart that draws twelve differences and names none of them has given
+      // A chart that draws a dozen differences and names none of them has given
       // the reader data rather than a finding. This names the single unit that
-      // moved furthest and says how much of the whole move it accounts for.
-      function cmpBiggestMover(rows, byDay, key, format, unit, verb, bare) {
-        if (rows.length < 2) return "";
+      // moved furthest and says how it sits against the whole — which takes
+      // three cases, not one, because a single unit can move further than the
+      // total did when the rest moved the other way.
+      //
+      // Seven positional arguments was a smell of its own; the caller names
+      // what it is drawing instead.
+      function cmpBiggestMover(rows, config) {
+        if (!rows || rows.length < 2) return "";
+        const key = config.key;
+        const format = config.format;
+        const plain = config.plain || format;
+        const unit = config.unit;
+        const others = config.others || (unit + "s");
+        const span = config.span || "period";
         const moves = rows.map(row => ({ row: row, move: (Number(row.current[key]) || 0) - (Number(row.prior[key]) || 0) }))
           .sort((a, b) => Math.abs(b.move) - Math.abs(a.move));
         const lead = moves[0];
         if (!lead || Math.abs(lead.move) < 0.0005) return "";
         const total = moves.reduce((sum, item) => sum + item.move, 0);
-        const span = byDay ? "week" : "period";
         const sameWay = Math.abs(total) > 0.0005 && (total > 0) === (lead.move > 0);
         const share = sameWay ? Math.abs(lead.move / total) * 100 : null;
-        // Three different things can be true, and only one of them is a share.
-        // A single unit can move further than the whole did, which happens when
-        // the rest moved the other way — reporting that as "100% of the move"
-        // is false and buries the more interesting half of the sentence.
         const context = share === null
           ? " while the " + span + " as a whole went the other way."
-          : share > 100.5
-            ? " — further than the " + span + " moved in total, because the other "
-              + (byDay ? "days" : "weeks") + " went the other way."
+          : share > 100.05
+            ? " — further than the " + span + " moved in total, because the other " + others + " went the other way."
             : share >= 20
               ? ", which is " + pct(share) + " of the whole " + (total > 0 ? "rise" : "fall") + " across the " + span + "."
               : ".";
         const name = lead.row.full || lead.row.label;
-        const plain = bare || format;
         return '<p class="ops-note">' + escape("The " + unit + " that moved furthest was " + name + ", "
-          + verb + " " + plain(Math.abs(lead.row.current[key])) + " against " + plain(Math.abs(lead.row.prior[key]))
+          + config.verb + " " + plain(Math.abs(lead.row.current[key])) + " against " + plain(Math.abs(lead.row.prior[key]))
           + " — a move of " + (lead.move > 0 ? "+" : "−") + format(Math.abs(lead.move)) + context) + "</p>";
       }
 
@@ -5163,9 +5167,11 @@
             })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort + " quotes", keyCurrent: data.currentShort + " quotes",
               label: byDay ? "Quotes issued on each day of the matched week in both periods"
                 : "Quotes issued per matched week in both periods" });
-        $("#cmpWeekChart").innerHTML += cmpBiggestMover(grain, byDay, "quotes",
-          value => opsNumber(Math.round(value)) + " quote" + (Math.round(value) === 1 ? "" : "s"),
-          byDay ? "day" : "week", "issued", value => opsNumber(Math.round(value)));
+        $("#cmpWeekChart").innerHTML += cmpBiggestMover(grain, {
+          key: "quotes", unit: byDay ? "day" : "week", others: byDay ? "days" : "weeks",
+          span: byDay ? "week" : "period", verb: "issued",
+          format: value => opsNumber(Math.round(value)) + " quote" + (Math.round(value) === 1 ? "" : "s"),
+          plain: value => opsNumber(Math.round(value)) });
         setText("#cmpWeekNote", byDay
           ? "One matched week is loaded, so this reads the five days inside it rather than a run of weeks. Quotes issued each day, with that day's conversion underneath."
           : "Quotes issued in every week number present in both periods, with that week's conversion underneath — "
@@ -5176,8 +5182,9 @@
           })), { format: money, keyPrior: data.priorShort + " quoted", keyCurrent: data.currentShort + " quoted",
             label: byDay ? "Quoted value on each day of the matched week in both periods"
               : "Quoted value per matched week in both periods" })
-          + cmpBiggestMover(grain, byDay, "value", value => money(value),
-              byDay ? "day" : "week", "quoted");
+          + cmpBiggestMover(grain, { key: "value", unit: byDay ? "day" : "week",
+              others: byDay ? "days" : "weeks", span: byDay ? "week" : "period",
+              verb: "quoted", format: money });
         // The race accumulates over whatever grain the view is reading at, so a
         // single week still races - day one against day one.
         const raceRows = byDay
@@ -5296,6 +5303,11 @@
           })), { format: money, keyPrior: data.priorShort + " returned", keyCurrent: data.currentShort + " returned",
             label: "Returned value by quote size band in both periods",
             empty: "No priced quote in either period falls into a band yet." })
+          + cmpBiggestMover(data.bands.map(band => ({
+              label: band.label,
+              prior: { value: band.prior.wonValue / 1000000 },
+              current: { value: band.current.wonValue / 1000000 }
+            })), { key: "value", unit: "band", others: "bands", verb: "returned", format: money })
           + (bandSentence ? '<p class="ops-note">' + escape(bandSentence) + "</p>" : "");
         $("#cmpMixShift").innerHTML = cmpChangeRows(data.mixShift.map(band => ({
             label: band.label, now: band.currentShare, was: band.priorShare, fmt: pct, points: true
@@ -5306,7 +5318,12 @@
             note: district.prior.quotes + " → " + district.current.quotes + " quotes"
           })), { format: money, keyPrior: data.priorShort, keyCurrent: data.currentShort,
             label: "Quoted value by district in both periods",
-            empty: "No district prefix could be read from the quote numbers." });
+            empty: "No district prefix could be read from the quote numbers." })
+          + cmpBiggestMover(data.districts.map(district => ({
+              label: district.label,
+              prior: { value: district.prior.value / 1000000 },
+              current: { value: district.current.value / 1000000 }
+            })), { key: "value", unit: "district", others: "districts", verb: "quoted", format: money });
         const districtsDrawn = Math.min(12, data.districts.length);
         setText("#cmpDistrictNote", "Districts read from the quote-number prefix, on the matched weeks. "
           + (data.districts.length > districtsDrawn

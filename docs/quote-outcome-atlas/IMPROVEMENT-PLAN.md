@@ -48,6 +48,16 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **Districts and value bands name their finding too** (2026-08-23). Twelve
+      districts and four bands drawn side by side with nothing said about any of
+      them. Two things had to be right to say it honestly: the share is computed
+      across every district, not the twelve drawn, or "the whole fall" is a
+      share of a subset presented as a share of everything; and a share past a
+      hundred per cent takes the wording that explains why rather than printing
+      "100.5%". The helper also lost its seven positional arguments — each
+      caller now names the unit it is drawing, so a district chart no longer
+      says "the other weeks went the other way".
+
 - [x] **The momentum charts name the row that mattered** (2026-08-23). Both drew
       the shape and left the reader to find it. On the real books one Friday
       quoted $8.1M against $38.3M, and nothing said so. Each chart now names the
