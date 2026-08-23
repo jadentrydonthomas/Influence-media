@@ -1518,7 +1518,10 @@
     .team-chart { padding: 17px 19px 20px; }
     .team-chart-row { display: grid; grid-template-columns: 105px minmax(0,1fr) 53px; align-items: center; gap: 12px; min-height: 36px; }
     .team-chart-row span { color: var(--ink-muted); font-size: 11px; }
-    .team-chart-row strong { color: var(--ink); font-family: var(--mono); font-size: 11px; font-weight: 500; text-align: right; }
+    .team-chart-row { grid-template-columns: 105px minmax(0,1fr) 74px; }
+    .team-chart-row strong { color: var(--ink); font-family: var(--mono); font-size: 11px; font-weight: 500; text-align: right; white-space: nowrap; }
+    .team-chart-row.is-thin span, .team-chart-row.is-thin strong { color: var(--ink-faint); }
+    .thin-mark { color: var(--amber-deep, var(--amber)); font-family: var(--display); font-size: 8.5px; font-style: normal; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .team-chart-track { position: relative; height: 12px; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); }
     .team-chart-track::after { content: ""; position: absolute; top: -4px; bottom: -4px; left: var(--team-average); width: 1px; background: var(--amber); }
     .team-chart-track i { display: block; width: var(--team-bar); height: 100%; background: var(--green); animation: grow-width 580ms var(--ease) both; }
@@ -6477,15 +6480,29 @@
         return state.teamMetric === "volume" ? { label: "Quote volume", key: "quotes", suffix: "", max: maxQuotes } : state.teamMetric === "conversion" ? { label: "Close rate", key: "conversion", suffix: "%", max: Math.ceil(maxConversion / 5) * 5 } : state.teamMetric === "onTime" ? { label: "On time", key: "onTime", suffix: "%", max: 100 } : state.teamMetric === "effort" ? { label: "Hours / quote", key: "effort", suffix: "h", max: maxEffort } : { label: "Won value", key: "value", suffix: "M", max: maxValue };
       }
 
+      // Close rate and hours per quote are quotes divided by something. With no
+      // quotes there is no denominator, so there is no figure — not a zero.
+      const DERIVED_METRICS = { conversion: true, effort: true };
+
       function metricNumber(person, metric) {
+        if (DERIVED_METRICS[metric.key] && !person.quotes) return null;
         return metric.key === "effort" ? (person.effort === undefined ? person.hours / Math.max(1, person.quotes) : person.effort) : person[metric.key];
+      }
+
+      // A rate is only a ranking if enough of the book was measured for it.
+      function metricThin(person, metric) {
+        if (metric.key === "onTime") return person.onTimeScored !== false && isThinSample(person.onTimeScoredCount, CMP_THIN_BOOK);
+        if (metric.key === "conversion") return person.quotes > 0 && isThinSample(person.quotes, CMP_THIN_BOOK);
+        return false;
       }
 
       function metricValue(person, metric) {
         if (metric.key === "onTime" && person.onTimeScored === false) return "—";
         if (metric.key === "value") return money(person.value);
         if (metric.key === "quotes") return String(person.quotes);
-        return metricNumber(person, metric).toFixed(metric.key === "conversion" || metric.key === "effort" ? 1 : 0) + metric.suffix;
+        const value = metricNumber(person, metric);
+        if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+        return value.toFixed(metric.key === "conversion" || metric.key === "effort" ? 1 : 0) + metric.suffix;
       }
 
       function renderPeople() {
@@ -6525,7 +6542,8 @@
           const barValue = metricNumber(person, metric);
           // A zero must draw as zero. The old floor of 5% gave people with no
           // quotes a visible bar, which read as volume they do not have.
-          const bar = (metric.key === "onTime" && person.onTimeScored === false) || !(barValue > 0)
+          const thin = metricThin(person, metric);
+          const bar = (metric.key === "onTime" && person.onTimeScored === false) || thin || !(barValue > 0)
             ? 0
             : Math.max(4, Math.min(100, barValue / metric.max * 100));
           // Show the scored denominator beside every on-time rate. A person scored
@@ -6534,7 +6552,7 @@
             ? "—"
             : person.onTime + "% (" + (Number(person.onTimeScoredCount) || 0) + "/" + person.quotes + ")" + (person.onTimeThin ? " thin" : "");
           const loose = person.code === "(none)";
-          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + (loose ? "no owner code · " : "") + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "order") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
+          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + (loose ? "no owner code · " : "") + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "order") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
@@ -6543,8 +6561,16 @@
         const roleLabel = state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer";
         const rosterException = state.model && state.model.quality.unmappedRoster ? " " + state.model.quality.unmappedRoster + " code" + (state.model.quality.unmappedRoster === 1 ? " is" : "s are") + " visibly flagged because their selected Inventory roster has no full-name row." : "";
         const sourceNote = state.model ? roleLabel + " ownership comes from the weekly quote workbook and is resolved to the full name in the selected Inventory roster when supplied; job-side names remain linked job context." + rosterException : "Design preview only. Import the quote weeks and order log, then run the dashboard to replace these example rows with the names from the workbook.";
+        const thinCount = (metric.key === "conversion" || metric.key === "onTime")
+          ? people.filter(person => metricThin(person, metric)).length : 0;
+        const solidCount = (metric.key === "conversion" || metric.key === "onTime")
+          ? people.filter(person => metricNumber(person, metric) !== null && !metricThin(person, metric)).length : 0;
+        const floorNote = !thinCount ? ""
+          : solidCount
+            ? " " + countOf(thinCount, "book") + " under " + CMP_THIN_BOOK + " quotes " + (thinCount === 1 ? "is" : "are") + " marked thin and ranked below every book that clears it."
+            : " Every book here is under " + CMP_THIN_BOOK + " quotes, so read this measure as direction rather than as a ranking.";
         $("#teamSummary").innerHTML = "<strong>" + countOf(people.length, roleLabel.toLowerCase()) + " · " + countOf(totalQuotes, "quote opportunity", "quote opportunities")
-          + " · " + countOf(totalOrders, "quote win") + " · " + countOf(totalJobs, "booked job") + " · " + averageOnTimeText + "</strong> — " + sourceNote;
+          + " · " + countOf(totalOrders, "quote win") + " · " + countOf(totalJobs, "booked job") + " · " + averageOnTimeText + "</strong> — " + sourceNote + floorNote;
         if (state.model) {
           $$("[data-person]", $("#teamRows")).forEach(button => {
             const person = people[Number(button.dataset.person)];
@@ -6581,7 +6607,17 @@
       // win a ranking of people — but it is real work, so it is not hidden.
       function teamOrder(people, metric) {
         const loose = person => (person.code === "(none)" ? 1 : 0);
-        return people.slice().sort((a, b) => loose(a) - loose(b) || metricNumber(b, metric) - metricNumber(a, metric));
+        const rank = person => {
+          const value = metricNumber(person, metric);
+          if (value === null || value === undefined || !Number.isFinite(value)) return 2;
+          return metricThin(person, metric) ? 1 : 0;
+        };
+        const value = person => {
+          const raw = metricNumber(person, metric);
+          return Number.isFinite(raw) ? raw : -Infinity;
+        };
+        return people.slice().sort((a, b) =>
+          loose(a) - loose(b) || rank(a) - rank(b) || value(b) - value(a));
       }
 
       function renderTeamChart(people, metric, average) {
@@ -6629,11 +6665,12 @@
           const barValue = metricNumber(person, metric);
           // A zero must draw as zero. The old floor of 5% gave people with no
           // quotes a visible bar, which read as volume they do not have.
-          const bar = (metric.key === "onTime" && person.onTimeScored === false) || !(barValue > 0)
+          const thin = metricThin(person, metric);
+          const bar = (metric.key === "onTime" && person.onTimeScored === false) || thin || !(barValue > 0)
             ? 0
             : Math.max(4, Math.min(100, barValue / metric.max * 100));
           const averagePosition = Math.min(100, average / metric.max * 100);
-          rows += '<div class="team-chart-row"><span>' + escape(person.name) + '</span><div class="team-chart-track" style="--team-average:' + averagePosition + '%"><i style="--team-bar:' + bar + '%"></i></div><strong>' + metricValue(person, metric) + "</strong></div>";
+          rows += '<div class="team-chart-row' + (thin ? " is-thin" : "") + '"><span>' + escape(person.name) + '</span><div class="team-chart-track" style="--team-average:' + averagePosition + '%"><i style="--team-bar:' + bar + '%"></i></div><strong>' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + "</strong></div>";
         });
         $("#teamChart").innerHTML = rows;
         setText("#teamChartTitle", metric.label + " by person");

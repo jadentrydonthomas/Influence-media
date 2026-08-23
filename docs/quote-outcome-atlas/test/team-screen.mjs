@@ -133,6 +133,44 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
   check('no account name is clipped to an ellipsis', names.every(n => !/…$/.test(n)), names.filter(n => /…$/.test(n)).join(' | '));
 }
 
+// M-47 and M-48 on this screen, not just on the year-over-year one it mirrors.
+{
+  await page.click('[data-screen="people"]');
+  await page.waitForTimeout(700);
+  await page.click('[data-team-metric="conversion"]');
+  await page.waitForTimeout(800);
+  const rows = await page.$$eval('#teamRows .team-row', nodes => nodes.map(row => {
+    const sub = row.querySelector('.member-name span');
+    const metric = row.querySelector('.member-metric');
+    const bar = row.querySelector('.member-bar b');
+    const quotes = sub ? Number((sub.textContent.match(/(\d[\d,]*) quotes?/) || [])[1] || '0'.replace(/,/g, '')) : 0;
+    return {
+      name: (row.querySelector('.member-name strong') || {}).textContent || '',
+      quotes: quotes,
+      value: metric ? metric.textContent.replace(/\s+/g, ' ').trim() : '',
+      thin: /thin/i.test(metric ? metric.textContent : ''),
+      bar: bar ? parseFloat(bar.style.getPropertyValue('--member-bar')) : null,
+      unowned: row.classList.contains('is-unattributed'),
+    };
+  }));
+  const owned = rows.filter(r => !r.unowned);
+  const noBook = owned.filter(r => r.quotes === 0);
+  check('a close rate with no quotes behind it reads as a dash, not as zero',
+    noBook.length > 0 && noBook.every(r => r.value.startsWith('—')),
+    noBook.map(r => r.name.trim() + ' ' + r.value).join(' | '));
+  const solidIndexes = owned.map((r, i) => ({ r, i })).filter(x => x.r.quotes >= 10).map(x => x.i);
+  const thinIndexes = owned.map((r, i) => ({ r, i })).filter(x => x.r.thin).map(x => x.i);
+  check('a rate on a thin book is marked', thinIndexes.length > 0, thinIndexes.length + ' marked');
+  check('every thin book ranks below every solid one',
+    thinIndexes.every(t => solidIndexes.every(sIdx => sIdx < t)),
+    'thin at ' + thinIndexes.join(',') + ' · solid at ' + solidIndexes.join(','));
+  check('a thin rate draws no emphasis bar',
+    owned.filter(r => r.thin).every(r => !r.bar),
+    owned.filter(r => r.thin && r.bar).map(r => r.name.trim()).join(' | '));
+  const summary = await page.$eval('#teamSummary', n => n.innerText);
+  check('the sentence over the list reads off the same floor', /under 10 quotes/.test(summary), summary.slice(-70));
+}
+
 // The analysis panels put a bar and a figure on the same row. They have to be
 // the same measure: a bar drawn on quote counts beside a conversion rate, or on
 // value beside a rate, invites a reader to take one for the other.
