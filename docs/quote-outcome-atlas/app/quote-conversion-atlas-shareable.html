@@ -295,9 +295,9 @@
     .record-week-head strong { overflow: hidden; color: rgba(238,248,240,.6); font-family: var(--mono); font-size: 10px; font-weight: 500; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
     .record-week-head b { color: var(--green-bright); font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: -.04em; }
     .record-week.no-win .record-week-head b { color: #e6aa91; }
-    .record-week-grid { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); grid-auto-rows: 7px; gap: 2px; margin-top: 10px; }
+    .record-week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9px, 13px)); gap: 3px; margin-top: 10px; justify-content: start; }
     .record-week small { display: block; margin-top: 8px; color: rgba(238,248,240,.45); font-size: 10px; }
-    .matrix-cell { display: block; min-width: 0; border-radius: 1px; background: rgba(202,225,208,.16); box-shadow: inset 0 0 0 1px rgba(230,248,233,.05); transform-origin: center; }
+    .matrix-cell { display: block; min-width: 0; aspect-ratio: 1; border-radius: 2px; background: rgba(202,225,208,.16); box-shadow: inset 0 0 0 1px rgba(230,248,233,.05); transform-origin: center; }
     .matrix-cell.confirmed { background: linear-gradient(135deg, #17d96c, #008f43); box-shadow: 0 0 10px rgba(0,235,103,.38); }
     .matrix-cell.unconverted { background: linear-gradient(135deg, rgba(205,126,91,.88), rgba(145,73,50,.73)); }
     .matrix-key { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 13px; padding-top: 11px; border-top: 1px solid rgba(232,247,236,.11); }

@@ -171,6 +171,22 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
   check('the sentence over the list reads off the same floor', /under 10 quotes/.test(summary), summary.slice(-70));
 }
 
+// The record field's caption says "each small square is one real quote
+// opportunity". Twelve stretched columns at seven pixels tall drew stripes, and
+// nobody can count sixty-nine stripes.
+{
+  await page.click('[data-screen="overview"]');
+  await page.waitForTimeout(800);
+  const cells = await page.$$eval('#outcomeMatrix .matrix-cell', nodes => nodes.slice(0, 40).map(cell => {
+    const r = cell.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height) };
+  }));
+  check('the record field draws a cell per quote', cells.length > 0, cells.length + ' sampled');
+  const notSquare = cells.filter(c => c.w < 6 || c.h < 6 || Math.abs(c.w - c.h) > 2);
+  check('every cell in the record field is a square a reader can count',
+    notSquare.length === 0, notSquare.slice(0, 3).map(c => c.w + 'x' + c.h).join(' '));
+}
+
 // M-45: a code with no full-name row in the roster is not somebody's name. The
 // summary claimed three codes were "visibly flagged" while the rows carried no
 // flag, so a reader could not tell which three.

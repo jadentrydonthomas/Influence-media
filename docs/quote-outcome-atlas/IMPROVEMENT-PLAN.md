@@ -48,6 +48,33 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The same rule, on every screen that needs it** (2026-08-23). Three
+      rounds of the highest-value finds came from asking "which screen did this
+      fix never reach?" rather than from looking at a new screen. The Outcome
+      dashboard's comparison panel was still reporting rates as percentages of
+      percentages (−7.2% where the ledger said −1.9 points). Team performance
+      still ranked a one-quote book at 100% above a twenty-six-quote book, still
+      reported 0.0% and 0.0h for people with no quotes, and still listed NPM,
+      JMR and DNQ as if they were names — under a sentence claiming three codes
+      were "visibly flagged". All fixed and asserted.
+
+- [x] **One measure per row in both analysis panels** (2026-08-23). District mix
+      drew a bar on value beside a conversion figure; the value bands drew a bar
+      on quote counts beside a conversion figure and captioned it as money.
+      Each panel's bar now carries the measure its own figure is in.
+
+- [x] **A square you can count** (2026-08-23). The record field's caption said
+      "each small square is one real quote opportunity" over twelve stretched
+      columns seven pixels tall — stripes nobody can count. Square cells on a
+      fixed pitch, so the caption is true and seventeen wins out of sixty-nine
+      can be read off the screen.
+
+- [x] **The comparison brief answers the same follow-up** (2026-08-23). It
+      listed each quote's date, project and value but not who priced it or
+      whether it met the promised date — both of which the main Customers
+      profile carries for the same quote.
+
+
 - [x] **The whole clock stopped disagreeing with its own parts** (2026-08-23).
       The customer's segment was drawn as whatever was left of the 43-day
       whole-clock median and labelled 35 — its own median on a different set of
