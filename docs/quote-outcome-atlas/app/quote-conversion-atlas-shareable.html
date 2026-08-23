@@ -11081,27 +11081,64 @@
         return deckDocument(core + chapter + outro);
       }
 
-      function exportTeamReport() {
+      // This file is delivered to be opened from disk, where a browser saves a
+      // generated file on its own. Opened inside a viewer that mediates saves,
+      // the same anchor is inert and the host has to be asked instead. Nothing
+      // here reaches the network either way.
+      function hostSaveSurface() {
+        try {
+          const host = window.claude;
+          if (!host || typeof host.use !== "function") return Promise.resolve(null);
+          return Promise.resolve(host.use("downloads")).catch(() => null);
+        } catch (error) {
+          return Promise.resolve(null);
+        }
+      }
+
+      function saveThroughLink(markup, filename) {
+        const blob = new Blob([markup], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      async function exportTeamReport() {
         if (!state.model) {
           state.intake.feedback = { title: "Run the live source set first", copy: "The report deck is intentionally unavailable until weekly quote files and one or more order-log exports have been selected and processed.", tone: "" };
           refreshIntake();
           setScreen("data");
           return;
         }
-        const blob = new Blob([reportDeckHtml()], { type: "text/html;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const stamp = new Date().toISOString().slice(0, 10);
-        link.href = url;
-        link.download = "quote-outcome-team-report-" + stamp + ".html";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         const button = $("#reviewMode");
-        const originalLabel = button.textContent;
-        button.textContent = "Report deck downloaded";
-        window.setTimeout(() => { button.textContent = originalLabel; }, 1800);
+        if (!button.dataset.label) button.dataset.label = button.textContent;
+        const say = text => {
+          button.textContent = text;
+          window.setTimeout(() => { button.textContent = button.dataset.label; }, 1800);
+        };
+        const markup = reportDeckHtml();
+        const filename = "quote-outcome-team-report-" + new Date().toISOString().slice(0, 10) + ".html";
+        const host = await hostSaveSurface();
+        if (!host) {
+          saveThroughLink(markup, filename);
+          say("Report deck downloaded");
+          return;
+        }
+        // The viewer confirms the save and may decline it. Say which happened
+        // rather than leaving a button that appears to have done nothing.
+        try {
+          await host.save({ filename: filename, data: markup });
+          say("Report deck saved");
+        } catch (error) {
+          const code = error && error.code;
+          if (code === "declined") say("Report deck not saved");
+          else if (code === "rate_limited") say("Ask for the deck again in a moment");
+          else say("This viewer cannot save the deck");
+        }
       }
 
       function fileNameSummary(files) {

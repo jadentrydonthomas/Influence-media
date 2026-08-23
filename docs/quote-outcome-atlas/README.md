@@ -71,6 +71,7 @@ node test/boss-scenario.mjs # copy to another folder, clean profile, offline, re
 node test/dump-figures.mjs && python3 test/audit.py   # independent recomputation
 node test/a11y.mjs          # keyboard, focus, labelling, reduced motion
 node test/first-run.mjs     # what a first-time recipient lands on
+node test/export-surface.mjs # the deck export on every save surface
 node test/filters.mjs       # segmentation across every view
 node test/compare.mjs       # period comparison at each granularity
 node test/baseline.mjs      # a prior period compares without entering the live book

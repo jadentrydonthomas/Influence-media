@@ -204,7 +204,8 @@ product owner to disable it from the Routines list rather than leaving it firing
 ## How to verify anything before committing
 
 ```
-node test/regression.mjs        # 57 assertions on the live figures and deck
+node test/regression.mjs        # 62 assertions on the live figures and deck
+node test/export-surface.mjs    # the deck export on every save surface
 node test/year-screen.mjs       # the year-over-year screen, view by view
 node test/deck-year.mjs         # the chapter builds and closes
 node test/deck-stress.mjs       # every number inflated, three viewport widths
