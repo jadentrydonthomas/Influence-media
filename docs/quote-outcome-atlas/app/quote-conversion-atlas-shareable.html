@@ -9107,7 +9107,7 @@
               + "</g>";
           }
           return '<g class="iso-col" style="--deck-bar-delay:' + (index * 60) + 'ms">'
-            + column(left, Number(group.a) || 0, config.toneA || "var(--then)", group.labelA)
+            + column(left, Number(group.a) || 0, config.toneA || "var(--steel)", group.labelA)
             + column(left + barW + gap, Number(group.b) || 0, (Number(group.b) || 0) > 0 ? (config.toneB || "var(--green)") : "var(--copper)", group.labelB)
             + '<text class="deck-col-label" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 18) + '" text-anchor="middle">' + escape(group.label) + "</text>"
             + (group.note ? '<text class="deck-col-note" x="' + centre.toFixed(1) + '" y="' + (baseY + depth + 33) + '" text-anchor="middle">' + escape(group.note) + "</text>" : "")
@@ -9120,7 +9120,7 @@
           + floor + columns
           + (config.caption ? '<text class="deck-axis-note" x="' + padLeft + '" y="14">' + escape(config.caption) + "</text>" : "")
           + "</svg>"
-          + '<div class="deck-key"><span><b class="k-ask" style="background:' + (config.toneA || "var(--then)") + ';opacity:1"></b>' + escape(config.keyA || "Asked for") + "</span>"
+          + '<div class="deck-key"><span><b class="k-ask" style="background:' + (config.toneA || "var(--steel)") + ';opacity:1"></b>' + escape(config.keyA || "Asked for") + "</span>"
           + '<span><b class="k-book" style="background:' + (config.toneB || "var(--green)") + '"></b>' + escape(config.keyB || "Came back") + "</span></div>";
       }
 
@@ -10648,6 +10648,7 @@
           + '.weekly-summary>div{min-height:84px;padding:12px 14px}'
           + '.weekly-summary strong{font-size:25px}'
           + '.chart-note{font-size:12.5px;margin-top:6px}'
+          + '.chart-note.is-tight{margin:2px 0 10px;font-size:11.5px;color:#7d9187}'
           + '.lead{font-size:15px;line-height:1.5}'
           + '.because-card{padding:17px}.because-cause{font-size:16px;margin-top:10px}'
           + '.because-amount{font-size:31px;margin-top:11px}.because-effect{font-size:12.5px;margin-top:10px}'
@@ -10852,6 +10853,7 @@
               empty: "No priced quote records in this cohort yet."
             })
           + '</div><div class="band-rates"><span class="section-label">And the rate each band returned at</span>'
+          + (bandTopRate ? '<p class="chart-note is-tight">Bars run against the best rate on this slide, ' + escape(pct(bandTopRate)) + ', not against a hundred per cent.</p>' : "")
           + (bands.length
               ? bands.map(band => '<div class="band-row' + (band.wins === 0 ? " is-zero" : "") + '"><b>' + escape(band.label) + "</b>"
                   + '<i><u style="width:' + (bandTopRate ? Math.max(band.wins ? 2 : 0, band.conversion / bandTopRate * 100) : 0).toFixed(1) + '%"></u></i>'
