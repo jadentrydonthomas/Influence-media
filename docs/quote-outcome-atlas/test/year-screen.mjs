@@ -286,8 +286,24 @@ if (second) {
 check('the roster sheet carries a row for every owner in the list',
   await p.$$eval('#cmpPeopleTable .ops-table tbody tr', rows => rows.length) === byHours.length,
   await p.$$eval('#cmpPeopleTable .ops-table tbody tr', rows => rows.length) + ' rows');
-await p.click('[data-cmp-person-metric="quotes"]');
-await p.waitForTimeout(400);
+// The list, the chart and the reference sheet are one view. They used to be
+// ordered three different ways on the same screen.
+await p.click('[data-cmp-person-metric="wonValue"]');
+await p.waitForTimeout(700);
+{
+  const listOrder = await p.$$eval('#cmpPeopleLayout .team-row .member-initials', n => n.map(x => x.textContent.trim()));
+  const chartOrder = await p.$$eval('#cmpPeopleChart .cmp-col-label', n => n.map(x => x.textContent.trim()));
+  const sheetOrder = await p.$$eval('#cmpPeopleTable tbody tr td:first-child b', n => n.map(x => x.textContent.trim()));
+  check('the chart follows the list order', chartOrder.join(',') === listOrder.join(','),
+    listOrder.slice(0, 5).join(',') + ' vs ' + chartOrder.slice(0, 5).join(','));
+  check('the roster sheet follows the list order', sheetOrder.join(',') === listOrder.join(','),
+    listOrder.slice(0, 5).join(',') + ' vs ' + sheetOrder.slice(0, 5).join(','));
+  await p.click('[data-cmp-person-metric="quotes"]');
+  await p.waitForTimeout(700);
+  const reordered = await p.$$eval('#cmpPeopleChart .cmp-col-label', n => n.map(x => x.textContent.trim()));
+  check('changing the measure reorders the chart too', reordered.join(',') !== chartOrder.join(','),
+    chartOrder.slice(0, 4).join(',') + ' → ' + reordered.slice(0, 4).join(','));
+}
 
 // Borrowed order log: the screen must say so rather than imply a real read.
 await load({ withPrior: true, withPriorOrder: false });

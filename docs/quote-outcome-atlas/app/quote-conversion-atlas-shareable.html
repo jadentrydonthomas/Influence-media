@@ -4524,25 +4524,32 @@
 
       // The ranked list: one row a person, sorted by how far the chosen measure
       // moved, with the two figures and a bar that runs right for better.
-      function cmpPersonList(people, data, key) {
+      // One ordering for the roster, shared by the list and the chart beneath
+      // it. Scanning the list and then the chart used to mean finding the same
+      // twelve people in two different sequences on one screen.
+      //
+      // A side with no figure sorts last rather than as a zero, because "no
+      // book" is not the bottom of a ranking, it is absence from it. And M-9: a
+      // rate on a handful of quotes is not evidence of anything, so a person who
+      // owned one quote and booked it must not sit above the person carrying
+      // thirteen. Thin rows stay in the list, marked and ranked last.
+      function cmpPeopleOrder(people, key) {
         const spec = CMP_PERSON_METRICS[key];
-        // A side with no figure sorts last rather than as a zero, because "no
-        // book" is not the bottom of a ranking, it is absence from it.
         const level = person => {
           const value = cmpPersonSide(person, "current", key);
           return value === null ? -Infinity : value;
         };
-        // M-9: a rate on a handful of quotes is not evidence of anything, and a
-        // person who owned one quote and booked it MUST NOT sit at the top of a
-        // close-rate table above the person carrying thirteen. Thin rows stay
-        // visible and stay in the list; they are marked, drawn neutral, and
-        // ranked below every row that can actually carry the rate.
         const thinOn = person => spec.points
           && Math.min(person.current.quotes, person.prior.quotes) < CMP_THIN_BOOK;
-        const ranked = people.map(person => ({ person: person, move: cmpPersonMove(person, key), thin: thinOn(person) }))
+        return people.map(person => ({ person: person, move: cmpPersonMove(person, key), thin: thinOn(person) }))
           .sort((a, b) => (a.thin === b.thin ? 0 : a.thin ? 1 : -1)
             || level(b.person) - level(a.person)
             || (b.person.current.quotes + b.person.prior.quotes) - (a.person.current.quotes + a.person.prior.quotes));
+      }
+
+      function cmpPersonList(people, data, key) {
+        const spec = CMP_PERSON_METRICS[key];
+        const ranked = cmpPeopleOrder(people, key);
         const widest = Math.max.apply(null, ranked.filter(item => !item.thin).map(item => item.move.size))
           || Math.max.apply(null, ranked.map(item => item.move.size)) || 1;
         const rows = ranked.map(item => {
@@ -4670,7 +4677,7 @@
 
       // The reference sheet under the charts: every owner, every measure, both
       // periods. One table, sorted by size of book, rather than a grid of cards.
-      function cmpPersonTable(people, data) {
+      function cmpPersonTable(people, data, orderLabel) {
         if (!people.length) return '<p class="ops-note">No owner appears in either period on this role.</p>';
         const cell = (was, now, format, points, invert) => {
           const move = points && was !== null && now !== null && was !== undefined && now !== undefined
@@ -4686,7 +4693,7 @@
           + "<thead><tr><th>" + escape(data.roleLabel) + '</th><th class="num">Quotes</th><th class="num">Wins</th><th class="num">Conversion</th>'
           + '<th class="num">Quoted</th><th class="num">Returned</th><th class="num">Value capture</th>'
           + '<th class="num">Accounts</th><th class="num">Hrs / quote</th><th class="num">Met the due date</th></tr></thead><tbody>'
-          + people.slice().sort((a, b) => (b.current.quotes + b.prior.quotes) - (a.current.quotes + a.prior.quotes)).map(person => {
+          + people.map(person => {
               const now = person.current, then = person.prior;
               return '<tr><td><b>' + escape(person.code) + '</b> <span class="est-name">' + escape(cmpClip(person.name, 34))
                 + (person.named === false ? " · no roster name" : "") + "</span></td>"
@@ -4703,7 +4710,8 @@
             }).join("")
           + "</tbody></table></div>"
           + '<p class="ops-note">Grey is ' + escape(data.priorShort) + ", bold is " + escape(data.currentShort)
-          + ". Rates move in points; counts and money move in percent. Sorted by the size of the book across both periods.</p>";
+          + ". Rates move in points; counts and money move in percent. In the same order as the list and the chart above"
+          + (orderLabel ? " — " + escape(orderLabel.toLowerCase()) + ", largest first" : "") + ".</p>";
       }
 
       // ---- One account, both periods ----------------------------------------
@@ -5409,13 +5417,6 @@
             { label: "Hours per quote", value: now.hoursPerQuote.toFixed(2), note: "was " + then.hoursPerQuote.toFixed(2), tone: toneOf(now.hoursPerQuote - then.hoursPerQuote, true) }
           ]);
         renderComparePeople(people, data);
-        $("#cmpPeopleChart").innerHTML = cmpColumnPairs(people.map(person => ({
-            label: person.code, prior: person.prior.quotes, current: person.current.quotes
-          })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort, keyCurrent: data.currentShort,
-            label: "Quotes owned per person in both periods", note: false,
-            empty: "No owner appears in either period." })
-          + '<p class="ops-note">Initials on the axis; the list above carries the names.</p>';
-        $("#cmpPeopleTable").innerHTML = cmpPersonTable(people, data);
 
         // ---- 07 Ledger --------------------------------------------------------
         const rows = [
@@ -6169,7 +6170,16 @@
               + CMP_THIN_BOOK + " quotes on one side, marked thin and ranked last." : "")
           + (absent ? " " + opsNumber(absent) + (absent === 1 ? " owner has" : " owners have")
               + " no quote on either side to measure this on, so the cell reads as a dash rather than a zero." : ""));
+        const ordered = cmpPeopleOrder(people, key).map(item => item.person);
         layout.innerHTML = cmpPersonList(people, data, key) + cmpPersonPanel(people, data, key);
+        $("#cmpPeopleChart").innerHTML = cmpColumnPairs(ordered.map(person => ({
+            label: person.code, prior: person.prior.quotes, current: person.current.quotes
+          })), { format: value => opsNumber(Math.round(value)), keyPrior: data.priorShort, keyCurrent: data.currentShort,
+            label: "Quotes owned per person in both periods", note: false,
+            empty: "No owner appears in either period." })
+          + '<p class="ops-note">' + escape("Initials on the axis, in the same order as the list above — " + spec.label.toLowerCase()
+              + ", largest first. The list carries the names.") + "</p>";
+        $("#cmpPeopleTable").innerHTML = cmpPersonTable(ordered, data, spec.label);
         $$("[data-cmp-person]", layout).forEach(node => node.addEventListener("click", () => {
           comparePerson = node.dataset.cmpPerson;
           renderComparePeople(people, data);

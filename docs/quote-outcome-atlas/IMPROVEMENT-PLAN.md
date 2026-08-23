@@ -48,6 +48,12 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The roster reads in one order** (2026-08-23). The list re-ranked on
+      every measure change while the chart and the reference sheet beneath it
+      kept a fixed order, so the same twelve people appeared in three different
+      sequences on one screen. One ordering function now serves all three, and
+      all three redraw together. Each caption states the order it is in.
+
 - [x] **The source cohort card carries its own facts** (2026-08-22). The first
       panel of the outcome atlas was stretched to the height of the two beside
       it, leaving a quarter of it empty under the headline number. It now
