@@ -1631,7 +1631,7 @@
     .intake-divider { position: relative; display: grid; place-items: center; }
     .intake-divider::before { content: ""; width: 1px; height: calc(100% - 32px); background: rgba(210,242,217,.2); }
     .intake-divider span { position: absolute; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid rgba(210,242,217,.32); border-radius: 50%; color: #e5f6e8; background: #102419; font-family: var(--mono); font-size: 12px; }
-    .run-console { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) minmax(170px,.62fr); align-items: start; gap: 12px; margin-top: 15px; }
+    .run-console { position: relative; z-index: 1; display: grid; gap: 12px; margin-top: 15px; }
     .run-dashboard { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 66px; padding: 14px 18px; border: 0; color: #04240f;
       background: linear-gradient(160deg, #6bffab 0%, #16d76e 42%, #00a851 100%); text-align: left;
       box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 20px 38px -18px rgba(0,120,58,.85), 0 3px 9px -4px rgba(0,60,30,.6);
@@ -1644,9 +1644,9 @@
     .run-dashboard:disabled { color: rgba(238,248,240,.38); background: rgba(255,255,255,.055); box-shadow: inset 0 0 0 1px rgba(225,247,229,.17); cursor: not-allowed; }
     .run-dashboard:disabled::after { display: none; }
     .run-dashboard.is-running { color: #e3fae8; background: linear-gradient(160deg, #1d7a45, #0e4425); box-shadow: inset 0 0 0 1px #4bea8c; cursor: progress; }
-    .run-status { display: flex; flex-direction: column; justify-content: center; padding: 10px 12px; border: 1px solid rgba(225,247,229,.15); background: rgba(255,255,255,.03); }
+    .run-status { display: flex; flex-direction: column; justify-content: center; padding: 12px 14px; border: 1px solid rgba(225,247,229,.15); background: rgba(255,255,255,.03); }
     .run-status span { color: #bde8c6; font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .run-status strong { margin-top: 5px; color: rgba(238,248,240,.68); font-size: 10px; font-weight: 500; line-height: 1.35; }
+    .run-status strong { margin-top: 6px; max-width: 92ch; color: rgba(238,248,240,.74); font-size: 11.5px; font-weight: 500; line-height: 1.5; }
     .run-status[data-tone="error"] { border-color: rgba(239,152,115,.55); background: rgba(188,104,71,.1); }
     .run-status[data-tone="error"] span { color: #ffc3a9; }
     .run-status[data-tone="success"] { border-color: rgba(83,231,142,.45); background: rgba(0,189,87,.08); }
@@ -5560,11 +5560,14 @@
               pick(["Quotes issued", "Alternates", "Quoted value", "Average quote"]))
           + ledgerGroup("Outcome", "What came back as an order.",
               pick(["Quote wins", "Booked jobs", "Conversion", "Value returned", "Value capture", "Booked tons"]))
-          + ledgerGroup("Speed and delivery", "How long each half of the lifecycle took.",
+          + ledgerGroup("Speed and delivery", "How long each part of the lifecycle took.",
               pick(["Median time to price", "Median decision time", "Average turnaround", "Inside three days", "Met the due date"]))
           + ledgerGroup("Effort", "What it cost us to produce the book.",
               pick(["Engineering hours", "Hours per quote"]))
-          + ledgerGroup("Accounts", "Who sent the work, and how concentrated it is.",
+          + ledgerGroup("Accounts", "Who sent the work, and how concentrated it is."
+              + (data.matchedAccounts.current === keep.currentCount && data.matchedAccounts.prior === keep.priorCount
+                  ? " The two counts agree here because every loaded week is a matched week."
+                  : " The first counts only the weeks both periods share; the second counts every loaded week."),
               pick(["Accounts quoting (matched weeks)", "Accounts quoting (all weeks)", "Top five share of value"]))
           + "</div>";
         $("#cmpMethod").innerHTML = '<ol class="cmp-method">'
