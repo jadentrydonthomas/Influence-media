@@ -4865,7 +4865,15 @@
                 ? records.map(record => '<div class="brief-quote' + (record.won ? " is-won" : "") + '">'
                     + "<b>" + escape(record.quoteNumber || record.key) + "</b>"
                     + "<span>" + escape(cmpClip(record.project || "no project name", 60)) + "</span>"
-                    + "<i>" + escape(record.date ? fullDate(record.date) : "—") + "</i>"
+                    + "<i>" + escape([
+                        record.date ? fullDate(record.date) : "no date",
+                        (function () {
+                          const who = resolvedNucorPerson(record.engineer, state.model && state.model.roster);
+                          return who.code === "(none)" ? "" : (who.matched ? who.name : who.code);
+                        })(),
+                        record.onTime === "EARLY" ? "early" : record.onTime === "ONTIME" ? "met the date"
+                          : record.onTime === "LATE" ? "late" : ""
+                      ].filter(Boolean).join(" · ")) + "</i>"
                     + "<em>" + escape(fineMoney((Number(record.price) || 0) / 1000000)) + "</em>"
                     + '<u class="' + (record.won ? "is-won" : "is-open") + '">' + (record.won
                         ? "booked" + ((record.jobsDetail || []).length ? " · " + escape((record.jobsDetail || []).map(job => job.id).slice(0, 2).join(", ")) : "")
@@ -4912,7 +4920,7 @@
               { label: "Engineering hours", now: now.hours, was: then.hours, fmt: value => value ? value.toFixed(0) : "0", invert: true }
             ], { columns: 4 })
           + '<div class="brief-years">' + jobList(then, data.priorShort) + jobList(now, data.currentShort) + "</div>"
-          + '<p class="ops-note">' + escape("Every quote this account sent in each period, largest first, with whether an order came back against it. "
+          + '<p class="ops-note">' + escape("Every quote this account sent in each period, largest first: who priced it, whether it went out by the promised date, and whether an order came back against it. "
             + (then.last ? "Last quoted " + fullDate(then.last) + " in " + data.priorShort + "" : "")
             + (now.last ? (then.last ? "; " : "") + "last quoted " + fullDate(now.last) + " in " + data.currentShort : "") + ".") + "</p>";
       }

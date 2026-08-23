@@ -327,6 +327,22 @@ await p.waitForTimeout(700);
   check('every signed figure uses a true minus, not a hyphen', offenders.length === 0, offenders.join(' | '));
 }
 
+// "Some items are not shown": the comparison brief has to carry the same
+// follow-up the main Customers profile carries — who priced the quote and
+// whether it went out by the promised date, not only the date and the value.
+{
+  await p.click('[data-screen="compare"]'); await p.waitForTimeout(500);
+  await p.click('[data-compare-view="customers"]'); await p.waitForTimeout(900);
+  const metas = await p.$$eval('.brief-detail .brief-quote i', n => n.map(x => x.textContent.trim()));
+  check('the comparison brief lists quotes', metas.length > 0, metas.length + ' rows');
+  const withOwner = metas.filter(m => m.split('·').length >= 2);
+  check('each quote in the brief names who priced it', withOwner.length === metas.length,
+    metas.filter(m => m.split('·').length < 2).slice(0, 2).join(' | '));
+  const withRelease = metas.filter(m => /(early|late|met the date)/i.test(m));
+  check('the brief carries the release result where the workbook scored one',
+    withRelease.length > 0, withRelease.slice(0, 2).join(' | '));
+}
+
 // Borrowed order log: the screen must say so rather than imply a real read.
 await load({ withPrior: true, withPriorOrder: false });
 await p.click('[data-screen="compare"]'); await p.waitForTimeout(600);
