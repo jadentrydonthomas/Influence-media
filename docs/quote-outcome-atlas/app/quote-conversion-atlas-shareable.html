@@ -3506,8 +3506,9 @@
           description = "Whether wins are concentrated in small routine work or in the large quotes that carry the value.";
           const bandData = deckValueBands(data.records || []);
           const sizeData = deckSizeBands(data.records || []);
+          const bandTop = Math.max(1, ...bandData.bands.concat(sizeData.bands).map(band => band.conversion || 0));
           const bandRow = (band, unit) => {
-            const share = bandData.scored ? band.quotes / bandData.scored * 100 : 0;
+            const share = band.wins ? band.conversion / bandTop * 100 : 0;
             const bandKey = Object.keys(VALUE_BANDS).find(key => VALUE_BANDS[key].label === band.label) || "";
             return '<div class="segment-row' + (band.wins === 0 ? " is-zero" : "") + '"' + (unit && bandKey ? ' data-filter="band" data-filter-value="' + bandKey + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.band === bandKey) + '"' : "") + '><span>' + escape(band.label) + '</span>'
               + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
@@ -3517,7 +3518,7 @@
           html = bandData.bands.length
             ? '<div class="segment-list">' + bandData.bands.map(band => bandRow(band, true)).join("") + "</div>"
               + '<div class="segment-split"><h4>By building size</h4><div class="segment-list">' + (sizeData.bands.length ? sizeData.bands.map(band => bandRow(band, false)).join("") : '<div class="analysis-foot">Square-foot values are not populated in this source set.</div>') + "</div></div>"
-              + '<div class="analysis-foot"><strong>Read the bar and the number separately:</strong> the bar is how much of the book sits in that band; the number beside it is how much of that band came back. ' + bandData.scored + " of " + data.quotes + ' records carry a price and are scored here.</div>'
+              + '<div class="analysis-foot"><strong>The bar and the figure are both the rate that band came back at,</strong> drawn against the best rate on this panel, ' + pct(bandTop) + ', rather than against a hundred per cent. The line under each band is how big it is. ' + bandData.scored + " of " + data.quotes + ' records carry a price and are scored here.</div>'
             : '<div class="analysis-foot"><strong>No priced quote records in this cohort.</strong> Value banding needs the weekly Price field.</div>';
         } else if (state.analysis === "compare") {
           const loaded = baselineComparison(data);
@@ -3582,17 +3583,20 @@
           description = "Quote-number prefixes read straight off the quote key, so no district result depends on a roster guess.";
           const districtData = deckDistricts(data.records || []).slice(0, 10);
           const maxDistrictValue = districtData.length ? Math.max.apply(null, districtData.map(item => item.value)) : 0;
+          const anyDistrictSolid = districtData.some(item => !isThinSample(item.quotes, CMP_THIN_BOOK));
           html = districtData.length
             ? '<div class="segment-list">' + districtData.map(district => {
                 const share = maxDistrictValue ? district.value / maxDistrictValue * 100 : 0;
                 return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '" data-filter="district" data-filter-value="' + escape(district.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.district === district.code) + '"><span>' + escape(district.code) + '</span>'
                   + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
-                  + '<b>' + pct(district.conversion) + '</b>'
-                  + '<small>' + countOf(district.quotes, "quote") + " · " + money(district.value / 1000000) + " quoted · " + district.wins + " won · "
+                  + '<b>' + money(district.value / 1000000) + '</b>'
+                  + '<small>' + countOf(district.quotes, "quote") + " · " + district.wins + " won · " + pct(district.conversion)
+                  + (anyDistrictSolid && isThinSample(district.quotes, CMP_THIN_BOOK) ? " on a thin book" : "") + " · "
                   + (district.turnAverage === null ? "turn n/a" : district.turnAverage.toFixed(1) + "d turn") + " · " + district.alts + " alts · "
                   + district.hoursPerQuote.toFixed(2) + " eng hrs/quote</small></div>";
               }).join("") + "</div>"
-              + '<div class="analysis-foot"><strong>Bar length is quoted value, not quote count.</strong> A district with few large quotes outranks one with many small ones. Prefixes are shown as they appear in the quote number; no salesperson name is inferred from them.</div>'
+              + '<div class="analysis-foot">' + (anyDistrictSolid ? "" : "<strong>Every district here is under " + CMP_THIN_BOOK + " quotes,</strong> so read the rates as direction rather than as measurements. ")
+              + '<strong>The bar and the figure are both quoted value.</strong> A district with few large quotes outranks one with many small ones. A copper bar is a district that booked nothing at all. Prefixes are shown as they appear in the quote number; no salesperson name is inferred from them.</div>'
             : '<div class="analysis-foot"><strong>No district prefixes available.</strong> District is derived from the quote-number prefix.</div>';
         } else if (state.analysis === "tons") {
           title = "Booked tons by order-entry week";

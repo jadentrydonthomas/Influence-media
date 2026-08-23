@@ -133,6 +133,35 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
   check('no account name is clipped to an ellipsis', names.every(n => !/…$/.test(n)), names.filter(n => /…$/.test(n)).join(' | '));
 }
 
+// The analysis panels put a bar and a figure on the same row. They have to be
+// the same measure: a bar drawn on quote counts beside a conversion rate, or on
+// value beside a rate, invites a reader to take one for the other.
+{
+  await page.click('[data-screen="overview"]');
+  await page.waitForTimeout(700);
+  for (const tab of ['bands', 'districts']) {
+    await page.click(`[data-analysis="${tab}"]`);
+    await page.waitForTimeout(700);
+    const rows = await page.$$eval('#analysisBody .segment-row', nodes => nodes.map(row => {
+      const fill = row.querySelector('.segment-track i');
+      const figure = row.querySelector('b');
+      const text = figure ? figure.textContent.trim() : '';
+      const n = parseFloat(text.replace(/[^0-9.]/g, ''));
+      return {
+        width: fill ? parseFloat(fill.style.getPropertyValue('--segment')) : null,
+        value: isFinite(n) ? (/M$/.test(text) ? n * 1000 : n) : null,
+      };
+    }));
+    const readable = rows.filter(r => r.width !== null && r.value !== null && r.value > 0);
+    check(`the ${tab} rows parsed`, readable.length >= 3, readable.length + ' of ' + rows.length);
+    // Ranking by the figure and ranking by the bar must give the same order.
+    const byFigure = readable.slice().sort((a, b) => b.value - a.value).map(r => r.width);
+    const sortedWidths = readable.map(r => r.width).sort((a, b) => b - a);
+    check(`the ${tab} bar and figure rank the same way`, byFigure.join(',') === sortedWidths.join(','),
+      byFigure.slice(0, 4).join(',') + ' vs ' + sortedWidths.slice(0, 4).join(','));
+  }
+}
+
 check('no JS errors', errs.length === 0, errs.slice(0, 2).join('; '));
 await browser.close();
 console.log('\n' + (fails.length ? 'FAILURES:\n  ' + fails.join('\n  ') : 'The roster, its chart and its sheet are one view in one order, and unowned work is counted without being ranked as a person.'));
