@@ -891,14 +891,22 @@
     .brief-years { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; padding: 0; border-radius: var(--r-sm); background: var(--line); overflow: hidden; }
     .brief-year { padding: 0 0 10px; background: var(--surface); }
     .brief-year-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 14px; background: var(--green-head); }
-    .brief-year-head span { color: #ffffff; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .brief-year-head b { color: var(--green-bright); font-family: var(--mono); font-size: 12.5px; }
+    .brief-year-head > span { color: #ffffff; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .brief-year-head > b { color: var(--green-bright); font-family: var(--mono); font-size: 12.5px; }
+    .brief-year-head .fact { color: rgba(255,255,255,.62); font-size: 10.5px; }
+    .brief-year-head .fact b { color: var(--green-bright); font-size: 12.5px; }
     .brief-quote { display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr) minmax(64px, auto); grid-template-areas: "id project value" "date date state" "jobs jobs jobs"; gap: 2px 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
     .brief-quote:last-of-type { border-bottom: 0; }
     .brief-quote b { grid-area: id; min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--mono); font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .brief-quote span { grid-area: project; min-width: 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.3; overflow-wrap: anywhere; }
     .brief-quote em { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12.5px; font-style: normal; font-weight: 700; text-align: right; }
-    .brief-quote i { grid-area: date; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
+    .brief-quote i { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; grid-area: date; min-width: 0; color: var(--ink-faint); font-size: 10.5px; font-style: normal; }
+    .brief-when { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; white-space: nowrap; }
+    .brief-who { color: var(--ink-muted); font-size: 10.5px; font-style: normal; }
+    .brief-release { font-family: var(--display); font-size: 9.5px; font-style: normal; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    .brief-release.is-early { color: var(--green-dark); }
+    .brief-release.is-met-the-date { color: var(--green-dark); }
+    .brief-release.is-late { color: var(--red-deep); }
     .brief-quote u { grid-area: state; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-align: right; text-decoration: none; text-transform: uppercase; }
     .brief-quote u.is-won { color: var(--green-dark); }
     .brief-quote u.is-open { color: var(--ink-faint); }
@@ -1557,7 +1565,8 @@
     .brief-quote .brief-job i, .brief-quote .brief-job em { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
     .brief-quote .brief-job.is-more { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
     .brief-year-foot { padding: 8px 11px; border-top: 1px solid var(--line); background: var(--surface-soft); }
-    .brief-year-foot span { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; }
+    .brief-year-foot > span { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; }
+    .brief-year-foot .fact, .brief-year-foot .fact b { font-size: 11.5px; }
     /* Who actually paid, both periods. One row an account: the name and what
        changed about it, the two bars, the two figures, the move. */
     .payer-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); margin: 0 0 2px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
@@ -4813,13 +4822,13 @@
           const move = item.thin ? Object.assign({}, item.move, { tone: "flat" }) : item.move;
           const now = cmpPersonSide(person, "current", key), was = cmpPersonSide(person, "prior", key);
           const width = Math.min(100, move.size / widest * 100);
-          const evidence = opsNumber(person.prior.quotes) + " → " + opsNumber(person.current.quotes) + " quotes"
-            + (person.named === false ? " · not on the roster" : "");
+          const evidence = opsNumber(person.prior.quotes) + " → " + opsNumber(person.current.quotes) + " quotes";
+          const evidenceFlag = person.named === false ? ' <i class="row-flag">not on the roster</i>' : "";
           return '<button type="button" class="team-row" data-cmp-person="' + escape(person.code) + '"'
             + ' aria-pressed="' + String(person.code === comparePerson) + '">'
             + '<span class="member"><i class="member-initials">' + escape(person.code) + "</i>"
             + '<span class="member-name"><strong>' + escape(cmpClip(person.name, 26)) + "</strong>"
-            + "<span>" + escape(evidence) + "</span></span></span>"
+            + "<span>" + escape(evidence) + evidenceFlag + "</span></span></span>"
             + '<span class="cmp-then-now' + (item.thin ? " is-thin" : "") + '"><i>' + escape(spec.fmt(was))
             + '</i><em>&rarr;</em><b>' + escape(spec.fmt(now)) + "</b></span>"
             + '<span class="member-bar"><i class="cmp-move-track"><b class="is-' + move.tone
@@ -4955,7 +4964,7 @@
           + people.map(person => {
               const now = person.current, then = person.prior;
               return '<tr><td><b>' + escape(person.code) + '</b> <span class="est-name">' + escape(cmpClip(person.name, 34))
-                + (person.named === false ? " · no roster name" : "") + "</span></td>"
+                + (person.named === false ? ' <i class="row-flag">no roster name</i>' : "") + "</span></td>"
                 + cell(then.quotes, now.quotes, opsNumber, false, false)
                 + cell(then.wins, now.wins, opsNumber, false, false)
                 + cell(then.quotes ? then.conversion : null, now.quotes ? now.conversion : null, value => value === null ? "—" : pct(value), true, false)
@@ -5028,23 +5037,25 @@
         const jobList = (side, label) => {
           const records = (side.records || []).slice().sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0)).slice(0, 8);
           return '<div class="brief-year"><div class="brief-year-head"><span>' + escape(label) + "</span><b>"
-            + escape(countOf(side.quotes, "quote") + " · " + fineMoney(side.value / 1000000)) + "</b></div>"
+            + facts([
+                { value: opsNumber(side.quotes), unit: side.quotes === 1 ? "quote" : "quotes" },
+                { value: fineMoney(side.value / 1000000), unit: "asked" }
+              ], true) + "</b></div>"
             + (records.length
                 ? records.map(record => '<div class="brief-quote' + (record.won ? " is-won" : "") + '">'
                     + "<b>" + escape(record.quoteNumber || record.key) + "</b>"
                     + "<span>" + escape(cmpClip(record.project || "no project name", 60)) + "</span>"
-                    + "<i>" + escape([
-                        record.date ? fullDate(record.date) : "no date",
-                        (function () {
-                          const who = resolvedNucorPerson(record.engineer, state.model && state.model.roster);
-                          return who.code === "(none)" ? "" : (who.matched ? who.name : who.code);
-                        })(),
-                        record.onTime === "EARLY" ? "early" : record.onTime === "ONTIME" ? "met the date"
-                          : record.onTime === "LATE" ? "late" : ""
-                      ].filter(Boolean).join(" · ")) + "</i>"
+                    + "<i>" + (function () {
+                        const who = resolvedNucorPerson(record.engineer, state.model && state.model.roster);
+                        const release = record.onTime === "EARLY" ? "early" : record.onTime === "ONTIME" ? "met the date"
+                          : record.onTime === "LATE" ? "late" : "";
+                        return '<em class="brief-when">' + escape(record.date ? fullDate(record.date) : "no date") + "</em>"
+                          + (who.code === "(none)" ? "" : '<em class="brief-who">' + escape(who.matched ? who.name : who.code) + "</em>")
+                          + (release ? '<em class="brief-release is-' + release.replace(/ /g, "-") + '">' + escape(release) + "</em>" : "");
+                      })() + "</i>"
                     + "<em>" + escape(fineMoney((Number(record.price) || 0) / 1000000)) + "</em>"
                     + '<u class="' + (record.won ? "is-won" : "is-open") + '">' + (record.won
-                        ? "booked" + ((record.jobsDetail || []).length ? " · " + escape((record.jobsDetail || []).map(job => job.id).slice(0, 2).join(", ")) : "")
+                        ? "booked"
                         : "no order") + "</u>"
                     // The main Customers profile carries what the order log knows
                     // about a booked job — when it was entered and what it
@@ -5063,8 +5074,12 @@
                     + "</div>").join("")
                 : '<p class="ops-note">Nothing quoted in this period.</p>')
             + (side.quotes > records.length ? '<p class="ops-note">' + (side.quotes - records.length) + " more not shown.</p>" : "")
-            + '<div class="brief-year-foot"><span>' + escape(opsNumber(side.wins) + " booked · " + fineMoney(side.wonValue / 1000000)
-                + (side.tons ? " · " + tons(side.tons) + " tons" : "") + (side.hours ? " · " + side.hours.toFixed(0) + " eng hrs" : "")) + "</span></div>"
+            + '<div class="brief-year-foot"><span>' + facts([
+                { value: opsNumber(side.wins), unit: "booked" },
+                { value: fineMoney(side.wonValue / 1000000), unit: "returned" },
+                side.tons ? { value: tons(side.tons), unit: "tons", quiet: true } : null,
+                side.hours ? { value: side.hours.toFixed(0), unit: "eng hrs", quiet: true } : null
+              ], true) + "</span></div>"
             + "</div>";
         };
         return '<div class="brief-head"><div><span class="brief-eyebrow">Account brief</span>'
@@ -5202,7 +5217,7 @@
         return cmpColumnPairs(marks.map(mark => ({
             label: "by day " + mark.day,
             prior: mark.prior.share, current: mark.current.share,
-            note: opsNumber(mark.current.booked) + " of " + opsNumber(mark.current.base) + " · was " + opsNumber(mark.prior.booked) + " of " + opsNumber(mark.prior.base)
+            note: opsNumber(mark.current.booked) + " of " + opsNumber(mark.current.base) + ", was " + opsNumber(mark.prior.booked) + " of " + opsNumber(mark.prior.base)
           })), { format: pct, keyPrior: cmp.priorShort, keyCurrent: cmp.currentShort,
             label: "Share of quotes booked by each age, both periods" });
       }
@@ -5504,7 +5519,7 @@
               // company the stat says so rather than quietly disagreeing with
               // the ledger two views along.
               note: (data.concentration.current.accounts === data.matchedAccounts.current
-                  ? "" : "of " + opsNumber(data.matchedAccounts.current) + " quoting · ")
+                  ? "" : "of " + opsNumber(data.matchedAccounts.current) + " quoting, ")
                 + "was " + opsNumber(data.concentration.prior.accounts),
               tone: toneOf(data.concentration.current.accounts - data.concentration.prior.accounts) },
             { label: "Biggest shift", value: topShift ? topShift.label : "—", note: topShift ? cmpPoints(topShift.points) + " of the book" : "", tone: topShift ? toneOf(topShift.points) : "plain" }
@@ -6518,9 +6533,9 @@
           && cmpPersonSide(person, "prior", key) === null).length;
         const role = data.roleLabel.toLowerCase();
         setText("#cmpPeopleSummary", opsNumber(people.length) + " " + (people.length === 1 ? role : role + "s")
-          + (people.length === 1 ? " owns" : " own") + " a quote in one period or the other · listed by "
-          + spec.label.toLowerCase() + ", largest first · " + opsNumber(better) + " moved the right way, "
-          + opsNumber(moved.length - better) + " the other · " + spec.note
+          + (people.length === 1 ? " owns" : " own") + " a quote in one period or the other, listed by "
+          + spec.label.toLowerCase() + ", largest first. " + opsNumber(better) + " moved the right way and "
+          + opsNumber(moved.length - better) + " the other. " + spec.note
           + (thin ? " " + opsNumber(thin) + (thin === 1 ? " book is" : " books are") + " under "
               + CMP_THIN_BOOK + " quotes on one side, marked thin and ranked last." : "")
           + (absent ? " " + opsNumber(absent) + (absent === 1 ? " owner has" : " owners have")

@@ -333,14 +333,21 @@ await p.waitForTimeout(700);
 {
   await p.click('[data-screen="compare"]'); await p.waitForTimeout(500);
   await p.click('[data-compare-view="customers"]'); await p.waitForTimeout(900);
-  const metas = await p.$$eval('.brief-detail .brief-quote i', n => n.map(x => x.textContent.trim()));
+  // The line is laid out now rather than joined by middots, so each part is
+  // its own mark and is read as one.
+  const metas = await p.$$eval('.brief-detail .brief-quote i', n => n.map(x => ({
+    text: x.textContent.replace(/\s+/g, ' ').trim(),
+    when: !!x.querySelector('.brief-when'),
+    who: !!x.querySelector('.brief-who'),
+    release: !!x.querySelector('.brief-release')
+  })));
   check('the comparison brief lists quotes', metas.length > 0, metas.length + ' rows');
-  const withOwner = metas.filter(m => m.split('·').length >= 2);
-  check('each quote in the brief names who priced it', withOwner.length === metas.length,
-    metas.filter(m => m.split('·').length < 2).slice(0, 2).join(' | '));
-  const withRelease = metas.filter(m => /(early|late|met the date)/i.test(m));
+  check('every quote in the brief carries its date', metas.every(m => m.when),
+    metas.filter(m => !m.when).slice(0, 2).map(m => m.text).join(' | '));
+  check('each quote in the brief names who priced it', metas.every(m => m.who),
+    metas.filter(m => !m.who).slice(0, 2).map(m => m.text).join(' | '));
   check('the brief carries the release result where the workbook scored one',
-    withRelease.length > 0, withRelease.slice(0, 2).join(' | '));
+    metas.some(m => m.release), metas.filter(m => m.release).slice(0, 2).map(m => m.text).join(' | '));
 }
 
 // Borrowed order log: the screen must say so rather than imply a real read.
