@@ -1336,6 +1336,7 @@
     .ops-table .load { width: 110px; }
     .ops-table .load i { display: block; height: 8px; background: var(--green); border-radius: 4px; }
     .est-name { color: var(--ink-muted); font-size: 12.5px; }
+    .est-name .row-flag { margin-left: 8px; }
     /* A 1px gap over a line-coloured container painted the ragged last row of a
        six-card strip as one large block of border colour. Cell borders instead,
        so an unfilled grid cell is simply empty. */
@@ -3876,7 +3877,7 @@
         const maxLoad = Math.max(1, ...rows.map(item => item.perWeek));
         const loadTable = '<div class="ops-table-wrap"><table class="ops-table">'
           + '<thead><tr><th>' + escape(roleWord) + '</th><th class="num">Quotes</th><th class="num">Per week</th><th>Relative load</th><th class="num">Alts</th><th class="num">Avg turn</th><th class="num">6+ days</th><th class="num">Quoted $</th><th class="num">Conversion</th></tr></thead><tbody>'
-          + rows.map(item => '<tr data-filter="' + roleField + '" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters[roleField] === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + escape(item.code === "(none)" || item.rosterMatched ? item.name : item.name + " · not on the roster") + '</span></td>'
+          + rows.map(item => '<tr data-filter="' + roleField + '" data-filter-value="' + escape(item.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters[roleField] === item.code) + '"><td><b>' + escape(item.code === "(none)" ? "—" : item.code) + '</b> <span class="est-name">' + (item.code === "(none)" || item.rosterMatched ? escape(item.name) : escape(item.name) + ' <i class="row-flag">not on the roster</i>') + '</span></td>'
               + '<td class="num">' + item.quotes + '</td><td class="num">' + item.perWeek.toFixed(1) + '</td>'
               + '<td class="load"><i style="width:' + (item.perWeek / maxLoad * 100).toFixed(1) + '%"></i></td>'
               + '<td class="num">' + item.alts + '</td><td class="num">' + opsTurnText(item.turn.average) + '</td>'
@@ -4645,7 +4646,7 @@
           + (merges.length
               ? '<div class="identity-block"><div class="identity-head"><span>Resolved to one account</span><b>' + merges.length + "</b></div>"
                 + merges.slice(0, 14).map(item => '<div class="identity-row">'
-                    + '<div class="identity-pair"><b>' + escape(item.from) + "</b><i>as typed · " + opsNumber(item.quotes) + " quote" + (item.quotes === 1 ? "" : "s") + "</i></div>"
+                    + '<div class="identity-pair"><b>' + escape(item.from) + '</b><i>as typed, on ' + opsNumber(item.quotes) + " quote" + (item.quotes === 1 ? "" : "s") + "</i></div>"
                     + '<div class="identity-versus">joined</div>'
                     + '<div class="identity-pair"><b>' + escape(customerLabel.get(item.to) || item.to) + "</b><i>the account it is counted under</i></div>"
                     + "<span>" + escape(item.why || "") + "</span></div>").join("")
@@ -6229,7 +6230,7 @@
                   + '<span class="num week-alts">' + item.alts + "</span></div>";
               }).join("") + "</div>"
             + '<div class="week-legend"><span><b class="is-green"></b>1 day</span><span><b class="is-green-soft"></b>2–3</span><span><b class="is-steel"></b>4–5</span><span><b class="is-copper"></b>6+</span>'
-            + '<span class="week-legend-note">' + weekly.length + ' week' + (weekly.length === 1 ? "" : "s") + ' · engineering bar is actual hours, "vs plan" is scheduled minus actual</span></div>'
+            + '<span class="week-legend-note">Across ' + countOf(weekly.length, "week") + '. The engineering bar is actual hours; "vs plan" is scheduled minus actual.</span></div>'
           : '<p class="ops-note">No weekly detail in this source set.</p>';
       }
 
@@ -6827,7 +6828,7 @@
           rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + facts([
               { value: person.quotes, unit: person.quotes === 1 ? "quote" : "quotes" },
               { value: person.orders, unit: person.orders === 1 ? "win" : "wins" }
-            ], true) + (loose ? '<i class="row-flag">no owner code</i>' : unnamed ? '<i class="row-flag">not on the roster</i>' : "") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
+            ], true) + (loose ? ' <i class="row-flag">no owner code</i>' : unnamed ? ' <i class="row-flag">not on the roster</i>' : "") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
@@ -6863,8 +6864,8 @@
               { value: person.quotes, unit: person.quotes === 1 ? "quote" : "quotes" },
               { value: person.orders, unit: person.orders === 1 ? "win" : "wins" },
               { value: person.jobs, unit: person.jobs === 1 ? "job" : "jobs" }
-            ], true) + (person.code === "(none)" ? '<i class="row-flag">no owner code</i>'
-              : person.rosterMatched === false ? '<i class="row-flag">not on the roster</i>' : "");
+            ], true) + (person.code === "(none)" ? ' <i class="row-flag">no owner code</i>'
+              : person.rosterMatched === false ? ' <i class="row-flag">not on the roster</i>' : "");
           });
         }
         const selected = people[state.selectedPerson];
@@ -11617,7 +11618,9 @@
           ? "Prior period needs attention"
           : priorReady
             ? intake.priorFiles.length + " quote week" + (intake.priorFiles.length === 1 ? "" : "s")
-              + (intake.priorOrderFiles.length ? " · " + intake.priorOrderFiles.length + " order log" + (intake.priorOrderFiles.length === 1 ? "" : "s") : " · this year's order log")
+              + (intake.priorOrderFiles.length
+                  ? ", " + intake.priorOrderFiles.length + " order log" + (intake.priorOrderFiles.length === 1 ? "" : "s")
+                  : ", against this year's order log")
             : "No prior period loaded");
         setText("#priorFileNames", intake.priorError
           || (priorReady

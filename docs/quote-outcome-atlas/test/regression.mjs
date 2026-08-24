@@ -119,17 +119,20 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   for (const screen of ['overview', 'customers', 'people', 'timeline', 'compare', 'data']) {
     await page.click(`[data-screen="${screen}"]`);
     await page.waitForTimeout(450);
-    const bad = await page.$$eval('.fact', nodes => nodes
+    // Units, and any mark that sits beside text — a roster flag, a thin
+    // marker — need the space in the markup, not only in CSS. ".row-flag" was
+    // reading as "NPMNOT ON THE ROSTER" while looking correct on screen.
+    const bad = await page.$$eval('.fact .unit, .row-flag, .thin-mark, .payer-state', nodes => nodes
       .filter(node => {
-        const unit = node.querySelector('.unit');
-        if (!unit) return false;
-        return !/\s$/.test((unit.previousSibling && unit.previousSibling.textContent) || '');
+        const before = node.previousSibling;
+        if (!before || !before.textContent) return false;
+        return !/\s$/.test(before.textContent);
       })
       .slice(0, 3)
-      .map(node => node.textContent.replace(/\s+/g, ' ').trim()));
+      .map(node => (node.parentElement || node).textContent.replace(/\s+/g, ' ').trim()));
     bad.forEach(text => fused.push(screen + ': ' + text));
   }
-  check('every figure keeps a real space before its unit', fused.join(' | '), '');
+  check('no mark fuses to the text beside it', fused.join(' | '), '');
 }
 
 // A fact strip is dropped into containers that already style bare span and b
