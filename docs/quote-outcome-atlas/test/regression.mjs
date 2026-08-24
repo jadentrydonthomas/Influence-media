@@ -131,6 +131,38 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   }
   check('every figure keeps a real space before its unit', fused.join(' | '), '');
 }
+
+// A fact strip is dropped into containers that already style bare span and b
+// descendants. Three of those rules reached inside it: one broke every figure
+// onto its own line, one uppercased the units, one both. Each was invisible in
+// the source and obvious on the screen.
+{
+  const captured = [];
+  for (const screen of ['overview', 'customers', 'people', 'timeline', 'compare', 'data']) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(450);
+    const bad = await page.$$eval('.facts', nodes => {
+      const out = [];
+      nodes.forEach(strip => {
+        const stripStyle = getComputedStyle(strip);
+        if (stripStyle.display !== 'flex') out.push('strip display ' + stripStyle.display + ': ' + strip.textContent.trim());
+        // A .fact is a flex item, so it is blockified by its own strip; only
+        // the parts inside one carry a display worth checking.
+        strip.querySelectorAll('.fact b, .fact .unit').forEach(part => {
+          const style = getComputedStyle(part);
+          if (style.display === 'block') out.push('block: ' + part.textContent.trim());
+        });
+        strip.querySelectorAll('.fact, .fact b, .fact .unit').forEach(part => {
+          const style = getComputedStyle(part);
+          if (style.textTransform !== 'none') out.push(style.textTransform + ': ' + part.textContent.trim());
+        });
+      });
+      return out.slice(0, 3);
+    });
+    bad.forEach(text => captured.push(screen + ' — ' + text));
+  }
+  check('no container rule reaches inside a fact strip', captured.join(' | '), '');
+}
 await page.click('[data-screen="people"]');
 await page.waitForTimeout(400);
 

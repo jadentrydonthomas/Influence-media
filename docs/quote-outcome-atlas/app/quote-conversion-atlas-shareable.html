@@ -959,7 +959,9 @@
     .cust-diag-track { grid-area: track; height: 10px; overflow: hidden; background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line); border-radius: 5px; }
     .cust-diag-track i { display: block; height: 100%; background: var(--fill-warn); border-radius: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
     .cust-diag > b { grid-area: value; color: var(--red-deep); font-family: var(--mono); font-size: 12.5px; text-align: right; }
-    .cust-diag > small { grid-area: note; color: var(--ink-faint); font-size: 10.5px; }
+    .cust-diag > small { grid-area: note; min-width: 0; color: var(--ink-faint); font-size: 10.5px; }
+    .cust-diag > small .facts { gap: 0 14px; }
+    .cust-diag > small .fact, .cust-diag > small .fact b { font-size: 10.5px; }
     .ops-week { padding: 0 17px 15px; }
     .week-head, .week-row { display: grid; grid-template-columns: 46px minmax(70px,1fr) minmax(84px,1.1fr) 38px 50px minmax(70px,.85fr) 50px 40px; align-items: center; gap: 10px; }
     .week-head { padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -1054,19 +1056,22 @@
     .account-profile { min-width: 0; padding: 22px 24px 24px; border: 0; border-radius: var(--r-md); box-shadow: var(--lift-2), var(--edge); background: var(--surface); }
     .profile-top h3 { margin: 7px 0 0; overflow: hidden; color: var(--ink); font-family: var(--display); font-size: 26px; letter-spacing: -.01em; line-height: 1.02; text-overflow: ellipsis; }
     .profile-top p { margin: 8px 0 0; color: var(--ink-muted); font-size: 13.5px; line-height: 1.5; }
-    .profile-filter { margin-top: 13px; padding: 8px 13px; border: 1px solid var(--line); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; cursor: pointer; }
+    .profile-filter { margin-top: 13px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; cursor: pointer; }
     .profile-filter:hover { border-color: var(--ink); color: var(--ink); }
     .profile-filter[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
     .profile-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 22px; border-radius: var(--r-sm); background: var(--line); overflow: hidden; border-top: 0; border-left: 0 solid var(--line); }
     .profile-stats > div { padding: 15px 17px 16px; border: 0; background: var(--surface); }
     .profile-stats span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .profile-stats strong { display: block; margin-top: 8px; color: var(--ink); font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: -.04em; }
+    .profile-stats strong em { margin-left: 3px; color: var(--ink-faint); font-family: var(--body); font-size: 12.5px; font-style: normal; font-weight: 600; letter-spacing: 0; }
     .profile-stats small { display: block; margin-top: 4px; color: var(--ink-muted); font-size: 11.5px; line-height: 1.35; }
     @media (max-width: 720px) { .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .profile-block { margin-top: 22px; }
     .profile-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 9px; border-bottom: 1.5px solid var(--line); }
-    .profile-block-head span { color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .profile-block-head b { color: var(--green-dark); font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+    .profile-block-head > span { color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .profile-block-head > b { color: var(--green-dark); font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+    .profile-block-head .fact { color: var(--ink-faint); font-size: 11.5px; }
+    .profile-block-head .fact b { color: var(--green-dark); font-size: 12.5px; }
     .profile-table-wrap { max-height: 330px; overflow: auto; }
     .profile-table-wrap.is-jobs { max-height: none; overflow-y: visible; overflow-x: auto; }
     .profile-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
@@ -1114,7 +1119,7 @@
     .profile-table th, .cohort th, .ops-table th { font-size: 10.5px; letter-spacing: .09em; }
     .account-head { border-bottom: 1.5px solid var(--green); }
     .week-head { border-bottom: 1.5px solid var(--green); }
-    .profile-block-head span, .panel-head .ops-step { color: var(--green-dark); }
+    .profile-block-head > span, .panel-head .ops-step { color: var(--green-dark); }
 
     /* A booked job opens where it sits, so the account record stays one page. */
     .profile-table tr.is-openable { cursor: pointer; }
@@ -1392,6 +1397,11 @@
     .fact.is-quiet b { color: var(--ink-faint); font-weight: 500; }
     .fact.is-person b { font-family: var(--body); font-size: 11.5px; font-weight: 500; letter-spacing: 0; }
     .fact .unit { margin-left: 1.5px; }
+    /* Fact strips are dropped into rows whose containers style bare span and
+       b descendants. These two rules out-rank those so a figure never breaks
+       away from its unit and no unit inherits a caption's uppercasing. */
+    .facts .fact b, .facts .fact .unit { display: inline; text-transform: none; }
+    .facts .fact { text-transform: none; }
     .payer-state { font-family: var(--display); font-size: 9.5px; font-style: normal; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
     .payer-state.is-stopped-paying { color: var(--red-deep); }
     .payer-state.is-new-payer { color: var(--green-dark); }
@@ -6359,7 +6369,10 @@
                 + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
                 + '<div class="cust-diag-track"><i style="width:' + (account.wonValue / topReturn * 100).toFixed(1) + '%"></i></div>'
                 + '<b>' + money(account.wonValue) + "</b>"
-                + '<small>' + account.wins + " of " + account.quotes + " quotes booked · " + pct(account.conversion) + " · " + money(account.quoteValue) + " asked</small></div>").join("")
+                + '<small>' + facts([
+                    { value: account.wins + " of " + account.quotes, unit: account.quotes === 1 ? "quote booked" : "quotes booked" },
+                    { value: money(account.quoteValue), unit: "asked", quiet: true }
+                  ], true) + "</small></div>").join("")
           : '<p class="ops-note">No account in this cohort has a linked order yet, so there is no returned value to rank.</p>';
 
         // The diagnostic the estimating group cannot get out of its own reporting.
@@ -6373,7 +6386,11 @@
                 + '<span title="' + escape(account.name) + '">' + escape(account.name) + "</span>"
                 + '<div class="cust-diag-track"><i style="width:' + (account.quoteValue / worst * 100).toFixed(1) + '%"></i></div>'
                 + '<b>' + money(account.quoteValue) + "</b>"
-                + '<small>' + countOf(account.quotes, "quote") + " · " + account.loadedWeeks + (account.loadedWeeks === 1 ? " week · " : " weeks · ") + account.hours.toFixed(1) + " eng hrs</small></div>").join("")
+                + '<small>' + facts([
+                    { value: opsNumber(account.quotes), unit: account.quotes === 1 ? "quote" : "quotes" },
+                    { value: opsNumber(account.loadedWeeks), unit: account.loadedWeeks === 1 ? "week" : "weeks", quiet: true },
+                    { value: account.hours.toFixed(1), unit: "eng hrs", quiet: true }
+                  ], true) + "</small></div>").join("")
           : '<p class="ops-note">Every account that asked more than once has booked at least one job in this cohort.</p>';
         $$("[data-open-account]").forEach(node => {
           const open = () => {
@@ -6548,19 +6565,26 @@
 
         panel.innerHTML = '<div class="profile-top"><div class="eyebrow">Account record</div>'
           + '<h3 title="' + escape(account.name) + '">' + escape(account.name) + "</h3>"
-          + '<p>' + account.quotes + " quote" + (account.quotes === 1 ? "" : "s") + " across " + account.loadedWeeks + (account.loadedWeeks === 1 ? " quoted week" : " quoted weeks")
-          + " · " + money(account.quoteValue) + " asked · " + (account.wins ? money(account.wonValue) + " returned" : "nothing returned yet") + "</p>"
+          + '<p>' + facts([
+              { value: opsNumber(account.quotes), unit: account.quotes === 1 ? "quote" : "quotes" },
+              { value: opsNumber(account.loadedWeeks), unit: account.loadedWeeks === 1 ? "quoted week" : "quoted weeks", quiet: true },
+              { value: money(account.quoteValue), unit: "asked" },
+              account.wins ? { value: money(account.wonValue), unit: "returned" } : { value: "nothing", unit: "returned yet", quiet: true }
+            ]) + "</p>"
           + '<button class="profile-filter" type="button" aria-pressed="' + String(filtered) + '">'
           + (filtered ? "Dashboard is filtered to this account — click to clear" : "Filter the whole dashboard to this account") + "</button></div>"
           + '<div class="profile-stats">'
-          + '<div><span>Booked</span><strong>' + account.wins + " / " + account.quotes + '</strong><small>' + pct(account.conversion) + " came back</small></div>"
+          + '<div><span>Booked</span><strong>' + account.wins + " of " + account.quotes + '</strong><small>' + pct(account.conversion) + " came back</small></div>"
           + '<div><span>Returned value</span><strong>' + (account.wins ? money(account.wonValue) : "—") + '</strong><small>of ' + money(account.quoteValue) + " asked</small></div>"
           + '<div><span>Booked tons</span><strong>' + (bookedTons ? tons(bookedTons) : "—") + '</strong><small>' + jobs.length + " linked job" + (jobs.length === 1 ? "" : "s") + "</small></div>"
           + '<div><span>Average quote</span><strong>' + money(account.averageQuote) + '</strong><small>' + account.alts + " alternates behind them</small></div>"
-          + '<div><span>Engineering</span><strong>' + account.hours.toFixed(1) + '</strong><small>hours · ' + account.hoursPerQuote.toFixed(2) + " per quote</small></div>"
+          + '<div><span>Engineering</span><strong>' + account.hours.toFixed(1) + '<em>hrs</em></strong><small>' + account.hoursPerQuote.toFixed(2) + " hours per quote</small></div>"
           + '<div><span>Average turn</span><strong>' + (account.turnAverage === null ? "—" : account.turnAverage.toFixed(1) + "d") + '</strong><small>Date In to Done</small></div></div>'
           + (jobs.length
-              ? '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>' + jobs.length + " job" + (jobs.length === 1 ? "" : "s") + " · " + tons(bookedTons) + ' tons</b></div>'
+              ? '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>' + facts([
+                  { value: opsNumber(jobs.length), unit: jobs.length === 1 ? "job" : "jobs" },
+                  { value: tons(bookedTons), unit: "tons" }
+                ], true) + '</b></div>'
                 + '<div class="profile-table-wrap is-jobs"><table class="profile-table"><thead><tr><th>Job</th><th>Entered</th><th class="num">Tons</th><th class="num">Quote value</th><th>From quote</th></tr></thead><tbody>'
                 + jobs.map((job, index) => '<tr class="is-openable" data-job="' + index + '" role="button" tabindex="0" aria-expanded="false"><td><b>' + escape(job.id) + '</b>' + (job.name ? '<span class="job-name" title="' + escape(job.name) + '">' + escape(job.name) + "</span>" : "") + "</td>"
                     + '<td class="date">' + (job.entryDate ? fullDate(job.entryDate) : "no entry date") + "</td>"
@@ -6571,7 +6595,10 @@
                 + "</tbody></table></div></section>"
               : '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>none yet</b></div>'
                 + '<p class="ops-note">No order-log row in the loaded window carries a quote number from this account. That is a follow-up queue, not a recorded loss.</p></section>')
-          + '<section class="profile-block"><div class="profile-block-head"><span>Every quote from this account</span><b>' + records.length + " · " + money(account.quoteValue) + '</b></div>'
+          + '<section class="profile-block"><div class="profile-block-head"><span>Every quote from this account</span><b>' + facts([
+              { value: opsNumber(records.length), unit: records.length === 1 ? "quote" : "quotes" },
+              { value: money(account.quoteValue), unit: "asked" }
+            ], true) + '</b></div>'
           + '<div class="profile-table-wrap"><table class="profile-table"><thead><tr><th>Quote</th><th>Quoted</th><th class="num">Value</th><th>Quote engineer</th><th>Release</th><th>Outcome</th></tr></thead><tbody>'
           + records.map(record => {
               const engineer = resolvedNucorPerson(record.engineer, state.model && state.model.roster);
