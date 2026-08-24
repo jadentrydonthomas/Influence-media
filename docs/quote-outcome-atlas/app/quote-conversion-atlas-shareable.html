@@ -948,8 +948,8 @@
     [data-filter] { cursor: pointer; }
     [data-filter]:hover { background: var(--surface-soft); }
     [data-filter][aria-pressed="true"] { box-shadow: inset 3px 0 0 var(--green); }
-    .cust-sort { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 17px 12px; }
-    .cust-sort-btn { padding: 6px 10px; border: 1px solid var(--line); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+    .cust-sort { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 0 17px 12px; }
+    .cust-sort-btn { padding: 7px 11px; border: 1px solid var(--line); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-align: left; text-transform: uppercase; cursor: pointer; }
     .cust-sort-btn[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
     .cust-sort-btn:hover { border-color: var(--ink); }
     .cust-name { display: block; max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
