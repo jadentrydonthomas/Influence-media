@@ -48,6 +48,14 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **The dashboard prints too** (2026-08-24). It had one print rule, hiding
+      the glossary. Ctrl-P gave four pages with a black rail down the side of
+      every one, the dark hero as a slab, the dial as a filled black disc, KPI
+      text clipped, and the export button and theme toggle on the paper — and
+      with backgrounds off, which is most print dialogs' default, the light-on-
+      dark panels printed white on white and vanished.
+
+
 - [x] **The deck prints** (2026-08-23). It advertises "P to print / save PDF" in
       its own footer, and printing it produced a mess on every page: display:flex
       forced on each slide with no direction, so the header, content and footer
