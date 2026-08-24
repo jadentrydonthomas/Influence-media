@@ -186,6 +186,32 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   }
   check('every analysis screen leads with a generated finding', leads.join(' | '), '');
 }
+
+// A control or shell that draws a full border and squares its corners is the
+// most dated thing on a screen. Thirty-three of them were doing it.
+{
+  const square = [];
+  for (const screen of ['overview', 'customers', 'people', 'timeline', 'compare', 'data']) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(450);
+    const bad = await page.$$eval('#app *', nodes => nodes
+      .filter(node => {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        if (parseFloat(style.borderTopWidth) < 0.5) return false;
+        if (style.borderTopStyle === 'none') return false;
+        const box = node.getBoundingClientRect();
+        // A hairline used as a rule, not as a box, has no second border.
+        if (parseFloat(style.borderLeftWidth) < 0.5 || parseFloat(style.borderBottomWidth) < 0.5) return false;
+        if (box.width < 24 || box.height < 16) return false;
+        return parseFloat(style.borderTopLeftRadius) < 1;
+      })
+      .slice(0, 4)
+      .map(node => (node.className && typeof node.className === 'string' ? '.' + node.className.trim().split(/\s+/)[0] : node.tagName.toLowerCase())));
+    bad.forEach(name => square.push(screen + ': ' + name));
+  }
+  check('no bordered control or shell squares its corners', [...new Set(square)].join(' | '), '');
+}
 await page.click('[data-screen="people"]');
 await page.waitForTimeout(400);
 

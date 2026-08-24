@@ -1911,6 +1911,23 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
     }
+
+    /* Corners. Thirty-three surfaces still carried a hard 1px border with
+       square corners — every button, chip, field and shell in the product.
+       A square-cornered control is the most dated thing on a screen, so each
+       is given the radius that matches its role: a pill for anything that
+       reads as a tag, a small radius for controls and fields, a medium one
+       for the shells that hold a section. */
+    .control-button, .cust-sort-btn, .analysis-tab, .filter-clear, .glossary-close,
+    .exit-review, .prior-add, .source-add, .quote-filter { border-radius: var(--r-sm); }
+    .quote-search, .brief-search input, .quote-field { border-radius: var(--r-sm); }
+    .filter-chip, .field-chip, .prior-tag, .acct-flag, .cmp-thin { border-radius: 999px; }
+    .member-initials { border-radius: var(--r-xs); }
+    .outcome-tally, .record-week, .brief-quote .brief-job { border-radius: var(--r-sm); }
+    .record-field, .cmp-banner, .filter-bar, .prior-bar, .run-status,
+    .analysis-empty, .weekly-empty, .matrix-empty { border-radius: var(--r-md); }
+    .data-intake, .intake-step, .identity-block { border-radius: var(--r-md); }
+
   </style>
 </head>
 <body data-theme="light">

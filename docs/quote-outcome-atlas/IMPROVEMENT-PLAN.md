@@ -49,15 +49,21 @@ product owner to disable it from the Routines list rather than leaving it firing
 > Correctness work is done to the point where the assertions catch regressions;
 > what they cannot catch is how it looks, so that is where the hours go.
 
-- [ ] **The dark panels.** The year-over-year lede and the hero stage are the
-      last heavy blocks. They earn their weight as the lead of a screen, but
-      their internals are still bordered cells.
-
 - [ ] **Review pass 5** — keep walking the surfaces. The recurring failure is
       a shape that carries a real finding and never names it; the second is a
       figure that disagrees with another figure elsewhere in the product.
 
 ## Done
+
+- [x] **Square corners** (2026-08-24). The dark panels turned out to be fine —
+      their internals were rebuilt in an earlier round. What was still blocky
+      was smaller and everywhere: thirty-three surfaces drawing a full 1px
+      border with square corners, which is every button, sort control, search
+      field, filter chip, roster initial, record-week cell, intake step and
+      empty-state shell in the product. Against the rounded surfaces elsewhere
+      they read as unfinished. Each now carries the radius its role calls for,
+      and the regression walks every element on all six screens to keep it that
+      way.
 
 - [x] **Hierarchy — give the eye somewhere to land** (2026-08-24). Only the
       Outcome dashboard opened with a generated finding; Customers, Team
