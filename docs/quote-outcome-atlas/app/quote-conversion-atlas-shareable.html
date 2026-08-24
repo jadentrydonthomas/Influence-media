@@ -1330,7 +1330,9 @@
     .cap-track i.is-bad { background: var(--red); }
     .cap-row > b { grid-area: value; font-family: var(--mono); font-size: 12.5px; text-align: right; }
     .cap-row > b.is-good { color: var(--green-dark); } .cap-row > b.is-bad { color: var(--red-deep); }
-    .cap-row > small { grid-area: note; color: var(--ink-faint); font-size: 10.5px; }
+    .cap-row > small { grid-area: note; min-width: 0; color: var(--ink-faint); font-size: 10.5px; }
+    .cap-row > small .facts { gap: 0 13px; }
+    .cap-row > small .fact, .cap-row > small .fact b { font-size: 10.5px; }
     .ops-table .load { width: 110px; }
     .ops-table .load i { display: block; height: 8px; background: var(--green); border-radius: 4px; }
     .est-name { color: var(--ink-muted); font-size: 12.5px; }
@@ -2563,7 +2565,9 @@
       const coverageNote = (scored, total) => {
         if (!total) return "no records in this cohort";
         if (!scored) return "0 of " + total + " scored";
-        return scored + " of " + total + " scored · " + Math.round(scored / total * 100) + "% coverage";
+        // "69 of 69 scored" already says the coverage. Restating it as a
+        // percentage joined by a middot added a value and no information.
+        return scored + " of " + total + " scored";
       };
       const onTimeCoverageNote = data => onTimeAvailable(data)
         ? coverageNote(Number(data.onTimeScoredCount) || 0, Number(data.quotes) || 0)
@@ -3919,7 +3923,11 @@
                 + escape(item.code === "(none)" ? "No initials" : item.code) + "</span>"
                 + '<div class="cap-track"><i class="' + (good ? "is-good" : "is-bad") + '" style="' + (good ? "left:50%;" : "right:50%;") + "width:" + width.toFixed(1) + '%"></i></div>'
                 + '<b class="' + (good ? "is-good" : "is-bad") + '">' + (item.variance > 0 ? "+" : item.variance < 0 ? "−" : "") + Math.abs(item.variance).toFixed(1) + "</b>"
-                + '<small>' + item.scheduled.toFixed(0) + " sched · " + item.hours.toFixed(0) + " act · " + countOf(item.quotes, "quote") + "</small></div>";
+                + '<small>' + facts([
+                    { value: item.scheduled.toFixed(0), unit: "scheduled" },
+                    { value: item.hours.toFixed(0), unit: "actual" },
+                    { value: opsNumber(item.quotes), unit: item.quotes === 1 ? "quote" : "quotes", quiet: true }
+                  ], true) + "</small></div>";
             }).join("") + "</div>"
           + '<div class="cap-full">' + loadTable + "</div>";
       }

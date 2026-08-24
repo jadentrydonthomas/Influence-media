@@ -83,7 +83,7 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
 {
   await page.click('[data-team-metric="volume"]');
   await page.waitForTimeout(700);
-  const variances = await page.$$eval('#teamLoad .cap-row b', n => n.map(x => Number(x.textContent.replace('−', '-').replace('+', ''))));
+  const variances = await page.$$eval('#teamLoad .cap-row > b', n => n.map(x => Number(x.textContent.replace('−', '-').replace('+', ''))));
   const sorted = variances.slice().sort((a, b) => a - b);
   check('the capacity rows run biggest overrun first', variances.join(',') === sorted.join(','), variances.join(','));
   const note = await page.$eval('#teamLoadNote', n => n.textContent);
