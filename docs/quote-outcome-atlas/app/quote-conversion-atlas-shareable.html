@@ -1178,7 +1178,67 @@
     .gloss-warn { margin-top: 16px; padding: 13px 15px; border-left: 3px solid var(--red); background: var(--surface-soft); color: var(--ink-muted); font-size: 12.5px; line-height: 1.55; }
     .gloss-warn strong { color: var(--ink); }
     @media (max-width: 620px) { .glossary { width: 100%; } .glossary-head h2 { font-size: 21px; } }
-    @media print { .glossary, .glossary-scrim { display: none !important; } }
+    @media print {
+      .glossary, .glossary-scrim { display: none !important; }
+      html, body { background: #ffffff; }
+      /* The shell is a two-column screen layout. On paper there is one column. */
+      .app { display: block; min-height: 0; background: none; }
+      .rail { position: static; height: auto; padding: 0 0 14px; color: var(--ink); background: none; background-image: none; }
+      .rail-nav, .review-mode, .masthead-actions, .pointer-ring, .pointer-dot { display: none !important; }
+      /* The rail's type is set for a black panel. In ink it has to be ink. */
+      .rail, .rail * { color: var(--ink) !important; }
+      .rail-score strong, .rail-fact strong { color: var(--green-dark) !important; }
+      .rail-score small, .rail-score b, .rail-label, .rail-fact span, .rail-fact small { color: var(--ink-muted) !important; }
+      /* Four facts and a conversion rate belong on one line above the report,
+         not in a column down the side of it. */
+      .rail { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 0 24px; border-bottom: 1px solid var(--line); }
+      .rail .brand { margin: 0; }
+      .rail-label { display: none; }
+      .rail-title { margin: 0; font-size: 15px; }
+      .rail-score { margin: 0; padding: 0; border: 0; background: none; }
+      .rail-score strong { font-size: 24px; }
+      .rail-score small, .rail-score b { display: none; }
+      .rail-facts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-top: 10px; }
+      .rail-fact { padding: 8px 12px 8px 0; border: 0; border-right: 1px solid var(--line); background: none; }
+      .rail-fact:last-child { border-right: 0; }
+      .main { padding: 0; }
+      .masthead { min-height: 0; padding-bottom: 10px; }
+      .screen { padding-top: 18px; animation: none; }
+      .screen:not(.is-active) { display: none !important; }
+      /* A panel split across a page break loses the header that says what it is. */
+      .panel, .flow-stage, .analysis-panel, .cmp-view > section, .team-layout > section,
+      .brief-layout, .record-week, .ops-table-wrap { break-inside: avoid; }
+      .panel { box-shadow: none; }
+      /* Nothing on paper scrolls, so a scroller has to give up its height cap. */
+      [style*="overflow"], .ops-table-wrap, .profile-table-wrap, .acct-table-wrap,
+      .brief-list, .cust-rows, .team-list { max-height: none !important; overflow: visible !important; }
+      .outcome-section, .yoy-lede { background: #ffffff !important; }
+      .outcome-section, .outcome-section *, .yoy-lede, .yoy-lede * { color: var(--ink) !important; text-shadow: none !important; }
+      .outcome-section .eyebrow, .yoy-lede-eyebrow, .flow-step, .field-index,
+      .outcome-section small, .yoy-stat span, .yoy-stat small { color: var(--ink-muted) !important; }
+      .outcome-section strong, .yoy-stat strong { color: var(--green-dark) !important; }
+      .flow-stage, .flow-stage > *, .outcome-atlas, .outcome-atlas > *, .record-field,
+      .yoy-lede, .yoy-stat, .record-week {
+        background: #ffffff !important; background-image: none !important;
+        box-shadow: none !important; border-color: var(--line) !important;
+      }
+      .flow-stage::before, .flow-stage::after, .yoy-lede::before, .yoy-lede::after,
+      .flow-stage .flow-stage-glow { display: none !important; }
+      /* The dial reads as a ring of ink; its dark centre does not. */
+      .outcome-tally, .quote-field, .quote-field-facts > div,
+      .record-week, .metric-rings, .conversion-hero {
+        background: #ffffff !important; background-image: none !important; box-shadow: none !important;
+      }
+      .conversion-disc::before { background: #ffffff !important; border-color: var(--line) !important; box-shadow: none !important; }
+      .conversion-disc::after { border-color: var(--line) !important; }
+      .conversion-hero::before { border-color: var(--line) !important; }
+      .conversion-disc-inner, .conversion-disc-inner *, .outcome-tally, .outcome-tally * { color: var(--ink) !important; }
+      .conversion-disc-inner strong, .tally-data strong, .tally-data b { color: var(--green-dark) !important; }
+      .conversion-disc-inner span, .tally-data small, .tally-copy p { color: var(--ink-muted) !important; }
+      .outcome-tally { border: 1px solid var(--line) !important; }
+      .record-week { border: 1px solid var(--line) !important; }
+      * { animation: none !important; transition: none !important; }
+    }
 
     /* Timelines. Every bar carries its median as the solid part and the
        ninetieth percentile as the faint tail, so a long right-hand tail reads

@@ -191,6 +191,8 @@ const chartNames = () => page.$$eval('#teamChart .team-chart-row span:first-chil
 // summary claimed three codes were "visibly flagged" while the rows carried no
 // flag, so a reader could not tell which three.
 {
+  await page.click('[data-screen="people"]');
+  await page.waitForTimeout(700);
   await page.click('[data-team-metric="volume"]');
   await page.waitForTimeout(700);
   const rows = await page.$$eval('#teamRows .team-row', nodes => nodes.map(row => ({
