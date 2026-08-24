@@ -49,11 +49,6 @@ product owner to disable it from the Routines list rather than leaving it firing
 > Correctness work is done to the point where the assertions catch regressions;
 > what they cannot catch is how it looks, so that is where the hours go.
 
-- [ ] **Hierarchy — give the eye somewhere to land.** Every panel currently
-      carries the same visual weight, so a screen reads as a uniform wall.
-      One lead statement per screen should be unmistakably the largest thing,
-      supporting panels should recede, and reference tables should be quiet.
-
 - [ ] **The dark panels.** The year-over-year lede and the hero stage are the
       last heavy blocks. They earn their weight as the lead of a screen, but
       their internals are still bordered cells.
@@ -63,6 +58,17 @@ product owner to disable it from the Routines list rather than leaving it firing
       figure that disagrees with another figure elsewhere in the product.
 
 ## Done
+
+- [x] **Hierarchy — give the eye somewhere to land** (2026-08-24). Only the
+      Outcome dashboard opened with a generated finding; Customers, Team
+      performance and Timelines went straight from the title into their panels,
+      so a reader had to derive each screen's point from the charts. Each now
+      leads with its own sentence — where demand is concentrated, who carries
+      the largest book, whether the wait is ours or the customer's — on a bar
+      that lifts off the page with the finding set above body size. Writing
+      them surfaced three real defects: the unattributed bucket ranking as the
+      busiest owner, a plural count on a singular verb, and a count written
+      before its own total.
 
 - [x] **Density on the customer and timeline surfaces** (2026-08-24). Every
       supporting line on these screens was a run of values joined by middots —

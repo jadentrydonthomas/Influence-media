@@ -163,6 +163,29 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   }
   check('no container rule reaches inside a fact strip', captured.join(' | '), '');
 }
+
+// Every screen that carries analysis opens with one generated sentence naming
+// what it found. A screen whose lead still reads as the import placeholder, or
+// whose lead never names a figure, is one the reader has to derive from.
+{
+  const leads = [];
+  for (const [screen, id] of [
+    ['overview', '#managementReadout'],
+    ['customers', '#custReadout'],
+    ['people', '#teamReadout'],
+    ['timeline', '#timeReadout']]) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(450);
+    const lead = await page.$eval(id, node => ({
+      strong: (node.querySelector('strong') || {}).textContent || '',
+      all: node.textContent.replace(/\s+/g, ' ').trim()
+    }));
+    if (/awaiting source files/i.test(lead.all)) leads.push(screen + ': still the import placeholder');
+    else if (!/\d/.test(lead.strong)) leads.push(screen + ': lead names no figure — ' + lead.strong);
+    else if (lead.strong.length < 20) leads.push(screen + ': lead is too short — ' + lead.strong);
+  }
+  check('every analysis screen leads with a generated finding', leads.join(' | '), '');
+}
 await page.click('[data-screen="people"]');
 await page.waitForTimeout(400);
 

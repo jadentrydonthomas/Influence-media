@@ -342,10 +342,10 @@
     @keyframes orbit-turn { from { transform: rotate(-82deg) scale(.92); opacity: .1; } to { transform: rotate(0) scale(1); opacity: 1; } }
     @keyframes matrix-in { from { opacity: 0; transform: scale(.38); } to { opacity: 1; transform: scale(1); } }
 
-    .readout-bar { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 12px; align-items: center; margin: 23px 0; padding: 14px 16px; border-left: 3px solid var(--amber); background: var(--surface); box-shadow: 0 1px 0 var(--line); }
+    .readout-bar { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; gap: 14px; align-items: center; margin: 23px 0 26px; padding: 16px 20px 17px; border-left: 3px solid var(--amber); border-radius: 0 var(--r-md) var(--r-md) 0; background: var(--surface); box-shadow: var(--lift-2), var(--edge); }
     .readout-bar > span { color: var(--amber); font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
-    .readout-bar p { margin: 0; color: var(--ink-muted); font-size: 12.5px; }
-    .readout-bar p strong { color: var(--ink); font-weight: 700; }
+    .readout-bar p { margin: 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
+    .readout-bar p strong { color: var(--ink); font-size: 15px; font-weight: 700; letter-spacing: -.005em; }
     .readout-bar small { color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; white-space: nowrap; }
 
     .chart-grid { display: grid; grid-template-columns: minmax(0,1.18fr) minmax(330px,.82fr); gap: 23px; align-items: start; }
@@ -2066,6 +2066,7 @@
           <div><div class="eyebrow">Team performance</div><h2 id="peopleTitle">Compare people<br />without losing <em>context.</em></h2></div>
           <p>Choose the measure that matters, then read it beside workload and returned value. Small books stay visible without being mistaken for definitive rankings.</p>
         </div>
+        <section class="readout-bar" aria-label="What this screen says"><span>01</span><p id="teamReadout"><strong>Awaiting source files.</strong> Run the weekly quote books and an order log to read the roster.</p><small id="teamReadoutTag">Import required</small></section>
         <div class="team-controls">
           <div class="button-group" id="roleControls" aria-label="Select responsibility group">
             <button class="control-button" type="button" data-role="engineers" aria-pressed="true">Quote engineers</button>
@@ -2109,6 +2110,7 @@
           <div><div class="eyebrow">Customer demand</div><h2 id="custTitle" class="is-compact">Who asks, and who <em>actually books.</em></h2></div>
           <p>Every account in the loaded quote book, measured by what it asked for against what came back. Choose an account to open its full record &mdash; every quote it sent, and every job that came back with its entry date, tonnage and value.</p>
         </div>
+        <section class="readout-bar" aria-label="What this screen says"><span>01</span><p id="custReadout"><strong>Awaiting source files.</strong> Run the weekly quote books and an order log to read the account demand.</p><small id="custReadoutTag">Import required</small></section>
         <section class="ops-kpis" id="custKpis" aria-label="Customer headline figures"></section>
         <div class="account-layout">
           <section class="account-list-panel" aria-labelledby="custListTitle">
@@ -2140,6 +2142,7 @@
           <div><div class="eyebrow">Timelines</div><h2 id="timelineTitle" class="is-compact">How long it takes <em>to come back.</em></h2></div>
           <p>The quote book read along a calendar rather than a list. Every figure here is measured from dates the workbooks already carry — Date In, Done, and the order-log entry date — so nothing is modelled or assumed.</p>
         </div>
+        <section class="readout-bar" aria-label="What this screen says"><span>01</span><p id="timeReadout"><strong>Awaiting source files.</strong> Run the weekly quote books and an order log to read the clock.</p><small id="timeReadoutTag">Import required</small></section>
         <section class="panel is-feature" aria-labelledby="wholeClockTitle">
           <div class="panel-head"><span class="ops-step">The whole clock</span><h2 id="wholeClockTitle">How long the whole thing takes</h2><p>From the request landing on the desk to the order being entered, and where inside that the work leaves us and the customer starts deciding. The two dials underneath are the two parts of this bar.</p></div>
           <div class="ops-body" id="timelineWhole"></div>
@@ -5929,6 +5932,8 @@
         const line = data.timeline;
         if (data.empty || !line || !data.records || !data.records.length) {
           $("#timelineKpis").innerHTML = '<div class="analysis-empty"><div><b>No lifecycle dates yet</b><span>Run the weekly quote books and an order log to measure how long work takes to come back.</span></div></div>';
+          $("#timeReadout").innerHTML = "<strong>Awaiting source files.</strong> Run the weekly quote books and an order log to read the clock.";
+          setText("#timeReadoutTag", "Import required");
           ["#timelineWhole", "#timelineClocks", "#lifecycleStages", "#decisionCurve", "#openAgeing", "#cumulativeChart", "#tlArrivals", "#tlTurn", "#tlCohort", "#opsWeek"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           setText("#cumulativeNote", "");
           return;
@@ -5950,6 +5955,22 @@
             + '<div class="clock-scale"><i style="width:' + share.toFixed(1) + '%"></i></div>'
             + '<u>0</u><em>' + item.scale + ' day scale</em></div></article>';
         };
+        // The screen's own lead: where the wait actually sits. Our part and the
+        // customer's part are medians on different sets, so the sentence says
+        // which is the larger of the two rather than implying they sum.
+        {
+          const ours = line.produce.median, theirs = line.decide.median;
+          const oldestShare = line.openCount ? percentage(oldest.count, line.openCount) : 0;
+          $("#timeReadout").innerHTML = (ours !== null && theirs !== null)
+            ? "<strong>Half of quotes are priced inside " + escape(dayText(ours))
+              + ", and half of the orders that come back take another " + escape(dayText(theirs)) + ".</strong> "
+              + escape("The wait is " + (theirs > ours ? "the customer's, not ours" : "ours, not the customer's") + ". "
+                + countOf(line.openCount, "quote") + " carrying " + money(line.openValue) + (line.openCount === 1 ? " has" : " have") + " no answer at all"
+                + (oldest.count ? ", and " + pct(oldestShare) + " of that has sat past sixty days." : "."))
+            : "<strong>The clock cannot be read on this cohort yet.</strong> A quote needs a Date In and a Done to time our part, and a linked order entry to time the customer's.";
+          setText("#timeReadoutTag", data.exposure ? data.exposure + "+ day seller lens" : "Full book");
+        }
+
         $("#timelineWhole").innerHTML = deckProcessBar(line, { className: "tl-process" })
           + '<p class="ops-note">' + escape(line.total.scored
               ? "Median across " + opsNumber(line.total.scored) + " booked jobs that carry both a Date In and an order-entry date"
@@ -6316,7 +6337,25 @@
           ["#custDiagnostic", "#custValueBlock", "#custRows", "#custSort"].forEach(id => { const node = $(id); if (node) node.innerHTML = ""; });
           renderAccountProfile(null);
           setText("#custTableNote", "");
+          $("#custReadout").innerHTML = "<strong>Awaiting source files.</strong> Run the weekly quote books and an order log to read the account demand.";
+          setText("#custReadoutTag", "Import required");
           return;
+        }
+
+        // The screen's own lead. Concentration is the finding a reader is least
+        // likely to derive from the lists below it, so it opens the sentence.
+        {
+          const neverBooked = signals.askedNeverBooked || [];
+          const top = accounts.slice().sort((a, b) => b.wonValue - a.wonValue)[0];
+          $("#custReadout").innerHTML = "<strong>" + escape(pct(signals.concentration))
+            + " of quoted value sits with ten accounts.</strong> "
+            + escape(opsNumber(signals.withWin) + " of " + countOf(signals.total, "account") + " booked work"
+              + (top && top.wonValue > 0 ? ", and " + top.name + " returned the most at " + money(top.wonValue) : "")
+              + (neverBooked.length
+                  ? ". " + countOf(neverBooked.length, "account") + " asked at least twice and booked nothing, carrying "
+                    + money(signals.askedNeverBookedValue) + " of quoted value."
+                  : ". Every account that asked more than once has booked at least one job."));
+          setText("#custReadoutTag", data.exposure ? data.exposure + "+ day seller lens" : "Full book");
         }
 
         $("#custKpis").innerHTML = [
@@ -6708,6 +6747,8 @@
           $("#teamChart").innerHTML = '<div class="quote-empty">The comparison chart will appear after the roster and quote records are imported.</div>';
           setText("#teamChartTitle", "Team comparison");
           setText("#teamChartDescription", "Select the weekly quote files and order log, then run the dashboard.");
+          $("#teamReadout").innerHTML = "<strong>Awaiting source files.</strong> Run the weekly quote books and an order log to read the roster.";
+          setText("#teamReadoutTag", "Import required");
           return;
         }
         const metric = metricDefinition();
@@ -6720,8 +6761,26 @@
         const groupOnTimeScored = people.reduce((sum, person) => sum + (Number(person.onTimeScoredCount) || 0), 0);
         const averageOnTimeText = timingQuoteCount ? averageOnTime + "% on time (" + coverageNote(groupOnTimeScored, totalQuotes) + ")" : "— on time (no EARLY / LATE values)";
         const groupMetric = metric.key === "conversion" ? percentage(totalOrders, totalQuotes) : metric.key === "onTime" ? averageOnTime : metric.key === "quotes" ? totalQuotes / people.length : metric.key === "effort" ? people.reduce((sum, person) => sum + (person.hours || 0), 0) / Math.max(1, totalQuotes) : people.reduce((sum, person) => sum + person.value, 0) / people.length;
+        const teamRoleWord = state.role === "estimators" ? "Estimator" : state.role === "schedulers" ? "Scheduler" : "Quote engineer";
         const order = teamOrder(people, metric);
         const sorted = order.map(person => ({ person: person, index: people.indexOf(person) }));
+        // The screen's own lead: how the work is spread, and how much of it is
+        // carried by whoever is holding the most of it.
+        {
+          const owned = order.filter(person => person.code !== "(none)");
+          const byLoad = owned.slice().sort((a, b) => b.quotes - a.quotes);
+          const busiest = byLoad[0];
+          const share = busiest && totalQuotes ? percentage(busiest.quotes, totalQuotes) : 0;
+          const unowned = people.filter(person => person.code === "(none)").reduce((sum, person) => sum + person.quotes, 0);
+          $("#teamReadout").innerHTML = busiest
+            ? "<strong>" + escape(busiest.name) + " carries the largest book at "
+              + escape(countOf(busiest.quotes, "quote") + ", " + pct(share) + " of the group's " + opsNumber(totalQuotes)) + ".</strong> "
+              + escape(countOf(owned.length, teamRoleWord.toLowerCase()) + " own work in this cohort, and the group converts "
+                + pct(percentage(totalOrders, totalQuotes))
+                + (unowned ? ". " + countOf(unowned, "quote") + (unowned === 1 ? " carries" : " carry") + " no named owner, counted but never ranked as a person." : "."))
+            : "<strong>No named owner holds work in this cohort.</strong> Every quote in the loaded weeks is unattributed.";
+          setText("#teamReadoutTag", teamRoleWord + " roster");
+        }
         let rows = "";
         sorted.forEach(item => {
           const person = item.person;
