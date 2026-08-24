@@ -9163,6 +9163,14 @@
         const resolved = resolvedNucorPerson(code, roster);
         return resolved.matched ? resolved.name : resolved.code === "(none)" ? "No initials supplied" : resolved.code;
       }
+      // Whether that label is a real name or a role code nothing resolved. Every
+      // dashboard screen marks the difference; the deck used to print the bare
+      // code as though it were somebody's name.
+      function deckOwnerUnnamed(code) {
+        const roster = state.model && state.model.roster ? state.model.roster : null;
+        const resolved = resolvedNucorPerson(code, roster);
+        return !resolved.matched && resolved.code !== "(none)";
+      }
 
       // Conversion split by quoted value. This is the single most useful cut in
       // the source data: it shows whether the wins are concentrated in small,
@@ -9259,7 +9267,7 @@
           .map(record => ({
             quote: record.quoteNumber || record.key,
             customer: String(record.customer || "Customer not supplied"),
-            owner: deckOwnerLabel(record.engineer),
+            owner: deckOwnerLabel(record.engineer), ownerUnnamed: deckOwnerUnnamed(record.engineer),
             value: Number(record.price) || 0,
             week: nucorWeekLabel(record.week),
             exposure: Number.isFinite(record.exposure) ? record.exposure : null
@@ -9610,12 +9618,17 @@
       function deckTeamLine(roles) {
         const order = [];
         const byName = new Map();
+        const unnamed = new Set();
         roles.filter(entry => entry.name && entry.name !== "No initials supplied").forEach(entry => {
           if (!byName.has(entry.name)) { byName.set(entry.name, []); order.push(entry.name); }
           byName.get(entry.name).push(entry.role);
+          if (entry.unnamed) unnamed.add(entry.name);
         });
-        if (!order.length) return "No named owner";
-        return order.map(name => name + " (" + (byName.get(name).length === 3 ? "all three" : byName.get(name).join(" & ")) + ")").join(" · ");
+        if (!order.length) return '<i class="team-none">No named owner</i>';
+        const tag = { engineer: "ENG", estimator: "EST", scheduler: "SCH" };
+        return order.map(name => '<i class="team-line"><u>'
+          + escape(byName.get(name).length === 3 ? "ALL" : byName.get(name).map(role => tag[role] || role).join("+")) + '</u><b>'
+          + escape(name) + (unnamed.has(name) ? '<s class="no-roster">no roster name</s>' : "") + "</b></i>").join("");
       }
 
       function deckMetric(label, value, note) {
@@ -10677,14 +10690,25 @@
           + '.cohort-deck tr.foot td{border-bottom:0;border-top:1.5px solid var(--line);color:var(--muted);font-family:Consolas,monospace;font-size:12px}'
           + '.cohort-deck tr.foot td:first-child{color:#7d8f84;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}'
           /* the closing slide: booked work, with the people on it */
-          + '.agenda-table .team{color:var(--muted);font-size:11.5px;white-space:normal;min-width:150px}'
-          + '.agenda-table .team span{display:block;margin-top:2px;color:#98a89e;font-size:10.5px}'
+          + '.agenda-table .team{color:var(--muted);font-size:11.5px;white-space:normal;min-width:168px}'
+          + '.agenda-table .team span{display:block;margin-top:4px;padding-top:4px;border-top:1px solid var(--line)}'
+          /* One name to a line, its role beside it. This cell used to run up to
+             three names and their bracketed roles together with middots and
+             wrap the result across two lines. */
+          + '.team-line{display:inline-flex;align-items:baseline;gap:5px;margin:0 11px 1px 0;font-style:normal;white-space:nowrap}'
+          + '.team-line b{color:#33513e;font-size:11.5px;font-weight:700;line-height:1.35;white-space:normal}'
+          + '.team-line u{flex:none;color:#9aab9f;font-family:Consolas,monospace;font-size:9px;font-weight:700;letter-spacing:.04em;text-decoration:none}'
+          + '.team-none{color:#98a89e;font-size:11.5px;font-style:normal}'
+          + '.no-roster{display:inline-block;margin-left:5px;color:#b07a2e;font-family:Arial,Helvetica,sans-serif;font-size:8.5px;font-weight:800;letter-spacing:.06em;text-decoration:none;text-transform:uppercase;white-space:nowrap}'
           + '.agenda-table .quote span{display:block;margin-top:2px;color:var(--muted);font-size:10.5px;font-weight:600}'
           + '.open-list{display:grid;gap:0;margin-bottom:6px}'
           + '.open-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px solid rgba(147,229,173,.2)}'
           + '.open-row b{font-family:Consolas,monospace;font-size:12.5px;font-weight:800}'
-          + '.open-row em{color:#93e5ad;font-family:Consolas,monospace;font-size:12.5px;font-style:normal;font-weight:800;text-align:right}'
-          + '.open-row span{grid-column:1/-1;color:rgba(239,255,242,.62);font-size:11px}'
+          + '.open-row>em{color:#93e5ad;font-family:Consolas,monospace;font-size:12.5px;font-style:normal;font-weight:800;text-align:right}'
+          + '.open-row span{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;color:rgba(239,255,242,.62);font-size:11px}'
+          + '.open-cust{min-width:0;color:rgba(239,255,242,.86);font-size:11px;font-style:normal;overflow-wrap:anywhere}'
+          + '.open-owner{color:rgba(239,255,242,.55);font-size:11px;font-style:normal}'
+          + '.open-age{color:#e5a06f;font-size:9.5px;font-style:normal;font-weight:800;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}'
           + '.agenda-empty{margin:8px 0 0;color:rgba(239,255,242,.7);font-size:12px}'
           /* the two clocks, at slide scale */
           + '.deck-clocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px;margin-bottom:18px}'
@@ -11365,7 +11389,9 @@
             entryDate: job.entryDate, tons: Number(job.tons) || 0,
             value: Number(record.price) || 0, quote: record.key, lag: record.lag,
             engineer: deckOwnerLabel(record.engineer), estimator: deckOwnerLabel(record.estimator),
-            scheduler: deckOwnerLabel(record.scheduler), salesEngineer: job.salesEngineer || "", csr: job.csr || ""
+            scheduler: deckOwnerLabel(record.scheduler), salesEngineer: job.salesEngineer || "", csr: job.csr || "",
+            engineerUnnamed: deckOwnerUnnamed(record.engineer), estimatorUnnamed: deckOwnerUnnamed(record.estimator),
+            schedulerUnnamed: deckOwnerUnnamed(record.scheduler)
           }))), [])
           .sort((a, b) => b.value - a.value)
           .slice(0, 8);
@@ -11379,24 +11405,30 @@
           + '<td class="week">' + (item.entryDate ? fullDate(item.entryDate) : "no entry date") + "</td>"
           + '<td class="age">' + (item.tons ? tons(item.tons) : "—") + "</td>"
           + '<td class="val">' + fineMoney(item.value / 1000000) + "</td>"
-          + '<td class="team">' + escape(deckTeamLine([
-              { role: "engineer", name: item.engineer },
-              { role: "estimator", name: item.estimator },
-              { role: "scheduler", name: item.scheduler }
+          + '<td class="team">' + (deckTeamLine([
+              { role: "engineer", name: item.engineer, unnamed: item.engineerUnnamed },
+              { role: "estimator", name: item.estimator, unnamed: item.estimatorUnnamed },
+              { role: "scheduler", name: item.scheduler, unnamed: item.schedulerUnnamed }
             ]))
-          + (item.salesEngineer || item.csr ? '<span>' + escape([item.salesEngineer ? "sold by " + item.salesEngineer : "", item.csr ? "CSR " + item.csr : ""].filter(Boolean).join(" · ")) + "</span>" : "") + "</td></tr>"
+          + (item.salesEngineer || item.csr
+              ? '<span>' + [item.salesEngineer ? '<i class="team-line"><u>SOLD</u><b>' + escape(item.salesEngineer) + "</b></i>" : "",
+                  item.csr ? '<i class="team-line"><u>CSR</u><b>' + escape(item.csr) + "</b></i>" : ""].join("") + "</span>"
+              : "") + "</td></tr>"
         ).join("") : '<tr><td colspan="7" class="empty-row">No quote in this cohort has a linked order yet.</td></tr>';
         const openTop = followUp.slice(0, 4);
         const agenda = '<div class="agenda-grid"><div class="agenda-table-wrap">'
           + '<div class="agenda-head"><span class="section-label">Our best booked work in this cohort</span><b>' + money(bookedValue / 1000000)
-          + " across the top " + bookedJobs.length + (bookedTonsTop ? " · " + tons(bookedTonsTop) + " tons" : "") + '</b></div>'
+          + " across the top " + bookedJobs.length + (bookedTonsTop ? ", carrying " + tons(bookedTonsTop) + " tons" : "") + '</b></div>'
           + '<table class="agenda-table"><thead><tr><th></th><th>Job</th><th>Customer</th><th>Entered</th><th>Tons</th><th>Value</th><th>Quoted by / booked by</th></tr></thead><tbody>' + bookedRows + "</tbody></table>"
           + '<p class="chart-note">Every row is a real order-log job matched to the quote that priced it. Value is the quoted value of that quote; tonnage and the entry date come from the order log. The first three names priced it; the line beneath carries the order log&rsquo;s sales engineer and CSR.</p>'
           + "</div>"
           + '<aside class="agenda-side"><span class="section-label">And the largest still open</span>'
           + (openTop.length
               ? '<div class="open-list">' + openTop.map(item => '<div class="open-row"><b>' + escape(item.quote) + "</b><em>" + fineMoney(item.value / 1000000) + "</em>"
-                  + "<span>" + escape(shortName(item.customer, 24)) + " · " + escape(item.owner) + (item.exposure === null ? "" : " · open " + item.exposure + "d") + "</span></div>").join("") + "</div>"
+                  + '<span><em class="open-cust">' + escape(item.customer) + "</em>"
+                  + '<em class="open-owner">' + escape(item.owner)
+                  + (item.ownerUnnamed ? '<s class="no-roster">no roster name</s>' : "") + "</em>"
+                  + (item.exposure === null ? "" : '<em class="open-age">open ' + item.exposure + "d</em>") + "</span></div>").join("") + "</div>"
               : '<p class="agenda-empty">Every priced opportunity in this cohort has a linked order.</p>')
           + '<div class="agenda-note"><span class="section-label">What the open book adds up to</span></div>'
           + '<div class="agenda-point"><p>' + escape(agendaThirdPoint(data, coverage)) + '</p></div>'

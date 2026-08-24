@@ -270,7 +270,27 @@ if (!download) {
   // The closing slide lists booked jobs, not the biggest open quotes: real
   // order-log job numbers, with the people who priced and delivered them.
   checkMatch('deck closes on real booked job numbers', deck, /class="quote"><b>[A-Z0-9]+-\d+</);
-  checkMatch('deck names who priced each booked job', deck, /class="team">[^<]*\((engineer|estimator|scheduler|all three|[a-z]+ & [a-z]+)\)/);
+  // The role is a tag beside the name now rather than a bracketed suffix, so
+  // the check reads the mark instead of the punctuation around it.
+  // Every dashboard screen marks a role code with no full-name row in the
+  // roster. The deck printed the bare code as though it were somebody's name.
+  // Only the weekly workbook's own role codes resolve against the roster. The
+  // sales engineer and CSR initials come off the order log and are not names it
+  // could ever have resolved, so they carry no mark.
+  {
+    const lines = [...deck.matchAll(/<i class="team-line"><u>(ENG|EST|SCH|ALL|EST\+SCH|ENG\+EST|ENG\+SCH)<\/u><b>([^<]+)(<s class="no-roster">)?/g)]
+      .map(m => ({ who: m[2].trim(), marked: !!m[3] }))
+      .concat([...deck.matchAll(/<em class="open-owner">([^<]+)(<s class="no-roster">)?/g)]
+        .map(m => ({ who: m[1].trim(), marked: !!m[2] })));
+    checks.push({ name: 'the deck lists owners at all', actual: lines.length + ' owner lines', expected: 'at least one', pass: lines.length > 0 });
+    // This fixture happens to resolve every owner it prints, so the check
+    // guards the shape rather than being exercised by the data here. The
+    // behaviour itself is visible on the real-data deck, where NPM carries it.
+    const unmarked = lines.filter(entry => /^[A-Z]{2,4}$/.test(entry.who) && !entry.marked).map(entry => entry.who);
+    check('the deck marks a role code that resolved to no roster name', unmarked.slice(0, 3).join(' | '), '');
+  }
+  checkMatch('deck names who priced each booked job', deck,
+    /class="team">(<i class="team-line"><u>(ENG|EST|SCH|ALL|EST\+SCH|ENG\+EST|ENG\+SCH)<\/u><b>[^<]+<\/b><\/i>)/);
   checkMatch('deck still surfaces the largest open work', deck, /and the largest still open/i);
   checkMatch('deck value bands compare asked against returned', deck, /quoted value against returned value, by value band/i);
   checkMatch('deck value bands name both columns', deck, /Quoted value<\/span>[\s\S]{0,120}Returned value/);
