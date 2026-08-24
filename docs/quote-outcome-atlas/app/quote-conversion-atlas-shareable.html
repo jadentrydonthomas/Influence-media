@@ -250,10 +250,11 @@
     .quote-field h3, .outcome-tally h3 { position: relative; z-index: 1; margin: 8px 0 0; color: #fff; font-family: var(--display); font-size: 13.5px; letter-spacing: .1em; line-height: 1; text-transform: uppercase; }
     .quote-field > strong { position: relative; z-index: 1; display: block; margin-top: 22px; color: #fff; font-family: var(--mono); font-size: clamp(57px,5vw,78px); font-weight: 500; letter-spacing: -.12em; line-height: .73; }
     .quote-field > p { position: relative; z-index: 1; margin: 10px 0 0; color: rgba(238,248,240,.63); font-size: 11.5px; }
-    .quote-field-facts { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 20px; background: rgba(232,247,236,.14); }
-    .quote-field-facts > div { padding: 11px 12px 12px; background: rgba(6,18,10,.5); }
+    .quote-field-facts { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(232,247,236,.14); }
+    .quote-field-facts > div { padding: 0; background: none; }
     .quote-field-facts span { display: block; color: rgba(238,248,240,.5); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
-    .quote-field-facts b { display: block; margin-top: 5px; color: #dff3e4; font-family: var(--mono); font-size: 13.5px; font-weight: 600; letter-spacing: -.03em; }
+    .quote-field-facts b { display: block; margin-top: 7px; color: #dff3e4; font-family: var(--mono); font-size: 18px; font-weight: 500; letter-spacing: -.03em; line-height: 1.15; }
+    .quote-field-facts small { display: block; margin-top: 4px; color: rgba(238,248,240,.5); font-size: 11.5px; }
     .quote-field-value { position: relative; z-index: 1; display: flex; align-items: end; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 18px; border-top: 1px solid rgba(232,247,236,.14); }
     .quote-field-value b { color: #c5e8cd; font-family: var(--mono); font-size: 12.5px; font-weight: 500; }
     .quote-field-value span { color: rgba(238,248,240,.48); font-family: var(--mono); font-size: 10.5px; text-align: right; }
@@ -492,7 +493,7 @@
     .cmp-move .ops-note { margin: 0; padding: 12px; }
     /* Year over year is a dashboard inside a dashboard: six labelled views,
        one question each, rather than one long column of figures. */
-    .cmp-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 1px; margin: 0 0 20px; padding: 1px; background: var(--line); }
+    .cmp-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 1px; margin: 0 0 28px; padding: 0; border-radius: var(--r-md); background: var(--line); overflow: hidden; box-shadow: var(--lift-1), var(--edge); }
     .cmp-tab { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "num name" "num note"; align-items: baseline; gap: 1px 9px; padding: 12px 14px; border: 0; background: var(--surface); text-align: left; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
     .cmp-tab b { grid-area: num; align-self: center; color: var(--ink-faint); font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
     .cmp-tab span { grid-area: name; color: var(--ink); font-family: var(--display); font-size: 13.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
@@ -513,7 +514,7 @@
     @keyframes cmpRise { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; transform: none; } }
     @media (prefers-reduced-motion: reduce) { .cmp-view.is-entering > * { animation: none; } }
 
-    .cmp-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 1px; margin: 0 0 20px; padding: 1px; background: var(--line); }
+    .cmp-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 1px; margin: 0 0 30px; padding: 0; border-radius: var(--r-md); background: var(--line); overflow: hidden; box-shadow: var(--lift-1), var(--edge); }
     .cmp-hero-card { display: flex; flex-direction: column; gap: 6px; padding: 17px 19px 18px; background: var(--surface); border-top: 3px solid var(--line-strong); }
     .cmp-hero-card.is-up { border-top-color: var(--green); }
     .cmp-hero-card.is-down { border-top-color: var(--red); }
@@ -880,7 +881,7 @@
     .brief-badge.is-lost { background: var(--red-deep); }
     .brief-badge.is-new { background: var(--amber); }
     .brief-detail .pair-grid { border-bottom: 1px solid var(--line); }
-    .brief-years { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; padding: 1px; background: var(--line); }
+    .brief-years { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; padding: 0; border-radius: var(--r-sm); background: var(--line); overflow: hidden; }
     .brief-year { padding: 0 0 10px; background: var(--surface); }
     .brief-year-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 14px; background: var(--green-head); }
     .brief-year-head span { color: #ffffff; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
@@ -1970,7 +1971,7 @@
                 <h3>Quoted work</h3>
                 <strong id="quotedCount">614</strong>
                 <p id="quotedLabel">quote records sent</p>
-                <div class="quote-field-facts"><div><span>Average quote</span><b id="quotedAverage">—</b></div><div><span>Alternates priced</span><b id="quotedAlts">—</b></div></div>
+                <div class="quote-field-facts"><div><span>Average quote</span><b id="quotedAverage">—</b></div><div><span>Alternates priced</span><b id="quotedAlts">—</b><small id="quotedAltsRate"></small></div></div>
                 <div class="quote-field-value"><b id="quotedValue">$461M quoted value</b><span id="quotedPeriod">W1 to W10</span></div>
               </article>
 
@@ -3369,6 +3370,7 @@
           setText("#quotedLabel", "quote opportunities will appear here");
           setText("#quotedAverage", "—");
           setText("#quotedAlts", "—");
+        setText("#quotedAltsRate", "");
           setText("#quotedValue", "Quoted value is calculated after import");
           setText("#quotedPeriod", "Quote No. source");
           $("#conversionDisc").style.setProperty("--conversion", 0);
@@ -3399,7 +3401,8 @@
         setText("#quotedCount", data.quotes);
         setText("#quotedLabel", "quote opportunities");
         setText("#quotedAverage", data.quotes ? fineMoney(data.quoteValue / data.quotes) : "—");
-        setText("#quotedAlts", opsNumber(data.alts) + (data.quotes ? " · " + (data.alts / data.quotes).toFixed(2) + " per quote" : ""));
+        setText("#quotedAlts", opsNumber(data.alts));
+        setText("#quotedAltsRate", data.quotes ? (data.alts / data.quotes).toFixed(2) + " per quote" : "");
         setText("#quotedValue", money(data.quoteValue) + " quoted value");
         setText("#quotedPeriod", data.period);
         $("#conversionDisc").style.setProperty("--conversion", data.conversion);
