@@ -42,6 +42,26 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Open
 
+> The product owner's most recent verdict (24 Aug): *"still lacking in the
+> design side, still looks blocky, still looks overly digital and typed out not
+> formatted and clear… I don't want it to be too cluttered, it needs to be easy
+> to use and navigate."* Design is the priority until that reads differently.
+> Correctness work is done to the point where the assertions catch regressions;
+> what they cannot catch is how it looks, so that is where the hours go.
+
+- [ ] **Hierarchy — give the eye somewhere to land.** Every panel currently
+      carries the same visual weight, so a screen reads as a uniform wall.
+      One lead statement per screen should be unmistakably the largest thing,
+      supporting panels should recede, and reference tables should be quiet.
+
+- [ ] **The dark panels.** The year-over-year lede and the hero stage are the
+      last heavy blocks. They earn their weight as the lead of a screen, but
+      their internals are still bordered cells.
+
+- [ ] **Density on the customer surfaces.** The most detailed screens are also
+      the most crowded. Fewer, larger, better-spaced elements saying the same
+      things.
+
 - [ ] **Review pass 5** — keep walking the surfaces. The recurring failure is
       a shape that carries a real finding and never names it; the second is a
       figure that disagrees with another figure elsewhere in the product.
