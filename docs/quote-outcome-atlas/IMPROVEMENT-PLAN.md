@@ -55,6 +55,16 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **Every middot run in the product** (2026-08-24). A scan of the rendered
+      screens rather than the source found them all: the year-over-year account
+      brief, its roster caption and both roster-flag sites; the capacity list
+      and the shared coverage note on Team performance; the deck's booked-work
+      table, its open list and both customer ledgers. What is left is the step
+      numeral in a panel eyebrow, which is a deliberate mark, and a list of file
+      names, which is a list. Three real defects fell out of the work: marks
+      fusing to the text beside them, the deck printing an unresolved role code
+      as though it were a name, and a name clipped at 24 characters.
+
 - [x] **Square corners** (2026-08-24). The dark panels turned out to be fine —
       their internals were rebuilt in an earlier round. What was still blocky
       was smaller and everywhere: thirty-three surfaces drawing a full 1px
