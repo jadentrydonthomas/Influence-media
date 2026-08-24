@@ -9922,8 +9922,14 @@
               const back = account.wonValue > 0 ? Math.max(3, account.wonValue / scale * plot) : 0;
               return '<g class="ledger-row-g" style="--deck-bar-delay:' + (index * 60) + 'ms">'
                 + '<text class="ledger-name" x="0" y="' + (y + 15) + '">' + escape(clip(account.name)) + "<title>" + escape(account.name) + "</title></text>"
-                + '<text class="ledger-sub" x="0" y="' + (y + 30) + '">' + escape(opsNumber(account.quotes) + " quote" + (account.quotes === 1 ? "" : "s")
-                    + " · " + opsNumber(account.wins) + " booked" + (account.hours ? " · " + account.hours.toFixed(0) + " eng hrs" : "")) + "</text>"
+                + '<text class="ledger-sub" x="0" y="' + (y + 30) + '">'
+                    + '<tspan class="ls-n">' + escape(opsNumber(account.quotes)) + '</tspan><tspan class="ls-u" dx="3">'
+                    + escape(account.quotes === 1 ? "quote" : "quotes") + '</tspan>'
+                    + '<tspan class="ls-n" dx="9">' + escape(opsNumber(account.wins)) + '</tspan><tspan class="ls-u" dx="3">booked</tspan>'
+                    + (account.hours
+                        ? '<tspan class="ls-n" dx="9">' + escape(account.hours.toFixed(0)) + '</tspan><tspan class="ls-u" dx="3">eng hrs</tspan>'
+                        : "")
+                  + "</text>"
                 + '<polygon class="ledger-asked-top" points="' + [
                     labelWidth + "," + (y + 5), (labelWidth + depth) + "," + (y + 5 - depth),
                     (labelWidth + asked + depth).toFixed(1) + "," + (y + 5 - depth), (labelWidth + asked).toFixed(1) + "," + (y + 5)].join(" ") + '" />'
@@ -9943,7 +9949,10 @@
                 + '<text class="ledger-value' + (back ? " is-back" : " is-none") + '" x="' + (width - valueWidth + 12) + '" y="' + (y + 14) + '">'
                 + escape(back ? money(account.wonValue) + " back" : "nothing back") + "</text>"
                 + '<text class="ledger-asked-value" x="' + (width - valueWidth + 12) + '" y="' + (y + 29) + '">'
-                + escape("of " + money(account.quoteValue) + " asked" + (account.quotes ? " · " + pct(account.conversion) : "")) + "</text>"
+                + '<tspan class="ls-u">of</tspan><tspan class="ls-n" dx="3">' + escape(money(account.quoteValue))
+                + '</tspan><tspan class="ls-u" dx="3">asked</tspan>'
+                + (account.quotes ? '<tspan class="ls-n" dx="9">' + escape(pct(account.conversion)) + "</tspan>" : "")
+                + "</text>"
                 + "</g>";
             }).join("")
           + "</svg>"
@@ -10888,6 +10897,8 @@
           + '.deck-process .proc-edge{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
           + '.deck-ledger .ledger-name{fill:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:800}'
           + '.deck-ledger .ledger-sub{fill:#8b9c91;font-family:Consolas,monospace;font-size:11px}'
+          + '.deck-ledger .ls-n{fill:#4d6155;font-weight:700}'
+          + '.deck-ledger .ls-u{fill:#93a498;font-family:Arial,Helvetica,sans-serif;font-size:10px}'
           + '.deck-ledger .ledger-asked{fill:#dfe8e1}'
           + '.deck-ledger .ledger-asked-top{fill:#eef3ef}.deck-ledger .ledger-asked-end{fill:#c4d2c8}'
           + '.deck-ledger .ledger-back{fill:var(--green)}'
@@ -11325,14 +11336,14 @@
           + '<div><span>Top ten concentration</span><strong>' + pct(customerSignals.concentration) + '</strong><small>of quoted value sits with ten accounts</small></div></div>'
           + '<div class="ledger-split"><section><div class="ledger-split-head is-good"><span>Who actually pays us</span><b>'
           + money(topBookedValue) + ' of the ' + money(returnedAll) + ' that came back'
-          + (returnedAll ? ' · ' + pct(percentage(topBookedValue, returnedAll)) + ' of every booked dollar' : '') + "</b></div>"
+          + (returnedAll ? ' — ' + pct(percentage(topBookedValue, returnedAll)) + ' of every booked dollar' : '') + "</b></div>"
           + deckReturnLedger(ledgerBooked, { label: "Quoted value against value returned, best-paying accounts",
               keyA: "Quoted", keyB: "Came back", empty: "No account has booked a job in this cohort." })
           + "</section>"
           + '<section><div class="ledger-split-head is-bad"><span>Who asks the most and returns the least</span><b>'
           + money(costValue) + " of the " + money(costAll) + " never returned"
-          + (costAll ? " · " + pct(percentage(costValue, costAll)) + " of everything left on the table" : "")
-          + " · " + countOf(Math.round(costHours), "engineering hour") + "</b></div>"
+          + (costAll ? " — " + pct(percentage(costValue, costAll)) + " of everything left on the table" : "")
+          + ", at " + countOf(Math.round(costHours), "engineering hour") + "</b></div>"
           + deckReturnLedger(ledgerCost, { label: "Quoted value that did not return, by account",
               keyA: "Quoted", keyB: "Came back", empty: "Every repeat account here has booked at least one job." })
           + "</section></div>"

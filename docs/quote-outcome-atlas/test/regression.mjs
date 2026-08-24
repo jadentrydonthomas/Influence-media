@@ -306,7 +306,15 @@ if (!download) {
   checkMatch('the clock says why its parts do not add to its whole', deck, /do not add to this/i);
   // Each decision-curve checkpoint carries the money, not only the percentage.
   checkMatch('deck decision checkpoints carry value', deck, /booked by day \d+<\/span><small>\$/);
-  checkMatch('deck separates who pays from who costs', deck, /Who actually pays us[\s\S]{0,4000}Who asks the most and returns the least/i);
+  // Both blocks are present and the paying one leads. The old form matched
+  // across a fixed 4000-character window, so it failed the moment the markup
+  // between the two headings grew — which says nothing about the slide.
+  {
+    const pays = deck.search(/Who actually pays us/i);
+    const costs = deck.search(/Who asks the most and returns the least/i);
+    check('deck separates who pays from who costs',
+      pays >= 0 && costs > pays ? 'pays then costs' : 'pays ' + pays + ', costs ' + costs, 'pays then costs');
+  }
   // An account cannot be a payer and a cost at the same time. It was, because
   // the cost side ranked on unreturned value and our best payers ask for the
   // most, so they leave the most on the table by arithmetic alone.
