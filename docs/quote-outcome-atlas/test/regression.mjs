@@ -101,6 +101,29 @@ const rows = await page.$$eval('#teamRows > *', ns => ns.map(n => n.innerText.re
 checkMatch('team rows show on-time denominator', rows[0] || '', /\(\d+\/\d+\)/);
 checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
 
+// A fact strip lays out figure and unit as separate elements. The gap between
+// them must be a real space in the text layer and not only CSS margin,
+// otherwise the copied text and the screen-reader reading both say "12quotes".
+{
+  const fused = [];
+  for (const screen of ['overview', 'customers', 'people', 'timeline', 'compare', 'data']) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(450);
+    const bad = await page.$$eval('.fact', nodes => nodes
+      .filter(node => {
+        const unit = node.querySelector('.unit');
+        if (!unit) return false;
+        return !/\s$/.test((unit.previousSibling && unit.previousSibling.textContent) || '');
+      })
+      .slice(0, 3)
+      .map(node => node.textContent.replace(/\s+/g, ' ').trim()));
+    bad.forEach(text => fused.push(screen + ': ' + text));
+  }
+  check('every figure keeps a real space before its unit', fused.join(' | '), '');
+}
+await page.click('[data-screen="people"]');
+await page.waitForTimeout(400);
+
 // --- New analysis lenses work in both themes ---
 await page.click('[data-screen="overview"]');
 await page.waitForTimeout(400);

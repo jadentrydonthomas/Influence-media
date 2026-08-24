@@ -1383,6 +1383,13 @@
     .fact { color: var(--ink-faint); font-family: var(--body); font-size: 11.5px; letter-spacing: 0; white-space: nowrap; }
     .fact b { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; font-weight: 600; }
     .fact.is-quiet b { color: var(--ink-faint); font-weight: 500; }
+    .fact.is-person b { font-family: var(--body); font-size: 11.5px; font-weight: 500; letter-spacing: 0; }
+    .fact .unit { margin-left: 1.5px; }
+    .payer-state { font-family: var(--display); font-size: 9.5px; font-style: normal; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .payer-state.is-stopped-paying { color: var(--red-deep); }
+    .payer-state.is-new-payer { color: var(--green-dark); }
+    .payer-state.is-paying-more { color: var(--green-dark); }
+    .payer-state.is-paying-less { color: var(--amber); }
     .row-flag { display: inline-block; margin-top: 3px; color: var(--amber); font-family: var(--display); font-size: 9.5px; font-style: normal; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
     .segment-split { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); }
     .segment-split h4 { margin: 0 0 10px; color: var(--ink-muted); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
@@ -1536,8 +1543,10 @@
     .payer-row:last-child { border-bottom: 0; }
     .payer-row:hover { background: var(--surface-soft); }
     .payer-name { min-width: 0; }
-    .payer-name b { display: block; overflow: hidden; color: var(--ink); font-size: 13.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-    .payer-name i { display: block; overflow: hidden; margin-top: 3px; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+    .payer-name > b { display: block; overflow: hidden; color: var(--ink); font-size: 13.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .payer-name i { display: flex; align-items: baseline; gap: 0 12px; overflow: hidden; margin-top: 4px; color: var(--ink-faint); font-style: normal; white-space: nowrap; }
+    .payer-name i .facts { min-width: 0; }
+    .payer-name i .fact { overflow: hidden; text-overflow: ellipsis; }
     .payer-bars { display: grid; gap: 3px; min-width: 0; }
     .payer-bars u { display: block; height: 8px; text-decoration: none; }
     .payer-bars u.is-then { background: var(--then-soft); box-shadow: inset 0 0 0 1px var(--then); }
@@ -3761,8 +3770,8 @@
       // A row of facts, laid out rather than typed out. Each item is a figure
       // and the word for what it counts; the caller passes them already paired.
       const facts = (items, tight) => '<span class="facts' + (tight ? ' is-tight' : '') + '">' + items.filter(Boolean)
-        .map(item => '<span class="fact' + (item.quiet ? ' is-quiet' : '') + '"><b>'
-          + escape(String(item.value)) + '</b>' + (item.unit ? ' ' + escape(item.unit) : '') + '</span>')
+        .map(item => '<span class="fact' + (item.quiet ? ' is-quiet' : '') + (item.person ? ' is-person' : '') + '"><b>'
+          + escape(String(item.value)) + '</b>' + (item.unit ? ' <span class="unit">' + escape(item.unit) + '</span>' : '') + '</span>')
         .join('') + '</span>';
       const countOf = (value, word, plural) => opsNumber(value) + " " + (Math.abs(value) === 1 ? word : (plural || word + "s"));
       const opsTurnText = value => Number.isFinite(value) ? value.toFixed(1) : "—";
@@ -4843,9 +4852,12 @@
                 : !item.current.wonValue && item.prior.wonValue ? "stopped paying"
                 : item.current.wonValue >= item.prior.wonValue ? "paying more" : "paying less";
               return '<button type="button" class="payer-row" data-open-account="' + escape(item.key) + '">'
-                + '<span class="payer-name"><b>' + escape(item.name) + "</b><i>" + escape(state
-                    + " · " + opsNumber(item.prior.wins) + " → " + opsNumber(item.current.wins) + " booked"
-                    + (item.owner ? " · " + cmpClip(item.owner, 40) : "")) + "</i></span>"
+                + '<span class="payer-name"><b>' + escape(item.name) + "</b>"
+                + '<i><em class="payer-state is-' + state.replace(/ /g, "-") + '">' + escape(state) + "</em>"
+                + facts([
+                    { value: opsNumber(item.prior.wins) + " → " + opsNumber(item.current.wins), unit: "booked" },
+                    item.owner ? { value: cmpClip(item.owner, 40), unit: "", quiet: true, person: true } : null
+                  ], true) + "</i></span>"
                 + '<span class="payer-bars"><u class="is-then" style="width:' + width(item.prior.wonValue).toFixed(1) + '%"></u>'
                 + '<u class="is-now" style="width:' + width(item.current.wonValue).toFixed(1) + '%"></u></span>'
                 + '<span class="payer-figures"><i>' + escape(fineMoney(item.prior.wonValue / 1000000)) + "</i>"
