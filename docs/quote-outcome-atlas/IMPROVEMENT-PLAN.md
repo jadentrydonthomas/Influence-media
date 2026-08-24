@@ -68,6 +68,23 @@ product owner to disable it from the Routines list rather than leaving it firing
 
 ## Done
 
+- [x] **A real type scale** (2026-08-24). Thirty-two distinct sizes were in use,
+      eight of them crowded into the 10–14px band. A reader cannot tell rank
+      from 12px against 12.5px, which is most of why it read as unconsidered.
+      Thirteen steps now, 326 declarations rewritten, and the one 8.5px value —
+      below the product's own 9.5px floor — went with it.
+
+- [x] **Two tiers of surface, air between sections** (2026-08-24). Forty-one
+      containers came off the hairline grid; quiet surfaces stay flat and
+      primary ones lift, so a screen reads in tiers. Sections get more space
+      than the elements inside them.
+
+- [x] **Facts laid out, not typed out** (2026-08-24). One helper replaces the
+      middot runs: figure in ink, unit beside it, space separating. The team
+      summary, the district strip, the value bands, the roster and the account
+      rows. Prose moved out of the monospace face in eight places.
+
+
 - [x] **The dashboard prints too** (2026-08-24). It had one print rule, hiding
       the glossary. Ctrl-P gave four pages with a black rail down the side of
       every one, the dark hero as a slab, the dial as a filled black disc, KPI
