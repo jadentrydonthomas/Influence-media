@@ -141,25 +141,25 @@
     .brand img { display: block; width: 135px; max-width: 100%; height: auto; }
     .rail-label { position: relative; z-index: 1; margin-top: 19px; color: rgba(235,248,237,.55); font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
     .rail-title { position: relative; z-index: 1; margin: 8px 0 0; max-width: 180px; color: #f7fff8; font-family: var(--display); font-size: 31px; letter-spacing: .02em; line-height: .88; text-transform: uppercase; }
-    .rail-score { position: relative; z-index: 1; margin-top: 30px; padding: 21px 0 19px; border-top: 1px solid rgba(233,248,236,.18); border-bottom: 1px solid rgba(233,248,236,.18); }
+    .rail-score { position: relative; z-index: 1; margin-top: 28px; padding: 22px 0 0; border-top: 1px solid rgba(233,248,236,.16); }
     .rail-score span { display: block; color: #98d8a8; font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
     .rail-score strong { display: block; margin-top: 6px; color: var(--green-bright); font-family: var(--mono); font-size: 61px; font-weight: 600; letter-spacing: -.09em; line-height: .84; }
     .rail-score small { display: block; margin-top: 10px; color: rgba(235,248,237,.66); font-size: 11px; }
-    .rail-score b { display: block; margin-top: 5px; color: rgba(235,248,237,.42); font-family: var(--mono); font-size: 11px; font-weight: 400; }
-    .rail-facts { position: relative; z-index: 1; margin-top: 20px; border-top: 1px solid rgba(233,248,236,.15); border-left: 1px solid rgba(233,248,236,.15); display: grid; grid-template-columns: 1fr 1fr; }
-    .rail-fact { min-height: 65px; padding: 10px 8px; border-right: 1px solid rgba(233,248,236,.15); border-bottom: 1px solid rgba(233,248,236,.15); }
+    .rail-score b { display: block; margin-top: 6px; color: rgba(235,248,237,.5); font-family: var(--body); font-size: 11.5px; font-weight: 400; line-height: 1.45; }
+    .rail-facts { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 16px; margin-top: 22px; }
+    .rail-fact { min-height: 0; padding: 0; }
     .rail-fact span { display: block; color: rgba(235,248,237,.4); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .rail-fact strong { display: block; margin-top: 4px; color: #f7fff8; font-family: var(--mono); font-size: 14px; font-weight: 500; }
-    .rail-fact small { display: block; margin-top: 2px; color: rgba(235,248,237,.42); font-family: var(--mono); font-size: 9.5px; letter-spacing: .04em; }
-    .rail-nav { position: relative; z-index: 1; display: grid; gap: 3px; margin-top: 22px; }
-    .rail-nav button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 0; border: 0; color: rgba(235,248,237,.58); background: transparent; text-align: left; font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; transition: transform 180ms var(--ease), color 180ms var(--ease); }
+    .rail-fact strong { display: block; margin-top: 5px; color: #f7fff8; font-family: var(--mono); font-size: 17px; font-weight: 500; letter-spacing: -.03em; }
+    .rail-fact small { display: block; margin-top: 3px; color: rgba(235,248,237,.46); font-family: var(--body); font-size: 10.5px; letter-spacing: 0; }
+    .rail-nav { position: relative; z-index: 1; display: grid; gap: 1px; margin-top: 26px; }
+    .rail-nav button { display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 11px 0; border: 0; color: rgba(235,248,237,.62); background: transparent; text-align: left; font-family: var(--display); font-size: 12.5px; font-weight: 800; letter-spacing: .07em; line-height: 1.2; text-transform: uppercase; transition: transform 180ms var(--ease), color 180ms var(--ease); }
     .rail-nav button::before { content: attr(data-number); color: rgba(235,248,237,.28); font-family: var(--mono); font-size: 10px; letter-spacing: 0; }
     .rail-nav button::after { content: ""; width: 17px; height: 1px; margin-left: auto; background: currentColor; opacity: 0; transform: scaleX(.2); transform-origin: right; transition: transform 180ms var(--ease), opacity 180ms var(--ease); }
     .rail-nav button:hover { color: #fff; transform: translateX(3px); }
     .rail-nav button[aria-current="page"] { color: var(--green-bright); }
     .rail-nav button[aria-current="page"]::after { opacity: 1; transform: scaleX(1); }
     .rail-bottom { position: relative; z-index: 1; margin-top: auto; }
-    .review-mode { width: 100%; padding: 10px 11px; border: 1px solid rgba(233,248,236,.34); color: #f7fff8; background: rgba(255,255,255,.04); text-align: left; font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; transition: border-color 180ms var(--ease), background 180ms var(--ease); }
+    .review-mode { width: 100%; padding: 13px 14px; border: 1px solid rgba(233,248,236,.22); border-radius: var(--r-sm); color: #f7fff8; background: rgba(255,255,255,.06); text-align: left; font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .08em; line-height: 1.25; text-transform: uppercase; transition: border-color 180ms var(--ease), background 180ms var(--ease); }
     .review-mode:hover { border-color: var(--green-bright); background: rgba(0,189,87,.13); }
     .rail-bottom p { margin: 10px 0 0; color: rgba(235,248,237,.34); font-size: 11px; line-height: 1.45; }
     @media (max-height: 900px) {
@@ -353,11 +353,11 @@
     .panel-head .ops-step { display: flex; align-items: center; gap: 9px; margin-bottom: 0; }
     .panel-head .ops-step::after { content: ""; flex: 1 1 auto; height: 1px; max-width: 108px; background: linear-gradient(90deg, var(--green), rgba(0,189,87,0)); }
     .weekly-wrap { padding: 0 16px 12px; }
-    .weekly-reading { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 14px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
-    .weekly-reading div { min-height: 62px; padding: 10px 11px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+    .weekly-reading { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 26px; margin-top: 16px; padding: 4px 0 16px; border-bottom: 1px solid var(--line); }
+    .weekly-reading div { min-height: 0; padding: 0; background: none; }
     .weekly-reading span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .weekly-reading strong { display: block; margin-top: 4px; color: var(--ink); font-family: var(--mono); font-size: 18px; font-weight: 500; letter-spacing: -.07em; line-height: .9; }
-    .weekly-reading small { display: block; margin-top: 4px; color: var(--ink-muted); font-size: 10px; }
+    .weekly-reading strong { display: block; margin-top: 7px; color: var(--ink); font-family: var(--mono); font-size: 21px; font-weight: 500; letter-spacing: -.05em; line-height: 1; }
+    .weekly-reading small { display: block; margin-top: 5px; color: var(--ink-muted); font-size: 11.5px; }
     .weekly-chart { width: 100%; min-height: 0; margin-top: 9px; }
     .weekly-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
     .weekly-chart .lane-grid { stroke: var(--line); stroke-width: 1; }
@@ -382,7 +382,7 @@
     @keyframes dot-in { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: scale(1); } }
     @keyframes area-in { from { opacity: 0; } to { opacity: .82; } }
     .weekly-insights { margin-top: 6px; padding: 10px 11px; border-left: 3px solid var(--green); color: var(--ink-muted); background: var(--surface-soft); font-size: 11px; line-height: 1.45; }
-    .weekly-insights strong { color: var(--ink); font-family: var(--mono); font-weight: 500; }
+    .weekly-insights strong { color: var(--ink); font-family: var(--body); font-size: 13.5px; font-weight: 700; }
     .chart-legend { display: flex; flex-wrap: wrap; gap: 13px; padding: 0 19px 16px; color: var(--ink-muted); font-size: 10px; }
     .chart-legend span::before { content: ""; display: inline-block; width: 12px; height: 8px; margin-right: 5px; background: var(--legend); vertical-align: 1px; }
     .chart-legend span.is-dashed::before { height: 2px; vertical-align: 4px; background: repeating-linear-gradient(90deg, var(--legend) 0 4px, transparent 4px 7px); }
@@ -405,7 +405,7 @@
     .ci-row.is-thin .ci-point { background: var(--steel); }
     .ci-row.is-unscored { opacity: .55; }
     .ci-row > strong { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 600; text-align: right; }
-    .ci-row > small { grid-area: note; color: var(--ink-faint); font-family: var(--mono); font-size: 10px; text-align: right; }
+    .ci-row > small { grid-area: note; color: var(--ink-faint); font-family: var(--body); font-size: 11px; text-align: right; }
     /* The detail panel is short and the roster is long; let it follow the list. */
     @media (min-width: 1100px) { .person-card { position: sticky; top: 18px; } }
     .screen-heading h2.is-compact { font-size: clamp(30px, 3.6vw, 48px); }
@@ -723,7 +723,7 @@
     .flow-block-note { fill: rgba(255,255,255,.58); font-family: var(--mono); font-size: 10.5px; }
     .flow-block-tiny { fill: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; }
     .flow-head { fill: var(--ink); font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .flow-foot { fill: var(--ink-faint); font-family: var(--mono); font-size: 12px; }
+    .flow-foot { fill: var(--ink-faint); font-family: var(--body); font-size: 12px; }
     .flow-foot.is-lost { fill: var(--red-deep); }
     .flow-foot.is-new { fill: var(--green-dark); }
 
@@ -741,7 +741,7 @@
     .lorenz-end { font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .lorenz-end.is-now { fill: var(--green); }
     .lorenz-end.is-then { fill: var(--then); }
-    .lorenz-note { font-family: var(--mono); font-size: 12px; }
+    .lorenz-note { font-family: var(--body); font-size: 12px; }
     .lorenz-note.is-now { fill: var(--green); }
     .lorenz-note.is-then { fill: var(--then); }
 
@@ -849,7 +849,7 @@
     .roster-bar.is-then i { color: var(--then); }
     .roster-bar.is-now { background: var(--green); }
     .roster-bar.is-now i { color: #ffffff; }
-    .roster-load-note { margin: 4px 16px 12px; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
+    .roster-load-note { margin: 6px 18px 14px; color: var(--ink-faint); font-family: var(--body); font-size: 11.5px; }
 
     /* One account, both periods. */
     .brief-layout { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -1296,11 +1296,11 @@
     .cum-legend b { width: 12px; height: 4px; border-radius: 2px; }
     .cum-legend b.is-gap { height: 9px; background: var(--red); opacity: .3; }
     .cum-legend b.is-then { background: var(--then); }
-    .cap-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; padding: 13px; background: var(--surface-soft); border-left: 3px solid var(--steel); }
+    .cap-hero { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 24px; margin-bottom: 18px; padding: 16px 18px; border-radius: var(--r-sm); background: var(--surface-soft); border-left: 3px solid var(--steel); }
     .cap-hero.is-good { border-left-color: var(--green); }
     .cap-hero.is-bad { border-left-color: var(--red); }
     .cap-hero span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .cap-hero strong { display: block; margin-top: 4px; color: var(--ink); font-family: var(--mono); font-size: 16px; font-weight: 500; }
+    .cap-hero strong { display: block; margin-top: 5px; color: var(--ink); font-family: var(--mono); font-size: 19px; font-weight: 500; letter-spacing: -.03em; }
     .cap-scale { display: flex; justify-content: space-between; margin-bottom: 5px; padding: 0 60px 0 56px; color: var(--ink-faint); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
     .cap-row { display: grid; grid-template-columns: 52px minmax(0,1fr) 48px; grid-template-areas: "name track value" "name note note"; align-items: center; gap: 2px 8px; padding: 5px 0; border-top: 1px solid var(--line); }
     .cap-row > span { grid-area: name; font-family: var(--mono); font-size: 12px; font-weight: 600; }
@@ -3531,8 +3531,8 @@
         // above: the week is the whole book. Say what it holds instead of
         // reporting it as 0.0 points from itself.
         if (single) {
-          $("#weeklyReading").innerHTML = '<div><span>Quotes issued</span><strong>' + latest.week + ' / ' + latest.quotes + '</strong><small>the only loaded week</small></div>'
-            + '<div><span>Confirmed conversion</span><strong>' + pct(latest.rate) + '</strong><small>confirmed order rate</small></div>'
+          $("#weeklyReading").innerHTML = '<div><span>Quotes issued</span><strong>' + opsNumber(latest.quotes) + '</strong><small>in ' + escape(latest.week) + ', the only week loaded</small></div>'
+            + '<div><span>Confirmed conversion</span><strong>' + pct(latest.rate) + '</strong><small>of those quotes came back</small></div>'
             + '<div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div>';
           $("#weeklyInsights").innerHTML = '<strong>One week is loaded, so there is no trend here yet.</strong> ' + escape(latest.week) + ' issued ' + latest.quotes
             + ' quotes and converted ' + pct(latest.rate) + '. Add more weekly files on Data mapping and this becomes a pulse.';
@@ -3540,7 +3540,7 @@
         }
         const delta = latest.rate - data.conversion;
         const deltaLabel = Math.abs(delta).toFixed(1) + ' points ' + (delta >= 0 ? 'above' : 'below') + ' the selected-book average';
-        $("#weeklyReading").innerHTML = '<div><span>Peak quote release</span><strong>' + peak.week + ' / ' + peak.quotes + '</strong><small>quotes issued</small></div><div><span>Latest conversion</span><strong>' + latest.week + ' / ' + pct(latest.rate) + '</strong><small>confirmed order rate</small></div><div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div>';
+        $("#weeklyReading").innerHTML = '<div><span>Busiest week</span><strong>' + opsNumber(peak.quotes) + '</strong><small>quotes issued, in ' + escape(peak.week) + '</small></div><div><span>Latest conversion</span><strong>' + pct(latest.rate) + '</strong><small>in ' + escape(latest.week) + ', the newest week loaded</small></div><div><span>Release on time</span><strong>' + onTimeText(data) + '</strong><small>' + escape(onTimeCoverageNote(data)) + '</small></div>';
         $("#weeklyInsights").innerHTML = '<strong>' + latest.week + ' is ' + deltaLabel + '.</strong> ' + timelinessReading;
       }
 
