@@ -182,6 +182,24 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   check('no container rule reaches inside a fact strip', captured.join(' | '), '');
 }
 
+// The same trap, five times now, on five different components: a container
+// styles bare span / b / em descendants and wins on specificity over whatever
+// is dropped inside it. These are the components that carry their own casing,
+// so an inherited uppercase is always a bug.
+{
+  const shouted = [];
+  for (const screen of ['overview', 'customers', 'people', 'timeline', 'compare', 'data']) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(450);
+    const bad = await page.$$eval('.run-notes i, .brief-who, .brief-when, .stamp-cell > strong, .member-name strong, .account-name strong, .payer-name > b',
+      nodes => nodes.filter(node => getComputedStyle(node).textTransform !== 'none')
+        .slice(0, 3)
+        .map(node => (node.className || node.tagName) + ': ' + node.textContent.trim().slice(0, 30)));
+    bad.forEach(text => shouted.push(screen + ' — ' + text));
+  }
+  check('no container rule shouts at a component that sets its own casing', [...new Set(shouted)].join(' | '), '');
+}
+
 // Every screen that carries analysis opens with one generated sentence naming
 // what it found. A screen whose lead still reads as the import placeholder, or
 // whose lead never names a figure, is one the reader has to derive from.
