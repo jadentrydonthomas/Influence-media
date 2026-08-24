@@ -54,6 +54,10 @@
       --fill-now: linear-gradient(180deg, #00d763 0%, #00a44b 55%, #00773a 100%);
       --fill-then: linear-gradient(180deg, #46cbe8 0%, #1f9fbe 55%, #0f6d88 100%);
       --fill-warn: linear-gradient(180deg, #e08a63 0%, #c2673f 55%, #98492a 100%);
+      --r-xs: 5px;
+      --r-sm: 9px;
+      --r-md: 14px;
+      --r-lg: 20px;
       --ease: cubic-bezier(.2,.75,.2,1);
       --ease-out: cubic-bezier(.16,1,.3,1);
       --ease-spring: cubic-bezier(.34,1.4,.5,1);
@@ -337,15 +341,15 @@
     .readout-bar small { color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; white-space: nowrap; }
 
     .chart-grid { display: grid; grid-template-columns: minmax(0,1.18fr) minmax(330px,.82fr); gap: 23px; align-items: start; }
-    .panel { overflow: hidden; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--lift-1), var(--edge); transition: box-shadow 320ms var(--ease-out); }
+    .panel { overflow: hidden; border: 0; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--lift-2), var(--edge); transition: box-shadow 320ms var(--ease-out); }
     .panel.is-feature { box-shadow: var(--lift-2), var(--edge); }
     /* The header used to push three things to three edges: an eyebrow far
        left, a centred title, and a paragraph right-aligned across the panel.
        The deck reads better because it stacks them and lets the title be a
        title. Same order and weight here. */
-    .panel-head { display: block; padding: 20px 22px 16px; border-bottom: 1px solid var(--line); }
+    .panel-head { display: block; padding: 26px 28px 18px; }
     .panel-head h2, .panel-head h3 { max-width: 32ch; margin: 10px 0 0; color: var(--ink); font-family: var(--display); font-size: clamp(25px, 2.5vw, 34px); font-weight: 800; letter-spacing: -.012em; line-height: .98; text-transform: uppercase; }
-    .panel-head p { max-width: 88ch; margin: 11px 0 0; color: var(--ink-muted); font-size: 13px; line-height: 1.58; text-align: left; }
+    .panel-head p { max-width: 76ch; margin: 12px 0 0; color: var(--ink-muted); font-size: 13.5px; line-height: 1.62; text-align: left; }
     .panel-head .ops-step { display: flex; align-items: center; gap: 9px; margin-bottom: 0; }
     .panel-head .ops-step::after { content: ""; flex: 1 1 auto; height: 1px; max-width: 108px; background: linear-gradient(90deg, var(--green), rgba(0,189,87,0)); }
     .weekly-wrap { padding: 0 16px 12px; }
@@ -1327,11 +1331,11 @@
     .ops-table-wrap.is-tall thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
     .ops-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ops-table.is-wide { min-width: 940px; }
-    .ops-table th { padding: 8px 7px; border-bottom: 1.5px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
-    .ops-table td { padding: 8px 7px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: middle; }
+    .ops-table th { padding: 10px 10px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
+    .ops-table td { padding: 11px 10px; border-bottom: 1px solid var(--surface-soft); color: var(--ink); vertical-align: middle; }
     .ops-table td b { font-family: var(--mono); font-size: 12px; font-weight: 600; }
     .ops-table .num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-    .ops-table tbody tr:hover { background: var(--surface-soft); }
+    .ops-table tbody tr:hover { background: var(--green-soft); }
     .ops-table tr.is-total td { border-top: 1.5px solid var(--line); border-bottom: 0; font-weight: 700; background: var(--surface-soft); }
     .chg { font-family: var(--mono); font-size: 12px; }
     .chg.is-up { color: var(--green-dark); }
@@ -1371,6 +1375,14 @@
     .segment-row > b { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; }
     .segment-row.is-zero > b { color: var(--red-deep); }
     .segment-row > small { grid-area: note; color: var(--ink-faint); font-size: 10px; }
+    .facts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 15px; }
+    .facts.is-tight { flex-wrap: nowrap; gap: 0 12px; }
+    .facts.is-tight .fact { font-size: 11px; }
+    .facts.is-tight .fact b { font-size: 11px; }
+    .fact { color: var(--ink-faint); font-family: var(--body); font-size: 11.5px; letter-spacing: 0; white-space: nowrap; }
+    .fact b { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .fact.is-quiet b { color: var(--ink-faint); font-weight: 500; }
+    .row-flag { display: inline-block; margin-top: 3px; color: var(--amber); font-family: var(--display); font-size: 9.5px; font-style: normal; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
     .segment-split { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); }
     .segment-split h4 { margin: 0 0 10px; color: var(--ink-muted); font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     @media (prefers-reduced-motion: reduce) { .segment-track i { transition: none; } }
@@ -1491,6 +1503,7 @@
        figure in every row, so the same eye movement reads both periods. */
     .team-row.is-unattributed { border-top: 2px solid var(--line-strong); background: var(--surface-soft); }
     .team-row.is-unattributed .member-initials { color: var(--ink-faint); background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+    .member-name span.facts, .account-name span.facts { display: flex; overflow: visible; white-space: normal; text-overflow: clip; }
     .team-row.is-unattributed .member-name strong { color: var(--ink-muted); }
     .cmp-view .team-list-head, .cmp-view .team-row { grid-template-columns: minmax(200px,1.15fr) 132px minmax(112px,.75fr) 82px; }
     .cmp-view .team-row { min-height: 76px; }
@@ -3576,7 +3589,11 @@
             return '<div class="segment-row' + (band.wins === 0 ? " is-zero" : "") + '"' + (unit && bandKey ? ' data-filter="band" data-filter-value="' + bandKey + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.band === bandKey) + '"' : "") + '><span>' + escape(band.label) + '</span>'
               + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
               + '<b>' + pct(band.conversion) + '</b>'
-              + '<small>' + countOf(band.quotes, "quote") + (unit ? " · " + money(band.value / 1000000) : "") + " · " + band.wins + " won</small></div>";
+              + '<small>' + facts([
+                  { value: band.quotes, unit: band.quotes === 1 ? "quote" : "quotes" },
+                  unit ? { value: money(band.value / 1000000), unit: "quoted" } : null,
+                  { value: band.wins, unit: "won" }
+                ]) + "</small></div>";
           };
           html = bandData.bands.length
             ? '<div class="segment-list">' + bandData.bands.map(band => bandRow(band, true)).join("") + "</div>"
@@ -3656,10 +3673,14 @@
                 return '<div class="segment-row' + (district.wins === 0 ? " is-zero" : "") + '" data-filter="district" data-filter-value="' + escape(district.code) + '" role="button" tabindex="0" aria-pressed="' + String(state.filters.district === district.code) + '"><span>' + escape(district.code) + '</span>'
                   + '<div class="segment-track"><i style="--segment:' + Math.max(3, share).toFixed(1) + '%"></i></div>'
                   + '<b>' + money(district.value / 1000000) + '</b>'
-                  + '<small>' + countOf(district.quotes, "quote") + " · " + district.wins + " won · " + pct(district.conversion)
-                  + (anyDistrictSolid && isThinSample(district.quotes, CMP_THIN_BOOK) ? " on a thin book" : "") + " · "
-                  + (district.turnAverage === null ? "turn n/a" : district.turnAverage.toFixed(1) + "d turn") + " · " + district.alts + " alts · "
-                  + district.hoursPerQuote.toFixed(2) + " eng hrs/quote</small></div>";
+                  + '<small>' + facts([
+                      { value: district.quotes, unit: district.quotes === 1 ? "quote" : "quotes" },
+                      { value: district.wins, unit: "won" },
+                      { value: pct(district.conversion), unit: anyDistrictSolid && isThinSample(district.quotes, CMP_THIN_BOOK) ? "on a thin book" : "came back" },
+                      { value: district.turnAverage === null ? "—" : district.turnAverage.toFixed(1) + "d", unit: "turnaround", quiet: true },
+                      { value: district.alts, unit: district.alts === 1 ? "alternate" : "alternates", quiet: true },
+                      { value: district.hoursPerQuote.toFixed(2), unit: "eng hrs each", quiet: true }
+                    ]) + "</small></div>";
               }).join("") + "</div>"
               + '<div class="analysis-foot">' + (anyDistrictSolid ? "" : "<strong>Every district here is under " + CMP_THIN_BOOK + " quotes,</strong> so read the rates as direction rather than as measurements. ")
               + '<strong>The bar and the figure are both quoted value.</strong> A district with few large quotes outranks one with many small ones. A copper bar is a district that booked nothing at all. Prefixes are shown as they appear in the quote number; no salesperson name is inferred from them.</div>'
@@ -3731,6 +3752,12 @@
       const opsNumber = value => Number.isFinite(value) ? value.toLocaleString("en-US") : "—";
       // "1 quotes" is the kind of thing a reader stops on. Anywhere a single
       // count is printed with its unit, the unit agrees with the count.
+      // A row of facts, laid out rather than typed out. Each item is a figure
+      // and the word for what it counts; the caller passes them already paired.
+      const facts = (items, tight) => '<span class="facts' + (tight ? ' is-tight' : '') + '">' + items.filter(Boolean)
+        .map(item => '<span class="fact' + (item.quiet ? ' is-quiet' : '') + '"><b>'
+          + escape(String(item.value)) + '</b>' + (item.unit ? ' ' + escape(item.unit) : '') + '</span>')
+        .join('') + '</span>';
       const countOf = (value, word, plural) => opsNumber(value) + " " + (Math.abs(value) === 1 ? word : (plural || word + "s"));
       const opsTurnText = value => Number.isFinite(value) ? value.toFixed(1) : "—";
 
@@ -6260,7 +6287,11 @@
               const winWidth = account.wonValue ? account.wonValue / maxAsked * 100 : 0;
               return '<button class="account-row" type="button" data-account="' + escape(account.key) + '" aria-pressed="' + String(account.key === selectedAccount) + '">'
                 + '<span class="account-name"><strong title="' + escape(account.name) + '">' + escape(account.name) + "</strong>"
-                + '<span>' + countOf(account.quotes, "quote") + " · " + account.wins + " booked · " + countOf(account.loadedWeeks, "week") + "</span></span>"
+                + '<span>' + facts([
+                  { value: account.quotes, unit: account.quotes === 1 ? "quote" : "quotes" },
+                  { value: account.wins, unit: "booked" },
+                  { value: account.loadedWeeks, unit: account.loadedWeeks === 1 ? "week" : "weeks", quiet: true }
+                ], true) + "</span></span>"
                 + '<span class="askbook-track" title="' + escape(fineMoney(account.quoteValue) + " asked, " + fineMoney(account.wonValue) + " returned") + '"><i class="ask" style="width:' + askWidth.toFixed(1) + '%"></i><i class="book" style="width:' + winWidth.toFixed(1) + '%"></i></span>'
                 + '<span class="account-value"><b>' + fineMoney(account.wonValue) + "</b><small>of " + fineMoney(account.quoteValue) + "</small></span></button>";
             }).join("")
@@ -6622,8 +6653,10 @@
             : person.onTime + "% (" + (Number(person.onTimeScoredCount) || 0) + "/" + person.quotes + ")" + (person.onTimeThin ? " thin" : "");
           const loose = person.code === "(none)";
           const unnamed = !loose && person.rosterMatched === false;
-          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + (loose ? "no owner code · " : "") + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "order")
-            + (unnamed ? " · not on the roster" : "") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
+          rows += '<button class="team-row' + (loose ? " is-unattributed" : "") + '" type="button" data-person="' + item.index + '" aria-pressed="' + String(isSelected) + '"><span class="member"><span class="member-initials">' + escape(person.initials) + '</span><span class="member-name"><strong>' + escape(person.name) + '</strong><span>' + facts([
+              { value: person.quotes, unit: person.quotes === 1 ? "quote" : "quotes" },
+              { value: person.orders, unit: person.orders === 1 ? "win" : "wins" }
+            ], true) + (loose ? '<i class="row-flag">no owner code</i>' : unnamed ? '<i class="row-flag">not on the roster</i>' : "") + '</span></span></span><span class="member-metric">' + metricValue(person, metric) + (thin ? ' <i class="thin-mark">thin</i>' : "") + '</span><span class="member-bar"><i><b style="--member-bar:' + bar + '%"></b></i><span>' + personOnTime + ' on time</span></span><span class="member-value">' + fineMoney(person.value) + '</span></button>';
         });
         $("#teamRows").innerHTML = rows;
         setText("#teamMetricTitle", metric.label);
@@ -6648,9 +6681,12 @@
             const detail = $(".member-name span", button);
             // Three long words in a fixed-width column truncated to "2 boo…".
             // The row header already names what these columns are.
-            if (person && detail) detail.textContent = (person.code === "(none)" ? "no owner code · " : "")
-              + countOf(person.quotes, "quote") + " · " + countOf(person.orders, "win") + " · " + countOf(person.jobs, "job")
-              + (person.code !== "(none)" && person.rosterMatched === false ? " · not on the roster" : "");
+            if (person && detail) detail.innerHTML = facts([
+              { value: person.quotes, unit: person.quotes === 1 ? "quote" : "quotes" },
+              { value: person.orders, unit: person.orders === 1 ? "win" : "wins" },
+              { value: person.jobs, unit: person.jobs === 1 ? "job" : "jobs" }
+            ], true) + (person.code === "(none)" ? '<i class="row-flag">no owner code</i>'
+              : person.rosterMatched === false ? '<i class="row-flag">not on the roster</i>' : "");
           });
         }
         const selected = people[state.selectedPerson];
