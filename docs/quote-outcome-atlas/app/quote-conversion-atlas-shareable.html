@@ -1023,9 +1023,13 @@
     /* The composition strip says what it is and, where a band is wide enough to
        hold it, which band each segment is. */
     .age-strip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 7px; }
-    .age-strip-head span { color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
-    .age-strip-head b { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
-    .turn-band i span { display: block; padding: 0 9px; overflow: hidden; color: #ffffff; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; line-height: 26px; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .age-strip-head > span { color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .age-strip-head > b { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+    .age-strip-head .fact, .age-strip-head .fact b { font-size: 11.5px; }
+    .age-excluded { margin: 11px 0 0; padding-top: 10px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 11.5px; line-height: 1.5; }
+    .age-excluded::first-letter { text-transform: uppercase; }
+    .turn-band i span { display: flex; align-items: baseline; gap: 0 12px; padding: 0 11px; overflow: hidden; color: #ffffff; font-family: var(--display); font-size: 10.5px; font-style: normal; font-weight: 800; letter-spacing: .08em; line-height: 26px; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .turn-band i span u { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: -.02em; text-decoration: none; text-transform: none; }
     .turn-legend { display: grid; gap: 5px; margin-top: 12px; }
     .turn-legend span { display: flex; align-items: center; gap: 7px; color: var(--ink-muted); font-size: 11.5px; }
     .turn-legend b { width: 9px; height: 9px; flex: none; border-radius: 2px; }
@@ -6033,21 +6037,34 @@
 
         // ---- 03 The open book --------------------------------------------------
         const ageMax = Math.max(1, ...line.ageing.map(band => band.count));
+        // A band the active exposure lens sits entirely above can never carry a
+        // quote. Five rows of which four are structurally empty read as missing
+        // data, so the excluded ones are named in one line instead of drawn.
+        const exposureFloor = Number(data.exposure) || 0;
+        const excluded = line.ageing.filter(band => exposureFloor > 0 && band.max < exposureFloor);
+        const drawn = line.ageing.filter(band => excluded.indexOf(band) === -1);
         $("#openAgeing").innerHTML =
-          '<div class="age-strip-head"><span>The whole open book, by age</span><b>'
-          + escape(opsNumber(line.openCount) + " quote" + (line.openCount === 1 ? "" : "s") + " · " + money(line.openValue)) + "</b></div>"
+          '<div class="age-strip-head"><span>The whole open book, by age</span><b>' + facts([
+              { value: opsNumber(line.openCount), unit: line.openCount === 1 ? "quote" : "quotes" },
+              { value: money(line.openValue), unit: "unreturned" }
+            ], true) + "</b></div>"
           + '<div class="turn-band" role="img" aria-label="Ageing of ' + line.openCount + ' quotes with no linked order">'
-          + line.ageing.map(band => band.count ? '<i class="is-' + band.tone + '" style="flex:' + band.count + '" title="' + escape(band.label) + ': ' + band.count + '"><span>'
-              + escape(band.share >= 12 ? band.label + " · " + pct(band.share) : "") + "</span></i>" : "").join("")
+          + drawn.map(band => band.count ? '<i class="is-' + band.tone + '" style="flex:' + band.count + '" title="' + escape(band.label) + ': ' + band.count + '"><span>'
+              + (band.share >= 12 ? escape(band.label) + "<u>" + escape(pct(band.share)) + "</u>" : "") + "</span></i>" : "").join("")
           + "</div>"
-          + line.ageing.map(band => '<div class="age-row"><span><b class="is-' + band.tone + '"></b>' + escape(band.label) + "</span>"
+          + drawn.map(band => '<div class="age-row"><span><b class="is-' + band.tone + '"></b>' + escape(band.label) + "</span>"
               + '<div class="age-track"><i class="is-' + band.tone + '" style="width:' + (band.count / ageMax * 100).toFixed(1) + '%"></i></div>'
               + "<b>" + opsNumber(band.count) + "</b><u>" + fineMoney(band.value) + "</u>"
               + '<small>' + pct(band.share) + " of the open book</small></div>").join("")
+          + (excluded.length
+              ? '<p class="age-excluded">' + escape(excluded.map(band => band.label.toLowerCase()).join(", "))
+                + " — held out by the active " + escape(data.label) + " lens, which only shows work that has had "
+                + exposureFloor + " days or more to come back.</p>"
+              : "")
           + '<p class="ops-note">' + opsNumber(line.openCount) + ' quotes carrying ' + money(line.openValue)
           + ' have no linked order, aged against the ' + (data.cutoff ? shortDate(data.cutoff) : "order-log") + ' cutoff. '
           + (line.openUnaged ? opsNumber(line.openUnaged) + ' more cannot be aged because no cutoff date was read from the order log. ' : "")
-          + (data.exposure ? 'The active ' + escape(data.label) + ' lens excludes anything younger than ' + data.exposure + ' days, so the bands below that are empty by definition rather than because no fresh work exists. ' : "")
+          + (data.exposure ? 'Switch the exposure lens above to All quotes to see the younger bands this one holds out. ' : "")
           + 'An unconverted quote is work still needing a named current status, not a recorded loss.</p>';
 
         // ---- 04 Calendar -------------------------------------------------------
@@ -8274,7 +8291,7 @@
         const ageing = AGEING_BANDS.map(band => {
           const rows = open.filter(record => record.exposure >= band.min && record.exposure <= band.max);
           return {
-            label: band.label, tone: band.tone,
+            label: band.label, tone: band.tone, min: band.min, max: band.max,
             count: rows.length,
             share: open.length ? percentage(rows.length, open.length) : 0,
             value: sumNucor(rows, record => record.price) / 1000000

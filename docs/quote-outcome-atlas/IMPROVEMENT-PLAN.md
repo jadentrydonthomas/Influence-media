@@ -58,15 +58,41 @@ product owner to disable it from the Routines list rather than leaving it firing
       last heavy blocks. They earn their weight as the lead of a screen, but
       their internals are still bordered cells.
 
-- [ ] **Density on the customer surfaces.** The most detailed screens are also
-      the most crowded. Fewer, larger, better-spaced elements saying the same
-      things.
-
 - [ ] **Review pass 5** — keep walking the surfaces. The recurring failure is
       a shape that carries a real finding and never names it; the second is a
       figure that disagrees with another figure elsewhere in the product.
 
 ## Done
+
+- [x] **Density on the customer and timeline surfaces** (2026-08-24). Every
+      supporting line on these screens was a run of values joined by middots —
+      the payer list, both customer diagnostics, the account record and its two
+      block heads, each lifecycle bar, both clock captions and the six-card
+      timeline strip. They are laid-out figure-and-unit pairs now, with the
+      state a reader scans for set as its own coloured mark at the head of the
+      line. The paying list had been stating the same ratio twice; that came
+      out. The open book stopped drawing age bands the active exposure lens
+      excludes outright — four empty bars read as missing data — and names them
+      in one line instead.
+
+- [x] **Container rules reaching inside shared components** (2026-08-24). Four
+      separate rules — `.member-name span`, `.account-name span`,
+      `.payer-name b`, `.profile-block-head span` — styled bare descendants and
+      won on specificity over the fact strips dropped inside them. On the main
+      Customers list this rendered "1 quote / 1 booked / 1 week" as three
+      stacked mini-columns and did the same to every roster row on Team
+      performance, silently making both lists half again as tall as they needed
+      to be. Invisible in the source, so the regression now reads computed
+      style across all six screens.
+
+- [x] **The load stamp and the odd card in the measure strip** (2026-08-24).
+      The first line on the page was a middot run in the code face that wrapped
+      through the middle of the cutoff date; it is three labelled cells now, and
+      the roster split it repeated came out because the glossary already defines
+      each role with its source column. In the four-card measure strip, three
+      cards read label / figure / line and the fourth put a sentence where the
+      figure goes, hiding the interval inside its dial. Two supporting lines
+      were clipped mid-word.
 
 - [x] **A real type scale** (2026-08-24). Thirty-two distinct sizes were in use,
       eight of them crowded into the 10–14px band. A reader cannot tell rank
