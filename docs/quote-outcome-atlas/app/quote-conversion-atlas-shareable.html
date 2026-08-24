@@ -184,11 +184,18 @@
 
     .main { min-width: 0; padding: 0 42px 56px; }
     .masthead { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 78px; border-bottom: 1px solid var(--line); }
-    .masthead-context { color: var(--ink-faint); font-size: 12.5px; }
-    .masthead-context strong { color: var(--ink); font-family: var(--display); font-size: 13.5px; letter-spacing: .13em; text-transform: uppercase; }
-    .masthead-actions { display: flex; align-items: center; gap: 16px; }
-    .data-stamp { color: var(--ink-faint); font-family: var(--mono); font-size: 11.5px; }
-    .data-stamp::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--green-bright); box-shadow: 0 0 0 4px var(--green-soft); vertical-align: 1px; }
+    .masthead-context { display: flex; flex-direction: column; gap: 3px; color: var(--ink-faint); font-size: 12.5px; }
+    .masthead-context span { white-space: nowrap; }
+    .masthead-context strong { color: var(--ink); font-family: var(--display); font-size: 13.5px; letter-spacing: .13em; text-transform: uppercase; white-space: nowrap; }
+    .masthead-actions { display: flex; align-items: center; gap: 18px; }
+    .masthead-actions .theme-button { white-space: nowrap; }
+    .data-stamp { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 20px; padding-right: 22px; border-right: 1px solid var(--line); color: var(--ink-faint); }
+    .data-stamp.is-live::before { content: ""; flex: none; width: 7px; height: 7px; margin-top: 7px; border-radius: 50%; background: var(--green-bright); box-shadow: 0 0 0 4px var(--green-soft); }
+    .stamp-cell { display: flex; flex-direction: column; gap: 2px; }
+    .stamp-cell > span { color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+    .stamp-cell > strong { color: var(--ink-muted); font-family: var(--body); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+    .stamp-cell .facts { gap: 0 11px; }
+    .stamp-cell .fact b { font-size: 12.5px; }
     .theme-button { display: inline-flex; align-items: center; gap: 7px; padding: 7px 0; border: 0; color: var(--ink-muted); background: transparent; font-family: var(--display); font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; transition: color 180ms var(--ease); }
     .theme-button::before { content: ""; width: 8px; height: 8px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); transition: background 180ms var(--ease), border-color 180ms var(--ease), box-shadow 180ms var(--ease); }
     .theme-button:hover { color: var(--green); }
@@ -228,7 +235,7 @@
     .metric-copy { min-width: 0; }
     .metric-copy span { display: block; color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
     .metric-copy b { display: block; margin-top: 4px; color: var(--ink); font-family: var(--mono); font-size: 18px; font-weight: 500; letter-spacing: -.06em; }
-    .metric-copy small { display: block; overflow: hidden; margin-top: 4px; color: var(--ink-muted); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-copy small { display: block; margin-top: 5px; color: var(--ink-muted); font-size: 10.5px; line-height: 1.45; }
 
     .outcome-section { position: relative; margin-top: 34px; border-radius: var(--r-md); overflow: hidden; color: #edf7ef; background: radial-gradient(circle at 51% 29%, rgba(0,189,87,.18), transparent 29%), linear-gradient(135deg, #06120b 0%, #0d2818 53%, #07150d 100%); box-shadow: 0 24px 54px rgba(12,30,18,.18); }
     .outcome-section::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent 0 49.94%, rgba(216,245,221,.08) 49.94% 50.06%, transparent 50.06% 100%); opacity: .4; }
@@ -1925,8 +1932,8 @@
 
     <main class="main">
       <header class="masthead">
-        <div class="masthead-context"><strong>Quote outcome dashboard</strong> · Waterloo / Fort Wayne</div>
-        <div class="masthead-actions"><span class="data-stamp" id="dataStamp">Design preview — import files and run dashboard</span><button class="theme-button" id="glossaryButton" type="button" aria-expanded="false" aria-controls="glossary">What the numbers mean</button><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
+        <div class="masthead-context"><strong>Quote outcome dashboard</strong><span>Waterloo / Fort Wayne</span></div>
+        <div class="masthead-actions"><span class="data-stamp" id="dataStamp"><span class="stamp-cell"><span>Design preview</span><strong>Import files and run the dashboard</strong></span></span><button class="theme-button" id="glossaryButton" type="button" aria-expanded="false" aria-controls="glossary">What the numbers mean</button><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
       </header>
       <div class="glossary-scrim" id="glossaryScrim" hidden></div>
       <aside class="glossary" id="glossary" aria-labelledby="glossaryTitle" hidden>
@@ -2497,8 +2504,18 @@
       const pct = value => Number(value).toFixed(1) + "%";
       const escape = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
       const setText = (selector, value) => { const node = $(selector); if (node) node.textContent = value; };
+      // The load stamp is the first thing on the page. It used to be a run of
+      // values joined by middots, in a code face, that broke a date across two
+      // lines. Each part is now a labelled cell that can wrap as a unit.
+      const setStamp = (cells, live) => {
+        const node = $("#dataStamp");
+        if (!node) return;
+        node.classList.toggle("is-live", live !== false);
+        node.innerHTML = cells.filter(Boolean).map(cell => '<span class="stamp-cell"><span>'
+          + escape(cell.label) + '</span><strong>' + (cell.html || escape(String(cell.value))) + '</strong></span>').join("");
+      };
       resetBlankShell();
-      setText("#dataStamp", "Awaiting source files");
+      setStamp([{ label: "Source files", value: "none imported yet" }], false);
       setReportingPeriod("live import");
       ["#missingOrderQuoteCount", "#outsideWindowCount", "#invalidOrderQuoteCount", "#duplicateOrderCount", "#headerFallbackCount", "#unmappedRosterCount", "#missingEngineerCount", "#dateCorrectionCount", "#invalidDateCount"].forEach(selector => setText(selector, "0"));
       setText("#unmappedRosterDetail", "Role-name coverage will be calculated from the selected Inventory sheets.");
@@ -3308,7 +3325,7 @@
         if (data.empty) {
           $("#metricRings").innerHTML = [
             kpiMarkup("Quote conversion", 0, "-", "Awaiting source run", "Quote No. to Quote #", "var(--green)"),
-            kpiMarkup("Evidence range", 0, "-", "No cohort yet", "Needs quote opportunities", "var(--steel)"),
+            kpiMarkup("95% confidence", 0, "-", "No cohort yet", "Needs quote opportunities", "var(--steel)"),
             kpiMarkup("Quote release on time", 0, "-", "Not scored", "Needs a release result", "var(--green)"),
             kpiMarkup("Won value capture", 0, "-", "No booked value", "Needs a linked order", "var(--amber)")
           ].join("");
@@ -3319,8 +3336,8 @@
         const jobs = data.jobs || data.orders;
         const html = [
           kpiMarkup("Quote conversion", data.conversion, pct(data.conversion), pct(data.conversion), data.orders + " quote wins", "var(--green)"),
-          kpiMarkup("95% confidence", data.conversion, confidence, "based on " + data.quotes + " opportunities", "on the active cohort", "var(--steel)"),
-          kpiMarkup("Quote release on time", timingAvailable ? data.onTime : 0, timingAvailable ? data.onTime + "%" : "—", timingAvailable ? data.onTime + "%" : "Not scored", timingAvailable ? (Number(data.onTimeScoredCount) || 0) + "/" + (Number(data.quotes) || 0) + " scored · target 90%" : "needs a release result", "var(--green)"),
+          kpiMarkup("95% confidence", data.conversion, pct(data.conversion), confidence, "the real rate, on " + countOf(data.quotes, "opportunity", "opportunities"), "var(--steel)"),
+          kpiMarkup("Quote release on time", timingAvailable ? data.onTime : 0, timingAvailable ? data.onTime + "%" : "—", timingAvailable ? data.onTime + "%" : "Not scored", timingAvailable ? (Number(data.onTimeScoredCount) || 0) + " of " + (Number(data.quotes) || 0) + " scored, target 90%" : "needs a release result", "var(--green)"),
           kpiMarkup("Won value capture", data.valueCapture, pct(data.valueCapture), money(data.orderValue), jobs + " jobs booked from " + money(data.quoteValue), "var(--amber)")
         ];
         $("#metricRings").innerHTML = html.join("");
@@ -8671,7 +8688,12 @@
         $$("[data-role]").forEach(button => { button.hidden = false; });
         syncNucorViews();
         const cutoffText = model.quality.cutoff ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(model.quality.cutoff) : "no order cutoff";
-        const namedRosterText = nucorPeople(model.records, "engineers", model.roster).length + " quote engineers · " + nucorPeople(model.records, "estimators", model.roster).length + " estimators · " + nucorPeople(model.records, "schedulers", model.roster).length + " schedulers";
+        const rosterCounts = {
+          engineers: nucorPeople(model.records, "engineers", model.roster).length,
+          estimators: nucorPeople(model.records, "estimators", model.roster).length,
+          schedulers: nucorPeople(model.records, "schedulers", model.roster).length
+        };
+        const namedRosterText = rosterCounts.engineers + " quote engineers, " + rosterCounts.estimators + " estimators, " + rosterCounts.schedulers + " schedulers";
         setReportingPeriod(model.scopes.all.period);
         setText("#missingOrderQuoteCount", model.quality.missingOrderQuote);
         setText("#outsideWindowCount", model.quality.outsideWindow);
@@ -8696,8 +8718,11 @@
           : "Every written result agrees with its Due and Done dates. N/A means delivered on the due date, which counts as on time.");
         setText("#unmappedRosterCount", model.quality.unmappedRoster || 0);
         setText("#unmappedRosterDetail", model.quality.unmappedRoster ? model.quality.unmappedRosterCodes.join(", ") + " do not have a full-name entry in the selected Inventory rosters." : "Every used role code resolved to a supplied full name.");
-        setText("#dataStamp", "Imported " + model.scopes.all.period + " · " + namedRosterText + " · order cutoff " + cutoffText
-          + (state.baseline ? " · baseline " + state.baseline.label : ""));
+        setStamp([
+          { label: "Imported", value: model.scopes.all.period },
+          { label: "Order cutoff", value: cutoffText },
+          state.baseline ? { label: "Baseline", value: state.baseline.label } : null
+        ]);
         // Every screen is redrawn from the one entry point. Listing individual
         // renderers here is how the customers and operations screens ended up
         // still showing their empty state after a successful run.
@@ -8967,7 +8992,7 @@
         state.selectedPerson = 0;
         state.selectedQuote = quotes.length ? quotes[0].id : "";
         state.scope = "all";
-        setText("#dataStamp", "Imported " + dataset.scopes.all.period);
+        setStamp([{ label: "Imported", value: dataset.scopes.all.period }]);
         setText("#orphanOrderCount", dataset.exceptions.unmatchedOrders);
         setText("#missingOwnerCount", dataset.exceptions.missingOwner);
         setText("#missingSentCount", dataset.exceptions.missingSent);

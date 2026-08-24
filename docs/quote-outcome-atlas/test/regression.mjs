@@ -84,7 +84,7 @@ check('header fallback count', await t('#headerFallbackCount'), '3');
 // --- Coverage must travel with every partial-coverage rate ---
 const kpis = await page.$$eval('#metricRings > *', ns => ns.map(n => n.innerText.replace(/\s+/g, ' ')));
 const onTimeKpi = kpis.find(k => /RELEASE ON TIME/i.test(k)) || '';
-checkMatch('on-time KPI states its denominator', onTimeKpi, /174\/174 scored/);
+checkMatch('on-time KPI states its denominator', onTimeKpi, /174 of 174 scored/);
 checkMatch('on-time KPI states target', onTimeKpi, /target 90%/);
 checkMatch('rail carries on-time denominator', await t('#railOnTimeCoverage'), /174\/174 scored/);
 // N/A in the On-Time column means delivered on the due date, verified
@@ -93,6 +93,16 @@ checkMatch('rail carries on-time denominator', await t('#railOnTimeCoverage'), /
 checkMatch('on-time counts delivery on the due date', await t('#railOnTime'), /8[0-9](\.[0-9])?%/);
 check('release results agreeing with their dates', await t('#onTimeConflictCount'), '0');
 checkMatch('confidence KPI has no leaked CSS var', kpis.join(' '), /^(?!.*var\(--).*$/);
+
+// The supporting line under each headline figure is prose, and prose is not
+// clipped. These four used to be one nowrap line with an ellipsis, so two of
+// them ended mid-word.
+{
+  const clipped = await page.$$eval('#metricRings .metric-copy b, #metricRings .metric-copy small',
+    nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1)
+      .map(node => node.textContent.trim()));
+  check('no figure or supporting line in the measure strip is clipped', clipped.join(' | '), '');
+}
 
 await page.click('[data-screen="people"]');
 await page.waitForTimeout(400);

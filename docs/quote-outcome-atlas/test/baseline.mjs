@@ -38,7 +38,9 @@ const withB = await run(true);
 check('the live figures do not move when a baseline is loaded',
   without.quotes===withB.quotes && without.wins===withB.wins && without.conv===withB.conv && without.value===withB.value,
   JSON.stringify(without)+' vs '+JSON.stringify(withB));
-check('the header names the loaded baseline', /baseline 2025/.test(withB.stamp), withB.stamp.slice(-70));
+// The stamp is a set of labelled cells now, so the label and its value are
+// adjacent text nodes rather than one sentence.
+check('the header names the loaded baseline', /baseline\s*2025/i.test(withB.stamp), withB.stamp.slice(-70));
 
 await p.click('[data-analysis="compare"]'); await p.waitForTimeout(600);
 const body = await p.$eval('#analysisBody', n=>n.innerText.replace(/\s+/g,' ').trim());
