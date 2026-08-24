@@ -104,6 +104,21 @@ checkMatch('confidence KPI has no leaked CSS var', kpis.join(' '), /^(?!.*var\(-
   check('no figure or supporting line in the measure strip is clipped', clipped.join(' | '), '');
 }
 
+// The run summary is the first thing read after a run. It used to be one
+// paragraph of clauses joined by semicolons.
+{
+  const run = await page.$eval('#runStatus', node => ({
+    text: node.innerText.replace(/\s+/g, ' ').trim(),
+    facts: node.querySelectorAll('.fact').length,
+    notes: node.querySelectorAll('.run-notes i').length,
+    upper: [...node.querySelectorAll('.run-notes i')].filter(n => getComputedStyle(n).textTransform !== 'none').length
+  }));
+  checks.push({ name: 'the run summary lays its counts out', actual: run.facts + ' facts', expected: 'at least three', pass: run.facts >= 3 });
+  checks.push({ name: 'the run summary lists each repair on its own line', actual: run.notes + ' notes', expected: 'at least one', pass: run.notes >= 1 });
+  check('no container rule uppercases the run summary notes', run.upper, 0);
+  checkMatch('the run summary does not run its clauses together', run.text, /^(?!.*;)[\s\S]*$/);
+}
+
 await page.click('[data-screen="people"]');
 await page.waitForTimeout(400);
 checkMatch('team summary states on-time coverage', await t('#teamSummary'), /of 174 scored/);

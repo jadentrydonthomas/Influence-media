@@ -1770,12 +1770,20 @@
     .run-dashboard:disabled::after { display: none; }
     .run-dashboard.is-running { color: #e3fae8; background: linear-gradient(160deg, #1d7a45, #0e4425); box-shadow: inset 0 0 0 1px #4bea8c; cursor: progress; }
     .run-status { display: flex; flex-direction: column; justify-content: center; padding: 12px 14px; border: 1px solid rgba(225,247,229,.15); background: rgba(255,255,255,.03); }
-    .run-status span { color: #bde8c6; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .run-status strong { margin-top: 6px; max-width: 92ch; color: rgba(238,248,240,.74); font-size: 11.5px; font-weight: 500; line-height: 1.5; }
+    .run-status > span { color: #bde8c6; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .run-status strong { display: block; margin-top: 7px; max-width: 92ch; color: rgba(238,248,240,.74); font-size: 11.5px; font-weight: 500; line-height: 1.5; }
+    .run-status strong em { display: block; color: rgba(238,248,240,.9); font-size: 12.5px; font-style: normal; }
+    .run-status .facts { gap: 4px 20px; margin-top: 9px; }
+    .run-status .fact { color: rgba(238,248,240,.55); font-size: 11.5px; }
+    .run-status .fact b { color: #a9efc0; font-size: 12.5px; }
+    .run-status .fact.is-quiet b { color: rgba(238,248,240,.72); }
+    .run-notes { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(225,247,229,.14); }
+    .run-notes i { color: rgba(238,248,240,.55); font-size: 11.5px; font-style: normal; }
+    .run-notes i::before { content: ""; display: inline-block; width: 3px; height: 3px; margin: 0 8px 3px 0; border-radius: 50%; background: rgba(169,239,192,.55); }
     .run-status[data-tone="error"] { border-color: rgba(239,152,115,.55); background: rgba(188,104,71,.1); }
-    .run-status[data-tone="error"] span { color: #ffc3a9; }
+    .run-status[data-tone="error"] > span { color: #ffc3a9; }
     .run-status[data-tone="success"] { border-color: rgba(83,231,142,.45); background: rgba(0,189,87,.08); }
-    .run-status[data-tone="success"] span { color: #8af0a9; }
+    .run-status[data-tone="success"] > span { color: #8af0a9; }
     .mapping-panel { display: grid; gap: 13px; }
     .mapping-card { padding: 17px; border: 0; border-radius: var(--r-md); box-shadow: var(--lift-2), var(--edge); background: var(--surface); }
     .mapping-card h3 { margin: 0; color: var(--ink); font-family: var(--display); font-size: 18px; letter-spacing: .03em; line-height: .95; text-transform: uppercase; }
@@ -11654,9 +11662,24 @@
         return names.slice(0, 2).join(" · ") + " +" + (names.length - 2) + " more";
       }
 
-      function displayRunFeedback(title, copy, tone) {
+      // The run summary is the first thing read after a run. It used to be one
+      // paragraph of clauses joined by semicolons — what was collapsed, what
+      // matched, what resolved, what was repaired, all in a row. The counts are
+      // laid out and the repairs are separate lines.
+      function displayRunFeedback(title, copy, tone, detail) {
         setText("#runStatusTitle", title);
-        setText("#runStatusCopy", copy);
+        const node = $("#runStatusCopy");
+        if (node) {
+          if (detail && (detail.facts || detail.notes)) {
+            node.innerHTML = (copy ? "<em>" + escape(copy) + "</em>" : "")
+              + (detail.facts && detail.facts.length ? facts(detail.facts) : "")
+              + (detail.notes && detail.notes.length
+                  ? '<span class="run-notes">' + detail.notes.map(note => "<i>" + escape(note) + "</i>").join("") + "</span>"
+                  : "");
+          } else {
+            node.textContent = copy;
+          }
+        }
         $("#runStatus").dataset.tone = tone || "";
       }
 
@@ -11694,7 +11717,7 @@
         setText("#runButtonLabel", intake.running ? "Reading sources" : intake.hasRun ? "Refresh dashboard" : "Run dashboard");
         setText("#runButtonHelp", intake.running ? "Validating fields, linking orders, and rebuilding the live management view." : "Join quote and order records, then refresh every visible metric.");
         if (intake.feedback) {
-          displayRunFeedback(intake.feedback.title, intake.feedback.copy, intake.feedback.tone);
+          displayRunFeedback(intake.feedback.title, intake.feedback.copy, intake.feedback.tone, intake.feedback);
         } else if (!readyToRun) {
           displayRunFeedback("Source set incomplete", "Add at least one quote-week file and one or more order-log exports to enable the run.", "");
         } else {
@@ -11791,16 +11814,27 @@
               const quality = model.quality;
               const repairNotes = [];
               if (quality.correctedDates) repairNotes.push(quality.correctedDates + " week date" + (quality.correctedDates === 1 ? " was" : "s were") + " recovered from filenames");
-              if (quality.headerFallbacks) repairNotes.push(quality.headerFallbacks + " non-critical header field" + (quality.headerFallbacks === 1 ? " used" : "s used") + " its fixed fallback");
+              if (quality.headerFallbacks) repairNotes.push(quality.headerFallbacks + " non-critical header field" + (quality.headerFallbacks === 1 ? " used its" : "s used their") + " fixed fallback");
               if (quality.invalidDateIn) repairNotes.push(quality.invalidDateIn + " stray Date In value" + (quality.invalidDateIn === 1 ? " was" : "s were") + " excluded from timing calculations");
               if (quality.outsideWindow) repairNotes.push(quality.outsideWindow + " order quote reference" + (quality.outsideWindow === 1 ? " is" : "s are") + " outside this loaded window");
               if (quality.duplicateOrderRows) repairNotes.push(quality.duplicateOrderRows + " repeated order row" + (quality.duplicateOrderRows === 1 ? " was" : "s were") + " removed before attribution");
               const rosterNote = quality.unmappedRoster ? quality.rosterNames + " roster names resolved; " + quality.unmappedRosterCodes.join(", ") + " still need a full-name entry in Inventory." : quality.rosterNames + " roster names resolved from Inventory.";
               state.intake.feedback = {
                 title: "Nucor workbook dashboard refreshed",
-                copy: quality.rawQuoteRows + " quote rows collapsed to " + model.records.length + " opportunities. " + model.scopes.all.orders + " quote wins map to " + quality.matchedJobs + " booked jobs. "
-                  + (state.baseline ? state.baseline.label + " is held aside as a comparison baseline with " + state.baseline.model.records.length + " opportunities. " : "")
-                  + rosterNote + " " + (repairNotes.length ? repairNotes.join("; ") + "." : "All source-quality checks passed."),
+                copy: opsNumber(quality.rawQuoteRows) + " quote rows collapsed into "
+                  + countOf(model.records.length, "opportunity", "opportunities") + ".",
+                facts: [
+                  { value: opsNumber(model.scopes.all.orders), unit: model.scopes.all.orders === 1 ? "quote win" : "quote wins" },
+                  { value: opsNumber(quality.matchedJobs), unit: quality.matchedJobs === 1 ? "booked job" : "booked jobs" },
+                  { value: opsNumber(quality.rosterNames), unit: "roster names resolved" },
+                  quality.unmappedRoster
+                    ? { value: opsNumber(quality.unmappedRoster), unit: "still need a name in Inventory", quiet: true }
+                    : null,
+                  state.baseline
+                    ? { value: opsNumber(state.baseline.model.records.length), unit: "held aside as the " + state.baseline.label + " baseline", quiet: true }
+                    : null
+                ].filter(Boolean),
+                notes: repairNotes.length ? repairNotes : ["Every source-quality check passed."],
                 tone: "success"
               };
               return;
