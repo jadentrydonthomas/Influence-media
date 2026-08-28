@@ -740,7 +740,7 @@
     .cmp-lorenz .grid { stroke: var(--line); stroke-width: 1; }
     .cmp-lorenz .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 11.5px; }
     .lorenz-even { stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 5 5; }
-    .lorenz-even-label { fill: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
+    .lorenz-even-label { fill: var(--ink-faint); font-family: var(--body); font-size: 10.5px; }
     .lorenz-line { fill: none; stroke-linejoin: round; }
     .lorenz-line.is-now { stroke: var(--green); stroke-width: 3.5; }
     .lorenz-line.is-then { stroke: var(--then); stroke-width: 2.5; }
@@ -899,7 +899,7 @@
     .brief-quote:last-of-type { border-bottom: 0; }
     .brief-quote b { grid-area: id; min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--mono); font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .brief-quote span { grid-area: project; min-width: 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.3; overflow-wrap: anywhere; }
-    .brief-quote em { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12.5px; font-style: normal; font-weight: 700; text-align: right; }
+    .brief-quote > em { grid-area: value; color: var(--ink); font-family: var(--mono); font-size: 12.5px; font-style: normal; font-weight: 700; text-align: right; }
     .brief-quote i { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; grid-area: date; min-width: 0; color: var(--ink-faint); font-size: 10.5px; font-style: normal; }
     .brief-when { color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; white-space: nowrap; }
     .brief-who { color: var(--ink-muted); font-size: 10.5px; font-style: normal; }
@@ -1366,6 +1366,7 @@
     .ops-table td { padding: 11px 10px; border-bottom: 1px solid var(--surface-soft); color: var(--ink); vertical-align: middle; }
     .ops-table td b { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
     .ops-table .num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+    .ops-table th.num, .profile-table th.num, .acct-table th.num { font-family: var(--display); }
     .ops-table tbody tr:hover { background: var(--green-soft); }
     .ops-table tr.is-total td { border-top: 1.5px solid var(--line); border-bottom: 0; font-weight: 700; background: var(--surface-soft); }
     .chg { font-family: var(--mono); font-size: 12.5px; }
@@ -1732,7 +1733,7 @@
     .prior-inputs { display: flex; flex-wrap: wrap; gap: 8px; }
     .prior-add { display: inline-flex; align-items: center; padding: 8px 12px; border: 1px solid rgba(233,248,236,.34); color: #f7fff8; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: border-color 180ms var(--ease), background 180ms var(--ease); }
     .prior-add:hover { border-color: var(--green-bright); background: rgba(0,189,87,.14); }
-    .prior-status strong { display: block; color: #eefaf0; font-family: var(--mono); font-size: 12.5px; }
+    .prior-status strong { display: block; color: #eefaf0; font-size: 12.5px; font-weight: 600; }
     .prior-status span { display: block; margin-top: 3px; color: rgba(235,248,237,.45); font-family: var(--mono); font-size: 10.5px; overflow-wrap: anywhere; }
     @media (max-width: 700px) { .prior-bar { grid-template-columns: 1fr; } }
     /* The prior period is optional, and reads that way until something is in it. */
@@ -1751,8 +1752,8 @@
     .source-add:hover { border-color: var(--green-bright); background: rgba(0,189,87,.12); }
     .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .source-status { margin-top: auto; padding-top: 9px; border-top: 1px solid rgba(225,247,229,.14); }
-    .source-status strong { display: block; color: #c8ecd0; font-family: var(--mono); font-size: 10.5px; font-weight: 500; }
-    .source-status span { display: block; overflow: hidden; margin-top: 4px; color: rgba(238,248,240,.47); font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
+    .source-status strong { display: block; color: #c8ecd0; font-size: 11.5px; font-weight: 600; }
+    .source-status span { display: block; overflow: hidden; margin-top: 4px; color: rgba(238,248,240,.47); font-family: var(--mono); font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
     .intake-divider { position: relative; display: grid; place-items: center; }
     .intake-divider::before { content: ""; width: 1px; height: calc(100% - 32px); background: rgba(210,242,217,.2); }
     .intake-divider span { position: absolute; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid rgba(210,242,217,.32); border-radius: 50%; color: #e5f6e8; background: #102419; font-family: var(--mono); font-size: 12.5px; }
@@ -1810,7 +1811,7 @@
     .identity-row { display: grid; grid-template-columns: minmax(0,1fr) 76px minmax(0,1fr); grid-template-areas: "left mid right" "note note note"; gap: 3px 12px; align-items: center; padding: 11px 14px; border-top: 1px solid var(--line); }
     .identity-row:first-of-type { border-top: 0; }
     .identity-pair b { display: block; overflow: hidden; color: var(--ink); font-size: 12.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-    .identity-pair i { display: block; margin-top: 2px; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-style: normal; }
+    .identity-pair i { display: block; margin-top: 2px; color: var(--ink-faint); font-size: 10.5px; font-style: normal; }
     .identity-pair:first-of-type { grid-area: left; }
     .identity-pair:last-of-type { grid-area: right; }
     .identity-versus { grid-area: mid; color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-align: center; text-transform: uppercase; }

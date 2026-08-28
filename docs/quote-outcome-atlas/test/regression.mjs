@@ -200,6 +200,48 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   check('no container rule shouts at a component that sets its own casing', [...new Set(shouted)].join(' | '), '');
 }
 
+// The code face is for figures and identifiers. Prose set in it is most of
+// what "overly digital" means, and it drifts back every time a value rule
+// reaches a phrase — which it did on the release mark, the identity note, both
+// intake statuses, a chart annotation and a numeric column's header.
+{
+  const shouted = [];
+  // Each year-over-year view builds its own markup when it is opened, so
+  // scanning the compare screen once only ever reaches whichever view is
+  // showing. Every view gets walked.
+  const stops = [['overview', ''], ['customers', ''], ['people', ''], ['timeline', ''], ['data', '']]
+    .concat(['headline', 'momentum', 'speed', 'mix', 'customers', 'people', 'ledger'].map(view => ['compare', view]));
+  for (const [screen, view] of stops) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(400);
+    if (view) { await page.click(`[data-compare-view="${view}"]`); await page.waitForTimeout(650); }
+    const bad = await page.$$eval(`#${screen} *`, nodes => nodes
+      .filter(node => {
+        if (node.children.length) return false;
+        const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+        if (text.length < 4) return false;
+        if (!/mono|consolas|courier/i.test(getComputedStyle(node).fontFamily)) return false;
+        // Prose: three or more words, three of which are plain words.
+        // A list of file names is a list of identifiers, however wordy.
+        if (/\.(xlsm|xlsx|csv)\b/i.test(text)) return false;
+        const words = text.split(' ');
+        return words.length >= 3 && words.filter(w => /^[A-Za-z][A-Za-z'\u2019-]{2,}$/.test(w)).length >= 3;
+      })
+      .map(node => {
+        const cls = node.className && node.className.baseVal !== undefined ? node.className.baseVal : node.className;
+        return (typeof cls === 'string' && cls ? '.' + cls.trim().split(/\s+/)[0] : node.tagName)
+          + ': ' + node.textContent.replace(/\s+/g, ' ').trim().slice(0, 40);
+      })
+      // The step eyebrow is a deliberate technical mark, not prose. Excluded
+      // here rather than after the slice, or three allowed hits would hide
+      // every real one behind them.
+      .filter(text => !/^\.flow-step/.test(text))
+      .slice(0, 3));
+    bad.forEach(text => shouted.push(screen + (view ? '/' + view : '') + ' — ' + text));
+  }
+  check('prose is not set in the code face', [...new Set(shouted)].join(' | '), '');
+}
+
 // Every screen that carries analysis opens with one generated sentence naming
 // what it found. A screen whose lead still reads as the import placeholder, or
 // whose lead never names a figure, is one the reader has to derive from.
