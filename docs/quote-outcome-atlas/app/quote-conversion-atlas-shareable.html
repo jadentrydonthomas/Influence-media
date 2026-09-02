@@ -700,7 +700,10 @@
     .attr-detail { fill: var(--ink-muted); font-family: var(--mono); font-size: 12.5px; }
     .attr-measure { fill: var(--ink-faint); font-size: 10.5px; }
     .attr-break { fill: none; stroke: var(--line-strong); stroke-width: 1.5; }
-    .attr-floor { fill: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
+    /* A sentence, so it is set in the reading face; only the figures inside it
+       are code. */
+    .attr-floor { fill: var(--ink-faint); font-family: var(--body); font-size: 11px; }
+    .attr-floor tspan { fill: var(--ink-muted); font-family: var(--mono); font-size: 10.5px; }
 
     /* Equal-age booking curves. */
     .cmp-survival { display: block; width: 100%; height: auto; }
@@ -1146,9 +1149,28 @@
     .profile-table tr.is-openable { cursor: pointer; }
     .profile-table tr.is-openable:hover td { background: var(--surface-soft); }
     .profile-table tr.is-openable[aria-expanded="true"] td { background: var(--green-soft); }
-    .open-hint { display: block; margin-top: 3px; color: var(--green-dark); font-family: var(--display); font-size: 10.5px; font-weight: 700; font-style: normal; letter-spacing: .1em; text-transform: uppercase; }
-    .profile-table tr.is-openable[aria-expanded="true"] .open-hint { color: var(--ink-faint); }
-    .profile-table tr.is-openable[aria-expanded="true"] .open-hint:after { content: " \2014 close"; }
+    /* This mark used to read "OPEN", directly beneath a quote number, in a
+       column headed "From quote" - so a job that had come back appeared to
+       name a quote that was still open. It is an affordance, not a status, so
+       it says so as a disclosure chevron and leaves the word to the data. */
+    .profile-table tr.is-openable td.quote-ref { position: relative; padding-right: 32px; }
+    .open-hint {
+      position: absolute; top: 50%; right: 4px; width: 21px; height: 21px; margin-top: -10.5px;
+      display: grid; place-items: center;
+      border: 1px solid var(--line); border-radius: 50%;
+      color: var(--green-dark); background: var(--surface);
+      transition: transform 300ms var(--ease-spring), border-color 200ms var(--ease),
+                  background 200ms var(--ease), color 200ms var(--ease);
+    }
+    .open-hint::before {
+      content: ""; width: 5px; height: 5px; margin-top: -2px;
+      border-right: 1.7px solid currentColor; border-bottom: 1.7px solid currentColor;
+      transform: rotate(45deg);
+    }
+    .profile-table tr.is-openable:hover .open-hint { border-color: var(--green); background: var(--green-soft); }
+    .profile-table tr.is-openable[aria-expanded="true"] .open-hint {
+      transform: rotate(180deg); border-color: var(--green); background: var(--green); color: #fff;
+    }
     .job-detail td { padding: 0; background: var(--surface-soft); }
     .job-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; padding: 16px 12px 18px; }
     .jd-block > span { display: block; margin-bottom: 8px; color: var(--green-dark); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
@@ -1193,6 +1215,13 @@
 
     /* Definitions drawer. Available from every screen, because the question
        "what is this number" is asked in front of whichever screen raised it. */
+    /* The user-agent's [hidden] rule is a bare element selector, so any class
+       that sets its own display outranks it and the element stays on screen
+       while every script in the product believes it is closed. This had been
+       patched three separate times, once per element, and the fourth escape
+       shipped the command palette open over the headline. One rule, once. */
+    [hidden] { display: none !important; }
+
     /* display:flex on .glossary outranks the user-agent [hidden] rule, so the
        closed drawer stayed laid out over the page and swallowed every click. */
     .glossary[hidden], .glossary-scrim[hidden] { display: none; }
@@ -4762,7 +4791,9 @@
           + (zoomed
               ? '<path class="attr-break" d="M' + (padLeft - 26) + " " + (baseY + 7) + " l7 -7 l7 7 l7 -7 l7 7" + '" />'
                 + '<text class="attr-floor" x="' + (padLeft - 34) + '" y="' + (baseY + 74) + '" text-anchor="start">'
-                + escape("scale starts at " + money(floor) + ", not at zero, so a move of " + cmpSigned(attribution.total) + " on " + money(attribution.from) + " is visible") + "</text>"
+                + "Scale starts at <tspan>" + escape(money(floor)) + "</tspan> rather than zero, so a move of "
+                + "<tspan>" + escape(cmpSigned(attribution.total)) + "</tspan> on <tspan>" + escape(money(attribution.from))
+                + "</tspan> is visible.</text>"
               : "")
           + '<path class="attr-ribbon" d="' + ribbon + '" />'
           + '<path class="attr-edge" d="' + edge.join(" ") + '" />'
@@ -7328,7 +7359,7 @@
                     + '<td class="date">' + (job.entryDate ? fullDate(job.entryDate) : "no entry date") + "</td>"
                     + '<td class="num">' + (job.tons ? tons(job.tons) : "—") + "</td>"
                     + '<td class="num">' + money(job.quoteValue / 1000000) + "</td>"
-                    + '<td class="quote-ref">' + escape(job.quoteKey) + (Number.isFinite(job.lag) ? '<span>' + job.lag + "d after quoting</span>" : "") + '<i class="open-hint" aria-hidden="true">open</i></td></tr>'
+                    + '<td class="quote-ref">' + escape(job.quoteKey) + (Number.isFinite(job.lag) ? '<span>' + job.lag + "d after quoting</span>" : "") + '<i class="open-hint" aria-hidden="true"></i></td></tr>'
                     + '<tr class="job-detail" data-job-detail="' + index + '" hidden><td colspan="5">' + jobDetailMarkup(job) + "</td></tr>").join("")
                 + "</tbody></table></div></section>"
               : '<section class="profile-block"><div class="profile-block-head"><span>Jobs booked</span><b>none yet</b></div>'
@@ -7429,7 +7460,15 @@
           .reduce((all, record) => all.concat((record.jobsDetail || []).map(job => Object.assign({}, job, {
             quoteKey: record.quoteNumber || record.key,
             quoteValue: Number(record.price) || 0,
-            lag: record.lag
+            lag: record.lag,
+            // The order log spells the buyer its own way and the quote book
+            // spells it another, so the same job and the quote it came from
+            // read as two customers on one card. Everything in the product is
+            // counted under the quote book's account; name it that way here
+            // and keep the order log's own spelling on the row for anyone who
+            // wants it.
+            account: record.customer,
+            orderCustomer: job.customer
           }))), [])
           .sort((a, b) => (b.entryDate ? b.entryDate.getTime() : 0) - (a.entryDate ? a.entryDate.getTime() : 0));
         const bookedTons = jobs.reduce((sum, job) => sum + (Number(job.tons) || 0), 0);
@@ -7466,13 +7505,20 @@
                 + '<div class="profile-table-wrap is-jobs"><table class="profile-table"><thead><tr><th>Job</th><th>Customer</th><th>Entered</th><th class="num">Tons</th><th class="num">Quote value</th><th>From quote</th></tr></thead><tbody>'
                 + jobs.map((job, index) => '<tr class="is-openable" data-person-job="' + index + '" role="button" tabindex="0" aria-expanded="false"><td><b>' + escape(job.id || "job") + "</b>"
                     + (job.name ? '<span class="job-name" title="' + escape(job.name) + '">' + escape(job.name) + "</span>" : "") + "</td>"
-                    + "<td>" + escape(job.customer || "\u2014") + "</td>"
+                    // The same account, named the same way in both tables. The
+                    // order log title-cases and the quote book shouts, so
+                    // reading the raw field here put "Design Builders &
+                    // Contractors of Eau Claire, LLC" above "DESIGN BUILDERS"
+                    // on one card, as though they were two customers.
+                    + '<td title="' + escape(job.orderCustomer && customerName(job.orderCustomer) !== customerName(job.account)
+                        ? "The order log calls this " + job.orderCustomer : customerName(job.account) || "")
+                    + '">' + escape(customerName(job.account) || job.orderCustomer || "\u2014") + "</td>"
                     + '<td class="date">' + (job.entryDate ? fullDate(job.entryDate) : "no entry date") + "</td>"
                     + '<td class="num">' + (job.tons ? tons(job.tons) : "\u2014") + "</td>"
                     + '<td class="num">' + money(job.quoteValue / 1000000) + "</td>"
                     + '<td class="quote-ref">' + escape(job.quoteKey)
                     + (Number.isFinite(job.lag) ? "<span>" + job.lag + "d after quoting</span>" : "")
-                    + '<i class="open-hint" aria-hidden="true">open</i></td></tr>'
+                    + '<i class="open-hint" aria-hidden="true"></i></td></tr>'
                   + '<tr class="job-detail" data-person-job-detail="' + index + '" hidden><td colspan="6">' + jobDetailMarkup(job) + "</td></tr>").join("")
                 + "</tbody></table></div></section>"
               : '<section class="profile-block"><div class="profile-block-head"><span>Jobs that came back</span><b>none yet</b></div>'

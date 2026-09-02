@@ -50,6 +50,11 @@ await page.goto('file://' + APP);
 await page.click('[data-screen="data"]');
 await page.setInputFiles('#quoteFiles', ['Week 1 - 2026.xlsm', 'Week 2 - 2026.xlsm', 'Week 3 - 2026.xlsm'].map(f => path.join(FIX, f)));
 await page.setInputFiles('#orderFiles', [path.join(FIX, 'OrderLog_1-10.xlsx')]);
+// A baseline, so the Year over year screen is reachable here the way it is for
+// a reader. Without one the product deliberately hides that screen, and every
+// assertion below it was running against something nobody could open.
+await page.setInputFiles('#priorFiles', [path.join(FIX, 'Week 1 - 2026.xlsm')]);
+await page.setInputFiles('#priorOrderFiles', [path.join(FIX, 'OrderLog_1-10.xlsx')]);
 await page.click('#runDashboard');
 await page.waitForFunction(() => /refreshed/i.test(document.getElementById('runStatusTitle').textContent), null, { timeout: 90000 });
 await page.waitForTimeout(600);
@@ -329,11 +334,28 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   // wrong number to anything that reads text: copy, print, a screen reader.
   await page.click('[data-screen="overview"]');
   await page.waitForTimeout(2400);
-  const midCount = await page.$$eval('[data-odo]', nodes => nodes
-    .map(node => node.textContent.trim())
-    .filter(text => text === '0' || text === '0.0' || text === '0.0%' || text === '$0.0M')
+  const midCount = await page.$$eval('.screen.is-active [data-odo]', nodes => nodes
+    .map(node => node.textContent.trim() + ' @' + (node.id || node.className || node.tagName))
+    .filter(text => /^(0|0\.0|0\.0%|\$0\.0M) @/.test(text))
     .slice(0, 3));
   check('every counting figure settles on its real value', midCount.join(' | '), '');
+}
+
+// A hidden element is hidden. The user-agent rule for [hidden] is a bare
+// element selector, so any class that sets its own display outranks it and
+// the thing stays on screen while the script believes it is shut. Read
+// computed style rather than the attribute, across every screen.
+for (const screen of ['overview', 'people', 'customers', 'timeline', 'compare', 'data']) {
+  // Year over year is itself hidden without a baseline loaded, which is the
+  // point: skip what the product is deliberately not offering.
+  const reachable = await page.$eval(`[data-screen="${screen}"]`, n => getComputedStyle(n).display !== 'none');
+  if (!reachable) continue;
+  await page.click(`[data-screen="${screen}"]`);
+  await page.waitForTimeout(320);
+  const showing = await page.$$eval('[hidden]', nodes => nodes
+    .filter(n => getComputedStyle(n).display !== 'none')
+    .map(n => n.id || n.className || n.tagName).slice(0, 4));
+  check(`nothing marked hidden is drawn on ${screen}`, showing.join(' | '), '');
 }
 
 // The command palette reaches every account, person, quote and job in the
@@ -480,9 +502,14 @@ if (!download) {
   // happily contains the letters N-a-N. Figure checks read the deck with the
   // payloads stripped; anything checking markup uses the raw text.
   const deck = deckRaw.replace(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g, 'data:image/png;base64,MARK');
-  // Nine content slides and the outro that closes on the mark.
-  check('deck slide count', (deck.match(/class="deck-slide[ \"]/g) || []).length, 10);
-  checkMatch('deck counter is generated from slide count', deck, /id="deckPage"[^>]*>1 \/ 10</);
+  // The deck grows a year-over-year chapter when a baseline is loaded, so the
+  // count is not a constant. What must hold is that it is a real deck and that
+  // the counter it prints is generated from its own slides rather than typed.
+  const slideCount = (deck.match(/class="deck-slide[ \"]/g) || []).length;
+  checks.push({ name: 'deck slide count', actual: slideCount + ' slides',
+    expected: 'a full deck', pass: slideCount >= 10 });
+  checkMatch('deck counter is generated from slide count', deck,
+    new RegExp('id="deckPage"[^>]*>1 / ' + slideCount + '<'));
   check('the outro is last and there is only one', (deck.match(/deck-slide is-outro/g) || []).length, 1);
   checkMatch('the outro closes on the mark and the run, not on instructions', deck,
     /is-outro[\s\S]*deck-mark is-huge[\s\S]*outro-source/);
