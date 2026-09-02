@@ -34,6 +34,13 @@
          as "colour versus absence of colour". It is now a real hue of its own,
          cool against the green so the two periods separate at a glance and
          neither looks like the failure state. */
+      /* The column on the weekly lane: work that was quoted, in the quiet the
+         product uses for a total, so green stays the only saturated colour on
+         that panel and means one thing. */
+      --rest-top: #ccd8cf;
+      --rest-foot: #aebbb2;
+      --book-top: #00c95d;
+      --book-foot: #007338;
       --then: #1f8fae;
       --then-bright: #3fc2e0;
       --then-soft: #d8f0f7;
@@ -88,6 +95,10 @@
       --amber-soft: #3b301b;
       --steel: #7fc6dd;
       --steel-soft: #10303b;
+      --rest-top: #2f4638;
+      --rest-foot: #223428;
+      --book-top: #55ec91;
+      --book-foot: #17a75e;
       --then: #45c8e8;
       --then-bright: #7ee0f7;
       --then-soft: #0d323d;
@@ -377,11 +388,12 @@
     .weekly-chart .lane-label { fill: var(--ink-muted); font-family: var(--display); font-size: 11.5px; font-weight: 800; letter-spacing: .12em; }
     .weekly-chart .axis-label, .weekly-chart .week-label { fill: var(--ink-faint); font-family: var(--mono); font-size: 11.5px; }
     .weekly-chart .quote-value { fill: var(--ink-muted); font-family: var(--mono); font-size: 10.5px; }
-    .weekly-chart .quote-value.is-inside { fill: #ffffff; font-weight: 700; }
+    /* The column is the quiet of open work now, not a dark blue box, so the
+       figure inside it takes the page's own ink in both themes. */
+    .weekly-chart .quote-value.is-inside { fill: var(--ink); font-weight: 700; }
     .weekly-chart .quote-bar { fill: url(#quoteFill); }
-    .weekly-chart .quote-top { fill: var(--then-bright); }
-    .weekly-chart .quote-side { fill: var(--then-deep); }
-    .weekly-chart .quote-floor { fill: var(--line); opacity: .45; }
+    .weekly-chart .quote-booked { fill: url(#bookedFill); }
+    .weekly-chart .booked-value { fill: #ffffff; font-family: var(--mono); font-size: 10.5px; font-weight: 700; }
     .weekly-chart .quote-col > * { transform-box: fill-box; transform-origin: bottom; animation: bar-rise 560ms var(--ease) both; animation-delay: var(--delay); }
     .weekly-chart .conversion-area { fill: url(#rateFill); opacity: .82; animation: area-in 700ms var(--ease) 180ms both; }
     .weekly-chart .rate-line { fill: none; stroke: var(--green); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw-line 850ms var(--ease) 180ms forwards; }
@@ -573,7 +585,6 @@
     .cmp-bridge .axis, .cmp-columns .axis { fill: var(--ink-faint); font-family: var(--mono); font-size: 11.5px; }
     .bridge-bar.is-total { fill: var(--green-dark); }
     .bridge-bar.is-open { fill: var(--then); }
-    .bridge-top.is-open { fill: var(--then-bright); } .bridge-side.is-open { fill: var(--then-deep); }
     .bridge-bar.is-up { fill: var(--green); }
     .bridge-bar.is-down { fill: var(--red); }
     .bridge-link { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
@@ -2330,7 +2341,7 @@
           <section class="panel" aria-labelledby="weeklyTitle">
             <div class="panel-head"><h2 id="weeklyTitle">Weekly performance pulse</h2><p id="weeklyDescription">Top lane: quotes issued. Bottom lane: confirmed conversion. The shared weeks make volume and performance easy to compare without mixing scales.</p></div>
             <div class="weekly-wrap"><div class="weekly-reading" id="weeklyReading"></div><div class="weekly-chart" id="weeklyChart"></div><div class="weekly-insights" id="weeklyInsights"></div></div>
-            <div class="chart-legend"><span style="--legend:linear-gradient(180deg,var(--then-bright),var(--then) 55%,var(--then-deep))">Quote issue volume</span><span class="is-line" style="--legend:var(--green)">Confirmed conversion</span><span class="is-dashed" style="--legend:var(--amber)">10% reference</span></div>
+            <div class="chart-legend"><span style="--legend:linear-gradient(180deg,var(--rest-top),var(--rest-foot))">Quoted, still open</span><span style="--legend:linear-gradient(180deg,var(--book-top),var(--book-foot))">Booked out of that</span><span class="is-line" style="--legend:var(--green)">Confirmed conversion</span><span class="is-dashed" style="--legend:var(--amber)">10% reference</span></div>
           </section>
 
           <section class="panel analysis-panel" aria-labelledby="analysisTitle">
@@ -4085,10 +4096,15 @@
         const pointData = [];
         const volumeTicks = [0, maxQuotes / 2, maxQuotes];
         const rateTicks = [...new Set([0, 5, 10, maxRate])].filter(value => value <= maxRate).sort((a, b) => a - b);
-        chart.push('<defs><linearGradient id="quoteFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--then-bright)"></stop><stop offset="55%" stop-color="var(--then)"></stop><stop offset="100%" stop-color="var(--then-deep)"></stop></linearGradient><linearGradient id="rateFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".3"></stop><stop offset="100%" stop-color="var(--green)" stop-opacity="0"></stop></linearGradient></defs>');
-        // The extrusion offset for this chart: enough to read as depth, small
-        // enough that a narrow bar is still mostly its own front face.
-        const weeklyDepth = Math.min(9, Math.max(4, barWidth * 0.3));
+        chart.push('<defs><linearGradient id="quoteFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--rest-top)"></stop><stop offset="100%" stop-color="var(--rest-foot)"></stop></linearGradient><linearGradient id="bookedFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--book-top)"></stop><stop offset="100%" stop-color="var(--book-foot)"></stop></linearGradient><linearGradient id="rateFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".3"></stop><stop offset="100%" stop-color="var(--green)" stop-opacity="0"></stop></linearGradient></defs>');
+        // The column was drawn as an extruded box with a lit top and a shaded
+        // side, in the blue this product reserves for the prior period. It
+        // read as a chart about last year, and the lit top added height that
+        // was not in the figure. It is one flat column now, in the quiet of
+        // work that has not come back, carrying the booked count inside it in
+        // green - so the lane says how much was quoted and how much of that
+        // returned, rather than leaving the second half to the lane below.
+        const weeklyDepth = 0;
         // One figure sitting inside its column while its neighbours sit above
         // theirs reads as a difference in kind rather than in height, so the
         // row decides together: inside only when the tallest column has run
@@ -4098,9 +4114,6 @@
         const shortest = Math.min(...data.weekly.map(item => item.quotes));
         const labelsInside = columnTop(tallest) - weeklyDepth - 6 < volumeTop + 10
           && volumeHeight * shortest / maxQuotes >= 22;
-        chart.push('<polygon class="quote-floor" points="' + [
-            left + "," + volumeBottom, (left + weeklyDepth) + "," + (volumeBottom - weeklyDepth),
-            (width - right) + "," + (volumeBottom - weeklyDepth), (width - right - weeklyDepth) + "," + volumeBottom].join(" ") + '"></polygon>');
         chart.push('<text class="lane-label" x="' + left + '" y="18">QUOTES ISSUED</text><text class="lane-label" x="' + left + '" y="166">CONFIRMED CONVERSION</text>');
         volumeTicks.forEach(value => {
           const y = volumeBottom - volumeHeight * value / maxQuotes;
@@ -4121,20 +4134,34 @@
           const barHeight = volumeHeight * item.quotes / maxQuotes;
           const barY = volumeBottom - barHeight;
           const pointY = conversionBottom - conversionHeight * item.rate / maxRate;
+          // The design preview seeds carry a rate but no count; derive one so
+          // the shape of the chart is the same before any file is loaded.
+          const booked = Number.isFinite(Number(item.wins)) ? Number(item.wins)
+            : Math.round(item.quotes * (Number(item.rate) || 0) / 100);
+          const bookedHeight = volumeHeight * Math.min(booked, item.quotes) / maxQuotes;
           if (barHeight > 0) {
+            // Only the top corners are rounded. A bar whose foot is rounded
+            // lifts off its own baseline and stops meaning zero at zero.
+            const cap = Math.min(4, barWidth / 4, barHeight);
+            const column = "M" + x.toFixed(1) + " " + volumeBottom.toFixed(1)
+              + " V" + (barY + cap).toFixed(1)
+              + " q0 " + (-cap).toFixed(1) + " " + cap.toFixed(1) + " " + (-cap).toFixed(1)
+              + " h" + (barWidth - cap * 2).toFixed(1)
+              + " q" + cap.toFixed(1) + " 0 " + cap.toFixed(1) + " " + cap.toFixed(1)
+              + " V" + volumeBottom.toFixed(1) + " Z";
             chart.push('<g class="quote-col" style="--delay:' + (index * 45) + 'ms">'
-              + '<polygon class="quote-side" points="' + [
-                  (x + barWidth).toFixed(1) + "," + barY.toFixed(1),
-                  (x + barWidth + weeklyDepth).toFixed(1) + "," + (barY - weeklyDepth).toFixed(1),
-                  (x + barWidth + weeklyDepth).toFixed(1) + "," + (volumeBottom - weeklyDepth).toFixed(1),
-                  (x + barWidth).toFixed(1) + "," + volumeBottom.toFixed(1)].join(" ") + '"></polygon>'
-              + '<polygon class="quote-top" points="' + [
-                  x.toFixed(1) + "," + barY.toFixed(1),
-                  (x + weeklyDepth).toFixed(1) + "," + (barY - weeklyDepth).toFixed(1),
-                  (x + barWidth + weeklyDepth).toFixed(1) + "," + (barY - weeklyDepth).toFixed(1),
-                  (x + barWidth).toFixed(1) + "," + barY.toFixed(1)].join(" ") + '"></polygon>'
-              + '<rect class="quote-bar" x="' + x.toFixed(1) + '" y="' + barY.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + barHeight.toFixed(1) + '"></rect>'
+              + '<path class="quote-bar" d="' + column + '"></path>'
+              + (bookedHeight > 0.5
+                  ? '<rect class="quote-booked" x="' + x.toFixed(1) + '" y="' + (volumeBottom - bookedHeight).toFixed(1)
+                    + '" width="' + barWidth.toFixed(1) + '" height="' + bookedHeight.toFixed(1) + '"></rect>'
+                  : "")
               + "</g>");
+            // The booked count names itself when its own block has room for
+            // it, rather than leaving the reader to measure the green.
+            if (bookedHeight >= 17 && barWidth >= 26) {
+              chart.push('<text class="booked-value" x="' + pointX.toFixed(1) + '" y="'
+                + (volumeBottom - bookedHeight / 2 + 4).toFixed(1) + '" text-anchor="middle">' + booked + "</text>");
+            }
           }
           // Above the column when there is room for it, otherwise inside the
           // front face — never straddling the lit top, where it reads as both.
@@ -4613,7 +4640,7 @@
                   + '" y1="' + y(item.to).toFixed(1) + '" y2="' + y(item.to).toFixed(1) + '" />'
                 : "";
               return connector
-                + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" />'
+                + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" rx="2.5" />'
                 + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2).toFixed(1) + '" y="' + (highY - 8).toFixed(1) + '" text-anchor="middle">'
                 + escape(item.isTotal ? money(item.entry.value) : cmpSigned(item.entry.value)) + "</text>"
                 + '<text class="bridge-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 20) + '" text-anchor="middle">' + escape(item.entry.label) + "</text>"
@@ -10645,10 +10672,14 @@
       function deckBridgeChart(bridge) {
         if (!bridge || bridge.length < 3) return '<div class="deck-empty">Not enough of a book on either side to bridge.</div>';
         const width = 1240, height = 344, padTop = 52, padBottom = 76, padLeft = 92, padRight = 34;
-        // The extrusion needs headroom and a right margin, or the top face of
-        // the opening total is clipped by the frame.
-        const depth = 15;
-        const plotW = width - padLeft - padRight - depth, plotH = height - padTop - padBottom - depth;
+        // This was drawn extruded, and a waterfall cannot survive that: the
+        // whole reading depends on each column's top meeting the next
+        // column's base, and with a lit top face in the way the connector had
+        // to run along the extrusion instead of along the bars, so the shapes
+        // the reader actually sees did not line up with the line joining them.
+        // Flat, the connector lands where the column ends.
+        const depth = 0;
+        const plotW = width - padLeft - padRight, plotH = height - padTop - padBottom;
         const step = plotW / bridge.length;
         const barW = Math.min(122, step * 0.58);
         let running = 0;
@@ -10671,27 +10702,16 @@
               const highY = y(Math.max(item.from, item.to));
               const barH = Math.max(3, Math.abs(y(item.from) - y(item.to)));
               const tone = item.isTotal ? (index === 0 ? "is-total is-open" : "is-total is-close") : item.entry.value >= 0 ? "is-up" : "is-down";
-              // The connector runs along the top face rather than the front
-              // one, so it meets the next column where that column actually
-              // starts once both are extruded.
+              // The connector leaves this column's top and meets the next
+              // column's base, which is what a waterfall means.
               return (index < placed.length - 1
-                  ? '<line class="bridge-link" x1="' + (x + barW + depth).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2 + depth).toFixed(1)
-                    + '" y1="' + (y(item.to) - depth).toFixed(1) + '" y2="' + (y(item.to) - depth).toFixed(1) + '" />'
+                  ? '<line class="bridge-link" x1="' + (x + barW).toFixed(1) + '" x2="' + (padLeft + step * (index + 1) + (step - barW) / 2).toFixed(1)
+                    + '" y1="' + y(item.to).toFixed(1) + '" y2="' + y(item.to).toFixed(1) + '" />'
                   : "")
                 + '<g class="bridge-col"' + rise + '>'
-                + '<polygon class="bridge-side ' + tone + '" points="' + [
-                    (x + barW).toFixed(1) + "," + highY.toFixed(1),
-                    (x + barW + depth).toFixed(1) + "," + (highY - depth).toFixed(1),
-                    (x + barW + depth).toFixed(1) + "," + (highY + barH - depth).toFixed(1),
-                    (x + barW).toFixed(1) + "," + (highY + barH).toFixed(1)].join(" ") + '" />'
-                + '<polygon class="bridge-top ' + tone + '" points="' + [
-                    x.toFixed(1) + "," + highY.toFixed(1),
-                    (x + depth).toFixed(1) + "," + (highY - depth).toFixed(1),
-                    (x + barW + depth).toFixed(1) + "," + (highY - depth).toFixed(1),
-                    (x + barW).toFixed(1) + "," + highY.toFixed(1)].join(" ") + '" />'
-                + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" />'
+                + '<rect class="bridge-bar ' + tone + '" x="' + x.toFixed(1) + '" y="' + highY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + barH.toFixed(1) + '" rx="2.5" />'
                 + "</g>"
-                + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2 + depth / 2).toFixed(1) + '" y="' + (highY - depth - 10).toFixed(1) + '" text-anchor="middle">'
+                + '<text class="bridge-value ' + tone + '" x="' + (x + barW / 2).toFixed(1) + '" y="' + (highY - 10).toFixed(1) + '" text-anchor="middle">'
                 + escape(item.isTotal ? money(item.entry.value) : cmpSigned(item.entry.value)) + "</text>"
                 + '<text class="bridge-label" x="' + (x + barW / 2).toFixed(1) + '" y="' + (baseY + 26) + '" text-anchor="middle">' + escape(item.entry.label) + "</text>"
                 + (item.entry.count === undefined ? ""
@@ -11750,13 +11770,9 @@
           + '.deck-bridge .bridge-bar.is-down{fill:var(--copper)}'
           /* Same light as every other column in the deck: the top face catches
              it, the side is turned away from it. */
-          + '.deck-bridge .bridge-top.is-total{fill:#0f9a52}.deck-bridge .bridge-side.is-total{fill:#00512a}'
           /* The book we started from, in the hue every other slide uses for
              last period; the book we landed on stays this period's green. */
           + '.deck-bridge .bridge-bar.is-open{fill:var(--then)}'
-          + '.deck-bridge .bridge-top.is-open{fill:var(--then-bright)}.deck-bridge .bridge-side.is-open{fill:var(--then-deep)}'
-          + '.deck-bridge .bridge-top.is-up{fill:#35e281}.deck-bridge .bridge-side.is-up{fill:#00863f}'
-          + '.deck-bridge .bridge-top.is-down{fill:#e29c7c}.deck-bridge .bridge-side.is-down{fill:#94512f}'
           + '.deck-bridge .bridge-link{stroke:#b9c9bd;stroke-width:1;stroke-dasharray:4 4}'
           + '.deck-bridge .bridge-value{font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:900;letter-spacing:-.02em}'
           + '.deck-bridge .bridge-value.is-total{fill:var(--green-deep)}'

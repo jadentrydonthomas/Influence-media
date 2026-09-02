@@ -432,6 +432,38 @@ for (const screen of ['overview', 'people', 'customers', 'timeline', 'compare', 
   if (rowCount) { await row(1); await page.waitForTimeout(500); }
 }
 
+// The weekly lane's column is the week's whole quoted book with the booked
+// count inside it, drawn flat. An extruded column adds height that is not in
+// the figure, and the blue it was painted in means the prior period
+// everywhere else in the product.
+{
+  await page.click('[data-screen="overview"]');
+  await page.waitForTimeout(700);
+  const lane = await page.$eval('#weeklyChart', n => ({
+    faces: n.querySelectorAll('.quote-top, .quote-side, .quote-floor').length,
+    columns: n.querySelectorAll('.quote-bar').length,
+    booked: n.querySelectorAll('.quote-booked').length
+  }));
+  check('the weekly column is flat, not extruded', lane.faces, 0);
+  checks.push({ name: 'the weekly column carries the booked count inside it',
+    actual: lane.booked + ' of ' + lane.columns + ' columns',
+    expected: 'every column with wins', pass: lane.columns > 0 && lane.booked > 0 });
+  // The booked block can never be taller than the column that contains it.
+  const overflow = await page.$$eval('#weeklyChart .quote-col', cols => cols.map(col => {
+    const bar = col.querySelector('.quote-bar'), book = col.querySelector('.quote-booked');
+    if (!bar || !book) return 0;
+    return book.getBBox().height - bar.getBBox().height > 0.6 ? 1 : 0;
+  }).reduce((a, b) => a + b, 0));
+  check('the booked block never exceeds its own column', overflow, 0);
+  // And the figure printed inside the column has to be readable against it.
+  const readable = await page.$eval('#weeklyChart', n => {
+    const label = n.querySelector('.quote-value.is-inside');
+    return label ? getComputedStyle(label).fill : 'none';
+  });
+  checks.push({ name: 'a figure inside the column is not white on a light column',
+    actual: readable, expected: 'the page ink', pass: readable !== 'rgb(255, 255, 255)' });
+}
+
 // A capped table says how much of itself it is showing. A scroller that ends
 // on a hard edge reads as a table that happens to be short.
 {
