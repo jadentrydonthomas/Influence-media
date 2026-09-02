@@ -1098,6 +1098,37 @@
     .profile-block-head .fact b { color: var(--green-dark); font-size: 12.5px; }
     .profile-table-wrap { max-height: 330px; overflow: auto; }
     .profile-table-wrap.is-jobs { max-height: none; overflow-y: visible; overflow-x: auto; }
+
+    /* A capped table that ends on a hard edge reads as a table that happens to
+       be short. Every scroller in the product says how much of itself it is
+       showing: the content fades out where it continues, and a live count sits
+       under it. Masking the scroller itself rather than laying a gradient over
+       it means the fade cannot scroll away with the rows. */
+    .scrolls.has-below { -webkit-mask-image: var(--shade-below); mask-image: var(--shade-below); }
+    .scrolls.has-above { -webkit-mask-image: var(--shade-above); mask-image: var(--shade-above); }
+    .scrolls.has-above.has-below { -webkit-mask-image: var(--shade-both); mask-image: var(--shade-both); }
+    :root {
+      --shade-below: linear-gradient(to bottom, #000 calc(100% - 52px), rgba(0,0,0,.15));
+      --shade-above: linear-gradient(to bottom, rgba(0,0,0,.15), #000 26px);
+      --shade-both: linear-gradient(to bottom, rgba(0,0,0,.15), #000 26px, #000 calc(100% - 52px), rgba(0,0,0,.15));
+    }
+    .scroll-count {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      margin-top: 7px; color: var(--ink-faint);
+      font-family: var(--display); font-size: 10px; font-weight: 800;
+      letter-spacing: .1em; text-transform: uppercase;
+      opacity: 0; transform: translateY(-4px);
+      transition: opacity 240ms var(--ease), transform 240ms var(--ease);
+    }
+    .scroll-count.is-on { opacity: 1; transform: none; }
+    .scroll-count b { color: var(--green-dark); font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: 0; }
+    .scroll-count i {
+      width: 5px; height: 5px; border-right: 1.6px solid var(--green); border-bottom: 1.6px solid var(--green);
+      transform: rotate(45deg) translate(-1px, -1px);
+      animation: nudge 1.9s var(--ease) infinite;
+    }
+    .scroll-count.is-end i { animation: none; transform: rotate(225deg) translate(-1px, -1px); }
+    @keyframes nudge { 0%, 62%, 100% { opacity: .45; } 78% { opacity: 1; transform: rotate(45deg) translate(1px, 1px); } }
     .profile-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     .profile-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--ink-faint); font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: left; white-space: nowrap; }
     .profile-table td { padding: 9px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: top; }
@@ -1278,7 +1309,10 @@
       .panel { box-shadow: none; }
       /* Nothing on paper scrolls, so a scroller has to give up its height cap. */
       [style*="overflow"], .ops-table-wrap, .profile-table-wrap, .acct-table-wrap,
-      .brief-list, .cust-rows, .team-list { max-height: none !important; overflow: visible !important; }
+      .brief-list, .cust-rows, .team-list { max-height: none !important; overflow: visible !important;
+        -webkit-mask-image: none !important; mask-image: none !important; }
+      /* Paper shows every row, so nothing is left to count. */
+      .scroll-count { display: none !important; }
       .outcome-section, .yoy-lede { background: #ffffff !important; }
       .outcome-section, .outcome-section *, .yoy-lede, .yoy-lede * { color: var(--ink) !important; text-shadow: none !important; }
       .outcome-section .eyebrow, .yoy-lede-eyebrow, .flow-step, .field-index,
@@ -2914,6 +2948,74 @@
          ignorant of motion: they build their markup, this reads the result
          and decides what rises, draws, grows and counts. Running it twice
          over the same nodes is harmless. */
+      // ---- Scroll shading ----------------------------------------------------
+      // Every capped scroller in the product says how much of itself it is
+      // showing. Wired once, from the document, rather than by each renderer:
+      // a scroll listener in the capture phase hears every scroller including
+      // ones that do not exist yet, and one observer catches every re-render.
+      const scrollers = (function () {
+        const CAPPED = ".profile-table-wrap, .ops-table-wrap, .acct-table-wrap, .brief-list, .cust-rows, .team-list, .palette-results";
+        const label = box => {
+          const rows = $$("tbody tr:not(.job-detail):not([hidden])", box).length
+            || box.children.length;
+          if (!rows) return "";
+          const seen = Math.max(1, Math.round(rows * box.clientHeight / Math.max(1, box.scrollHeight)));
+          const shown = Math.min(rows, box.scrollTop + box.clientHeight >= box.scrollHeight - 4
+            ? rows : seen + Math.round(rows * box.scrollTop / Math.max(1, box.scrollHeight)));
+          return shown + " of " + rows;
+        };
+        // The observer that calls this watches the whole document, and this
+        // writes to the document, so every write has to be conditional or the
+        // two feed each other a frame at a time forever.
+        function paint(box) {
+          const slack = box.scrollHeight - box.clientHeight;
+          const atEnd = box.scrollTop >= slack - 4;
+          const state = slack <= 4 ? "none"
+            : (box.scrollTop > 4 ? "a" : "") + (atEnd ? "" : "b") + "|" + label(box);
+          if (box.__shade === state) return;
+          box.__shade = state;
+          if (slack <= 4) {
+            box.classList.remove("scrolls", "has-below", "has-above");
+            if (box.__tally && box.__tally.isConnected) box.__tally.remove();
+            box.__tally = null;
+            return;
+          }
+          box.classList.add("scrolls");
+          box.classList.toggle("has-below", !atEnd);
+          box.classList.toggle("has-above", box.scrollTop > 4);
+          const reading = label(box);
+          let tally = box.__tally;
+          if (!reading) {
+            if (tally && tally.isConnected) tally.remove();
+            box.__tally = null;
+            return;
+          }
+          if (!tally || !tally.isConnected) {
+            tally = document.createElement("p");
+            tally.className = "scroll-count";
+            tally.setAttribute("aria-hidden", "true");
+            box.insertAdjacentElement("afterend", tally);
+            box.__tally = tally;
+          }
+          tally.innerHTML = "<b>" + reading + "</b> rows" + (atEnd ? "" : "<i></i>");
+          tally.classList.add("is-on");
+          tally.classList.toggle("is-end", atEnd);
+        }
+        const sweep = () => $$(CAPPED).forEach(paint);
+        let queued = false;
+        const soon = () => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => { queued = false; sweep(); });
+        };
+        document.addEventListener("scroll", event => {
+          const box = event.target;
+          if (box && box.classList && box.matches && box.matches(CAPPED)) paint(box);
+        }, true);
+        window.addEventListener("resize", soon);
+        return { sweep: sweep, soon: soon };
+      })();
+
       function markMotion(root) {
         const scope = root || document;
         if (!scope || !motion.on) return;
@@ -12816,6 +12918,11 @@
       renderFilterBar();
       refreshIntake();
       markMotion(document);
+      // Scroll shading is not per-renderer. One observer over the whole
+      // surface re-reads every capped scroller after anything redraws, so a
+      // renderer added later gets the behaviour without knowing about it.
+      new MutationObserver(scrollers.soon).observe(document.body, { childList: true, subtree: true });
+      scrollers.sweep();
       // Nothing is loaded yet, so open on Data Mapping where the files are
       // chosen and the run button lives, rather than on an empty dashboard.
       setScreen("data");

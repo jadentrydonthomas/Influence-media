@@ -432,6 +432,42 @@ for (const screen of ['overview', 'people', 'customers', 'timeline', 'compare', 
   if (rowCount) { await row(1); await page.waitForTimeout(500); }
 }
 
+// A capped table says how much of itself it is showing. A scroller that ends
+// on a hard edge reads as a table that happens to be short.
+{
+  await page.click('[data-screen="people"]');
+  await page.waitForTimeout(900);
+  await page.$eval('#personRecord', n => n.scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(900);
+  const capped = await page.$$eval('#personRecord .profile-table-wrap', boxes => boxes
+    .filter(box => box.scrollHeight - box.clientHeight > 4)
+    .map(box => ({ shaded: box.classList.contains('has-below'),
+                   masked: getComputedStyle(box).maskImage !== 'none',
+                   tally: box.nextElementSibling && box.nextElementSibling.className === 'scroll-count is-on'
+                     ? box.nextElementSibling.textContent.trim() : '' })));
+  if (capped.length) {
+    const bad = capped.filter(box => !box.shaded || !box.masked || !/^\d+ of \d+ rows$/.test(box.tally));
+    check('a capped table says how much of itself it is showing',
+      bad.map(b => JSON.stringify(b)).join(' | '), '');
+    // And the count is the truth, not a guess: scroll to the end and it
+    // must read every row.
+    // The jobs table above sets its own overflow and does not cap its height,
+    // so address the capped one rather than the first one in the record.
+    const CAP = '#personRecord .profile-table-wrap:not(.is-jobs)';
+    await page.$eval(CAP, box => { box.scrollTop = box.scrollHeight; });
+    await page.waitForTimeout(400);
+    const ended = await page.$eval(CAP + ' + .scroll-count', n => n.textContent.trim());
+    const [seen, total] = (ended.match(/(\d+) of (\d+)/) || []).slice(1);
+    checks.push({ name: 'scrolled to the end, the count reads every row',
+      actual: ended, expected: 'n of n rows', pass: seen === total && !!total });
+    const stillFaded = await page.$eval(CAP, n => n.classList.contains('has-below'));
+    checks.push({ name: 'the fade lifts once there is nothing below',
+      actual: stillFaded ? 'still faded' : 'clear', expected: 'clear', pass: !stillFaded });
+    await page.$eval(CAP, box => { box.scrollTop = 0; });
+    await page.waitForTimeout(300);
+  }
+}
+
 // Team performance answers "which work", not only "who". The same two blocks
 // the Customers screen carries for an account, for a person.
 {
