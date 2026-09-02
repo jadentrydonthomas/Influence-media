@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nucor — Quote Outcome Dashboard</title>
   <style>
+    @property --conversion { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --ring-value { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --deck-sweep { syntax: "<number>"; inherits: false; initial-value: 0; }
+
     :root {
       --canvas: #f4f6f2;
       --surface: #ffffff;
@@ -1068,6 +1072,11 @@
     .account-profile { min-width: 0; padding: 22px 24px 24px; border: 0; border-radius: var(--r-md); box-shadow: var(--lift-2), var(--edge); background: var(--surface); }
     .profile-top h3 { margin: 7px 0 0; overflow: hidden; color: var(--ink); font-family: var(--display); font-size: 26px; letter-spacing: -.01em; line-height: 1.02; text-overflow: ellipsis; }
     .profile-top p { margin: 8px 0 0; color: var(--ink-muted); font-size: 13.5px; line-height: 1.5; }
+    #personRecord .profile-block + .profile-block { margin-top: 22px; }
+    #personRecord .profile-table-wrap { max-width: 100%; }
+    .record-owner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; margin-bottom: 16px; }
+    .record-owner .account-name strong { font-size: 18px; }
+    .record-owner .profile-filter { margin-top: 0; }
     .profile-filter { margin-top: 13px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--ink-muted); background: transparent; font: inherit; font-family: var(--display); font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; cursor: pointer; }
     .profile-filter:hover { border-color: var(--ink); color: var(--ink); }
     .profile-filter[aria-pressed="true"] { border-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
@@ -1949,6 +1958,106 @@
     .analysis-empty, .weekly-empty, .matrix-empty { border-radius: var(--r-md); }
     .data-intake, .intake-step, .identity-block { border-radius: var(--r-md); }
 
+
+    /* ------------------------------------------------------------------
+       MOTION. One system, one set of rules, driven from one place.
+
+       Everything here is opt-in behind .motion-on, which the script adds to
+       the root element only once it has an IntersectionObserver to drive it.
+       Nothing is hidden by CSS alone, so a page whose script fails, or which
+       is saved and reopened as static HTML, still shows every figure.
+       ------------------------------------------------------------------ */
+    :root {
+      --rise-shift: 16px;
+      --rise-time: 620ms;
+      --rise-step: 55ms;
+      --draw-time: 1100ms;
+    }
+
+    /* A panel, a card, a row: it waits below its resting place and arrives
+       when it is actually looked at, in the order it is read. */
+    .motion-on [data-rise] {
+      opacity: 0;
+      transform: translate3d(0, var(--rise-shift), 0);
+      will-change: opacity, transform;
+    }
+    .motion-on [data-rise].is-in {
+      opacity: 1;
+      transform: none;
+      transition: opacity var(--rise-time) var(--ease-out) var(--rise-delay, 0ms),
+                  transform var(--rise-time) var(--ease-out) var(--rise-delay, 0ms);
+    }
+    /* Once it has arrived it stops advertising itself to the compositor. */
+    .motion-on [data-rise].is-settled { will-change: auto; }
+
+    /* A line draws itself along its own length. The length is measured from
+       the path rather than guessed, so a short sparkline and a full-width
+       race chart take the same time rather than the same speed. */
+    .motion-on [data-draw] {
+      stroke-dasharray: var(--draw-len);
+      stroke-dashoffset: var(--draw-len);
+    }
+    .motion-on [data-draw].is-in {
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset var(--draw-time) var(--ease-out) var(--rise-delay, 0ms);
+    }
+    /* An area under a drawn line fades in behind it rather than racing it. */
+    .motion-on [data-wash] { opacity: 0; }
+    .motion-on [data-wash].is-in {
+      opacity: var(--wash-to, 1);
+      transition: opacity 720ms var(--ease-out) calc(var(--rise-delay, 0ms) + 260ms);
+    }
+
+    /* A bar grows from its own baseline. Horizontal bars grow from the left,
+       columns from the bottom, so both read as filling rather than sliding. */
+    .motion-on [data-grow] { transform: scaleX(0); transform-origin: left center; }
+    .motion-on [data-grow].is-in {
+      transform: none;
+      transition: transform 700ms var(--ease-out) var(--rise-delay, 0ms);
+    }
+    .motion-on [data-grow="up"] { transform: scaleY(0); transform-origin: bottom center; }
+
+    /* A figure counts to its value. The element keeps its final text in the
+       markup and the script only overwrites it while the count is running, so
+       the true number is what a reader copies, prints or hears. */
+    .motion-on [data-odo] { font-variant-numeric: tabular-nums; }
+
+    /* The dial sweeps to its reading. This works now that --conversion is a
+       registered <number>; before it was an unregistered string and the
+       transition below silently did nothing. */
+    .conversion-disc { transition: --conversion 1150ms var(--ease-out), box-shadow 420ms var(--ease); }
+    .metric-ring { transition: --ring-value 900ms var(--ease-out) var(--rise-delay, 0ms); }
+
+    /* The hero dial's halo breathes once as it lands, so the eye is pulled to
+       the one number the screen is about. It runs a single time. */
+    .motion-on .conversion-disc.is-in { animation: disc-land 1450ms var(--ease-out) both; }
+    @keyframes disc-land {
+      0%   { box-shadow: 0 0 0 1px rgba(217,247,223,.16), 0 0 0 4px rgba(0,189,87,.02), 0 0 0 rgba(0,189,87,0); }
+      55%  { box-shadow: 0 0 0 1px rgba(217,247,223,.16), 0 0 0 22px rgba(0,189,87,.09), 0 0 70px rgba(0,189,87,.3); }
+      100% { box-shadow: 0 0 0 1px rgba(217,247,223,.16), 0 0 0 11px rgba(0,189,87,.055), 0 0 42px rgba(0,189,87,.16); }
+    }
+
+    /* The screen a reader just chose slides in from the direction they moved
+       through the rail, so forward and back feel different. */
+    .motion-on .screen.is-active { animation: screen-in 460ms var(--ease-out) both; }
+    @keyframes screen-in { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
+
+    /* Anyone who asked for less motion gets the finished state immediately.
+       The global reduce block already flattens durations; these rules make
+       sure nothing is left mid-transform or invisible. */
+    @media (prefers-reduced-motion: reduce) {
+      .motion-on [data-rise], .motion-on [data-wash] { opacity: 1 !important; transform: none !important; }
+      .motion-on [data-draw] { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+      .motion-on [data-grow] { transform: none !important; }
+      .motion-on .conversion-disc.is-in { animation: none !important; }
+    }
+    /* On paper everything is already in its final state. */
+    @media print {
+      [data-rise], [data-wash] { opacity: 1 !important; transform: none !important; }
+      [data-draw] { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+      [data-grow] { transform: none !important; }
+    }
+
   </style>
 </head>
 <body data-theme="light">
@@ -2136,6 +2245,10 @@
         <section class="team-chart-panel" aria-labelledby="teamChartTitle">
           <div class="panel-head"><h2 id="teamChartTitle">Team comparison</h2><p id="teamChartDescription">Each bar keeps the current selected metric visible across the full group. The amber marker is the group average.</p></div>
           <div class="team-chart" id="teamChart"></div>
+        </section>
+        <section class="panel ops-panel" aria-labelledby="personRecordTitle">
+          <div class="panel-head"><span class="ops-step">The work itself</span><h2 id="personRecordTitle">Every quote this person owns</h2><p id="personRecordNote">Choose anyone on the roster above to open the quotes they priced and the jobs that came back from them. A job row opens to show what the order log carries about it.</p></div>
+          <div class="ops-body" id="personRecord"></div>
         </section>
         <section class="panel ops-panel is-feature" aria-labelledby="teamLoadTitle">
           <div class="panel-head"><span class="ops-step" id="teamLoadStep">Capacity</span><h2 id="teamLoadTitle">Whether it cost what was planned</h2><p id="teamLoadNote"></p></div>
@@ -2545,6 +2658,188 @@
 
       const $ = (selector, parent = document) => parent.querySelector(selector);
       const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
+
+      /* ----------------------------------------------------------------
+         MOTION ENGINE
+
+         One observer, one frame loop, one place that decides when anything
+         moves. Renderers do not animate; they mark what they built and this
+         picks it up. Marks are re-applied after every render because the
+         screens rebuild their own markup wholesale.
+
+         It degrades in the only direction that is safe: if the browser has
+         no IntersectionObserver, or the reader asked for less motion, the
+         root class is never added, every [data-rise] stays fully visible,
+         and every figure keeps the value already written into the markup.
+         ---------------------------------------------------------------- */
+      const motion = (function () {
+        const reduced = () => window.matchMedia
+          && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const supported = typeof IntersectionObserver === "function"
+          && typeof requestAnimationFrame === "function";
+        if (!supported) return { arm: () => {}, replay: () => {}, on: false };
+
+        document.documentElement.classList.add("motion-on");
+
+        // A figure counts to its value. The markup already holds the final
+        // text; this only overwrites it while the count runs and puts the
+        // original back at the end, so what a reader copies is never a
+        // half-finished number.
+        const counters = new WeakMap();
+        function countTo(node) {
+          const finalText = node.textContent;
+          // Only the first run of digits moves. Everything around it — a
+          // currency mark, a per-cent sign, a unit, a thousands separator —
+          // is reproduced exactly, so "$49.1M" counts and stays "$49.1M".
+          const match = finalText.match(/-?\d[\d,]*\.?\d*/);
+          if (!match) return;
+          const raw = match[0];
+          const target = parseFloat(raw.replace(/,/g, ""));
+          if (!isFinite(target)) return;
+          const decimals = (raw.split(".")[1] || "").length;
+          const grouped = raw.indexOf(",") !== -1;
+          const before = finalText.slice(0, match.index);
+          const after = finalText.slice(match.index + raw.length);
+          const previous = counters.get(node);
+          if (previous) cancelAnimationFrame(previous);
+
+          const span = Math.min(1250, 520 + Math.abs(target) * 0.5);
+          const start = performance.now();
+          const write = value => {
+            let text = value.toFixed(decimals);
+            if (grouped) {
+              const parts = text.split(".");
+              parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+              text = parts.join(".");
+            }
+            node.textContent = before + text + after;
+          };
+          write(0);
+          const step = now => {
+            const t = Math.min(1, (now - start) / span);
+            // Decelerating, so the figure settles rather than stopping dead.
+            const eased = 1 - Math.pow(1 - t, 3);
+            if (t < 1) {
+              write(target * eased);
+              counters.set(node, requestAnimationFrame(step));
+            } else {
+              node.textContent = finalText;
+              counters.delete(node);
+            }
+          };
+          counters.set(node, requestAnimationFrame(step));
+        }
+
+        const seen = new WeakSet();
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const node = entry.target;
+            observer.unobserve(node);
+            node.classList.add("is-in");
+            if (node.hasAttribute("data-odo") && !reduced()) countTo(node);
+            // Hand the compositor back its hint once the move is over.
+            setTimeout(() => node.classList.add("is-settled"), 1500);
+          });
+        }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+
+        // A path animates along its own length, so every line takes the same
+        // time to draw rather than the same speed — a short sparkline and a
+        // full-width race chart finish together.
+        function measure(node) {
+          if (typeof node.getTotalLength !== "function") return;
+          let length = 0;
+          try { length = node.getTotalLength(); } catch (error) { return; }
+          if (!length) return;
+          node.style.setProperty("--draw-len", Math.ceil(length + 2));
+        }
+
+        // Everything inside a container is ordered by where it sits, so the
+        // stagger follows the reading order rather than the DOM order.
+        function arm(root) {
+          const scope = root || document;
+          const marked = $$("[data-rise], [data-draw], [data-wash], [data-grow], [data-odo]", scope);
+          if (!marked.length) return;
+          marked.forEach(node => {
+            if (seen.has(node)) return;
+            seen.add(node);
+            if (node.hasAttribute("data-draw")) measure(node);
+            observer.observe(node);
+          });
+        }
+
+        // A screen the reader has just switched to replays from the top: its
+        // marks are cleared and re-armed so the view arrives rather than
+        // simply being there.
+        function replay(root) {
+          if (!root || reduced()) { arm(root); return; }
+          $$("[data-rise], [data-draw], [data-wash], [data-grow], [data-odo]", root)
+            .forEach(node => {
+              seen.delete(node);
+              node.classList.remove("is-in", "is-settled");
+              observer.unobserve(node);
+            });
+          // One frame for the removal to take, then observe again.
+          requestAnimationFrame(() => arm(root));
+        }
+
+        return { arm: arm, replay: replay, on: true };
+      })();
+
+      /* Marks the things a rendered screen should move. Renderers stay
+         ignorant of motion: they build their markup, this reads the result
+         and decides what rises, draws, grows and counts. Running it twice
+         over the same nodes is harmless. */
+      function markMotion(root) {
+        const scope = root || document;
+        if (!scope || !motion.on) return;
+
+        // Blocks arrive in reading order, each a little after the one above.
+        const blocks = $$([
+          ".readout-bar", ".ops-kpis > *", "#metricRings > *", ".panel",
+          ".account-layout > *", ".clock-pair > *", ".cmp-lede", ".yoy-lede",
+          ".flow-stage", ".team-controls", ".data-intake", ".identity-block"
+        ].join(","), scope);
+        blocks.forEach((node, index) => {
+          node.setAttribute("data-rise", "");
+          // The stagger is capped: past the eighth block a reader is
+          // scrolling, and a long queue of delays would leave the last panel
+          // waiting on nothing.
+          node.style.setProperty("--rise-delay", Math.min(index, 8) * 55 + "ms");
+        });
+
+        // Every drawn line measures itself.
+        $$([
+          ".rate-line", ".curve-line", ".lorenz-line", ".race-current",
+          ".race-prior", ".race-current-won", ".race-prior-won",
+          ".cum-line", ".deck-week-line"
+        ].join(","), scope).forEach(node => node.setAttribute("data-draw", ""));
+
+        // The wash under a line follows it in.
+        $$(".curve-area, .conversion-area, .cum-area, .attr-ribbon", scope)
+          .forEach(node => {
+            node.setAttribute("data-wash", "");
+            const opacity = getComputedStyle(node).opacity;
+            if (opacity && opacity !== "1") node.style.setProperty("--wash-to", opacity);
+          });
+
+        // Headline figures count. Deliberately only the headline ones: a
+        // table of forty cells all counting at once is noise, not motion.
+        $$([
+          ".rail-fact strong", "#railConversion", ".metric-copy b",
+          ".ops-kpi strong", ".yoy-stat strong", ".profile-stats strong",
+          ".conversion-disc-inner strong", ".tally-data strong"
+        ].join(","), scope).forEach(node => {
+          if (node.querySelector("*")) return;   // a figure, not a container
+          node.setAttribute("data-odo", "");
+        });
+
+        // The hero dial gets its halo.
+        const disc = $(".conversion-disc", scope);
+        if (disc) disc.setAttribute("data-rise", "");
+
+        motion.arm(scope);
+      }
       const money = value => {
         const amount = Number(value) || 0;
         if (Math.abs(amount) < 0.05) return "$0";
@@ -2689,6 +2984,9 @@
         renderCompare();
         renderCustomerIdentity();
         renderFilterBar();
+        // The screens rebuild their markup wholesale, so the motion marks go
+        // on afterwards rather than being written into each renderer.
+        markMotion(document);
       }
 
       function renderFilterBar() {
@@ -6781,6 +7079,117 @@
         return value.toFixed(metric.key === "conversion" || metric.key === "effort" ? 1 : 0) + metric.suffix;
       }
 
+      /* The roster answers "who", and until now the screen stopped there.
+         This answers "which work" — the same two questions the Customers
+         screen already answers for an account, in the same two blocks and
+         the same markup, so a reader who has learned one has learned both. */
+      function renderPersonRecord(person, roleField) {
+        const panel = $("#personRecord");
+        if (!panel) return;
+        const model = state.model;
+        if (!model || !person) {
+          panel.innerHTML = '<p class="ops-note">Run the weekly quote books and an order log to open a person\u2019s work.</p>';
+          setText("#personRecordNote", "Choose anyone on the roster above to open the quotes they priced and the jobs that came back from them.");
+          return;
+        }
+        const roster = model.roster;
+        // Ownership is the weekly workbook's, resolved the same way the
+        // roster resolved it, so the list and the figures above cannot
+        // disagree about whose quote this is.
+        const owned = filterRecords(model.records).filter(record =>
+          resolvedNucorPerson(record[roleField], roster).code === person.code);
+        const records = owned.slice().sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        const jobs = records.filter(record => record.won)
+          .reduce((all, record) => all.concat((record.jobsDetail || []).map(job => Object.assign({}, job, {
+            quoteKey: record.quoteNumber || record.key,
+            quoteValue: Number(record.price) || 0,
+            lag: record.lag
+          }))), [])
+          .sort((a, b) => (b.entryDate ? b.entryDate.getTime() : 0) - (a.entryDate ? a.entryDate.getTime() : 0));
+        const bookedTons = jobs.reduce((sum, job) => sum + (Number(job.tons) || 0), 0);
+        const askedValue = records.reduce((sum, record) => sum + (Number(record.price) || 0), 0) / 1000000;
+        const wonValue = records.filter(record => record.won)
+          .reduce((sum, record) => sum + (Number(record.price) || 0), 0) / 1000000;
+
+        setText("#personRecordNote", records.length
+          ? "Every quote " + person.name + " owns in the active cohort and filters, and every job the order log links back to one of them. A job row opens to show what the order log carries about it."
+          : "Nothing in the active cohort and filters is owned by " + person.name + ".");
+
+        if (!records.length) {
+          panel.innerHTML = '<p class="ops-note">' + escape(person.name)
+            + ' owns no quote in the active cohort and filters. Widen the exposure lens or clear a filter to see their work.</p>';
+          return;
+        }
+
+        panel.innerHTML = '<div class="record-owner"><div class="account-name"><strong>' + escape(person.name) + "</strong>"
+            + facts([
+                { value: opsNumber(records.length), unit: records.length === 1 ? "quote owned" : "quotes owned" },
+                { value: money(askedValue), unit: "priced" },
+                { value: opsNumber(jobs.length), unit: jobs.length === 1 ? "job back" : "jobs back", quiet: true },
+                { value: money(wonValue), unit: "returned" }
+              ]) + "</div>"
+          + '<button class="profile-filter" type="button" aria-pressed="' + String(state.filters[roleField] === person.code) + '">'
+          + (state.filters[roleField] === person.code
+              ? "Dashboard is filtered to this person \u2014 click to clear"
+              : "Filter the whole dashboard to this person") + "</button></div>"
+          + (jobs.length
+              ? '<section class="profile-block"><div class="profile-block-head"><span>Jobs that came back</span><b>' + facts([
+                  { value: opsNumber(jobs.length), unit: jobs.length === 1 ? "job" : "jobs" },
+                  { value: tons(bookedTons), unit: "tons" }
+                ], true) + '</b></div>'
+                + '<div class="profile-table-wrap is-jobs"><table class="profile-table"><thead><tr><th>Job</th><th>Customer</th><th>Entered</th><th class="num">Tons</th><th class="num">Quote value</th><th>From quote</th></tr></thead><tbody>'
+                + jobs.map((job, index) => '<tr class="is-openable" data-person-job="' + index + '" role="button" tabindex="0" aria-expanded="false"><td><b>' + escape(job.id || "job") + "</b>"
+                    + (job.name ? '<span class="job-name" title="' + escape(job.name) + '">' + escape(job.name) + "</span>" : "") + "</td>"
+                    + "<td>" + escape(job.customer || "\u2014") + "</td>"
+                    + '<td class="date">' + (job.entryDate ? fullDate(job.entryDate) : "no entry date") + "</td>"
+                    + '<td class="num">' + (job.tons ? tons(job.tons) : "\u2014") + "</td>"
+                    + '<td class="num">' + money(job.quoteValue / 1000000) + "</td>"
+                    + '<td class="quote-ref">' + escape(job.quoteKey)
+                    + (Number.isFinite(job.lag) ? "<span>" + job.lag + "d after quoting</span>" : "")
+                    + '<i class="open-hint" aria-hidden="true">open</i></td></tr>'
+                  + '<tr class="job-detail" data-person-job-detail="' + index + '" hidden><td colspan="6">' + jobDetailMarkup(job) + "</td></tr>").join("")
+                + "</tbody></table></div></section>"
+              : '<section class="profile-block"><div class="profile-block-head"><span>Jobs that came back</span><b>none yet</b></div>'
+                + '<p class="ops-note">No order-log row in the loaded window carries a quote number this person owns. That is a follow-up queue, not a recorded loss.</p></section>')
+          + '<section class="profile-block"><div class="profile-block-head"><span>Every quote owned</span><b>' + facts([
+              { value: opsNumber(records.length), unit: records.length === 1 ? "quote" : "quotes" },
+              { value: money(askedValue), unit: "priced" }
+            ], true) + '</b></div>'
+          + '<div class="profile-table-wrap"><table class="profile-table"><thead><tr><th>Quote</th><th>Customer</th><th>Quoted</th><th class="num">Value</th><th>Release</th><th>Outcome</th></tr></thead><tbody>'
+          + records.map(record => {
+              const release = record.onTime === "EARLY" ? "Early" : record.onTime === "ONTIME" ? "On the date"
+                : record.onTime === "LATE" ? "Late" : "Not scored";
+              return '<tr class="' + (record.won ? "is-won" : "is-open") + '"><td><b>' + escape(record.quoteNumber || record.key) + "</b>"
+                + (record.project ? '<span class="job-name" title="' + escape(record.project) + '">' + escape(record.project) + "</span>" : "") + "</td>"
+                + "<td>" + escape(customerName(record.customer) || "\u2014") + "</td>"
+                + '<td class="date">' + (record.date ? fullDate(record.date) : nucorWeekLabel(record.week)) + "</td>"
+                + '<td class="num">' + money((Number(record.price) || 0) / 1000000) + "</td>"
+                + "<td>" + release + "</td>"
+                + '<td><span class="outcome-pill is-' + (record.won ? "won" : "open") + '">'
+                + (record.won ? record.jobs + " booked" : (record.exposure === null ? "open" : "open " + record.exposure + "d"))
+                + "</span></td></tr>";
+            }).join("")
+          + "</tbody></table></div></section>";
+
+        const filterButton = $(".profile-filter", panel);
+        if (filterButton) filterButton.addEventListener("click", () => setFilter(roleField, person.code));
+        $$("[data-person-job]", panel).forEach(row => {
+          const toggle = () => {
+            const detail = $('[data-person-job-detail="' + row.dataset.personJob + '"]', panel);
+            if (!detail) return;
+            const open = detail.hidden;
+            detail.hidden = !open;
+            row.setAttribute("aria-expanded", String(open));
+            row.classList.toggle("is-open", open);
+          };
+          row.addEventListener("click", toggle);
+          row.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggle(); }
+          });
+        });
+        markMotion(panel);
+      }
+
       function renderPeople() {
         const people = getPeople();
         if (!people.length) {
@@ -6794,6 +7203,7 @@
           setText("#personOnTime", "-");
           setText("#personValue", "-");
           $("#personInsight").innerHTML = "<strong>Source rule:</strong> weekly ownership stays attached to the quote; Order Log Quote # only returns its booked outcome.";
+          renderPersonRecord(null, "engineer");
           $("#teamChart").innerHTML = '<div class="quote-empty">The comparison chart will appear after the roster and quote records are imported.</div>';
           setText("#teamChartTitle", "Team comparison");
           setText("#teamChartDescription", "Select the weekly quote files and order log, then run the dashboard.");
@@ -6908,6 +7318,8 @@
           setText("#personNarrative", selectedNarrative);
           $("#personInsight").innerHTML = "<strong>Read this:</strong> " + selectedNarrative + " Quote ownership is sourced from the weekly quote workbook; the full name is resolved through Inventory.";
         }
+        renderPersonRecord(selected, state.role === "estimators" ? "estimator"
+          : state.role === "schedulers" ? "scheduler" : "engineer");
         renderTeamChart(people, metric, groupMetric);
         $$("[data-role]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.role === state.role)));
         $$("[data-team-metric]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.teamMetric === state.teamMetric)));
@@ -6997,6 +7409,10 @@
         $$(".screen").forEach(section => section.classList.toggle("is-active", section.id === screen));
         $$("[data-screen]").forEach(button => button.setAttribute("aria-current", button.dataset.screen === screen ? "page" : "false"));
         if (!state.review) window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        // The screen just opened replays from the top rather than simply
+        // being there already.
+        const opened = document.getElementById(screen);
+        if (opened) { markMotion(opened); motion.replay(opened); }
       }
 
       function toggleReview(enabled) {
@@ -12001,6 +12417,7 @@
       renderCompare();
       renderFilterBar();
       refreshIntake();
+      markMotion(document);
       // Nothing is loaded yet, so open on Data Mapping where the files are
       // chosen and the run button lives, rather than on an empty dashboard.
       setScreen("data");

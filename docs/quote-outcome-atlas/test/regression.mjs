@@ -290,6 +290,77 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   }
   check('no bordered control or shell squares its corners', [...new Set(square)].join(' | '), '');
 }
+
+// The motion layer is opt-in behind a root class the script adds. Nothing may
+// be left invisible: a reader who never scrolls, whose script fails, or who
+// prints must still see every figure.
+{
+  await page.click('[data-screen="overview"]');
+  await page.waitForTimeout(900);
+  const armed = await page.evaluate(() => document.documentElement.classList.contains('motion-on'));
+  checks.push({ name: 'the motion layer arms itself', actual: armed ? 'armed' : 'not armed', expected: 'armed', pass: armed });
+
+  // Every drawn line measures its own length rather than guessing one.
+  const drawn = await page.$$eval('[data-draw]', nodes => ({
+    total: nodes.length,
+    measured: nodes.filter(n => n.style.getPropertyValue('--draw-len')).length
+  }));
+  checks.push({ name: 'every drawn line measures its own length',
+    actual: drawn.measured + ' of ' + drawn.total, expected: drawn.total + ' of ' + drawn.total,
+    pass: drawn.total > 0 && drawn.measured === drawn.total });
+
+  // Anything on screen has arrived. A staged element that never receives
+  // is-in is an element a reader can never read.
+  const stranded = [];
+  for (const screen of ['overview', 'customers', 'people', 'timeline', 'data']) {
+    await page.click(`[data-screen="${screen}"]`);
+    await page.waitForTimeout(700);
+    const bad = await page.$$eval('[data-rise], [data-wash]', nodes => nodes.filter(node => {
+      const box = node.getBoundingClientRect();
+      if (!box.width || !box.height) return false;
+      if (box.top > window.innerHeight || box.bottom < 0) return false;
+      return parseFloat(getComputedStyle(node).opacity) < 0.9;
+    }).slice(0, 3).map(node => (node.className || '').toString().trim().split(/\s+/)[0]));
+    bad.forEach(name => stranded.push(screen + ': .' + name));
+  }
+  check('nothing staged for motion is left invisible on screen', [...new Set(stranded)].join(' | '), '');
+
+  // The counters put the true figure back. A figure caught mid-count is a
+  // wrong number to anything that reads text: copy, print, a screen reader.
+  await page.click('[data-screen="overview"]');
+  await page.waitForTimeout(2400);
+  const midCount = await page.$$eval('[data-odo]', nodes => nodes
+    .map(node => node.textContent.trim())
+    .filter(text => text === '0' || text === '0.0' || text === '0.0%' || text === '$0.0M')
+    .slice(0, 3));
+  check('every counting figure settles on its real value', midCount.join(' | '), '');
+}
+
+// Team performance answers "which work", not only "who". The same two blocks
+// the Customers screen carries for an account, for a person.
+{
+  await page.click('[data-screen="people"]');
+  await page.waitForTimeout(900);
+  const record = await page.$eval('#personRecord', n => n.innerText.replace(/\s+/g, ' '));
+  checkMatch('the roster opens the work behind a person', record, /quotes owned/);
+  const quoteRows = await page.$$eval('#personRecord .profile-block:last-of-type tbody tr', n => n.length);
+  checks.push({ name: 'the person record lists the quotes they own',
+    actual: quoteRows + ' rows', expected: 'at least one', pass: quoteRows > 0 });
+  // Choosing a different person opens different work.
+  const first = await page.$eval('#personRecord .account-name strong', n => n.textContent);
+  // Pick a row that is somebody else, rather than assuming a fixed index:
+  // the roster is ranked, so which row holds which person moves with the data.
+  const names = await page.$$eval('#teamRows .team-row .member-name strong', n => n.map(x => x.textContent.trim()));
+  const other = names.findIndex(name => name !== first);
+  if (other >= 0) {
+    const rows = await page.$$('#teamRows .team-row');
+    await rows[other].click();
+    await page.waitForTimeout(700);
+    const second = await page.$eval('#personRecord .account-name strong', n => n.textContent);
+    checks.push({ name: 'the record follows the person selected',
+      actual: first + ' \u2192 ' + second, expected: 'two different people', pass: first !== second });
+  }
+}
 await page.click('[data-screen="people"]');
 await page.waitForTimeout(400);
 
