@@ -13,6 +13,20 @@ const missingInMd = [...htmlIds].filter(i=>!mdIds.has(i)).sort();
 check('every requirement in the markdown appears in the designed version', missingInHtml.length===0, missingInHtml.join(', '));
 check('every requirement in the designed version appears in the markdown', missingInMd.length===0, missingInMd.join(', '));
 
+// An id is a name. Reusing one splits its history across two rows and makes
+// every reference to it ambiguous — which is what happened when two rounds of
+// work each appended an A-124 and an A-125 to the same table.
+{
+  const dupes = kind => {
+    const seen = new Map();
+    [...md.matchAll(new RegExp('^\\| \\*\\*(' + kind + '-\\d+)\\*\\*', 'gm'))]
+      .forEach(m => seen.set(m[1], (seen.get(m[1]) || 0) + 1));
+    return [...seen.entries()].filter(([, count]) => count > 1).map(([id]) => id);
+  };
+  const repeated = ['A', 'P', 'M', 'V', 'K', 'D', 'OQ'].flatMap(dupes);
+  check('no requirement or defect id is used twice', repeated.length === 0, repeated.join(', '));
+}
+
 const htmlAnchors = new Set([...html.matchAll(/id="([a-z0-9]+)"/g)].map(m=>m[1]));
 const htmlLinks = new Set([...html.matchAll(/href="#([a-z0-9]+)"/g)].map(m=>m[1]));
 check('designed version has no dead links', [...htmlLinks].every(l=>htmlAnchors.has(l)), [...htmlLinks].filter(l=>!htmlAnchors.has(l)).join(', '));
