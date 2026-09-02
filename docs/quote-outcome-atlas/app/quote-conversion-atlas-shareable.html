@@ -2761,7 +2761,7 @@
         // original back at the end, so what a reader copies is never a
         // half-finished number.
         const counters = new WeakMap();
-        function countTo(node) {
+        function countTo(node, fromText) {
           const finalText = node.textContent;
           // Only the first run of digits moves. Everything around it — a
           // currency mark, a per-cent sign, a unit, a thousands separator —
@@ -2778,7 +2778,27 @@
           const previous = counters.get(node);
           if (previous) cancelAnimationFrame(previous);
 
-          const span = Math.min(1250, 520 + Math.abs(target) * 0.5);
+          // A figure arriving for the first time climbs from nothing. One
+          // that is changing under a reader travels from what it read a
+          // moment ago, so the distance itself carries the size of the move.
+          let origin = 0;
+          if (typeof fromText === "string") {
+            const was = fromText.match(/-?\d[\d,]*\.?\d*/);
+            const parsed = was ? parseFloat(was[0].replace(/,/g, "")) : NaN;
+            // Only travel between two readings in the same unit. Counting
+            // "$1.6M" up to "$175k" would put a run of numbers on screen that
+            // were never true of anything — every frame would read as money
+            // in the wrong scale. Where the units differ the figure simply
+            // changes, which is honest.
+            const sameShape = was
+              && fromText.slice(0, was.index) === before
+              && fromText.slice(was.index + was[0].length) === after;
+            if (isFinite(parsed) && sameShape) origin = parsed;
+            else { node.textContent = finalText; return; }
+          }
+          if (origin === target) return;
+
+          const span = Math.min(1250, 520 + Math.abs(target - origin) * 0.5);
           const start = performance.now();
           const write = value => {
             let text = value.toFixed(decimals);
@@ -2789,13 +2809,13 @@
             }
             node.textContent = before + text + after;
           };
-          write(0);
+          write(origin);
           const step = now => {
             const t = Math.min(1, (now - start) / span);
             // Decelerating, so the figure settles rather than stopping dead.
             const eased = 1 - Math.pow(1 - t, 3);
             if (t < 1) {
-              write(target * eased);
+              write(origin + (target - origin) * eased);
               counters.set(node, requestAnimationFrame(step));
             } else {
               node.textContent = finalText;
@@ -2858,7 +2878,7 @@
           requestAnimationFrame(() => arm(root));
         }
 
-        return { arm: arm, replay: replay, on: true };
+        return { arm: arm, replay: replay, count: countTo, reduced: reduced, on: true };
       })();
 
       /* Marks the things a rendered screen should move. Renderers stay
@@ -2903,7 +2923,9 @@
         $$([
           ".rail-fact strong", "#railConversion", ".metric-copy b",
           ".ops-kpi strong", ".yoy-stat strong", ".profile-stats strong",
-          ".conversion-disc-inner strong", ".tally-data strong"
+          ".conversion-disc-inner strong", ".tally-data strong",
+          ".person-stat strong", "#personHeadline", ".quote-field strong",
+          ".payer-strip strong", ".clock-figure strong"
         ].join(","), scope).forEach(node => {
           if (node.querySelector("*")) return;   // a figure, not a container
           node.setAttribute("data-odo", "");
@@ -2931,7 +2953,21 @@
       const tons = value => new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(Number(value) || 0);
       const pct = value => Number(value).toFixed(1) + "%";
       const escape = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]));
-      const setText = (selector, value) => { const node = $(selector); if (node) node.textContent = value; };
+      const setText = (selector, value) => {
+        const node = $(selector);
+        if (!node) return;
+        const before = node.textContent;
+        node.textContent = value;
+        // A figure a reader is already looking at travels to its new reading
+        // rather than being swapped for it. Only marked figures move, only
+        // when the text actually changed, and only once the motion layer is
+        // running — so this is inert on first paint and under reduced motion.
+        if (typeof motion !== "undefined" && motion.on && !motion.reduced()
+            && node.hasAttribute("data-odo") && node.classList.contains("is-in")
+            && before && before !== String(value)) {
+          motion.count(node, before);
+        }
+      };
       // The load stamp is the first thing on the page. It used to be a run of
       // values joined by middots, in a code face, that broke a date across two
       // lines. Each part is now a labelled cell that can wrap as a unit.

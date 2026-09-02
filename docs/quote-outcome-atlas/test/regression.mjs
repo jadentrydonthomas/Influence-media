@@ -379,6 +379,37 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   await page.waitForTimeout(300);
 }
 
+// A figure a reader is already looking at travels to its new reading rather
+// than being swapped for it — but only between two readings in the same unit.
+{
+  await page.click('[data-screen="people"]');
+  await page.waitForTimeout(900);
+  // The roster re-renders on every pick, so address rows by position rather
+  // than holding handles that the next render detaches.
+  const row = n => page.click(`#teamRows .team-row:nth-of-type(${n})`);
+  const rowCount = await page.$$eval('#teamRows .team-row', n => n.length);
+  const readQuotes = () => page.$eval('#personQuotes', n => n.textContent.trim()).catch(() => '');
+  const first = await readQuotes();
+  // Somebody other than the one already open, whoever the ranking puts there.
+  if (rowCount > 1) await row(2);
+  const frames = [];
+  for (let i = 0; i < 8; i++) { frames.push(await readQuotes()); await page.waitForTimeout(55); }
+  await page.waitForTimeout(1300);
+  const settled = await readQuotes();
+  const moved = new Set(frames).size > 1;
+  checks.push({ name: 'a changing figure travels to its new reading',
+    actual: frames.join(' ') + ' -> ' + settled,
+    expected: 'more than one value on the way', pass: moved || first === settled });
+  // Nothing on the way may carry a unit the destination does not.
+  const mixed = frames.filter(text => /[a-zA-Z]/.test(text));
+  check('no counting frame invents a unit', mixed.join(' | '), '');
+  // And it must land on the truth.
+  const stale = await page.$$eval('[data-odo]', nodes => nodes
+    .map(n => n.textContent.trim()).filter(t => t === 'NaN' || t === 'undefined').slice(0, 3));
+  check('no counting figure lands on a non-number', stale.join(' | '), '');
+  if (rowCount) { await row(1); await page.waitForTimeout(500); }
+}
+
 // Team performance answers "which work", not only "who". The same two blocks
 // the Customers screen carries for an account, for a person.
 {
@@ -390,7 +421,7 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   checks.push({ name: 'the person record lists the quotes they own',
     actual: quoteRows + ' rows', expected: 'at least one', pass: quoteRows > 0 });
   // Choosing a different person opens different work.
-  const first = await page.$eval('#personRecord .account-name strong', n => n.textContent);
+  const first = await page.$eval('#personRecord .account-name strong', n => n.textContent).catch(() => '');
   // Pick a row that is somebody else, rather than assuming a fixed index:
   // the roster is ranked, so which row holds which person moves with the data.
   const names = await page.$$eval('#teamRows .team-row .member-name strong', n => n.map(x => x.textContent.trim()));
@@ -399,7 +430,7 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
     const rows = await page.$$('#teamRows .team-row');
     await rows[other].click();
     await page.waitForTimeout(700);
-    const second = await page.$eval('#personRecord .account-name strong', n => n.textContent);
+    const second = await page.$eval('#personRecord .account-name strong', n => n.textContent).catch(() => '');
     checks.push({ name: 'the record follows the person selected',
       actual: first + ' \u2192 ' + second, expected: 'two different people', pass: first !== second });
   }
