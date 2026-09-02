@@ -2058,6 +2058,69 @@
       [data-grow] { transform: none !important; }
     }
 
+
+    /* ------------------------------------------------------------------
+       COMMAND PALETTE. One field that reaches every account, person, quote
+       and job in the loaded book, from any screen, without navigating to it.
+       ------------------------------------------------------------------ */
+    .palette-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(9,22,14,.5); backdrop-filter: blur(3px); animation: fade 180ms var(--ease); }
+    .palette {
+      position: fixed; z-index: 61; top: 12vh; left: 50%; width: min(680px, calc(100vw - 32px));
+      display: flex; flex-direction: column; max-height: 72vh; overflow: hidden;
+      border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+      background: var(--surface); box-shadow: 0 40px 90px -20px rgba(6,26,14,.45), var(--edge);
+      transform: translateX(-50%);
+      animation: palette-in 260ms var(--ease-spring) both;
+    }
+    @keyframes palette-in {
+      from { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(.97); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+    .palette-field { display: flex; align-items: center; gap: 11px; padding: 15px 17px; border-bottom: 1px solid var(--line); }
+    .palette-field svg { flex: none; width: 17px; height: 17px; fill: none; stroke: var(--ink-faint); stroke-width: 1.9; stroke-linecap: round; }
+    .palette-field input {
+      flex: 1; min-width: 0; border: 0; outline: 0; padding: 0;
+      color: var(--ink); background: transparent; font: inherit; font-size: 15px;
+    }
+    .palette-field input::placeholder { color: var(--ink-faint); }
+    .palette-field input::-webkit-search-cancel-button { display: none; }
+    .palette kbd {
+      padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-xs);
+      color: var(--ink-faint); background: var(--surface-soft);
+      font-family: var(--mono); font-size: 9.5px; line-height: 1.5;
+    }
+    .palette-results { flex: 1; min-height: 0; overflow-y: auto; padding: 7px; }
+    .palette-group { padding: 11px 11px 5px; color: var(--ink-faint); font-family: var(--display); font-size: 9.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .palette-row {
+      display: grid; grid-template-columns: 30px minmax(0,1fr) auto; align-items: center; gap: 11px;
+      width: 100%; padding: 9px 11px; border: 0; border-radius: var(--r-sm);
+      background: transparent; text-align: left; cursor: pointer;
+      transition: background 120ms var(--ease);
+    }
+    .palette-row:hover, .palette-row.is-active { background: var(--green-soft); }
+    .palette-row i {
+      display: grid; width: 30px; height: 30px; place-items: center; border-radius: var(--r-xs);
+      color: var(--green-dark); background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--line);
+      font-family: var(--mono); font-size: 9.5px; font-style: normal; font-weight: 700;
+    }
+    .palette-row.is-active i { color: #fff; background: var(--green); box-shadow: none; }
+    .palette-row b { display: block; min-width: 0; overflow: hidden; color: var(--ink); font-size: 13.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .palette-row small { display: block; color: var(--ink-faint); font-size: 10.5px; }
+    .palette-row em { color: var(--ink-muted); font-family: var(--mono); font-size: 11.5px; font-style: normal; white-space: nowrap; }
+    /* The characters a reader actually typed are lit inside the result. */
+    .palette-row mark { color: var(--green-dark); background: transparent; font-weight: 800; }
+    .palette-empty { padding: 26px 13px 30px; color: var(--ink-faint); font-size: 12.5px; text-align: center; }
+    .palette-foot {
+      display: flex; align-items: center; gap: 16px; padding: 9px 15px;
+      border-top: 1px solid var(--line); color: var(--ink-faint); background: var(--surface-soft); font-size: 10.5px;
+    }
+    .palette-foot span { display: inline-flex; align-items: center; gap: 5px; }
+    .palette-foot span:last-child { margin-left: auto; }
+    .theme-button.is-search { gap: 8px; }
+    .theme-button.is-search::before { display: none; }
+    @media (max-width: 700px) { .palette { top: 6vh; max-height: 84vh; } .theme-button.is-search kbd { display: none; } }
+    @media print { .palette, .palette-scrim, .theme-button.is-search { display: none !important; } }
+
   </style>
 </head>
 <body data-theme="light">
@@ -2097,8 +2160,20 @@
     <main class="main">
       <header class="masthead">
         <div class="masthead-context"><strong>Quote outcome dashboard</strong><span>Waterloo / Fort Wayne</span></div>
-        <div class="masthead-actions"><span class="data-stamp" id="dataStamp"><span class="stamp-cell"><span>Design preview</span><strong>Import files and run the dashboard</strong></span></span><button class="theme-button" id="glossaryButton" type="button" aria-expanded="false" aria-controls="glossary">What the numbers mean</button><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
+        <div class="masthead-actions"><span class="data-stamp" id="dataStamp"><span class="stamp-cell"><span>Design preview</span><strong>Import files and run the dashboard</strong></span></span><button class="theme-button is-search" id="paletteButton" type="button" aria-haspopup="dialog" aria-controls="palette">Search<kbd>⌘K</kbd></button><button class="theme-button" id="glossaryButton" type="button" aria-expanded="false" aria-controls="glossary">What the numbers mean</button><button class="theme-button" id="themeButton" type="button" aria-pressed="false">Dark theme</button></div>
       </header>
+      <div class="palette-scrim" id="paletteScrim" hidden></div>
+      <div class="palette" id="palette" role="dialog" aria-modal="true" aria-labelledby="paletteLabel" hidden>
+        <div class="palette-field">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.2"/><path d="M13.6 13.6 L18 18"/></svg>
+          <label class="sr-only" for="paletteInput" id="paletteLabel">Search accounts, people, quotes and jobs</label>
+          <input id="paletteInput" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="Search an account, a person, a quote number, a job number…" />
+          <kbd>Esc</kbd>
+        </div>
+        <div class="palette-results" id="paletteResults" role="listbox" aria-label="Results"></div>
+        <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span id="paletteCount"></span></div>
+      </div>
       <div class="glossary-scrim" id="glossaryScrim" hidden></div>
       <aside class="glossary" id="glossary" aria-labelledby="glossaryTitle" hidden>
         <div class="glossary-head">
@@ -6257,6 +6332,221 @@
           + "</dl></section>").join("")
           + '<div class="gloss-warn"><strong>What this dashboard does not do.</strong> It does not forecast, it does not score people against each other, and it never labels an unconverted quote as lost. Every figure is an observation of what the two source files already say; where a source is silent, the number says so rather than filling the gap.</div>';
       }
+
+      /* ------------------------------------------------------------------
+         COMMAND PALETTE
+
+         A dense dashboard is only as good as the reader's ability to find
+         one thing in it. This reaches every screen, account, person, quote
+         and job in the loaded book from anywhere, and lands on the thing
+         itself rather than on the screen that contains it.
+         ------------------------------------------------------------------ */
+      const palette = (function () {
+        let open = false, active = 0, results = [], lastFocus = null;
+
+        // Subsequence matching, so "dnm" finds "Danielle Miles-Schwaberow"
+        // and "w26e30" finds "W26E-0030". A contiguous run scores higher than
+        // a scattered one, and a match at the start higher than one inside,
+        // so the obvious answer comes first.
+        function score(text, query) {
+          const haystack = text.toLowerCase();
+          let at = 0, points = 0, run = 0;
+          const hits = [];
+          for (let i = 0; i < query.length; i++) {
+            const found = haystack.indexOf(query[i], at);
+            if (found === -1) return null;
+            hits.push(found);
+            run = found === at && i > 0 ? run + 1 : 0;
+            points += 10 + run * 6 - Math.min(found - at, 12);
+            if (found === 0) points += 14;
+            at = found + 1;
+          }
+          return { points: points, hits: hits };
+        }
+
+        function light(text, hits) {
+          if (!hits || !hits.length) return escape(text);
+          let out = "", at = 0;
+          hits.forEach(index => {
+            out += escape(text.slice(at, index)) + "<mark>" + escape(text[index]) + "</mark>";
+            at = index + 1;
+          });
+          return out + escape(text.slice(at));
+        }
+
+        // Everything a reader might be looking for, built once per open so
+        // it always reflects the cohort and filters in force right now.
+        function catalogue() {
+          const items = [
+            { kind: "Screens", tag: "01", label: "Outcome dashboard", note: "Conversion, the quote book and the record field", go: () => setScreen("overview") },
+            { kind: "Screens", tag: "02", label: "Team performance", note: "The roster, and the work behind any one of them", go: () => setScreen("people") },
+            { kind: "Screens", tag: "03", label: "Customers", note: "Who asks, who books, and every account record", go: () => setScreen("customers") },
+            { kind: "Screens", tag: "04", label: "Timelines", note: "How long work takes to come back", go: () => setScreen("timeline") },
+            { kind: "Screens", tag: "06", label: "Data mapping", note: "The source files and how they were read", go: () => setScreen("data") }
+          ];
+          const compareTab = $('[data-screen="compare"]');
+          if (compareTab && !compareTab.hidden) {
+            items.push({ kind: "Screens", tag: "05", label: "Year over year", note: "The same weeks, a year apart", go: () => setScreen("compare") });
+          }
+          const model = state.model;
+          if (!model) return items;
+          const data = currentScope();
+          const records = filterRecords(model.records);
+
+          (((data.customers || {}).accounts) || []).forEach(account => {
+            items.push({
+              kind: "Accounts", tag: "AC", label: account.name,
+              note: countOf(account.quotes, "quote") + " \u00b7 " + money(account.quoteValue) + " asked"
+                + (account.wins ? " \u00b7 " + money(account.wonValue) + " returned" : " \u00b7 nothing returned"),
+              go: () => openAccount(account.key)
+            });
+          });
+
+          const roleField = state.role === "estimators" ? "estimator"
+            : state.role === "schedulers" ? "scheduler" : "engineer";
+          nucorPeople(records, state.role, model.roster).forEach(person => {
+            if (!person.quotes) return;
+            items.push({
+              kind: "People", tag: person.code === "(none)" ? "\u2014" : person.code, label: person.name,
+              note: countOf(person.quotes, "quote") + " owned \u00b7 " + countOf(person.orders, "win")
+                + " \u00b7 " + money(person.value) + " returned",
+              go: () => openPerson(person.code, roleField)
+            });
+          });
+
+          records.forEach(record => {
+            const id = record.quoteNumber || record.key;
+            items.push({
+              kind: "Quotes", tag: record.won ? "WON" : "OPEN", label: id,
+              note: (customerName(record.customer) || "no customer")
+                + (record.project ? " \u00b7 " + record.project : "")
+                + " \u00b7 " + money((Number(record.price) || 0) / 1000000),
+              go: () => openAccount(customerKey(customerName(record.customer)))
+            });
+            (record.jobsDetail || []).forEach(job => {
+              if (!job.id) return;
+              items.push({
+                kind: "Jobs", tag: "JOB", label: job.id,
+                note: (job.name ? job.name + " \u00b7 " : "") + (customerName(record.customer) || "")
+                  + (job.tons ? " \u00b7 " + tons(job.tons) + " t" : ""),
+                go: () => openAccount(customerKey(customerName(record.customer)))
+              });
+            });
+          });
+          return items;
+        }
+
+        function openAccount(key) {
+          if (!key) return;
+          selectedAccount = key;
+          customerSearch = "";
+          const box = $("#custSearch");
+          if (box) box.value = "";
+          setScreen("customers");
+          renderCustomers();
+          const profile = $("#custProfile");
+          if (profile) profile.scrollIntoView({ block: "center", behavior: prefersStill() ? "auto" : "smooth" });
+        }
+
+        function openPerson(code, roleField) {
+          const model = state.model;
+          if (!model) return;
+          const people = nucorPeople(filterRecords(model.records), state.role, model.roster);
+          const index = people.findIndex(person => person.code === code);
+          if (index >= 0) state.selectedPerson = index;
+          setScreen("people");
+          renderPeople();
+          const record = $("#personRecord");
+          if (record) record.scrollIntoView({ block: "center", behavior: prefersStill() ? "auto" : "smooth" });
+        }
+
+        const prefersStill = () => window.matchMedia
+          && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        let pool = [];
+        function draw() {
+          const box = $("#paletteResults");
+          const query = $("#paletteInput").value.trim().toLowerCase();
+          if (!query) {
+            // With nothing typed the palette offers where a reader can go,
+            // rather than an arbitrary slice of a thousand quote numbers.
+            results = pool.filter(item => item.kind === "Screens").slice(0, 8)
+              .map(item => ({ item: item, hits: null }));
+          } else {
+            results = pool.map(entry => {
+              const found = score(entry.label, query);
+              if (found) return { item: entry, hits: found.hits, points: found.points + 40 };
+              const inNote = score(entry.note || "", query);
+              return inNote ? { item: entry, hits: null, points: inNote.points } : null;
+            }).filter(Boolean).sort((a, b) => b.points - a.points).slice(0, 40);
+          }
+          active = 0;
+          setText("#paletteCount", results.length
+            ? results.length + (results.length === 40 ? "+ matches" : results.length === 1 ? " match" : " matches")
+            : "");
+          if (!results.length) {
+            box.innerHTML = '<p class="palette-empty">Nothing in the loaded book matches that.</p>';
+            return;
+          }
+          let out = "", group = "";
+          results.forEach((entry, index) => {
+            if (entry.item.kind !== group) {
+              group = entry.item.kind;
+              out += '<div class="palette-group">' + escape(group) + "</div>";
+            }
+            out += '<button class="palette-row' + (index === active ? " is-active" : "")
+              + '" type="button" role="option" data-index="' + index + '" aria-selected="' + (index === active) + '">'
+              + "<i>" + escape(entry.item.tag) + "</i>"
+              + "<span><b>" + light(entry.item.label, entry.hits) + "</b>"
+              + (entry.item.note ? "<small>" + escape(entry.item.note) + "</small>" : "") + "</span>"
+              + "<em>" + escape(entry.item.kind === "Screens" ? "go" : "open") + "</em></button>";
+          });
+          box.innerHTML = out;
+          $$(".palette-row", box).forEach(row => {
+            row.addEventListener("click", () => choose(Number(row.dataset.index)));
+            row.addEventListener("mousemove", () => move(Number(row.dataset.index) - active));
+          });
+        }
+
+        function move(step) {
+          if (!results.length) return;
+          active = (active + step + results.length) % results.length;
+          const box = $("#paletteResults");
+          $$(".palette-row", box).forEach(row => {
+            const on = Number(row.dataset.index) === active;
+            row.classList.toggle("is-active", on);
+            row.setAttribute("aria-selected", String(on));
+            if (on) row.scrollIntoView({ block: "nearest" });
+          });
+        }
+
+        function choose(index) {
+          const entry = results[typeof index === "number" ? index : active];
+          if (!entry) return;
+          show(false);
+          entry.item.go();
+        }
+
+        function show(next) {
+          open = next;
+          const panel = $("#palette"), scrim = $("#paletteScrim");
+          if (!panel) return;
+          panel.hidden = !next;
+          scrim.hidden = !next;
+          if (next) {
+            lastFocus = document.activeElement;
+            pool = catalogue();
+            const input = $("#paletteInput");
+            input.value = "";
+            draw();
+            input.focus();
+          } else if (lastFocus && typeof lastFocus.focus === "function") {
+            lastFocus.focus();
+          }
+        }
+
+        return { show: show, toggle: () => show(!open), isOpen: () => open, move: move, choose: choose, draw: draw };
+      })();
 
       function setGlossary(open) {
         const drawer = $("#glossary"), scrim = $("#glossaryScrim"), button = $("#glossaryButton");
@@ -12405,7 +12695,33 @@
       $("#glossaryButton").addEventListener("click", () => setGlossary($("#glossary").hidden));
       $("#glossaryClose").addEventListener("click", () => setGlossary(false));
       $("#glossaryScrim").addEventListener("click", () => setGlossary(false));
+      $("#paletteButton").addEventListener("click", () => palette.toggle());
+      $("#paletteScrim").addEventListener("click", () => palette.show(false));
+      $("#paletteInput").addEventListener("input", () => palette.draw());
       document.addEventListener("keydown", event => {
+        // Cmd-K on a Mac, Ctrl-K everywhere else: the shortcut a reader
+        // already has in their fingers from every other tool they use.
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          palette.toggle();
+          return;
+        }
+        if (palette.isOpen()) {
+          if (event.key === "Escape") { event.preventDefault(); palette.show(false); return; }
+          if (event.key === "ArrowDown") { event.preventDefault(); palette.move(1); return; }
+          if (event.key === "ArrowUp") { event.preventDefault(); palette.move(-1); return; }
+          if (event.key === "Enter") { event.preventDefault(); palette.choose(); return; }
+          return;
+        }
+        // A bare slash opens it too, as long as the reader is not already
+        // typing into something.
+        const typing = document.activeElement
+          && /^(input|textarea|select)$/i.test(document.activeElement.tagName);
+        if (event.key === "/" && !typing && !event.metaKey && !event.ctrlKey) {
+          event.preventDefault();
+          palette.show(true);
+          return;
+        }
         if (event.key === "Escape" && !$("#glossary").hidden) setGlossary(false);
       });
 

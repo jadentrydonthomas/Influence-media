@@ -336,6 +336,49 @@ checkMatch('thin on-time samples are marked', rows.join(' | '), /thin/);
   check('every counting figure settles on its real value', midCount.join(' | '), '');
 }
 
+// The command palette reaches every account, person, quote and job in the
+// loaded book from any screen, and lands on the thing rather than on the
+// screen that contains it.
+{
+  await page.click('[data-screen="overview"]');
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Control+k');
+  await page.waitForTimeout(450);
+  const opened = await page.$eval('#palette', n => !n.hidden);
+  checks.push({ name: 'the palette opens on the shortcut', actual: opened ? 'open' : 'shut', expected: 'open', pass: opened });
+
+  // With nothing typed it offers destinations rather than an arbitrary
+  // slice of a thousand quote numbers.
+  const resting = await page.$$eval('.palette-row b', n => n.map(x => x.textContent.trim()));
+  checks.push({ name: 'the palette rests on where a reader can go',
+    actual: resting.slice(0, 2).join(', '), expected: 'screens', pass: resting.length > 0 && resting.length <= 10 });
+
+  // Subsequence matching: initials find a full name.
+  await page.keyboard.type('dnm');
+  await page.waitForTimeout(400);
+  const initials = await page.$eval('.palette-row b', n => n.textContent.trim());
+  checkMatch('initials typed into the palette find the whole name', initials, /^\w+\s\w/);
+
+  // No literal escape may reach the page.
+  const chrome = await page.$eval('#palette', n => n.innerText);
+  checkMatch('the palette prints no raw escape', chrome, /^(?!.*\\u[0-9a-f]{4})[\s\S]*$/);
+
+  // Enter lands on the thing itself.
+  await page.$eval('#paletteInput', n => { n.value = ''; });
+  await page.keyboard.type('summit');
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(1000);
+  const landed = await page.$eval('.screen.is-active', n => n.id);
+  const account = await page.$eval('#custProfile h3', n => n.textContent.trim()).catch(() => '');
+  checks.push({ name: 'the palette lands on the record, not just the screen',
+    actual: landed + ' / ' + account, expected: 'customers / the account',
+    pass: landed === 'customers' && /summit/i.test(account) });
+
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+}
+
 // Team performance answers "which work", not only "who". The same two blocks
 // the Customers screen carries for an account, for a person.
 {
