@@ -1769,6 +1769,61 @@
     .person-stat strong { display: block; margin-top: 6px; color: var(--ink); font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: -.04em; }
     .person-insight { margin-top: 16px; padding: 14px 16px; border-radius: var(--r-sm); color: var(--ink-muted); background: var(--surface-soft); font-size: 12.5px; line-height: 1.55; }
     .person-insight strong { color: var(--ink); }
+    /* The card says what a person did; this is how a reader gets to the work
+       behind it. The account record on Customers sits beside the list a reader
+       just clicked, so the roster's does too - and this names what is waiting
+       there rather than leaving them to scroll and find out. */
+    .person-jump {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; margin-top: 14px; padding: 12px 14px;
+      border: 1px solid rgba(150,235,180,.3); border-radius: var(--r-sm);
+      color: #eafff0; background: rgba(0,189,87,.13);
+      font-family: var(--display); font-size: 11px; font-weight: 800;
+      letter-spacing: .09em; text-transform: uppercase; text-align: left;
+      cursor: pointer;
+      transition: background 200ms var(--ease), border-color 200ms var(--ease), transform 200ms var(--ease);
+    }
+    .person-jump:hover { border-color: rgba(150,235,180,.65); background: rgba(0,189,87,.24); transform: translateY(-1px); }
+    .person-jump i {
+      flex: none; width: 7px; height: 7px;
+      border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor;
+      transform: rotate(45deg) translate(-2px, -2px);
+      animation: nudge 2.2s var(--ease) infinite;
+    }
+    @media (prefers-reduced-motion: reduce) { .person-jump i { animation: none; } }
+
+    /* The record the jump lands on names its owner large, the way the account
+       record does, so a reader who arrives by scrolling knows whose work this
+       is without looking back up the page. */
+    #personRecord .record-owner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; }
+    /* Large enough to announce whose work this is, and left in the casing the
+       roster gave it: a person's name is a proper noun, and this component
+       already sets its own case. Shouting it here is the trap the regression
+       has caught on five other components. */
+    #personRecord .record-owner .account-name > strong {
+      display: block; font-family: var(--display); font-size: 26px; font-weight: 800;
+      letter-spacing: -.02em; line-height: 1.05;
+    }
+
+    /* A job row opens on the four figures somebody opened it for, then the
+       lists behind them. It was three definition lists and nothing else. */
+    .jd-figures {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;
+    }
+    .jd-figure {
+      flex: 1 1 130px; min-width: 0; padding: 12px 14px;
+      border-radius: var(--r-sm); background: var(--surface);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .jd-figure strong {
+      display: block; color: var(--green-dark);
+      font-family: var(--mono); font-size: 21px; font-weight: 600; letter-spacing: -.03em;
+    }
+    .jd-figure span {
+      display: block; margin-top: 4px; color: var(--ink-faint);
+      font-size: 11px; line-height: 1.3;
+    }
+
     .team-chart-panel { margin-top: 34px; overflow: hidden; border: 0; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--lift-2), var(--edge); }
     .team-chart { padding: 17px 19px 20px; }
     .team-chart-row { display: grid; grid-template-columns: 105px minmax(0,1fr) 53px; align-items: center; gap: 12px; min-height: 36px; }
@@ -2442,16 +2497,17 @@
             <div class="person-body">
               <div class="person-stats"><div class="person-stat"><span>Quotes</span><strong id="personQuotes">94</strong></div><div class="person-stat"><span>Quote wins</span><strong id="personOrders">9</strong></div><div class="person-stat"><span>On time</span><strong id="personOnTime">94%</strong></div><div class="person-stat"><span>Won value</span><strong id="personValue">$6.4M</strong></div></div>
               <div class="person-insight" id="personInsight"><strong>Read this:</strong> 94 quotes give the rate a more stable foundation than a thin-sample result.</div>
+              <button class="person-jump" id="personJump" type="button" hidden><span></span><i aria-hidden="true"></i></button>
             </div>
           </aside>
         </div>
-        <section class="team-chart-panel" aria-labelledby="teamChartTitle">
-          <div class="panel-head"><h2 id="teamChartTitle">Team comparison</h2><p id="teamChartDescription">Each bar keeps the current selected metric visible across the full group. The amber marker is the group average.</p></div>
-          <div class="team-chart" id="teamChart"></div>
-        </section>
         <section class="panel ops-panel" aria-labelledby="personRecordTitle">
           <div class="panel-head"><span class="ops-step">The work itself</span><h2 id="personRecordTitle">Every quote this person owns</h2><p id="personRecordNote">Choose anyone on the roster above to open the quotes they priced and the jobs that came back from them. A job row opens to show what the order log carries about it.</p></div>
           <div class="ops-body" id="personRecord"></div>
+        </section>
+        <section class="team-chart-panel" aria-labelledby="teamChartTitle">
+          <div class="panel-head"><h2 id="teamChartTitle">Team comparison</h2><p id="teamChartDescription">Each bar keeps the current selected metric visible across the full group. The amber marker is the group average.</p></div>
+          <div class="team-chart" id="teamChart"></div>
         </section>
         <section class="panel ops-panel is-feature" aria-labelledby="teamLoadTitle">
           <div class="panel-head"><span class="ops-step" id="teamLoadStep">Capacity</span><h2 id="teamLoadTitle">Whether it cost what was planned</h2><p id="teamLoadNote"></p></div>
@@ -7609,7 +7665,18 @@
                 + (item.source ? '<i>' + escape(item.source) + "</i>" : "") + "</dd></div>").join("")
             + "</dl>" + (note ? '<small>' + escape(note) + "</small>" : "") + "</div>"
           : "";
-        return '<div class="job-detail-grid">'
+        // The four figures a reader opens a job row for, before the lists.
+        const tiles = [
+          job.tons ? { value: tons(job.tons), unit: "tons" } : null,
+          job.totalHours ? { value: job.totalHours.toFixed(1), unit: "hours on the job" } : null,
+          record && Number(record.price) ? { value: money(Number(record.price) / 1000000), unit: "quoted" } : null,
+          Number.isFinite(job.lag) ? { value: job.lag + "d", unit: "from quote to order" } : null
+        ].filter(Boolean);
+        return (tiles.length
+            ? '<div class="jd-figures">' + tiles.map(tile => '<div class="jd-figure"><strong>'
+                + escape(tile.value) + "</strong><span>" + escape(tile.unit) + "</span></div>").join("") + "</div>"
+            : "")
+          + '<div class="job-detail-grid">'
           + block("The job", rows)
           + block("The quote it came from", quoteRows, record ? "Quote " + record.key : "")
           + block("Everyone on it", people, "Order-log names describe the job after it was booked; quote-book names priced it. Neither overwrites the other.")
@@ -7774,7 +7841,13 @@
             // and keep the order log's own spelling on the row for anyone who
             // wants it.
             account: record.customer,
-            orderCustomer: job.customer
+            orderCustomer: job.customer,
+            // Without this the detail loses its whole middle block: the quote
+            // the job came from, its dates, its turnaround and every
+            // quote-book name on it. The account record passes it and the
+            // roster's did not, which is why one felt half-built beside the
+            // other.
+            __record: record
           }))), [])
           .sort((a, b) => (b.entryDate ? b.entryDate.getTime() : 0) - (a.entryDate ? a.entryDate.getTime() : 0));
         const bookedTons = jobs.reduce((sum, job) => sum + (Number(job.tons) || 0), 0);
@@ -8018,6 +8091,24 @@
         }
         renderPersonRecord(selected, state.role === "estimators" ? "estimator"
           : state.role === "schedulers" ? "scheduler" : "engineer");
+        // The way into the work behind the card, named rather than implied.
+        {
+          const jump = $("#personJump");
+          if (jump) {
+            const jobs = Number(selected.jobs) || 0, quotes = Number(selected.quotes) || 0;
+            jump.hidden = !state.model || !quotes;
+            $("span", jump).textContent = jobs
+              ? "See the " + countOf(jobs, "job") + " and " + countOf(quotes, "quote")
+              : "See the " + countOf(quotes, "quote") + " owned";
+            if (!jump.dataset.wired) {
+              jump.dataset.wired = "on";
+              jump.addEventListener("click", () => {
+                const record = $("#personRecord");
+                if (record) record.scrollIntoView({ behavior: motion.reduced() ? "auto" : "smooth", block: "start" });
+              });
+            }
+          }
+        }
         renderTeamChart(people, metric, groupMetric);
         $$("[data-role]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.role === state.role)));
         $$("[data-team-metric]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.teamMetric === state.teamMetric)));

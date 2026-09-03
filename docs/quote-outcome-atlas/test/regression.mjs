@@ -554,6 +554,38 @@ await page.waitForTimeout(400);
   const quoteRows = await page.$$eval('#personRecord .profile-block:last-of-type tbody tr', n => n.length);
   checks.push({ name: 'the person record lists the quotes they own',
     actual: quoteRows + ' rows', expected: 'at least one', pass: quoteRows > 0 });
+  // A job row opens on the same detail the account record gives: the four
+  // figures somebody opened it for, the job, the quote it came from, and
+  // every name on both sides. The roster's build had been dropping the quote
+  // behind the job, so its middle block and every quote-book name went with it.
+  {
+    const jobRow = await page.$('#personRecord [data-person-job]');
+    if (jobRow) {
+      await jobRow.click();
+      await page.waitForTimeout(500);
+      const open = await page.$eval('#personRecord [data-person-job-detail]', n => ({
+        shown: !n.hidden,
+        figures: n.querySelectorAll('.jd-figure').length,
+        blocks: [...n.querySelectorAll('.jd-block > span')].map(x => x.textContent.trim())
+      }));
+      checks.push({ name: 'a job row opens', actual: open.shown ? 'open' : 'shut', expected: 'open', pass: open.shown });
+      checks.push({ name: 'the job detail leads with its figures',
+        actual: open.figures + ' figures', expected: 'at least two', pass: open.figures >= 2 });
+      check('the job detail names the quote it came from',
+        open.blocks.includes('The quote it came from') ? 'yes' : 'no: ' + open.blocks.join(', '), 'yes');
+      check('the job detail names everyone on it',
+        open.blocks.includes('Everyone on it') ? 'yes' : 'no: ' + open.blocks.join(', '), 'yes');
+      // Both sides of the join are named, not just the order log's.
+      const sources = await page.$eval('#personRecord [data-person-job-detail]',
+        n => [...n.querySelectorAll('.jd-block dd i')].map(x => x.textContent.trim()));
+      checks.push({ name: 'the detail names the quote-book people, not only the order log',
+        actual: [...new Set(sources)].join(' | '), expected: 'both sources',
+        pass: sources.includes('quote book') && sources.includes('order log') });
+      await jobRow.click();
+      await page.waitForTimeout(300);
+    }
+  }
+
   // Choosing a different person opens different work.
   const first = await page.$eval('#personRecord .account-name strong', n => n.textContent).catch(() => '');
   // Pick a row that is somebody else, rather than assuming a fixed index:
