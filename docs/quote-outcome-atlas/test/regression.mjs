@@ -432,6 +432,50 @@ for (const screen of ['overview', 'people', 'customers', 'timeline', 'compare', 
   if (rowCount) { await row(1); await page.waitForTimeout(500); }
 }
 
+// Every custom property this stylesheet asks for is one this stylesheet
+// defines. A var() naming a token nobody declares does not error and does not
+// warn — the declaration is simply dropped and the element inherits, so a mark
+// stops being a mark and a colour silently becomes the body text. The deck
+// carries its own token set, and one of its names had already leaked into a
+// dashboard rule.
+for (const theme of ['light', 'dark']) {
+  if (theme === 'dark') { await page.click('#themeButton'); await page.waitForTimeout(500); }
+  const missing = await page.evaluate(() => {
+    // Chromium gives every style rule a cssRules list now that nesting is
+    // supported, almost always empty. Recursing on its presence rather than
+    // its length walked past 1,530 of this stylesheet's 1,567 rules and left
+    // the check reporting a clean page it had never looked at.
+    const flatten = rules => [...rules].flatMap(rule =>
+      rule.cssRules && rule.cssRules.length ? [rule, ...flatten(rule.cssRules)] : [rule]);
+    const rules = [...document.styleSheets].filter(sheet => !sheet.href)
+      .flatMap(sheet => { try { return flatten(sheet.cssRules); } catch (e) { return []; } })
+      .filter(rule => rule.selectorText);
+    const broken = new Set();
+    rules.forEach(rule => {
+      // A var() carrying its own fallback has already answered for itself.
+      const names = [...rule.cssText.matchAll(/var\((--[\w-]+)\s*([,)])/g)]
+        .filter(m => m[2] === ')').map(m => m[1]);
+      if (!names.length) return;
+      // Ask the elements the rule actually applies to. A property the
+      // renderers set inline resolves there; one nobody ever declares does
+      // not, and that is the case the stylesheet cannot see for itself.
+      const selector = rule.selectorText.replace(/::[\w-]+(\([^)]*\))?/g, '');
+      let nodes = [];
+      try { nodes = [...document.querySelectorAll(selector)]; } catch (e) { return; }
+      if (!nodes.length) return;
+      names.forEach(name => {
+        if (nodes.some(node => !getComputedStyle(node).getPropertyValue(name).trim())) {
+          broken.add(name + ' on ' + rule.selectorText);
+        }
+      });
+    });
+    return [...broken].sort();
+  });
+  check(`every custom property used in ${theme} is one the page defines`, missing.join(' | '), '');
+}
+await page.click('#themeButton');
+await page.waitForTimeout(400);
+
 // The weekly lane's column is the week's whole quoted book with the booked
 // count inside it, drawn flat. An extruded column adds height that is not in
 // the figure, and the blue it was painted in means the prior period

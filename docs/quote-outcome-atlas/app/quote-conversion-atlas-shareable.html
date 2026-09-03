@@ -357,6 +357,49 @@
     @keyframes orbit-turn { from { transform: rotate(-82deg) scale(.92); opacity: .1; } to { transform: rotate(0) scale(1); opacity: 1; } }
     @keyframes matrix-in { from { opacity: 0; transform: scale(.38); } to { opacity: 1; transform: scale(1); } }
 
+    /* Every analysis screen opened with its finding and then stopped dead on
+       a table. The bookend: one strip at the foot that says what the screen
+       established, in the screen's own figures. A finding, never an order -
+       the rule the deck's closing cards already follow. Deliberately unlike
+       the opening bar: no index, no card, a rule and a large sentence sitting
+       on the page's own ground, so a reader knows they have reached the end
+       of an argument rather than the top of another one. */
+    .close-out {
+      position: relative; margin: 34px 0 8px; padding: 26px 4px 4px;
+      border-top: 1px solid var(--line-strong);
+    }
+    .close-out::before {
+      content: ""; position: absolute; top: -1px; left: 0; width: 84px; height: 3px;
+      border-radius: 2px; background: linear-gradient(90deg, var(--green), rgba(0,189,87,0));
+    }
+    .close-eyebrow {
+      margin: 0 0 12px; color: var(--ink-faint);
+      font-family: var(--display); font-size: 10px; font-weight: 800;
+      letter-spacing: .13em; text-transform: uppercase;
+    }
+    .close-line {
+      max-width: 78ch; margin: 0; color: var(--ink);
+      font-size: 19.5px; font-weight: 500; line-height: 1.45; letter-spacing: -.008em;
+    }
+    .close-line b { color: var(--green-dark); font-weight: 700; }
+    /* --copper is the deck's token, not this stylesheet's; the dashboard's own
+       name for that colour is --red-deep. A var() naming a token nobody
+       defines does not error - it silently inherits, so the mark simply stops
+       being a mark. */
+    .close-line i { color: var(--red-deep); font-style: normal; font-weight: 700; }
+    .close-line em { color: var(--ink-muted); font-style: normal; font-weight: 400; }
+    .close-facts {
+      display: flex; flex-wrap: wrap; gap: 10px 30px; margin-top: 20px;
+      padding-top: 16px; border-top: 1px solid var(--line);
+    }
+    .close-fact { display: flex; align-items: baseline; gap: 8px; }
+    .close-fact strong { color: var(--ink); font-family: var(--mono); font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+    .close-fact span { color: var(--ink-faint); font-size: 12px; }
+    @media (max-width: 900px) {
+      .close-line { font-size: 16.5px; }
+      .close-facts { gap: 10px 20px; }
+    }
+
     .readout-bar { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; gap: 14px; align-items: center; margin: 23px 0 26px; padding: 16px 20px 17px; border-left: 3px solid var(--amber); border-radius: 0 var(--r-md) var(--r-md) 0; background: var(--surface); box-shadow: var(--lift-2), var(--edge); }
     .readout-bar > span { color: var(--amber); font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
     .readout-bar p { margin: 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
@@ -1399,13 +1442,16 @@
     .cum-svg .cum-brace { stroke: var(--red-deep); stroke-width: 1.2; opacity: .7; }
     .cum-svg .cum-brace-label { fill: var(--red-deep); font-family: var(--mono); font-size: 12.5px; font-weight: 700; }
     .cum-svg .cum-brace-sub { fill: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; }
-    .cum-svg .cum-quotes { fill: none; stroke: var(--then); stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+    /* Quotes issued is the total the other two read against, not the prior
+       period, so it takes the neutral rather than the blue that means last
+       year everywhere else in the product. */
+    .cum-svg .cum-quotes { fill: none; stroke: var(--ink-muted); stroke-width: 2.2; vector-effect: non-scaling-stroke; }
     .cum-svg .cum-orders { fill: none; stroke: var(--green); stroke-width: 2.6; vector-effect: non-scaling-stroke; }
     .cum-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; color: var(--ink-muted); font-size: 11.5px; }
     .cum-legend span { display: flex; align-items: center; gap: 7px; }
     .cum-legend b { width: 12px; height: 4px; border-radius: 2px; }
     .cum-legend b.is-gap { height: 9px; background: var(--red); opacity: .3; }
-    .cum-legend b.is-then { background: var(--then); }
+    .cum-legend b.is-total { background: var(--ink-muted); }
     .cap-hero { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 24px; margin-bottom: 18px; padding: 16px 18px; border-radius: var(--r-sm); background: var(--surface-soft); border-left: 3px solid var(--steel); }
     .cap-hero.is-good { border-left-color: var(--green); }
     .cap-hero.is-bad { border-left-color: var(--red); }
@@ -1555,7 +1601,10 @@
     .outcome-key div { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; align-items: center; gap: 8px; }
     .outcome-key .key-total { margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--line); }
     .outcome-key .key-total span { color: var(--ink); font-weight: 700; }
-    .outcome-key i { width: 10px; height: 10px; background: var(--key); }
+    /* The total row's swatch is a spacer with no colour of its own, so the
+       rule has to say what it falls back to rather than leaning on an
+       undeclared property resolving to nothing. */
+    .outcome-key i { width: 10px; height: 10px; background: var(--key, transparent); }
     .outcome-key span { color: var(--ink-muted); font-size: 11.5px; }
     .outcome-key b { color: var(--ink); font-family: var(--mono); font-size: 12.5px; font-weight: 500; }
     .analysis-foot { margin-top: 17px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--ink-muted); font-size: 11.5px; }
@@ -2355,6 +2404,11 @@
             <div class="analysis-body" id="analysisBody"></div>
           </section>
         </div>
+        <section class="close-out" id="closeOverview" aria-labelledby="closeOverviewTitle" hidden>
+          <p class="close-eyebrow" id="closeOverviewTitle">What the book establishes</p>
+          <p class="close-line"></p>
+          <div class="close-facts"></div>
+        </section>
       </section>
 
       <section class="screen" id="people" aria-labelledby="peopleTitle">
@@ -2403,6 +2457,11 @@
           <div class="panel-head"><span class="ops-step" id="teamLoadStep">Capacity</span><h2 id="teamLoadTitle">Whether it cost what was planned</h2><p id="teamLoadNote"></p></div>
           <div class="ops-body is-wide" id="teamLoad"></div>
         </section>
+        <section class="close-out" id="closePeople" aria-labelledby="closePeopleTitle" hidden>
+          <p class="close-eyebrow" id="closePeopleTitle">What the roster establishes</p>
+          <p class="close-line"></p>
+          <div class="close-facts"></div>
+        </section>
       </section>
 
       <section class="screen" id="customers" aria-labelledby="custTitle">
@@ -2435,6 +2494,11 @@
             <div class="ops-body" id="custDiagnostic"></div>
           </section>
         </div>
+        <section class="close-out" id="closeCustomers" aria-labelledby="closeCustomersTitle" hidden>
+          <p class="close-eyebrow" id="closeCustomersTitle">What the account base establishes</p>
+          <p class="close-line"></p>
+          <div class="close-facts"></div>
+        </section>
       </section>
 
       <section class="screen" id="timeline" aria-labelledby="timelineTitle">
@@ -2482,6 +2546,11 @@
         <section class="panel" aria-labelledby="tlWeekTitle">
           <div class="panel-head"><h2 id="tlWeekTitle">Week by week</h2><p id="tlWeekNote">Volume, turnaround mix, release timing and engineering load on one row per week, so a long span stays readable instead of stacking series on top of each other.</p></div>
           <div class="ops-week" id="opsWeek"></div>
+        </section>
+        <section class="close-out" id="closeTimeline" aria-labelledby="closeTimelineTitle" hidden>
+          <p class="close-eyebrow" id="closeTimelineTitle">What the clock establishes</p>
+          <p class="close-line"></p>
+          <div class="close-facts"></div>
         </section>
       </section>
 
@@ -2626,6 +2695,11 @@
             <div class="ops-body" id="cmpMethod"></div>
           </section>
         </div>
+        <section class="close-out" id="closeCompare" aria-labelledby="closeCompareTitle" hidden>
+          <p class="close-eyebrow" id="closeCompareTitle">What the comparison establishes</p>
+          <p class="close-line"></p>
+          <div class="close-facts"></div>
+        </section>
       </section>
 
       <section class="screen" id="data" aria-labelledby="dataTitle">
@@ -3026,6 +3100,26 @@
         window.addEventListener("resize", soon);
         return { sweep: sweep, soon: soon };
       })();
+
+      // ---- Closing readouts --------------------------------------------------
+      // The foot of an analysis screen. One door, so every screen closes the
+      // same way and none of them can drift into giving orders: the caller
+      // hands over a sentence and the figures behind it, nothing else.
+      // Markup allowed in the sentence is <b> for a figure that went the
+      // product's way, <i> for one that did not, and <em> for an aside.
+      function setClose(id, sentence, items) {
+        const box = $("#" + id);
+        if (!box) return;
+        if (!sentence) { box.hidden = true; return; }
+        box.hidden = false;
+        $(".close-line", box).innerHTML = sentence;
+        const facts = $(".close-facts", box);
+        const list = (items || []).filter(item => item && item.value !== undefined && item.value !== null);
+        facts.hidden = !list.length;
+        facts.innerHTML = list.map(item => '<span class="close-fact"><strong>' + escape(String(item.value))
+          + "</strong> <span>" + escape(String(item.unit || "")) + "</span></span>").join("");
+        markMotion(box);
+      }
 
       function markMotion(root) {
         const scope = root || document;
@@ -4394,6 +4488,29 @@
         if (onTimeFact) onTimeFact.title = data.empty ? "On-time release is scored after a source run." : "On-time release: " + onTimeCoverageNote(data) + ". Blank and N/A rows are excluded from both halves of the rate.";
         $("#managementReadout").innerHTML = data.managementReadout;
         setText("#readoutTag", data.readoutTag);
+        // The bookend. Count and value convert at different rates, and the
+        // difference between the two is the one thing on this screen no single
+        // figure on it states: it says whether the work that books is bigger
+        // or smaller than the work that does not.
+        {
+          const rate = Number(data.conversion) || 0, capture = Number(data.valueCapture) || 0;
+          const gap = capture - rate;
+          const shape = Math.abs(gap) < 1.5
+            ? "the work that comes back is about the size of the work that does not"
+            : gap < 0
+              ? "the work that comes back is smaller than the work that does not"
+              : "the work that comes back is larger than the work that does not";
+          setClose("closeOverview", data.empty || !data.quotes ? "" :
+            "Of <b>" + escape(money(data.quoteValue)) + "</b> priced, <b>" + escape(money(data.orderValue))
+            + "</b> came back \u2014 <b>" + escape(pct(capture)) + "</b> of the value against <b>"
+            + escape(pct(rate)) + "</b> of the count, so " + shape + ". <i>"
+            + escape(money(data.unconvertedValue)) + "</i> across "
+            + escape(countOf(data.unconverted, "opportunity", "opportunities")) + " carries no linked order yet.",
+            [{ value: pct(rate), unit: "of quotes came back" },
+             { value: pct(capture), unit: "of value came back" },
+             { value: money(data.unconvertedValue), unit: "still open" },
+             data.medianLag === null ? null : { value: Math.round(data.medianLag) + "d", unit: "median lag to the first order" }]);
+        }
         renderMetrics(data);
         renderFlow(data);
         renderWeekly(data);
@@ -5896,6 +6013,26 @@
               ? { label: "Average quote", value: fineMoney(now.averageQuote), note: cmpDelta(now.averageQuote, then.averageQuote).text + " on " + fineMoney(then.averageQuote), tone: cmpDelta(now.averageQuote, then.averageQuote).tone }
               : { label: "Accounts kept", value: pct(keep.keepRate), note: keep.lostCount + " of " + keep.priorCount + " gone quiet", tone: keep.lostCount ? (keep.keepRate >= 85 ? "flat" : "down") : "up" })
           ]);
+        // The bookend for seven views: the one measure that moved furthest and
+        // whether the money followed it. A year-over-year screen that ends on a
+        // reference table has made the reader do the summarising.
+        setClose("closeCompare",
+          "Between " + escape(data.priorShort) + " and " + escape(data.currentShort) + ", returned work went from <b>"
+          + escape(money(attribution.from)) + "</b> to <b>" + escape(money(attribution.to)) + "</b>"
+          + (moved
+              ? ", and the largest single reason was " + (attribution.total >= 0 ? "<b>" : "<i>")
+                + escape(lead.label.toLowerCase()) + " at " + escape(cmpSigned(lead.amount))
+                + (attribution.total >= 0 ? "</b>" : "</i>") + ". "
+              : " \u2014 within a rounding of where it started, because "
+                + escape(lead.label.toLowerCase()) + " and " + escape(second.label.toLowerCase()) + " cancelled. ")
+          + "Conversion " + (Math.abs(now.conversion - then.conversion) < 0.05 ? "held at <b>" + escape(pct(now.conversion)) + "</b>"
+              : (now.conversion >= then.conversion ? "rose to <b>" : "fell to <i>") + escape(pct(now.conversion))
+                + (now.conversion >= then.conversion ? "</b>" : "</i>") + " from " + escape(pct(then.conversion)))
+          + ", on <em>" + escape(opsNumber(now.quotes) + " quotes against " + opsNumber(then.quotes)) + "</em>.",
+          [{ value: money(attribution.to), unit: "returned this period" },
+           { value: cmpSigned(attribution.total), unit: "against the baseline" },
+           { value: pct(now.conversion), unit: "conversion, was " + pct(then.conversion) },
+           { value: pct(now.valueCapture), unit: "of value captured, was " + pct(then.valueCapture) }]);
         $("#cmpAttribution").innerHTML = cmpBecauseCards(attribution, data)
           + '<div class="ops-subhead" style="margin-top:22px">The same three steps, drawn</div>'
           + cmpAttributionRibbon(attribution, data)
@@ -6803,6 +6940,28 @@
                 + (oldest.count ? ", and " + pct(oldestShare) + " of that has sat past sixty days." : "."))
             : "<strong>The clock cannot be read on this cohort yet.</strong> A quote needs a Date In and a Done to time our part, and a linked order entry to time the customer's.";
           setText("#timeReadoutTag", data.exposure ? data.exposure + "+ day seller lens" : "Full book");
+          // The bookend: the whole point of this screen is which half of the
+          // clock is actually long, and whether what is still waiting is
+          // waiting or already gone.
+          setClose("closeTimeline", (ours === null || theirs === null) ? "" :
+            "Our half of the clock is <b>" + escape(dayText(ours)) + "</b> and the customer's is <b>"
+            + escape(dayText(theirs)) + "</b>, so "
+            + (theirs > ours
+                ? "the time in this book is spent waiting, not pricing"
+                : "the time in this book is spent pricing, not waiting")
+            + ". "
+            + (line.openCount
+                ? "<i>" + escape(countOf(line.openCount, "quote")) + "</i> carrying "
+                  + escape(money(line.openValue)) + (line.openCount === 1 ? " has" : " have") + " no answer"
+                  + (oldest.count
+                      ? ", and " + escape(pct(oldestShare)) + " of that has been open past sixty days \u2014 "
+                        + "past that mark a decision window is an assumption, not a fact."
+                      : ".")
+                : "Nothing in this cohort is still waiting for an answer."),
+            [{ value: dayText(ours), unit: "median to price" },
+             { value: dayText(theirs), unit: "median to decide" },
+             { value: opsNumber(line.openCount), unit: "quotes with no answer" },
+             { value: money(line.openValue), unit: "of open value" }]);
         }
 
         $("#timelineWhole").innerHTML = deckProcessBar(line, { className: "tl-process" })
@@ -7114,7 +7273,7 @@
               return '<text x="' + x(point.date).toFixed(1) + '" y="' + (height - 8) + '" class="axis" text-anchor="' + anchor + '">' + escape(shortDate(point.date)) + "</text>";
             }).join("")
           + "</svg>"
-          + '<div class="cum-legend"><span><b class="is-then"></b>Quotes issued</span><span><b class="is-green"></b>Orders booked</span><span><b class="is-gap"></b>Open, no linked order</span></div>';
+          + '<div class="cum-legend"><span><b class="is-total"></b>Quotes issued</span><span><b class="is-green"></b>Orders booked</span><span><b class="is-gap"></b>Open, no linked order</span></div>';
       }
 
       // ---- Customers ---------------------------------------------------------
@@ -7190,6 +7349,24 @@
                     + money(signals.askedNeverBookedValue) + " of quoted value."
                   : ". Every account that asked more than once has booked at least one job."));
           setText("#custReadoutTag", data.exposure ? data.exposure + "+ day seller lens" : "Full book");
+          // The bookend: what the shape of the account base costs. A book that
+          // rests on ten names is a different risk from one that does not, and
+          // the accounts that ask repeatedly and never book are the part of it
+          // a ranking by value never surfaces.
+          const silent = neverBooked.length;
+          setClose("closeCustomers",
+            "The book rests on <b>" + escape(pct(signals.concentration)) + "</b> of its value in ten names, and <b>"
+            + escape(opsNumber(signals.withWin)) + " of " + escape(countOf(signals.total, "account"))
+            + "</b> have returned anything at all. "
+            + (silent
+                ? "<i>" + escape(money(signals.askedNeverBookedValue)) + "</i> of it sits with "
+                  + escape(countOf(silent, "account")) + " that asked more than once and booked nothing \u2014 "
+                  + "repeat demand is not the same as repeat business."
+                : "Every account that asked more than once has booked at least one job, so repeat demand is converting.")
+            , [{ value: opsNumber(signals.total), unit: "accounts quoted" },
+               { value: opsNumber(signals.withWin), unit: "booked at least one job" },
+               { value: pct(signals.concentration), unit: "of value in ten names" },
+               silent ? { value: money(signals.askedNeverBookedValue), unit: "asked twice, booked nothing" } : null]);
         }
 
         $("#custKpis").innerHTML = [
@@ -7741,6 +7918,26 @@
                 + (unowned ? ". " + countOf(unowned, "quote") + (unowned === 1 ? " carries" : " carry") + " no named owner, counted but never ranked as a person." : "."))
             : "<strong>No named owner holds work in this cohort.</strong> Every quote in the loaded weeks is unattributed.";
           setText("#teamReadoutTag", teamRoleWord + " roster");
+          // The bookend: how few people the book actually rests on, and
+          // whether holding the most of it is the same as booking the most.
+          let carried = 0, holders = 0;
+          byLoad.forEach(person => { if (carried < totalQuotes / 2) { carried += person.quotes; holders += 1; } });
+          const topWinner = owned.slice().sort((a, b) => (Number(b.orders) || 0) - (Number(a.orders) || 0))[0];
+          setClose("closePeople", !busiest || !totalQuotes ? "" :
+            "<b>" + escape(holders + " of " + owned.length) + "</b> " + escape(teamRoleWord.toLowerCase() + (owned.length === 1 ? "" : "s"))
+            + " hold half the quoted work between them. "
+            + (topWinner && topWinner.code === busiest.code
+                ? "The largest book is also the one that books the most, at <b>" + escape(countOf(topWinner.orders, "win")) + "</b>."
+                : topWinner && topWinner.orders > 0
+                  ? "The largest book belongs to " + escape(busiest.name) + "; the most wins belong to <b>"
+                    + escape(topWinner.name) + "</b>, at " + escape(countOf(topWinner.orders, "win")) + "."
+                  : "Nobody in this cohort has booked work yet.")
+            + (unowned ? " <em>" + escape(countOf(unowned, "quote")) + (unowned === 1 ? " sits" : " sit")
+                + " outside the roster entirely.</em>" : ""),
+            [{ value: opsNumber(owned.length), unit: teamRoleWord.toLowerCase() + (owned.length === 1 ? "" : "s") + " with work" },
+             { value: (totalQuotes / Math.max(1, owned.length)).toFixed(1), unit: "quotes each on average" },
+             { value: pct(percentage(totalOrders, totalQuotes)), unit: "group conversion" },
+             { value: averageOnTimeText.split(" (")[0], unit: "weighted release" }]);
         }
         let rows = "";
         sorted.forEach(item => {
