@@ -24,16 +24,36 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
      - The result is compared with the derived columns. The tool says whether they match, or which joist direction or beam lines would.
    - The framing plan is drawn with those ⊗ overlaid, so you can confirm it at a glance.
 3. **Sizes the beams** the way the MB sheet is iterated by hand:
-   - Tries every DM 5.1-stocked web and flange for the division, for depths 10–24" by default.
+   - Tries every DM 5.1-stocked web and flange for the division (flanges ≥ 6" × 1/4"), whole-inch depths 10–30" by default.
    - Keeps sections with combined and shear SR ≤ 0.99, LL ≤ L/360, TL ≤ L/240, and a passing joist-bearing check (MB `L7`).
-   - Reports the lightest one, and the lightest at each depth so you can trade headroom for weight.
+   - **Three options per mark**, side by side:
+     - *Lightest*: minimum weight of every stocked combination that passes.
+     - *Best fit*: the shallowest depth within 8% of the lightest weight.
+     - *Headroom*: the lightest section with d ≤ A − B − slab − seat (the total joist depth), so the beam stays inside the joist zone. If nothing passes there, the lightest 8"-flange alternative.
+   - Pick an option (or a row in the depth table) and the choice is kept as intent: change a load, the slab or a clearance and it re-designs that option instead of pinning an old section.
 4. **Sizes the columns** on the Column sheet:
    - Loads are the left and right beam reactions (MB `H6` dead, `H10` live), with e = d/2, the three load combinations, and column self-weight.
-   - Tries W10X22, W8X24 and W12X26. If none passes, it takes the next heavier W and quotes it as `BU{d}x{wt}`, per the training guide.
+   - Tries W10X22, W8X24 and W12X26, lightest first. One section goes on the quote for every mezzanine column: the lightest that passes every load group. If none of the three passes, it takes the next heavier W and quotes it as `BU{d}x{wt}`, per the training guide.
    - Column length defaults to finish floor → top of mezzanine (A). You can switch to *clear below beam* in Settings.
-5. **Quote sheet.** One click copies the mark, section, span, trib and quantity for each line.
+5. **Quote sheet.** The three quote-sheet tables, in the workbook's column order, ready to paste into Excel (tab-separated):
+   - *Mezz. Design Information*: MEZZ, FF El., SLAB, WT-NW/LW, DL, COL, LL, PART.
+   - *Mezz. Beams*: SPAN, TRIB, DLᴛ (= DL + COL), LLᴛ, SECTION, END WT (40), QTY.
+   - *Mezz. Columns*: HEIGHT, TRIB. AREA (worst column), SECTION, END WT (46), QTY.
+6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit, scroll to zoom, click a member for its calc.
 
-Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided).
+Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided) and the Headroom option's depth limit.
+
+### Dead load by deck and concrete
+
+When Box 22 gives a number, that number is used. When it says *Per Seller*, the dead load comes from the deck guide and follows the slab, deck type and concrete:
+
+| Slab / deck / concrete | Dead load | Source |
+|---|---|---|
+| 4" NW on 1.0C | 43 psf | deck guide |
+| 3½" NW on 1.0C | 37 psf | deck guide |
+| other thickness, deeper deck (1.3C–3VL rib voids) or LW (110 pcf) | scaled from 43 psf @ 4" NW | estimate, flagged — confirm against the deck guide |
+
+The deck type comes from Box 22 *Deck Type* (1.0C when it says Per Seller) and NW/LW from the material checkbox. Both can be changed on the Inputs page, and the dead load follows until you type one in by hand.
 
 ## Verification
 
@@ -51,13 +71,28 @@ It was checked against the real workbooks, run headless in LibreOffice with `ora
 
 Compared: SR, shear, deflections, reactions, the description string, the OK/NG text, and the concentrated-load checks. Tolerance is 0.2%.
 
+On top of the random sweeps, every section the tool actually picks in the variant loop (below) is run back through the workbooks: 63 beams (13th / 15th / 16th) and 147 column load cases (15th / 16th), 2,877 comparisons, 0 mismatches — and the workbook itself reads COMBINED OK / SHEAR OK and OK on all three column combinations for every one.
+
+### Variant loop
+
+`test/variants.test.js` re-reads the example PCS as phrases, edits it the ways other jobs differ, and designs each variant on the 13th, 15th and 16th sheets with each of the three options (90 designs, plus the three code-year runs):
+
+- numeric dead load on the PCS; IBC 2015 / 2018 / 2024 code lines (edition picked automatically);
+- mezzanine offset from the LEW with an edge off the grid; a narrower mezzanine set in from the FSW;
+- interior frame columns; deck type written on the PCS; lightweight concrete checked;
+- requested B / C / seat / joist spacing filled in instead of blue notes;
+- a second mezzanine on a continuation page (storage, 250 psf).
+
+Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the lightest, every column group must pass, and no quote row may contain an empty or NaN value.
+
 ## Develop
 
 ```bash
 npm install            # pdfjs-dist 3.11.174 (inlined into the build)
 npm run build          # -> index.html
-npm test               # guide examples, layout cases, parser; full example job if private/pcs/ has the PDF
-node test/e2e.js private/pcs/<PCS>.pdf    # drive index.html in Chromium, screenshots to oracle/out/shots
+npm test               # guide examples, layout cases, parser; full example job + variant loop if private/pcs/ has the PDF
+npm run e2e            # drive index.html in Chromium: load, every control, 3D pick, copy, manual entry
+MZ_DUMP=oracle/out node test/variants.test.js   # also write the picked sections as oracle cases
 ```
 
 The oracle needs LibreOffice Calc and the workbooks in `private/workbooks/`:
@@ -75,4 +110,5 @@ node oracle/compare.js beam oracle/out/beam.json oracle/out/beam_res.json 15
 - **Editions:** IBC 2018/2021 → 15th and IBC 2024 → 16th. IBC ≤ 2015 → 13th beam sheet (Q-factor compression, kv = 5, 360-05 shear and rt, no joist-bearing check), with the 15th column sheet since there is no 13th column sheet. All three are verified. NBCC (CSA S16) jobs are flagged to run in the S16 workbooks.
 - **16th-edition column sheet:** Lby (C10) is hard-coded to 120 in. The tool uses L × 12. Type L × 12 into C10 when you check a job in Excel.
 - **Materials other than deck + concrete**, and the "Designed For Load Provisions Only" box, are flagged. The quote engineer runs those by hand.
-- **Dead load when the PCS says "Per Seller":** taken from the deck guide. 4" standard weight = 43 psf and 3½" = 37 psf; other thicknesses are interpolated and flagged.
+- **Dead load when the PCS says "Per Seller":** see the table above. Only 4" and 3½" NW on 1.0C are exact deck-guide values; everything else is flagged as an estimate.
+- **Beam lines under 12' apart** (an interior frame column line between endwall lines, or a mezzanine edge just off a grid line) are kept, because they are real supports, but noted — drop a line on the Plan page if the joists should span past it.

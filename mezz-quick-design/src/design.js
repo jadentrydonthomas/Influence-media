@@ -36,17 +36,32 @@
   const flangeName = (b, t) => 'F' + b + ({ 0.25: '.25', 0.3125: '.31', 0.375: '.38', 0.5: '.50', 0.625: '.63', 0.75: '.75', 1: '1.0' })[t];
   const tierOf = (b, t) => (ECON[b] && ECON[b][t] != null ? ECON[b][t] : 2);
 
-  // Dead load from the deck guide. Anchors: 4" standard-weight = 43 psf (NBS practice), 3.5" = 37 psf
-  // (training guide) -> 12.08 psf per inch of 145 pcf concrete. Anything else is an estimate to confirm.
-  function deadLoadFor(slabIn, material = 'Standard Weight Concrete') {
-    if (!(slabIn > 0)) return { psf: null, note: 'Slab thickness missing — enter the dead load.' };
-    const nw = 43 + (slabIn - 4) * 145 / 12;
-    if (/light/i.test(material)) {
-      const lw = 2 + (nw - 2) * 110 / 145;
-      return { psf: Math.round(lw), note: `Lightweight concrete ${slabIn}" — estimated (110 pcf); confirm with the deck guide.`, estimate: true };
-    }
-    const exact = Math.abs(slabIn - 4) < 1e-6 || Math.abs(slabIn - 3.5) < 1e-6;
-    return { psf: Math.round(nw), note: exact ? `Deck guide: ${slabIn}" standard-weight concrete` : `${slabIn}" standard-weight concrete — interpolated from the deck guide (43 psf @ 4"); confirm.`, estimate: !exact };
+  // Dead load from the deck guide (slab + deck weight; excludes joists and beams).
+  // Confirmed anchors: 4" standard-weight concrete on 1.0C = 43 psf (NBS practice), 3.5" = 37 psf (training guide).
+  // Other slabs / decks / lightweight concrete are estimated from concrete volume and flagged for the deck guide:
+  //   NW 145 pcf -> 12.08 psf per inch; deck ribs displace roughly half the rib depth (1.0C reference = 0.5").
+  const DECKS = {
+    '1.0C': { rib: 1.0, label: '1.0C form deck' }, '1.3C': { rib: 1.3, label: '1.3C form deck' }, '1.5C': { rib: 1.5, label: '1.5C form deck' },
+    '1.5VL': { rib: 1.5, label: '1.5VL composite' }, '2VL': { rib: 2.0, label: '2VL composite' }, '3VL': { rib: 3.0, label: '3VL composite' },
+  };
+  function deckKey(text) {
+    const t = String(text || '').toUpperCase().replace(/\s+/g, '');
+    const m = t.match(/(0?\.?\d(?:\.\d)?)(C|VLI|VL|B|W)/);
+    if (!m) return null;
+    const depth = parseFloat(m[1]), kind = m[2];
+    if (kind === 'C') return depth <= 1.1 ? '1.0C' : depth <= 1.4 ? '1.3C' : '1.5C';
+    return depth <= 1.6 ? '1.5VL' : depth <= 2.2 ? '2VL' : '3VL';
+  }
+  function deadLoadFor(slabIn, concrete = 'NW', deck = '1.0C') {
+    if (!(slabIn > 0)) return { psf: null, note: 'Slab thickness missing — enter the dead load.', estimate: true };
+    const lw = /^L/i.test(concrete) || /light/i.test(concrete);
+    const dk = DECKS[deck] ? deck : '1.0C';
+    const voidAdj = (DECKS[dk].rib - 1.0) / 2;              // extra concrete displaced vs 1.0C
+    const nw = 43 + (slabIn - 4 - voidAdj) * 145 / 12;
+    const psf = lw ? 2 + (nw - 2) * 110 / 145 : nw;
+    const exact = !lw && dk === '1.0C' && (Math.abs(slabIn - 4) < 1e-6 || Math.abs(slabIn - 3.5) < 1e-6);
+    const desc = `${+slabIn.toFixed(3)}" ${lw ? 'LW' : 'NW'} concrete on ${DECKS[dk].label}`;
+    return { psf: Math.round(psf), note: exact ? `Deck guide: ${desc}` : `${desc} — estimated from the deck guide (43 psf @ 4" NW on 1.0C); confirm.`, estimate: !exact, concrete: lw ? 'LW' : 'NW', deck: dk };
   }
 
   function candidates(div, opt) {
@@ -58,7 +73,7 @@
   /* p: { dead, coll, live, joistWt, L, Lb, trib, edition }
      opt: { division, target, dMin, dMax, dStep, symmetric, requireConc, maxDepth, allowR } */
   function designBeam(p, opt = {}) {
-    const o = { division: 'NBS-IN', target: 0.99, dMin: 10, dMax: 24, dStep: 1, symmetric: true, requireConc: true, allowR: true, ...opt };
+    const o = { division: 'NBS-IN', target: 0.99, dMin: 10, dMax: 30, dStep: 1, symmetric: true, requireConc: true, allowR: true, ...opt };
     const { webs, flanges } = candidates(o.division, o);
     const dMax = Math.min(o.dMax, o.maxDepth ?? Infinity);
     const evals = [];
@@ -88,7 +103,7 @@
       const at = passing.filter(e => Math.abs(e.d - d) < 1e-9).sort(rank)[0];
       byDepth.push(at ? summarize(at) : { d, none: true });
     }
-    return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o };
+    return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o, all: evals.filter(e => e.pass) };
   }
 
   function summarize(e) {
@@ -102,6 +117,43 @@
     };
   }
 
+  /* Three distinct options from one exhaustive search (each is the lightest passing section under its rule):
+       1 Lightest  - minimum weight at any depth in range.
+       2 Best fit  - the shallowest depth whose lightest section is within `near` (8 %) of the lightest weight:
+                     nearly the same steel with more headroom.
+       3 Headroom  - lightest with d <= the clearance line: A - B - slab - seat (the beam bottom stays above the
+                     required clearance under joists, B). Without B: d <= span/18. Usually a wider / heavier flange.
+     ctx: { dLimit (in) | null, span (ft), near } */
+  function beamOptions(search, ctx = {}) {
+    if (!search || !search.best) return [];
+    const near = ctx.near ?? 0.08;
+    const rows = search.byDepth.filter(r => !r.none);
+    const same = (a, b) => a && b && a.sec.d === b.sec.d && a.sec.tw === b.sec.tw && a.sec.bof === b.sec.bof && a.sec.tof === b.sec.tof && a.sec.bif === b.sec.bif && a.sec.tif === b.sec.tif;
+    const light = search.best;
+    const opts = [{ key: 'lightest', label: 'Lightest', why: 'Minimum weight of every stocked combination that passes.', pick: light }];
+    // best fit
+    const shallower = rows.filter(r => r.d < light.d);
+    let fit = shallower.filter(r => r.wt <= light.wt * (1 + near)).sort((a, b) => a.d - b.d)[0];
+    let fitWhy = `Shallowest section within ${Math.round(near * 100)}% of the lightest weight — more headroom for almost the same steel.`;
+    if (!fit && shallower.length) { fit = shallower.slice().sort((a, b) => a.wt - b.wt)[0]; fitWhy = 'Next-lightest section at a shallower depth.'; }
+    if (!fit) { fit = rows.filter(r => !same(r, light)).sort((a, b) => a.wt - b.wt)[0]; fitWhy = 'Next-lightest depth.'; }
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fitWhy, pick: fit });
+    // headroom
+    const lim = ctx.dLimit != null && ctx.dLimit >= search.options.dMin ? ctx.dLimit : Math.max(search.options.dMin, Math.round((ctx.span || 20) * 12 / 18));
+    const limWhy = ctx.dLimit != null && ctx.dLimit >= search.options.dMin
+      ? `Deepest beam that keeps clearance (B) under the beams too: d ≤ A − B − slab − seat = ${ctx.dLimit}".`
+      : `Shallow option at about span / 18 (d ≤ ${lim}").`;
+    let head = rows.filter(r => r.d <= lim && !opts.some(o => same(o.pick, r))).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
+    let headWhy = limWhy;
+    if (!head) {
+      // nothing that shallow: take the lightest 8"+ flange option that differs from the others
+      head = (search.all || []).filter(e => e.pass && e.sec.bof >= 8 && !opts.some(o => same(o.pick, e))).sort((a, b) => a.wt - b.wt)[0];
+      if (head) { head = summarize(head); headWhy = `Nothing passes at d ≤ ${lim}" — lightest 8"-flange alternative.`; }
+    }
+    if (head) opts.push({ key: 'headroom', label: 'Headroom', why: headWhy, pick: head });
+    return opts.map(o => ({ ...o, dWt: o.pick.wt - light.wt, dPct: (o.pick.wt - light.wt) / light.wt }));
+  }
+
   // Beam reactions for a given section (MB!H6 dead, MB!H10 live)
   function reactions(p, sec) {
     const r = MZ.beamCheck({ ...p, sec }, null);
@@ -109,14 +161,17 @@
   }
 
   const COMMON_COLUMNS = ['W10X22', 'W8X24', 'W12X26'];
-  /* loads: { DL_L, LL_L, DL_R, LL_R } ; opt: { L (ft), candidates, includeW818, edition, division } */
+  /* loads: { DL_L, LL_L, DL_R, LL_R }, or an array of them (a section must pass every set; the
+     governing set's check is returned) ; opt: { L (ft), candidates, includeW818, edition, division } */
   function designColumn(loads, opt, WFDB) {
+    const sets = Array.isArray(loads) ? loads : [loads];
     const list = (opt.candidates || COMMON_COLUMNS).slice();
     if (opt.includeW818 && !list.includes('W8X18')) list.unshift('W8X18');
     list.sort((a, b) => WFDB[a].W - WFDB[b].W);
     const tried = [];
     const run = name => {
-      const c = MZ.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: opt.L, Lby: opt.L * 12, ...loads, edition: opt.edition }, WFDB);
+      const all = sets.map(ld => MZ.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: opt.L, Lby: opt.L * 12, ...ld, edition: opt.edition }, WFDB));
+      const c = all.length === 1 ? all[0] : { ...all.slice().sort((a, b) => b.max - a.max)[0], ok: all.every(x => x.ok) };
       tried.push({ name, max: c.max, ok: c.ok, check: c });
       return c;
     };
@@ -133,6 +188,6 @@
     return { name: null, quoteAs: null, common: false, check: null, tried };
   }
 
-  const api = { designBeam, designColumn, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, flangeName, COMMON_COLUMNS, inStock };
+  const api = { designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);

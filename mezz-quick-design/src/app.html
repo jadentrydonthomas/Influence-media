@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,116 +10,127 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+  <symbol id="i-design" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+  <symbol id="i-beam" viewBox="0 0 24 24"><path d="M4 5h16M4 19h16M12 5v14"/></symbol>
+  <symbol id="i-column" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M10 3v18M14 3v18"/></symbol>
+  <symbol id="i-inputs" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
+</svg>
 <div class="app">
-  <aside class="rail">
+  <aside class="rail" aria-label="Mezzanine quick-design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
-    <div class="rail-kicker">Building Systems · Quote Eng.</div>
-    <h1 class="rail-title">Mezzanine<br>Quick-Design</h1>
-    <dl class="rail-facts" id="railFacts">
-      <div class="fact"><dt>Quote</dt><dd class="big" id="fQuote">—</dd></div>
-      <div class="fact"><dt>Project</dt><dd id="fProject">Awaiting PCS</dd></div>
-      <div class="fact"><dt>Code → Sheets</dt><dd id="fCode">—</dd></div>
-      <div class="fact"><dt>Division</dt><dd id="fDiv">—</dd></div>
-      <div class="fact" id="fMezzWrap" hidden><dt>Mezzanine</dt><dd><select id="fMezz"></select></dd></div>
-    </dl>
+    <div class="rail-label">Building systems · quote eng.</div>
+    <h1 class="rail-title">Mezzanine quick-design</h1>
+    <section class="rail-score" aria-label="Design result">
+      <span id="rsLabel">Design result</span>
+      <strong id="rsSection" class="nocase">—</strong>
+      <small id="rsSub">Drop a PCS to size the beams and columns.</small>
+      <b id="rsNote"></b>
+    </section>
     <nav class="rail-nav" id="nav">
-      <button data-view="upload" class="is-active"><span>01</span>Upload PCS</button>
-      <button data-view="results" disabled><span>02</span>Sections</button>
-      <button data-view="plan" disabled><span>03</span>Plan &amp; Layout</button>
-      <button data-view="beam" disabled><span>04</span>Beam Calc</button>
-      <button data-view="column" disabled><span>05</span>Column Calc</button>
-      <button data-view="inputs" disabled><span>06</span>Inputs</button>
-      <button data-view="settings"><span>07</span>Settings</button>
+      <button data-view="upload" aria-current="page"><svg><use href="#i-upload"/></svg>Upload PCS</button>
+      <button data-view="results" disabled><svg><use href="#i-design"/></svg>Design</button>
+      <button data-view="plan" disabled><svg><use href="#i-plan"/></svg>Plan &amp; layout<span class="count" id="navPlanCount" hidden></span></button>
+      <button data-view="beam" disabled><svg><use href="#i-beam"/></svg>Beam calc</button>
+      <button data-view="column" disabled><svg><use href="#i-column"/></svg>Column calc</button>
+      <button data-view="inputs" disabled><svg><use href="#i-inputs"/></svg>Inputs read</button>
+      <button data-view="settings"><svg><use href="#i-settings"/></svg>Settings</button>
     </nav>
-    <div class="rail-foot">
-      <button class="rail-btn primary" id="copyQuote" disabled>Copy for quote sheet</button>
-      <button class="rail-btn" id="printBtn" disabled>Print calc summary</button>
-      <div class="rail-note">Math ported cell-for-cell from the NBG Mezzanine Beam Design and Mezzanine Column workbooks; verified against the workbooks.</div>
+    <div class="rail-bottom">
+      <button class="btn-mint" id="copyQuote" disabled><svg><use href="#i-copy"/></svg>Copy quote rows</button>
+      <button class="btn-rail" id="printBtn" disabled>Print calc summary</button>
+      <p>Math ported cell for cell from the NBG Mezzanine Beam Design and Mezzanine Column workbooks, and verified against them.</p>
     </div>
   </aside>
 
   <main class="main">
     <header class="masthead">
-      <div class="masthead-title">Mezzanine Quick-Design <span class="masthead-context" id="mastContext">Beam &amp; column sections from the PCS</span></div>
+      <div class="masthead-context"><strong>Mezzanine quick-design</strong><span id="mastContext">Beam and column sections from the PCS</span></div>
       <div class="mast-right">
-        <span class="stamp"><i class="dot" id="statusDot"></i><span id="statusText">Awaiting PCS</span></span>
-        <button class="link-toggle" id="themeBtn">Dark theme</button>
+        <span class="stamp-cell" id="stampMezz" hidden><span>Mezzanine</span><strong><select id="fMezz"></select></strong></span>
+        <span class="stamp-cell"><span>Code → sheets</span><strong id="fCode">—</strong></span>
+        <span class="stamp-cell"><span>Division stock</span><strong id="fDiv">—</strong></span>
+        <span class="status"><i class="dot" id="statusDot"></i><span id="statusText">Awaiting PCS</span></span>
+        <button class="theme-button" id="themeBtn">Light theme</button>
       </div>
     </header>
 
-    <!-- 01 UPLOAD -->
+    <!-- UPLOAD -->
     <section class="screen is-active" id="v-upload">
       <div class="screen-heading">
-        <div>
-          <div class="eyebrow">Source intake</div>
-          <h1>Drop the PCS.<br><em>Get the sections.</em></h1>
-        </div>
-        <p class="lede">Box 22 loads and clearances, the blue handwritten values, Box 2 bays and endwall columns, Box 3 code and Box 5 frames are read straight from the PDF. The beams and columns are then sized with the same math as the NBG sheets.</p>
+        <div><div class="eyebrow">Source intake</div><h1>Drop the PCS.<br><em>Get the sections.</em></h1></div>
+        <p class="lede">Box 22 loads and clearances, the blue handwritten values, Box 2 bays and endwall columns, Box 3 code and Box 5 frames are read straight from the PDF, then sized with the same math as the NBG sheets.</p>
       </div>
       <div class="intake">
-        <div class="eyebrow">Project Confirmation Summary</div>
-        <h2>Upload the eQuote PDF</h2>
+        <div class="intake-head">
+          <div><div class="eyebrow">Project confirmation summary</div><h3>Upload the eQuote PDF</h3></div>
+          <p>Read locally in this browser — nothing is uploaded. Works offline.</p>
+        </div>
         <label class="drop" id="drop">
           <input type="file" id="file" accept="application/pdf,.pdf">
-          <strong id="dropTitle">Drop PCS here or click to browse</strong>
-          <small id="dropSub">PDF · read locally in this browser · nothing is uploaded</small>
+          <svg><use href="#i-file"/></svg>
+          <strong id="dropTitle">Drop the PCS here or click to browse</strong>
+          <small id="dropSub">PDF · any mezzanine job</small>
         </label>
         <div class="progress"><i id="prog"></i></div>
-        <div class="intake-foot">
-          <span id="intakeMsg">Works offline. The file never leaves this computer.</span>
-          <button class="ghost" id="manualBtn">Enter by hand instead</button>
-        </div>
+        <div class="intake-foot"><span id="intakeMsg">Beam sections, column sections, spans, tribs and quantities in about a second.</span><button class="btn-rail" id="manualBtn">Enter by hand instead</button></div>
       </div>
       <div class="steps">
-        <div class="step"><span class="k">01 · read</span><b>Box 22 + annotations</b><p>Dead / live / collateral, slab, A–F clearances, joist spacing and seat depth. TBD rows fall back to the blue notes.</p></div>
-        <div class="step"><span class="k">02 · lay out</span><b>Grid → beams → columns</b><p>Frame lines and endwall columns inside the footprint set the beam lines, spans, tribs and the ⊗ mezzanine columns.</p></div>
-        <div class="step"><span class="k">03 · size</span><b>MB sheet + Column sheet</b><p>Lightest stocked BU at SR ≤ 0.99, L/360 live, L/240 total; then W10X22 / W8X24 / W12X26 on the beam reactions.</p></div>
+        <div class="step-card"><div class="n">01</div><h4>Read the PCS</h4><p>Loads, slab, A–F clearances, joist spacing and seat depth. TBD rows fall back to the blue notes; checkboxes are read from the page.</p></div>
+        <div class="step-card"><div class="n">02</div><h4>Lay out the framing</h4><p>Frame lines and endwall columns inside the footprint set the beam lines, spans, tribs and ⊗ columns — checked against the floor plan.</p></div>
+        <div class="step-card"><div class="n">03</div><h4>Size like the sheets</h4><p>Every stocked BU at SR ≤ 0.99, L/360, L/240 → three options. Then W10X22 / W8X24 / W12X26 on the beam reactions.</p></div>
       </div>
     </section>
 
-    <!-- 02 RESULTS -->
+    <!-- DESIGN -->
     <section class="screen" id="v-results">
       <div class="screen-heading">
-        <div>
-          <div class="eyebrow" id="resEyebrow">Design result</div>
-          <h1 id="resTitle">Sections</h1>
-        </div>
+        <div><div class="eyebrow" id="resEyebrow">Design result</div><h1 id="resTitle">Sections</h1></div>
         <p class="lede" id="resLede"></p>
       </div>
-      <div class="warnings" id="warnings"></div>
-      <div class="result-grid">
-        <div class="panel">
-          <div class="panel-head"><h3>Mezzanine beams</h3><span class="sub" id="beamSub"></span></div>
-          <div id="beamCards"></div>
-        </div>
-        <div>
-          <div class="panel">
-            <div class="panel-head"><h3>Mezzanine columns</h3><span class="sub" id="colSub"></span></div>
-            <div id="colCards"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3>Quote sheet</h3><span class="sub">plain text · paste anywhere</span></div>
-            <div class="panel-body">
-              <pre class="quote-block" id="quoteText"></pre>
-              <div class="row-actions"><button class="btn primary" id="copyQuote2">Copy</button><button class="btn" data-go="plan">Check the plan</button><button class="btn" data-go="beam">Open beam calc</button></div>
-            </div>
+      <div class="metrics" id="metrics"></div>
+      <div class="notes" id="warnings"></div>
+      <section class="field" id="field"></section>
+      <section class="model" id="modelSec">
+        <div class="model-head">
+          <div><div class="eyebrow">3D framing model</div><h3 id="modelTitle">The mezzanine, built</h3></div>
+          <div class="model-toggles" id="modelToggles">
+            <button data-t="slab" class="is-on">Slab</button><button data-t="joists" class="is-on">Joists</button><button data-t="building" class="is-on">Building columns</button>
           </div>
         </div>
-      </div>
+        <div class="model-body">
+          <div class="model-stage">
+            <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · scroll to zoom · click a member</span></div>
+            <canvas id="model3d" aria-label="3D model of the mezzanine framing"></canvas>
+            <div class="model-controls"><button id="m3Pause">Pause rotation</button><button id="m3Reset">Reset view</button><button id="m3Out" aria-label="Zoom out">−</button><button id="m3In" aria-label="Zoom in">+</button></div>
+          </div>
+          <aside class="model-card" id="modelCard"></aside>
+        </div>
+        <div class="model-key" id="modelKey"></div>
+      </section>
+      <div class="section-title"><h3>Beam options</h3><p id="optSub"></p></div>
+      <div id="options"></div>
+      <div class="section-title"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
+      <div class="qs" id="quoteSheet"></div>
+      <section class="readout" id="readout"></section>
     </section>
 
-    <!-- 03 PLAN -->
+    <!-- PLAN -->
     <section class="screen" id="v-plan">
       <div class="screen-heading">
-        <div><div class="eyebrow">Layout</div><h2>Plan &amp; layout</h2></div>
-        <p class="lede">The PCS floor plan has no text layer, so the layout is built from the bay and endwall-column spacing. Hold it against the drawing: beam lines, joist direction and the ⊗ columns should match.</p>
+        <div><div class="eyebrow">Layout</div><h2>Plan &amp; <em>layout</em></h2></div>
+        <p class="lede">Beam lines, spans, tribs and columns built from the bay and endwall-column spacing, with the ⊗ symbols read off the PCS floor plan overlaid.</p>
       </div>
+      <div class="plan-stats" id="planStats"></div>
       <div class="panel plan">
         <div class="panel-head">
           <h3 id="planTitle">Framing plan</h3>
-          <div class="seg" id="joistSeg">
-            <button data-j="auto">Auto</button><button data-j="y">Joists span width</button><button data-j="x">Joists span length</button>
-          </div>
+          <div class="seg" id="joistSeg"><button data-j="auto">Auto</button><button data-j="y">Joists span width</button><button data-j="x">Joists span length</button></div>
         </div>
         <div class="plan-wrap"><svg id="planSvg" role="img" aria-label="Mezzanine framing plan"></svg></div>
         <div class="legend" id="planLegend"></div>
@@ -128,21 +139,21 @@
         <div class="panel-head"><h3>Beams &amp; supports</h3><span class="sub" id="layWhy"></span></div>
         <div class="panel-body">
           <div class="inputs-grid">
-            <div class="field wide"><label>Beam lines<small>ft from FSW / LEW, comma separated</small></label><input id="beamLinesIn"></div>
-            <div class="field wide"><label>Support lines<small>ft, comma separated</small></label><input id="supLinesIn"></div>
+            <div class="field-row wide"><label>Beam lines<small>ft from FSW / LEW, comma separated</small></label><input id="beamLinesIn"></div>
+            <div class="field-row wide"><label>Support lines<small>ft, comma separated</small></label><input id="supLinesIn"></div>
           </div>
-          <div class="row-actions"><button class="btn small" id="gridReset">Reset to building grid</button></div>
-          <div style="overflow-x:auto;margin-top:12px"><table id="beamTable"></table></div>
-          <div style="overflow-x:auto;margin-top:16px"><table id="supTable"></table></div>
+          <div style="margin-top:12px"><button class="btn-ghost" id="gridReset">Reset to building grid</button></div>
+          <div class="table-wrap" style="margin-top:14px"><table id="beamTable"></table></div>
+          <div class="table-wrap" style="margin-top:14px"><table id="supTable"></table></div>
         </div>
       </div>
     </section>
 
-    <!-- 04 BEAM CALC -->
+    <!-- BEAM CALC -->
     <section class="screen" id="v-beam">
       <div class="screen-heading">
         <div><div class="eyebrow">Mezzanine beam design</div><h2 id="beamCalcTitle">MB sheet</h2></div>
-        <p class="lede">Laid out like the MB sheet so the same numbers can be typed into Excel to confirm. Click a row in the depth table to use that section instead.</p>
+        <p class="lede">Laid out like the MB sheet so the same numbers can be typed into Excel to confirm. Click a row in the depth table to use that section.</p>
       </div>
       <div class="tabs" id="markTabs"></div>
       <div class="panel"><div class="panel-body" id="mbSheet"></div></div>
@@ -152,11 +163,11 @@
       </div>
     </section>
 
-    <!-- 05 COLUMN CALC -->
+    <!-- COLUMN CALC -->
     <section class="screen" id="v-column">
       <div class="screen-heading">
-        <div><div class="eyebrow">Independent mezzanine columns</div><h2>Column sheet</h2></div>
-        <p class="lede">Left / right beam reactions from the beam design, e = d/2, the three load combinations and column self-weight — as the Column sheet runs them. All values must read &lt; 1.00 with OK.</p>
+        <div><div class="eyebrow">Independent mezzanine columns</div><h2>Column <em>sheet</em></h2></div>
+        <p class="lede">Left / right beam reactions, e = d/2, the three load combinations and column self-weight, as the Column sheet runs them. Every value must read &lt; 1.00 with OK.</p>
       </div>
       <div class="tabs" id="colTabs"></div>
       <div class="panel"><div class="panel-body" id="colSheet"></div></div>
@@ -166,20 +177,20 @@
       </div>
     </section>
 
-    <!-- 06 INPUTS -->
+    <!-- INPUTS -->
     <section class="screen" id="v-inputs">
       <div class="screen-heading">
-        <div><div class="eyebrow">What was read</div><h2>Inputs</h2></div>
-        <p class="lede">Every value the design uses and where it came from. <span class="src pcs">PCS</span> text, <span class="src annotation">note</span> blue annotation, <span class="src deckGuide">guide</span> deck guide / standard, <span class="src estimate">est.</span> estimate, <span class="src manual">edit</span> typed here. Edits re-run the design.</p>
+        <div><div class="eyebrow">What was read</div><h2>Inputs <em>read</em></h2></div>
+        <p class="lede">Every value the design uses and where it came from: <span class="src pcs">PCS</span> text, <span class="src annotation">note</span> blue annotation, <span class="src deckGuide">guide</span> deck guide / standard, <span class="src estimate">est.</span> estimate, <span class="src manual">edit</span> typed here. Edits re-run the design.</p>
       </div>
       <div class="panel"><div class="panel-body"><div class="inputs-grid" id="inputsGrid"></div></div></div>
     </section>
 
-    <!-- 07 SETTINGS -->
+    <!-- SETTINGS -->
     <section class="screen" id="v-settings">
       <div class="screen-heading">
         <div><div class="eyebrow">Rules</div><h2>Settings</h2></div>
-        <p class="lede">Defaults follow the training guide, DM 15.1, DM 5.1 stock for the division, and the economical-flange chart.</p>
+        <p class="lede">Defaults follow the training guide, DM 15.1, DM 5.1 stock for the division and the economical-flange chart.</p>
       </div>
       <div class="panel"><div class="panel-body"><div class="inputs-grid" id="settingsGrid"></div></div></div>
     </section>
@@ -196,6 +207,7 @@
 <script>/*@INLINE_JS pcs.js*/</script>
 <script>/*@INLINE_JS extract.js*/</script>
 <script>/*@INLINE_JS plan.js*/</script>
+<script>/*@INLINE_JS model3d.js*/</script>
 <script>/*@INLINE_JS design.js*/</script>
 <script>/*@INLINE_JS run.js*/</script>
 <script>/*@INLINE_JS app.js*/</script>

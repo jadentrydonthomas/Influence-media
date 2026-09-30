@@ -15,10 +15,11 @@
   };
 
   const SETTINGS = {
-    edition: 'auto', division: 'auto', target: 0.99, dMin: 10, dMax: 24, symmetric: true, requireConc: true,
+    edition: 'auto', division: 'auto', target: 0.99, dMin: 10, dMax: 30, symmetric: true, requireConc: true,
     marks: 'single',          // 'single' governing mark (as quoted) | 'split' by trib / span (guide)
     colLength: 'A',           // 'A' finish floor to top of mezzanine | 'clear' clear below mezzanine beam
     includeW818: false, joists: 'auto', partitionTo: 'live',
+    optionDefault: 'lightest', // which of the three beam options goes on the quote by default
   };
 
   const v = (value, source, note) => ({ value, source, note });
@@ -31,9 +32,11 @@
     const matChecks = (m.checks && m.checks.material) || {};
     const material = Object.keys(matChecks).find(k => matChecks[k]) || null;
     const slabIn = m.slab != null ? m.slab * 12 : null;
+    const concrete = /light/i.test(material || '') ? 'LW' : 'NW';
+    const deck = DESIGN.deckKey(m.deckType) || '1.0C';
     const dl = typeof m.dead === 'number' ? v(m.dead, 'pcs') : (() => {
-      const d = DESIGN.deadLoadFor(slabIn, material || 'Standard Weight Concrete');
-      return v(d.psf, d.estimate ? 'estimate' : 'deckGuide', (m.dead === 'Per Seller' ? 'PCS says "Per Seller". ' : '') + d.note);
+      const d = DESIGN.deadLoadFor(slabIn, concrete, deck);
+      return { ...v(d.psf, d.estimate ? 'estimate' : 'deckGuide', d.note), auto: true };   // follows slab / deck / concrete edits
     })();
     const dim = k => (m.dims && m.dims[k]) || {};
     const dimV = (k, def, defNote) => {
@@ -44,7 +47,7 @@
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
-      mezz: { id: m.id, building: m.building, page: m.page, material, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText: m.deckType, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -95,9 +98,19 @@
     return { miss, soft };
   }
 
+  // Dead load from the deck guide tracks slab / deck / concrete edits until someone types a dead load
+  function refreshDeadLoad(inp) {
+    const d = inp.loads.dead;
+    if (!d || !d.auto) return;
+    const slab = val(inp.geom.slab);
+    const r = DESIGN.deadLoadFor(slab != null ? slab * 12 : null, inp.mezz.concrete || 'NW', inp.mezz.deck || '1.0C');
+    inp.loads.dead = { value: r.psf, source: r.estimate ? 'estimate' : 'deckGuide', note: r.note, auto: true };
+  }
+
   function run(inp, settings = {}) {
     const s = { ...SETTINGS, ...settings };
     const warn = [];
+    refreshDeadLoad(inp);
     const chk = validate(inp);
     chk.soft.forEach(t => warn.push({ level: 'warn', text: t }));
     if (chk.miss.length) {
@@ -131,7 +144,7 @@
     if (prov['Auxiliary Columns'] === false) warn.push({ level: 'warn', text: 'Auxiliary Columns are not checked under Materials Provided By Seller.' });
     const mat = inp.mezz.material;
     if (mat && !/Concrete/i.test(mat)) warn.push({ level: 'stop', text: `Mezzanine material is "${mat}" — per the training guide the quote engineer runs anything other than deck + concrete. Enter the dead load manually.` });
-    if (inp.loads.dead.source === 'estimate') warn.push({ level: 'warn', text: inp.loads.dead.note });
+    if (inp.loads.dead.source === 'estimate') warn.push({ level: 'warn', text: `Dead load ${val(inp.loads.dead)} psf: ${inp.loads.dead.note}` });
     if (part > 0) warn.push({ level: 'info', text: `Partition load ${part} psf added to the ${s.partitionTo} load.` });
     if (spacing > 5) warn.push({ level: 'warn', text: `Joist spacing ${PCS.fmtFtIn(spacing)} exceeds the 5'-0" NBG maximum (DM 15.1.1.3).` });
     ['joistSpacing', 'seat'].forEach(k => { if (inp.geom[k].source === 'default') warn.push({ level: 'warn', text: inp.geom[k].note }); });
@@ -142,6 +155,9 @@
     const grid = LAYOUT.buildingGrid({ width: bl.width, length: bl.length, bays: bl.bays, lewCols: bl.lewCols, rewCols: bl.rewCols, ridge: bl.ridge, frames: bl.frames, fswSoldier: bl.fswSoldier, bswSoldier: bl.bswSoldier });
     const mz = { length: val(inp.geom.length), width: val(inp.geom.width), startLEW: val(inp.geom.startLEW) || 0, startFSW: val(inp.geom.startFSW) || 0 };
     const lay = LAYOUT.layout(grid, mz, { joists: s.joists, xLines: s.xLines, yLines: s.yLines });
+    // grid lines that only some frames share (interior frame columns off the endwall grid) can put beam lines close together
+    const tight = lay.beamLines.slice(1).map((v, i) => [lay.beamLines[i], v]).filter(([a, b]) => b - a < 12 - 1e-6);
+    if (tight.length && !(s.xLines || s.yLines)) warn.push({ level: 'info', text: `Beam lines ${tight.map(([a, b]) => `${PCS.fmtFtIn(a)} / ${PCS.fmtFtIn(b)}`).join(', ')} are under 12'-0" apart — joists span only ${PCS.fmtFtIn(Math.min(...tight.map(([a, b]) => b - a)))} there. Drop a line on the Plan page if the joists should span past it.` });
 
     // beams
     const maxDepthByC = Cq != null && A != null ? Math.floor((A - Cq) * 12 - slabIn - seatIn + 1e-6) : null;
@@ -150,9 +166,26 @@
     const designed = marks.map(mk => {
       const p = { ...beamBase, L: mk.span, trib: mk.trib };
       const dz = ed.beamEd ? DESIGN.designBeam(p, { division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepthByC ?? undefined }) : null;
-      const chosen = s.override && s.override[mk.mark] ? s.override[mk.mark] : dz && dz.best ? dz.best.sec : null;
+      // the (B) clearance line: A - B - slab - seat (same number as the total joist depth)
+      const dLimit = joistDepthIn != null ? Math.floor(joistDepthIn + 1e-6) : null;
+      const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: mk.span }) : [];
+      // a pick is stored as intent — an option key or a depth — so every input change re-runs the search:
+      //   { key: 'fit' } → that option for the current loads; { d: 20 } → lightest passing section at 20";
+      //   { sec } → that exact section (checked, flagged if it fails)
+      const ov = s.override && s.override[mk.mark];
+      const preferred = options.find(o => o.key === ((ov && ov.key) || s.optionDefault));
+      const atDepth = ov && ov.d != null && dz ? dz.byDepth.find(z => z.d === +ov.d && !z.none) : null;
+      let chosen = ov && ov.sec ? ov.sec : atDepth ? atDepth.sec : preferred ? preferred.pick.sec : dz && dz.best ? dz.best.sec : null;
+      if (ov && ov.d != null && !atDepth && chosen) warn.push({ level: 'warn', text: `${mk.mark}: nothing passes at ${ov.d}" deep for these loads — back to the ${preferred ? preferred.label.toLowerCase() : 'lightest'} section.` });
+      if (ov && ov.key && !options.some(o => o.key === ov.key) && chosen) warn.push({ level: 'info', text: `${mk.mark}: no ${ov.key} option for these inputs — using the lightest.` });
       const check = chosen ? MZ.beamCheck({ ...p, sec: chosen }, WF) : null;
-      return { ...mk, qty: mk.beams.length, params: p, search: dz, sec: chosen, check, desc: check ? check.desc : null };
+      const same = (a, b) => a && b && ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => a[k] === b[k]);
+      const optionKey = (options.find(o => same(o.pick.sec, chosen)) || {}).key || (chosen ? 'custom' : null);
+      if (check && ov && ov.sec) {
+        const okB = check.res.CSR <= s.target && check.res.SRvx <= s.target && check.llOK && check.tlOK && (!check.conc || check.conc.ok);
+        if (!okB) warn.push({ level: 'stop', text: `${mk.mark}: the pinned ${check.desc} no longer passes (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick an option again.` });
+      }
+      return { ...mk, qty: mk.beams.length, params: p, search: dz, options, optionKey, pinned: ov || null, sec: chosen, check, desc: check ? check.desc : null };
     });
     designed.forEach(mk => {
       if (mk.sec) return;
@@ -187,24 +220,31 @@
       // normalise so the heavier side is "left" (the three workbook combinations are symmetric)
       const sw = Lr.D + Lr.L < Rr.D + Rr.L;
       const left = sw ? Rr : Lr, right = sw ? Lr : Rr;
-      return { label: c.label, x: c.x, y: c.y, DL_L: left.D, LL_L: left.L, DL_R: right.D, LL_R: right.L, sides: (c.beams.L != null) + (c.beams.R != null) };
+      // tributary floor area: half of each beam framing in x its trib width
+      const tribArea = [c.beams.L, c.beams.R].filter(id => id != null).reduce((a, id) => a + lay.beams[id].trib * lay.beams[id].span / 2, 0);
+      return { label: c.label, x: c.x, y: c.y, DL_L: left.D, LL_L: left.L, DL_R: right.D, LL_R: right.L, sides: (c.beams.L != null) + (c.beams.R != null), tribArea };
     });
     const key = c => [c.DL_L, c.LL_L, c.DL_R, c.LL_R].map(x => x.toFixed(2)).join('|');
     const groups = [];
     cols.forEach(c => { const g = groups.find(g => g.key === key(c)); g ? g.cols.push(c) : groups.push({ key: key(c), cols: [c], loads: { DL_L: c.DL_L, LL_L: c.LL_L, DL_R: c.DL_R, LL_R: c.LL_R } }); });
-    groups.forEach(g => { g.design = ed.colEd && colLen ? DESIGN.designColumn(g.loads, { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null; });
-    // one section for every mezzanine column on the quote: the heaviest group result governs
-    const govCol = groups.filter(g => g.design && g.design.name).sort((a, b) => WF[b.design.name].W - WF[a.design.name].W)[0] || null;
+    const noBeam = cols.some(c => ![c.DL_L, c.LL_L, c.DL_R, c.LL_R].every(isFinite));   // a beam framing in has no section yet
+    groups.forEach(g => { g.design = ed.colEd && colLen && !noBeam ? DESIGN.designColumn(g.loads, { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null; });
+    // one section for every mezzanine column on the quote: the lightest W (same try order) that passes every group
+    const allOK = groups.length && groups.every(g => g.design && g.design.name);
+    const env = allOK && groups.length > 1 ? DESIGN.designColumn(groups.map(g => g.loads), { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null;
+    const govCol = allOK ? (env ? (env.name ? { design: env } : null) : groups[0]) : null;
     let colFinal = null;
     if (govCol) {
       const name = s.colOverride || govCol.design.name;
       const checks = groups.map(g => MZ.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: colLen, Lby: colLen * 12, ...g.loads, edition: ed.colEd }, WF));
       const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/);
       colFinal = { name, quoteAs: DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt, checks, max: Math.max(...checks.map(c => c.max)), ok: checks.every(c => c.ok) };
+      if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${s.colOverride ? ' — the column pick on the Column page overrides the automatic W' : ''}.` });
       if (WF[name].bf < 7) warn.push({ level: 'info', text: `${name} flange is ${WF[name].bf}" (< 7" DM 15.1.1.4.2 min for beams to the flange) — relies on the standard 4" bolt gage.` });
       if (!DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'info', text: `${name} is not a stocked W at ${division}.` });
     }
     if (cols.length && !colLen) warn.push({ level: 'stop', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' });
+    else if (cols.length && noBeam) warn.push({ level: 'stop', text: 'Columns not sized — the beams framing into them have no section yet.' });
     else if (cols.length && !govCol) warn.push({ level: 'stop', text: 'No W8–W14 column passes — check the loads or design a BU column.' });
 
     const quote = {
@@ -224,6 +264,49 @@
     return L.join('\n');
   }
 
-  const api = { inputsFromPCS, run, quoteText, SETTINGS, DEFAULTS, resolveEdition };
+  /* Rows for the quote workbook's mezzanine tables (Mezz. Design Information / Mezz. Beams / Mezz. Columns).
+     DL_T = DL + COL; LL_T = LL (+ partition when it is carried as live). End plates: 40 lb per beam, 46 lb per column. */
+  const END_WT_BEAM = 40, END_WT_COL = 46;
+  const round = (v, n = 2) => (v == null || !isFinite(v) ? '' : +(+v).toFixed(n));
+  function quoteSheet(res, inp) {
+    const id = inp.mezz.id || 'A';
+    const conc = /light/i.test(inp.mezz.material || '') ? 'LW' : 'NW';
+    const b = res.beamBase, part = val(inp.loads.partition) || 0;
+    const dl = val(inp.loads.dead), col = val(inp.loads.coll) || 0, ll = val(inp.loads.live);
+    const dlT = dl + col + (res.settings.partitionTo === 'dead' ? part : 0);
+    const llT = ll + (res.settings.partitionTo === 'live' ? part : 0);
+    const dlNote = inp.loads.dead.source === 'pcs' ? 'DL per PCS' : inp.loads.dead.source === 'manual' ? 'DL entered by QE'
+      : `DL per seller: ${val(inp.loads.dead)} psf = ${(inp.loads.dead.note || '').replace(/^Deck guide: /, '').replace(/ — estimated.*$/, ' (est.)')}`;
+    const design = [{ MEZZ: id, FF: round(val(inp.geom.A), 3), SLAB: round(val(inp.geom.slab) * 12, 3), WT: conc, DL: dl, COL: col, LL: ll, PART: part,
+      NOTES: [dlNote, part ? `partition to ${res.settings.partitionTo}` : ''].filter(Boolean).join('; ') }];
+    const g = res.grid, lay = res.layout;
+    const lineLab = v => (lay.joists === 'y' ? g.yLabel(v) : g.xLabel(v)) || PCS.fmtFtIn(v);
+    const beams = res.marks.map(mk => {
+      const bs = mk.beams.map(i => lay.beams[i]);
+      const lines = [...new Set(bs.map(x => lineLab(x.line)))].sort((a, c) => String(a).localeCompare(String(c), undefined, { numeric: true }));
+      const tribs = [...new Set(bs.map(x => x.trib))].sort((a, c) => c - a);
+      const opt = mk.options && mk.options.find(o => o.key === mk.optionKey);
+      const notes = [`${mk.mark}: lines ${lines.join(', ')}`, tribs.length > 1 ? `trib ${tribs.map(t => PCS.fmtFtIn(t)).join(' / ')} (designed for ${PCS.fmtFtIn(mk.trib)})` : '', opt && opt.key !== 'lightest' ? opt.label.toLowerCase() + ' option' : ''].filter(Boolean).join('; ');
+      return { MEZZ: id, SPAN: round(mk.span, 3), TRIB: round(mk.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || '', ENDWT: END_WT_BEAM, QTY: mk.qty, NOTES: notes };
+    });
+    const columns = [];
+    if (res.colFinal && res.columns.length) {
+      const areas = res.columns.map(c => c.tribArea);
+      const byArea = {};
+      res.columns.forEach(c => { const k = round(c.tribArea, 1); (byArea[k] = byArea[k] || []).push(c.label); });
+      const notes = Object.entries(byArea).sort((a, c) => c[0] - a[0]).map(([a, labs]) => `${labs.sort().join(', ')} @ ${a} ft²`).join('; ');
+      columns.push({ MEZZ: id, HEIGHT: round(res.colLen, 3), AREA: round(Math.max(...areas), 1), SECTION: res.colFinal.quoteAs, ENDWT: END_WT_COL, QTY: res.columns.length,
+        NOTES: notes + (res.colFinal.quoteAs !== res.colFinal.name ? `; run as ${res.colFinal.name}` : '') });
+    }
+    const heads = {
+      design: [['MEZZ', 'MEZZ.'], ['FF', 'FF El. (ft)'], ['SLAB', 'SLAB (in.)'], ['WT', 'WT-NW/LW'], ['DL', 'DL, (psf)'], ['COL', 'COL, (psf)'], ['LL', 'LL, (psf)'], ['PART', 'PART. (psf)'], ['NOTES', 'ADDITIONAL NOTES']],
+      beams: [['MEZZ', 'MEZZ.'], ['SPAN', 'SPAN (ft)'], ['TRIB', 'TRIB. (ft)'], ['DLT', 'DLᴛ (psf)'], ['LLT', 'LLᴛ (psf)'], ['SECTION', 'SECTION'], ['ENDWT', 'END WT (lb)'], ['QTY', 'QTY.'], ['NOTES', 'ADDITIONAL NOTES']],
+      columns: [['MEZZ', 'MEZZ.'], ['HEIGHT', 'HEIGHT (ft)'], ['AREA', 'TRIB. AREA (ft²)'], ['SECTION', 'SECTION'], ['ENDWT', 'END WT (lb)'], ['QTY', 'QTY.'], ['NOTES', 'ADDITIONAL NOTES']],
+    };
+    const tsv = (rows, h) => rows.map(r => h.map(([k]) => r[k]).join('\t')).join('\n');
+    return { design, beams, columns, heads, tsv: { design: tsv(design, heads.design), beams: tsv(beams, heads.beams), columns: tsv(columns, heads.columns) } };
+  }
+
+  const api = { inputsFromPCS, run, quoteText, quoteSheet, SETTINGS, DEFAULTS, resolveEdition };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);
