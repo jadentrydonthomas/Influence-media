@@ -11,6 +11,37 @@ Workflow: whichever assistant produces a new version, replace the Drive file wit
 (Drive → right-click the file → *Manage versions* → *Upload new version* keeps the same link).
 This repo keeps a versioned history of the same file so every change lands as a reviewable diff.
 
+**The Drive upload is a manual step.** Claude's Drive connector can read the file but cannot
+write file contents, so a new version only reaches Drive when someone uploads it. Google Drive
+also shows `.html` files as source code rather than running them — download the file and open
+it in a browser to use the app.
+
+## September 30, 2026 fixes (Claude)
+
+**Layout** — below roughly 1400px wide (a non-maximized laptop window, or a side panel) the map
+vanished and the inspector ran off the right edge. Cause: the app grid had one auto-sized column,
+so the header could not shrink and forced the whole app wider than the window. Fixed, along with
+a specificity bug that stopped the small-screen layout from ever applying and a malformed CSS
+rule. Verified at 1440, 1280, 1024, 900 and 620px.
+
+**Live prices** (Research Deck → Data Health → *Live prices*) — paste a free Finnhub or Twelve
+Data API key and the Atlas pulls current quotes for your watchlist, value candidates, or the top
+25 companies by research priority. A live quote replaces the embedded close on the price tile,
+recomputes the 1-year return, and extends the chart to today. The key stays in your browser.
+- Free tiers cover **US listings**; many foreign listings come back as "not covered".
+- Quotes are cached for 15 minutes; Finnhub allows ~60 requests/min, Twelve Data ~8/min.
+
+**TradingView charts** — the ~280 companies without embedded price history showed a legacy
+TradingView iframe that loaded lazily inside a hidden overlay and often never appeared. It now
+uses TradingView's official embed script, and if a chart fails to load (offline, blocked, or no
+response in 12s) the box turns into direct TradingView links instead of staying blank.
+- Some exchanges don't license their data to embedded widgets; TradingView then shows "only
+  available on TradingView". Use the *Live TradingView* button for those.
+
+**Where live features work** — live prices and TradingView charts need the **downloaded file**
+opened in a browser on your own computer. The hosted claude.ai link blocks outside connections,
+so there the TradingView boxes show direct links and live prices report that they're blocked.
+
 ## July 17, 2026 upgrade (Claude)
 
 Built on top of the same-day Codex session (Cybersecurity ecosystem, Automation Buyers,

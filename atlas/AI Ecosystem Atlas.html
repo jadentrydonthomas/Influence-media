@@ -2296,9 +2296,35 @@ function mathCard(n){
   }
   return '<details id="deep-math" class="deep-card span-12 compact-math"><summary><span><span class="section-label">Methodology drawer</span><b style="display:block;margin-top:4px">Open detailed indicators and reproducible calculations</b></span><span class="score-pill" style="color:var(--cyan)">SHARE '+criticalityShare(n)+'%</span><span class="score-pill" style="color:var(--coral)">BTL '+idx(n.score.bottleneck)+'</span><span class="score-pill" style="color:var(--violet)">RESEARCH '+idx(n.score.research)+'</span></summary><div class="compact-math-body">'+inner+'<p class="method-note">'+METHOD.caveat+'</p></div></details>'
 }
-function chartFrameHtml(n,interval){
-  const symbol=chartSymbol(n),url="https://s.tradingview.com/widgetembed/?symbol="+encodeURIComponent(symbol)+"&interval="+(interval||"W")+"&theme=dark&style=1&locale=en&withdateranges=1&hide_side_toolbar=0&allow_symbol_change=1&save_image=0";
-  return '<iframe loading="lazy" src="'+url+'" title="'+n.name+' stock chart"></iframe>'
+/* ===== TradingView: official embed =====
+   Mounts TradingView's supported Advanced Chart widget (their external-embedding
+   script) instead of the legacy widgetembed iframe, which loaded lazily inside a
+   hidden overlay and often never appeared. A watchdog swaps any chart that fails
+   to load — offline, blocked, or refused by TradingView — for direct links, so
+   the box is never left blank. */
+const TV_EMBED_SRC="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+function tvFallbackHtml(symbol,name,reason){
+  const sym=encodeURIComponent(symbol),slug=encodeURIComponent(String(symbol).replace(":","-"));
+  return '<div class="chart-fallback"><div><b>'+esc(reason)+'</b><p>Open '+esc(name)+' ('+esc(symbol)+') directly on TradingView:</p>'+
+    '<div class="watch-actions" style="justify-content:center"><a class="watch-btn" target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol='+sym+'">Live chart ↗</a>'+
+    '<a class="watch-btn" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/'+slug+'/">Overview ↗</a></div></div></div>';
+}
+function mountTradingView(root){
+  if(!root)return;
+  root.querySelectorAll("[data-tv-symbol]").forEach(function(box){
+    if(box.dataset.tvMounted)return;box.dataset.tvMounted="1";
+    const symbol=box.dataset.tvSymbol,name=box.dataset.tvName||symbol;
+    box.innerHTML="";box.classList.add("tradingview-widget-container");
+    const inner=document.createElement("div");inner.className="tradingview-widget-container__widget";inner.style.cssText="height:100%;width:100%";
+    const sc=document.createElement("script");sc.type="text/javascript";sc.async=true;sc.src=TV_EMBED_SRC;
+    sc.innerHTML=JSON.stringify({autosize:true,symbol:symbol,interval:"W",timezone:"Etc/UTC",theme:"dark",style:"1",locale:"en",
+      allow_symbol_change:true,hide_side_toolbar:true,save_image:false,calendar:false,
+      backgroundColor:"#081321",gridColor:"rgba(41,65,90,0.35)",support_host:"https://www.tradingview.com"});
+    function fallback(reason){if(box.isConnected)box.innerHTML=tvFallbackHtml(symbol,name,reason)}
+    sc.onerror=function(){fallback("The live TradingView chart could not load here")};
+    box.appendChild(inner);box.appendChild(sc);
+    setTimeout(function(){if(!box.querySelector("iframe"))fallback("The live TradingView chart did not respond")},12000);
+  });
 }
 /* Build-time adjusted-close snapshots. The generator replaces this token before delivery.
    The browser never fabricates prices and does not depend on a CORS-unsafe live request. */
@@ -2315,7 +2341,12 @@ const PRICE_LINEAGE={
   IONQ:"Longer history may include SPAC/pre-combination trading, not a like-for-like operating period."
 };
 function priceLineage(key){return PRICE_LINEAGE[key]||""}
-function seriesPoints(key){return (PRICE_SERIES[key]||[]).map(function(p){return {date:new Date(p[0]*1000),value:p[1]}}).filter(function(p){return Number.isFinite(p.value)&&p.value>0})}
+function seriesPoints(key){
+  const base=(PRICE_SERIES[key]||[]).map(function(p){return {date:new Date(p[0]*1000),value:p[1]}}).filter(function(p){return Number.isFinite(p.value)&&p.value>0});
+  const lq=typeof liveQuote==="function"?liveQuote(key):null;
+  if(lq&&base.length&&lq.ts>+base[base.length-1].date+2*864e5)base.push({date:new Date(lq.ts),value:lq.price,live:true});
+  return base;
+}
 function sliceYears(points,years){if(!points.length)return points;const end=+points[points.length-1].date,cut=end-years*365.25*864e5;return points.filter(function(p){return +p.date>=cut})}
 function performanceStats(points){
   if(!points||points.length<3)return null;const first=points[0],last=points[points.length-1],historyYears=(last.date-first.date)/(365.25*864e5);
@@ -2345,12 +2376,73 @@ function sparklineSvg(points,color,w,h){
   const area=d+"L"+px(xs[xs.length-1]).toFixed(1)+","+(h-pad)+"L"+px(xs[0]).toFixed(1)+","+(h-pad)+"Z";
   return '<svg class="sparkline" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true" style="width:100%;max-width:'+w+'px;height:'+h+'px"><path d="'+area+'" fill="'+color+'" opacity=".14"></path><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2"></path></svg>';
 }
+
+/* ===== Live quotes =====
+   Runs in your browser with your own free API key, so the Atlas can show a
+   current price instead of only the embedded weekly close. Falls back to the
+   embedded snapshot whenever no key is set, the network is unavailable, or a
+   ticker is not covered by the provider. */
+const LIVE_KEY_STORE="atlasLivePriceKeyV1",LIVE_CACHE_STORE="atlasLiveQuotesV1",LIVE_TTL_MS=9e5;
+let LIVE_QUOTES={};
+function liveLoad(){try{LIVE_QUOTES=JSON.parse(localStorage.getItem(LIVE_CACHE_STORE)||"{}")||{}}catch(_){LIVE_QUOTES={}}}
+function liveSave(){try{localStorage.setItem(LIVE_CACHE_STORE,JSON.stringify(LIVE_QUOTES))}catch(_){}}
+function liveCreds(){try{return JSON.parse(localStorage.getItem(LIVE_KEY_STORE)||"null")}catch(_){return null}}
+function liveSetCreds(provider,key){try{localStorage.setItem(LIVE_KEY_STORE,JSON.stringify({provider:provider,key:key}))}catch(_){}}
+function liveClearAll(){try{localStorage.removeItem(LIVE_KEY_STORE);localStorage.removeItem(LIVE_CACHE_STORE)}catch(_){}LIVE_QUOTES={}}
+function liveQuote(t){const q=LIVE_QUOTES[t];return q&&Number.isFinite(q.price)&&q.price>0?q:null}
+function liveCount(){return Object.keys(LIVE_QUOTES).length}
+function liveNewest(){let n=0;for(const k in LIVE_QUOTES){if(LIVE_QUOTES[k].ts>n)n=LIVE_QUOTES[k].ts}return n||null}
+const LIVE_PROVIDERS={
+  finnhub:{name:"Finnhub",gap:1100,signup:"https://finnhub.io/register",
+    url:function(t,k){return "https://finnhub.io/api/v1/quote?symbol="+encodeURIComponent(t)+"&token="+encodeURIComponent(k)},
+    parse:function(j){const p=parseFloat(j&&j.c),d=parseFloat(j&&j.dp);return Number.isFinite(p)&&p>0?{price:p,changePct:Number.isFinite(d)?d:null}:null}},
+  twelvedata:{name:"Twelve Data",gap:8000,signup:"https://twelvedata.com/pricing",
+    url:function(t,k){return "https://api.twelvedata.com/quote?symbol="+encodeURIComponent(t)+"&apikey="+encodeURIComponent(k)},
+    parse:function(j){const p=parseFloat(j&&j.close),d=parseFloat(j&&j.percent_change);return Number.isFinite(p)&&p>0?{price:p,changePct:Number.isFinite(d)?d:null}:null}}
+};
+async function fetchLiveQuotes(tickers,onProgress){
+  const creds=liveCreds();
+  if(!creds||!creds.key)throw Object.assign(new Error("No API key saved yet."),{code:"no-key"});
+  const prov=LIVE_PROVIDERS[creds.provider]||LIVE_PROVIDERS.finnhub;
+  const list=tickers.filter(function(t,i,a){return t&&a.indexOf(t)===i});
+  let ok=0;const failed=[];
+  for(let i=0;i<list.length;i++){
+    const t=list[i];
+    try{
+      const res=await fetch(prov.url(t,creds.key));
+      if(res.status===401||res.status===403)throw Object.assign(new Error("The provider rejected that API key."),{code:"bad-key"});
+      if(res.status===429)throw Object.assign(new Error("Rate limit reached — wait a minute, then refresh a smaller set."),{code:"rate"});
+      if(!res.ok)throw new Error("HTTP "+res.status);
+      const q=prov.parse(await res.json());
+      if(q){LIVE_QUOTES[t]={price:q.price,changePct:q.changePct,ts:Date.now(),src:prov.name};ok++}else failed.push(t);
+    }catch(e){
+      if(e.code)throw e;
+      if(e instanceof TypeError)throw Object.assign(new Error("The browser blocked the request. Live prices need the downloaded file opened from your own computer — the hosted preview blocks outside connections."),{code:"blocked"});
+      failed.push(t);
+    }
+    if(onProgress)onProgress(i+1,list.length,t);
+    if(i<list.length-1)await new Promise(function(r){setTimeout(r,prov.gap)});
+  }
+  liveSave();
+  return {ok:ok,failed:failed,total:list.length};
+}
+function liveTickersFor(scope){
+  const ids=scope==="watch"?readIdSet(WATCH_KEY):scope==="value"?readIdSet(VALUE_KEY):null;
+  if(ids)return Array.from(ids).map(function(id){const n=nodeById.get(id);return n&&n.ticker}).filter(Boolean);
+  return allNodes.filter(function(n){return n.kind==="company"&&!n.dup&&n.status!=="Private"&&n.ticker})
+    .sort(function(a,b){return (b.score&&b.score.research||0)-(a.score&&a.score.research||0)})
+    .slice(0,25).map(function(n){return n.ticker});
+}
+
 function lastPriceInfo(ticker){
   const pts=seriesPoints(ticker);if(!pts.length)return null;
-  const last=pts[pts.length-1],yearAgoTs=+last.date-365.25*864e5;
+  const last=pts[pts.length-1],lq=liveQuote(ticker);
+  const price=lq?lq.price:last.value,refTs=lq?lq.ts:+last.date;
+  const yearAgoTs=refTs-365.25*864e5;
   let start=null;for(let i=0;i<pts.length;i++){if(+pts[i].date>=yearAgoTs){start=pts[i];break}}
-  const oneYearPct=start&&start.value>0&&(+last.date-(+pts[0].date))>=300*864e5?(last.value/start.value-1)*100:null;
-  return {price:last.value,oneYearPct:oneYearPct,asof:PRICE_SERIES_ASOF};
+  const oneYearPct=start&&start.value>0&&(refTs-(+pts[0].date))>=300*864e5?(price/start.value-1)*100:null;
+  return {price:price,oneYearPct:oneYearPct,asof:lq?new Date(lq.ts).toISOString().slice(0,10):PRICE_SERIES_ASOF,
+    live:!!lq,ts:lq?lq.ts:null,changePct:lq?lq.changePct:null,embedded:last.value,src:lq?lq.src:null};
 }
 function inspectorPriceStrip(n){
   if(n.kind!=="company"||n.status==="Private")return "";
@@ -2405,7 +2497,7 @@ function companyHeroCard(n){
   if(n.status==="Private"){
     tiles=heroTile(capFmt(n.cap),"PRIVATE-ROUND VALUE")+heroTile(esc(n.c||"—"),"COUNTRY")+heroTile(n.ipo?"IPO WATCH":"PRIVATE","LISTING STATUS")+heroTile(idx(n.score.importance),"STRUCT. CRITICALITY")+heroTile(idx(n.score.bottleneck),"BTL LEVERAGE")+heroTile(criticalityShare(n)!=null?criticalityShare(n)+"%":"—","SHARE OF SEGMENT")+heroTile(idx(n.score.confidence),"EVIDENCE");
   }else{
-    tiles=heroTile(pi?"$"+pi.price.toFixed(pi.price>=100?0:2):"—","PRICE · "+PRICE_SERIES_ASOF)+
+    tiles=heroTile(pi?"$"+pi.price.toFixed(pi.price>=100?0:2):"—",pi&&pi.live?"● LIVE · "+timeAgo(pi.ts):"PRICE · "+PRICE_SERIES_ASOF)+
       heroTile(pi&&pi.oneYearPct!=null?(pi.oneYearPct>=0?"+":"")+pi.oneYearPct.toFixed(1)+"%":"—","1-YEAR RETURN",upColor)+
       heroTile(capFmt(n.cap),"MARKET CAP")+
       heroTile(f.ps!=null?fmt1(f.ps)+"x":"—","PRICE / SALES")+
@@ -2426,8 +2518,8 @@ function renderDeepDive(n){
   const role=n.description||n.pipeline||n.role;
   let chart='';
   if(n.kind==="company"&&n.status!=="Private"&&n.ticker){
-    const hasNative=seriesPoints(n.ticker).length>0,tv=chartSymbol(n),widget='https://s.tradingview.com/widgetembed/?frameElementId=atlas_'+encodeURIComponent(n.id)+'&symbol='+encodeURIComponent(tv)+'&interval=W&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=0b1524&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC';
-    chart='<div class="chart-tools">'+(hasNative?'<button class="control native-range" data-years="1">1 year</button><button class="control native-range" data-years="3">3 years</button><button class="control native-range" data-years="5">5 years</button><button class="control native-range" data-years="99">Max</button>':'')+'<span class="coverage-state '+(hasNative?'native':'live')+'">'+(hasNative?'● VERIFIED EMBEDDED HISTORY':'● LIVE WIDGET FALLBACK')+'</span><a class="control" style="text-decoration:none" target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol='+encodeURIComponent(tv)+'">Live TradingView ↗</a><a class="control" style="text-decoration:none" target="_blank" rel="noopener" href="https://finance.yahoo.com/quote/'+encodeURIComponent(n.ticker)+'">Yahoo ↗</a></div>'+(hasNative?'<div class="market-metrics" id="nativeMetrics"></div><div class="native-chart" id="nativeChart"></div>':'<div class="live-widget"><iframe title="Live market chart for '+esc(n.name)+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="'+widget+'"></iframe></div>')+stockRouteGrid(n)+'<p class="method-note">'+(hasNative?'Native chart uses build-time weekly adjusted closes through '+PRICE_SERIES_ASOF+'; metrics recalculate to the selected window. No simulated prices.':'This listing has no verified embedded price series, so the Atlas uses its exchange-qualified TradingView symbol instead of showing a blank or invented chart. If the widget is blocked, the direct market routes still open the listing.')+(priceLineage(n.ticker)?'<br><b>HISTORY LINEAGE:</b> '+priceLineage(n.ticker):'')+'</p>'
+    const hasNative=seriesPoints(n.ticker).length>0,tv=chartSymbol(n);
+    chart='<div class="chart-tools">'+(hasNative?'<button class="control native-range" data-years="1">1 year</button><button class="control native-range" data-years="3">3 years</button><button class="control native-range" data-years="5">5 years</button><button class="control native-range" data-years="99">Max</button>':'')+'<span class="coverage-state '+(hasNative?'native':'live')+'">'+(hasNative?'● VERIFIED EMBEDDED HISTORY':'● LIVE WIDGET FALLBACK')+'</span><a class="control" style="text-decoration:none" target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol='+encodeURIComponent(tv)+'">Live TradingView ↗</a><a class="control" style="text-decoration:none" target="_blank" rel="noopener" href="https://finance.yahoo.com/quote/'+encodeURIComponent(n.ticker)+'">Yahoo ↗</a></div>'+(hasNative?'<div class="market-metrics" id="nativeMetrics"></div><div class="native-chart" id="nativeChart"></div>':'<div class="live-widget" data-tv-symbol="'+esc(tv)+'" data-tv-name="'+esc(n.name)+'"><div class="chart-fallback"><div><b>Loading live TradingView chart…</b></div></div></div><p class="method-note">Chart says "only available on TradingView"? That exchange does not license its data to embedded widgets — use the Live TradingView button above.</p>')+stockRouteGrid(n)+'<p class="method-note">'+(hasNative?'Native chart uses build-time weekly adjusted closes through '+PRICE_SERIES_ASOF+'; metrics recalculate to the selected window. No simulated prices.':'This listing has no verified embedded price series, so the Atlas uses its exchange-qualified TradingView symbol instead of showing a blank or invented chart. If the widget is blocked, the direct market routes still open the listing.')+(priceLineage(n.ticker)?'<br><b>HISTORY LINEAGE:</b> '+priceLineage(n.ticker):'')+'</p>'
   }else if(n.kind==="company"){
     chart='<div class="chart-frame"><div class="chart-fallback"><div><b>Private company — no public stock chart</b><p>Use funding rounds, disclosed valuations and IPO filings instead of a simulated price series.</p></div></div></div>'
   }else chart='<div class="capital-bars">'+capitalRows(n)+'</div><p class="method-note">Mapped public-company market value, not money invested specifically in AI. Private valuations and dual-mapped entries are excluded.</p>';
@@ -2458,6 +2550,7 @@ function renderDeepDive(n){
   wireCompareButtons(document.getElementById("deepContent"));
   wireResearchActions(document.getElementById("deepContent"));
   const deepRefresh=document.getElementById("deepNewsRefresh");if(deepRefresh)deepRefresh.onclick=function(){refreshDeepNews(n,true)};if(n.kind==="company")refreshDeepNews(n,false);
+  mountTradingView(document.getElementById("deepContent"));
   if(n.kind==="company"&&n.status!=="Private"&&seriesPoints(n.ticker).length){renderNativeMarket(n.ticker,n.color||"#22d3ee","nativeChart","nativeMetrics",5);document.querySelectorAll("#deepContent .native-range").forEach(function(btn){btn.onclick=function(){renderNativeMarket(n.ticker,n.color||"#22d3ee","nativeChart","nativeMetrics",+btn.dataset.years)}})}
   const noteEl=document.getElementById("thesisNote");
   if(noteEl){noteEl.oninput=function(){saveNote(n.id,"note",noteEl.value)};
@@ -2882,6 +2975,59 @@ function stageHealthRows(){
     return {label:"Stage "+id+" — "+st.nm,asOf:st.asOf||null,cadence:st.refreshDays||90,scope:"BPI pressure inputs (lead time, concentration, gap, build years)",how:"Re-verify the four inputs against the primary source, then update STAGE_INPUTS["+id+"] and its asOf date.",url:st.url,days:fi.days};
   });
 }
+
+function livePricePanel(){
+  const creds=liveCreds(),prov=creds&&LIVE_PROVIDERS[creds.provider]?creds.provider:"finnhub";
+  const n=liveCount(),newest=liveNewest();
+  const opts=Object.keys(LIVE_PROVIDERS).map(function(k){
+    return '<option value="'+k+'"'+(k===prov?' selected':'')+'>'+LIVE_PROVIDERS[k].name+'</option>'}).join("");
+  return '<div class="section-label" style="margin-top:22px">Live prices — fetched by your browser, with your own free API key</div>'+
+  '<div class="prompt-card">'+
+    '<p>The embedded price history is a dated snapshot. Add a free API key and the Atlas will pull current quotes straight from the provider — the key is stored only in this browser and never leaves your machine. Live quotes override the snapshot on the price tile, the 1-year return and the charts.</p>'+
+    (n?'<p style="color:var(--green)"><b>'+n+' live '+(n===1?'quote':'quotes')+' cached</b> · newest '+timeAgo(newest)+'</p>':'<p style="color:var(--faint)">No live quotes yet — the Atlas is using the embedded snapshot from '+PRICE_SERIES_ASOF+'.</p>')+
+    '<div class="research-add" style="margin-top:10px">'+
+      '<select id="liveProvider" style="background:#08111f;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:12px;font:11px IBM Plex Mono">'+opts+'</select>'+
+      '<input id="liveKeyInput" type="password" placeholder="Paste your free API key" value="'+esc(creds&&creds.key?creds.key:"")+'">'+
+      '<button class="watch-btn" id="liveSaveKey">Save key</button>'+
+    '</div>'+
+    '<div class="watch-actions" style="margin-top:10px">'+
+      '<button class="watch-btn" id="liveRefreshWatch">Refresh watchlist</button>'+
+      '<button class="watch-btn" id="liveRefreshValue">Refresh value candidates</button>'+
+      '<button class="watch-btn" id="liveRefreshTop">Refresh top 25 by research priority</button>'+
+      '<button class="watch-btn" id="liveClear">Clear key and quotes</button>'+
+      '<a class="watch-btn" target="_blank" rel="noopener" href="'+LIVE_PROVIDERS[prov].signup+'">Get a free '+LIVE_PROVIDERS[prov].name+' key ↗</a>'+
+    '</div>'+
+    '<p id="liveStatus" style="margin-top:9px;font:600 11px IBM Plex Mono;color:var(--muted)">Quotes are cached for 15 minutes so repeat views cost no requests.</p>'+
+  '</div>';
+}
+function wireLivePrices(page){
+  const status=page.querySelector("#liveStatus"),keyIn=page.querySelector("#liveKeyInput"),provSel=page.querySelector("#liveProvider");
+  function say(msg,color){if(status){status.textContent=msg;status.style.color=color||"var(--muted)"}}
+  const save=page.querySelector("#liveSaveKey");
+  if(save)save.onclick=function(){
+    const k=(keyIn&&keyIn.value||"").trim();
+    if(!k)return say("Paste a key first — the provider link above issues one free.","var(--amber)");
+    liveSetCreds(provSel?provSel.value:"finnhub",k);
+    say("Key saved in this browser. Pick a set to refresh.","var(--green)");
+  };
+  const clear=page.querySelector("#liveClear");
+  if(clear)clear.onclick=function(){liveClearAll();renderAssistant();};
+  function run(scope,label){
+    const tickers=liveTickersFor(scope);
+    if(!tickers.length)return say("Nothing in that set yet — star some companies first.","var(--amber)");
+    say("Fetching "+tickers.length+" "+label+"…","var(--cyan)");
+    fetchLiveQuotes(tickers,function(done,total,t){say("Fetching "+done+"/"+total+" — "+t+"…","var(--cyan)")})
+      .then(function(r){
+        say(r.ok+" of "+r.total+" updated"+(r.failed.length?" · not covered: "+r.failed.slice(0,6).join(", ")+(r.failed.length>6?" +"+(r.failed.length-6)+" more":""):"")+".", r.ok?"var(--green)":"var(--amber)");
+        setTimeout(function(){renderAssistant()},1400);
+      })
+      .catch(function(e){say(e.message,"var(--coral)")});
+  }
+  const w=page.querySelector("#liveRefreshWatch");if(w)w.onclick=function(){run("watch","watchlist tickers")};
+  const v=page.querySelector("#liveRefreshValue");if(v)v.onclick=function(){run("value","value candidates")};
+  const t=page.querySelector("#liveRefreshTop");if(t)t.onclick=function(){run("top","top-priority tickers")};
+}
+
 function renderDataHealth(){
   const snapD=daysSince(ATLAS_SNAPSHOT_DATE),priceD=daysSince(PRICE_SERIES_ASOF);
   const stages=stageHealthRows(),stalest=stages.reduce(function(a,r){return (r.days||0)>(a.days||0)?r:a},stages[0]);
@@ -2895,6 +3041,7 @@ function renderDataHealth(){
   return '<div class="page-head"><div><div class="section-label">Research Deck · data health &amp; refresh automation</div><h1>Know how fresh every number is — and refresh it with one paste</h1></div><p>The Atlas separates a reviewed snapshot (edited by you, Claude or Codex) from live feeds (news and pulses) that refresh in the browser. This board tracks the snapshot side and generates ready-to-paste refresh prompts, so an AI session can update the file without you re-explaining the format each time.</p></div>'+
   '<div class="metric-grid"><div class="metric"><b style="color:'+(snapD<=7?"var(--green)":snapD<=21?"var(--amber)":"var(--coral)")+'">'+(snapD==null?"—":snapD+"D")+'</b><span>SNAPSHOT AGE</span></div><div class="metric"><b style="color:'+(priceD<=7?"var(--green)":priceD<=21?"var(--amber)":"var(--coral)")+'">'+(priceD==null?"—":priceD+"D")+'</b><span>PRICE DATA AGE</span></div><div class="metric"><b style="color:'+(stalest&&stalest.days!=null?(stalest.days<=stalest.cadence?"var(--green)":stalest.days<=stalest.cadence*2?"var(--amber)":"var(--coral)"):"var(--muted)")+'">'+(stalest&&stalest.days!=null?stalest.days+"D":"—")+'</b><span>STALEST STAGE INPUT</span></div><div class="metric"><b>'+liveCacheCount()+'</b><span>LIVE NEWS CACHES STORED</span></div></div>'+
   table+
+  livePricePanel()+
   '<div class="section-label" style="margin-top:22px">One-paste refresh prompts — copy, give to Claude or Codex with this file, replace the file with the result</div><div class="prompt-grid">'+prompts.map(function(p){return '<article class="prompt-card"><h3>'+p[1]+'</h3><p>'+p[2]+'</p><div class="watch-actions"><button class="watch-btn" data-copy-prompt="'+p[0]+'">Copy prompt</button></div></article>'}).join("")+'</div>'+
   '<div class="watch-actions" style="margin-top:16px"><button class="watch-btn" id="clearNewsCaches">Clear live news caches ('+liveCacheCount()+')</button><a class="watch-btn" target="_blank" rel="noopener" href="https://drive.google.com/">Open Google Drive (master copy) ↗</a></div>'+
   '<p class="method-note" style="margin-top:10px">Workflow: keep ONE master copy of this file in Google Drive. When Claude or Codex returns an updated file, replace the Drive copy so both assistants always start from the same version. Live news caches only affect this browser and are safe to clear.</p>';
@@ -2953,6 +3100,7 @@ function renderAssistant(){
   const refresh=document.getElementById("refreshResearchEvents");if(refresh)refresh.onclick=refreshResearchEvents;
   page.querySelectorAll("[data-copy-prompt]").forEach(function(b){b.onclick=function(){copyTextToClipboard(refreshPromptText(b.dataset.copyPrompt),"Refresh prompt")}});
   const clearCaches=document.getElementById("clearNewsCaches");if(clearCaches)clearCaches.onclick=function(){clearLiveNewsCaches();renderAssistant()};
+  wireLivePrices(page);
   const tenAdd=document.getElementById("tenYearAddBtn"),tenInput=document.getElementById("tenYearAddInput");if(tenAdd)tenAdd.onclick=function(){const c=findWatchCompany(tenInput.value);if(!c){showToast("That stock is not yet mapped. Try an exchange ticker from the Companies tab.");return}TEN_YEAR_IDS.add(c.id);saveIdSet(TEN_YEAR_KEY,TEN_YEAR_IDS);renderAssistant()};if(tenInput)tenInput.onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();tenAdd.click()}};
   page.querySelectorAll("[data-ten-stock] [data-metric]").forEach(function(input){input.onchange=function(){const card=input.closest("[data-ten-stock]"),n=card&&nodeById.get(card.dataset.tenStock);if(!n)return;const rec=getNotes()[n.id]||{},m=Object.assign({},rec.metrics||{});m[input.dataset.metric]=input.value;saveNote(n.id,"metrics",m);renderAssistant()}});
   if(RESEARCH_TAB==="news"){wireNewsPanel(page);setTimeout(function(){const filter=document.getElementById("newsFilter");refreshNews(filter?filter.value:"",false)},0)}
@@ -3079,7 +3227,7 @@ function init(){
   document.getElementById("centerSelected").onclick=function(){centerNode(selected)};
   const app=document.querySelector(".app"),densityBtn=document.getElementById("densityToggle"),compact=localStorage.getItem("atlasDensity")==="compact";app.classList.toggle("density-compact",compact);app.classList.toggle("density-comfort",!compact);densityBtn.textContent=compact?"Compact text":"Comfortable text";densityBtn.onclick=function(){const on=app.classList.toggle("density-compact");app.classList.toggle("density-comfort",!on);localStorage.setItem("atlasDensity",on?"compact":"comfortable");densityBtn.textContent=on?"Compact text":"Comfortable text"};
   document.getElementById("deepClose").onclick=closeDeepDive;document.getElementById("deepBack").onclick=deepBack;
-  initAtlasCursor();updateFreshBadge();initGlobalSearch();
+  liveLoad();initAtlasCursor();updateFreshBadge();initGlobalSearch();
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!document.getElementById("deepDive").hidden)closeDeepDive()});
   renderConvergence();renderBottlenecks();renderMaterials();renderCompanies();renderCompare();renderETFs();renderAssistant();updateCompareBadge();
   const resize=function(){const box=document.getElementById("canvasWrap").getBoundingClientRect();graphW=Math.max(400,box.width);graphH=Math.max(400,box.height);graph.attr("viewBox","0 0 "+graphW+" "+graphH);if(currentTransform===d3.zoomIdentity||currentTransform.k===1&&currentTransform.x===0){graph.call(zoom.transform,d3.zoomIdentity.translate(graphW/2,graphH/2).scale(.9))}};
