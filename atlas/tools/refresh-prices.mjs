@@ -72,6 +72,31 @@ export function yahooCandidates(tv, key) {
    Tel Aviv in agorot. Store major units so every price reads naturally. */
 const MINOR_UNITS = {GBp: "GBP", GBX: "GBP", ZAc: "ZAR", ILA: "ILS"};
 
+/* Where the TradingView symbol does not match Yahoo's (Bursa Malaysia lists by number). */
+const YAHOO_OVERRIDE = {YTLPOWR: "6742.KL"};
+
+/* Start a series at the listing it has today when earlier trading is not comparable. */
+const SERIES_START = {
+  SERV: "2024-04-15", // thin OTC trading before the April 2024 Nasdaq uplisting
+};
+
+/* A move of 10x or more in a single week is a data error (unit change, unadjusted
+   split or bad tick), not a market move: keep only the data after the last break.
+   Real moves in this universe peak around 5x (SEALSQ, SES AI in December 2024). */
+const BREAK_RATIO = 10;
+function cleanSeries(key, pts) {
+  let out = pts;
+  const start = SERIES_START[key];
+  if (start) out = out.filter((p) => p[0] >= Date.parse(start) / 1000);
+  if (out.length < 2) return {pts, trimmedFrom: null};
+  let cut = 0;
+  for (let i = 1; i < out.length; i++) {
+    const q = out[i][1] / out[i - 1][1];
+    if (q >= BREAK_RATIO || q <= 1 / BREAK_RATIO) cut = i;
+  }
+  return {pts: cut ? out.slice(cut) : out, trimmedFrom: cut || start ? new Date(out[cut][0] * 1000).toISOString().slice(0, 10) : null};
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const round = (v) => (v >= 1000 ? Math.round(v) : v >= 1 ? Math.round(v * 100) / 100 : Math.round(v * 10000) / 10000);
 const firstLine = (e) => String(e?.message || e).split("\n")[0];
@@ -194,7 +219,7 @@ async function fetchChart(get, yahoo) {
 }
 
 async function fetchSymbol(get, s) {
-  const tries = [...new Set([s.yahoo, ...yahooCandidates(s.tv, s.key)].filter(Boolean))];
+  const tries = [...new Set([YAHOO_OVERRIDE[s.key], s.yahoo, ...yahooCandidates(s.tv, s.key)].filter(Boolean))];
   let result = {miss: true};
   for (const y of tries) {
     const got = await fetchChart(get, y);
@@ -243,7 +268,7 @@ async function main() {
     }
     console.log(`Refreshing ${symbols.length} symbols from ${BASE} via ${useBrowser ? "Chrome" : "Node fetch"} …`);
 
-    const series = {}, ccy = {}, updated = [], keptStale = [], missing = [], refusals = {};
+    const series = {}, ccy = {}, updated = [], keptStale = [], missing = [], trimmed = [], refusals = {};
     let newest = 0, consecutiveRefusals = 0, cooldowns = 0, stopReason = "";
     for (let i = 0; i < symbols.length; i++) {
       const s = symbols[i];
@@ -251,7 +276,9 @@ async function main() {
       const got = stopReason ? {skipped: true} : await fetchSymbol(get, s);
 
       if (got.pts) {
-        series[s.key] = got.pts;
+        const cleaned = cleanSeries(s.key, got.pts);
+        if (cleaned.trimmedFrom) trimmed.push(`${s.key} from ${cleaned.trimmedFrom}`);
+        series[s.key] = cleaned.pts;
         if (got.currency && got.currency !== "USD") ccy[s.key] = got.currency;
         s.yahoo = got.yahoo;
         newest = Math.max(newest, got.marketTime);
@@ -310,6 +337,7 @@ async function main() {
       updated: updated.length,
       keptPreviousData: keptStale,
       noData: missing,
+      trimmedAtDataBreaks: trimmed,
       refusals,
       stoppedEarly: stopReason || null,
       nonUsdCurrencies: Object.entries(ccy).reduce((a, [, c]) => ((a[c] = (a[c] || 0) + 1), a), {}),
