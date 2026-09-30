@@ -18,7 +18,11 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - Beams run the shorter span (DM 15.1.1.3). On a tie, the layout with fewer beams wins.
    - Each beam's trib is half the distance to the next beam line on each side.
    - Every support that is not a building column (sidewall, endwall, interior frame or soldier column) is a ⊗ mezzanine column.
-   - The framing plan is drawn so you can hold it against the floor plan. The floor-plan page has no text layer, so it cannot be read.
+   - **Floor plan check.** The floor-plan page has no text layer, but its geometry can be read:
+     - The grid bubbles register the drawing to the bays.
+     - Every ⊗ mezzanine-column symbol is snapped to a grid intersection.
+     - The result is compared with the derived columns. The tool says whether they match, or which joist direction or beam lines would.
+   - The framing plan is drawn with those ⊗ overlaid, so you can confirm it at a glance.
 3. **Sizes the beams** the way the MB sheet is iterated by hand:
    - Tries every DM 5.1-stocked web and flange for the division, for depths 10–24" by default.
    - Keeps sections with combined and shear SR ≤ 0.99, LL ≤ L/360, TL ≤ L/240, and a passing joist-bearing check (MB `L7`).

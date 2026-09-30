@@ -1,7 +1,7 @@
 /* Mezzanine Quick-Design — browser UI. */
 (function () {
   'use strict';
-  const PCS = window.MZ_PCS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, MZ = window.MZ;
+  const PCS = window.MZ_PCS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, MZ = window.MZ, PLAN = window.MZ_PLAN;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -10,7 +10,7 @@
   const inch = x => (x == null || !isFinite(x) ? '—' : (Math.round(x * 1000) / 1000) + '"');
   const MARK_COLORS = ['var(--mark-1)', 'var(--mark-2)', 'var(--mark-3)', 'var(--mark-4)'];
 
-  const state = { pages: null, pcs: null, mi: 0, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, colGroup: 0, fileName: null };
+  const state = { pages: null, pcs: null, mi: 0, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, colGroup: 0, fileName: null, planPaths: null, planReg: null };
 
   // ---------- theme ----------
   try { const t = localStorage.getItem('mqd-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* storage unavailable */ }
@@ -69,6 +69,14 @@
         p.checks = det.states || {};
         p.checkRaw = det.raw;
       }
+      // floor plan: a page with (almost) no text but thousands of vector paths — read its geometry
+      state.planPaths = null; state.planReg = null;
+      for (const p of pages.slice().reverse()) {
+        if (p.items.length > 40) continue;
+        const ol = await p._page.getOperatorList();
+        const paths = PLAN.subpaths(ol, window.pdfjsLib.OPS, p.height);
+        if (paths.length > 2000) { state.planPaths = paths; state.planPage = p.num; break; }
+      }
       prog(0.85);
       const pcs = PCS.parse(pages);
       if (!pcs.mezzanines.length) throw new Error('No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
@@ -120,6 +128,7 @@
       status('Design error: ' + err.message, 'bad');
       return;
     }
+    planCheck();
     if (state.mark >= state.res.marks.length) state.mark = 0;
     if (state.colGroup >= state.res.colGroups.length) state.colGroup = 0;
     $$('#nav button').forEach(b => { b.disabled = false; });
@@ -129,6 +138,34 @@
     status(state.res.incomplete ? 'Inputs missing' : ok ? (bad ? 'Designed · check warnings' : 'Designed') : 'Needs attention', ok ? (bad ? 'warn' : 'ok') : 'bad');
     renderAll();
   }
+
+  // Compare the ⊗ symbols on the PCS floor plan with the derived mezzanine columns
+  function planCheck() {
+    const r = state.res;
+    r.planCheck = null;
+    if (!state.planPaths || r.incomplete) return;
+    const g = r.grid;
+    const colY = [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => +v.toFixed(3)))];
+    const key = g.xs.join(',') + '|' + colY.join(',');
+    if (!state.planReg || state.planReg.key !== key) state.planReg = { key, reg: PLAN.registerAndRead(state.planPaths, { xs: g.xs, colY }) };
+    const reg = state.planReg.reg;
+    if (!reg.ok) {
+      r.planCheck = { ok: false, reason: reg.reason };
+      r.warn.push({ level: 'info', text: `Floor plan (page ${state.planPage}): could not read the ⊗ columns automatically (${reg.reason}) — confirm the layout against the drawing.` });
+      return;
+    }
+    const lab = c => (g.xLabel(nearest(g.xs, c.x)) || '~') + '/' + (g.yLabel(nearest(g.allY, c.y)) || '~');
+    const cmp = PLAN.compare(reg.columns, r.layout.mezzCols);
+    r.planCheck = { ok: true, cols: reg.columns, labels: reg.columns.map(lab), ...cmp };
+    if (cmp.agree) {
+      r.warn.unshift({ level: 'ok', text: `Floor plan check: the drawing shows ${reg.columns.length} ⊗ mezzanine column${reg.columns.length === 1 ? '' : 's'} at ${reg.columns.map(lab).sort().join(', ')} — matches this layout.` });
+    } else {
+      const alt = r.layout.alt ? PLAN.compare(reg.columns, r.layout.alt.mezzCols) : null;
+      r.warn.unshift({ level: 'stop', text: `Floor plan check: the drawing shows ⊗ at ${reg.columns.map(lab).sort().join(', ') || 'none'}; this layout has ${r.layout.mezzCols.map(c => c.label).sort().join(', ') || 'none'}.` +
+        (alt && alt.agree ? ' The other joist direction matches the drawing — switch it on the Plan page.' : ' Adjust the beam / support lines on the Plan page to match the drawing.') });
+    }
+  }
+  const nearest = (arr, v) => arr.reduce((b, x) => (Math.abs(x - v) < Math.abs(b - v) ? x : b), arr[0]);
 
   function renderAll() {
     renderRail(); renderResults(); renderPlan(); renderBeam(); renderColumn(); renderInputs(); renderSettings();
@@ -335,6 +372,8 @@
       o.push(`<g class="mcol"><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/><title>Mezz column ${c.label}</title></g>`);
       o.push(`<text class="lbl" x="${cx + 11}" y="${cy + 15}">${c.label}</text>`);
     });
+    // ⊗ read from the PCS floor plan (blue rings) — should sit on the red ⊗ above
+    if (r.planCheck && r.planCheck.ok) r.planCheck.cols.forEach(c => o.push(`<circle cx="${X(c.x)}" cy="${Y(c.y)}" r="13" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"><title>⊗ on the PCS floor plan</title></circle>`));
     // joist arrow in the first bay of the footprint
     if (lay.joists === 'y') {
       const x = (fp.x0 + Math.min(fp.x1, lay.supportLines[1] ?? fp.x1)) / 2 + sp / 2, y0 = lay.beamLines[0], y1 = lay.beamLines[1] ?? fp.y1;
@@ -352,6 +391,7 @@
     });
     $('#planLegend').innerHTML = r.marks.map((mk, i) => `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="${MARK_COLORS[i % 4]}" stroke-width="5"/></svg>${mk.mark} ${esc(mk.desc || '')} (${mk.qty})</span>`).join('') +
       `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column (${lay.mezzCols.length})</span>` +
+      (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>⊗ read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
       `<span><svg width="10" height="10"><rect width="8" height="8" x="1" y="1" fill="var(--ink)"/></svg>Building column</span><span><svg width="22" height="10"><rect width="22" height="10" fill="url(#hatch)" stroke="var(--green)"/></svg>Mezzanine footprint</span>`;
     // tables
     const markOf = id => r.marks.find(mk => mk.beams.includes(id));

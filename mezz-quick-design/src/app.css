@@ -130,6 +130,7 @@ button { cursor: pointer; }
 .warn.stop { color: var(--red-deep); background: var(--red-soft); } .warn.stop::before { background: var(--red); }
 .warn.warn { color: var(--ink); background: var(--amber-soft); } .warn.warn::before { background: var(--amber); }
 .warn.info { color: var(--ink); background: var(--steel-soft); } .warn.info::before { background: var(--steel); }
+.warn.ok { color: var(--green-dark); background: var(--green-soft); } .warn.ok::before { background: var(--green); }
 .result-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; }
 .member { position: relative; padding: 20px 22px 18px; }
 .member + .member { border-top: 1px solid var(--line); }

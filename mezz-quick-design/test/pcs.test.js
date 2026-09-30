@@ -72,5 +72,15 @@ try { ({ readPcs } = require('./pdf-node.js')); require('./pdf-node.js').loadPdf
   assert.strictEqual(res.quote.columns[0].qty, 4);
   assert.ok(res.marks[0].check.res.CSR <= 0.99 && res.marks[0].check.defl.rLL >= 360 && res.marks[0].check.defl.rTL >= 240);
   assert.ok(res.colFinal.ok && res.colFinal.max < 1);
+  // floor plan: the ⊗ symbols on the last page register to the grid and match the derived columns
+  const PLAN = require('../src/plan.js');
+  const { loadPdfjs } = require('./pdf-node.js');
+  const planPage = pages[pages.length - 1];
+  const ol = await planPage._page.getOperatorList();
+  const paths = PLAN.subpaths(ol, loadPdfjs().OPS, planPage.height);
+  const reg = PLAN.registerAndRead(paths, { xs: res.grid.xs, colY: [0, 20, 40, 60] });
+  assert.ok(reg.ok, reg.reason);
+  assert.strictEqual(reg.columns.length, 4);
+  assert.ok(PLAN.compare(reg.columns, res.layout.mezzCols).agree, 'floor plan ⊗ match the layout');
   console.log('pcs tests passed (example job:', res.quote.beams[0].section, res.quote.columns[0].section + ')');
 })().catch(e => { console.error(e); process.exit(1); });
