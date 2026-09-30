@@ -16,6 +16,22 @@ write file contents, so a new version only reaches Drive when someone uploads it
 also shows `.html` files as source code rather than running them — download the file and open
 it in a browser to use the app.
 
+## Prices refresh automatically
+
+`.github/workflows/atlas-prices.yml` runs `atlas/tools/refresh-prices.mjs` on GitHub's servers.
+It reads every listed company and ETF from the app, downloads five years of weekly adjusted
+closes ending at the latest close, and writes them into the HTML, so the numbers are current
+wherever the file is opened: the downloaded copy, the hosted link, or Drive.
+
+- **When it runs:** weekdays after the US close (once the workflow is on `main`), whenever the
+  refresh tooling changes, and on demand — GitHub → **Actions → Refresh Atlas prices → Run workflow**.
+- **What it updates:** price history for ~440 symbols, the "prices through" date, and each
+  listing's currency. Market cap and P/S then scale with the price since the research snapshot;
+  revenue, growth, margins and model scores stay as researched.
+- **What it reports:** `atlas/data/price-report.json` lists anything it couldn't refresh. A failed
+  lookup keeps the previous series, and the run refuses to write if most lookups fail.
+- **Adding companies:** nothing to do — the next run picks them up from the app.
+
 ## September 30, 2026 fixes (Claude)
 
 **Layout** — below roughly 1400px wide (a non-maximized laptop window, or a side panel) the map
