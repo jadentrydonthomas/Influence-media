@@ -79,7 +79,7 @@
       $('#intakeMsg').textContent = 'Parsed. Review the sections, then check the plan against the drawing.';
       prog(1);
       recompute();
-      go('results');
+      go(state.res && state.res.incomplete ? 'inputs' : 'results');
     } catch (err) {
       console.error(err);
       status('Could not read PCS', 'bad');
@@ -125,8 +125,8 @@
     $$('#nav button').forEach(b => { b.disabled = false; });
     $('#copyQuote').disabled = false; $('#printBtn').disabled = false;
     const bad = state.res.warn.some(w => w.level === 'stop');
-    const ok = state.res.marks.every(m => m.sec) && (!state.res.columns.length || state.res.colFinal);
-    status(ok ? (bad ? 'Designed · check warnings' : 'Designed') : 'Needs attention', ok ? (bad ? 'warn' : 'ok') : 'bad');
+    const ok = !state.res.incomplete && state.res.marks.length && state.res.marks.every(m => m.sec) && (!state.res.columns.length || state.res.colFinal);
+    status(state.res.incomplete ? 'Inputs missing' : ok ? (bad ? 'Designed · check warnings' : 'Designed') : 'Needs attention', ok ? (bad ? 'warn' : 'ok') : 'bad');
     renderAll();
   }
 
@@ -257,6 +257,12 @@
 
   function renderPlan() {
     const r = state.res, g = r.grid, lay = r.layout, inp = state.inputs;
+    if (r.incomplete) {
+      $('#planSvg').setAttribute('viewBox', '0 0 1100 120');
+      $('#planSvg').innerHTML = '<text x="550" y="60" text-anchor="middle" class="dim" style="font-size:14px">Inputs incomplete — see the Inputs page.</text>';
+      $('#planLegend').innerHTML = ''; $('#beamTable').innerHTML = ''; $('#supTable').innerHTML = ''; $('#layWhy').textContent = '';
+      return;
+    }
     $$('#joistSeg button').forEach(b => b.classList.toggle('is-active', b.dataset.j === (state.settings.joists || 'auto')));
     $('#planTitle').textContent = `Framing plan · ${inp.mezz.id || 'mezzanine'}`;
     $('#layWhy').textContent = `joists span ${lay.joists === 'y' ? 'across the width' : 'along the length'} — ${lay.why}`;

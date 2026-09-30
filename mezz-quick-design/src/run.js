@@ -78,9 +78,37 @@
     return { ed, beamEd, colEd, notes, spec: code.spec };
   }
 
+  // Required inputs: without these the answer would be silently wrong, so stop and say what is missing.
+  function validate(inp) {
+    const miss = [], soft = [];
+    const num = x => typeof x === 'number' && isFinite(x);
+    [['loads.dead', 'Dead load'], ['loads.live', 'Live load'], ['geom.width', 'Mezzanine width'], ['geom.length', 'Mezzanine length']].forEach(([k, lab]) => {
+      const [g, f] = k.split('.'); if (!num(val(inp[g][f]))) miss.push(lab);
+    });
+    if (!(val(inp.geom.joistSpacing) > 0)) miss.push('Joist spacing');
+    const b = inp.building || {};
+    if (!(b.width > 0) || !(b.length > 0)) miss.push('Building width / length (Box 2)');
+    if (!num(val(inp.geom.A))) soft.push('Top of mezzanine (A) is missing — column length and clearances cannot be set.');
+    if (!num(val(inp.geom.slab))) soft.push('Slab / deck thickness is missing — clearance checks are skipped.');
+    if (!b.bays || !b.bays.length) soft.push('Sidewall bay spacing was not read (Box 2) — only the building ends are frame lines. Enter the bays on the Inputs page.');
+    if ((!b.lewCols || !b.lewCols.length) && (!b.rewCols || !b.rewCols.length)) soft.push('Endwall column spacing was not read (Box 2) — beam lines fall only on the mezzanine edges. Enter it on the Inputs page.');
+    return { miss, soft };
+  }
+
   function run(inp, settings = {}) {
     const s = { ...SETTINGS, ...settings };
     const warn = [];
+    const chk = validate(inp);
+    chk.soft.forEach(t => warn.push({ level: 'warn', text: t }));
+    if (chk.miss.length) {
+      warn.unshift({ level: 'stop', text: `Missing input: ${chk.miss.join(', ')}. Enter it on the Inputs page to run the design.` });
+      const ed0 = resolveEdition(inp, s);
+      return { settings: s, edition: ed0, division: s.division === 'auto' ? (inp.job.division || 'NBS-IN') : s.division, warn, incomplete: true,
+        grid: { xs: [], allY: [], lewY: [], rewY: [], interior: [], yLabel: () => null, xLabel: () => null, width: 0, length: 0 },
+        layout: { beams: [], supports: [], mezzCols: [], beamLines: [], supportLines: [], footprint: { x0: 0, x1: 0, y0: 0, y1: 0 }, joists: 'y', why: 'inputs incomplete' },
+        marks: [], clear: { A: {}, B: {}, C: {} }, joistDepthIn: null, colLen: null, columns: [], colGroups: [], colFinal: null,
+        quote: { beams: [], columns: [] }, beamBase: { dead: val(inp.loads.dead), coll: val(inp.loads.coll), live: val(inp.loads.live), joistWt: val(inp.loads.joistWt), Lb: val(inp.geom.joistSpacing) } };
+    }
     const ed = resolveEdition(inp, s);
     const division = s.division === 'auto' ? (inp.job.division || 'NBS-IN') : s.division;
     ed.notes.forEach(n => warn.push({ level: 'info', text: n }));
@@ -88,10 +116,10 @@
     const A = val(inp.geom.A), slabFt = val(inp.geom.slab), seatFt = val(inp.geom.seat), Bq = val(inp.geom.B), Cq = val(inp.geom.C);
     const spacing = val(inp.geom.joistSpacing);
     const slabIn = slabFt * 12, seatIn = seatFt * 12;
-    const dead = val(inp.loads.dead), coll = val(inp.loads.coll), part = val(inp.loads.partition) || 0;
+    const dead = val(inp.loads.dead), coll = val(inp.loads.coll) || 0, part = val(inp.loads.partition) || 0;
     const live = val(inp.loads.live) + (s.partitionTo === 'live' ? part : 0);
     const deadUsed = dead + (s.partitionTo === 'dead' ? part : 0);
-    const joistWt = val(inp.loads.joistWt);
+    const joistWt = val(inp.loads.joistWt) ?? DEFAULTS.joistWt;
 
     // Total joist depth (Jaden): A - B - slab - seat
     const joistDepthIn = A != null && Bq != null ? Math.round((A - Bq) * 12 * 1000) / 1000 - slabIn - seatIn : null;
@@ -126,7 +154,14 @@
       const check = chosen ? MZ.beamCheck({ ...p, sec: chosen }, WF) : null;
       return { ...mk, qty: mk.beams.length, params: p, search: dz, sec: chosen, check, desc: check ? check.desc : null };
     });
-    designed.forEach(mk => { if (!mk.sec) warn.push({ level: 'stop', text: `${mk.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepthByC ?? Infinity)}" deep meets SR ≤ ${s.target} and L/360, L/240. Widen the depth range.` }); });
+    designed.forEach(mk => {
+      if (mk.sec) return;
+      const cap = maxDepthByC != null && maxDepthByC < s.dMax;
+      warn.push({ level: 'stop', text: cap && maxDepthByC < s.dMin
+        ? `${mk.mark}: clearance (C) ${PCS.fmtFtIn(Cq)} under the floor beams leaves only ${maxDepthByC}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. Check the clearance or the minimum depth in Settings.`
+        : `${mk.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepthByC ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. Widen the depth range.` });
+    });
+    if (maxDepthByC != null && maxDepthByC < s.dMax && maxDepthByC >= s.dMin) warn.push({ level: 'info', text: `Clearance (C) ${PCS.fmtFtIn(Cq)} caps the beam depth at ${maxDepthByC}".` });
     const markOf = id => designed.find(mk => mk.beams.includes(id));
 
     // clearances (INPUT sheet)
@@ -169,7 +204,8 @@
       if (WF[name].bf < 7) warn.push({ level: 'info', text: `${name} flange is ${WF[name].bf}" (< 7" DM 15.1.1.4.2 min for beams to the flange) — relies on the standard 4" bolt gage.` });
       if (!DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'info', text: `${name} is not a stocked W at ${division}.` });
     }
-    if (cols.length && !govCol) warn.push({ level: 'stop', text: 'No W8–W14 column passes — check the loads or design a BU column.' });
+    if (cols.length && !colLen) warn.push({ level: 'stop', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' });
+    else if (cols.length && !govCol) warn.push({ level: 'stop', text: 'No W8–W14 column passes — check the loads or design a BU column.' });
 
     const quote = {
       beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: mk.span, trib: mk.trib, qty: mk.qty })),

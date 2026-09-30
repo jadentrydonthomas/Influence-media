@@ -4,7 +4,8 @@
   "description": "NBG mezzanine beam / column quick-design from a PCS PDF (single-file HTML tool).",
   "scripts": {
     "build": "node build.js",
-    "test": "node test/engine.test.js && node test/layout.test.js && node test/pcs.test.js"
+    "test": "node test/engine.test.js && node test/layout.test.js && node test/pcs.test.js",
+    "e2e": "node test/e2e.js private/pcs/*.pdf && node test/e2e-interact.js private/pcs/*.pdf"
   },
   "devDependencies": {
     "pdfjs-dist": "3.11.174"
