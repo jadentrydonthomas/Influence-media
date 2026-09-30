@@ -1,0 +1,42 @@
+{
+ "generatedAt": "2026-09-30T14:02:47.171Z",
+ "pricesThrough": "2026-09-30",
+ "source": "Yahoo Finance chart API — 5 years of weekly adjusted closes, final point at the latest close",
+ "symbols": 437,
+ "updated": 430,
+ "keptPreviousData": [
+  "IRBO"
+ ],
+ "noData": [
+  "NB2 (XETR:NB2)",
+  "PSTG (NYSE:PSTG)",
+  "YTLPOWR (KLSE:YTLPOWR)",
+  "SJW (NYSE:SJW)",
+  "ASTO (OSL:ASTO)",
+  "CYBR (NASDAQ:CYBR)"
+ ],
+ "refusals": {},
+ "stoppedEarly": null,
+ "nonUsdCurrencies": {
+  "HKD": 5,
+  "SAR": 1,
+  "TWD": 15,
+  "JPY": 33,
+  "MYR": 1,
+  "KRW": 14,
+  "CNY": 16,
+  "EUR": 15,
+  "ZAR": 1,
+  "CHF": 3,
+  "INR": 5,
+  "BRL": 1,
+  "DKK": 1,
+  "GBP": 9,
+  "CAD": 6,
+  "AUD": 5,
+  "NOK": 1,
+  "SEK": 2,
+  "SGD": 1
+ },
+ "seconds": 158
+}
