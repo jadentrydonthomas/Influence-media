@@ -1,0 +1,69 @@
+name: Refresh Atlas prices
+
+# Pulls current weekly prices for every company and ETF in the AI Ecosystem
+# Atlas and bakes them into "atlas/AI Ecosystem Atlas.html", so the numbers are
+# current wherever the file is opened. Runs on weekdays after the US close, on
+# demand from the Actions tab, and whenever the refresh tooling changes.
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/ai-ecosystem-atlas-analysis-5u6qz9
+    paths:
+      - ".github/workflows/atlas-prices.yml"
+      - "atlas/tools/**"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: atlas-prices-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install browser driver (reads the company list from the app)
+        run: npm install --no-save --no-package-lock playwright-core@1.47.2
+
+      - name: Refresh prices
+        env:
+          ATLAS_CHROME_CHANNEL: chrome
+        run: node atlas/tools/refresh-prices.mjs
+
+      - name: Commit refreshed prices
+        id: commit
+        run: |
+          git add "atlas/AI Ecosystem Atlas.html" atlas/data
+          if git diff --cached --quiet; then
+            echo "Prices unchanged."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh Atlas prices through $(node -p "require('./atlas/data/price-report.json').pricesThrough")"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # Commits made by this workflow do not trigger other workflows, so ask the
+      # Pages workflow to republish the site when the prices on main change.
+      - name: Republish the website
+        if: steps.commit.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref "$GITHUB_REF_NAME"

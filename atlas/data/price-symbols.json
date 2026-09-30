@@ -1,0 +1,2627 @@
+{
+ "note": "Symbols the price refresh covers. Regenerated from the app on every run; used as a fallback when the app cannot be read.",
+ "symbols": [
+  {
+   "key": "GOOGL",
+   "tv": "NASDAQ:GOOGL",
+   "kind": "company",
+   "name": "Alphabet"
+  },
+  {
+   "key": "MSFT",
+   "tv": "NASDAQ:MSFT",
+   "kind": "company",
+   "name": "Microsoft"
+  },
+  {
+   "key": "META",
+   "tv": "NASDAQ:META",
+   "kind": "company",
+   "name": "Meta Platforms"
+  },
+  {
+   "key": "PLTR",
+   "tv": "NASDAQ:PLTR",
+   "kind": "company",
+   "name": "Palantir"
+  },
+  {
+   "key": "SAP",
+   "tv": "XETR:SAP",
+   "kind": "company",
+   "name": "SAP"
+  },
+  {
+   "key": "CRM",
+   "tv": "NYSE:CRM",
+   "kind": "company",
+   "name": "Salesforce"
+  },
+  {
+   "key": "APP",
+   "tv": "NASDAQ:APP",
+   "kind": "company",
+   "name": "AppLovin"
+  },
+  {
+   "key": "NOW",
+   "tv": "NYSE:NOW",
+   "kind": "company",
+   "name": "ServiceNow"
+  },
+  {
+   "key": "ADBE",
+   "tv": "NASDAQ:ADBE",
+   "kind": "company",
+   "name": "Adobe"
+  },
+  {
+   "key": "DUOL",
+   "tv": "NASDAQ:DUOL",
+   "kind": "company",
+   "name": "Duolingo"
+  },
+  {
+   "key": "TEM",
+   "tv": "NASDAQ:TEM",
+   "kind": "company",
+   "name": "Tempus AI"
+  },
+  {
+   "key": "S",
+   "tv": "NYSE:S",
+   "kind": "company",
+   "name": "SentinelOne"
+  },
+  {
+   "key": "TCEHY",
+   "tv": "OTC:TCEHY",
+   "kind": "company",
+   "name": "Tencent"
+  },
+  {
+   "key": "BABA",
+   "tv": "NYSE:BABA",
+   "kind": "company",
+   "name": "Alibaba"
+  },
+  {
+   "key": "NPN",
+   "tv": "JSE:NPN",
+   "kind": "company",
+   "name": "Naspers"
+  },
+  {
+   "key": "BIDU",
+   "tv": "NASDAQ:BIDU",
+   "kind": "company",
+   "name": "Baidu"
+  },
+  {
+   "key": "035420",
+   "tv": "KRX:035420",
+   "kind": "company",
+   "name": "Naver"
+  },
+  {
+   "key": "AMZN",
+   "tv": "NASDAQ:AMZN",
+   "kind": "company",
+   "name": "Amazon (AWS)"
+  },
+  {
+   "key": "ORCL",
+   "tv": "NYSE:ORCL",
+   "kind": "company",
+   "name": "Oracle (OCI)"
+  },
+  {
+   "key": "IBM",
+   "tv": "NYSE:IBM",
+   "kind": "company",
+   "name": "IBM"
+  },
+  {
+   "key": "CRWV",
+   "tv": "NASDAQ:CRWV",
+   "kind": "company",
+   "name": "CoreWeave"
+  },
+  {
+   "key": "NBIS",
+   "tv": "NASDAQ:NBIS",
+   "kind": "company",
+   "name": "Nebius"
+  },
+  {
+   "key": "NB2",
+   "tv": "XETR:NB2",
+   "kind": "company",
+   "name": "Northern Data"
+  },
+  {
+   "key": "IREN",
+   "tv": "NASDAQ:IREN",
+   "kind": "company",
+   "name": "IREN"
+  },
+  {
+   "key": "APLD",
+   "tv": "NASDAQ:APLD",
+   "kind": "company",
+   "name": "Applied Digital"
+  },
+  {
+   "key": "CORZ",
+   "tv": "NASDAQ:CORZ",
+   "kind": "company",
+   "name": "Core Scientific"
+  },
+  {
+   "key": "CIFR",
+   "tv": "NASDAQ:CIFR",
+   "kind": "company",
+   "name": "Cipher Mining"
+  },
+  {
+   "key": "WULF",
+   "tv": "NASDAQ:WULF",
+   "kind": "company",
+   "name": "TeraWulf"
+  },
+  {
+   "key": "HUT",
+   "tv": "NASDAQ:HUT",
+   "kind": "company",
+   "name": "Hut 8"
+  },
+  {
+   "key": "KEEL",
+   "tv": "NASDAQ:KEEL",
+   "kind": "company",
+   "name": "Keel Infrastructure"
+  },
+  {
+   "key": "NVDA",
+   "tv": "NASDAQ:NVDA",
+   "kind": "company",
+   "name": "NVIDIA"
+  },
+  {
+   "key": "AMD",
+   "tv": "NASDAQ:AMD",
+   "kind": "company",
+   "name": "AMD"
+  },
+  {
+   "key": "QCOM",
+   "tv": "NASDAQ:QCOM",
+   "kind": "company",
+   "name": "Qualcomm"
+  },
+  {
+   "key": "INTC",
+   "tv": "NASDAQ:INTC",
+   "kind": "company",
+   "name": "Intel"
+  },
+  {
+   "key": "2454",
+   "tv": "TWSE:2454",
+   "kind": "company",
+   "name": "MediaTek"
+  },
+  {
+   "key": "CBRS",
+   "tv": "NASDAQ:CBRS",
+   "kind": "company",
+   "name": "Cerebras"
+  },
+  {
+   "key": "688256",
+   "tv": "SSE:688256",
+   "kind": "company",
+   "name": "Cambricon"
+  },
+  {
+   "key": "AVGO",
+   "tv": "NASDAQ:AVGO",
+   "kind": "company",
+   "name": "Broadcom"
+  },
+  {
+   "key": "ARM",
+   "tv": "NASDAQ:ARM",
+   "kind": "company",
+   "name": "Arm Holdings"
+  },
+  {
+   "key": "MRVL",
+   "tv": "NASDAQ:MRVL",
+   "kind": "company",
+   "name": "Marvell"
+  },
+  {
+   "key": "3661",
+   "tv": "TWSE:3661",
+   "kind": "company",
+   "name": "Alchip"
+  },
+  {
+   "key": "RMBS",
+   "tv": "NASDAQ:RMBS",
+   "kind": "company",
+   "name": "Rambus"
+  },
+  {
+   "key": "SNPS",
+   "tv": "NASDAQ:SNPS",
+   "kind": "company",
+   "name": "Synopsys"
+  },
+  {
+   "key": "CDNS",
+   "tv": "NASDAQ:CDNS",
+   "kind": "company",
+   "name": "Cadence"
+  },
+  {
+   "key": "SKHY",
+   "tv": "NASDAQ:SKHY",
+   "kind": "company",
+   "name": "SK hynix"
+  },
+  {
+   "key": "MU",
+   "tv": "NASDAQ:MU",
+   "kind": "company",
+   "name": "Micron"
+  },
+  {
+   "key": "005930",
+   "tv": "KRX:005930",
+   "kind": "company",
+   "name": "Samsung Electronics"
+  },
+  {
+   "key": "SNDK",
+   "tv": "NASDAQ:SNDK",
+   "kind": "company",
+   "name": "SanDisk"
+  },
+  {
+   "key": "285A",
+   "tv": "TSE:285A",
+   "kind": "company",
+   "name": "Kioxia"
+  },
+  {
+   "key": "2408",
+   "tv": "TWSE:2408",
+   "kind": "company",
+   "name": "Nanya Technology"
+  },
+  {
+   "key": "STX",
+   "tv": "NASDAQ:STX",
+   "kind": "company",
+   "name": "Seagate"
+  },
+  {
+   "key": "WDC",
+   "tv": "NASDAQ:WDC",
+   "kind": "company",
+   "name": "Western Digital"
+  },
+  {
+   "key": "PSTG",
+   "tv": "NYSE:PSTG",
+   "kind": "company",
+   "name": "Pure Storage"
+  },
+  {
+   "key": "SIMO",
+   "tv": "NASDAQ:SIMO",
+   "kind": "company",
+   "name": "Silicon Motion"
+  },
+  {
+   "key": "BLZE",
+   "tv": "NASDAQ:BLZE",
+   "kind": "company",
+   "name": "Backblaze"
+  },
+  {
+   "key": "TSM",
+   "tv": "NYSE:TSM",
+   "kind": "company",
+   "name": "TSMC"
+  },
+  {
+   "key": "0981",
+   "tv": "HKEX:981",
+   "kind": "company",
+   "name": "SMIC"
+  },
+  {
+   "key": "UMC",
+   "tv": "NYSE:UMC",
+   "kind": "company",
+   "name": "UMC"
+  },
+  {
+   "key": "GFS",
+   "tv": "NASDAQ:GFS",
+   "kind": "company",
+   "name": "GlobalFoundries"
+  },
+  {
+   "key": "TSEM",
+   "tv": "NASDAQ:TSEM",
+   "kind": "company",
+   "name": "Tower Semiconductor"
+  },
+  {
+   "key": "ASX",
+   "tv": "NYSE:ASX",
+   "kind": "company",
+   "name": "ASE Technology"
+  },
+  {
+   "key": "4062",
+   "tv": "TSE:4062",
+   "kind": "company",
+   "name": "Ibiden"
+  },
+  {
+   "key": "AMKR",
+   "tv": "NASDAQ:AMKR",
+   "kind": "company",
+   "name": "Amkor"
+  },
+  {
+   "key": "3037",
+   "tv": "TWSE:3037",
+   "kind": "company",
+   "name": "Unimicron"
+  },
+  {
+   "key": "600584",
+   "tv": "SSE:600584",
+   "kind": "company",
+   "name": "JCET Group"
+  },
+  {
+   "key": "AMAT",
+   "tv": "NASDAQ:AMAT",
+   "kind": "company",
+   "name": "Applied Materials"
+  },
+  {
+   "key": "LRCX",
+   "tv": "NASDAQ:LRCX",
+   "kind": "company",
+   "name": "Lam Research"
+  },
+  {
+   "key": "TOELY",
+   "tv": "TSE:8035",
+   "kind": "company",
+   "name": "Tokyo Electron"
+  },
+  {
+   "key": "KLAC",
+   "tv": "NASDAQ:KLAC",
+   "kind": "company",
+   "name": "KLA"
+  },
+  {
+   "key": "ATEYY",
+   "tv": "TSE:6857",
+   "kind": "company",
+   "name": "Advantest"
+  },
+  {
+   "key": "6146",
+   "tv": "TSE:6146",
+   "kind": "company",
+   "name": "Disco Corp"
+  },
+  {
+   "key": "7735",
+   "tv": "TSE:7735",
+   "kind": "company",
+   "name": "Screen Holdings"
+  },
+  {
+   "key": "ASM",
+   "tv": "EURONEXT:ASM",
+   "kind": "company",
+   "name": "ASM International"
+  },
+  {
+   "key": "TER",
+   "tv": "NASDAQ:TER",
+   "kind": "company",
+   "name": "Teradyne"
+  },
+  {
+   "key": "BESIY",
+   "tv": "OTC:BESIY",
+   "kind": "company",
+   "name": "BE Semiconductor"
+  },
+  {
+   "key": "VACN",
+   "tv": "SIX:VACN",
+   "kind": "company",
+   "name": "VAT Group"
+  },
+  {
+   "key": "ONTO",
+   "tv": "NYSE:ONTO",
+   "kind": "company",
+   "name": "Onto Innovation"
+  },
+  {
+   "key": "042700",
+   "tv": "KRX:042700",
+   "kind": "company",
+   "name": "Hanmi Semiconductor"
+  },
+  {
+   "key": "MKSI",
+   "tv": "NASDAQ:MKSI",
+   "kind": "company",
+   "name": "MKS Instruments"
+  },
+  {
+   "key": "NVMI",
+   "tv": "NASDAQ:NVMI",
+   "kind": "company",
+   "name": "Nova"
+  },
+  {
+   "key": "CAMT",
+   "tv": "NASDAQ:CAMT",
+   "kind": "company",
+   "name": "Camtek"
+  },
+  {
+   "key": "IPGP",
+   "tv": "NASDAQ:IPGP",
+   "kind": "company",
+   "name": "IPG Photonics"
+  },
+  {
+   "key": "6315",
+   "tv": "TSE:6315",
+   "kind": "company",
+   "name": "Towa"
+  },
+  {
+   "key": "UCTT",
+   "tv": "NASDAQ:UCTT",
+   "kind": "company",
+   "name": "Ultra Clean Holdings"
+  },
+  {
+   "key": "ASML",
+   "tv": "NASDAQ:ASML",
+   "kind": "company",
+   "name": "ASML"
+  },
+  {
+   "key": "CAJPY",
+   "tv": "TSE:7751",
+   "kind": "company",
+   "name": "Canon"
+  },
+  {
+   "key": "NINOY",
+   "tv": "TSE:7731",
+   "kind": "company",
+   "name": "Nikon"
+  },
+  {
+   "key": "LIN",
+   "tv": "NASDAQ:LIN",
+   "kind": "company",
+   "name": "Linde"
+  },
+  {
+   "key": "APD",
+   "tv": "NYSE:APD",
+   "kind": "company",
+   "name": "Air Products"
+  },
+  {
+   "key": "SHECY",
+   "tv": "TSE:4063",
+   "kind": "company",
+   "name": "Shin-Etsu Chemical"
+  },
+  {
+   "key": "DD",
+   "tv": "NYSE:DD",
+   "kind": "company",
+   "name": "DuPont"
+  },
+  {
+   "key": "ENTG",
+   "tv": "NASDAQ:ENTG",
+   "kind": "company",
+   "name": "Entegris"
+  },
+  {
+   "key": "6488",
+   "tv": "TWSE:6488",
+   "kind": "company",
+   "name": "GlobalWafers"
+  },
+  {
+   "key": "4186",
+   "tv": "TSE:4186",
+   "kind": "company",
+   "name": "Tokyo Ohka Kogyo"
+  },
+  {
+   "key": "SUOPY",
+   "tv": "TSE:3436",
+   "kind": "company",
+   "name": "SUMCO"
+  },
+  {
+   "key": "4004",
+   "tv": "TSE:4004",
+   "kind": "company",
+   "name": "Resonac"
+  },
+  {
+   "key": "SOI",
+   "tv": "EURONEXT:SOI",
+   "kind": "company",
+   "name": "Soitec"
+  },
+  {
+   "key": "GEV",
+   "tv": "NYSE:GEV",
+   "kind": "company",
+   "name": "GE Vernova"
+  },
+  {
+   "key": "SMNEY",
+   "tv": "XETR:ENR",
+   "kind": "company",
+   "name": "Siemens Energy"
+  },
+  {
+   "key": "7011",
+   "tv": "TSE:7011",
+   "kind": "company",
+   "name": "Mitsubishi Heavy"
+  },
+  {
+   "key": "BKR",
+   "tv": "NASDAQ:BKR",
+   "kind": "company",
+   "name": "Baker Hughes"
+  },
+  {
+   "key": "BHEL",
+   "tv": "NSE:BHEL",
+   "kind": "company",
+   "name": "Bharat Heavy Electricals"
+  },
+  {
+   "key": "HTHIY",
+   "tv": "TSE:6501",
+   "kind": "company",
+   "name": "Hitachi (Hitachi Energy)"
+  },
+  {
+   "key": "PWR",
+   "tv": "NYSE:PWR",
+   "kind": "company",
+   "name": "Quanta Services"
+  },
+  {
+   "key": "WEGE3",
+   "tv": "BMFBOVESPA:WEGE3",
+   "kind": "company",
+   "name": "WEG"
+  },
+  {
+   "key": "PRYMY",
+   "tv": "MIL:PRY",
+   "kind": "company",
+   "name": "Prysmian"
+  },
+  {
+   "key": "267260",
+   "tv": "KRX:267260",
+   "kind": "company",
+   "name": "HD Hyundai Electric"
+  },
+  {
+   "key": "CGPOWER",
+   "tv": "NSE:CGPOWER",
+   "kind": "company",
+   "name": "CG Power"
+  },
+  {
+   "key": "POLYCAB",
+   "tv": "NSE:POLYCAB",
+   "kind": "company",
+   "name": "Polycab India"
+  },
+  {
+   "key": "WCC",
+   "tv": "NYSE:WCC",
+   "kind": "company",
+   "name": "Wesco International"
+  },
+  {
+   "key": "298040",
+   "tv": "KRX:298040",
+   "kind": "company",
+   "name": "Hyosung Heavy Industries"
+  },
+  {
+   "key": "NEX",
+   "tv": "EURONEXT:NEX",
+   "kind": "company",
+   "name": "Nexans"
+  },
+  {
+   "key": "NKT",
+   "tv": "OMXCOP:NKT",
+   "kind": "company",
+   "name": "NKT"
+  },
+  {
+   "key": "010120",
+   "tv": "KRX:010120",
+   "kind": "company",
+   "name": "LS Electric"
+  },
+  {
+   "key": "KEI",
+   "tv": "NSE:KEI",
+   "kind": "company",
+   "name": "KEI Industries"
+  },
+  {
+   "key": "MYRG",
+   "tv": "NASDAQ:MYRG",
+   "kind": "company",
+   "name": "MYR Group"
+  },
+  {
+   "key": "ATKR",
+   "tv": "NYSE:ATKR",
+   "kind": "company",
+   "name": "Atkore"
+  },
+  {
+   "key": "AZZ",
+   "tv": "NYSE:AZZ",
+   "kind": "company",
+   "name": "AZZ"
+  },
+  {
+   "key": "TARIL",
+   "tv": "NSE:TARIL",
+   "kind": "company",
+   "name": "Transformers & Rectifiers India"
+  },
+  {
+   "key": "NEE",
+   "tv": "NYSE:NEE",
+   "kind": "company",
+   "name": "NextEra Energy"
+  },
+  {
+   "key": "VST",
+   "tv": "NYSE:VST",
+   "kind": "company",
+   "name": "Vistra"
+  },
+  {
+   "key": "D",
+   "tv": "NYSE:D",
+   "kind": "company",
+   "name": "Dominion Energy"
+  },
+  {
+   "key": "NRG",
+   "tv": "NYSE:NRG",
+   "kind": "company",
+   "name": "NRG Energy"
+  },
+  {
+   "key": "TLN",
+   "tv": "NASDAQ:TLN",
+   "kind": "company",
+   "name": "Talen Energy"
+  },
+  {
+   "key": "CEG",
+   "tv": "NASDAQ:CEG",
+   "kind": "company",
+   "name": "Constellation Energy"
+  },
+  {
+   "key": "RR",
+   "tv": "LSE:RR",
+   "kind": "company",
+   "name": "Rolls-Royce"
+  },
+  {
+   "key": "CCJ",
+   "tv": "NYSE:CCJ",
+   "kind": "company",
+   "name": "Cameco"
+  },
+  {
+   "key": "034020",
+   "tv": "KRX:034020",
+   "kind": "company",
+   "name": "Doosan Enerbility"
+  },
+  {
+   "key": "OKLO",
+   "tv": "NYSE:OKLO",
+   "kind": "company",
+   "name": "Oklo"
+  },
+  {
+   "key": "BWXT",
+   "tv": "NYSE:BWXT",
+   "kind": "company",
+   "name": "BWX Technologies"
+  },
+  {
+   "key": "SMR",
+   "tv": "NYSE:SMR",
+   "kind": "company",
+   "name": "NuScale Power"
+  },
+  {
+   "key": "LEU",
+   "tv": "NYSE:LEU",
+   "kind": "company",
+   "name": "Centrus Energy"
+  },
+  {
+   "key": "NNE",
+   "tv": "NASDAQ:NNE",
+   "kind": "company",
+   "name": "NANO Nuclear"
+  },
+  {
+   "key": "WMB",
+   "tv": "NYSE:WMB",
+   "kind": "company",
+   "name": "Williams Companies"
+  },
+  {
+   "key": "KMI",
+   "tv": "NYSE:KMI",
+   "kind": "company",
+   "name": "Kinder Morgan"
+  },
+  {
+   "key": "ET",
+   "tv": "NYSE:ET",
+   "kind": "company",
+   "name": "Energy Transfer"
+  },
+  {
+   "key": "EQT",
+   "tv": "NYSE:EQT",
+   "kind": "company",
+   "name": "EQT"
+  },
+  {
+   "key": "EXE",
+   "tv": "NASDAQ:EXE",
+   "kind": "company",
+   "name": "Expand Energy"
+  },
+  {
+   "key": "300750",
+   "tv": "SZSE:300750",
+   "kind": "company",
+   "name": "CATL"
+  },
+  {
+   "key": "373220",
+   "tv": "KRX:373220",
+   "kind": "company",
+   "name": "LG Energy Solution"
+  },
+  {
+   "key": "300274",
+   "tv": "SZSE:300274",
+   "kind": "company",
+   "name": "Sungrow"
+  },
+  {
+   "key": "FLNC",
+   "tv": "NASDAQ:FLNC",
+   "kind": "company",
+   "name": "Fluence Energy"
+  },
+  {
+   "key": "TE",
+   "tv": "NYSE:TE",
+   "kind": "company",
+   "name": "T1 Energy"
+  },
+  {
+   "key": "ASPI",
+   "tv": "NASDAQ:ASPI",
+   "kind": "company",
+   "name": "ASP Isotopes"
+  },
+  {
+   "key": "LTBR",
+   "tv": "NASDAQ:LTBR",
+   "kind": "company",
+   "name": "Lightbridge"
+  },
+  {
+   "key": "BHP",
+   "tv": "NYSE:BHP",
+   "kind": "company",
+   "name": "BHP"
+  },
+  {
+   "key": "SCCO",
+   "tv": "NYSE:SCCO",
+   "kind": "company",
+   "name": "Southern Copper"
+  },
+  {
+   "key": "FCX",
+   "tv": "NYSE:FCX",
+   "kind": "company",
+   "name": "Freeport-McMoRan"
+  },
+  {
+   "key": "GLEN",
+   "tv": "LSE:GLEN",
+   "kind": "company",
+   "name": "Glencore"
+  },
+  {
+   "key": "AAL",
+   "tv": "LSE:AAL",
+   "kind": "company",
+   "name": "Anglo American"
+  },
+  {
+   "key": "TECK",
+   "tv": "NYSE:TECK",
+   "kind": "company",
+   "name": "Teck Resources"
+  },
+  {
+   "key": "ANTO",
+   "tv": "LSE:ANTO",
+   "kind": "company",
+   "name": "Antofagasta"
+  },
+  {
+   "key": "IVPAF",
+   "tv": "TSX:IVN",
+   "kind": "company",
+   "name": "Ivanhoe Mines"
+  },
+  {
+   "key": "FM",
+   "tv": "TSX:FM",
+   "kind": "company",
+   "name": "First Quantum"
+  },
+  {
+   "key": "LUN",
+   "tv": "TSX:LUN",
+   "kind": "company",
+   "name": "Lundin Mining"
+  },
+  {
+   "key": "CS",
+   "tv": "TSX:CS",
+   "kind": "company",
+   "name": "Capstone Copper"
+  },
+  {
+   "key": "ERO",
+   "tv": "NYSE:ERO",
+   "kind": "company",
+   "name": "Ero Copper"
+  },
+  {
+   "key": "ZCCM",
+   "tv": "EURONEXT:MLZAM",
+   "kind": "company",
+   "name": "ZCCM Investments"
+  },
+  {
+   "key": "WPM",
+   "tv": "NYSE:WPM",
+   "kind": "company",
+   "name": "Wheaton Precious Metals"
+  },
+  {
+   "key": "FRES",
+   "tv": "LSE:FRES",
+   "kind": "company",
+   "name": "Fresnillo"
+  },
+  {
+   "key": "PAAS",
+   "tv": "NYSE:PAAS",
+   "kind": "company",
+   "name": "Pan American Silver"
+  },
+  {
+   "key": "MP",
+   "tv": "NYSE:MP",
+   "kind": "company",
+   "name": "MP Materials"
+  },
+  {
+   "key": "ALB",
+   "tv": "NYSE:ALB",
+   "kind": "company",
+   "name": "Albemarle"
+  },
+  {
+   "key": "SQM",
+   "tv": "NYSE:SQM",
+   "kind": "company",
+   "name": "SQM"
+  },
+  {
+   "key": "LYC",
+   "tv": "ASX:LYC",
+   "kind": "company",
+   "name": "Lynas Rare Earths"
+  },
+  {
+   "key": "PLS",
+   "tv": "ASX:PLS",
+   "kind": "company",
+   "name": "Pilbara Minerals"
+  },
+  {
+   "key": "UUUU",
+   "tv": "NYSEAMERICAN:UUUU",
+   "kind": "company",
+   "name": "Energy Fuels"
+  },
+  {
+   "key": "KAP",
+   "tv": "LSE:KAP",
+   "kind": "company",
+   "name": "Kazatomprom"
+  },
+  {
+   "key": "UEC",
+   "tv": "NYSEAMERICAN:UEC",
+   "kind": "company",
+   "name": "Uranium Energy"
+  },
+  {
+   "key": "NXE",
+   "tv": "NYSE:NXE",
+   "kind": "company",
+   "name": "NexGen Energy"
+  },
+  {
+   "key": "PDN",
+   "tv": "ASX:PDN",
+   "kind": "company",
+   "name": "Paladin Energy"
+  },
+  {
+   "key": "010130",
+   "tv": "KRX:010130",
+   "kind": "company",
+   "name": "Korea Zinc"
+  },
+  {
+   "key": "AFM",
+   "tv": "TSXV:AFM",
+   "kind": "company",
+   "name": "Alphamin Resources"
+  },
+  {
+   "key": "5916",
+   "tv": "KLSE:5916",
+   "kind": "company",
+   "name": "Malaysia Smelting Corp"
+  },
+  {
+   "key": "NUE",
+   "tv": "NYSE:NUE",
+   "kind": "company",
+   "name": "Nucor"
+  },
+  {
+   "key": "MT",
+   "tv": "NYSE:MT",
+   "kind": "company",
+   "name": "ArcelorMittal"
+  },
+  {
+   "key": "STLD",
+   "tv": "NASDAQ:STLD",
+   "kind": "company",
+   "name": "Steel Dynamics"
+  },
+  {
+   "key": "5401",
+   "tv": "TSE:5401",
+   "kind": "company",
+   "name": "Nippon Steel"
+  },
+  {
+   "key": "005490",
+   "tv": "KRX:005490",
+   "kind": "company",
+   "name": "POSCO Holdings"
+  },
+  {
+   "key": "NHY",
+   "tv": "OSL:NHY",
+   "kind": "company",
+   "name": "Norsk Hydro"
+  },
+  {
+   "key": "AA",
+   "tv": "NYSE:AA",
+   "kind": "company",
+   "name": "Alcoa"
+  },
+  {
+   "key": "CMC",
+   "tv": "NYSE:CMC",
+   "kind": "company",
+   "name": "Commercial Metals"
+  },
+  {
+   "key": "CLF",
+   "tv": "NYSE:CLF",
+   "kind": "company",
+   "name": "Cleveland-Cliffs"
+  },
+  {
+   "key": "CENX",
+   "tv": "NASDAQ:CENX",
+   "kind": "company",
+   "name": "Century Aluminum"
+  },
+  {
+   "key": "SIEGY",
+   "tv": "XETR:SIE",
+   "kind": "company",
+   "name": "Siemens AG"
+  },
+  {
+   "key": "ETN",
+   "tv": "NYSE:ETN",
+   "kind": "company",
+   "name": "Eaton"
+  },
+  {
+   "key": "SBGSY",
+   "tv": "EURONEXT:SU",
+   "kind": "company",
+   "name": "Schneider Electric"
+  },
+  {
+   "key": "ABBNY",
+   "tv": "SIX:ABBN",
+   "kind": "company",
+   "name": "ABB"
+  },
+  {
+   "key": "LR",
+   "tv": "EURONEXT:LR",
+   "kind": "company",
+   "name": "Legrand"
+  },
+  {
+   "key": "HUBB",
+   "tv": "NYSE:HUBB",
+   "kind": "company",
+   "name": "Hubbell"
+  },
+  {
+   "key": "POWL",
+   "tv": "NASDAQ:POWL",
+   "kind": "company",
+   "name": "Powell Industries"
+  },
+  {
+   "key": "TT",
+   "tv": "NYSE:TT",
+   "kind": "company",
+   "name": "Trane Technologies"
+  },
+  {
+   "key": "VRT",
+   "tv": "NYSE:VRT",
+   "kind": "company",
+   "name": "Vertiv"
+  },
+  {
+   "key": "JCI",
+   "tv": "NYSE:JCI",
+   "kind": "company",
+   "name": "Johnson Controls"
+  },
+  {
+   "key": "CARR",
+   "tv": "NYSE:CARR",
+   "kind": "company",
+   "name": "Carrier Global"
+  },
+  {
+   "key": "ALFA",
+   "tv": "OMXSTO:ALFA",
+   "kind": "company",
+   "name": "Alfa Laval"
+  },
+  {
+   "key": "NVT",
+   "tv": "NYSE:NVT",
+   "kind": "company",
+   "name": "nVent Electric"
+  },
+  {
+   "key": "SPXC",
+   "tv": "NYSE:SPXC",
+   "kind": "company",
+   "name": "SPX Technologies"
+  },
+  {
+   "key": "MOD",
+   "tv": "NYSE:MOD",
+   "kind": "company",
+   "name": "Modine"
+  },
+  {
+   "key": "MTRS",
+   "tv": "OMXSTO:MTRS",
+   "kind": "company",
+   "name": "Munters"
+  },
+  {
+   "key": "002837",
+   "tv": "SZSE:002837",
+   "kind": "company",
+   "name": "Envicool"
+  },
+  {
+   "key": "CAT",
+   "tv": "NYSE:CAT",
+   "kind": "company",
+   "name": "Caterpillar"
+  },
+  {
+   "key": "CMI",
+   "tv": "NYSE:CMI",
+   "kind": "company",
+   "name": "Cummins"
+  },
+  {
+   "key": "BE",
+   "tv": "NYSE:BE",
+   "kind": "company",
+   "name": "Bloom Energy"
+  },
+  {
+   "key": "GNRC",
+   "tv": "NYSE:GNRC",
+   "kind": "company",
+   "name": "Generac"
+  },
+  {
+   "key": "HYLN",
+   "tv": "NYSE:HYLN",
+   "kind": "company",
+   "name": "Hyliion"
+  },
+  {
+   "key": "EQIX",
+   "tv": "NASDAQ:EQIX",
+   "kind": "company",
+   "name": "Equinix"
+  },
+  {
+   "key": "DLR",
+   "tv": "NYSE:DLR",
+   "kind": "company",
+   "name": "Digital Realty"
+  },
+  {
+   "key": "IRM",
+   "tv": "NYSE:IRM",
+   "kind": "company",
+   "name": "Iron Mountain"
+  },
+  {
+   "key": "FAST",
+   "tv": "NASDAQ:FAST",
+   "kind": "company",
+   "name": "Fastenal"
+  },
+  {
+   "key": "EME",
+   "tv": "NYSE:EME",
+   "kind": "company",
+   "name": "EMCOR Group"
+  },
+  {
+   "key": "FIX",
+   "tv": "NYSE:FIX",
+   "kind": "company",
+   "name": "Comfort Systems"
+  },
+  {
+   "key": "MTZ",
+   "tv": "NYSE:MTZ",
+   "kind": "company",
+   "name": "MasTec"
+  },
+  {
+   "key": "STRL",
+   "tv": "NASDAQ:STRL",
+   "kind": "company",
+   "name": "Sterling Infrastructure"
+  },
+  {
+   "key": "IESC",
+   "tv": "NASDAQ:IESC",
+   "kind": "company",
+   "name": "IES Holdings"
+  },
+  {
+   "key": "DY",
+   "tv": "NYSE:DY",
+   "kind": "company",
+   "name": "Dycom"
+  },
+  {
+   "key": "PRIM",
+   "tv": "NYSE:PRIM",
+   "kind": "company",
+   "name": "Primoris"
+  },
+  {
+   "key": "AGX",
+   "tv": "NYSE:AGX",
+   "kind": "company",
+   "name": "Argan"
+  },
+  {
+   "key": "LMB",
+   "tv": "NASDAQ:LMB",
+   "kind": "company",
+   "name": "Limbach"
+  },
+  {
+   "key": "YTLPOWR",
+   "tv": "KLSE:YTLPOWR",
+   "kind": "company",
+   "name": "YTL Power"
+  },
+  {
+   "key": "NXT",
+   "tv": "ASX:NXT",
+   "kind": "company",
+   "name": "NextDC"
+  },
+  {
+   "key": "GDS",
+   "tv": "NASDAQ:GDS",
+   "kind": "company",
+   "name": "GDS Holdings"
+  },
+  {
+   "key": "AJBU",
+   "tv": "SGX:AJBU",
+   "kind": "company",
+   "name": "Keppel DC REIT"
+  },
+  {
+   "key": "ECL",
+   "tv": "NYSE:ECL",
+   "kind": "company",
+   "name": "Ecolab"
+  },
+  {
+   "key": "VLTO",
+   "tv": "NYSE:VLTO",
+   "kind": "company",
+   "name": "Veralto"
+  },
+  {
+   "key": "VIE",
+   "tv": "EURONEXT:VIE",
+   "kind": "company",
+   "name": "Veolia"
+  },
+  {
+   "key": "PNR",
+   "tv": "NYSE:PNR",
+   "kind": "company",
+   "name": "Pentair"
+  },
+  {
+   "key": "TTEK",
+   "tv": "NASDAQ:TTEK",
+   "kind": "company",
+   "name": "Tetra Tech"
+  },
+  {
+   "key": "BMI",
+   "tv": "NYSE:BMI",
+   "kind": "company",
+   "name": "Badger Meter"
+  },
+  {
+   "key": "6370",
+   "tv": "TSE:6370",
+   "kind": "company",
+   "name": "Kurita Water Industries"
+  },
+  {
+   "key": "TTI",
+   "tv": "NYSE:TTI",
+   "kind": "company",
+   "name": "TETRA Technologies"
+  },
+  {
+   "key": "AIRJ",
+   "tv": "NASDAQ:AIRJ",
+   "kind": "company",
+   "name": "AirJoule Technologies"
+  },
+  {
+   "key": "XYL",
+   "tv": "NYSE:XYL",
+   "kind": "company",
+   "name": "Xylem"
+  },
+  {
+   "key": "IEX",
+   "tv": "NYSE:IEX",
+   "kind": "company",
+   "name": "IDEX Corporation"
+  },
+  {
+   "key": "AOS",
+   "tv": "NYSE:AOS",
+   "kind": "company",
+   "name": "A.O. Smith"
+  },
+  {
+   "key": "CNM",
+   "tv": "NYSE:CNM",
+   "kind": "company",
+   "name": "Core & Main"
+  },
+  {
+   "key": "WMS",
+   "tv": "NYSE:WMS",
+   "kind": "company",
+   "name": "Advanced Drainage Systems"
+  },
+  {
+   "key": "WTS",
+   "tv": "NYSE:WTS",
+   "kind": "company",
+   "name": "Watts Water"
+  },
+  {
+   "key": "GF",
+   "tv": "SIX:GF",
+   "kind": "company",
+   "name": "Georg Fischer"
+  },
+  {
+   "key": "MWA",
+   "tv": "NYSE:MWA",
+   "kind": "company",
+   "name": "Mueller Water Products"
+  },
+  {
+   "key": "GRC",
+   "tv": "NYSE:GRC",
+   "kind": "company",
+   "name": "Gorman-Rupp"
+  },
+  {
+   "key": "AWK",
+   "tv": "NYSE:AWK",
+   "kind": "company",
+   "name": "American Water Works"
+  },
+  {
+   "key": "SBS",
+   "tv": "NYSE:SBS",
+   "kind": "company",
+   "name": "Sabesp"
+  },
+  {
+   "key": "WTRG",
+   "tv": "NYSE:WTRG",
+   "kind": "company",
+   "name": "Essential Utilities"
+  },
+  {
+   "key": "SVT",
+   "tv": "LSE:SVT",
+   "kind": "company",
+   "name": "Severn Trent"
+  },
+  {
+   "key": "SJW",
+   "tv": "NYSE:SJW",
+   "kind": "company",
+   "name": "SJW Group"
+  },
+  {
+   "key": "2082",
+   "tv": "TADAWUL:2082",
+   "kind": "company",
+   "name": "ACWA Power"
+  },
+  {
+   "key": "ARIS",
+   "tv": "NYSE:ARIS",
+   "kind": "company",
+   "name": "Aris Water Solutions"
+  },
+  {
+   "key": "LNN",
+   "tv": "NYSE:LNN",
+   "kind": "company",
+   "name": "Lindsay Corporation"
+  },
+  {
+   "key": "ERII",
+   "tv": "NASDAQ:ERII",
+   "kind": "company",
+   "name": "Energy Recovery"
+  },
+  {
+   "key": "CWCO",
+   "tv": "NASDAQ:CWCO",
+   "kind": "company",
+   "name": "Consolidated Water"
+  },
+  {
+   "key": "DELL",
+   "tv": "NYSE:DELL",
+   "kind": "company",
+   "name": "Dell Technologies"
+  },
+  {
+   "key": "HNHPF",
+   "tv": "TWSE:2317",
+   "kind": "company",
+   "name": "Hon Hai (Foxconn)"
+  },
+  {
+   "key": "2382",
+   "tv": "TWSE:2382",
+   "kind": "company",
+   "name": "Quanta Computer"
+  },
+  {
+   "key": "CLS",
+   "tv": "NYSE:CLS",
+   "kind": "company",
+   "name": "Celestica"
+  },
+  {
+   "key": "SMCI",
+   "tv": "NASDAQ:SMCI",
+   "kind": "company",
+   "name": "Super Micro"
+  },
+  {
+   "key": "HPE",
+   "tv": "NYSE:HPE",
+   "kind": "company",
+   "name": "Hewlett Packard Enterprise"
+  },
+  {
+   "key": "6669",
+   "tv": "TWSE:6669",
+   "kind": "company",
+   "name": "Wiwynn"
+  },
+  {
+   "key": "3231",
+   "tv": "TWSE:3231",
+   "kind": "company",
+   "name": "Wistron"
+  },
+  {
+   "key": "0992",
+   "tv": "HKEX:992",
+   "kind": "company",
+   "name": "Lenovo"
+  },
+  {
+   "key": "2376",
+   "tv": "TWSE:2376",
+   "kind": "company",
+   "name": "Gigabyte"
+  },
+  {
+   "key": "TXN",
+   "tv": "NASDAQ:TXN",
+   "kind": "company",
+   "name": "Texas Instruments"
+  },
+  {
+   "key": "IFNNY",
+   "tv": "XETR:IFX",
+   "kind": "company",
+   "name": "Infineon"
+  },
+  {
+   "key": "MPWR",
+   "tv": "NASDAQ:MPWR",
+   "kind": "company",
+   "name": "Monolithic Power"
+  },
+  {
+   "key": "STM",
+   "tv": "NYSE:STM",
+   "kind": "company",
+   "name": "STMicroelectronics"
+  },
+  {
+   "key": "ON",
+   "tv": "NASDAQ:ON",
+   "kind": "company",
+   "name": "onsemi"
+  },
+  {
+   "key": "6504",
+   "tv": "TSE:6504",
+   "kind": "company",
+   "name": "Fuji Electric"
+  },
+  {
+   "key": "NVTS",
+   "tv": "NASDAQ:NVTS",
+   "kind": "company",
+   "name": "Navitas"
+  },
+  {
+   "key": "VICR",
+   "tv": "NASDAQ:VICR",
+   "kind": "company",
+   "name": "Vicor"
+  },
+  {
+   "key": "2308",
+   "tv": "TWSE:2308",
+   "kind": "company",
+   "name": "Delta Electronics"
+  },
+  {
+   "key": "3017",
+   "tv": "TWSE:3017",
+   "kind": "company",
+   "name": "Asia Vital Components"
+  },
+  {
+   "key": "2301",
+   "tv": "TWSE:2301",
+   "kind": "company",
+   "name": "Lite-On Technology"
+  },
+  {
+   "key": "3324",
+   "tv": "TWSE:3324",
+   "kind": "company",
+   "name": "Auras Technology"
+  },
+  {
+   "key": "CSCO",
+   "tv": "NASDAQ:CSCO",
+   "kind": "company",
+   "name": "Cisco"
+  },
+  {
+   "key": "ANET",
+   "tv": "NYSE:ANET",
+   "kind": "company",
+   "name": "Arista Networks"
+  },
+  {
+   "key": "ALAB",
+   "tv": "NASDAQ:ALAB",
+   "kind": "company",
+   "name": "Astera Labs"
+  },
+  {
+   "key": "NOK",
+   "tv": "NYSE:NOK",
+   "kind": "company",
+   "name": "Nokia"
+  },
+  {
+   "key": "CRDO",
+   "tv": "NASDAQ:CRDO",
+   "kind": "company",
+   "name": "Credo Technology"
+  },
+  {
+   "key": "CIEN",
+   "tv": "NYSE:CIEN",
+   "kind": "company",
+   "name": "Ciena"
+  },
+  {
+   "key": "APH",
+   "tv": "NYSE:APH",
+   "kind": "company",
+   "name": "Amphenol"
+  },
+  {
+   "key": "300308",
+   "tv": "SZSE:300308",
+   "kind": "company",
+   "name": "Innolight"
+  },
+  {
+   "key": "GLW",
+   "tv": "NYSE:GLW",
+   "kind": "company",
+   "name": "Corning"
+  },
+  {
+   "key": "COHR",
+   "tv": "NYSE:COHR",
+   "kind": "company",
+   "name": "Coherent"
+  },
+  {
+   "key": "5802",
+   "tv": "TSE:5802",
+   "kind": "company",
+   "name": "Sumitomo Electric"
+  },
+  {
+   "key": "300502",
+   "tv": "SZSE:300502",
+   "kind": "company",
+   "name": "Eoptolink"
+  },
+  {
+   "key": "5803",
+   "tv": "TSE:5803",
+   "kind": "company",
+   "name": "Fujikura"
+  },
+  {
+   "key": "LITE",
+   "tv": "NASDAQ:LITE",
+   "kind": "company",
+   "name": "Lumentum"
+  },
+  {
+   "key": "FN",
+   "tv": "NYSE:FN",
+   "kind": "company",
+   "name": "Fabrinet"
+  },
+  {
+   "key": "MTSI",
+   "tv": "NASDAQ:MTSI",
+   "kind": "company",
+   "name": "MACOM"
+  },
+  {
+   "key": "5801",
+   "tv": "TSE:5801",
+   "kind": "company",
+   "name": "Furukawa Electric"
+  },
+  {
+   "key": "AAOI",
+   "tv": "NASDAQ:AAOI",
+   "kind": "company",
+   "name": "Applied Optoelectronics"
+  },
+  {
+   "key": "TSLA",
+   "tv": "NASDAQ:TSLA",
+   "kind": "company",
+   "name": "Tesla (Optimus)"
+  },
+  {
+   "key": "005380",
+   "tv": "KRX:005380",
+   "kind": "company",
+   "name": "Hyundai Motor (Boston Dynamics)"
+  },
+  {
+   "key": "9880",
+   "tv": "HKEX:9880",
+   "kind": "company",
+   "name": "UBTech Robotics"
+  },
+  {
+   "key": "277810",
+   "tv": "KRX:277810",
+   "kind": "company",
+   "name": "Rainbow Robotics"
+  },
+  {
+   "key": "454910",
+   "tv": "KRX:454910",
+   "kind": "company",
+   "name": "Doosan Robotics"
+  },
+  {
+   "key": "6861",
+   "tv": "TSE:6861",
+   "kind": "company",
+   "name": "Keyence"
+  },
+  {
+   "key": "6954",
+   "tv": "TSE:6954",
+   "kind": "company",
+   "name": "Fanuc"
+  },
+  {
+   "key": "300124",
+   "tv": "SZSE:300124",
+   "kind": "company",
+   "name": "Shenzhen Inovance"
+  },
+  {
+   "key": "6506",
+   "tv": "TSE:6506",
+   "kind": "company",
+   "name": "Yaskawa Electric"
+  },
+  {
+   "key": "ROK",
+   "tv": "NYSE:ROK",
+   "kind": "company",
+   "name": "Rockwell Automation"
+  },
+  {
+   "key": "ZBRA",
+   "tv": "NASDAQ:ZBRA",
+   "kind": "company",
+   "name": "Zebra Technologies (Fetch Robotics)"
+  },
+  {
+   "key": "6645",
+   "tv": "TSE:6645",
+   "kind": "company",
+   "name": "OMRON"
+  },
+  {
+   "key": "WMT",
+   "tv": "NYSE:WMT",
+   "kind": "company",
+   "name": "Walmart"
+  },
+  {
+   "key": "UPS",
+   "tv": "NYSE:UPS",
+   "kind": "company",
+   "name": "UPS"
+  },
+  {
+   "key": "FDX",
+   "tv": "NYSE:FDX",
+   "kind": "company",
+   "name": "FedEx"
+  },
+  {
+   "key": "JD",
+   "tv": "NASDAQ:JD",
+   "kind": "company",
+   "name": "JD.com"
+  },
+  {
+   "key": "GXO",
+   "tv": "NYSE:GXO",
+   "kind": "company",
+   "name": "GXO Logistics"
+  },
+  {
+   "key": "1211",
+   "tv": "HKEX:1211",
+   "kind": "company",
+   "name": "BYD"
+  },
+  {
+   "key": "2317",
+   "tv": "TWSE:2317",
+   "kind": "company",
+   "name": "Hon Hai / Foxconn"
+  },
+  {
+   "key": "TSN",
+   "tv": "NYSE:TSN",
+   "kind": "company",
+   "name": "Tyson Foods"
+  },
+  {
+   "key": "DE",
+   "tv": "NYSE:DE",
+   "kind": "company",
+   "name": "Deere & Co"
+  },
+  {
+   "key": "ISRG",
+   "tv": "NASDAQ:ISRG",
+   "kind": "company",
+   "name": "Intuitive Surgical"
+  },
+  {
+   "key": "SYM",
+   "tv": "NASDAQ:SYM",
+   "kind": "company",
+   "name": "Symbotic"
+  },
+  {
+   "key": "KGX",
+   "tv": "XETR:KGX",
+   "kind": "company",
+   "name": "Kion Group"
+  },
+  {
+   "key": "ASTO",
+   "tv": "OSL:ASTO",
+   "kind": "company",
+   "name": "AutoStore"
+  },
+  {
+   "key": "AVAV",
+   "tv": "NASDAQ:AVAV",
+   "kind": "company",
+   "name": "AeroVironment"
+  },
+  {
+   "key": "KTOS",
+   "tv": "NASDAQ:KTOS",
+   "kind": "company",
+   "name": "Kratos Defense"
+  },
+  {
+   "key": "ONDS",
+   "tv": "NASDAQ:ONDS",
+   "kind": "company",
+   "name": "Ondas"
+  },
+  {
+   "key": "PRCT",
+   "tv": "NASDAQ:PRCT",
+   "kind": "company",
+   "name": "PROCEPT BioRobotics"
+  },
+  {
+   "key": "OCDO",
+   "tv": "LSE:OCDO",
+   "kind": "company",
+   "name": "Ocado Group"
+  },
+  {
+   "key": "SERV",
+   "tv": "NASDAQ:SERV",
+   "kind": "company",
+   "name": "Serve Robotics"
+  },
+  {
+   "key": "UBER",
+   "tv": "NYSE:UBER",
+   "kind": "company",
+   "name": "Uber Technologies"
+  },
+  {
+   "key": "MBLY",
+   "tv": "NASDAQ:MBLY",
+   "kind": "company",
+   "name": "Mobileye"
+  },
+  {
+   "key": "9660",
+   "tv": "HKEX:9660",
+   "kind": "company",
+   "name": "Horizon Robotics"
+  },
+  {
+   "key": "AUR",
+   "tv": "NASDAQ:AUR",
+   "kind": "company",
+   "name": "Aurora Innovation"
+  },
+  {
+   "key": "PONY",
+   "tv": "NASDAQ:PONY",
+   "kind": "company",
+   "name": "Pony AI"
+  },
+  {
+   "key": "WRD",
+   "tv": "NASDAQ:WRD",
+   "kind": "company",
+   "name": "WeRide"
+  },
+  {
+   "key": "SONY",
+   "tv": "NYSE:SONY",
+   "kind": "company",
+   "name": "Sony Group (image sensors)"
+  },
+  {
+   "key": "AMBA",
+   "tv": "NASDAQ:AMBA",
+   "kind": "company",
+   "name": "Ambarella"
+  },
+  {
+   "key": "CGNX",
+   "tv": "NASDAQ:CGNX",
+   "kind": "company",
+   "name": "Cognex"
+  },
+  {
+   "key": "HSAI",
+   "tv": "NASDAQ:HSAI",
+   "kind": "company",
+   "name": "Hesai Group"
+  },
+  {
+   "key": "OUST",
+   "tv": "NASDAQ:OUST",
+   "kind": "company",
+   "name": "Ouster"
+  },
+  {
+   "key": "PANW",
+   "tv": "NASDAQ:PANW",
+   "kind": "company",
+   "name": "Palo Alto Networks"
+  },
+  {
+   "key": "NET",
+   "tv": "NYSE:NET",
+   "kind": "company",
+   "name": "Cloudflare"
+  },
+  {
+   "key": "ZS",
+   "tv": "NASDAQ:ZS",
+   "kind": "company",
+   "name": "Zscaler"
+  },
+  {
+   "key": "CYBR",
+   "tv": "NASDAQ:CYBR",
+   "kind": "company",
+   "name": "CyberArk"
+  },
+  {
+   "key": "OKTA",
+   "tv": "NASDAQ:OKTA",
+   "kind": "company",
+   "name": "Okta"
+  },
+  {
+   "key": "SAIL",
+   "tv": "NASDAQ:SAIL",
+   "kind": "company",
+   "name": "SailPoint"
+  },
+  {
+   "key": "ACN",
+   "tv": "NYSE:ACN",
+   "kind": "company",
+   "name": "Accenture Security"
+  },
+  {
+   "key": "BAH",
+   "tv": "NYSE:BAH",
+   "kind": "company",
+   "name": "Booz Allen Hamilton"
+  },
+  {
+   "key": "QLYS",
+   "tv": "NASDAQ:QLYS",
+   "kind": "company",
+   "name": "Qualys"
+  },
+  {
+   "key": "TENB",
+   "tv": "NASDAQ:TENB",
+   "kind": "company",
+   "name": "Tenable Exposure Management"
+  },
+  {
+   "key": "RPD",
+   "tv": "NASDAQ:RPD",
+   "kind": "company",
+   "name": "Rapid7 Exposure Command"
+  },
+  {
+   "key": "HON",
+   "tv": "NASDAQ:HON",
+   "kind": "company",
+   "name": "Honeywell"
+  },
+  {
+   "key": "IONQ",
+   "tv": "NYSE:IONQ",
+   "kind": "company",
+   "name": "IonQ"
+  },
+  {
+   "key": "RGTI",
+   "tv": "NASDAQ:RGTI",
+   "kind": "company",
+   "name": "Rigetti Computing"
+  },
+  {
+   "key": "QBTS",
+   "tv": "NYSE:QBTS",
+   "kind": "company",
+   "name": "D-Wave Quantum"
+  },
+  {
+   "key": "QUBT",
+   "tv": "NASDAQ:QUBT",
+   "kind": "company",
+   "name": "Quantum Computing Inc"
+  },
+  {
+   "key": "INFQ",
+   "tv": "NYSE:INFQ",
+   "kind": "company",
+   "name": "Infleqtion"
+  },
+  {
+   "key": "ARQQ",
+   "tv": "NASDAQ:ARQQ",
+   "kind": "company",
+   "name": "Arqit Quantum"
+  },
+  {
+   "key": "AXE",
+   "tv": "ASX:AXE",
+   "kind": "company",
+   "name": "Archer Materials"
+  },
+  {
+   "key": "006400",
+   "tv": "KRX:006400",
+   "kind": "company",
+   "name": "Samsung SDI"
+  },
+  {
+   "key": "6752",
+   "tv": "TSE:6752",
+   "kind": "company",
+   "name": "Panasonic Holdings"
+  },
+  {
+   "key": "300014",
+   "tv": "SZSE:300014",
+   "kind": "company",
+   "name": "EVE Energy"
+  },
+  {
+   "key": "QS",
+   "tv": "NYSE:QS",
+   "kind": "company",
+   "name": "QuantumScape"
+  },
+  {
+   "key": "ENVX",
+   "tv": "NASDAQ:ENVX",
+   "kind": "company",
+   "name": "Enovix"
+  },
+  {
+   "key": "AMPX",
+   "tv": "NASDAQ:AMPX",
+   "kind": "company",
+   "name": "Amprius Technologies"
+  },
+  {
+   "key": "SES",
+   "tv": "NYSE:SES",
+   "kind": "company",
+   "name": "SES AI"
+  },
+  {
+   "key": "SLDP",
+   "tv": "NASDAQ:SLDP",
+   "kind": "company",
+   "name": "Solid Power"
+  },
+  {
+   "key": "6594",
+   "tv": "TSE:6594",
+   "kind": "company",
+   "name": "Nidec"
+  },
+  {
+   "key": "6479",
+   "tv": "TSE:6479",
+   "kind": "company",
+   "name": "MinebeaMitsumi"
+  },
+  {
+   "key": "ALGM",
+   "tv": "NASDAQ:ALGM",
+   "kind": "company",
+   "name": "Allegro MicroSystems"
+  },
+  {
+   "key": "SHA0",
+   "tv": "XETR:SHA0",
+   "kind": "company",
+   "name": "Schaeffler"
+  },
+  {
+   "key": "RRX",
+   "tv": "NYSE:RRX",
+   "kind": "company",
+   "name": "Regal Rexnord"
+  },
+  {
+   "key": "MOG.A",
+   "tv": "NYSE:MOG.A",
+   "kind": "company",
+   "name": "Moog"
+  },
+  {
+   "key": "NOVT",
+   "tv": "NASDAQ:NOVT",
+   "kind": "company",
+   "name": "Novanta"
+  },
+  {
+   "key": "6324",
+   "tv": "TSE:6324",
+   "kind": "company",
+   "name": "Harmonic Drive Systems"
+  },
+  {
+   "key": "6481",
+   "tv": "TSE:6481",
+   "kind": "company",
+   "name": "THK"
+  },
+  {
+   "key": "6268",
+   "tv": "TSE:6268",
+   "kind": "company",
+   "name": "Nabtesco"
+  },
+  {
+   "key": "CRWD",
+   "tv": "NASDAQ:CRWD",
+   "kind": "company",
+   "name": "CrowdStrike"
+  },
+  {
+   "key": "FTNT",
+   "tv": "NASDAQ:FTNT",
+   "kind": "company",
+   "name": "Fortinet"
+  },
+  {
+   "key": "CHKP",
+   "tv": "NASDAQ:CHKP",
+   "kind": "company",
+   "name": "Check Point Software"
+  },
+  {
+   "key": "GTLB",
+   "tv": "NASDAQ:GTLB",
+   "kind": "company",
+   "name": "GitLab"
+  },
+  {
+   "key": "000333",
+   "tv": "SZSE:000333",
+   "kind": "company",
+   "name": "Midea Group (KUKA)"
+  },
+  {
+   "key": "300024",
+   "tv": "SZSE:300024",
+   "kind": "company",
+   "name": "SIASUN Robot & Automation"
+  },
+  {
+   "key": "002747",
+   "tv": "SZSE:002747",
+   "kind": "company",
+   "name": "Estun Automation"
+  },
+  {
+   "key": "688165",
+   "tv": "SSE:688165",
+   "kind": "company",
+   "name": "EFORT Intelligent Equipment"
+  },
+  {
+   "key": "688169",
+   "tv": "SSE:688169",
+   "kind": "company",
+   "name": "Roborock"
+  },
+  {
+   "key": "603486",
+   "tv": "SSE:603486",
+   "kind": "company",
+   "name": "Ecovacs Robotics"
+  },
+  {
+   "key": "688017",
+   "tv": "SSE:688017",
+   "kind": "company",
+   "name": "Leader Harmonic Drive Systems"
+  },
+  {
+   "key": "KEYS",
+   "tv": "NYSE:KEYS",
+   "kind": "company",
+   "name": "Keysight"
+  },
+  {
+   "key": "6965",
+   "tv": "TSE:6965",
+   "kind": "company",
+   "name": "Hamamatsu Photonics"
+  },
+  {
+   "key": "BRKR",
+   "tv": "NASDAQ:BRKR",
+   "kind": "company",
+   "name": "Bruker"
+  },
+  {
+   "key": "JEN",
+   "tv": "XETR:JEN",
+   "kind": "company",
+   "name": "Jenoptik"
+  },
+  {
+   "key": "AMSC",
+   "tv": "NASDAQ:AMSC",
+   "kind": "company",
+   "name": "American Superconductor"
+  },
+  {
+   "key": "6302",
+   "tv": "TSE:6302",
+   "kind": "company",
+   "name": "Sumitomo Heavy Industries"
+  },
+  {
+   "key": "OXIG",
+   "tv": "LSE:OXIG",
+   "kind": "company",
+   "name": "Oxford Instruments"
+  },
+  {
+   "key": "FORM",
+   "tv": "NASDAQ:FORM",
+   "kind": "company",
+   "name": "FormFactor"
+  },
+  {
+   "key": "BT.A",
+   "tv": "LSE:BT.A",
+   "kind": "company",
+   "name": "BT Group"
+  },
+  {
+   "key": "SKM",
+   "tv": "NYSE:SKM",
+   "kind": "company",
+   "name": "SK Telecom"
+  },
+  {
+   "key": "LAES",
+   "tv": "NASDAQ:LAES",
+   "kind": "company",
+   "name": "SEALSQ"
+  },
+  {
+   "key": "QNC",
+   "tv": "TSXV:QNC",
+   "kind": "company",
+   "name": "Quantum eMotion"
+  },
+  {
+   "key": "RBRK",
+   "tv": "NYSE:RBRK",
+   "kind": "company",
+   "name": "Rubrik"
+  },
+  {
+   "key": "VRNS",
+   "tv": "NASDAQ:VRNS",
+   "kind": "company",
+   "name": "Varonis Systems"
+  },
+  {
+   "key": "CVLT",
+   "tv": "NASDAQ:CVLT",
+   "kind": "company",
+   "name": "Commvault"
+  },
+  {
+   "key": "SMH",
+   "tv": "SMH",
+   "kind": "etf",
+   "name": "VanEck Semiconductor"
+  },
+  {
+   "key": "SOXX",
+   "tv": "SOXX",
+   "kind": "etf",
+   "name": "iShares Semiconductor"
+  },
+  {
+   "key": "XSD",
+   "tv": "XSD",
+   "kind": "etf",
+   "name": "SPDR S&P Semiconductor (equal weight)"
+  },
+  {
+   "key": "QQQM",
+   "tv": "QQQM",
+   "kind": "etf",
+   "name": "Nasdaq-100"
+  },
+  {
+   "key": "MAGS",
+   "tv": "MAGS",
+   "kind": "etf",
+   "name": "Roundhill Magnificent Seven"
+  },
+  {
+   "key": "AIQ",
+   "tv": "AIQ",
+   "kind": "etf",
+   "name": "Global X AI & Technology"
+  },
+  {
+   "key": "IRBO",
+   "tv": "IRBO",
+   "kind": "etf",
+   "name": "iShares Robotics & AI (equal weight)"
+  },
+  {
+   "key": "QTUM",
+   "tv": "QTUM",
+   "kind": "etf",
+   "name": "Defiance Quantum"
+  },
+  {
+   "key": "WGMI",
+   "tv": "WGMI",
+   "kind": "etf",
+   "name": "CoinShares/Valkyrie Bitcoin Miners"
+  },
+  {
+   "key": "DTCR",
+   "tv": "DTCR",
+   "kind": "etf",
+   "name": "Global X Data Center & Digital Infrastructure"
+  },
+  {
+   "key": "GRID",
+   "tv": "GRID",
+   "kind": "etf",
+   "name": "First Trust Smart Grid"
+  },
+  {
+   "key": "PAVE",
+   "tv": "PAVE",
+   "kind": "etf",
+   "name": "US Infrastructure Development"
+  },
+  {
+   "key": "XLU",
+   "tv": "XLU",
+   "kind": "etf",
+   "name": "Utilities Select Sector"
+  },
+  {
+   "key": "NLR",
+   "tv": "NLR",
+   "kind": "etf",
+   "name": "VanEck Uranium & Nuclear"
+  },
+  {
+   "key": "URA",
+   "tv": "URA",
+   "kind": "etf",
+   "name": "Global X Uranium"
+  },
+  {
+   "key": "URNM",
+   "tv": "URNM",
+   "kind": "etf",
+   "name": "Sprott Uranium Miners"
+  },
+  {
+   "key": "COPP",
+   "tv": "COPP",
+   "kind": "etf",
+   "name": "Sprott Copper Miners"
+  },
+  {
+   "key": "CPER",
+   "tv": "CPER",
+   "kind": "etf",
+   "name": "US Copper Index"
+  },
+  {
+   "key": "SLX",
+   "tv": "SLX",
+   "kind": "etf",
+   "name": "VanEck Steel"
+  },
+  {
+   "key": "PHO",
+   "tv": "PHO",
+   "kind": "etf",
+   "name": "Invesco Water Resources"
+  },
+  {
+   "key": "KWEB",
+   "tv": "KWEB",
+   "kind": "etf",
+   "name": "KraneShares China Internet"
+  },
+  {
+   "key": "BOTZ",
+   "tv": "BOTZ",
+   "kind": "etf",
+   "name": "Global X Robotics & AI"
+  },
+  {
+   "key": "ROBO",
+   "tv": "ROBO",
+   "kind": "etf",
+   "name": "ROBO Global Robotics & Automation"
+  },
+  {
+   "key": "ARKQ",
+   "tv": "ARKQ",
+   "kind": "etf",
+   "name": "ARK Autonomous Tech & Robotics"
+  },
+  {
+   "key": "DRIV",
+   "tv": "DRIV",
+   "kind": "etf",
+   "name": "Global X Autonomous & Electric Vehicles"
+  },
+  {
+   "key": "KOID",
+   "tv": "KOID",
+   "kind": "etf",
+   "name": "KraneShares Humanoid & Embodied AI"
+  },
+  {
+   "key": "FIW",
+   "tv": "FIW",
+   "kind": "etf",
+   "name": "First Trust Water"
+  },
+  {
+   "key": "CGW",
+   "tv": "CGW",
+   "kind": "etf",
+   "name": "Invesco S&P Global Water"
+  },
+  {
+   "key": "PIO",
+   "tv": "PIO",
+   "kind": "etf",
+   "name": "Invesco Global Water"
+  },
+  {
+   "key": "REMX",
+   "tv": "REMX",
+   "kind": "etf",
+   "name": "VanEck Rare Earth & Strategic Metals"
+  },
+  {
+   "key": "PICK",
+   "tv": "PICK",
+   "kind": "etf",
+   "name": "iShares MSCI Global Metals & Mining"
+  },
+  {
+   "key": "XME",
+   "tv": "XME",
+   "kind": "etf",
+   "name": "SPDR S&P Metals & Mining (equal weight)"
+  },
+  {
+   "key": "SIVR",
+   "tv": "SIVR",
+   "kind": "etf",
+   "name": "abrdn Physical Silver"
+  },
+  {
+   "key": "EWY",
+   "tv": "EWY",
+   "kind": "etf",
+   "name": "iShares MSCI South Korea"
+  },
+  {
+   "key": "EWT",
+   "tv": "EWT",
+   "kind": "etf",
+   "name": "iShares MSCI Taiwan"
+  },
+  {
+   "key": "INDA",
+   "tv": "INDA",
+   "kind": "etf",
+   "name": "iShares MSCI India"
+  },
+  {
+   "key": "EZA",
+   "tv": "EZA",
+   "kind": "etf",
+   "name": "iShares MSCI South Africa"
+  },
+  {
+   "key": "ILF",
+   "tv": "ILF",
+   "kind": "etf",
+   "name": "iShares Latin America 40"
+  },
+  {
+   "key": "LIT",
+   "tv": "LIT",
+   "kind": "etf",
+   "name": "Global X Lithium & Battery Tech"
+  },
+  {
+   "key": "CIBR",
+   "tv": "CIBR",
+   "kind": "etf",
+   "name": "First Trust Nasdaq Cybersecurity"
+  },
+  {
+   "key": "HACK",
+   "tv": "HACK",
+   "kind": "etf",
+   "name": "Amplify Cybersecurity"
+  }
+ ]
+}
