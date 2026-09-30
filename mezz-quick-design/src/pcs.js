@@ -59,16 +59,41 @@
   };
 
   // ---------- page -> lines ----------
+  // pdf.js hands back kerning fragments ("P" "er" "Seller", "12'" "-" "0\""). Rebuild phrases from the
+  // x-gaps: < ~0.15 em joins letters, < ~1.6 em is a word space, anything wider is a new column.
+  // Double-struck headers arrive as the same string drawn twice on top of itself; keep one copy.
+  const cache = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
   function lines(page, tol = 2.2) {
-    const its = page.items.map(i => ({ ...i, str: clean(i.str) })).filter(i => i.str);
+    if (cache && cache.has(page)) return cache.get(page);
+    const its = page.items.map(i => ({ ...i, str: String(i.str || '').replace(/\s+/g, ' ') })).filter(i => i.str.trim());
     its.sort((a, b) => a.y - b.y || a.x - b.x);
-    const out = [];
+    const rows = [];
     its.forEach(it => {
-      const L = out.find(l => Math.abs(l.y - it.y) <= tol);
-      L ? L.items.push(it) : out.push({ y: it.y, items: [it] });
+      const L = rows.find(l => Math.abs(l.y - it.y) <= tol);
+      L ? L.raw.push(it) : rows.push({ y: it.y, raw: [it] });
     });
-    out.forEach(l => { l.items.sort((a, b) => a.x - b.x); l.text = l.items.map(i => i.str).join('  '); });
+    const out = rows.map(r => {
+      const raw = r.raw.sort((a, b) => a.x - b.x).filter((it, i, a) => !a.slice(0, i).some(p => p.str === it.str && Math.abs(p.x - it.x) < 1.5));
+      const items = [];
+      let cur = null;
+      raw.forEach(it => {
+        const em = it.h || 8;
+        const gap = cur ? it.x - cur.xEnd : Infinity;
+        if (cur && gap < 1.6 * em && gap > -0.5 * em) {
+          cur.str += (gap > 0.15 * em && !/\s$/.test(cur.str) ? ' ' : '') + it.str;
+          cur.xEnd = Math.max(cur.xEnd, it.x + (it.w || 0));
+        } else if (cur && gap <= -0.5 * em) {
+          // overlap (second strike of a double-struck run): ignore
+        } else {
+          cur = { str: it.str, x: it.x, y: it.y, h: it.h, xEnd: it.x + (it.w || 0) };
+          items.push(cur);
+        }
+      });
+      items.forEach(i => { i.str = clean(i.str); i.w = i.xEnd - i.x; });
+      return { y: r.y, items: items.filter(i => i.str), text: items.map(i => i.str).filter(Boolean).join('  ') };
+    }).filter(l => l.items.length);
     out.sort((a, b) => a.y - b.y);
+    if (cache) cache.set(page, out);
     return out;
   }
   const allLines = pages => pages.flatMap(p => lines(p).map(l => ({ ...l, page: p.num })));
@@ -99,7 +124,7 @@
   // ---------- Box 3: building code -> edition ----------
   function buildingCode(pages) {
     const txt = allLines(pages).map(l => l.text).join('\n');
-    const code = grab(txt, /Building Code:\s*(.+?)(?:\n|$)/);
+    const code = grab(txt, /Building Code:\s*(.+?)(?:\s{2,}|\n|$)/);
     return { text: code, ...editionFor(code || '') };
   }
   function editionFor(code) {
@@ -267,11 +292,18 @@
   function checkboxTargets(page) {
     const want = Object.values(CHECK_LABELS).flat();
     const out = [];
-    page.items.forEach(it => {
-      const s = clean(it.str);
-      const lb = want.find(w => s === w || s.startsWith(w));
+    lines(page).forEach(l => l.items.forEach(it => {
+      const lb = want.find(w => it.str === w || it.str.startsWith(w));
       if (lb && !out.some(o => o.label === lb)) out.push({ label: lb, x: it.x, y: it.y, h: it.h || 8 });
-    });
+    }));
+    return out;
+  }
+  // pages that carry Box 22 (for checkbox rendering)
+  function box22Pages(pages) {
+    const s = pages.findIndex(p => lines(p).some(l => /22\)\s*MEZZANINES/i.test(l.text)));
+    if (s < 0) return [];
+    const out = [];
+    for (let i = s; i < pages.length; i++) { out.push(pages[i]); if (lines(pages[i]).some(l => /^2[3-9]\)/.test(l.text))) break; }
     return out;
   }
 
@@ -285,6 +317,6 @@
     return { job, code, building: bldg, frames: fr, mezzanines: mezz };
   }
 
-  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, CHECK_LABELS, building, frames, mezzanines, jobFacts };
+  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -120,7 +120,10 @@
       tried.push({ name, max: c.max, ok: c.ok, check: c });
       return c;
     };
-    for (const name of list) { const c = run(name); if (c.ok) return { name, quoteAs: name, common: true, check: c, tried }; }
+    // run every common size so the alternatives are visible; pick the lightest that passes
+    const common = list.map(name => ({ name, c: run(name) }));
+    const firstOK = common.find(x => x.c.ok);
+    if (firstOK) return { name: firstOK.name, quoteAs: firstOK.name, common: true, check: firstOK.c, tried };
     // Guide: if a larger W is needed (e.g. W14x43) list it as BU on the quote sheet
     const pool = Object.keys(WFDB).filter(k => /^W(8|10|12|14)X/.test(k) && !list.includes(k)).sort((a, b) => WFDB[a].W - WFDB[b].W || WFDB[a].d - WFDB[b].d);
     for (const name of pool) {

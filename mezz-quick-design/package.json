@@ -1,0 +1,12 @@
+{
+  "name": "mezz-quick-design",
+  "private": true,
+  "description": "NBG mezzanine beam / column quick-design from a PCS PDF (single-file HTML tool).",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node test/engine.test.js && node test/layout.test.js && node test/pcs.test.js"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "3.11.174"
+  }
+}
