@@ -1,0 +1,4 @@
+# Mezzanine quick-design: Nucor workbooks, guides and customer PCS files stay local
+mezz-quick-design/private/
+mezz-quick-design/oracle/out/
+__pycache__/
