@@ -34,7 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install browser driver (reads the company list from the app)
         run: npm install --no-save --no-package-lock playwright-core@1.47.2
@@ -42,6 +42,7 @@ jobs:
       - name: Refresh prices
         env:
           ATLAS_CHROME_CHANNEL: chrome
+        timeout-minutes: 30
         run: node atlas/tools/refresh-prices.mjs
 
       - name: Commit refreshed prices
