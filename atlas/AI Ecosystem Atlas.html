@@ -3014,10 +3014,10 @@ function livePricePanel(){
   const n=liveCount(),newest=liveNewest();
   const opts=Object.keys(LIVE_PROVIDERS).map(function(k){
     return '<option value="'+k+'"'+(k===prov?' selected':'')+'>'+LIVE_PROVIDERS[k].name+'</option>'}).join("");
-  return '<div class="section-label" style="margin-top:22px">Live prices — fetched by your browser, with your own free API key</div>'+
+  return '<div class="section-label" style="margin-top:22px">Intraday quotes (optional) — fetched by your browser with your own free API key</div>'+
   '<div class="prompt-card">'+
-    '<p>The embedded price history is a dated snapshot. Add a free API key and the Atlas will pull current quotes straight from the provider — the key is stored only in this browser and never leaves your machine. Live quotes override the snapshot on the price tile, the 1-year return and the charts.</p>'+
-    (n?'<p style="color:var(--green)"><b>'+n+' live '+(n===1?'quote':'quotes')+' cached</b> · newest '+timeAgo(newest)+'</p>':'<p style="color:var(--faint)">No live quotes yet — the Atlas is using the embedded snapshot from '+PRICE_SERIES_ASOF+'.</p>')+
+    '<p>Prices refresh automatically after each US close. For quotes during market hours, add a free API key and the Atlas pulls them straight from the provider — the key is stored only in this browser. An intraday quote overrides the last close on the price tile, the 1-year return and the chart.</p>'+
+    (n?'<p style="color:var(--green)"><b>'+n+' live '+(n===1?'quote':'quotes')+' cached</b> · newest '+timeAgo(newest)+'</p>':'<p style="color:var(--faint)">No intraday quotes yet — showing the last close from '+PRICE_SERIES_ASOF+'.</p>')+
     '<div class="research-add" style="margin-top:10px">'+
       '<select id="liveProvider" style="background:#08111f;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:12px;font:11px IBM Plex Mono">'+opts+'</select>'+
       '<input id="liveKeyInput" type="password" placeholder="Paste your free API key" value="'+esc(creds&&creds.key?creds.key:"")+'">'+
