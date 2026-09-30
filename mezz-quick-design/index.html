@@ -601,6 +601,38 @@ tr.none td { color: var(--ink-faint); }
     if (lam <= lamR * sqrt(Fy / Fcr)) return b;
     return b * (1 - c1 * sqrt(Fel / Fcr)) * sqrt(Fel / Fcr);
   }
+  /* ---------------- VBA: 13th edition (AISC 360-05) ChapterE / ChapterF / ChapterG ---------------- */
+  function ftnQs13(type, r, E, Fy, kc) {
+    if (type === 'WF') {
+      if (r <= 0.56 * sqrt(E / Fy)) return 1;
+      if (r >= 1.03 * sqrt(E / Fy)) return 0.69 * E / (Fy * r ** 2);
+      return 1.415 - 0.74 * r * sqrt(Fy / E);
+    }
+    if (r <= 0.64 * sqrt(E * kc / Fy)) return 1;
+    if (r > 1.17 * sqrt(E * kc / Fy)) return 0.9 * E * kc / (Fy * r ** 2);
+    return 1.415 - 0.65 * r * sqrt(Fy / (E * kc));
+  }
+  function ftnBe13(f, tw, E, h) {
+    if (h / tw >= 1.49 * sqrt(E / f)) return Math.min(1.92 * tw * sqrt(E / f) * (1 - sqrt(E / f) * 0.34 / (h / tw)), h);
+    return h;
+  }
+  function ftn_rt13(c, bof, bif, d, h, ho, aw) {
+    const bfc = c === 'I' ? bof : c === 'O' ? bif : c === 'Neither' ? Math.min(bof, bif) : null;
+    return bfc === null ? 'NA' : bfc / sqrt(12 * (ho / d + (aw * h ** 2) / (6 * ho * d)));
+  }
+  function ftnKv13(Lbx, a, tw, h) {
+    if ((a > 0 && a <= Lbx) || h / tw >= 260) {
+      if (a / h <= 3 && a / h <= (260 * tw / h) ** 2) return 5 + 5 / (a / h) ** 2;
+      return 5;
+    }
+    return 5;
+  }
+  function ftnCv13(r, kv, E, Fyw) {
+    if (r <= 1.1 * sqrt(kv * E / Fyw)) return 1;
+    if (r > 1.37 * sqrt(kv * E / Fyw)) return 1.51 * E * kv / (Fyw * r ** 2);
+    return 1.1 * sqrt(kv * E / Fyw) / r;
+  }
+
   /* ---------------- VBA: ChapterF ---------------- */
   function ftn_Iyc(c, bof, tof, bif, tif) { const o = tof * bof ** 3 / 12, i = tif * bif ** 3 / 12; return c === 'I' ? o : c === 'O' ? i : c === 'Neither' ? Math.min(o, i) : 'NA'; }
   function ftn_Iyt(c, bof, tof, bif, tif) { const o = tof * bof ** 3 / 12, i = tif * bif ** 3 / 12; return c === 'I' ? o : c === 'O' ? i : c === 'Neither' ? 'NA' : Math.min(o, i); }
@@ -673,6 +705,7 @@ tr.none td { color: var(--ink-faint); }
   function analyze(sec, m, g, f, WFDB) {
     const E = m.E ?? 29000, Gm = m.G ?? 11200, Fyf = m.Fyf, Fyw = m.Fyw, Fu = m.Fu;
     const Cb = g.Cb ?? 1, Kx = g.Kx ?? 1, Ky = g.Ky ?? 1, Kz = g.Kz ?? 1, a = g.a || 0, TFA = !!g.TFA, Sf = g.Sf ?? 1;
+    const ed13 = String(g.edition || '') === '13';   // 13th-edition sheet (AISC 360-05); 15th and 16th are identical
     const Lbx = g.Lbx, Lby = g.Lby;
     const Pa = f.Pa || 0, Vx = f.Vx || 0, Mx = f.Mx || 0, Vy = f.Vy || 0, May = f.My || 0;
     const WF = sec.type === 'WF';
@@ -738,14 +771,27 @@ tr.none td { color: var(--ink-faint); }
       FeS = ((Fey + Fez) / (2 * H)) * (1 - sqrt(1 - 4 * Fey * Fez * H / (Fey + Fez) ** 2));
     }
     const NFe = xmin(Fex, Fey, FeD, FeS);
-    const Fcr = Fy / NFe > 2.25 ? 0.877 * NFe : 0.658 ** (Fy / NFe) * Fy;
-    const lrFlgAx = xmin(B47, B37);
-    const beof = ftnEffectiveWidth(btOF, lrFlgAx, Fyf, Fcr, bof, true);
-    const beif = ftnEffectiveWidth(btIF, lrFlgAx, Fyf, Fcr, bif, true);
-    const he = ftnEffectiveWidth(htw, B20, Fyw, Fcr, h, false);
-    const Aeff = Ag - tif * (bif - beif) - tof * (bof - beof) - tw * (h - he);
-    const Pn = Fcr * Aeff, PcASD = Sf * Pn / 1.667;
-    Object.assign(r, { KLrx, KLry, Fex, Fey, Cw, ho, NFe, Fcr, Aeff, Pn, PcASD, PtASD });
+    let Fcr, Aeff, Pn, PcASD, Q = null;
+    if (ed13) {
+      // 13th Chapter E: Q-factor method (E7). Qs only for the compression flange(s); Qa from the web at NFcr.
+      const Fcr0 = NFe < 0.44 * Fy ? 0.877 * NFe : 0.658 ** (Fy / NFe) * Fy;              // F34 / F35
+      const QsOF = TfCode === 'O' || TfCode === 'Both' ? null : ftnQs13(sec.type, btOF, E, Fyf, kc);
+      const QsIF = TfCode === 'I' || TfCode === 'Both' ? null : ftnQs13(sec.type, btIF, E, Fyf, kc);
+      const be = ftnBe13(Fcr0, tw, E, h);
+      Aeff = Ag + tw * (be - h);
+      Q = xmin(QsOF, QsIF) * (Aeff / Ag);
+      Fcr = NFe < 0.44 * Q * Fy ? 0.877 * NFe : 0.658 ** (Q * Fy / NFe) * Q * Fy;         // F46 / F47
+      Pn = Fcr * Ag; PcASD = Sf * Pn / 1.67;                                                 // Omega_c = 1.67 on the 13th sheet
+    } else {
+      Fcr = Fy / NFe > 2.25 ? 0.877 * NFe : 0.658 ** (Fy / NFe) * Fy;
+      const lrFlgAx = xmin(B47, B37);
+      const beof = ftnEffectiveWidth(btOF, lrFlgAx, Fyf, Fcr, bof, true);
+      const beif = ftnEffectiveWidth(btIF, lrFlgAx, Fyf, Fcr, bif, true);
+      const he = ftnEffectiveWidth(htw, B20, Fyw, Fcr, h, false);
+      Aeff = Ag - tif * (bif - beif) - tof * (bof - beof) - tw * (h - he);
+      Pn = Fcr * Aeff; PcASD = Sf * Pn / 1.667;
+    }
+    Object.assign(r, { KLrx, KLry, Fex, Fey, Cw, ho, NFe, Fcr, Aeff, Pn, PcASD, PtASD, Q });
     // Chapter F
     const Myt = TfCode === 'Neither' ? null : Fyf * Sxt;
     const Myc = TfCode === 'Both' ? null : Fyf * Sxc;
@@ -758,7 +804,7 @@ tr.none td { color: var(--ink-faint); }
     const Rpc = TfCode === 'Both' ? null : ftnRpct(hctw, Myc, Mpc, lpw, lrw, Iyc, Iy);
     const Rpg = TfCode === 'Both' ? null : ftnRpg(hctw, aw, lrw, E, Fyw);
     const MnCFY = TfCode === 'Both' ? null : Rpc * Rpg * Myc;
-    const rt = TfCode === 'Both' ? null : ftn_rt(TfCode, bof, bif, aw);
+    const rt = TfCode === 'Both' ? null : ed13 ? ftn_rt13(TfCode, bof, bif, d, h, ho, aw) : ftn_rt(TfCode, bof, bif, aw);
     const FeLTB = TfCode === 'Both' ? null : ftnFeLTB(hctw, lrw, Iyc, Iy, Cb, E, Lby * 12, rt, J, Sxc, ho);
     const MnLTB = TfCode === 'Both' ? null : ftnMnxLTB(FeLTB, Fyf, FL, Rpc, Rpg, Myc, Sxc);
     const lpf = 0.38 * sqrt(E / Fyf), lrf = WF ? sqrt(E / Fyf) : 0.95 * sqrt(kc * E / FL);
@@ -774,17 +820,19 @@ tr.none td { color: var(--ink-faint); }
     const McyASD = Sf * Mny / 1.67;
     const IyRatio = TfCode === 'Both' ? Iyt / Iy : Iyc / Iy;
     const F13_2 = IyRatio >= 0.1 && IyRatio <= 0.9;
-    const ah = a ? a / h : Lbx * 12 / h;
-    const F13_34 = (ah <= 1.5 && htw <= 12 * sqrt(E / Fy)) || (ah > 1.5 && htw <= 0.4 * E / Fy);
+    const ah = ed13 ? a / h : (a ? a / h : Lbx * 12 / h);
+    const F13_34 = ed13 ? ((ah <= 1.5 && hctw <= 11.7 * sqrt(E / Fy)) || (ah > 1.5 && hctw <= 0.42 * E / Fy))  // informational on the 13th sheet
+      : ((ah <= 1.5 && htw <= 12 * sqrt(E / Fy)) || (ah > 1.5 && htw <= 0.4 * E / Fy));
     Object.assign(r, { Myt, Myc, Mpc, lpw, lrw, Iyc, aw, Rpc, Rpg, MnCFY, rt, FeLTB, MnLTB, lpf, lrf, MnFLB, Mpt, Rpt, MnTFY, Mn, McxASD, Mny, McyASD, F13_2, F13_34 });
     // Chapter G
     const Aws = h * tw;
-    const kv = ftnKv(Lbx * 12, a, tw, h);
+    const kv = ed13 ? ftnKv13(Lbx * 12, a, tw, h) : ftnKv(Lbx * 12, a, tw, h);
     const wfEasy = WF && htw <= 2.24 * sqrt(E / Fy);
-    const Cv1 = wfEasy ? 1 : (!F13_34 ? 0.001 : ftnCv1(htw, kv, E, Fyw));
-    const Cv2 = !F13_34 ? 0.001 : ftnCv2(htw, kv, E, Fyw);
+    // 13th: one three-branch Cv, no F13 cut-off, no tension field (TFA = FALSE on the MB sheet)
+    const Cv1 = wfEasy ? 1 : ed13 ? ftnCv13(htw, kv, E, Fyw) : (!F13_34 ? 0.001 : ftnCv1(htw, kv, E, Fyw));
+    const Cv2 = ed13 ? Cv1 : (!F13_34 ? 0.001 : ftnCv2(htw, kv, E, Fyw));
     const Om_v = wfEasy ? 1.5 : 1.67;
-    const Vn = ftnVn(TFA, a, tw, bof, tof, bif, tif, h, Fyw, Aws, htw, kv, E, Cv1, Cv2, TfCode);
+    const Vn = ed13 ? 0.6 * Fyw * Aws * Cv1 : ftnVn(TFA, a, tw, bof, tof, bif, tif, h, Fyw, Aws, htw, kv, E, Cv1, Cv2, TfCode);
     const VcxASD = Sf * Vn / Om_v;
     const Af = tof * bof + tif * bif, btMax = Math.max(btOF, btIF);
     const wfEasyY = WF && btMax <= 2.24 * sqrt(E / Fy);
@@ -825,7 +873,8 @@ tr.none td { color: var(--ink-faint); }
   function beamCheck(p, WFDB) {
     const Fy = p.Fy ?? 55, Fu = p.Fu ?? 70, E = 29000;
     const D11 = p.dead + p.coll, D12 = p.live, D14 = p.joistWt;
-    const probe = analyze(p.sec, { Fy, Fyf: Fy, Fyw: Fy, Fu, E }, { Lbx: p.L, Lby: p.Lb }, {}, WFDB);
+    const ed = p.edition || '15';
+    const probe = analyze(p.sec, { Fy, Fyf: Fy, Fyw: Fy, Fu, E }, { Lbx: p.L, Lby: p.Lb, edition: ed }, {}, WFDB);
     const D19 = p.trib * D14 / 1000, D20 = probe.Wt / 1000, D21 = p.trib * D11 / 1000, D22 = p.trib * D12 / 1000;
     const D23 = D19 + D20 + D21 + D22;
     const wD = D19 + D20 + D21, L = p.L;
@@ -833,9 +882,9 @@ tr.none td { color: var(--ink-faint); }
     const I = probe.Ix, L4 = (L * 12) ** 4;
     const dDL = 5 * wD * L4 / (384 * E * I * 12), dLL = 5 * D22 * L4 / (384 * E * I * 12), dTL = 5 * D23 * L4 / (384 * E * I * 12);
     const Vx = H6 + H10, Mx = H8 + H12, Pa = p.axial || 0;
-    const res = analyze(p.sec, { Fy, Fyf: Fy, Fyw: Fy, Fu, E }, { Lbx: L, Lby: p.Lb }, { Pa, Vx, Mx }, WFDB);
+    const res = analyze(p.sec, { Fy, Fyf: Fy, Fyw: Fy, Fu, E }, { Lbx: L, Lby: p.Lb, edition: ed }, { Pa: ed === '13' ? 0 : Pa, Vx, Mx }, WFDB);
     const Ru = (D11 + D14 + D12) * p.Lb * p.trib / 1000;
-    const conc = p.sec.type === 'BU' ? concCheck(res, Ru, 2.5, p.Lb * 12, p.Lb, Fy, E) : null;
+    const conc = p.sec.type === 'BU' && ed !== '13' ? concCheck(res, Ru, 2.5, p.Lb * 12, p.Lb, Fy, E) : null; // 13th MB sheet has no L7 check
     const defl = { DL: dDL, LL: dLL, TL: dTL, rDL: L * 12 / dDL, rLL: L * 12 / dLL, rTL: L * 12 / dTL };
     const desc = p.sec.type === 'WF' ? p.sec.name : 'BU' + Math.round(p.sec.d) + 'x' + String(Math.round(res.Wt)).padStart(2, '0');
     return {

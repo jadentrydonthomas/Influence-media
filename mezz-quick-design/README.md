@@ -41,6 +41,7 @@ It was checked against the real workbooks, run headless in LibreOffice with `ora
 |---|---|---|---|
 | Mezzanine Beam Design 15th | 400 random (incl. long Lb, axial, unequal flanges) | 7,600 | 0 |
 | Mezzanine Beam Design 16th | 120 | 2,280 | 0 |
+| Mezzanine Beam Design 13th | 250 | 3,750 | 0 |
 | Mezzanine Column 15th / S16-14 | 300 (W and BU) | 3,600 | 0 |
 | Mezzanine Column 16th / S16-19 | 120 | 1,440 | 0 |
 
@@ -67,7 +68,7 @@ node oracle/compare.js beam oracle/out/beam.json oracle/out/beam_res.json 15
 
 ## Notes and limits
 
-- **Editions:** IBC 2018/2021 → 15th and IBC 2024 → 16th (verified). IBC ≤ 2015 → 13th beam sheet, with the 15th column sheet since there is no 13th column sheet. NBCC (CSA S16) jobs are flagged to run in the S16 workbooks.
+- **Editions:** IBC 2018/2021 → 15th and IBC 2024 → 16th. IBC ≤ 2015 → 13th beam sheet (Q-factor compression, kv = 5, 360-05 shear and rt, no joist-bearing check), with the 15th column sheet since there is no 13th column sheet. All three are verified. NBCC (CSA S16) jobs are flagged to run in the S16 workbooks.
 - **16th-edition column sheet:** Lby (C10) is hard-coded to 120 in. The tool uses L × 12. Type L × 12 into C10 when you check a job in Excel.
 - **Materials other than deck + concrete**, and the "Designed For Load Provisions Only" box, are flagged. The quote engineer runs those by hand.
 - **Dead load when the PCS says "Per Seller":** taken from the deck guide. 4" standard weight = 43 psf and 3½" = 37 psf; other thicknesses are interpolated and flagged.

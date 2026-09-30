@@ -22,25 +22,33 @@ def main():
     patch_pi(doc)
     sh = doc.Sheets
     inp, mb, mr = sh.getByName('INPUT'), sh.getByName('MB1'), sh.getByName('Main Report')
-    conc, sec = sh.getByName('Concentrated Load Checks'), sh.getByName('Secondary Report')
+    sec = sh.getByName('Secondary Report')
+    ed13 = '13th' in book
+    # the 13th sheet is laid out one column left (member in F, loads in INPUT!C11:C14) and has no
+    # axial input or concentrated-load sheet
+    conc = None if ed13 else sh.getByName('Concentrated Load Checks')
+    col = 'F' if ed13 else 'G'
+    load_cells = ['C11', 'C12', 'C13', 'C14'] if ed13 else ['D14', 'D15', 'D16', 'D17']
     out = []
     for c in cases:
         s = c['sec']
-        for a, v in [('D14', c['dead']), ('D15', c['coll']), ('D16', c['live']), ('D17', c['joistWt'])]:
+        for a, v in zip(load_cells, [c['dead'], c['coll'], c['live'], c['joistWt']]):
             setv(inp, a, v)
         for a, v in [('D7', c['L']), ('D8', c['Lb']), ('D9', c['trib']),
                      ('M22', s['d']), ('M23', s['tw']), ('M24', s['bof']), ('M25', s['tof']),
                      ('M26', s['bif']), ('M27', s['tif']), ('Q4', 2)]:
             setv(mb, a, v)
-        if c.get('axial'):
-            setv(mb, 'D15', c['axial'])
-        else:
-            mb.getCellRangeByName('D15').setString('')
+        if not ed13:
+            if c.get('axial'):
+                setv(mb, 'D15', c['axial'])
+            else:
+                mb.getCellRangeByName('D15').setString('')
         doc.calculateAll()
-        r = {'MB.' + a: getv(mb, a) for a in MB_OUT}
-        r.update({'MR.' + a: getv(mr, a) for a in MR_OUT})
-        r.update({'CONC.' + a: getv(conc, a) for a in CONC_OUT})
-        r['SR.G22'] = getv(sec, 'G22')
+        r = {'MB.' + a: getv(mb, a) for a in MB_OUT if not (ed13 and a == 'L7')}
+        r.update({'MR.' + a: getv(mr, col + a[1:]) for a in MR_OUT})
+        if conc is not None:
+            r.update({'CONC.' + a: getv(conc, a) for a in CONC_OUT})
+        r['SR.G22'] = getv(sec, col + '22')
         out.append(r)
     json.dump(out, open(sys.argv[2], 'w'), indent=1)
     doc.close(True)
