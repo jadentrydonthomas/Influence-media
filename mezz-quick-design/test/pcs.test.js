@@ -64,6 +64,10 @@ try { ({ readPcs } = require('./pdf-node.js')); require('./pdf-node.js').loadPdf
   assert.strictEqual(Math.round(m.dims.seat.value * 12 * 1000) / 1000, 5);
   const RUN = require('../src/run.js');
   const inp = RUN.inputsFromPCS(pcs, 0);
+  // (C) is TBD with no blue note: the run asks for it rather than assuming
+  const ask = RUN.run(JSON.parse(JSON.stringify(inp)), {});
+  assert.ok(ask.incomplete); assert.deepStrictEqual(ask.need.map(n => n.path), ['geom.C']);
+  inp.geom.C = { value: null, source: 'none' };   // entered: no requirement
   const res = RUN.run(inp, {});
   assert.strictEqual(res.joistDepthIn, 13, 'A - B - slab - seat = 13"');
   assert.strictEqual(res.quote.beams.length, 1);

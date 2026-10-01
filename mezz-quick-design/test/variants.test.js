@@ -37,13 +37,15 @@ function setRequestedOn(p, rowRe, value) {
   p.annots = (p.annots || []).filter(a => !(a.subtype === 'FreeText' && row.y >= a.y1 - 2 && row.y <= a.y2 + 4));
 }
 
+// (C) is TBD on the example PCS: enter "no requirement" unless a variant gives one
+const ready = inp => { if (inp && inp.geom.C.value == null && inp.geom.C.source === 'missing') inp.geom.C = { value: null, source: 'none' }; return inp; };
 const bad = [];
 // MZ_DUMP=dir writes every picked beam / column as oracle cases (oracle/*_oracle.py → oracle/compare.js)
 const dump = process.env.MZ_DUMP ? { beam: { 13: [], 15: [], 16: [] }, column: { 15: [], 16: [] } } : null;
 const seen = new Set();
 function keep(kind, ed, c) { const k = kind + ed + JSON.stringify(c); if (!seen.has(k)) { seen.add(k); dump[kind][ed].push(c); } }
 function designAll(label, pcs, mi, expect = {}) {
-  const inp = RUN.inputsFromPCS(pcs, mi);
+  const inp = ready(RUN.inputsFromPCS(pcs, mi));
   assert.ok(inp, label + ': no inputs');
   if (expect.inputs) expect.inputs(inp);
   const lines = [];
@@ -105,7 +107,7 @@ function designAll(label, pcs, mi, expect = {}) {
     const p = sub(clone(base), /^Building Code: .*$/, 'Building Code: ' + code);
     const pcs = PCS.parse(p);
     assert.strictEqual(pcs.code.edition, ed, code);
-    const res = RUN.run(RUN.inputsFromPCS(pcs, 0), { edition: 'auto' });
+    const res = RUN.run(ready(RUN.inputsFromPCS(pcs, 0)), { edition: 'auto' });
     assert.strictEqual(res.edition.beamEd, beamEd, code + ' beam sheet'); assert.strictEqual(res.edition.colEd, colEd, code + ' column sheet');
     console.log(('code ' + code).padEnd(34), `auto → beams ${beamEd}th, columns ${colEd}th: ${res.quote.beams.map(b => b.section).join(' / ')} · ${res.colFinal.quoteAs}`);
   }
@@ -140,7 +142,7 @@ function designAll(label, pcs, mi, expect = {}) {
     designAll('interior frame columns @ 30\'', PCS.parse(p), 0, {
       inputs: inp => { assert.ok(inp.building.frames.some(fr => fr.interior && fr.interior.length === 2), 'frames read'); },
       result: (res, q, tag, ed, opt) => {
-        nCols0 = nCols0 ?? RUN.run(RUN.inputsFromPCS(PCS.parse(clone(base)), 0), {}).columns.length;
+        nCols0 = nCols0 ?? RUN.run(ready(RUN.inputsFromPCS(PCS.parse(clone(base)), 0)), {}).columns.length;
         const bcol = res.layout.supports.filter(s => s.building && s.y > 0 && s.y < 60);
         assert.ok(bcol.length > 0, 'interior building columns used as beam supports');
       },

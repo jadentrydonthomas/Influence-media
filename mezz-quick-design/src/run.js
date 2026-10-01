@@ -107,6 +107,7 @@
     ['geom.width', 'Mezzanine width', 'ftin'], ['geom.length', 'Mezzanine length', 'ftin'],
     ['geom.A', '(A) Finish floor to top of mezzanine', 'ftin'], ['geom.slab', 'Slab & deck thickness', 'in'],
     ['geom.B', '(B) Min. clearance under joist', 'ftin', [[9, `9'-0"`, 'conservative headroom']]],
+    ['geom.C', '(C) Min. clearance under support beams', 'ftin', []],   // "= B" / "No requirement" offered on the page
     ['geom.joistSpacing', 'Joist spacing (= beam unbraced length)', 'ftin', [[4, `4'-0"`, ''], [5, `5'-0"`, 'NBG max']]],
     ['geom.seat', 'Joist seat depth', 'in', [[2.5 / 12, '2 1/2"', 'K-series'], [5 / 12, '5"', 'LH-series']]],
   ];
@@ -115,6 +116,7 @@
     const num = x => typeof x === 'number' && isFinite(x);
     REQUIRED.forEach(([k, lab, kind, suggest]) => {
       const [g, f] = k.split('.'), x = val(inp[g][f]);
+      if (f === 'C' && inp.geom.C && inp.geom.C.source === 'none') return;   // entered as "no requirement"
       if (!num(x) || ((f === 'joistSpacing' || f === 'slab' || f === 'width' || f === 'length') && !(x > 0)) || (f === 'seat' && x < 0)) { miss.push(lab); need.push({ path: k, label: lab, kind, suggest: suggest || [] }); }
     });
     const b = inp.building || {};
@@ -299,6 +301,7 @@
         ? `${mk.mark}: clearance (C) ${PCS.fmtFtIn(Cq)} under the floor beams leaves only ${maxDepthByC}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. Check the clearance or the minimum depth in Settings.`
         : `${mk.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepthByC ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. Widen the depth range.` });
     });
+    if (c.inp.geom.C && c.inp.geom.C.source === 'none') warn.push({ level: 'key', text: 'No minimum clearance under the support beams (entered as no requirement) — beam depth is limited only by the depth range in Settings.' });
     if (maxDepthByC != null && maxDepthByC < s.dMax && maxDepthByC >= s.dMin) warn.push({ level: 'key', text: `Clearance (C) ${PCS.fmtFtIn(Cq)} caps the beam depth at ${maxDepthByC}".` });
     c.designed = designed;
     c.markOf = id => designed.find(mk => mk.beams.includes(id));

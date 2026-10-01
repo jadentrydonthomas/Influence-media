@@ -143,6 +143,11 @@
     const limWhy = ctx.dLimit != null && ctx.dLimit >= search.options.dMin
       ? `Deepest beam that keeps clearance (B) under the beams too: d ≤ A − B − slab − seat = ${ctx.dLimit}".`
       : `Shallow option at about span / 18 (d ≤ ${lim}").`;
+    // the lightest already sits inside the limit (e.g. clearance C caps every depth): no separate headroom option
+    if (light.d <= lim) {
+      opts[0].why += ` Already within the headroom limit (d ≤ ${lim}").`;
+      return opts.map(o => ({ ...o, dWt: o.pick.wt - light.wt, dPct: (o.pick.wt - light.wt) / light.wt }));
+    }
     let head = rows.filter(r => r.d <= lim && !opts.some(o => same(o.pick, r))).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
     let headWhy = limWhy;
     if (!head) {

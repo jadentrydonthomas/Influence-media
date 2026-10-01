@@ -126,6 +126,27 @@
     toast('Manual entry — fill in the inputs');
   };
 
+  // ---------- mezzanines of the job: a card each, always in view ----------
+  function switchMezz(i) {
+    if (!state.all || i === state.mi) return;
+    state.all[state.mi] = { inputs: state.inputs, settings: state.settings };
+    state.mi = i; state.inputs = state.all[i].inputs; state.settings = state.all[i].settings; state.mark = 0; state.colGroup = 0;
+    recompute();
+  }
+  function renderMezzTabs() {
+    const nav = $('#mezzTabs'), many = state.all && state.all.length > 1 && state.job;
+    nav.hidden = !many;
+    if (!many) { nav.innerHTML = ''; return; }
+    nav.innerHTML = `<span class="mt-title">${state.all.length} mezzanines<small>designed together</small></span>` + state.job.mezz.map((m, i) => {
+      const g = state.all[i].inputs.geom, size = `${ft(g.width.value)} × ${ft(g.length.value)}`;
+      const beams = m.incomplete ? '' : m.marks.map(mk => `${esc(mk.desc || '—')} × ${mk.qty}`).join(' · ');
+      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length}` : (m.columns.length ? 'no column' : 'no columns');
+      const st = m.incomplete ? `<em class="mt-need">needs ${m.need.length} input${m.need.length > 1 ? 's' : ''}</em>` : m.warn.some(w => w.level === 'stop') ? '<em class="mt-check">check notes</em>' : '<em class="mt-ok">designed</em>';
+      return `<button class="mt ${i === state.mi ? 'is-on' : ''}" data-mi="${i}" aria-pressed="${i === state.mi}"><span class="mt-name">${esc(m.id)}</span><span class="mt-size">${size}</span>${st}<span class="mt-sec">${beams || '—'}${cols ? '<br>' + cols : ''}</span></button>`;
+    }).join('');
+    $$('#mezzTabs .mt').forEach(b => { b.onclick = () => switchMezz(+b.dataset.mi); });
+  }
+
   // ---------- floor plan ----------
   // Register the drawing to the building grid once per grid: letters as drawn, ⊗ / circled-I columns, joist arrows
   function readPlan(b, frames) {
@@ -218,16 +239,8 @@
     $('#fCode').textContent = (c.text ? (c.text.match(/IBC\s*\d{4}|NBCC\s*\d{4}/i) || [c.text])[0] + ' → ' : '') + (r.edition.ed ? edLabel(r.edition.ed) : '—');
     $('#fDiv').textContent = r.division;
     $('#mastContext').textContent = [inp.job.quote, inp.job.project, inp.mezz.id ? `Mezzanine “${inp.mezz.id}”` : ''].filter(Boolean).join(' · ');
-    const mz = state.pcs ? state.pcs.mezzanines : [];
-    $('#stampMezz').hidden = mz.length < 2;
-    if (mz.length > 1) {
-      $('#fMezz').innerHTML = mz.map((m, i) => `<option value="${i}" ${i === state.mi ? 'selected' : ''}>${esc(m.id || 'Mezzanine ' + (i + 1))}</option>`).join('');
-      $('#fMezz').onchange = e => {
-        state.all[state.mi] = { inputs: state.inputs, settings: state.settings };
-        state.mi = +e.target.value; state.inputs = state.all[state.mi].inputs; state.settings = state.all[state.mi].settings; state.mark = 0; state.colGroup = 0;
-        recompute();
-      };
-    }
+    $('#stampMezz').hidden = true;
+    renderMezzTabs();
     if (r.incomplete) { $('#rsSection').textContent = '—'; $('#rsSub').textContent = 'Inputs missing — see Inputs read.'; $('#rsNote').textContent = ''; return; }
     $('#rsLabel').textContent = inp.job.quote ? `${inp.job.quote} · beams` : 'Beam section';
     $('#rsSection').textContent = r.quote.beams.map(b => b.section || '—').join(' / ');
@@ -280,7 +293,9 @@
     const id = esc(inp.mezz.id || 'Mezzanine'), missing = ['A', 'B', 'slab', 'seat'].filter(k => V(k) == null);
     if (missing.length) return `<div><b>${id}</b> · total joist depth = A − B − slab − seat <span class="dim-t">(waiting on ${missing.join(', ')})</span></div>`;
     const d = Math.round(((V('A') - V('B')) * 12 - V('slab') * 12 - V('seat') * 12) * 100) / 100;
-    return `<div><b>${id}</b> · ${ft(V('A'))} − ${ft(V('B'))} − ${f(V('slab') * 12, 2)}" − ${f(V('seat') * 12, 2)}" = <b class="${d < 8 ? 'bad' : 'good'}">${d}" total joist depth</b></div>`;
+    const cNone = g.C && g.C.source === 'none', dc = V('C') != null ? Math.floor((V('A') - V('C')) * 12 - V('slab') * 12 - V('seat') * 12 + 1e-6) : null;
+    const cTxt = cNone ? ' · beam depth: no C requirement' : dc != null ? ` · beam depth ≤ ${ft(V('A'))} − ${ft(V('C'))} − slab − seat = <b class="${dc < 10 ? 'bad' : 'good'}">${dc}"</b>` : ' · beam depth limit waiting on C';
+    return `<div><b>${id}</b> · ${ft(V('A'))} − ${ft(V('B'))} − ${f(V('slab') * 12, 2)}" − ${f(V('seat') * 12, 2)}" = <b class="${d < 8 ? 'bad' : 'good'}">${d}" total joist depth</b>${cTxt}</div>`;
   }
   function needCard() {
     const rows = needRows();
@@ -295,17 +310,23 @@
         <p>TBD on the PCS with no blue note, so nothing is assumed. Type a value or pick a typical one${many ? ' — it fills every mezzanine listed; set them apart on the Inputs page if they differ' : ''}. The design runs as soon as they are in.</p></div>
       <div class="need-rows">${rows.map(q => `<div class="need-row"><label>${esc(q.label)}${many ? `<small>${names(q.mezz)}</small>` : ''}</label>
         <input data-need="${q.path}" data-kind="${q.kind}" placeholder="${esc(ph[q.path] || phK[q.kind] || '')}" autocomplete="off">
-        <div class="chips">${q.suggest.map(([v, t, why]) => `<button class="chip" data-need="${q.path}" data-v="${v}">${t}${why ? `<small>${why}</small>` : ''}</button>`).join('')}</div></div>`).join('')}</div>
+        <div class="chips">${chipsFor(q).map(([v, t, why]) => `<button class="chip" data-need="${q.path}" data-v="${v}">${t}${why ? `<small>${why}</small>` : ''}</button>`).join('')}</div></div>`).join('')}</div>
       <div class="need-foot">${mz.map(depthLine).join('')}</div></section>`;
+  }
+  // (C): the same as B once B is in, or an explicit "no requirement" — never filled in silently
+  function chipsFor(q) {
+    if (q.path !== 'geom.C') return q.suggest;
+    const bs = [...new Set(q.mezz.map(i => inputsOf(i).geom.B.value).filter(v => v != null).map(v => +v.toFixed(4)))];
+    return [...(bs.length === 1 ? [[bs[0], ft(bs[0]), 'same as B']] : []), ['none', 'No requirement', 'depth limited by Settings only']];
   }
   function setNeed(path, value) {
     const [g, k] = path.split('.'), row = needRows().find(q => q.path === path);
-    (row ? row.mezz : [state.mi]).forEach(i => { inputsOf(i)[g][k] = { value, source: 'manual' }; });
+    (row ? row.mezz : [state.mi]).forEach(i => { inputsOf(i)[g][k] = value === 'none' ? { value: null, source: 'none' } : { value, source: 'manual' }; });
     recompute();
   }
   function wireNeed() {
     $$('#needCard input[data-need]').forEach(el => { el.onchange = () => { const v = parseKind(el.dataset.kind, el.value); if (v == null || !isFinite(v)) { toast('Could not read "' + el.value + '"'); return; } setNeed(el.dataset.need, v); }; });
-    $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, +b.dataset.v); });
+    $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, b.dataset.v === 'none' ? 'none' : +b.dataset.v); });
   }
   // notes, grouped: what to check, what was confirmed against the PCS, the design decisions, then how it was read
   function notesHtml(warn, hideNeed) {
@@ -324,10 +345,12 @@
       $('#resTitle').innerHTML = `Mezzanine “${esc(inp.mezz.id || '—')}”<br><em>needs input.</em>`;
       $('#resLede').textContent = 'The PCS leaves some values open. Enter them below — nothing is assumed — and the beams and columns are designed.';
       $('#metrics').innerHTML = ''; $('#field').innerHTML = ''; $('#options').innerHTML = ''; $('#readout').innerHTML = '';
-      $('#modelSec').hidden = true;
+      $('#modelSec').hidden = true; $('#optHead').hidden = true;
       $('#warnings').innerHTML = card + notesHtml(r.warn, !!card);
       wireNeed();
-      if (state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete)) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
+      const anyDone = state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete);
+      $('#qsHead').hidden = !anyDone;
+      if (anyDone) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
       return;
     }
     const t = totals(), cf = r.colFinal, mk0 = r.marks[0];
@@ -347,7 +370,7 @@
     ].join('');
     $('#warnings').innerHTML = card + notesHtml(r.warn, !!card);
     wireNeed();
-    $('#modelSec').hidden = false;
+    $('#modelSec').hidden = false; $('#optHead').hidden = false; $('#qsHead').hidden = false;
 
     // hero field: beams -> governing ratio -> columns + plan check
     const others = r.marks.slice(1).map(m => `${m.mark} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ');
@@ -849,7 +872,7 @@
     return out.join(', ');
   };
   const parseSpacing = str => { const l = PCS.spacingList(str); return l.length ? l : listIn(str); };
-  const SRC = { pcs: 'PCS', annotation: 'note', deckGuide: 'guide', default: 'std', estimate: 'est.', missing: 'missing', manual: 'edit' };
+  const SRC = { pcs: 'PCS', annotation: 'note', deckGuide: 'guide', default: 'std', estimate: 'est.', missing: 'missing', manual: 'edit', none: 'none' };
   function fieldRow(path, label, kind, sub) {
     const [grp, key] = path.split('.');
     const node = state.inputs[grp][key];
@@ -872,12 +895,16 @@
     const concSel = `<div class="field-row"><label>Concrete<small>${inp.mezz.concrete === 'LW' ? 'lightweight' : 'standard weight'} · from the material checkbox</small></label><select data-mezz="concrete"><option value="NW" ${inp.mezz.concrete !== 'LW' ? 'selected' : ''}>NW · 145 pcf</option><option value="LW" ${inp.mezz.concrete === 'LW' ? 'selected' : ''}>LW · 110 pcf</option></select></div>`;
     const deadReset = inp.loads.dead && !inp.loads.dead.auto && inp.loads.dead.source === 'manual' ? `<div class="field-row"><label>Dead load<small>typed by hand</small></label><button class="btn-ghost" id="deadReset">Back to deck guide</button></div>` : '';
     const ck = checks('material', 'Material (not by seller)') + checks('use', 'Floor use') + checks('provided', 'Materials provided by seller');
+    const many = state.all && state.all.length > 1;
+    const link = many ? `<div class="field-row full link-row"><label>Edits apply to<small>loads, elevations, clearances and joists; the footprint is always per mezzanine</small></label>
+      <div class="seg" id="linkSeg"><button data-l="1" class="${state.linkEdits !== false ? 'is-active' : ''}">Every mezzanine (${state.all.length})</button><button data-l="0" class="${state.linkEdits === false ? 'is-active' : ''}">Only ${esc(inp.mezz.id || 'this one')}</button></div></div>` : '';
     $('#inputsGrid').innerHTML = [
+      link,
       '<div class="group-title">Mezzanine loading (Box 22)</div>',
       fieldRow('loads.dead', 'Dead, (psf)', 'num'), deadReset, concSel, deckSel, fieldRow('loads.coll', 'Collateral, (psf)', 'num'), fieldRow('loads.live', 'Live, (psf)', 'num'),
       fieldRow('loads.partition', 'Partition, (psf)', 'num', `added to ${state.settings.partitionTo}`), fieldRow('loads.joistWt', 'Est. joist wt., (psf)', 'num'),
       '<div class="group-title">Elevations &amp; joists</div>',
-      fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under floor beams', 'ftin'),
+      fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under support beams', 'ftin', state.inputs.geom.C && state.inputs.geom.C.source === 'none' ? 'no requirement (entered)' : 'caps the beam depth: A − C − slab − seat'),
       fieldRow('geom.slab', 'Slab & deck thickness, (in.)', 'in'), fieldRow('geom.seat', 'Joist seat depth, (in.)', 'in'), fieldRow('geom.joistSpacing', 'Joist spacing (= beam Lb)', 'ftin'),
       `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat · also the Headroom option's depth limit</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
       '<div class="group-title">Mezzanine footprint</div>',
@@ -889,8 +916,9 @@
       `<div class="field-row wide"><label>Frames<small>interior modules from FSW</small></label><div class="calc" style="font-weight:400;font-size:12px;color:var(--ink-muted)">${(inp.building.frames || []).map(fr => `${fr.from}${fr.to !== fr.from ? '–' + fr.to : ''}: ${compress(fr.interior) || '—'}`).join(' · ') || 'clear span'}</div></div>`,
     ].join('');
     $$('#inputsGrid input').forEach(el => { el.onchange = () => onInput(el); });
-    $$('#inputsGrid select[data-mezz]').forEach(el => { el.onchange = () => { state.inputs.mezz[el.dataset.mezz] = el.value; recompute(); }; });
-    const dr = $('#deadReset'); if (dr) dr.onclick = () => { state.inputs.loads.dead = { value: null, source: 'deckGuide', auto: true }; recompute(); };
+    $$('#inputsGrid select[data-mezz]').forEach(el => { el.onchange = () => { targets('mezz.' + el.dataset.mezz).forEach(t => { t.mezz[el.dataset.mezz] = el.value; }); recompute(); }; });
+    $$('#linkSeg button').forEach(b => { b.onclick = () => { state.linkEdits = b.dataset.l === '1'; renderInputs(); }; });
+    const dr = $('#deadReset'); if (dr) dr.onclick = () => { targets('loads.dead').forEach(t => { t.loads.dead = { value: null, source: 'deckGuide', auto: true }; }); recompute(); };
   }
   function onInput(el) {
     const [grp, key] = el.dataset.path.split('.'), kind = el.dataset.kind, raw = el.value.trim();
@@ -900,11 +928,22 @@
     else if (kind === 'list') val = parseSpacing(raw);
     else val = raw === '' ? null : parseFloat(raw);
     if (kind !== 'list' && raw !== '' && (val == null || !isFinite(val))) { toast('Could not read "' + raw + '"'); renderInputs(); return; }
-    const node = state.inputs[grp][key];
-    if (node && typeof node === 'object' && !Array.isArray(node) && 'value' in node) state.inputs[grp][key] = { value: val, source: 'manual' };
-    else state.inputs[grp][key] = val;
+    targets(el.dataset.path).forEach(t => {
+      const node = t[grp][key];
+      if (node && typeof node === 'object' && !Array.isArray(node) && 'value' in node) t[grp][key] = { value: val, source: 'manual' };
+      else t[grp][key] = val;
+    });
     delete state.settings.xLines; delete state.settings.yLines;
     recompute();
+  }
+  // which mezzanines an Inputs edit goes to: the footprint is per mezzanine; the building is shared by the
+  // mezzanines in it; everything else follows the "Edits apply to" choice
+  const FOOTPRINT = ['geom.width', 'geom.length', 'geom.startLEW', 'geom.startFSW'];
+  function targets(path) {
+    if (!state.all || state.all.length < 2 || FOOTPRINT.includes(path)) return [state.inputs];
+    const all = state.all.map((a, i) => inputsOf(i));
+    if (path.startsWith('building.')) return all.filter(t => (t.mezz.building || '') === (state.inputs.mezz.building || ''));
+    return state.linkEdits === false ? [state.inputs] : all;
   }
 
   // ---------- settings ----------

@@ -73,11 +73,16 @@ When the PCS leaves a value TBD with no blue note, the design does not run on a 
 | Value | Typical values offered |
 |---|---|
 | (B) min. clearance under joist | 9'-0" (conservative headroom) |
+| (C) min. clearance under support beams | same as B, or **No requirement** (entered, never assumed). It caps the beam depth at (A − C)·12 − slab − seat, so it shapes all three options |
 | Joist spacing (= beam unbraced length) | 4'-0", 5'-0" (NBG max) |
 | Joist seat depth | 2 1/2" (K-series), 5" (LH-series) |
 | (A) top of mezzanine, slab, loads, footprint | — (type them) |
 
 The dead load is the one value the tool fills itself when Box 22 says *Per Seller*: it is worked out from the slab, deck and concrete (below) and flagged when it is an estimate.
+
+With several mezzanines, a card per mezzanine sits at the top of every page (size, sections, status) — click one to switch. Edits on the Inputs page go to **every mezzanine** by default (loads, elevations, clearances, joists; the footprint is always per mezzanine), or only the one on screen.
+
+When the lightest section already fits under the headroom limit (e.g. C caps every depth), there is no separate Headroom option — the Lightest card says it is already within the limit.
 
 Notes on the Design page are grouped: **Check before quoting** (flags), **Confirmed against the PCS** (e.g. the floor plan matched, joist arrows read), **Design decisions** (shared beams and columns, snapped edges, joist direction), and a collapsed **How it was read** list.
 

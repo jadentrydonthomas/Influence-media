@@ -22,7 +22,7 @@ function inputs(id, geom, loads = {}) {
     job: { quote: 'TEST', project: 'multi', division: 'NBS-IN', code: { family: 'AISC', edition: '15', spec: 'AISC 360-16' } },
     mezz: { id, building: 'MAIN', material: 'Standard Weight Concrete', concrete: 'NW', deck: '1.0C', provided: {}, planJoists: geom.joists || null },
     loads: { dead: v(loads.dead ?? 43), coll: v(5), live: v(loads.live ?? 125), partition: v(0), joistWt: v(8, 'default') },
-    geom: { width: v(geom.width), length: v(geom.length), startLEW: v(geom.lew || 0), startFSW: v(geom.fsw || 0), slab: v(4 / 12), A: v(geom.A ?? 12), B: v(10 + 2 / 12), C: v(null, 'missing'), joistSpacing: v(4), seat: v(5 / 12) },
+    geom: { width: v(geom.width), length: v(geom.length), startLEW: v(geom.lew || 0), startFSW: v(geom.fsw || 0), slab: v(4 / 12), A: v(geom.A ?? 12), B: v(10 + 2 / 12), C: { value: null, source: 'none' }, joistSpacing: v(4), seat: v(5 / 12) },
     building: { width: 60, length: 130, ridge: 30, bays: [20, 20, 24, 24, 24, 18], lewCols: [20, 20, 20], rewCols: [20, 20, 20], frames: [{ from: 1, to: 7, interior: [60] }], fswSoldier: [], bswSoldier: [] },
   };
 }
@@ -110,10 +110,23 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   const first = RUN.runJob(inps.map(inp => ({ inp, settings: {} })));
   first.mezz.forEach(r => {
     assert.ok(r.incomplete, 'stops on the open values');
-    assert.deepStrictEqual(r.need.map(n => n.path).sort(), ['geom.B', 'geom.joistSpacing', 'geom.seat']);
+    assert.deepStrictEqual(r.need.map(n => n.path).sort(), ['geom.B', 'geom.C', 'geom.joistSpacing', 'geom.seat']);
   });
+  // with (C) = 9'-0" every beam must fit A − C − slab − seat = 138 − 108 − 5 − 5 = 20"
+  {
+    const ins = pcs.mezzanines.map((m, i) => RUN.inputsFromPCS(pcs, i));
+    ins.forEach(inp => { inp.geom.B = { value: 9, source: 'manual' }; inp.geom.C = { value: 9, source: 'manual' }; inp.geom.seat = { value: 5 / 12, source: 'manual' }; inp.geom.joistSpacing = { value: 4, source: 'manual' }; });
+    const jc = RUN.runJob(ins.map(inp => ({ inp, settings: {} })));
+    jc.mezz.forEach(r => {
+      assert.ok(!r.incomplete);
+      assert.strictEqual(r.maxDepthByC, 20);
+      r.marks.forEach(mk => { assert.ok(mk.sec && mk.sec.d <= 20, `${r.id} ${mk.desc} within the C limit`); assert.ok(mk.options.every(o => o.pick.sec.d <= 20), 'every option within C'); });
+      assert.ok(r.clear.C.ok, 'C provided ≥ requested');
+    });
+    console.log('  C = 9\'-0":', jc.mezz.map(r => `${r.id} ${r.marks.map(m => m.desc).join('/')} (${r.marks[0].options.map(o => o.key + ' ' + o.pick.desc).join(', ')})`).join(' · '));
+  }
   // the quote engineer's entries (as on this job): B = 9'-0" (conservative headroom), seat 5", joists @ 4'-0"
-  inps.forEach(inp => { inp.geom.B = { value: 9, source: 'manual' }; inp.geom.seat = { value: 5 / 12, source: 'manual' }; inp.geom.joistSpacing = { value: 4, source: 'manual' }; });
+  inps.forEach(inp => { inp.geom.B = { value: 9, source: 'manual' }; inp.geom.C = { value: null, source: 'none' }; inp.geom.seat = { value: 5 / 12, source: 'manual' }; inp.geom.joistSpacing = { value: 4, source: 'manual' }; });
   const job = RUN.runJob(inps.map(inp => ({ inp, settings: {} })));
   job.mezz.forEach(r => close(r.joistDepthIn, 20, 1e-9, "11'-6\" − 9'-0\" − 5\" − 5\" = 20\""));
   const [bsw, lew] = job.mezz;

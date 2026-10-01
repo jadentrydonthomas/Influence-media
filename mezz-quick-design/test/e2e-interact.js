@@ -23,8 +23,9 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   const typed = { 'geom.B': `9'-0"`, 'geom.seat': '5', 'geom.joistSpacing': `4'-0"` };
   for (let k = 0; k < 8 && await page.$('#needCard'); k++) {
     const paths = await page.$$eval('#needCard input[data-need]', es => es.map(e => e.dataset.need));
-    const p0 = paths.find(q => typed[q]);
+    const p0 = paths.find(q => typed[q] || q === 'geom.C');
     if (!p0) { fail('unexpected open value: ' + paths.join(', ')); break; }
+    if (p0 === 'geom.C') { await page.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await page.waitForTimeout(250); continue; }   // C: "No requirement"
     await page.fill(`#needCard input[data-need="${p0}"]`, typed[p0]); await page.press(`#needCard input[data-need="${p0}"]`, 'Tab'); await page.waitForTimeout(250);
   }
 
@@ -102,6 +103,11 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await fillIn('loads.live', '150'); await log('live 150 psf');
   await fillIn('geom.C', `10'-6"`); await log('C = 10\'-6" requested');
   await fillIn('geom.C', '');
+  // clearing C makes it an open value again: the Design page asks, and "No requirement" restores the start
+  await page.click('#nav button[data-view="results"]');
+  if (!(await page.$('#needCard .chip[data-need="geom.C"][data-v="none"]'))) fail('clearing C should ask for it again');
+  else { await page.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await page.waitForTimeout(200); }
+  await page.click('#nav button[data-view="inputs"]');
   await fillIn('loads.live', '125');
   const d0 = await dead();
   await page.selectOption('#inputsGrid select[data-mezz="concrete"]', 'LW'); await page.waitForTimeout(150);
@@ -148,27 +154,36 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   for (const b of await page.$$('#quoteSheet [data-copy]')) await b.click();
 
   // several mezzanines: every one designs, the quote sheet lists them all, and switching keeps each one's edits
-  const ids = await page.$$eval('#fMezz option', os => os.map(o => o.value));
-  if (ids.length > 1 && await page.isVisible('#stampMezz')) {
+  const ids = await page.$$eval('#mezzTabs .mt', bs => bs.map(b => b.dataset.mi));
+  const pick = async v => { await page.click(`#mezzTabs .mt[data-mi="${v}"]`); await page.waitForTimeout(300); };
+  if (ids.length > 1 && await page.isVisible('#mezzTabs')) {
     await page.click('#nav button[data-view="results"]');
     const rowsAll = await page.$$eval('#quoteSheet table', ts => ts.map(t => t.querySelectorAll('tbody tr').length));
     console.log('mezzanines'.padEnd(30), ids.length, 'quote rows', rowsAll.join('/'));
     if (rowsAll[0] !== ids.length) fail('design table should list every mezzanine');
     for (const v of ids) {
-      await page.selectOption('#fMezz', v); await page.waitForTimeout(300);
+      await pick(v);
       for (const view of ['results', 'plan', 'beam', 'column']) { await page.click(`#nav button[data-view="${view}"]`); await page.waitForTimeout(120); }
       const st = await page.$eval('#statusText', e => e.textContent);
       console.log(('mezzanine ' + v).padEnd(30), st, '|', await quote());
     }
-    await page.selectOption('#fMezz', ids[1]); await page.click('#nav button[data-view="inputs"]');
+    // one mezzanine only: the Inputs page can limit an edit to the mezzanine on screen
+    await pick(ids[1]); await page.click('#nav button[data-view="inputs"]'); await page.click('#linkSeg button[data-l="0"]');
     await page.fill('#inputsGrid input[data-path="loads.live"]', '150'); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
-    await page.selectOption('#fMezz', ids[0]); await page.waitForTimeout(200);
+    await pick(ids[0]);
     const q2 = await quote();
     console.log('mezz 2 live 150, back on 1'.padEnd(30), q2);
     if (!/\b15[05]\b/.test(q2)) fail("the other mezzanine's edit should show in the job quote");
-    await page.selectOption('#fMezz', ids[1]); await page.click('#nav button[data-view="inputs"]');
+    await pick(ids[1]); await page.click('#nav button[data-view="inputs"]');
     await page.fill('#inputsGrid input[data-path="loads.live"]', '125'); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
-    await page.selectOption('#fMezz', ids[0]); await page.waitForTimeout(200);
+    // every mezzanine (the default): one edit reaches both
+    await page.click('#linkSeg button[data-l="1"]');
+    await page.fill('#inputsGrid input[data-path="loads.partition"]', '10'); await page.press('#inputsGrid input[data-path="loads.partition"]', 'Tab'); await page.waitForTimeout(250);
+    const parts = await page.$$eval('#quoteSheet table', ts => [...ts[0].querySelectorAll('tbody tr')].map(tr => tr.cells[7].textContent.trim()));
+    console.log('partition 10 on every mezz'.padEnd(30), parts.join(' / '));
+    if (!parts.every(p => p === '10')) fail('a linked edit should reach every mezzanine');
+    await page.fill('#inputsGrid input[data-path="loads.partition"]', '5'); await page.press('#inputsGrid input[data-path="loads.partition"]', 'Tab'); await page.waitForTimeout(250);
+    await pick(ids[0]);
   }
 
   // manual entry path on a fresh page: stops on the missing (B) clearance
@@ -184,7 +199,8 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await p2.click('#nav button[data-view="results"]');
   const open2 = await p2.$$eval('#needCard input[data-need]', es => es.map(e => e.dataset.need));
   console.log('manual entry still open'.padEnd(30), open2.join(', '));
-  if (open2.join() !== 'geom.joistSpacing,geom.seat') fail('manual entry should ask for joist spacing and seat');
+  if (open2.join() !== 'geom.C,geom.joistSpacing,geom.seat') fail('manual entry should ask for C, joist spacing and seat');
+  await p2.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await p2.waitForTimeout(200);
   await p2.click('#needCard .chip[data-need="geom.joistSpacing"]'); await p2.waitForTimeout(200);
   await p2.click('#needCard .chip[data-need="geom.seat"]'); await p2.waitForTimeout(200);
   const mq = await p2.$$eval('#quoteSheet table', ts => ts.map(t => [...t.querySelectorAll('tbody tr')].map(tr => tr.textContent.replace(/\s+/g, ' ').trim()).join(' / ')));
