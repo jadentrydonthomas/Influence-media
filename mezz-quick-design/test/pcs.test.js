@@ -26,6 +26,16 @@ assert.strictEqual(PCS.editionFor('IBC 2018').edition, '15');
 assert.strictEqual(PCS.editionFor('IBC 2024').edition, '16');
 assert.strictEqual(PCS.editionFor('IBC 2015').edition, '13');
 assert.strictEqual(PCS.editionFor('NBCC 2020').edition, 'S16-19');
+// IBC → AISC 360 edition (IBC chapter 35): 2024 → 360-22 (16th), 2018 / 2021 → 360-16 (15th), 2012 / 2015 → 360-10 (13th sheet)
+[['IBC 2024', '16'], ['IBC 2021', '15'], ['IBC 2018', '15'], ['IBC 2015', '13'], ['IBC 2012', '13'], ['IBC 2009', '13']].forEach(([c, e]) => assert.strictEqual(PCS.editionFor(c).edition, e, c));
+// no IBC year: the state code's IBC base, else the ASCE 7 year (7-22 → IBC 2024, 7-16 → IBC 2018/21, 7-10 → IBC 2012/15)
+assert.strictEqual(PCS.editionFor('Massachusetts (MASS 10th Ed.) ASCE 7-16').edition, '15');
+assert.strictEqual(PCS.editionFor('Massachusetts (MASS 9th Ed.) ASCE 7-10').edition, '13');
+assert.strictEqual(PCS.editionFor('Florida Building Code 8th Edition (2023) ASCE 7-22').edition, '15', 'FBC 8th is IBC 2021 even with ASCE 7-22');
+assert.strictEqual(PCS.editionFor('California Building Code 2025 ASCE 7-22').edition, '16');
+assert.strictEqual(PCS.editionFor('Texas ASCE 7-22').edition, '16');
+assert.strictEqual(PCS.editionFor('Some County Code ASCE 7-16').edition, '15');
+assert.strictEqual(PCS.editionFor('Ohio 2024 (IBC 2021) ASCE 7-16').edition, '15', 'an explicit IBC year wins');
 assert.strictEqual(PCS.divisionFrom('Nucor Building Systems - IN'), 'NBS-IN');
 
 // Kerning fragments and double-struck runs rebuild into phrases

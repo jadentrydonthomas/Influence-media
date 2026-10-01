@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mezzanine Quick-Design</title>
+<title>Mezzanine Design</title>
 <meta name="description" content="Upload a PCS and get the NBG mezzanine beam and column sections, spans, tribs and quantities.">
 <style>
 /*@INLINE_CSS app.css*/
@@ -22,23 +22,22 @@
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
 </svg>
 <div class="app">
-  <aside class="rail" aria-label="Mezzanine quick-design navigation">
+  <aside class="rail" aria-label="Mezzanine design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
     <div class="rail-label">Building systems · quote eng.</div>
-    <h1 class="rail-title">Mezzanine quick-design</h1>
-    <section class="rail-score" aria-label="Design result">
-      <span id="rsLabel">Design result</span>
-      <strong id="rsSection" class="nocase">—</strong>
-      <small id="rsSub">Drop a PCS to size the beams and columns.</small>
-      <b id="rsNote"></b>
+    <h1 class="rail-title">Mezzanine design</h1>
+    <section class="rail-score" aria-label="This job">
+      <span id="rsLabel">No job yet</span>
+      <div class="rail-orb" id="railOrb"><canvas id="miniModel" aria-label="The mezzanine, turning"></canvas><i class="orb-empty" id="orbEmpty">Drop a PCS</i></div>
+      <small id="rsSub"></small>
     </section>
     <nav class="rail-nav" id="nav">
       <button data-view="upload" aria-current="page"><svg><use href="#i-upload"/></svg>Upload PCS</button>
       <button data-view="results" disabled><svg><use href="#i-design"/></svg>Design</button>
+      <button data-view="inputs" disabled><svg><use href="#i-inputs"/></svg>Inputs</button>
       <button data-view="plan" disabled><svg><use href="#i-plan"/></svg>Plan &amp; layout<span class="count" id="navPlanCount" hidden></span></button>
       <button data-view="beam" disabled><svg><use href="#i-beam"/></svg>Beam calc</button>
       <button data-view="column" disabled><svg><use href="#i-column"/></svg>Column calc</button>
-      <button data-view="inputs" disabled><svg><use href="#i-inputs"/></svg>Inputs read</button>
       <button data-view="settings"><svg><use href="#i-settings"/></svg>Settings</button>
     </nav>
     <div class="rail-bottom">
@@ -50,7 +49,7 @@
 
   <main class="main">
     <header class="masthead">
-      <div class="masthead-context"><strong>Mezzanine quick-design</strong><span id="mastContext">Beam and column sections from the PCS</span></div>
+      <div class="masthead-context"><strong>Mezzanine design</strong><span id="mastContext">Beam and column sections from the PCS</span></div>
       <div class="mast-right">
         <span class="stamp-cell" id="stampMezz" hidden><span>Mezzanine</span><strong><select id="fMezz"></select></strong></span>
         <span class="stamp-cell"><span>Code → sheets</span><strong id="fCode">—</strong></span>
@@ -92,11 +91,10 @@
     <section class="screen" id="v-results">
       <div class="screen-heading">
         <div><div class="eyebrow" id="resEyebrow">Design result</div><h1 id="resTitle">Sections</h1></div>
-        <p class="lede" id="resLede"></p>
+        <a class="check-pill" id="checkPill" href="#notesHead" hidden></a>
       </div>
+      <div id="needSlot"></div>
       <div class="metrics" id="metrics"></div>
-      <div class="notes" id="warnings"></div>
-      <section class="field" id="field"></section>
       <section class="model" id="modelSec">
         <div class="model-head">
           <div><div class="eyebrow">3D framing model</div><h3 id="modelTitle">The mezzanine, built</h3></div>
@@ -114,8 +112,11 @@
         </div>
         <div class="model-key" id="modelKey"></div>
       </section>
+      <section class="field" id="field"></section>
       <div class="section-title" id="optHead"><h3>Beam options</h3><p id="optSub"></p></div>
       <div id="options"></div>
+      <div class="section-title" id="notesHead"><h3>Checks &amp; decisions</h3><p>What to check before quoting, what was confirmed against the PCS, and the calls the design made on its own</p></div>
+      <div class="notes" id="warnings"></div>
       <div class="section-title" id="qsHead"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
       <div class="qs" id="quoteSheet"></div>
       <section class="readout" id="readout"></section>

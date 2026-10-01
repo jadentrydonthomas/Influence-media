@@ -127,7 +127,20 @@
     const code = grab(txt, /Building Code:\s*(.+?)(?:\s{2,}|\n|$)/);
     return { text: code, ...editionFor(code || '') };
   }
+  /* State codes that name no IBC year but are built on a known IBC edition (each code's own preface).
+     Checked after an explicit "IBC yyyy" and before the ASCE 7 fallback. */
+  const STATE_CODES = [
+    [/MASS(?:ACHUSETTS)?\b[^\n]*?\b10th/i, 2021, 'Massachusetts 10th Ed. (780 CMR) is based on IBC 2021'],
+    [/MASS(?:ACHUSETTS)?\b[^\n]*?\b9th/i, 2015, 'Massachusetts 9th Ed. (780 CMR) is based on IBC 2015'],
+    [/(?:\bFBC\b|Florida)[^\n]*?\b8th/i, 2021, 'Florida Building Code 8th Ed. (2023) is based on IBC 2021'],
+    [/(?:\bFBC\b|Florida)[^\n]*?\b7th/i, 2018, 'Florida Building Code 7th Ed. (2020) is based on IBC 2018'],
+    [/(?:\bCBC\b|California)[^\n]*?\b2025\b/i, 2024, 'California Building Code 2025 is based on IBC 2024'],
+    [/(?:\bCBC\b|California)[^\n]*?\b2022\b/i, 2021, 'California Building Code 2022 is based on IBC 2021'],
+    [/(?:\bCBC\b|California)[^\n]*?\b2019\b/i, 2018, 'California Building Code 2019 is based on IBC 2018'],
+  ];
   function editionFor(code) {
+    const st = !/IBC\s*\d{4}/i.test(code) && STATE_CODES.find(([re]) => re.test(code));
+    if (st) return { ...editionFor(`IBC ${st[1]}`), state: true, note: `${st[2]} → ${editionFor(`IBC ${st[1]}`).spec}.` };
     const ibc = code.match(/IBC\s*(\d{4})/i), nbcc = code.match(/NBCC\s*(\d{4})/i);
     if (ibc) {
       const y = +ibc[1];

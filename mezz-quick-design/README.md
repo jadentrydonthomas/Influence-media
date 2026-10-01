@@ -1,4 +1,4 @@
-# Mezzanine Quick-Design
+# Mezzanine Design
 
 Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **beam sections**, **column sections**, spans, tribs and quantities for the quote. The tool does the input side of the NBG *Mezzanine Beam Design* and *Mezzanine Column* workbooks with the same math, so the numbers can be typed into Excel to confirm.
 
@@ -65,6 +65,26 @@ Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line):
 | LEW | BU27x47 × 4, 28' span, trib 18'-0" | W8X24 × 3 (2/D, 40'-4"/D, 40'-4"/E) |
 
 All 7 columns match the drawing. Both beams and all six column load cases were run through the 15th-edition workbooks: 0 mismatches, all OK.
+
+### The Design page, top to bottom
+
+1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame**. That is the MB sheet's *Floor dead load (unfactored)* and *Floor live load (unfactored)* shear at left / right, in kips, per beam mark. The same two rows are highlighted on the Beam calc sheet. The Plan page lists the summed D / L that lands on each building column (the load into the frame).
+2. **3D framing model**, then the **framing summary** (beams → governing ratio → columns, floor-plan check).
+3. **Beam options** (Lightest / Best fit / Headroom) to pick from.
+4. **Checks & decisions**: check before quoting, confirmed against the PCS, design decisions, how it was read.
+5. **Quote sheet** rows for every mezzanine.
+
+On the Column calc page every case is named like the plan (*C1 · 2/C*) with its max CSR. A left / right diagram shows which beam, from which mezzanine, gives each Column-sheet reaction.
+
+### Jobs remembered
+
+When a job is fully designed it is saved in the browser on that computer: the values you typed for open fields, the option you picked, the joist direction and the sections. Next time:
+
+- **Your usual values come first.** An open field offers what you entered most on other jobs ("your usual · 3 jobs").
+- **Re-opening the same quote** offers your entries from last time in one click.
+- **Option hint.** The Beam options header says which option you usually quote.
+
+The design math never changes with history; it stays the NBG sheets. Settings → *Jobs remembered* can export the list as JSON (to send in so the jobs become regression tests), import it on another computer, or forget it.
 
 ### Nothing assumed
 
@@ -154,7 +174,8 @@ node oracle/compare.js beam oracle/out/beam.json oracle/out/beam_res.json 15
 
 ## Notes and limits
 
-- **Editions:** IBC 2018/2021 → 15th and IBC 2024 → 16th. IBC ≤ 2015 → 13th beam sheet (Q-factor compression, kv = 5, 360-05 shear and rt, no joist-bearing check), with the 15th column sheet since there is no 13th column sheet. All three are verified. NBCC (CSA S16) jobs are flagged to run in the S16 workbooks.
+- **Editions (IBC chapter 35):** IBC 2024 → AISC 360-22 (16th sheets); IBC 2018 / 2021 → AISC 360-16 (15th); IBC 2012 / 2015 → AISC 360-10, run on the 13th sheet since no 14th exists (flagged); IBC 2006 / 2009 → AISC 360-05 (13th). A state code with no IBC year maps through its IBC base (Massachusetts 9th / 10th Ed. → IBC 2015 / 2021, Florida 7th / 8th → IBC 2018 / 2021, California 2019 / 2022 / 2025 → IBC 2018 / 2021 / 2024). If the state code isn't in that table, its ASCE 7 year is used: 7-22 → IBC 2024, 7-16 → IBC 2018 / 2021, 7-10 → IBC 2012 / 2015.
+- **Editions, short form:** IBC 2018/2021 → 15th and IBC 2024 → 16th. IBC ≤ 2015 → 13th beam sheet (Q-factor compression, kv = 5, 360-05 shear and rt, no joist-bearing check), with the 15th column sheet since there is no 13th column sheet. All three are verified. NBCC (CSA S16) jobs are flagged to run in the S16 workbooks.
 - **16th-edition column sheet:** Lby (C10) is hard-coded to 120 in. The tool uses L × 12. Type L × 12 into C10 when you check a job in Excel.
 - **Materials other than deck + concrete**, and the "Designed For Load Provisions Only" box, are flagged. The quote engineer runs those by hand.
 - **Dead load when the PCS says "Per Seller":** see the table above. Only 4" and 3½" NW on 1.0C are exact deck-guide values; everything else is flagged as an estimate.

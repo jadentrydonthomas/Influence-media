@@ -29,13 +29,14 @@
     const view = { yaw: -0.72, pitch: 0.52, zoom: 1, auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true } };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
     let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1;
-    const PAD_T = 34, PAD_B = 70;   // header text above, control bar below
+    const [PAD_T, PAD_B] = opts.pad || [34, 70];   // header text above, control bar below
+    const [MIN_W, MIN_H] = opts.min || [300, 260];
     const light = (() => { const v = [-0.45, -0.6, 0.66]; const l = Math.hypot(...v); return v.map(c => c / l); })();
 
     function resize() {
       const r = canvas.getBoundingClientRect();
       dpr = Math.min(2, window.devicePixelRatio || 1);
-      W = Math.max(300, r.width); H = Math.max(260, r.height);
+      W = Math.max(MIN_W, r.width); H = Math.max(MIN_H, r.height);
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       fitScale();
       draw();
@@ -56,7 +57,7 @@
           my = Math.max(my, Math.abs(dz * cp + (dx * s2 + dy * c) * sp));
         }
       }
-      fit = 0.93 * Math.min((W / 2 - 14) / mx, ((H - PAD_T - PAD_B) / 2) / my);
+      fit = (opts.fitScale || 0.93) * Math.min((W / 2 - 14) / mx, ((H - PAD_T - PAD_B) / 2) / my);
     }
     function project(p) {
       const [cx, cy, cz] = scene.center;
@@ -171,7 +172,7 @@
     function tick(t) {
       raf = requestAnimationFrame(tick);
       const dt = Math.min(64, t - (last || t)); last = t;
-      if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * 0.00012; draw(); }
+      if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * (opts.speed || 0.00012); draw(); }
     }
 
     const pos = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };

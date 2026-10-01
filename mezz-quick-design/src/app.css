@@ -1,4 +1,4 @@
-/* Mezzanine quick-design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
+/* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
 @property --ring { syntax: "<number>"; inherits: false; initial-value: 0; }
 :root {
   --display: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
@@ -70,6 +70,12 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .rail-score::after { content: ""; position: absolute; right: -40px; top: -52px; width: 110px; height: 110px; border: 1px solid #65e7c11c; border-radius: 50%; }
 .rail-score span { display: block; color: #7fa3b8; font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
 .rail-score strong { display: block; margin-top: 6px; color: #70f5c4; font: 500 32px var(--display); letter-spacing: -.055em; line-height: 1.05; overflow-wrap: anywhere; }
+.rail-orb { position: relative; width: 168px; height: 168px; margin: 12px auto 4px; border-radius: 50%; background: radial-gradient(circle at 50% 42%, #1d4a5277, #0b1724 68%); box-shadow: inset 0 0 0 1px #65e7c133, 0 0 34px -10px #42e5ae66; overflow: hidden; cursor: pointer; }
+.rail-orb::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; border: 1px dashed #65e7c12a; pointer-events: none; animation: orb 40s linear infinite; }
+@keyframes orb { to { transform: rotate(360deg); } }
+.rail-orb canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.orb-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #6f8ea3; font: 600 11px var(--body); font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
+.rail-score small { text-align: center; }
 .rail-score small { display: block; margin-top: 7px; color: #94aabe; font-size: 12px; line-height: 1.45; }
 .rail-score b { display: block; margin-top: 3px; color: #a5b9cd; font-size: 12px; font-weight: 400; }
 .rail-nav { display: grid; gap: 5px; margin-top: 20px; }
@@ -229,8 +235,8 @@ tr.muted td { color: var(--ink-faint); }
 .mark-block + .mark-block { margin-top: 18px; }
 .mark-label { margin: 0 0 10px; color: var(--ink-muted); font-size: 13px; }
 .mark-label b { color: var(--ink); font-weight: 600; }
-.options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.option { position: relative; display: flex; flex-direction: column; padding: 20px 20px 18px; border: 1px solid var(--glass-border); border-radius: 20px; background: var(--glass); box-shadow: var(--lift-2); transition: transform .3s var(--ease), border-color .3s, box-shadow .3s; }
+.options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.option { position: relative; display: flex; flex-direction: column; padding: 14px 16px 13px; border: 1px solid var(--glass-border); border-radius: 20px; background: var(--glass); box-shadow: var(--lift-2); transition: transform .3s var(--ease), border-color .3s, box-shadow .3s; }
 .option:hover { transform: translateY(-3px); border-color: var(--line-strong); }
 .option.is-chosen { border-color: color-mix(in srgb, var(--green) 60%, transparent); box-shadow: var(--lift-2), 0 0 0 1px color-mix(in srgb, var(--green) 35%, transparent), 0 0 34px -12px color-mix(in srgb, var(--green) 55%, transparent); }
 .option.is-chosen::before { content: ""; position: absolute; left: 0; top: 22px; bottom: 22px; width: 3px; border-radius: 3px; background: var(--green); box-shadow: 0 0 12px color-mix(in srgb, var(--green) 50%, transparent); }
@@ -238,10 +244,10 @@ tr.muted td { color: var(--ink-faint); }
 .option-tag { color: var(--green); font: 600 11px var(--body); letter-spacing: .12em; text-transform: uppercase; }
 .option-delta { padding: 2px 8px; border-radius: 999px; color: var(--ink-muted); background: var(--surface-soft); font: 11.5px var(--mono); }
 .option-delta.zero { color: var(--green-dark); background: var(--green-soft); }
-.option-sec { margin: 10px 0 2px; font: 600 clamp(28px, 2.5vw, 38px) var(--mono); letter-spacing: -.05em; line-height: 1.05; }
+.option-sec { margin: 6px 0 2px; font: 600 clamp(22px, 1.9vw, 28px) var(--mono); letter-spacing: -.05em; line-height: 1.05; }
 .option-parts { color: var(--ink-muted); font: 12px var(--mono); }
-.option-why { flex: 1; margin: 10px 0 12px; color: var(--ink-faint); font-size: 12.5px; line-height: 1.5; }
-.option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.option-why { flex: 1; margin: 6px 0 8px; color: var(--ink-faint); font-size: 12.5px; line-height: 1.5; }
+.option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 12px; padding-top: 9px; border-top: 1px solid var(--line); }
 .option-grid span { display: block; color: var(--ink-faint); font-size: 11px; }
 .option-grid b { display: block; margin-top: 1px; font: 600 14px var(--mono); }
 .option-grid b.ok { color: var(--green); } .option-grid b.bad { color: var(--red); }
@@ -497,3 +503,39 @@ tr.none td { color: var(--ink-faint); }
   .screen { display: block !important; animation: none !important; }
   body { background: #fff; }
 }
+
+/* design page: checks pill, floor loads, frame strip, column diagram */
+.check-pill { align-self: flex-end; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.check-pill.warn { color: var(--amber); background: var(--amber-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 40%, transparent); }
+.check-pill.stop { color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 40%, transparent); }
+#needSlot:empty { display: none; }
+#needSlot { margin-bottom: 18px; }
+.metric.floor .fl-rows { display: grid; gap: 4px; margin: 10px 0 6px; }
+.fl-row { display: grid; grid-template-columns: 42px 1fr 1fr; gap: 8px; align-items: baseline; font: 600 clamp(15px, 1.35vw, 19px) var(--mono); letter-spacing: -.02em; }
+.fl-row b { color: var(--ink-faint); font: 600 11px var(--mono); letter-spacing: .04em; }
+.fl-row span:nth-child(2) { color: var(--steel); } .fl-row span:nth-child(3) { color: var(--green); }
+.frame-strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 0 0 14px; padding: 13px 18px; border: 1px solid color-mix(in srgb, var(--green) 35%, var(--line)); border-radius: 16px; background: linear-gradient(110deg, var(--green-soft), var(--surface) 70%); }
+.frame-strip b { font: 600 18px var(--mono); }
+.frame-strip small { color: var(--ink-faint); font-size: 12px; }
+.kv span.hl { color: var(--green); font-weight: 700; background: color-mix(in srgb, var(--green) 9%, transparent); }
+.tab-ratio { margin-left: 8px; padding: 1px 7px; border-radius: 999px; font: 600 11px var(--mono); }
+.tab-ratio.ok { color: var(--green-dark); background: var(--green-soft); } .tab-ratio.ng { color: var(--red); background: var(--red-soft); }
+svg.lr { display: block; width: 100%; max-width: 560px; margin: 14px 0 0; }
+svg.lr .lr-col { fill: color-mix(in srgb, #ff9f7a 30%, var(--surface)); stroke: #ff9f7a; stroke-width: 1.5; }
+svg.lr .lr-beam { fill: color-mix(in srgb, var(--green) 35%, var(--surface)); stroke: var(--green); }
+svg.lr .lr-beam.none { fill: none; stroke: var(--line-strong); stroke-dasharray: 5 4; }
+svg.lr text { text-anchor: middle; fill: var(--ink); font: 12px var(--mono); }
+svg.lr .lr-c { font-weight: 700; fill: #ff9f7a; }
+svg.lr .lr-t { fill: var(--ink-muted); font-size: 11.5px; }
+svg.lr .lr-v { font-weight: 600; }
+svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
+.frame-row td { background: color-mix(in srgb, var(--steel) 7%, transparent); }
+/* remembered jobs */
+.chip.usual { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+.again { margin-top: 12px; }
+.jobs-row { align-items: start; }
+.jobs ul { margin: 0 0 10px; padding: 0; list-style: none; display: grid; gap: 4px; font: 12px var(--mono); color: var(--ink-muted); }
+.jobs li b { color: var(--ink); } .jobs li span { color: var(--ink-faint); margin: 0 6px; }
+.jobs-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.file-btn { cursor: pointer; display: inline-flex; align-items: center; }
+#settingsGrid .field-row { grid-template-columns: minmax(0, 1fr) 230px; }

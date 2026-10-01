@@ -95,7 +95,7 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.deepStrictEqual(pcs.mezzanines.map(m => m.id), ['BSW', 'LEW']);
   assert.deepStrictEqual(pcs.building.bays, [28, 28, 28, 28, 28], 'lean-to row not mixed in');
   assert.deepStrictEqual(pcs.building.lewCols, [20, 20, 20, 20, 16, 24]);
-  assert.strictEqual(pcs.code.edition, '15'); assert.strictEqual(pcs.code.asce, 16);
+  assert.strictEqual(pcs.code.edition, '15'); assert.ok(pcs.code.state && /Massachusetts 10th/.test(pcs.code.note), 'MA 10th Ed. → IBC 2021');
   const g = LAYOUT.buildingGrid({ ...pcs.building, frames: pcs.frames });
   const p = pages[pages.length - 1];
   const reg = PLAN.registerAndRead(PLAN.subpaths(await p._page.getOperatorList(), loadPdfjs().OPS, p.height),

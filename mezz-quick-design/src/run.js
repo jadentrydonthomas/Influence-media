@@ -340,8 +340,14 @@
       const r = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.trib }, mk.sec);
       return { D: r.D, L: r.L, mark: mk.mark };
     };
-    const cols = [];
+    const cols = [], frame = [];
     at.forEach(e => {
+      if (e.building && e.ends.length) {
+        // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
+        const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
+        frame.push({ label: e.label, x: e.x, y: e.y, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        return;
+      }
       if (e.building || !e.ends.length) return;
       const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id), bm = c.lay.beams[en.id]; return { ...en, mezz: c.id, D: r.D, L: r.L, mark: r.mark, beam: 'B' + (en.id + 1), area: (bm.tribOwn * bm.span + (bm.extra || []).reduce((a, x) => a + x.tribOwn * (x.e - x.s), 0)) / 2 }; });
       const sum = ps => ({ D: ps.reduce((a, p) => a + p.D, 0), L: ps.reduce((a, p) => a + p.L, 0) });
@@ -365,6 +371,7 @@
       cols.push({ label: e.label, x: e.x, y: e.y, DL_L: Ls.D, LL_L: Ls.L, DL_R: Rs.D, LL_R: Rs.L, sides: (parts.some(p => p.sheetSide === 'left') ? 1 : 0) + (parts.some(p => p.sheetSide === 'right') ? 1 : 0),
         tribArea: Math.round(parts.reduce((a, p) => a + p.area, 0) * 10) / 10, owner, mezzes, shared: mezzes.length > 1, mixed: dirs.length > 1, parts, len, seenIn: e.seenIn });
     });
+    cols.frame = frame;
     return cols;
   }
 
@@ -423,7 +430,8 @@
     const cols = jobColumns(ctxs);
     cols.forEach(q => { q.ownerId = ctxs[q.owner].id; });
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges));
-    return { mezz, merges, columns: cols };
+    mezz.forEach(r => { if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
+    return { mezz, merges, columns: cols, frameLoads: cols.frame };
   }
 
   function run(inp, settings = {}) { return runJob([{ inp, settings }]).mezz[0]; }

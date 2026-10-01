@@ -60,7 +60,7 @@
   const prog = p => { $('#prog').style.width = Math.round(p * 100) + '%'; };
 
   async function loadFile(file) {
-    $('#dropTitle').textContent = file.name;
+    $('#dropTitle').textContent = file.name; state.fileName = file.name;
     $('#dropSub').textContent = 'Reading…';
     status('Reading PCS', 'warn');
     prog(0.1);
@@ -178,6 +178,7 @@
     const open = state.job && state.job.mezz.some(m => m.incomplete);
     status(open ? 'Needs input' : ok ? (bad ? 'Designed · check notes' : 'Designed') : 'Needs attention', open ? 'warn' : ok ? (bad ? 'warn' : 'ok') : 'bad');
     renderAll();
+    remember();
   }
 
   // Compare the mezzanine-column symbols on the PCS floor plan with every mezzanine's columns
@@ -241,11 +242,10 @@
     $('#mastContext').textContent = [inp.job.quote, inp.job.project, inp.mezz.id ? `Mezzanine “${inp.mezz.id}”` : ''].filter(Boolean).join(' · ');
     $('#stampMezz').hidden = true;
     renderMezzTabs();
-    if (r.incomplete) { $('#rsSection').textContent = '—'; $('#rsSub').textContent = 'Inputs missing — see Inputs read.'; $('#rsNote').textContent = ''; return; }
-    $('#rsLabel').textContent = inp.job.quote ? `${inp.job.quote} · beams` : 'Beam section';
-    $('#rsSection').textContent = r.quote.beams.map(b => b.section || '—').join(' / ');
-    $('#rsSub').textContent = r.quote.columns[0] ? `${r.quote.columns[0].section} × ${r.quote.columns[0].qty} columns · ${t.nB} beams` : `${t.nB} beams · no mezzanine columns`;
-    $('#rsNote').textContent = t.gov ? `Governing ratio ${f(t.gov.v, 2)} · ${n0(t.total)} lb` : '';
+    const many = state.all && state.all.length > 1;
+    $('#rsLabel').textContent = [inp.job.quote || 'Manual entry', many ? `${state.all.length} mezzanines` : inp.mezz.id ? `“${inp.mezz.id}”` : ''].filter(Boolean).join(' · ');
+    if (r.incomplete) { $('#rsSub').textContent = 'Needs input — see Design'; return; }
+    $('#rsSub').textContent = many ? `${esc(inp.mezz.id)} · ${t.nB} beams · ${t.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
     $('#navPlanCount').hidden = false;
     $('#navPlanCount').textContent = `${t.nB}·${t.nC}`;
   }
@@ -256,6 +256,14 @@
     if (!sec) return '';
     const fl = DESIGN.flangeName(sec.bof, sec.tof), fi = DESIGN.flangeName(sec.bif, sec.tif);
     return `${sec.d}" · web ${sec.tw}" · ${fl === fi ? fl + ' (' + sec.bof + ' × ' + sec.tof + ')' : 'OF ' + fl + ' / IF ' + fi}`;
+  }
+  // MB sheet: floor dead / live load (unfactored) — shear at left / right, kips: the beam end loads that go to the frame
+  function floorCard(r) {
+    const mks = r.marks.filter(mk => mk.check);
+    const rows = mks.map(mk => `<span class="fl-row"><b>${mk.mark}</b><span>D ${f(mk.check.V.D, 2)}</span><span>L ${f(mk.check.V.L, 2)}</span></span>`).join('');
+    return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
+      <div class="fl-rows">${rows || '—'}</div>
+      <small>kips · unfactored shear at left &amp; right (MB sheet)</small></div></div>`;
   }
   const ringCard = (label, value, sub, ratio, color) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${ratio == null ? '' : `<div class="ring" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"></div>`}</div>`;
   // rings sweep in and whole numbers count up, as in the Astra dashboard
@@ -268,6 +276,59 @@
         if (k < 1) requestAnimationFrame(step); };
       requestAnimationFrame(step);
     });
+  }
+
+  // ---------- jobs remembered on this computer: your entries and choices become the first suggestions ----------
+  // (the design math never changes with history — it stays the NBG sheets; history only orders the suggestions)
+  const HIST = 'mzd.jobs.v1';
+  const histLoad = () => { try { return JSON.parse(localStorage.getItem(HIST) || '[]') || []; } catch (e) { return []; } };
+  const histSave = list => { try { localStorage.setItem(HIST, JSON.stringify(list.slice(-300))); } catch (e) { /* private window / storage off */ } };
+  const ENTER = ['geom.A', 'geom.B', 'geom.C', 'geom.slab', 'geom.seat', 'geom.joistSpacing', 'loads.dead', 'loads.live', 'loads.coll', 'loads.partition'];
+  const jobKey = () => (state.pcs ? (state.pcs.job.quote || state.fileName || '') : '');
+  function entered(inp) {
+    const o = {};
+    ENTER.forEach(pth => { const [g, k] = pth.split('.'), n = inp[g][k]; if (n && (n.source === 'manual' || n.source === 'none')) o[pth] = n.source === 'none' ? 'none' : +(+n.value).toFixed(4); });
+    return o;
+  }
+  let lastSaved = '';
+  function remember() {
+    try {
+      if (!state.pcs || !state.all || !state.job || state.job.mezz.some(m => m.incomplete)) return;
+      const key = jobKey();
+      if (!key) return;
+      const rec = {
+        key, quote: state.pcs.job.quote || '', saved: new Date().toISOString().slice(0, 16), code: (state.pcs.code || {}).text || '', edition: state.res.edition.ed,
+        mezz: state.job.mezz.map((m, i) => ({ id: m.id, entered: entered(state.all[i].inputs), joists: m.layout.joists, joistsFrom: /arrows/.test(m.layout.why || '') ? 'drawing' : (state.all[i].settings.joists || 'auto'),
+          option: m.marks.map(mk => mk.optionKey), beams: m.marks.map(mk => `${mk.desc} × ${mk.qty}`), columns: m.colFinal ? `${m.colFinal.quoteAs} × ${m.columns.length}` : '' })),
+        settings: { marks: state.settings.marks, optionDefault: state.settings.optionDefault },
+      };
+      const str = JSON.stringify({ ...rec, saved: '' });
+      if (str === lastSaved) return;
+      lastSaved = str;
+      histSave(histLoad().filter(x => x.key !== key).concat(rec));
+    } catch (e) { /* never let remembering break a design */ }
+  }
+  // the values you have typed most for a field on other jobs
+  function usual(path) {
+    const cur = jobKey(), cnt = new Map();
+    histLoad().filter(r => r.key !== cur).forEach(r => {
+      const seen = new Set();
+      (r.mezz || []).forEach(m => { const v = m.entered && m.entered[path]; if (v == null || seen.has(String(v))) return; seen.add(String(v)); cnt.set(String(v), (cnt.get(String(v)) || 0) + 1); });
+    });
+    return [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([v, n]) => ({ v: v === 'none' ? 'none' : +v, n }));
+  }
+  // this same job, opened before: its entries per mezzanine
+  function lastTime() {
+    const rec = histLoad().filter(r => r.key === jobKey()).pop();
+    return rec ? rec : null;
+  }
+  // the beam option you usually put on the quote
+  function usualOption() {
+    const cnt = {};
+    let tot = 0;
+    histLoad().filter(r => r.key !== jobKey()).forEach(r => (r.mezz || []).forEach(m => (m.option || []).forEach(k => { if (!k) return; cnt[k] = (cnt[k] || 0) + 1; tot++; })));
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+    return top && tot >= 3 && top[1] / tot >= 0.6 ? { key: top[0], n: top[1], tot } : null;
   }
 
   // ---------- values the PCS leaves open: asked for on the Design page, nothing assumed ----------
@@ -310,14 +371,40 @@
         <p>TBD on the PCS with no blue note, so nothing is assumed. Type a value or pick a typical one${many ? ' — it fills every mezzanine listed; set them apart on the Inputs page if they differ' : ''}. The design runs as soon as they are in.</p></div>
       <div class="need-rows">${rows.map(q => `<div class="need-row"><label>${esc(q.label)}${many ? `<small>${names(q.mezz)}</small>` : ''}</label>
         <input data-need="${q.path}" data-kind="${q.kind}" placeholder="${esc(ph[q.path] || phK[q.kind] || '')}" autocomplete="off">
-        <div class="chips">${chipsFor(q).map(([v, t, why]) => `<button class="chip" data-need="${q.path}" data-v="${v}">${t}${why ? `<small>${why}</small>` : ''}</button>`).join('')}</div></div>`).join('')}</div>
-      <div class="need-foot">${mz.map(depthLine).join('')}</div></section>`;
+        <div class="chips">${chipsFor(q).map(([v, t, why, cls]) => `<button class="chip ${cls || ''}" data-need="${q.path}" data-v="${v}">${t}${why ? `<small>${why}</small>` : ''}</button>`).join('')}</div></div>`).join('')}</div>
+      ${againBtn(rows)}<div class="need-foot">${mz.map(depthLine).join('')}</div></section>`;
+  }
+  function againBtn(rows) {
+    const rec = lastTime();
+    if (!rec) return '';
+    const vals = rows.map(q => { const m = rec.mezz.find(x => q.mezz.some(i => inputsOf(i).mezz.id === x.id) && x.entered && x.entered[q.path] != null); return m ? [q, m.entered[q.path]] : null; }).filter(Boolean);
+    if (!vals.length) return '';
+    const show = (q, v) => (v === 'none' ? 'none' : q.kind === 'ftin' ? ft(v) : q.kind === 'in' ? `${+(v * 12).toFixed(3)}"` : v);
+    const SHORT = { 'geom.A': 'A', 'geom.B': 'B', 'geom.C': 'C', 'geom.slab': 'slab', 'geom.seat': 'seat', 'geom.joistSpacing': 'joists @', 'loads.dead': 'DL', 'loads.live': 'LL' };
+    return `<button class="btn-soft again" id="needAgain">Use your entries from ${esc(rec.saved.replace('T', ' '))}: ${vals.map(([q, v]) => `${SHORT[q.path] || esc(q.label)} ${show(q, v)}`).join(' · ')}</button>`;
+  }
+  function useAgain() {
+    const rec = lastTime();
+    if (!rec) return;
+    needRows().forEach(q => q.mezz.forEach(i => {
+      const inp = inputsOf(i), m = rec.mezz.find(x => x.id === inp.mezz.id), v = m && m.entered ? m.entered[q.path] : null;
+      if (v == null) return;
+      const [g, k] = q.path.split('.');
+      inp[g][k] = v === 'none' ? { value: null, source: 'none' } : { value: v, source: 'manual' };
+    }));
+    recompute();
   }
   // (C): the same as B once B is in, or an explicit "no requirement" — never filled in silently
   function chipsFor(q) {
-    if (q.path !== 'geom.C') return q.suggest;
-    const bs = [...new Set(q.mezz.map(i => inputsOf(i).geom.B.value).filter(v => v != null).map(v => +v.toFixed(4)))];
-    return [...(bs.length === 1 ? [[bs[0], ft(bs[0]), 'same as B']] : []), ['none', 'No requirement', 'depth limited by Settings only']];
+    let base = q.suggest;
+    if (q.path === 'geom.C') {
+      const bs = [...new Set(q.mezz.map(i => inputsOf(i).geom.B.value).filter(v => v != null).map(v => +v.toFixed(4)))];
+      base = [...(bs.length === 1 ? [[bs[0], ft(bs[0]), 'same as B']] : []), ['none', 'No requirement', 'depth limited by Settings only']];
+    }
+    const show = v => (v === 'none' ? 'No requirement' : q.kind === 'ftin' ? ft(v) : q.kind === 'in' ? `${+(v * 12).toFixed(3)}"` : String(v));
+    const mine = usual(q.path).map(u => [u.v, show(u.v), `your usual · ${u.n} job${u.n > 1 ? 's' : ''}`, 'usual']);
+    const same = (a, b) => String(a) === String(b) || (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) < 1e-4);
+    return mine.concat(base.filter(b => !mine.some(m => same(m[0], b[0]))));
   }
   function setNeed(path, value) {
     const [g, k] = path.split('.'), row = needRows().find(q => q.path === path);
@@ -327,6 +414,7 @@
   function wireNeed() {
     $$('#needCard input[data-need]').forEach(el => { el.onchange = () => { const v = parseKind(el.dataset.kind, el.value); if (v == null || !isFinite(v)) { toast('Could not read "' + el.value + '"'); return; } setNeed(el.dataset.need, v); }; });
     $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, b.dataset.v === 'none' ? 'none' : +b.dataset.v); });
+    const ag = $('#needAgain'); if (ag) ag.onclick = useAgain;
   }
   // notes, grouped: what to check, what was confirmed against the PCS, the design decisions, then how it was read
   function notesHtml(warn, hideNeed) {
@@ -343,10 +431,11 @@
     const card = needCard();
     if (r.incomplete) {
       $('#resTitle').innerHTML = `Mezzanine “${esc(inp.mezz.id || '—')}”<br><em>needs input.</em>`;
-      $('#resLede').textContent = 'The PCS leaves some values open. Enter them below — nothing is assumed — and the beams and columns are designed.';
       $('#metrics').innerHTML = ''; $('#field').innerHTML = ''; $('#options').innerHTML = ''; $('#readout').innerHTML = '';
-      $('#modelSec').hidden = true; $('#optHead').hidden = true;
-      $('#warnings').innerHTML = card + notesHtml(r.warn, !!card);
+      $('#modelSec').hidden = true; $('#optHead').hidden = true; $('#checkPill').hidden = true;
+      renderMini(null);
+      $('#needSlot').innerHTML = card;
+      $('#warnings').innerHTML = notesHtml(r.warn, !!card);
       wireNeed();
       const anyDone = state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete);
       $('#qsHead').hidden = !anyDone;
@@ -356,21 +445,23 @@
     const t = totals(), cf = r.colFinal, mk0 = r.marks[0];
     const beamsTxt = r.quote.beams.map(b => b.section || 'no beam').join(' / ');
     $('#resTitle').innerHTML = `Mezzanine “${esc(inp.mezz.id || '—')}”<br><em class="nocase">${esc(beamsTxt)}${cf ? ' · ' + esc(cf.quoteAs) : ''}</em>`;
-    const many = state.all && state.all.length > 1;
-    $('#resLede').textContent = `${ft(inp.geom.width.value)} wide × ${ft(inp.geom.length.value)} long at LEW ${ft(inp.geom.startLEW.value)} / FSW ${ft(inp.geom.startFSW.value)}. DL ${r.beamBase.dead} + coll ${r.beamBase.coll} + LL ${r.beamBase.live} psf, joists ${r.beamBase.joistWt} psf @ ${ft(r.beamBase.Lb)}. ${edLabel(r.edition.beamEd || r.edition.ed)} ASD · ${r.division} stock.` +
-      (many ? ` This job has ${state.all.length} mezzanines (${state.job.mezz.map(m => m.id).join(', ')}), designed together — switch at the top; the quote sheet lists all of them.` : '');
 
     // metric ring cards
     const c0 = mk0 && mk0.check;
     $('#metrics').innerHTML = [
       ringCard('Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${esc(beamsTxt)} · ${r.marks.map(m => ft(m.span)).join(' / ')} span`, t.govBeam ? t.govBeam.v : null),
       ringCard('Mezzanine columns', `<span data-count="${t.nC}">${t.nC}</span>`, (cf ? `${esc(cf.quoteAs)} · ${ft(r.colLen)} · CSR ${f(cf.max, 3)}` : 'every beam end lands on a building column') + ((r.foreignCols || []).length ? ` · + ${r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ')}` : ''), cf ? cf.max : null),
-      ringCard('Live-load deflection', c0 ? `<span data-count="${Math.round(c0.defl.rLL)}" data-fmt="L">L/${f(c0.defl.rLL, 0)}</span>` : '—', c0 ? `limit L/360 · total L/${f(c0.defl.rTL, 0)} (L/240)` : '', c0 ? 360 / c0.defl.rLL : null),
+      floorCard(r),
       ringCard('Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, t.total ? t.beams / t.total : null, 'var(--steel)'),
     ].join('');
-    $('#warnings').innerHTML = card + notesHtml(r.warn, !!card);
+    $('#needSlot').innerHTML = card;
+    $('#warnings').innerHTML = notesHtml(r.warn, !!card);
     wireNeed();
     $('#modelSec').hidden = false; $('#optHead').hidden = false; $('#qsHead').hidden = false;
+    const nCheck = r.warn.filter(w => w.level === 'stop' || w.level === 'warn').length;
+    $('#checkPill').hidden = !nCheck;
+    $('#checkPill').textContent = `${nCheck} to check before quoting ↓`;
+    $('#checkPill').className = 'check-pill ' + (r.warn.some(w => w.level === 'stop') ? 'stop' : 'warn');
 
     // hero field: beams -> governing ratio -> columns + plan check
     const others = r.marks.slice(1).map(m => `${m.mark} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ');
@@ -410,7 +501,8 @@
   function renderOptions() {
     const r = state.res, inp = state.inputs;
     const A = inp.geom.A.value, slabIn = (inp.geom.slab.value || 0) * 12, seatIn = (inp.geom.seat.value || 0) * 12;
-    $('#optSub').textContent = r.marks[0] && r.marks[0].search ? `${r.marks[0].search.evaluated.toLocaleString()} stocked web / flange / depth combinations checked per mark · pick one for the quote` : '';
+    const uo = usualOption(), uoLab = uo && { lightest: 'Lightest', fit: 'Best fit', headroom: 'Headroom' }[uo.key];
+    $('#optSub').textContent = (r.marks[0] && r.marks[0].search ? `${r.marks[0].search.evaluated.toLocaleString()} stocked combinations checked per mark · pick one for the quote` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
     $('#options').innerHTML = r.marks.map(mk => {
       if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mk.mark}</b> — no passing section in the depth range.</p></div>`;
       return `<div class="mark-block"><p class="mark-label"><b>${mk.mark}</b> · ${mk.qty} beam${mk.qty > 1 ? 's' : ''} · ${ft(mk.span)} span × ${ft(mk.trib)} trib</p><div class="options">${mk.options.map(o => {
@@ -522,6 +614,20 @@
     const box = { x0: xLo - 3.4, x1: xHi, y0: yLo - 3.4, y1: yHi, z0: 0, z1: Z };   // bubbles sit 2.2' outside the grid ends
     return { center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, Z / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2, box, members, labels, floor };
   }
+  // the sidebar orb: the same scene, small, turning; click it to jump to the framing model
+  let mini = null;
+  function renderMini(scene) {
+    const cv = $('#miniModel');
+    if (!cv || !M3) return;
+    $('#orbEmpty').hidden = !!scene;
+    cv.style.visibility = scene ? 'visible' : 'hidden';
+    if (!scene) return;
+    if (!mini) {
+      mini = M3.mount(cv, { pad: [6, 6], min: [60, 60], speed: 0.00035, fitScale: 1.3, onSelect: () => { go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
+      mini.toggle('joists', false);
+    }
+    mini.set({ ...scene, labels: [], floor: (scene.floor || []).filter(g => !g[3]) });
+  }
   function renderModel() {
     const canvas = $('#model3d');
     if (!canvas || !M3) return;
@@ -534,6 +640,7 @@
     }
     state.scene = buildScene();
     model.set(state.scene);
+    renderMini(state.scene);
     const r = state.res, t = totals();
     $('#modelTitle').textContent = `${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
     $('#modelCount').textContent = `${ft(r.layout.footprint.x1 - r.layout.footprint.x0)} × ${ft(r.layout.footprint.y1 - r.layout.footprint.y0)} · T/slab ${ft(state.inputs.geom.A.value)}`;
@@ -755,6 +862,8 @@
     $('#supTable').innerHTML = `<thead><tr><th>Support</th><th>Type</th><th class="num">Trib area</th><th class="num">Left D / L (k)</th><th class="num">Right D / L (k)</th></tr></thead><tbody>` +
       lay.supports.slice().sort((a, b) => a.building - b.building || (colNo.get(a.label) || 0) - (colNo.get(b.label) || 0) || a.x - b.x || a.y - b.y).map(sp2 => {
         const own = r.columns.find(c2 => c2.label === sp2.label), fc = (r.foreignCols || []).find(c2 => c2.label === sp2.label), c = own || fc;
+        const fl = sp2.building ? (r.frameLoads || []).find(q => Math.abs(q.x - sp2.x) < 0.01 && Math.abs(q.y - sp2.y) < 0.01) : null;
+        if (fl) return `<tr class="frame-row"><td class="mono">${sp2.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${fl.parts.map(p => `${state.all && state.all.length > 1 ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(fl.D, 2)} · L ${f(fl.L, 2)} k</b></td></tr>`;
         const type = sp2.building ? 'Building column' : fc ? `Mezzanine column · counted with ${esc(fc.ownerId)}` : `<b style="color:var(--red)">Mezzanine column ⊗</b>${own && own.shared ? ' · shared' : ''}`;
         const from = c && c.shared ? `<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${esc(p.mezz)} ${p.beam}`).join(' · ')}</small>` : '';
         return `<tr><td class="mono">${own ? `<b>C${colNo.get(sp2.label)}</b> · ` : ''}${sp2.label}</td><td>${type}${from}</td><td class="num">${c ? f(c.tribArea, 0) + ' ft²' : ''}</td><td class="num">${c ? f(c.DL_L, 2) + ' / ' + f(c.LL_L, 2) : ''}</td><td class="num">${c ? f(c.DL_R, 2) + ' / ' + f(c.LL_R, 2) : ''}</td></tr>`;
@@ -762,7 +871,7 @@
   }
 
   // ---------- beam calc (MB sheet mirror) ----------
-  const kv = rows => `<div class="kv">${rows.map(([k, v, cls]) => `<span>${k}</span><span class="${cls || ''}">${v}</span>`).join('')}</div>`;
+  const kv = rows => `<div class="kv">${rows.map(([k, v, cls, row]) => `<span class="${row || ''}">${k}</span><span class="${cls || ''} ${row || ''}">${v}</span>`).join('')}</div>`;
   function renderBeam() {
     const r = state.res, inp = state.inputs;
     $('#markTabs').innerHTML = r.marks.map((mk, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}">${mk.mark} · ${esc(mk.desc || 'none')} · ${ft(mk.span)} × ${ft(mk.trib)}</button>`).join('');
@@ -775,7 +884,7 @@
     else {
       const x = c.res, clear = r.clear;
       const clr = (k, lab) => [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${clear[k].ok === false ? '· NO GOOD' : clear[k].ok ? '· OK' : ''}`, clear[k].ok === false ? 'ng' : ''];
-      $('#mbSheet').innerHTML = `<div class="sheet">
+      $('#mbSheet').innerHTML = `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div><div class="sheet">
         <div><h4>INPUT sheet</h4>${kv([
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
@@ -788,8 +897,8 @@
           ['Estimated Joist Weight, psf =', f(p.joistWt, 3)], ['Moment of Inertia (I), in.^4 =', f(x.Ix, 3)],
           ['JOIST WEIGHT', 'w=' + f(c.w.joist, 3) + 'KLF'], ['BEAM WEIGHT', 'w=' + f(c.w.beam, 3) + 'KLF'], ['FDL', 'w=' + f(c.w.FDL, 3) + 'KLF'], ['FLL', 'w=' + f(c.w.FLL, 3) + 'KLF'], ['TOTAL', 'w=' + f(c.w.total, 3) + 'KLF'],
         ])}</div>
-        <div><h4>Floor dead load (unfactored)</h4>${kv([['Shear at left / right, kips', f(c.V.D, 3)], ['Moment, ft.-kips', f(c.M.D, 3)], ['Max. deflection (in)', f(c.defl.DL, 3)], ['Deflection', 'L / ' + f(c.defl.rDL, 0)]])}
-          <h4 style="margin-top:14px">Floor live load (unfactored)</h4>${kv([['Shear at left / right, kips', f(c.V.L, 3)], ['Moment, ft.-kips', f(c.M.L, 3)], ['Max. deflection (in)', f(c.defl.LL, 3)], ['Deflection', 'L / ' + f(c.defl.rLL, 0) + (c.llOK ? '' : '  < L/360'), c.llOK ? 'okc' : 'ng']])}
+        <div><h4>Floor dead load (unfactored)</h4>${kv([['Shear at left / right, kips', f(c.V.D, 3), '', 'hl'], ['Moment, ft.-kips', f(c.M.D, 3)], ['Max. deflection (in)', f(c.defl.DL, 3)], ['Deflection', 'L / ' + f(c.defl.rDL, 0)]])}
+          <h4 style="margin-top:14px">Floor live load (unfactored)</h4>${kv([['Shear at left / right, kips', f(c.V.L, 3), '', 'hl'], ['Moment, ft.-kips', f(c.M.L, 3)], ['Max. deflection (in)', f(c.defl.LL, 3)], ['Deflection', 'L / ' + f(c.defl.rLL, 0) + (c.llOK ? '' : '  < L/360'), c.llOK ? 'okc' : 'ng']])}
           <h4 style="margin-top:14px">Total load (unfactored)</h4>${kv([['Shear at left / right, kips', f(c.V.T, 3)], ['Moment, ft.-kips', f(c.M.T, 3)], ['Max. deflection (in)', f(c.defl.TL, 3)], ['Deflection', 'L / ' + f(c.defl.rTL, 0) + (c.tlOK ? '' : '  < L/240'), c.tlOK ? 'okc' : 'ng']])}
           <h4 style="margin-top:14px">Strength results</h4><span class="status-line ${/NG/.test(c.combinedText) ? 'ng' : 'ok'}">${esc(c.combinedText)}</span><span class="status-line ${/NG/.test(c.shearText) ? 'ng' : 'ok'}">${esc(c.shearText)}</span>
           ${kv([['Main Report (MAX SR &gt; 1 = NG)', x.maxSR > 1 ? 'NG' : 'OK', x.maxSR > 1 ? 'ng' : 'okc']])}</div>
@@ -818,6 +927,21 @@
   }
 
   // ---------- column calc (Column sheet mirror) ----------
+  // C1, C2 … numbered the same everywhere (plan tags, 3D, column sheet): along the length, then from the BSW
+  const colNos = r => new Map(r.layout.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  // left beam → column ← right beam, with the dead / live shear each one brings (what goes in C27:D28)
+  function lrDiagram(g, cno) {
+    const c = g.cols[0];
+    if (!c || !c.parts) return '';
+    const side = sd => c.parts.filter(p => p.sheetSide === sd);
+    const lab = ps => ps.length ? ps.map(p => `${p.mezz !== state.res.id ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ') : 'no beam';
+    const val = (D, L) => `D ${f(D, 2)} · L ${f(L, 2)} k`;
+    return `<svg class="lr" viewBox="0 0 520 132" role="img" aria-label="Left and right beam reactions on ${esc(c.label)}">
+      <rect x="236" y="20" width="48" height="104" rx="4" class="lr-col"/><text x="260" y="14" class="lr-c">C${cno.get(c.label) || '?'} · ${esc(c.label)}</text>
+      <rect x="20" y="34" width="210" height="16" rx="3" class="lr-beam ${side('left').length ? '' : 'none'}"/><text x="125" y="66" class="lr-t">${esc(lab(side('left')))}</text><text x="125" y="84" class="lr-v">LEFT ${val(g.loads.DL_L, g.loads.LL_L)}</text>
+      <rect x="290" y="34" width="210" height="16" rx="3" class="lr-beam ${side('right').length ? '' : 'none'}"/><text x="395" y="66" class="lr-t">${esc(lab(side('right')))}</text><text x="395" y="84" class="lr-v">RIGHT ${val(g.loads.DL_R, g.loads.LL_R)}</text>
+      <path d="M222 42 l12 0 m-5 -5 l5 5 l-5 5" class="lr-a"/><path d="M298 42 l-12 0 m5 -5 l-5 5 l5 5" class="lr-a"/></svg>`;
+  }
   // which beam (and which mezzanine) each Column-sheet reaction comes from
   function srcRows(c) {
     if (!c || !c.parts) return [];
@@ -827,7 +951,9 @@
   function renderColumn() {
     const r = state.res, cf = r.colFinal;
     if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; return; }
-    $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(c => c.label).join(', '))}</button>`).join('');
+    const cno = colNos(r);
+    const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
+    $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); }; });
     const g = r.colGroups[state.colGroup];
     if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
@@ -843,9 +969,8 @@
         <div><h4>Applied loads (beam reactions)</h4>${kv([
           ['Left Beam Reaction — Dead', f(g.loads.DL_L, 2) + ' kip'], ['Left Beam Reaction — Live', f(g.loads.LL_L, 2) + ' kip'],
           ['Right Beam Reaction — Dead', f(g.loads.DL_R, 2) + ' kip'], ['Right Beam Reaction — Live', f(g.loads.LL_R, 2) + ' kip'],
-          ['X-Axis Eccentricity, e (d/2)', f(chk.ex, 2) + ' in.'], ['Column self-weight (Wt·L/1000)', f(chk.wt, 3) + ' kip'], ['Columns in this case', esc(g.cols.map(c => c.label).join(', '))],
-          ...srcRows(g.cols[0]),
-        ])}</div>
+          ['X-Axis Eccentricity, e (d/2)', f(chk.ex, 2) + ' in.'], ['Column self-weight (Wt·L/1000)', f(chk.wt, 3) + ' kip'], ['Columns in this case', esc(g.cols.map(nm).join(', '))],
+        ])}${lrDiagram(g, cno)}</div>
         <div class="full"><h4>Load combinations</h4><div class="table-wrap"><table><thead><tr><th></th>${names.map(n => `<th class="num">${n}</th>`).join('')}</tr></thead><tbody>
           <tr><td>Mx (ft-kip)</td>${chk.combos.map(k => `<td class="num">${f(k.Mx, 2)}</td>`).join('')}</tr>
           <tr><td>Axial (kip)</td>${chk.combos.map(k => `<td class="num">${f(k.P, 2)}</td>`).join('')}</tr>
@@ -947,6 +1072,30 @@
   }
 
   // ---------- settings ----------
+  function jobsRow() {
+    const list = histLoad();
+    const last = list.slice(-6).reverse().map(r => `<li><b>${esc(r.quote || r.key)}</b> <span>${esc(r.saved.replace('T', ' '))}</span> ${esc((r.mezz || []).map(m => `${m.id}: ${(m.beams || []).join(', ')}${m.columns ? ' · ' + m.columns : ''}`).join(' | '))}</li>`).join('');
+    return `<div class="field-row full jobs-row"><label>${list.length} job${list.length === 1 ? '' : 's'} remembered<small>Saved automatically when a job is fully designed: what you typed for open values, the option you picked, the joist direction and the sections. Your usual values come up first next time. Nothing leaves this computer unless you export it.</small></label>
+      <div class="jobs"><ul>${last || '<li class="dim-t">None yet — design a job and it is remembered.</li>'}</ul>
+      <div class="jobs-btns"><button class="btn-soft" id="jobsExport" ${list.length ? '' : 'disabled'}>Export (.json)</button><label class="btn-ghost file-btn">Import<input type="file" id="jobsImport" accept=".json,application/json" hidden></label><button class="btn-ghost" id="jobsClear" ${list.length ? '' : 'disabled'}>Forget all</button></div></div></div>`;
+  }
+  function wireJobs() {
+    const ex = $('#jobsExport'), im = $('#jobsImport'), cl = $('#jobsClear');
+    if (ex) ex.onclick = () => {
+      const blob = new Blob([JSON.stringify({ app: 'mezzanine-design', version: 1, jobs: histLoad() }, null, 1)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mezzanine-jobs.json'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    };
+    if (im) im.onchange = async () => {
+      try {
+        const data = JSON.parse(await im.files[0].text()), jobs = Array.isArray(data) ? data : data.jobs || [];
+        const keep = histLoad().filter(x => !jobs.some(j => j.key === x.key));
+        histSave(keep.concat(jobs.filter(j => j && j.key && Array.isArray(j.mezz))));
+        toast(`${jobs.length} job${jobs.length === 1 ? '' : 's'} imported`); renderSettings();
+      } catch (e) { toast('Could not read that file'); }
+    };
+    if (cl) cl.onclick = () => { if (confirm('Forget every remembered job on this computer?')) { histSave([]); lastSaved = ''; renderSettings(); } };
+  }
   function renderSettings() {
     const s = state.settings;
     const sel = (key, label, opts, sub) => `<div class="field-row"><label>${label}${sub ? `<small>${sub}</small>` : ''}</label><select data-set="${key}">${opts.map(([v, t]) => `<option value="${v}" ${String(s[key]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
@@ -967,7 +1116,10 @@
       '<div class="group-title">Columns</div>',
       sel('colLength', 'Column length L', [['A', 'Finish floor to top of mezzanine (A)'], ['clear', 'Clear below mezzanine beam (guide)']]),
       sel('includeW818', 'Also try W8X18', [['false', 'No — W10X22, W8X24, W12X26'], ['true', 'Yes (stocked at most divisions)']]),
+      '<div class="group-title">Jobs remembered on this computer</div>',
+      jobsRow(),
     ].join('');
+    wireJobs();
     $$('#settingsGrid [data-set]').forEach(el => {
       el.onchange = () => {
         const k = el.dataset.set; let v = el.value;
