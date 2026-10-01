@@ -19,6 +19,14 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await page.setInputFiles('#file', pdf);
   await page.waitForSelector('#v-results.is-active', { timeout: 60000 });
+  // values the PCS leaves open: type them into the prompt (B 9'-0", seat 5", joists @ 4'-0")
+  const typed = { 'geom.B': `9'-0"`, 'geom.seat': '5', 'geom.joistSpacing': `4'-0"` };
+  for (let k = 0; k < 8 && await page.$('#needCard'); k++) {
+    const paths = await page.$$eval('#needCard input[data-need]', es => es.map(e => e.dataset.need));
+    const p0 = paths.find(q => typed[q]);
+    if (!p0) { fail('unexpected open value: ' + paths.join(', ')); break; }
+    await page.fill(`#needCard input[data-need="${p0}"]`, typed[p0]); await page.press(`#needCard input[data-need="${p0}"]`, 'Tab'); await page.waitForTimeout(250);
+  }
 
   // beam / column quote rows, compact
   const quote = () => page.$$eval('#quoteSheet table', ts => ts.slice(1).map(t => [...t.querySelectorAll('tbody tr')].map(tr => {
@@ -170,9 +178,15 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await p2.click('#manualBtn');
   await p2.waitForSelector('#v-inputs.is-active');
   const status = await p2.$eval('#statusText', e => e.textContent);
+  if (!/input/i.test(status)) fail('manual entry should start as needing input, got ' + status);
   console.log('manual entry'.padEnd(30), status);
   await p2.fill(`#inputsGrid input[data-path="geom.B"]`, `10'-0"`); await p2.press(`#inputsGrid input[data-path="geom.B"]`, 'Tab'); await p2.waitForTimeout(200);
   await p2.click('#nav button[data-view="results"]');
+  const open2 = await p2.$$eval('#needCard input[data-need]', es => es.map(e => e.dataset.need));
+  console.log('manual entry still open'.padEnd(30), open2.join(', '));
+  if (open2.join() !== 'geom.joistSpacing,geom.seat') fail('manual entry should ask for joist spacing and seat');
+  await p2.click('#needCard .chip[data-need="geom.joistSpacing"]'); await p2.waitForTimeout(200);
+  await p2.click('#needCard .chip[data-need="geom.seat"]'); await p2.waitForTimeout(200);
   const mq = await p2.$$eval('#quoteSheet table', ts => ts.map(t => [...t.querySelectorAll('tbody tr')].map(tr => tr.textContent.replace(/\s+/g, ' ').trim()).join(' / ')));
   console.log('manual entry, B = 10\'-0"'.padEnd(30), mq.join(' || '));
   if (mq.length !== 3) fail('manual entry did not design once (B) was filled');

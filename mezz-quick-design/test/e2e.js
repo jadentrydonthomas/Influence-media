@@ -25,6 +25,15 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   await page.setInputFiles('#file', pdf);
   await page.waitForSelector('#v-results.is-active', { timeout: 60000 });
   const ms = Date.now() - t0;
+  // values the PCS leaves open are asked for on the Design page: take the first typical value offered for each
+  for (let k = 0; k < 8 && await page.$('#needCard'); k++) {
+    const rows = await page.$$eval('#needCard .need-row', rs => rs.map(r => ({ path: r.querySelector('input').dataset.need, chip: !!r.querySelector('.chip') })));
+    console.log('needs input', rows.map(r => r.path).join(', '));
+    const row = rows.find(r => r.chip);
+    if (!row) { fail('a required value has no typical value to pick: ' + rows.map(r => r.path).join(', ')); break; }
+    await page.click(`#needCard .chip[data-need="${row.path}"]`);
+    await page.waitForTimeout(250);
+  }
   await page.waitForTimeout(1200);   // counters and rings settle
   const answer = await page.evaluate(() => ({
     title: document.querySelector('#resTitle').textContent,

@@ -95,7 +95,7 @@
       $('#intakeMsg').textContent = 'Parsed. Review the sections, then check the plan against the drawing.';
       prog(1);
       recompute();
-      go(state.res && state.res.incomplete ? 'inputs' : 'results');
+      go('results');                                        // open values are asked for at the top of the Design page
     } catch (err) {
       console.error(err);
       status('Could not read PCS', 'bad');
@@ -117,7 +117,7 @@
       job: { quote: '', project: 'Manual entry', division: 'NBS-IN', code: { family: 'AISC', edition: '15', spec: 'AISC 360-16', text: 'IBC 2021' } },
       mezz: { id: 'A', provided: {}, material: 'Standard Weight Concrete', concrete: 'NW', deck: '1.0C' },
       loads: { dead: { ...v(43, 'deckGuide', 'Deck guide: 4" NW concrete on 1.0C form deck'), auto: true }, coll: v(5, 'manual'), live: v(125, 'manual'), partition: v(0, 'manual'), joistWt: v(8, 'default') },
-      geom: { width: v(40, 'manual'), length: v(40, 'manual'), startLEW: v(0, 'manual'), startFSW: v(0, 'manual'), slab: v(4 / 12, 'manual'), A: v(12, 'manual'), B: v(null, 'missing'), C: v(null, 'missing'), joistSpacing: v(4, 'default'), seat: v(2.5 / 12, 'default') },
+      geom: { width: v(40, 'manual'), length: v(40, 'manual'), startLEW: v(0, 'manual'), startFSW: v(0, 'manual'), slab: v(4 / 12, 'manual'), A: v(12, 'manual'), B: v(null, 'missing'), C: v(null, 'missing'), joistSpacing: v(null, 'missing'), seat: v(null, 'missing') },
       building: { width: 60, length: 100, ridge: 30, bays: [20, 20, 20, 20, 20], lewCols: [20, 20, 20], rewCols: [20, 20, 20], frames: [], fswSoldier: [], bswSoldier: [] },
     };
     state.settings = { ...RUN.SETTINGS, ...keepSettings() };
@@ -154,7 +154,8 @@
     $('#copyQuote').disabled = !!state.res.incomplete; $('#printBtn').disabled = false;
     const bad = state.res.warn.some(w => w.level === 'stop');
     const ok = !state.res.incomplete && state.res.marks.length && state.res.marks.every(m => m.sec) && (!state.res.columns.length || state.res.colFinal);
-    status(state.res.incomplete ? 'Inputs missing' : ok ? (bad ? 'Designed · check notes' : 'Designed') : 'Needs attention', ok ? (bad ? 'warn' : 'ok') : 'bad');
+    const open = state.job && state.job.mezz.some(m => m.incomplete);
+    status(open ? 'Needs input' : ok ? (bad ? 'Designed · check notes' : 'Designed') : 'Needs attention', open ? 'warn' : ok ? (bad ? 'warn' : 'ok') : 'bad');
     renderAll();
   }
 
@@ -256,14 +257,77 @@
     });
   }
 
+  // ---------- values the PCS leaves open: asked for on the Design page, nothing assumed ----------
+  const parseKind = (kind, raw) => {
+    raw = String(raw).trim();
+    if (raw === '') return null;
+    if (kind === 'ftin') return PCS.ftin(raw) ?? PCS.ftin(raw + "'");
+    if (kind === 'in') { const v = PCS.ftin(/["']/.test(raw) ? raw : raw + '"'); return v != null ? v : parseFloat(raw) / 12; }
+    return parseFloat(raw);
+  };
+  const inputsOf = i => (state.all ? (i === state.mi ? state.inputs : state.all[i].inputs) : state.inputs);
+  function needRows() {
+    const mz = state.job ? state.job.mezz : [state.res], rows = [];
+    mz.forEach((m, i) => (m.need || []).forEach(n => {
+      let row = rows.find(q => q.path === n.path);
+      if (!row) rows.push(row = { ...n, mezz: [] });
+      row.mezz.push(i);
+    }));
+    return rows;
+  }
+  function depthLine(i) {
+    const inp = inputsOf(i), g = inp.geom, V = k => g[k] && g[k].value;
+    const id = esc(inp.mezz.id || 'Mezzanine'), missing = ['A', 'B', 'slab', 'seat'].filter(k => V(k) == null);
+    if (missing.length) return `<div><b>${id}</b> · total joist depth = A − B − slab − seat <span class="dim-t">(waiting on ${missing.join(', ')})</span></div>`;
+    const d = Math.round(((V('A') - V('B')) * 12 - V('slab') * 12 - V('seat') * 12) * 100) / 100;
+    return `<div><b>${id}</b> · ${ft(V('A'))} − ${ft(V('B'))} − ${f(V('slab') * 12, 2)}" − ${f(V('seat') * 12, 2)}" = <b class="${d < 8 ? 'bad' : 'good'}">${d}" total joist depth</b></div>`;
+  }
+  function needCard() {
+    const rows = needRows();
+    if (!rows.length) return '';
+    const many = state.all && state.all.length > 1;
+    const names = idx => idx.map(i => esc(inputsOf(i).mezz.id || 'Mezzanine ' + (i + 1))).join(', ');
+    const ph = { 'geom.B': `e.g. 9'-0"`, 'geom.joistSpacing': `e.g. 4'-0"`, 'geom.seat': 'inches, e.g. 5', 'geom.A': `e.g. 12'-0"`, 'geom.slab': 'inches, e.g. 4' };
+    const phK = { ftin: 'ft-in', in: 'inches', psf: 'psf' };
+    const mz = state.job ? state.job.mezz.map((m, i) => i) : [0];
+    return `<section class="need" id="needCard"><div class="need-head"><div><div class="eyebrow">Needs your input</div>
+        <h3>${rows.length} value${rows.length > 1 ? 's' : ''} the PCS leaves open</h3></div>
+        <p>TBD on the PCS with no blue note, so nothing is assumed. Type a value or pick a typical one${many ? ' — it fills every mezzanine listed; set them apart on the Inputs page if they differ' : ''}. The design runs as soon as they are in.</p></div>
+      <div class="need-rows">${rows.map(q => `<div class="need-row"><label>${esc(q.label)}${many ? `<small>${names(q.mezz)}</small>` : ''}</label>
+        <input data-need="${q.path}" data-kind="${q.kind}" placeholder="${esc(ph[q.path] || phK[q.kind] || '')}" autocomplete="off">
+        <div class="chips">${q.suggest.map(([v, t, why]) => `<button class="chip" data-need="${q.path}" data-v="${v}">${t}${why ? `<small>${why}</small>` : ''}</button>`).join('')}</div></div>`).join('')}</div>
+      <div class="need-foot">${mz.map(depthLine).join('')}</div></section>`;
+  }
+  function setNeed(path, value) {
+    const [g, k] = path.split('.'), row = needRows().find(q => q.path === path);
+    (row ? row.mezz : [state.mi]).forEach(i => { inputsOf(i)[g][k] = { value, source: 'manual' }; });
+    recompute();
+  }
+  function wireNeed() {
+    $$('#needCard input[data-need]').forEach(el => { el.onchange = () => { const v = parseKind(el.dataset.kind, el.value); if (v == null || !isFinite(v)) { toast('Could not read "' + el.value + '"'); return; } setNeed(el.dataset.need, v); }; });
+    $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, +b.dataset.v); });
+  }
+  // notes, grouped: what to check, what was confirmed against the PCS, the design decisions, then how it was read
+  function notesHtml(warn, hideNeed) {
+    const ws = hideNeed ? warn.filter(w => !/^Needs input/.test(w.text)) : warn;
+    const item = w => `<div class="note ${w.level}">${esc(w.text)}</div>`;
+    const grp = (lv, title, open = true) => { const xs = ws.filter(w => lv.includes(w.level)); if (!xs.length) return '';
+      return open ? `<div class="note-group"><h5>${title}</h5>${xs.map(item).join('')}</div>` : `<details class="note-group more"><summary>${title} · ${xs.length} note${xs.length > 1 ? 's' : ''}</summary>${xs.map(item).join('')}</details>`; };
+    return grp(['stop', 'warn'], 'Check before quoting') + grp(['ok'], 'Confirmed against the PCS') + grp(['key'], 'Design decisions') + grp(['info'], 'How it was read', false);
+  }
+
   function renderResults() {
     const r = state.res, inp = state.inputs, s = state.settings;
     $('#resEyebrow').textContent = [inp.job.quote, inp.job.project].filter(Boolean).join(' / ') || 'Design result';
+    const card = needCard();
     if (r.incomplete) {
-      $('#resTitle').innerHTML = 'Inputs <em>missing.</em>';
-      $('#resLede').textContent = 'Fill the missing values on the Inputs page and the design runs.';
-      $('#metrics').innerHTML = ''; $('#field').innerHTML = ''; $('#options').innerHTML = ''; $('#quoteSheet').innerHTML = ''; $('#readout').innerHTML = '';
-      $('#warnings').innerHTML = r.warn.map(w => `<div class="note ${w.level}">${esc(w.text)}</div>`).join('');
+      $('#resTitle').innerHTML = `Mezzanine “${esc(inp.mezz.id || '—')}”<br><em>needs input.</em>`;
+      $('#resLede').textContent = 'The PCS leaves some values open. Enter them below — nothing is assumed — and the beams and columns are designed.';
+      $('#metrics').innerHTML = ''; $('#field').innerHTML = ''; $('#options').innerHTML = ''; $('#readout').innerHTML = '';
+      $('#modelSec').hidden = true;
+      $('#warnings').innerHTML = card + notesHtml(r.warn, !!card);
+      wireNeed();
+      if (state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete)) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
       return;
     }
     const t = totals(), cf = r.colFinal, mk0 = r.marks[0];
@@ -281,7 +345,9 @@
       ringCard('Live-load deflection', c0 ? `<span data-count="${Math.round(c0.defl.rLL)}" data-fmt="L">L/${f(c0.defl.rLL, 0)}</span>` : '—', c0 ? `limit L/360 · total L/${f(c0.defl.rTL, 0)} (L/240)` : '', c0 ? 360 / c0.defl.rLL : null),
       ringCard('Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, t.total ? t.beams / t.total : null, 'var(--steel)'),
     ].join('');
-    $('#warnings').innerHTML = r.warn.map(w => `<div class="note ${w.level}">${esc(w.text)}</div>`).join('');
+    $('#warnings').innerHTML = card + notesHtml(r.warn, !!card);
+    wireNeed();
+    $('#modelSec').hidden = false;
 
     // hero field: beams -> governing ratio -> columns + plan check
     const others = r.marks.slice(1).map(m => `${m.mark} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ');
@@ -830,7 +896,7 @@
     const [grp, key] = el.dataset.path.split('.'), kind = el.dataset.kind, raw = el.value.trim();
     let val;
     if (kind === 'ftin') val = raw === '' ? null : (PCS.ftin(raw) ?? PCS.ftin(raw + "'"));
-    else if (kind === 'in') val = raw === '' ? null : parseFloat(raw) / 12;
+    else if (kind === 'in') val = parseKind('in', raw);
     else if (kind === 'list') val = parseSpacing(raw);
     else val = raw === '' ? null : parseFloat(raw);
     if (kind !== 'list' && raw !== '' && (val == null || !isFinite(val))) { toast('Could not read "' + raw + '"'); renderInputs(); return; }

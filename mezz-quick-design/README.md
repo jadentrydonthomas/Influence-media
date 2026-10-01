@@ -66,6 +66,21 @@ Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line):
 
 All 7 columns match the drawing. Both beams and all six column load cases were run through the 15th-edition workbooks: 0 mismatches, all OK.
 
+### Nothing assumed
+
+When the PCS leaves a value TBD with no blue note, the design does not run on a guess. A **Needs your input** card at the top of the Design page asks for it, with one-click typical values, and shows the total joist depth A − B − slab − seat as it fills in. On a job with several mezzanines, one entry fills every mezzanine that is missing that value.
+
+| Value | Typical values offered |
+|---|---|
+| (B) min. clearance under joist | 9'-0" (conservative headroom) |
+| Joist spacing (= beam unbraced length) | 4'-0", 5'-0" (NBG max) |
+| Joist seat depth | 2 1/2" (K-series), 5" (LH-series) |
+| (A) top of mezzanine, slab, loads, footprint | — (type them) |
+
+The dead load is the one value the tool fills itself when Box 22 says *Per Seller*: it is worked out from the slab, deck and concrete (below) and flagged when it is an estimate.
+
+Notes on the Design page are grouped: **Check before quoting** (flags), **Confirmed against the PCS** (e.g. the floor plan matched, joist arrows read), **Design decisions** (shared beams and columns, snapped edges, joist direction), and a collapsed **How it was read** list.
+
 Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided) and the Headroom option's depth limit.
 
 ### Dead load by deck and concrete

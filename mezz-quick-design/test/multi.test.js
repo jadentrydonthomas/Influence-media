@@ -106,7 +106,16 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   RUN.applyPlan(pcs, reg);
   assert.deepStrictEqual(pcs.mezzanines.map(m => m.planJoists), ['y', 'y'], 'Mez. Jst. arrows: joists across the width');
   const inps = pcs.mezzanines.map((m, i) => RUN.inputsFromPCS(pcs, i));
+  // B, joist spacing and seat are TBD with no blue note: nothing is assumed, the run asks for them
+  const first = RUN.runJob(inps.map(inp => ({ inp, settings: {} })));
+  first.mezz.forEach(r => {
+    assert.ok(r.incomplete, 'stops on the open values');
+    assert.deepStrictEqual(r.need.map(n => n.path).sort(), ['geom.B', 'geom.joistSpacing', 'geom.seat']);
+  });
+  // the quote engineer's entries (as on this job): B = 9'-0" (conservative headroom), seat 5", joists @ 4'-0"
+  inps.forEach(inp => { inp.geom.B = { value: 9, source: 'manual' }; inp.geom.seat = { value: 5 / 12, source: 'manual' }; inp.geom.joistSpacing = { value: 4, source: 'manual' }; });
   const job = RUN.runJob(inps.map(inp => ({ inp, settings: {} })));
+  job.mezz.forEach(r => close(r.joistDepthIn, 20, 1e-9, "11'-6\" − 9'-0\" − 5\" − 5\" = 20\""));
   const [bsw, lew] = job.mezz;
   assert.strictEqual(bsw.marks[0].desc, 'BU28x50'); assert.strictEqual(bsw.marks[0].qty, 10); assert.strictEqual(bsw.marks[0].trib, 20);
   assert.strictEqual(lew.marks[0].desc, 'BU27x47'); assert.strictEqual(lew.marks[0].qty, 4); assert.strictEqual(lew.marks[0].trib, 18);
