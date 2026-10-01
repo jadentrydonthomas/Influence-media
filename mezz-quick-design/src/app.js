@@ -15,6 +15,7 @@
 
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
+  let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
   const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null };
 
   // ---------- theme (Astra default: dark) ----------
@@ -31,6 +32,7 @@
   // ---------- navigation ----------
   function go(view) {
     state.view = view;
+    if (railView === 'plan' || !$('#planPop').hidden) renderMiniPlan();
     $$('.screen').forEach(s => s.classList.toggle('is-active', s.id === 'v-' + view));
     $$('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
     window.scrollTo({ top: 0 });
@@ -243,9 +245,8 @@
     $('#stampMezz').hidden = true;
     renderMezzTabs();
     const many = state.all && state.all.length > 1;
-    $('#rsLabel').textContent = [inp.job.quote || 'Manual entry', many ? `${state.all.length} mezzanines` : inp.mezz.id ? `“${inp.mezz.id}”` : ''].filter(Boolean).join(' · ');
-    if (r.incomplete) { $('#rsSub').textContent = 'Needs input — see Design'; return; }
-    $('#rsSub').textContent = many ? `${esc(inp.mezz.id)} · ${t.nB} beams · ${t.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
+    if (r.incomplete) { $('#rsSub').textContent = 'Needs input — see Design'; renderMiniPlan(); return; }
+    $('#rsSub').textContent = many ? `${inp.mezz.id} · ${t.nB} beams · ${t.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
     $('#navPlanCount').hidden = false;
     $('#navPlanCount').textContent = `${t.nB}·${t.nC}`;
   }
@@ -616,17 +617,86 @@
   }
   // the sidebar orb: the same scene, small, turning; click it to jump to the framing model
   let mini = null;
+  railView = (() => { try { return localStorage.getItem('mzd.railView') || '3d'; } catch (e) { return '3d'; } })();
+  function setRailView(v) {
+    railView = v;
+    try { localStorage.setItem('mzd.railView', v); } catch (e) { /* storage off */ }
+    $$('#rvToggle button[data-v]').forEach(b => b.classList.toggle('is-on', b.dataset.v === v));
+    const has = !!(state.res && !state.res.incomplete);
+    $('#miniModel').style.display = v === '3d' && has ? '' : 'none';
+    $('#miniPlan').toggleAttribute('hidden', v !== 'plan' || !has);
+    if (v === 'plan') renderMiniPlan();
+  }
+  $$('#rvToggle button[data-v]').forEach(b => { b.onclick = e => { e.stopPropagation(); setRailView(b.dataset.v); }; });
+  const openPop = on => { $('#planPop').hidden = !on; if (on) renderMiniPlan(); };
+  $('#rvBig').onclick = e => { e.stopPropagation(); openPop($('#planPop').hidden); };
+  $('#ppClose').onclick = () => openPop(false);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#planPop').hidden) openPop(false); });
   function renderMini(scene) {
     const cv = $('#miniModel');
     if (!cv || !M3) return;
     $('#orbEmpty').hidden = !!scene;
-    cv.style.visibility = scene ? 'visible' : 'hidden';
-    if (!scene) return;
+    $('#rvToggle').hidden = !scene;
+    if (!scene) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); return; }
     if (!mini) {
-      mini = M3.mount(cv, { pad: [6, 6], min: [60, 60], speed: 0.00035, fitScale: 1.3, onSelect: () => { go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
+      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, onSelect: () => { go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
       mini.toggle('joists', false);
     }
-    mini.set({ ...scene, labels: [], floor: (scene.floor || []).filter(g => !g[3]) });
+    // frame on the steel itself (not the grid bubbles), so it sits in the middle of the square
+    const bb = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z1: 0 };
+    scene.members.forEach(m => (m.boxes || []).forEach(b => { bb.x0 = Math.min(bb.x0, b.x0); bb.x1 = Math.max(bb.x1, b.x1); bb.y0 = Math.min(bb.y0, b.y0); bb.y1 = Math.max(bb.y1, b.y1); bb.z1 = Math.max(bb.z1, b.z1); }));
+    const box = { x0: bb.x0 - 1, x1: bb.x1 + 1, y0: bb.y0 - 1, y1: bb.y1 + 1, z0: 0, z1: bb.z1 };
+    mini.set({ ...scene, labels: [], floor: (scene.floor || []).filter(g => !g[3]), box, center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, box.z1 / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2 });
+    setRailView(railView);
+  }
+  /* sidebar floor plan: grid bubbles, B# beams, C# columns; what is under review is lit (the column case on the
+     Column page, the mark on the Beam page); click a column or beam to open its calc. ⤢ shows it large. */
+  function planMarkup(Vw, Vh, k, padTop = 0) {
+    const r = state.res, lay = r.layout, g = r.grid, fp = lay.footprint, M = 24 * k;
+    const x0 = Math.min(fp.x0, ...lay.xLines), x1 = Math.max(fp.x1, ...lay.xLines), y0 = Math.min(fp.y0, ...lay.yLines), y1 = Math.max(fp.y1, ...lay.yLines);
+    const s = Math.min((Vw - 2 * M) / Math.max(1, x1 - x0), (Vh - 2 * M - 10 * k - padTop) / Math.max(1, y1 - y0));
+    const ox = (Vw - (x1 - x0) * s) / 2, oy = padTop + (Vh - padTop - 10 * k - (y1 - y0) * s) / 2;
+    const X = x => ox + (x - x0) * s, Y = y => oy + (y1 - y) * s;
+    const cno = colNos(r), markIdx = id => r.marks.findIndex(mk => mk.beams.includes(id));
+    const grp = state.view === 'column' && r.colGroups[state.colGroup] ? r.colGroups[state.colGroup].cols.map(c => c.label) : null;
+    const mkOn = state.view === 'beam' && r.marks[state.mark] ? r.marks[state.mark].beams : null;
+    const o = [], br = 6.5 * k;
+    lay.xLines.forEach(x => { o.push(`<line class="mp-grid" x1="${X(x)}" y1="${Y(y1) - 8 * k}" x2="${X(x)}" y2="${Y(y0) + 8 * k}"/>`); const lb = g.xLabel(x); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x)}" cy="${Y(y1) - 15 * k}" r="${br}"/><text x="${X(x)}" y="${Y(y1) - 15 * k}">${lb}</text></g>`); else o.push(`<text class="mp-off" x="${X(x)}" y="${Y(y1) - 13 * k}">${ft(x)}</text>`); });
+    lay.yLines.forEach(y => { o.push(`<line class="mp-grid" x1="${X(x0) - 8 * k}" y1="${Y(y)}" x2="${X(x1) + 8 * k}" y2="${Y(y)}"/>`); const lb = g.yLabel(y); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x0) - 15 * k}" cy="${Y(y)}" r="${br}"/><text x="${X(x0) - 15 * k}" y="${Y(y)}">${lb}</text></g>`); });
+    o.push(`<rect class="mp-foot" x="${X(fp.x0)}" y="${Y(fp.y1)}" width="${(fp.x1 - fp.x0) * s}" height="${(fp.y1 - fp.y0) * s}" rx="2"/>`);
+    lay.beams.forEach(b => {
+      const [p, q] = b.ends;
+      if (b.absorbed) { o.push(`<line class="mp-beam carried" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>edge on ${esc(b.absorbed.mezz)}'s beam</title></line>`); return; }
+      const mi = markIdx(b.id), on = mkOn ? mkOn.includes(b.id) : null;
+      o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${HEX[Math.max(0, mi) % 4]}"><title>B${b.id + 1} · ${r.marks[mi] ? r.marks[mi].mark + ' ' + (r.marks[mi].desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}</title></line>`);
+    });
+    lay.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">B${b.id + 1}${k > 1.2 && r.marks[markIdx(b.id)] ? ' ' + r.marks[markIdx(b.id)].mark : ''}</text>`); });
+    lay.supports.filter(sp => sp.building).forEach(sp => o.push(`<rect class="mp-bc" x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"><title>${sp.label} · building column</title></rect>`));
+    const xm = (cx, cy, R) => { const d = R * 0.68; return `<circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/>`; };
+    const lbl = (cx, cy, t) => { const right = cx < Vw - 40 * k; return `<text class="mp-cl" x="${cx + (right ? 8 : -8) * k}" y="${cy + 12 * k}" text-anchor="${right ? 'start' : 'end'}">${t}</text>`; };
+    lay.mezzCols.forEach(c => { const on = grp ? grp.includes(c.label) : null, cx = X(c.x), cy = Y(c.y);
+      o.push(`<g class="mp-col ${on === true ? 'hi' : on === false || mkOn ? 'dim' : ''}" data-col="${c.label}"><title>C${cno.get(c.label)} · ${c.label}</title>${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, 'C' + cno.get(c.label) + (k > 1.2 ? ' · ' + c.label : ''))}`); });
+    (r.foreignCols || []).forEach(c => { const cx = X(c.x), cy = Y(c.y); o.push(`<g class="mp-col shared"><title>${c.label} · counted with ${esc(c.ownerId)}</title>${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, esc(c.ownerId) + (k > 1.2 ? ' · ' + c.label : ''))}`); });
+    o.push(`<text class="mp-cap" x="${Vw / 2}" y="${Vh - 6 * k}">${esc(state.inputs.mezz.id || 'Mezzanine')} · joists ${lay.joists === 'y' ? '↕' : '↔'} @ ${ft(r.beamBase.Lb)}${grp ? ' · reviewing ' + grp.map(l => 'C' + cno.get(l)).join(', ') : mkOn ? ' · reviewing ' + r.marks[state.mark].mark : ''}</text>`);
+    return o.join('');
+  }
+  function wirePlan(svg) {
+    const r = state.res, markIdx = id => r.marks.findIndex(mk => mk.beams.includes(id));
+    svg.querySelectorAll('[data-col]').forEach(el => { el.onclick = () => { const gi = r.colGroups.findIndex(gp => gp.cols.some(c => c.label === el.dataset.col)); if (gi >= 0) state.colGroup = gi; go('column'); renderColumn(); }; });
+    svg.querySelectorAll('[data-beam]').forEach(el => { el.onclick = () => { const mi = markIdx(+el.dataset.beam); if (mi >= 0) state.mark = mi; go('beam'); renderBeam(); }; });
+  }
+  function renderMiniPlan() {
+    const svg = $('#miniPlan'), r = state.res, ok = !!(svg && r && !r.incomplete);
+    if (svg) { svg.innerHTML = ok ? planMarkup(200, 200, 1, 18) : ''; svg.setAttribute('viewBox', '0 0 200 200'); if (ok) wirePlan(svg); }
+    const pop = $('#planPop');
+    if (!pop || pop.hidden) return;
+    if (!ok) { pop.hidden = true; return; }
+    const lay = r.layout, fp = lay.footprint, w = 680, ratio = (Math.max(fp.y1, ...lay.yLines) - Math.min(fp.y0, ...lay.yLines)) / Math.max(1, Math.max(fp.x1, ...lay.xLines) - Math.min(fp.x0, ...lay.xLines));
+    const h = Math.round(Math.max(240, Math.min(560, (w - 80) * ratio + 110)));
+    const big = $('#planPopSvg');
+    big.setAttribute('viewBox', `0 0 ${w} ${h}`); big.style.setProperty('--k', 1.8);
+    big.innerHTML = planMarkup(w, h, 1.8); wirePlan(big);
+    $('#ppTitle').textContent = `${state.inputs.mezz.id || 'Mezzanine'} · floor plan`;
   }
   function renderModel() {
     const canvas = $('#model3d');
@@ -641,6 +711,7 @@
     state.scene = buildScene();
     model.set(state.scene);
     renderMini(state.scene);
+    window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null) };
     const r = state.res, t = totals();
     $('#modelTitle').textContent = `${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
     $('#modelCount').textContent = `${ft(r.layout.footprint.x1 - r.layout.footprint.x0)} × ${ft(r.layout.footprint.y1 - r.layout.footprint.y0)} · T/slab ${ft(state.inputs.geom.A.value)}`;
@@ -875,7 +946,7 @@
   function renderBeam() {
     const r = state.res, inp = state.inputs;
     $('#markTabs').innerHTML = r.marks.map((mk, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}">${mk.mark} · ${esc(mk.desc || 'none')} · ${ft(mk.span)} × ${ft(mk.trib)}</button>`).join('');
-    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; renderBeam(); }; });
+    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; renderBeam(); renderMiniPlan(); }; });
     const mk = r.marks[state.mark];
     if (!mk) { $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; return; }
     $('#beamCalcTitle').innerHTML = `${mk.mark} · <em class="nocase">${esc(mk.desc || 'no section')}</em>`;
@@ -884,7 +955,7 @@
     else {
       const x = c.res, clear = r.clear;
       const clr = (k, lab) => [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${clear[k].ok === false ? '· NO GOOD' : clear[k].ok ? '· OK' : ''}`, clear[k].ok === false ? 'ng' : ''];
-      $('#mbSheet').innerHTML = `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div><div class="sheet">
+      $('#mbSheet').innerHTML = beamViz(mk, r) + `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div><div class="sheet">
         <div><h4>INPUT sheet</h4>${kv([
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
@@ -927,6 +998,116 @@
   }
 
   // ---------- column calc (Column sheet mirror) ----------
+  // plate sizes as the shop says them: 0.375 → 3/8, 0.1875 → 3/16, 1 → 1
+  const frac = v => {
+    const n = Math.round(v * 16);
+    if (Math.abs(v * 16 - n) > 0.02) return String(+v.toFixed(4));
+    const whole = Math.floor(n / 16), r16 = n % 16, gcd = (a, b) => (b ? gcd(b, a % b) : a), g = gcd(r16, 16);
+    return r16 ? `${whole ? whole + ' ' : ''}${r16 / g}/${16 / g}` : String(whole);
+  };
+  // the beam of a mark, drawn: load, joists at Lb, reactions, deflected shape, moment and shear — and its section to scale
+  function beamViz(mk, r) {
+    const c = mk.check, sec = mk.sec, L = mk.span, Lb = r.beamBase.Lb, col = HEX[r.marks.indexOf(mk) % 4];
+    const x0 = 80, x1 = 660, X = t => x0 + (x1 - x0) * t / L, yB = 150, dp = 28, tfp = 5;
+    const wD = c.w.joist + c.w.beam + c.w.FDL, wL = c.w.FLL;
+    const o = [];
+    o.push(`<text class="bv-cap" x="${x0}" y="22" text-anchor="start">${mk.mark} · ${esc(c.desc)} · ${mk.qty} beam${mk.qty > 1 ? 's' : ''}</text>`);
+    // uniform load
+    o.push(`<line class="bv-load" x1="${x0}" y1="62" x2="${x1}" y2="62"/>`);
+    for (let i = 0; i <= 16; i++) { const x = x0 + (x1 - x0) * i / 16; o.push(`<path class="bv-arr" d="M${x},62 L${x},96 M${x - 4},89 L${x},96 L${x + 4},89"/>`); }
+    o.push(`<text class="bv-t" x="${x0}" y="52" text-anchor="start">w = ${f(wD, 3)} D + ${f(wL, 3)} L = <tspan class="bv-b">${f(c.w.total, 3)} klf</tspan>  (trib ${ft(mk.trib)})</text>`);
+    // joists bearing at the spacing (= unbraced length)
+    for (let t = Lb; t < L - 1e-6; t += Lb) o.push(`<line class="bv-joist" x1="${X(t)}" y1="106" x2="${X(t)}" y2="${yB - 3}"/><rect class="bv-seat" x="${X(t) - 3}" y="${yB - 4}" width="6" height="4"/>`);
+    o.push(`<text class="bv-s" x="${x1}" y="52" text-anchor="end">joists @ ${ft(Lb)} = unbraced Lb</text>`);
+    // the beam (depth exaggerated so it reads)
+    o.push(`<rect x="${x0}" y="${yB}" width="${x1 - x0}" height="${tfp}" fill="${col}"/><rect class="bv-web" x="${x0}" y="${yB + tfp}" width="${x1 - x0}" height="${dp - 2 * tfp}" style="fill:${col}"/><rect x="${x0}" y="${yB + dp - tfp}" width="${x1 - x0}" height="${tfp}" fill="${col}"/>`);
+    // supports and reactions
+    [x0, x1].forEach((x, i) => {
+      o.push(`<rect class="bv-col" x="${x - 8}" y="${yB + dp}" width="16" height="46"/><path class="bv-r" d="M${x},${yB + dp + 76} L${x},${yB + dp + 50} M${x - 5},${yB + dp + 57} L${x},${yB + dp + 50} L${x + 5},${yB + dp + 57}"/>`);
+      o.push(`<text class="bv-t" x="${x + (i ? -12 : 12)}" y="${yB + dp + 92}" text-anchor="${i ? 'end' : 'start'}">R = D <tspan class="bv-b">${f(c.V.D, 2)}</tspan> · L <tspan class="bv-b">${f(c.V.L, 2)}</tspan> k</text>`);
+    });
+    // deflected shape
+    const yD = yB + dp;
+    o.push(`<path class="bv-defl" d="M${x0},${yD} Q${(x0 + x1) / 2},${yD + 34} ${x1},${yD}"/><text class="bv-s" x="${(x0 + x1) / 2}" y="${yD + 30}">Δ live ${f(c.defl.LL, 3)}" = L/${f(c.defl.rLL, 0)} · total L/${f(c.defl.rTL, 0)}</text>`);
+    // span
+    const yS = yB + dp + 118;
+    o.push(`<path class="bv-dim" d="M${x0},${yS - 6} L${x0},${yS + 6} M${x1},${yS - 6} L${x1},${yS + 6} M${x0},${yS} L${x1},${yS}"/><text class="bv-t" x="${(x0 + x1) / 2}" y="${yS - 7}">member length (span) <tspan class="bv-b">${ft(L)}</tspan></text>`);
+    // moment and shear
+    const yM = yS + 26, yV = yM + 86;
+    o.push(`<path class="bv-m" d="M${x0},${yM} Q${(x0 + x1) / 2},${yM + 92} ${x1},${yM} Z"/><text class="bv-t" x="${(x0 + x1) / 2}" y="${yM + 60}">M max <tspan class="bv-b">${f(c.M.T, 1)} ft-k</tspan>  (D ${f(c.M.D, 1)} + L ${f(c.M.L, 1)})</text>`);
+    o.push(`<path class="bv-v" d="M${x0},${yV} L${x0},${yV - 22} L${x1},${yV + 22} L${x1},${yV} Z"/><line class="bv-axis" x1="${x0}" y1="${yV}" x2="${x1}" y2="${yV}"/><text class="bv-s" x="${x0 + 8}" y="${yV - 26}" text-anchor="start">V = ${f(c.V.T, 2)} k</text><text class="bv-s" x="${x1 - 8}" y="${yV + 34}" text-anchor="end">−${f(c.V.T, 2)} k</text>`);
+    o.push(`<text class="bv-lab" x="20" y="${yM + 22}">M</text><text class="bv-lab" x="20" y="${yV + 4}">V</text>`);
+    const H = yV + 44;
+    // section to scale
+    const bmax = Math.max(sec.bof, sec.bif), k = Math.min(150 / bmax, 290 / sec.d), cx = 140, top = 54, dpx = sec.d * k;
+    const fl = (b, t, y) => `<rect x="${cx - b * k / 2}" y="${y}" width="${b * k}" height="${Math.max(2, t * k)}" fill="${col}"/>`;
+    const sv = [];
+    sv.push(fl(sec.bof, sec.tof, top), `<rect class="bv-web" x="${cx - Math.max(1.6, sec.tw * k) / 2}" y="${top + sec.tof * k}" width="${Math.max(1.6, sec.tw * k)}" height="${(sec.d - sec.tof - sec.tif) * k}" style="fill:${col}"/>`, fl(sec.bif, sec.tif, top + dpx - Math.max(2, sec.tif * k)));
+    const xl = cx - bmax * k / 2 - 22;
+    sv.push(`<path class="bv-dim" d="M${xl - 5},${top} L${xl + 5},${top} M${xl - 5},${top + dpx} L${xl + 5},${top + dpx} M${xl},${top} L${xl},${top + dpx}"/><text class="bv-t" transform="translate(${xl - 9},${top + dpx / 2}) rotate(-90)">d = ${sec.d}"</text>`);
+    sv.push(`<text class="bv-t" x="${cx}" y="${top - 12}">top flange ${frac(sec.bof)} × ${frac(sec.tof)}"</text><text class="bv-t" x="${cx}" y="${top + dpx + 22}">bottom flange ${frac(sec.bif)} × ${frac(sec.tif)}"</text>`);
+    sv.push(`<path class="bv-lead" d="M${cx + 2},${top + dpx / 2} L${cx + 46},${top + dpx / 2 - 14}"/><text class="bv-t" x="${cx + 50}" y="${top + dpx / 2 - 16}" text-anchor="start">web ${frac(sec.tw)}"</text>`);
+    sv.push(`<text class="bv-cap" x="${cx}" y="22" text-anchor="middle">${esc(c.desc)} · ${f(c.res.Wt, 1)} plf</text><text class="bv-s" x="${cx}" y="${top + dpx + 42}">Fy 55 ksi · Ix ${f(c.res.Ix || 0, 0)} in⁴ · drawn to scale</text>`);
+    return `<div class="viz"><svg class="bviz" viewBox="0 0 700 ${H}" role="img" aria-label="${mk.mark} elevation">${o.join('')}</svg><svg class="bsec" viewBox="0 0 280 ${H}" role="img" aria-label="${esc(c.desc)} section">${sv.join('')}</svg></div>`;
+  }
+  // a column case, drawn: the W column with cap and base plates, the beams sitting on it, the two reactions at e = d/2
+  function colViz(g, r, cno) {
+    const cf = r.colFinal, w = WF[cf.name], c = g.cols[0], parts = c.parts || [];
+    const info = p => { const m = state.job.mezz[p.mi], bm = m.layout.beams[p.id], mk = m.marks.find(q => q.beams.includes(p.id)); return { bm, mk }; };
+    const side = sd => parts.filter(p => p.sheetSide === sd);
+    const cx = 380, yT = 176, yF = 372, cw = Math.max(26, w.d * 3.3), o = [];
+    // slab and joists over the beams
+    const dMax = Math.max(1, ...parts.map(p => { const i = info(p); return i.mk && i.mk.sec ? i.mk.sec.d : 18; }));
+    const dpx = d => Math.min(84, d * 3.3), ySlab = yT - dpx(dMax) - 30;
+    o.push(`<rect class="cv-slab" x="40" y="${ySlab}" width="680" height="12" rx="2"/><text class="cv-s" x="48" y="${ySlab - 6}" text-anchor="start">slab + joists</text>`);
+    for (let x = 70; x < 700; x += 46) o.push(`<line class="cv-joist" x1="${x}" y1="${ySlab + 12}" x2="${x}" y2="${ySlab + 22}"/>`);
+    // beams: left ends at the column centreline from the left, right from the right
+    const beam = (sd, x0, x1) => {
+      const ps = side(sd);
+      if (!ps.length) return `<rect class="cv-none" x="${Math.min(x0, x1)}" y="${yT - 40}" width="${Math.abs(x1 - x0)}" height="40" rx="3"/><text class="cv-s" x="${(x0 + x1) / 2}" y="${yT - 16}">no beam on this side</text>`;
+      const i = info(ps[0]), d = i.mk && i.mk.sec ? i.mk.sec.d : 18, h = dpx(d), col = HEX[Math.max(0, i.mk ? state.job.mezz[ps[0].mi].marks.indexOf(i.mk) : 0) % 4];
+      const a = Math.min(x0, x1), wdt = Math.abs(x1 - x0);
+      return `<rect x="${a}" y="${yT - h}" width="${wdt}" height="4" fill="${col}"/><rect class="cv-web" x="${a}" y="${yT - h + 4}" width="${wdt}" height="${h - 8}" style="fill:${col}"/><rect x="${a}" y="${yT - 4}" width="${wdt}" height="4" fill="${col}"/>
+        <text class="cv-bl" x="${(x0 + x1) / 2}" y="${yT - h / 2 + 4}">${esc(ps.map(p => `${p.mezz !== r.id ? p.mezz + ' ' : ''}${p.beam}`).join(' + '))} · ${esc(i.mk ? i.mk.mark + ' ' + (i.mk.desc || '') : '')}</text>`;
+    };
+    o.push(beam('left', 46, cx - 2), beam('right', cx + 2, 714));
+    o.push(`<path class="cv-brk" d="M46,${yT - 70} l-6,10 l8,8 l-8,8 l6,10 M714,${yT - 70} l6,10 l-8,8 l8,8 l-6,10"/>`);
+    // column, plates, bolts, floor
+    o.push(`<rect class="cv-cap" x="${cx - cw / 2 - 9}" y="${yT}" width="${cw + 18}" height="6"/><rect class="cv-col" x="${cx - cw / 2}" y="${yT + 6}" width="${cw}" height="${yF - yT - 14}"/>`);
+    o.push(`<rect class="cv-fl" x="${cx - cw / 2}" y="${yT + 6}" width="3.5" height="${yF - yT - 14}"/><rect class="cv-fl" x="${cx + cw / 2 - 3.5}" y="${yT + 6}" width="3.5" height="${yF - yT - 14}"/>`);
+    o.push(`<rect class="cv-cap" x="${cx - cw / 2 - 16}" y="${yF - 8}" width="${cw + 32}" height="8"/><line class="cv-bolt" x1="${cx - cw / 2 - 8}" y1="${yF - 10}" x2="${cx - cw / 2 - 8}" y2="${yF + 14}"/><line class="cv-bolt" x1="${cx + cw / 2 + 8}" y1="${yF - 10}" x2="${cx + cw / 2 + 8}" y2="${yF + 14}"/>`);
+    o.push(`<line class="cv-floor" x1="30" y1="${yF}" x2="730" y2="${yF}"/>`);
+    for (let x = 34; x < 730; x += 12) o.push(`<line class="cv-hatch" x1="${x}" y1="${yF + 1}" x2="${x - 8}" y2="${yF + 9}"/>`);
+    // reactions at the flange faces (e = d/2 from the centreline)
+    const react = (sd, x, bx) => {
+      const ps = side(sd); if (!ps.length) return '';
+      const D = sd === 'left' ? g.loads.DL_L : g.loads.DL_R, Lv = sd === 'left' ? g.loads.LL_L : g.loads.LL_R, yA = ySlab - 54;
+      return `<path class="cv-arr" d="M${x},${yA + 30} L${x},${yT - 2} M${x - 5},${yT - 10} L${x},${yT - 2} L${x + 5},${yT - 10}"/>
+        <rect class="cv-box" x="${bx}" y="${yA - 26}" width="230" height="44" rx="10"/><text class="cv-t" x="${bx + 115}" y="${yA - 8}">${sd.toUpperCase()} REACTION</text><text class="cv-v" x="${bx + 115}" y="${yA + 10}">D ${f(D, 2)} k · L ${f(Lv, 2)} k</text>
+        <path class="cv-lead" d="M${bx + (sd === 'left' ? 230 : 0)},${yA - 4} L${x},${yA + 30}"/>`;
+    };
+    o.push(react('left', cx - cw / 2, 70), react('right', cx + cw / 2, 460));
+    // e = d/2 and the height
+    const yE = yT + 26;
+    o.push(`<path class="cv-dim" d="M${cx},${yE - 5} L${cx},${yE + 5} M${cx - cw / 2},${yE - 5} L${cx - cw / 2},${yE + 5} M${cx - cw / 2},${yE} L${cx},${yE}"/><text class="cv-s" x="${cx - cw / 2 - 6}" y="${yE + 4}" text-anchor="end">e = d/2 = ${f(w.d / 2, 2)}"</text>`);
+    const xH = 650;
+    o.push(`<path class="cv-dim" d="M${xH - 5},${yT} L${xH + 5},${yT} M${xH - 5},${yF} L${xH + 5},${yF} M${xH},${yT} L${xH},${yF}"/><text class="cv-t" x="${xH + 10}" y="${(yT + yF) / 2}" text-anchor="start">L = ${ft(r.colLen)}</text>`);
+    o.push(`<path class="cv-lead" d="M${cx + cw / 2 + 4},${yT + 110} L${cx + cw / 2 + 40},${yT + 96}"/><text class="cv-cl" x="${cx + cw / 2 + 44}" y="${yT + 94}" text-anchor="start">C${cno.get(c.label) || '?'} · ${esc(c.label)} · ${esc(cf.quoteAs)}</text>`);
+    const P = g.loads.DL_L + g.loads.LL_L + g.loads.DL_R + g.loads.LL_R;
+    o.push(`<text class="cv-s" x="${cx + cw / 2 + 44}" y="${yT + 114}" text-anchor="start">axial P = ${f(P, 2)} k + self-weight</text>`);
+    // W section to scale
+    const k = Math.min(150 / w.bf, 210 / w.d), sx = 140, top = 70, sv = [];
+    sv.push(`<rect class="cv-fl" x="${sx - w.bf * k / 2}" y="${top}" width="${w.bf * k}" height="${Math.max(2.5, w.tf * k)}"/><rect class="cv-col" x="${sx - Math.max(2, w.tw * k) / 2}" y="${top + w.tf * k}" width="${Math.max(2, w.tw * k)}" height="${(w.d - 2 * w.tf) * k}"/><rect class="cv-fl" x="${sx - w.bf * k / 2}" y="${top + (w.d - w.tf) * k}" width="${w.bf * k}" height="${Math.max(2.5, w.tf * k)}"/>`);
+    const xl = sx - w.bf * k / 2 - 20;
+    sv.push(`<path class="cv-dim" d="M${xl - 5},${top} L${xl + 5},${top} M${xl - 5},${top + w.d * k} L${xl + 5},${top + w.d * k} M${xl},${top} L${xl},${top + w.d * k}"/><text class="cv-t" transform="translate(${xl - 9},${top + w.d * k / 2}) rotate(-90)">d = ${w.d}"</text>`);
+    sv.push(`<text class="cv-t" x="${sx}" y="${top - 12}">bf = ${w.bf}" · tf = ${w.tf}"</text><text class="cv-t" x="${sx}" y="${top + w.d * k + 24}">tw = ${w.tw}"</text>`);
+    sv.push(`<text class="cv-cap2" x="${sx}" y="34">${esc(cf.name)}${cf.quoteAs !== cf.name ? ' (quote ' + esc(cf.quoteAs) + ')' : ''}</text><text class="cv-s" x="${sx}" y="${top + w.d * k + 44}">${f(w.W, 0)} plf · Fy 50 ksi · to scale</text>`);
+    // why this case carries what it does: each beam, its span and trib
+    const rows = parts.map(p => { const i = info(p); return `<tr><td>${p.sheetSide}</td><td class="mono"><b>${p.mezz !== r.id ? esc(p.mezz) + ' ' : ''}${p.beam}</b></td><td class="mono">${i.mk ? esc(i.mk.mark + ' ' + (i.mk.desc || '')) : '—'}</td><td class="num">${ft(i.bm.span)}</td><td class="num">${ft(i.bm.trib)}${i.bm.extra ? ' <small class="sub-n">incl. ' + esc(i.bm.extra.map(x => x.mezz).join(', ')) + '</small>' : ''}</td><td class="num">${f(p.D, 2)}</td><td class="num">${f(p.L, 2)}</td></tr>`; }).join('');
+    const same = g.cols.length > 1 ? `<p class="foot-note">${g.cols.map(q => 'C' + (cno.get(q.label) || '?') + ' · ' + esc(q.label)).join(', ')} carry the same reactions, so they are one case on the sheet.</p>` : '';
+    return `<div class="viz"><svg class="cviz" viewBox="0 0 760 ${yF + 26}" role="img" aria-label="Column elevation">${o.join('')}</svg><svg class="csec" viewBox="0 0 280 ${yF + 26}" role="img" aria-label="${esc(cf.name)} section">${sv.join('')}</svg></div>
+      <div class="table-wrap cv-table"><table><thead><tr><th>Side</th><th>Beam</th><th>Mark · section</th><th class="num">Span</th><th class="num">Trib</th><th class="num">Dead (k)</th><th class="num">Live (k)</th></tr></thead><tbody>${rows}</tbody></table></div>${same}`;
+  }
   // C1, C2 … numbered the same everywhere (plan tags, 3D, column sheet): along the length, then from the BSW
   const colNos = r => new Map(r.layout.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
   // left beam → column ← right beam, with the dead / live shear each one brings (what goes in C27:D28)
@@ -954,13 +1135,13 @@
     const cno = colNos(r);
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
-    $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); }; });
+    $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); }; });
     const g = r.colGroups[state.colGroup];
     if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
     else {
       const chk = cf.checks[state.colGroup], w = WF[cf.name];
       const names = ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRT'];
-      $('#colSheet').innerHTML = `<div class="sheet two">
+      $('#colSheet').innerHTML = colViz(g, r, cno) + `<div class="sheet two">
         <div><h4>Span and loading conditions</h4>${kv([
           ['Column Mark:', 'MC1'], ['Column Length, L', f(r.colLen, 4) + ' ft.'], ['X-Axis Unbraced Length, Lbx', f(r.colLen * 12, 2) + ' in.'], ['Y-Axis Unbraced Length, Lby', f(r.colLen * 12, 2) + ' in.'],
           ['Kx / Ky / Kz', '1.000 / 1.000 / 1.000'], ['Section:', `<b>${cf.name}</b>`], ['Fy (ksi)', '50'],
@@ -970,7 +1151,7 @@
           ['Left Beam Reaction — Dead', f(g.loads.DL_L, 2) + ' kip'], ['Left Beam Reaction — Live', f(g.loads.LL_L, 2) + ' kip'],
           ['Right Beam Reaction — Dead', f(g.loads.DL_R, 2) + ' kip'], ['Right Beam Reaction — Live', f(g.loads.LL_R, 2) + ' kip'],
           ['X-Axis Eccentricity, e (d/2)', f(chk.ex, 2) + ' in.'], ['Column self-weight (Wt·L/1000)', f(chk.wt, 3) + ' kip'], ['Columns in this case', esc(g.cols.map(nm).join(', '))],
-        ])}${lrDiagram(g, cno)}</div>
+        ])}</div>
         <div class="full"><h4>Load combinations</h4><div class="table-wrap"><table><thead><tr><th></th>${names.map(n => `<th class="num">${n}</th>`).join('')}</tr></thead><tbody>
           <tr><td>Mx (ft-kip)</td>${chk.combos.map(k => `<td class="num">${f(k.Mx, 2)}</td>`).join('')}</tr>
           <tr><td>Axial (kip)</td>${chk.combos.map(k => `<td class="num">${f(k.P, 2)}</td>`).join('')}</tr>

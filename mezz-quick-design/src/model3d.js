@@ -209,6 +209,13 @@
       pause(on) { view.auto = !on; return view.auto; },
       get auto() { return view.auto; },
       redraw: draw,
+      // where a member's top face sits on the canvas (CSS px) — lets a test or a caller point at it
+      screenOf(id) {
+        const m = scene && scene.members.find(x => x.id === id), b = m && m.boxes && m.boxes[0];
+        if (!b) return null;
+        const p = project([(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.z1]);
+        return [p[0], p[1]];
+      },
       destroy() { cancelAnimationFrame(raf); },
     };
   }

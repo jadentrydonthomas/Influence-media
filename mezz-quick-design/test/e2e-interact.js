@@ -128,6 +128,14 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await page.$eval('#model3d', c => c.scrollIntoView({ block: 'center' }));
   const box = await page.$eval('#model3d', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   let hit = null;
+  // aim at a beam's top face first (the renderer says where it is), then fall back to sweeping the canvas
+  for (const id of ['B1', 'B2', 'B3', 'B5']) {
+    const pt = await page.evaluate(i => window.MZ_DEBUG && window.MZ_DEBUG.modelPoint(i), id);
+    if (!pt) continue;
+    await page.mouse.move(box.x + pt[0], box.y + pt[1]);
+    const h = await page.$eval('#modelCard h4', e => e.textContent);
+    if (/^B\d+ · /.test(h)) { hit = [box.x + pt[0], box.y + pt[1], h]; break; }
+  }
   for (let j = 0.2; j < 0.86 && !hit; j += 0.01) {
     for (let i = 0.12; i < 0.88 && !hit; i += 0.025) {
       await page.mouse.move(box.x + box.w * i, box.y + box.h * j);

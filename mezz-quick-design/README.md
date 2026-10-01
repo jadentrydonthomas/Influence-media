@@ -74,6 +74,10 @@ All 7 columns match the drawing. Both beams and all six column load cases were r
 4. **Checks & decisions**: check before quoting, confirmed against the PCS, design decisions, how it was read.
 5. **Quote sheet** rows for every mezzanine.
 
+The sidebar shows the mezzanine turning in **3D** or as a labelled **Plan** (grid bubbles, B# beams, C# columns, building columns). The plan lights what you are reviewing: the column case on Column calc, the mark's beams on Beam calc. Click a column or beam to open its calc, or ⤢ to see the plan large beside the page.
+
+The Beam calc page opens with a drawing of the mark: the uniform load (D + L in klf), joists at the unbraced length, reactions, the deflected shape, member length, and moment and shear diagrams. Beside it is the BU section to scale with its plates. The Column calc page draws the case: the W column with cap and base plates, the left and right beams on it, both reactions (D / L kips) at e = d/2, the height, and the W section to scale. A table underneath lists each beam's span and trib, so you can see why one column carries more than another.
+
 On the Column calc page every case is named like the plan (*C1 · 2/C*) with its max CSR. A left / right diagram shows which beam, from which mezzanine, gives each Column-sheet reaction.
 
 ### Jobs remembered

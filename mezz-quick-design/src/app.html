@@ -21,14 +21,19 @@
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
 </svg>
+<div class="plan-pop" id="planPop" hidden role="dialog" aria-label="Floor plan"><div class="pp-head"><b id="ppTitle">Floor plan</b><span>click a column or beam to open its calc · Esc closes</span><button id="ppClose" aria-label="Close">✕</button></div><svg id="planPopSvg" role="img" aria-label="Floor plan, large"></svg></div>
 <div class="app">
   <aside class="rail" aria-label="Mezzanine design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
     <div class="rail-label">Building systems · quote eng.</div>
     <h1 class="rail-title">Mezzanine design</h1>
     <section class="rail-score" aria-label="This job">
-      <span id="rsLabel">No job yet</span>
-      <div class="rail-orb" id="railOrb"><canvas id="miniModel" aria-label="The mezzanine, turning"></canvas><i class="orb-empty" id="orbEmpty">Drop a PCS</i></div>
+      <div class="rail-view" id="railView">
+        <canvas id="miniModel" aria-label="The mezzanine, turning"></canvas>
+        <svg id="miniPlan" hidden role="img" aria-label="Floor plan of the mezzanine"></svg>
+        <i class="orb-empty" id="orbEmpty">Drop a PCS</i>
+        <div class="rv-toggle" id="rvToggle" hidden><button data-v="3d" class="is-on">3D</button><button data-v="plan">Plan</button><button id="rvBig" title="Show the plan larger" aria-label="Show the plan larger">⤢</button></div>
+      </div>
       <small id="rsSub"></small>
     </section>
     <nav class="rail-nav" id="nav">
