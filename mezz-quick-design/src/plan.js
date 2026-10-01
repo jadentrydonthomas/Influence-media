@@ -1,9 +1,13 @@
 /* Floor-plan reader. The eQuote floor plan (last PCS page) has no text layer: everything, text included,
    is stroked vectors. What can be read reliably is geometry:
      - grid bubbles  : circles r ≈ 6–14 pt (numbers along the top/bottom, letters along the sides)
-     - ⊗ mezz columns: a small circle r ≈ 2.5–7 pt with two short diagonals crossing at its centre
-   The bubbles register the drawing to the building grid; each ⊗ is then snapped to a grid intersection so
-   the derived layout can be checked against the drawing. */
+     - mezz columns  : a small circle r ≈ 2.5–7 pt with either two diagonals (⊗) or an I-shape (web + flange
+                       strokes) at its centre — both conventions appear on eQuote drawings
+     - joist arrows  : "Mez. Jst." — a straight shaft with a half arrowhead (~30°) at each end
+   Circles are drawn either as one polyline or as dozens of 2-point segments; segments are chained first.
+   The bubbles register the drawing to the building grid (same scale on both axes, so extra bubbles — a
+   lean-to, an offset letter — cannot throw the fit), every side bubble is lettered from the BSW down
+   skipping I and O like the drafting, and each symbol is snapped to building coordinates. */
 (function (root) {
   'use strict';
 
@@ -59,6 +63,25 @@
     return dev / r < 0.15 && closedish ? { x: cx, y: cy, r } : null;
   }
 
+  // Join consecutive short 2-point segments that continue one another (circles stroked as segments)
+  function chains(paths) {
+    const out = [];
+    let cur = null;
+    const close = (p, q) => Math.abs(p[0] - q[0]) < 0.2 && Math.abs(p[1] - q[1]) < 0.2;
+    paths.forEach(p => {
+      if (p.length === 2 && Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) < 6) {
+        if (cur && close(cur[cur.length - 1], p[0])) { cur.push(p[1]); return; }
+        if (cur && cur.length >= 10) out.push(cur);
+        cur = [p[0], p[1]];
+        return;
+      }
+      if (cur && cur.length >= 10) out.push(cur);
+      cur = null;
+    });
+    if (cur && cur.length >= 10) out.push(cur);
+    return out;
+  }
+
   function readSymbols(paths) {
     const circles = [], segs = [];
     paths.forEach(p => {
@@ -70,16 +93,48 @@
       const c = circleOf(p);
       if (c) circles.push(c);
     });
+    chains(paths).forEach(p => { const c = circleOf(p); if (c) circles.push(c); });
     // merge concentric duplicates (filled rings are drawn as an outer + inner polyline)
     const uniq = [];
     circles.sort((a, b) => b.r - a.r).forEach(c => { if (!uniq.some(u => Math.hypot(u.x - c.x, u.y - c.y) < Math.max(0.8, c.r * 0.3) && Math.abs(u.r - c.r) < u.r * 0.25)) uniq.push(c); });
     const crosses = [], plain = [];
+    const axial = s => (Math.abs(s.b[0] - s.a[0]) < 0.12 * s.len ? 'v' : Math.abs(s.b[1] - s.a[1]) < 0.12 * s.len ? 'h' : null);
     uniq.forEach(c => {
+      if (c.r > 8) { plain.push(c); return; }
       const diag = segs.filter(s => Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.35 && s.len > c.r * 1.1 && s.len < c.r * 2.4 && Math.abs(Math.abs(s.slope) - 1) < 0.6);
       const hasX = diag.some(s => s.slope > 0) && diag.some(s => s.slope < 0);
-      (hasX && c.r <= 8 ? crosses : plain).push(c);
+      // circled I: a web stroke through the centre (either orientation) with a flange stroke across one end
+      const webs = segs.filter(s => axial(s) && Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.3 && s.len > c.r * 0.6 && s.len < c.r * 1.6);
+      const hasI = webs.some(w => segs.some(f => f !== w && axial(f) && axial(f) !== axial(w) && f.len > c.r * 0.35 && f.len < c.r * 1.3
+        && Math.min(Math.hypot(f.mx - w.a[0], f.my - w.a[1]), Math.hypot(f.mx - w.b[0], f.my - w.b[1])) < c.r * 0.3));
+      if (hasX) crosses.push({ ...c, kind: 'x' });
+      else if (hasI) crosses.push({ ...c, kind: 'i' });
+      else plain.push(c);
     });
-    return { crosses, circles: plain };
+    return { crosses, circles: plain, arrows: readArrows(segs.concat(paths.filter(p => p.length === 2).map(p => ({ a: p[0], b: p[1], len: Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) })).filter(s => s.len >= 25))) };
+  }
+
+  /* "Mez. Jst." joist-span arrows: an axis-aligned shaft with a short stroke leaving each end at ~30° to it
+     (a half arrowhead; the two heads sit on opposite sides). Hatching is at 45° and dimension lines carry
+     ticks, so the 20–40° window plus a head at both ends keeps them out. */
+  function readArrows(segs) {
+    const out = [];
+    const long = segs.filter(s => s.len >= 25 && s.len <= 400 && (Math.abs(s.b[0] - s.a[0]) < 0.02 * s.len || Math.abs(s.b[1] - s.a[1]) < 0.02 * s.len));
+    const short = segs.filter(s => s.len >= 3 && s.len <= 14);
+    const at = (p, q) => Math.abs(p[0] - q[0]) < 0.4 && Math.abs(p[1] - q[1]) < 0.4;
+    long.forEach(sh => {
+      const vert = Math.abs(sh.b[0] - sh.a[0]) < Math.abs(sh.b[1] - sh.a[1]);
+      const head = end => short.some(h => {
+        const o = at(h.a, end) ? h.b : at(h.b, end) ? h.a : null;
+        if (!o) return false;
+        const along = Math.abs(vert ? o[1] - end[1] : o[0] - end[0]), across = Math.abs(vert ? o[0] - end[0] : o[1] - end[1]);
+        const ang = Math.atan2(across, along) * 180 / Math.PI;
+        return ang > 20 && ang < 40;
+      });
+      if (head(sh.a) && head(sh.b)) out.push({ x: (sh.a[0] + sh.b[0]) / 2, y: (sh.a[1] + sh.b[1]) / 2, len: sh.len, vert, a: sh.a, b: sh.b });
+    });
+    // the same shaft may be stroked twice
+    return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 1 && a.vert === b.vert));
   }
 
   // Group bubble circles: the most common radius among the larger plain circles
@@ -108,13 +163,19 @@
     return { a, b, res };
   }
 
-  /* grid: { xs:[frame line x, ft], colY:[column line y from FSW, ft] }
-     returns { ok, reason, columns:[{x,y}] in building ft, raw } */
+  // drafting letters: A, B, … skipping I and O, then AA, AB, …
+  function gridLetters(n) {
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split(''), out = [];
+    for (let i = 0; i < n; i++) out.push(i < abc.length ? abc[i] : abc[Math.floor(i / abc.length) - 1] + abc[i % abc.length]);
+    return out;
+  }
+
+  /* grid: { xs:[frame line x, ft], colY:[column line y from FSW, ft], lewY?, rewY?, width?, letterLines? (column lines + ridge) }
+     returns { ok, reason, columns:[{x,y,kind}], arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
   function registerAndRead(paths, grid) {
-    const { crosses, circles } = readSymbols(paths);
+    const { crosses, circles, arrows } = readSymbols(paths);
     const bub = bubbles(circles);
-    const out = { ok: false, crosses: crosses.length, bubbles: bub.length, columns: [] };
-    if (!crosses.length) { out.reason = 'no ⊗ symbols found'; return out; }
+    const out = { ok: false, crosses: crosses.length, bubbles: bub.length, columns: [], arrows: [], letters: [] };
     if (bub.length < 4) { out.reason = 'grid bubbles not found'; return out; }
     const r = bub[0].r;
     // rows of bubbles (numbers) share y; columns of bubbles (letters) share x
@@ -122,19 +183,47 @@
     const rowY = ys.map(y => ({ y, n: bub.filter(b => Math.abs(b.y - y) <= r).length })).sort((a, b) => b.n - a.n);
     const colX = xs.map(x => ({ x, n: bub.filter(b => Math.abs(b.x - x) <= r).length })).sort((a, b) => b.n - a.n);
     const topRow = rowY.filter(q => q.n === rowY[0].n).sort((a, b) => a.y - b.y)[0];
-    const leftCol = colX.filter(q => q.n === colX[0].n).sort((a, b) => a.x - b.x)[0];
     const numX = bub.filter(b => Math.abs(b.y - topRow.y) <= r).map(b => b.x).sort((a, b) => a - b);
-    const letY = bub.filter(b => Math.abs(b.x - leftCol.x) <= r).map(b => b.y).sort((a, b) => a - b); // top (BSW) first
-    const gx = grid.xs.slice().sort((a, b) => a - b), gy = grid.colY.slice().sort((a, b) => b - a);   // BSW first
-    if (numX.length !== gx.length || letY.length !== gy.length) {
-      out.reason = `bubble count ${numX.length}×${letY.length} does not match the grid ${gx.length}×${gy.length}`;
-      return out;
-    }
-    const fx = fit(numX, gx), fy = fit(letY, gy);
-    const spanX = gx[gx.length - 1] - gx[0] || 1, spanY = Math.abs(gy[0] - gy[gy.length - 1]) || 1;
-    if (fx.res > spanX * 0.02 + 0.5 || fy.res > spanY * 0.02 + 0.5) { out.reason = 'bubble spacing does not match the bay / endwall spacing'; return out; }
-    out.columns = crosses.map(c => ({ x: fx.a * c.x + fx.b, y: fy.a * c.y + fy.b }));
+    const gx = grid.xs.slice().sort((a, b) => a - b);
+    if (numX.length !== gx.length) { out.reason = `${numX.length} frame-line bubbles on the drawing, ${gx.length} frame lines from the bays`; return out; }
+    const fx = fit(numX, gx);
+    const spanX = gx[gx.length - 1] - gx[0] || 1;
+    if (fx.res > spanX * 0.02 + 0.5) { out.reason = 'frame-line bubble spacing does not match the bays'; return out; }
+    // letter bubbles: the outermost bubble columns left and right (not in a numbers row)
+    const rowsN = rowY.filter(q => q.n >= Math.max(3, gx.length - 1)).map(q => q.y);
+    const side = bub.filter(b => !rowsN.some(y => Math.abs(b.y - y) <= r));
+    if (side.length < 2) { out.reason = 'letter bubbles not found'; return out; }
+    const sx = cluster(side.map(b => b.x), r * 1.5);
+    const leftX = sx[0], rightX = sx[sx.length - 1];
+    const left = side.filter(b => Math.abs(b.x - leftX) <= r * 1.5), right = sx.length > 1 ? side.filter(b => Math.abs(b.x - rightX) <= r * 1.5) : [];
+    // same scale both ways; page y grows toward the FSW, building y toward the BSW
+    const a = -Math.abs(fx.a);
+    const W = grid.width || Math.max(...grid.colY);
+    const setL = [0, W, ...(grid.lewY || grid.colY)], setR = [0, W, ...(grid.rewY || grid.colY)];
+    const tol = Math.max(0.5, spanX * 0.004);
+    const score = b => left.filter(q => setL.some(g => Math.abs(a * q.y + b - g) < tol)).length + right.filter(q => setR.some(g => Math.abs(a * q.y + b - g) < tol)).length;
+    let best = null;
+    [[left, setL], [right, setR]].forEach(([bs, set]) => bs.forEach(q => set.forEach(g => {
+      const b = g - a * q.y, sc = score(b);
+      if (!best || sc > best.sc) best = { b, sc };
+    })));
+    const need = Math.max(3, Math.ceil(0.6 * new Set([...setL, ...setR].map(v => v.toFixed(2))).size));
+    if (!best || best.sc < need) { out.reason = 'letter bubbles do not line up with the endwall column spacing'; return out; }
+    // refine the offset on the inliers
+    const inl = [];
+    [[left, setL], [right, setR]].forEach(([bs, set]) => bs.forEach(q => { const g = set.find(g2 => Math.abs(a * q.y + best.b - g2) < tol); if (g != null) inl.push(g - a * q.y); }));
+    const b0 = inl.reduce((p, q) => p + q, 0) / inl.length;
+    const fy = { a, b: b0, res: Math.max(...inl.map(v => Math.abs(v - b0))) };
+    const toB = (px, py) => ({ x: fx.a * px + fx.b, y: fy.a * py + fy.b });
+    // lettered from the BSW down over every side bubble plus every column line and the ridge (a ridge with no
+    // bubble still takes a letter on eQuote drawings), skipping I and O like the drafting
+    const ly = cluster([...[...left, ...right].map(q => fy.a * q.y + fy.b), ...(grid.letterLines || [])], 1).sort((p, q) => q - p);
+    const L = gridLetters(ly.length);
+    out.letters = ly.map((y, i) => ({ y, letter: L[i] }));
+    out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind }));
+    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a) }));
     out.ok = true;
+    if (!crosses.length) out.reason = 'no mezzanine column symbols found';
     out.map = { fx, fy };
     return out;
   }
@@ -151,6 +240,6 @@
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { subpaths, readSymbols, registerAndRead, compare };
+  const api = { subpaths, readSymbols, readArrows, chains, registerAndRead, compare, gridLetters };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
 })(typeof self !== 'undefined' ? self : this);

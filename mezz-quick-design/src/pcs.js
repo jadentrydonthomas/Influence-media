@@ -137,6 +137,16 @@
       return { family: 'AISC', year: y, edition: '13', spec: 'AISC 360-05' };
     }
     if (nbcc) return { family: 'CSA', year: +nbcc[1], edition: +nbcc[1] >= 2020 ? 'S16-19' : 'S16-14', spec: +nbcc[1] >= 2020 ? 'CSA S16-19' : 'CSA S16-14' };
+    // state codes without an IBC year (e.g. "Massachusetts (MASS 10th Ed.) ASCE 7-16"): the ASCE 7 edition
+    // pins the IBC cycle — 7-22 → IBC 2024, 7-16 → IBC 2018/2021, 7-10 → IBC 2012/2015, 7-05 → IBC 2006/2009
+    const asce = code.match(/ASCE\s*7\s*-\s*(\d{2})/i);
+    if (asce) {
+      const a = +asce[1], via = `No IBC year on the code line; ASCE 7-${asce[1]} → `;
+      if (a >= 22) return { family: 'AISC', year: null, asce: a, edition: '16', spec: 'AISC 360-22', note: via + 'IBC 2024 → 16th-edition sheets.' };
+      if (a >= 16) return { family: 'AISC', year: null, asce: a, edition: '15', spec: 'AISC 360-16', note: via + 'IBC 2018/2021 → 15th-edition sheets.' };
+      if (a >= 10) return { family: 'AISC', year: null, asce: a, edition: '13', spec: 'AISC 360-10', note: via + 'IBC 2012/2015 → 13th-edition sheet (no 14th-edition sheet exists). Confirm.' };
+      return { family: 'AISC', year: null, asce: a, edition: '13', spec: 'AISC 360-05', note: via + 'IBC 2006/2009 → 13th-edition sheet.' };
+    }
     return { family: 'AISC', year: null, edition: '15', spec: 'AISC 360-16', note: 'Building code not found; defaulting to the 15th-edition sheets.' };
   }
 
@@ -169,12 +179,17 @@
       ].filter(c => c[1] != null).sort((a, b) => a[1] - b[1]);
       const colOf = x => { let k = null; cols.forEach(c => { if (x >= c[1] - 6) k = c[0]; }); return k; };
       const text = { bays: '', fswSoldier: '', bswSoldier: '', lewCols: '', rewCols: '' };
-      // the first header block ends where the data row starts; stop at the repeated header
-      let started = false;
+      // data rows start with the building name in the first column; continuation rows (spacings that wrap)
+      // have nothing there. Only the rows of the mezzanine's building are read (a lean-to has its own row).
+      const xFirst = cols[0][1];
+      let started = false, current = null;
       for (const l of region) {
         const hasSp = /\d+\s*@/.test(l.text);
         if (!hasSp && started && /Building Name/i.test(l.text)) break;
         if (!hasSp && !(started && /N\/A/.test(l.text))) continue;
+        const lead = l.items[0] && l.items[0].x < xFirst - 6 ? clean(l.items[0].str) : null;
+        if (lead) current = lead;
+        if (name && current && current.toUpperCase() !== name.toUpperCase()) { started = true; continue; }
         started = true;
         l.items.forEach(it => { const k = colOf(it.x); if (k) text[k] += ' ' + it.str; });
       }
@@ -184,13 +199,20 @@
   }
 
   // ---------- Box 5: frame information (interior columns) ----------
-  function frames(pages) {
+  function frames(pages, name) {
     const pi = pages.findIndex(p => lines(p).some(l => /FRAME INFORMATION/i.test(l.text)));
     if (pi < 0) return [];
     const ls = lines(pages[pi]);
     const s = findLine(ls, /FRAME INFORMATION/i);
     const e = findLine(ls, /Base Plate Elevations|6\) ROOF PANEL/i, s + 1);
-    const region = ls.slice(s + 1, e < 0 ? ls.length : e);
+    let region = ls.slice(s + 1, e < 0 ? ls.length : e);
+    // one block per building ("BUILDING NAME: Main", "BUILDING NAME: Lean-To Canopy"): keep the mezzanine's
+    const heads = region.map((l, i) => { const m = l.text.match(/BUILDING NAME:\s*(.+?)(?:\s{2,}|$)/i); return m ? { i, name: clean(m[1]) } : null; }).filter(Boolean);
+    if (name && heads.length) {
+      const k = heads.findIndex(h => h.name.toUpperCase() === name.toUpperCase());
+      const h = heads[k >= 0 ? k : 0];
+      region = region.slice(h.i, heads[(k >= 0 ? k : 0) + 1] ? heads[(k >= 0 ? k : 0) + 1].i : region.length);
+    }
     const rows = [];
     region.forEach(l => {
       const m = l.items[0] && l.items[0].str.match(/^(\d+)(?:\s*-\s*(\d+))?(?:\s*\((LEW|REW)\))?$/);
@@ -311,10 +333,11 @@
     const job = jobFacts(pages);
     const code = buildingCode(pages);
     const mezz = mezzanines(pages);
-    const bname = mezz[0] && mezz[0].building;
-    const bldg = building(pages, bname);
-    const fr = frames(pages);
-    return { job, code, building: bldg, frames: fr, mezzanines: mezz };
+    // geometry per building the mezzanines sit in (a job can have a main building plus a lean-to, etc.)
+    const buildings = {};
+    [...new Set(mezz.map(m => m.building || ''))].forEach(n => { buildings[n] = { building: building(pages, n || null), frames: frames(pages, n || null) }; });
+    const first = buildings[(mezz[0] && mezz[0].building) || ''] || { building: building(pages, null), frames: frames(pages, null) };
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz };
   }
 
   const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts };

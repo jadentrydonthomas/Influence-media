@@ -177,6 +177,19 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .field-foot { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 20px; padding: 12px 16px; border: 1px solid #b6e2ff13; border-radius: 12px; background: #5fe0c808; color: #b8cfdf; font-size: 12.5px; }
 .field-foot > b { color: #61dbb8; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 
+/* multi-mezzanine context on the plan and quote sheet */
+.plan svg .foot.other { fill: color-mix(in srgb, var(--steel) 10%, transparent); stroke: var(--ink-faint); stroke-dasharray: 5 4; }
+.plan svg .other-t { fill: var(--ink-faint); font-size: 13px; font-weight: 600; text-anchor: middle; }
+.plan svg .beam.other { stroke: var(--steel); stroke-width: 4; opacity: .75; cursor: default; }
+.plan svg .beam.carried { stroke: var(--ink-faint); stroke-width: 2.5; stroke-dasharray: 7 5; }
+.plan svg .mcol.shared circle, .plan svg .mcol.shared path { stroke: var(--amber); }
+.plan svg .mcol.other circle, .plan svg .mcol.other path { stroke: var(--ink-faint); opacity: .7; }
+.legend .foot.other { fill: color-mix(in srgb, var(--steel) 14%, transparent); stroke: var(--ink-faint); stroke-dasharray: 3 2; }
+.legend .beam.carried { stroke: var(--ink-faint); stroke-width: 3; stroke-dasharray: 5 3; }
+.sub-n { color: var(--ink-faint); font-size: 11px; font-family: var(--body); }
+tr.muted td { color: var(--ink-faint); }
+.qs-wrap tr.is-cur td { background: color-mix(in srgb, var(--green) 7%, transparent); }
+
 /* ---------------- 3D model (always dark, like the Astra 3D field) ---------------- */
 .model { position: relative; margin: 0 0 22px; padding: 22px 24px 18px; border: 1px solid #729cc62e; border-radius: 28px; color: #dfeefa; background: radial-gradient(ellipse at 40% 45%, #1f6f7a33, transparent 55%), radial-gradient(ellipse at 90% 0%, #2d69b41f, transparent 45%), linear-gradient(120deg, #0f2032, #0a1522 75%); box-shadow: var(--lift-3); overflow: hidden; }
 .model-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 14px; }

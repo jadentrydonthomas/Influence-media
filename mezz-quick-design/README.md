@@ -41,6 +41,31 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - *Mezz. Columns*: HEIGHT, TRIB. AREA (worst column), SECTION, END WT (46), QTY.
 6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit, scroll to zoom, click a member for its calc.
 
+### Several mezzanines in one job
+
+Every mezzanine in Box 22 (including "22) MEZZANINES (CONTINUED)" pages) is read and designed **together**. Pick which one is on screen at the top; the quote sheet lists the rows of all of them.
+
+- **Shared beam line.** When two mezzanines put a beam on the same line (e.g. the edge between them), it is one member. The mezzanine with more beam length on that line keeps it and also carries the other's edge trib; the other one doesn't count it. If the other edge covers only part of a span, the beam is designed for the uniform trib that gives the same maximum moment and end shear, rounded up to the inch. That keeps the beam sheet (uniform load only) conservative. If the neighbour's psf is heavier, its trib is scaled up by the load ratio.
+- **Shared column.** A column at the same location in two mezzanines is one column. Its Column-sheet Left / Right reactions come from the beams of both, the Column page lists which beam each comes from, and it is counted once (with the mezzanine that loads it most).
+- **Edges a few inches off a grid line** (95'-8" vs the 96'-0" column line) are framed on that line, with the overhang added to the edge trib.
+
+### Read off the floor plan (last page)
+
+The plan has no text layer, so its geometry is read:
+
+- **Joist direction** from the "Mez. Jst." arrows inside each mezzanine. This sets where the beams go; the auto rule (beams on the shorter span) is only used when no arrow is found, and the other direction is offered on the Plan page.
+- **Mezzanine columns:** both symbol styles, ⊗ and circled-I, are checked against the layout of every mezzanine.
+- **Grid letters as drawn.** Bubbles on both endwalls, column lines and the ridge are lettered from the BSW, skipping I and O, so "2/C" in the notes is the drawing's 2/C.
+
+Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line):
+
+| | Beams | Columns |
+|---|---|---|
+| BSW | BU28x50 × 10, 28' span, trib 20'-0" (12'-4" + LEW edge 7'-8") | W8X24 × 4 (2/C–5/C) |
+| LEW | BU27x47 × 4, 28' span, trib 18'-0" | W8X24 × 3 (2/D, 40'-4"/D, 40'-4"/E) |
+
+All 7 columns match the drawing. Both beams and all six column load cases were run through the 15th-edition workbooks: 0 mismatches, all OK.
+
 Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided) and the Headroom option's depth limit.
 
 ### Dead load by deck and concrete
@@ -77,13 +102,15 @@ On top of the random sweeps, every section the tool actually picks in the varian
 
 `test/variants.test.js` re-reads the example PCS as phrases, edits it the ways other jobs differ, and designs each variant on the 13th, 15th and 16th sheets with each of the three options (90 designs, plus the three code-year runs):
 
-- numeric dead load on the PCS; IBC 2015 / 2018 / 2024 code lines (edition picked automatically);
+- numeric dead load on the PCS; IBC 2015 / 2018 / 2024 code lines (edition picked automatically; a state code with only an ASCE 7 year maps through it);
 - mezzanine offset from the LEW with an edge off the grid; a narrower mezzanine set in from the FSW;
 - interior frame columns; deck type written on the PCS; lightweight concrete checked;
 - requested B / C / seat / joist spacing filled in instead of blue notes;
 - a second mezzanine on a continuation page (storage, 250 psf).
 
 Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the lightest, every column group must pass, and no quote row may contain an empty or NaN value.
+
+`test/multi.test.js` covers side-by-side mezzanines (a shared column gets both reactions and is counted once), stacked ones (a shared beam line carries both tribs; heavier neighbour loads scale up), the equivalent-trib math, and the two-mezzanine PCS when it is present.
 
 ## Develop
 

@@ -10,20 +10,19 @@
   const uniq = a => a.slice().sort((p, q) => p - q).filter((v, i, s) => i === 0 || !near(v, s[i - 1]));
   const cum = spacings => spacings.reduce((acc, s) => (acc.push(acc[acc.length - 1] + s), acc), [0]);
   const r3 = v => Math.round(v * 1000) / 1000;
+  // off-grid positions read as ft-in in labels (40'-4"/D)
+  const ftin = v => { const t = Math.round(Math.abs(v) * 12 * 2) / 2, f = Math.floor(t / 12), i = t - f * 12; return (v < 0 ? '-' : '') + f + "'-" + (i % 1 ? Math.floor(i) + ' 1/2' : i) + '"'; };
 
   // ---- grid labels: frame lines 1..n from the LEW, letters from the BSW over every column line ----
+  // drafting letters skip I and O (…G, H, J, K…)
   function letters(n) {
-    const out = [];
-    for (let i = 0; i < n; i++) {
-      let s = '', k = i;
-      do { s = String.fromCharCode(65 + (k % 26)) + s; k = Math.floor(k / 26) - 1; } while (k >= 0);
-      out.push(s);
-    }
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split(''), out = [];
+    for (let i = 0; i < n; i++) out.push(i < abc.length ? abc[i] : abc[Math.floor(i / abc.length) - 1] + abc[i % abc.length]);
     return out;
   }
 
   /**
-   * b: { width, length, bays:[ft], lewCols:[ft], rewCols:[ft], ridge?:ft,
+   * b: { width, length, bays:[ft], lewCols:[ft], rewCols:[ft], ridge?:ft, yLetters?:[{y, letter}] (from the drawing),
    *      frames:[{ from, to, interior:[ft spacings from FSW] }] }   (frame lines numbered from 1 at the LEW)
    */
   function buildingGrid(b) {
@@ -40,7 +39,12 @@
     const allY = uniq([0, b.width, ...lewY, ...rewY, ...interior.flat(), ...(b.ridge ? [b.ridge] : [])]);
     const byBSW = allY.slice().sort((p, q) => q - p);
     const L = letters(byBSW.length);
-    const yLabel = y => { const i = byBSW.findIndex(v => near(v, y)); return i < 0 ? null : L[i]; };
+    // letters read off the PCS floor plan win (they count every bubble, e.g. a lean-to line); else our own
+    const drawn = b.yLetters && b.yLetters.length ? b.yLetters : null;
+    const yLabel = y => {
+      if (drawn) { const d = drawn.find(q => Math.abs(q.y - y) < 0.5); return d ? d.letter : null; }
+      const i = byBSW.findIndex(v => near(v, y)); return i < 0 ? null : L[i];
+    };
     const xLabel = x => { const i = xs.findIndex(v => near(v, x)); return i < 0 ? null : String(i + 1); };
     // sidewall soldier columns between frames (spacing from the LEW)
     const fswX = b.fswSoldier && b.fswSoldier.length ? cum(b.fswSoldier) : [];
@@ -70,9 +74,23 @@
     const x0 = m.startLEW || 0, x1 = x0 + m.length, y0 = m.startFSW || 0, y1 = y0 + m.width;
     const inside = (v, a, b) => v > a + EPS && v < b - EPS;
     const nearerEW = (x0 + x1) / 2 <= g.length / 2 ? g.lewY : g.rewY;
-    const xLines = opt.xLines ? uniq(opt.xLines) : uniq([x0, x1, ...g.xs.filter(v => inside(v, x0, x1))]);
     const yCand = uniq([...nearerEW, ...g.interior.flat()]);
-    const yLines = opt.yLines ? uniq(opt.yLines) : uniq([y0, y1, ...yCand.filter(v => inside(v, y0, y1))]);
+    // an edge within SNAP of a grid line sits on that line (95'-8" → 96'-0"): the slab overhangs, or stops
+    // short of, the line by the difference instead of creating a second line a few inches away
+    const SNAP = opt.snap ?? 1;
+    const snaps = [];
+    const snapTo = (v, cands, axis) => {
+      const c = cands.filter(u => Math.abs(u - v) <= SNAP + EPS && !near(u, v)).sort((a, b) => Math.abs(a - v) - Math.abs(b - v))[0];
+      if (c == null) return v;
+      snaps.push({ axis, edge: v, line: c });
+      return c;
+    };
+    const sx0 = snapTo(x0, g.xs, 'x'), sx1 = snapTo(x1, g.xs, 'x');
+    const sy0 = snapTo(y0, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y'), sy1 = snapTo(y1, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y');
+    const xLines = opt.xLines ? uniq(opt.xLines) : uniq([sx0, sx1, ...g.xs.filter(v => inside(v, sx0, sx1))]);
+    const yLines = opt.yLines ? uniq(opt.yLines) : uniq([sy0, sy1, ...yCand.filter(v => inside(v, sy0, sy1))]);
+    // slab beyond (+) or short of (−) the first / last line along each axis, added to the edge beam's trib
+    const over = { x: [xLines[0] - x0, x1 - xLines[xLines.length - 1]], y: [yLines[0] - y0, y1 - yLines[yLines.length - 1]] };
 
     const build = joists => {
       // joists 'y': beams along x on each y line, spanning between consecutive x lines
@@ -81,7 +99,8 @@
       const beams = [], supports = new Map();
       beamLines.forEach((c, i) => {
         const prev = i > 0 ? c - beamLines[i - 1] : 0, next = i < beamLines.length - 1 ? beamLines[i + 1] - c : 0;
-        const trib = r3(prev / 2 + next / 2);
+        const ov = over[joists === 'y' ? 'y' : 'x'];
+        const trib = r3(prev / 2 + next / 2 + (i === 0 ? ov[0] : 0) + (i === beamLines.length - 1 ? ov[1] : 0));
         for (let k = 0; k < supportLines.length - 1; k++) {
           const a = supportLines[k], b = supportLines[k + 1];
           const P = s => (joists === 'y' ? { x: s, y: c } : { x: c, y: s });
@@ -97,7 +116,7 @@
       });
       const sup = [...supports.values()].map(s => ({
         ...s, building: isBuildingColumn(g, s.x, s.y),
-        label: (g.xLabel(s.x) || '~' + s.x) + '/' + (g.yLabel(s.y) || '~' + s.y),
+        label: (g.xLabel(s.x) || ftin(s.x)) + '/' + (g.yLabel(s.y) || ftin(s.y)),
       }));
       const joistSpan = Math.max(...beamLines.slice(1).map((v, i) => v - beamLines[i]));
       const beamSpan = Math.max(...supportLines.slice(1).map((v, i) => v - supportLines[i]));
@@ -113,7 +132,7 @@
       pick = cmp <= 0 ? A : B;
       why = sa[0] !== sb[0] ? 'beams on the shorter span (DM 15.1.1.3)' : sa[1] !== sb[1] ? 'equal spans; fewer beams' : 'equal spans and beam count';
     }
-    return { ...pick, why, footprint: { x0, x1, y0, y1 }, xLines, yLines, alt: pick === A ? B : A };
+    return { ...pick, why, footprint: { x0, x1, y0, y1 }, xLines, yLines, snaps: opt.xLines || opt.yLines ? [] : snaps, alt: pick === A ? B : A };
   }
 
   /* Beam marks. mode 'single': one governing mark (max span, max trib) for every beam — the way the

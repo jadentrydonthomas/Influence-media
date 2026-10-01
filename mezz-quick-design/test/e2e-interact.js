@@ -114,8 +114,8 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await page.$eval('#model3d', c => c.scrollIntoView({ block: 'center' }));
   const box = await page.$eval('#model3d', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   let hit = null;
-  for (let j = 0.25; j < 0.85 && !hit; j += 0.03) {
-    for (let i = 0.15; i < 0.85 && !hit; i += 0.03) {
+  for (let j = 0.2; j < 0.86 && !hit; j += 0.01) {
+    for (let i = 0.12; i < 0.88 && !hit; i += 0.025) {
       await page.mouse.move(box.x + box.w * i, box.y + box.h * j);
       const h = await page.$eval('#modelCard h4', e => e.textContent);
       if (/^B\d+ · /.test(h)) hit = [box.x + box.w * i, box.y + box.h * j, h];
@@ -138,6 +138,30 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
     if (!clip.includes('\t') || !/BU\d+x\d+/.test(clip)) fail('copied quote rows are not tab-separated with the BU section');
   }
   for (const b of await page.$$('#quoteSheet [data-copy]')) await b.click();
+
+  // several mezzanines: every one designs, the quote sheet lists them all, and switching keeps each one's edits
+  const ids = await page.$$eval('#fMezz option', os => os.map(o => o.value));
+  if (ids.length > 1 && await page.isVisible('#stampMezz')) {
+    await page.click('#nav button[data-view="results"]');
+    const rowsAll = await page.$$eval('#quoteSheet table', ts => ts.map(t => t.querySelectorAll('tbody tr').length));
+    console.log('mezzanines'.padEnd(30), ids.length, 'quote rows', rowsAll.join('/'));
+    if (rowsAll[0] !== ids.length) fail('design table should list every mezzanine');
+    for (const v of ids) {
+      await page.selectOption('#fMezz', v); await page.waitForTimeout(300);
+      for (const view of ['results', 'plan', 'beam', 'column']) { await page.click(`#nav button[data-view="${view}"]`); await page.waitForTimeout(120); }
+      const st = await page.$eval('#statusText', e => e.textContent);
+      console.log(('mezzanine ' + v).padEnd(30), st, '|', await quote());
+    }
+    await page.selectOption('#fMezz', ids[1]); await page.click('#nav button[data-view="inputs"]');
+    await page.fill('#inputsGrid input[data-path="loads.live"]', '150'); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
+    await page.selectOption('#fMezz', ids[0]); await page.waitForTimeout(200);
+    const q2 = await quote();
+    console.log('mezz 2 live 150, back on 1'.padEnd(30), q2);
+    if (!/\b15[05]\b/.test(q2)) fail("the other mezzanine's edit should show in the job quote");
+    await page.selectOption('#fMezz', ids[1]); await page.click('#nav button[data-view="inputs"]');
+    await page.fill('#inputsGrid input[data-path="loads.live"]', '125'); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
+    await page.selectOption('#fMezz', ids[0]); await page.waitForTimeout(200);
+  }
 
   // manual entry path on a fresh page: stops on the missing (B) clearance
   const p2 = await ctx.newPage();
