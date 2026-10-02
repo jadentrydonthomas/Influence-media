@@ -80,11 +80,16 @@ try { ({ readPcs } = require('./pdf-node.js')); require('./pdf-node.js').loadPdf
   inp.geom.C = { value: null, source: 'none' };   // entered: no requirement
   const res = RUN.run(inp, {});
   assert.strictEqual(res.joistDepthIn, 13, 'A - B - slab - seat = 13"');
-  assert.strictEqual(res.quote.beams.length, 1);
-  assert.strictEqual(res.quote.beams[0].qty, 8);
-  assert.strictEqual(res.quote.beams[0].trib, 20);
+  // interior / exterior marks: the two inside lines carry 20' of floor, the sidewall lines 10' (joists one side)
+  assert.deepStrictEqual(res.marks.map(mk => [mk.mark, mk.kind, mk.qty, mk.span, mk.trib]), [['MB1', 'interior', 4, 20, 20], ['MB2', 'exterior', 4, 20, 10]]);
+  assert.deepStrictEqual(res.quote.beams.map(b => [b.mark, b.qty, b.trib]), [['MB1', 4, 20], ['MB2', 4, 10]]);
   assert.strictEqual(res.quote.columns[0].qty, 4);
-  assert.ok(res.marks[0].check.res.CSR <= 0.99 && res.marks[0].check.defl.rLL >= 360 && res.marks[0].check.defl.rTL >= 240);
+  res.marks.forEach(mk => assert.ok(mk.check.res.CSR <= 0.99 && mk.check.res.SRvx <= 0.99 && mk.check.defl.rLL >= 360 && mk.check.defl.rTL >= 240, mk.mark));
+  assert.ok(res.marks[1].sec.d < res.marks[0].sec.d, 'exterior mark is lighter than the interior one');
+  // one governing mark when asked: every beam at the largest trib
+  const one = RUN.run(JSON.parse(JSON.stringify(inp)), { marks: 'single' });
+  assert.deepStrictEqual(one.marks.map(mk => [mk.qty, mk.trib, mk.kind]), [[8, 20, '']]);
+  assert.strictEqual(one.marks[0].desc, res.marks[0].desc);
   assert.ok(res.colFinal.ok && res.colFinal.max < 1);
   // floor plan: the ⊗ symbols on the last page register to the grid and match the derived columns
   const PLAN = require('../src/plan.js');
@@ -96,5 +101,5 @@ try { ({ readPcs } = require('./pdf-node.js')); require('./pdf-node.js').loadPdf
   assert.ok(reg.ok, reg.reason);
   assert.strictEqual(reg.columns.length, 4);
   assert.ok(PLAN.compare(reg.columns, res.layout.mezzCols).agree, 'floor plan ⊗ match the layout');
-  console.log('pcs tests passed (example job:', res.quote.beams[0].section, res.quote.columns[0].section + ')');
+  console.log('pcs tests passed (example job:', res.quote.beams.map(b => b.mark + ' ' + b.section + ' x' + b.qty).join(', '), res.quote.columns[0].section + ')');
 })().catch(e => { console.error(e); process.exit(1); });

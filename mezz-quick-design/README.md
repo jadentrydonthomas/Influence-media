@@ -31,15 +31,27 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
      - *Best fit*: the shallowest depth within 8% of the lightest weight.
      - *Headroom*: the lightest section with d ≤ A − B − slab − seat (the total joist depth), so the beam stays inside the joist zone. If nothing passes there, the lightest 8"-flange alternative.
    - Pick an option (or a row in the depth table) and the choice is kept as intent: change a load, the slab or a clearance and it re-designs that option instead of pinning an old section.
+   - **Beam marks over the whole job: interior and exterior** (see below). A mark is designed once, at its longest span and largest trib. Its shorter beams keep the section and get their own MB-sheet run.
 4. **Sizes the columns** on the Column sheet:
    - Loads are the left and right beam reactions (MB `H6` dead, `H10` live), with e = d/2, the three load combinations, and column self-weight.
-   - Tries W10X22, W8X24 and W12X26, lightest first. One section goes on the quote for every mezzanine column: the lightest that passes every load group. If none of the three passes, it takes the next heavier W and quotes it as `BU{d}x{wt}`, per the training guide.
+   - Tries W10X22, W8X24 and W12X26, lightest first. One section goes on the quote for every mezzanine column of the job (every mezzanine): the lightest that passes every load case. If none of the three passes, it takes the next heavier W and quotes it as `BU{d}x{wt}`, per the training guide. *Settings → Column section* can size each mezzanine on its own instead.
    - Column length defaults to finish floor → top of mezzanine (A). You can switch to *clear below beam* in Settings.
 5. **Quote sheet.** The three quote-sheet tables, in the workbook's column order, ready to paste into Excel (tab-separated):
    - *Mezz. Design Information*: MEZZ, FF El., SLAB, WT-NW/LW, DL, COL, LL, PART.
-   - *Mezz. Beams*: SPAN, TRIB, DLᴛ (= DL + COL), LLᴛ, SECTION, END WT (40), QTY.
-   - *Mezz. Columns*: HEIGHT, TRIB. AREA (worst column), SECTION, END WT (46), QTY.
+   - *Mezz. Beams*: SPAN, TRIB, DLᴛ (= DL + COL), LLᴛ, SECTION, END WT (40), QTY. One holistic set for the job: a row per mark and member length (the notes say which beams, on which lines, of which mezzanine).
+   - *Mezz. Columns*: HEIGHT, TRIB. AREA (worst column), SECTION, END WT (46), QTY. A row per section and height over the job.
 6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit, scroll to zoom, click a member for its calc.
+
+### Beam marks: interior and exterior
+
+The beams of the whole job, every mezzanine together, are put in two marks. This is the default; *Settings → Beam marks* also offers one governing mark, or the split-by-trib guide.
+
+- **Exterior:** an edge beam with joists on one side only. The largest exterior trib is the exterior design trib, and every edge beam uses it (a 10'-0" edge is designed with the 12'-4" one).
+- **Interior:** any beam carrying more than the largest exterior trib. That includes an edge beam that also takes a neighbouring mezzanine's joists. All of them are designed for the largest interior trib.
+- **Each mark:** designed at its longest span and its largest trib. MB1 is the larger of the two (span × trib), and the labels stay MB1 / MB2 for the spreadsheet.
+- **Shorter beams in a mark** keep the mark's section; the size doesn't change. Each member length gets its own MB-sheet run at that length and the mark's trib, its own quote row, and its own chip on the Beam calc page.
+- **Picks are job-wide.** An option or depth picked for a mark goes on every mezzanine, because it is one member.
+- **Column and frame loads** use each beam's own span and trib with its mark's section (MB `H6` / `H10`), so a lighter exterior beam also brings a lighter reaction.
 
 ### Several mezzanines in one job
 
@@ -57,14 +69,17 @@ The plan has no text layer, so its geometry is read:
 - **Mezzanine columns:** both symbol styles, ⊗ and circled-I, are checked against the layout of every mezzanine.
 - **Grid letters as drawn.** Bubbles on both endwalls, column lines and the ridge are lettered from the BSW, skipping I and O, so "2/C" in the notes is the drawing's 2/C.
 
-Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line):
+Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line). B = 9'-0", seat 5", joists @ 4'-0", no C requirement:
 
-| | Beams | Columns |
-|---|---|---|
-| BSW | BU28x50 × 10, 28' span, trib 20'-0" (12'-4" + LEW edge 7'-8") | W8X24 × 4 (2/C–5/C) |
-| LEW | BU27x47 × 4, 28' span, trib 18'-0" | W8X24 × 3 (2/D, 40'-4"/D, 40'-4"/E) |
+| Mark | Section | Designed at | Beams | Qty |
+|---|---|---|---|---|
+| MB1 interior | BU28x50 | 28'-0" × 20'-0" | BSW B1, B2 (line C, 12'-4" + LEW edge 7'-8"); LEW B3 (line D, 18'-0") | 3 |
+| | same | run at 12'-4" | LEW B4 (line D, 40'-4" − 28'-0") | 1 |
+| MB2 exterior | BU26x36 | 28'-0" × 12'-4" | BSW B3–B5 (line C), B6–B10 (line A); LEW B1 (line E) | 9 |
+| | same | run at 12'-4" | LEW B2 (line E) | 1 |
+| Columns | W8X24 | 11'-6" | BSW 2/C–5/C; LEW 2/D, 40'-4"/D, 40'-4"/E | 7 |
 
-All 7 columns match the drawing. Both beams and all six column load cases were run through the 15th-edition workbooks: 0 mismatches, all OK.
+All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1 interior BU24x30 × 4 at 20'-0" × 20'-0", MB2 exterior BU15x21 × 4 at 20'-0" × 10'-0", W10X22 × 4.
 
 ### The Design page, top to bottom
 
@@ -76,7 +91,7 @@ All 7 columns match the drawing. Both beams and all six column load cases were r
 
 The sidebar shows the mezzanine turning in **3D** or as a labelled **Plan** (grid bubbles, B# beams, C# columns, building columns). The plan lights what you are reviewing: the column case on Column calc, the mark's beams on Beam calc. Click a column or beam to open its calc, or ⤢ to see the plan large beside the page.
 
-The Beam calc page opens with a drawing of the mark: the uniform load (D + L in klf), joists at the unbraced length, reactions, the deflected shape, member length, and moment and shear diagrams. Beside it is the BU section to scale with its plates. The Column calc page draws the case: the W column with cap and base plates, the left and right beams on it, both reactions (D / L kips) at e = d/2, the height, and the W section to scale. A table underneath lists each beam's span and trib, so you can see why one column carries more than another.
+The Beam calc page lists the job's marks (MB1 · interior, MB2 · exterior) and, under them, a chip per member length: the designed run and each shorter one, with which beams it covers and its ratio. The MB sheet and the drawing follow the chip. The page opens with a drawing of the mark: the uniform load (D + L in klf), joists at the unbraced length, reactions, the deflected shape, member length, and moment and shear diagrams. Beside it is the BU section to scale with its plates. The Column calc page draws the case: the W column with cap and base plates, the left and right beams on it, both reactions (D / L kips) at e = d/2, the height, and the W section to scale. A table underneath lists each beam's span and trib, so you can see why one column carries more than another.
 
 On the Column calc page every case is named like the plan (*C1 · 2/C*) with its max CSR. A left / right diagram shows which beam, from which mezzanine, gives each Column-sheet reaction.
 
@@ -142,6 +157,13 @@ Compared: SR, shear, deflections, reactions, the description string, the OK/NG t
 
 On top of the random sweeps, every section the tool actually picks in the variant loop (below) is run back through the workbooks: 63 beams (13th / 15th / 16th) and 147 column load cases (15th / 16th), 2,877 comparisons, 0 mismatches — and the workbook itself reads COMBINED OK / SHEAR OK and OK on all three column combinations for every one.
 
+**Both example jobs, tied to the workbooks** (15th sheets, 103 beam runs and 24 column runs, 2,245 comparisons, 0 mismatches). Checked on the workbook's own outputs:
+
+- Every MB-sheet run of every mark passes, at both member lengths: COMBINED OK, SHEAR OK, Main Report OK, L/360, L/240 and joist bearing.
+- The lightest section at every depth of each mark's search passes. The lightest of those is the quote section.
+- Every column case's left / right dead and live equals the sum of the workbook end shears (MB `H6` / `H10`) of the beams framing in. The loads to the frame at each building column check the same way.
+- The job's W passes all three combinations of every column case on the Column sheet, and every lighter W fails at least one.
+
 ### Variant loop
 
 `test/variants.test.js` re-reads the example PCS as phrases, edits it the ways other jobs differ, and designs each variant on the 13th, 15th and 16th sheets with each of the three options (90 designs, plus the three code-year runs):
@@ -172,6 +194,12 @@ The oracle needs LibreOffice Calc and the workbooks in `private/workbooks/`:
 node oracle/gen_cases.js beam 400 11 > oracle/out/beam.json
 python3 oracle/beam_oracle.py oracle/out/beam.json oracle/out/beam_res.json Mezzanine_Beam_Design_15th.xls
 node oracle/compare.js beam oracle/out/beam.json oracle/out/beam_res.json 15
+
+# one job, end to end: every MB run, depth-table row, beam end shear and column case it rests on
+node oracle/job_dump.js private/pcs/JOB.pdf oracle/out/job
+python3 oracle/beam_oracle.py oracle/out/job_beam.json oracle/out/job_beam_res.json Mezzanine_Beam_Design_15th.xls
+python3 oracle/col_oracle.py oracle/out/job_col.json oracle/out/job_col_res.json Mezzanine_Column_15th_S16-14.xls
+node oracle/job_ties.js oracle/out/job
 ```
 
 `private/` is gitignored. The NBG workbooks, design manuals and customer PCS files never go in this public repo.

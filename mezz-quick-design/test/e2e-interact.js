@@ -48,7 +48,8 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   };
   await setSetting('marks', 'split'); await log('split marks');
   await page.click('#nav button[data-view="plan"]'); await page.screenshot({ path: path.join(shots, 'plan-split.png'), fullPage: false });
-  await setSetting('marks', 'single');
+  await setSetting('marks', 'single'); await log('one governing mark');
+  await setSetting('marks', 'intext');
   await setSetting('colLength', 'clear'); await log('column clear length');
   await setSetting('colLength', 'A');
   for (const ed of ['13', '15', '16']) { await setSetting('edition', ed); await log('edition ' + ed); }
@@ -174,6 +175,20 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
       for (const view of ['results', 'plan', 'beam', 'column']) { await page.click(`#nav button[data-view="${view}"]`); await page.waitForTimeout(120); }
       const st = await page.$eval('#statusText', e => e.textContent);
       console.log(('mezzanine ' + v).padEnd(30), st, '|', await quote());
+    }
+    // beam marks are the job's: the Beam page lists them once, with a run per member length (same section)
+    await page.click('#nav button[data-view="beam"]'); await page.click('#markTabs .tab[data-i="0"]'); await page.waitForTimeout(150);
+    const tabs = await page.$$eval('#markTabs .tab', ts => ts.map(t => t.textContent.trim()));
+    const runs = await page.$$eval('#spanRuns .sr', bs => bs.map(b => b.querySelector('b').textContent + ' ' + b.querySelector('span').textContent));
+    console.log('job beam marks'.padEnd(30), tabs.join(' | '), '| runs', runs.join(' / '));
+    if (tabs.length < 1 || tabs.some(t => !/^MB\d/.test(t))) fail('beam mark tabs missing');
+    if (runs.length > 1) {
+      await page.click('#spanRuns .sr[data-i="1"]'); await page.waitForTimeout(150);
+      const title = await page.$eval('#beamCalcTitle', e => e.textContent);
+      const L = await page.$$eval('#mbSheet .kv span', ss => { const i = ss.findIndex(s => /Member Length/.test(s.textContent)); return i >= 0 ? ss[i + 1].textContent.trim() : ''; });
+      console.log('shorter member run'.padEnd(30), title, '| member length', L);
+      if (!/ at /.test(title) || !(+L > 0) || runs[1].indexOf(String(+L).slice(0, 2)) < 0) fail('the shorter run should put its own member length on the MB sheet');
+      await page.click('#spanRuns .sr[data-i="0"]');
     }
     // one mezzanine only: the Inputs page can limit an edit to the mezzanine on screen
     await pick(ids[1]); await page.click('#nav button[data-view="inputs"]'); await page.click('#linkSeg button[data-l="0"]');

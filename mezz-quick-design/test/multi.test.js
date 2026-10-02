@@ -130,8 +130,33 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   const job = RUN.runJob(inps.map(inp => ({ inp, settings: {} })));
   job.mezz.forEach(r => close(r.joistDepthIn, 20, 1e-9, "11'-6\" − 9'-0\" − 5\" − 5\" = 20\""));
   const [bsw, lew] = job.mezz;
-  assert.strictEqual(bsw.marks[0].desc, 'BU28x50'); assert.strictEqual(bsw.marks[0].qty, 10); assert.strictEqual(bsw.marks[0].trib, 20);
-  assert.strictEqual(lew.marks[0].desc, 'BU27x47'); assert.strictEqual(lew.marks[0].qty, 4); assert.strictEqual(lew.marks[0].trib, 18);
+  // one holistic set of beam marks over the job:
+  //   interior = more trib than any edge beam: BSW line C (carries LEW's 7'-8" edge too) and LEW line D (18'-0") → 20'-0"
+  //   exterior = edge beams with joists on one side: the largest is BSW line C east of LEW, 12'-4" → every edge beam
+  const [mb1, mb2] = job.marks;
+  assert.strictEqual(job.marks.length, 2);
+  assert.deepStrictEqual([mb1.mark, mb1.kind, mb1.desc, mb1.qtyAll], ['MB1', 'interior', 'BU28x50', 4]);
+  assert.deepStrictEqual([mb2.mark, mb2.kind, mb2.desc, mb2.qtyAll], ['MB2', 'exterior', 'BU26x36', 10]);
+  close(mb1.span, 28, 1e-9); close(mb1.trib, 20, 1e-9); close(mb2.span, 28, 1e-9); close(mb2.trib, 12.333, 1e-9);   // layout lengths are to 0.001 ft, as typed on the MB sheet
+  const who = m => m.beamsAll.map(x => `${job.mezz[x.mi].id} B${x.id + 1}`);
+  assert.deepStrictEqual(who(mb1), ['BSW B1', 'BSW B2', 'LEW B3', 'LEW B4']);
+  assert.deepStrictEqual(who(mb2), ['BSW B3', 'BSW B4', 'BSW B5', 'BSW B6', 'BSW B7', 'BSW B8', 'BSW B9', 'BSW B10', 'LEW B1', 'LEW B2']);
+  // shorter members keep the section and get their own MB-sheet run: 40'-4" − 28'-0" = 12'-4"
+  assert.deepStrictEqual(mb1.spanRuns.map(r => [+r.span.toFixed(3), r.qty]), [[28, 3], [12.333, 1]]);
+  assert.deepStrictEqual(mb2.spanRuns.map(r => [+r.span.toFixed(3), r.qty]), [[28, 9], [12.333, 1]]);
+  [mb1, mb2].forEach(m => m.spanRuns.forEach(r => {
+    const c = r.check;
+    assert.strictEqual(c.desc, m.desc); close(r.params.trib, m.trib, 1e-9); close(r.params.L, r.span, 1e-9);
+    assert.ok(c.res.CSR <= 0.99 && c.res.SRvx <= 0.99 && c.llOK && c.tlOK, `${m.mark} at ${r.span}`);
+  }));
+  // each mezzanine sees its share of the job marks
+  assert.deepStrictEqual(bsw.marks.map(m => [m.mark, m.qty]), [['MB1', 2], ['MB2', 8]]);
+  assert.deepStrictEqual(lew.marks.map(m => [m.mark, m.qty]), [['MB1', 2], ['MB2', 2]]);
+  // one governing mark when asked: all 14 beams at 28'-0" × 20'-0"
+  {
+    const one = RUN.runJob(inps.map(inp => ({ inp, settings: { marks: 'single' } })));
+    assert.deepStrictEqual(one.marks.map(m => [m.desc, m.qtyAll, m.spanRuns.map(r => r.qty)]), [['BU28x50', 14, [12, 2]]]);
+  }
   assert.deepStrictEqual(bsw.columns.map(c => c.label).sort(), ['2/C', '3/C', '4/C', '5/C']);
   assert.deepStrictEqual(lew.columns.map(c => c.label).sort(), ['2/D', `40'-4"/D`, `40'-4"/E`]);
   assert.strictEqual(bsw.colFinal.quoteAs, 'W8X24'); assert.strictEqual(lew.colFinal.quoteAs, 'W8X24');
@@ -140,7 +165,12 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   const cmp = PLAN.compare(reg.columns, job.columns);
   assert.ok(cmp.agree, 'floor plan columns match the job layout');
   const q = RUN.quoteJob(job.mezz, inps);
-  assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW', 'BU28x50', 10], ['LEW', 'BU27x47', 4]]);
-  assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW', 'W8X24', 4], ['LEW', 'W8X24', 3]]);
-  console.log('multi tests passed (W0S-26160: BSW BU28x50 ×10 + W8X24 ×4, LEW BU27x47 ×4 + W8X24 ×3, 7/7 columns on the drawing)');
+  // quote rows: one per mark and member length, one per column section and height — the whole job
+  assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SPAN, r.TRIB, r.SECTION, r.QTY]), [
+    ['BSW / LEW', 28, 20, 'BU28x50', 3], ['LEW', 12.333, 20, 'BU28x50', 1],
+    ['BSW / LEW', 28, 12.333, 'BU26x36', 9], ['LEW', 12.333, 12.333, 'BU26x36', 1]]);
+  assert.ok(/^MB1 interior: BSW B1, B2 \(line C\); LEW B3 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);
+  assert.ok(/shorter span — same section, MB sheet at 12'-4"/.test(q.beams[1].NOTES), q.beams[1].NOTES);
+  assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW / LEW', 'W8X24', 7]]);
+  console.log('multi tests passed (W0S-26160: MB1 interior BU28x50 ×4 (3 @ 28\' + 1 @ 12\'-4"), MB2 exterior BU26x36 ×10 (9 + 1), W8X24 ×7, 7/7 columns on the drawing)');
 })().catch(e => { console.error(e); process.exit(1); });

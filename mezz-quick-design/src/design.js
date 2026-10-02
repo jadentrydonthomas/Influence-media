@@ -175,7 +175,8 @@
     list.sort((a, b) => WFDB[a].W - WFDB[b].W);
     const tried = [];
     const run = name => {
-      const all = sets.map(ld => MZ.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: opt.L, Lby: opt.L * 12, ...ld, edition: opt.edition }, WFDB));
+      // a load set may carry its own column length (mezzanines of one job at different heights)
+      const all = sets.map(({ L: Ls, ...ld }) => { const L = Ls || opt.L; return MZ.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L, Lby: L * 12, ...ld, edition: opt.edition }, WFDB); });
       const c = all.length === 1 ? all[0] : { ...all.slice().sort((a, b) => b.max - a.max)[0], ok: all.every(x => x.ok) };
       tried.push({ name, max: c.max, ok: c.ok, check: c });
       return c;

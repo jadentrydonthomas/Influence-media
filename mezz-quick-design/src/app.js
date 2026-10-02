@@ -9,6 +9,7 @@
   const f = (x, d = 3) => (x == null || !isFinite(x) ? '—' : (+x).toFixed(d));
   const n0 = x => (x == null || !isFinite(x) ? '—' : Math.round(x).toLocaleString('en-US'));
   const MARK_COLORS = ['var(--mark-1)', 'var(--mark-2)', 'var(--mark-3)', 'var(--mark-4)'];
+  const HEX = ['#42e5ae', '#67bdf4', '#f6c779', '#c9a2ff'];
   const edLabel = ed => ({ 13: 'AISC 13th', 15: 'AISC 15th', 16: 'AISC 16th' })[ed] || ed;
   const sameSec = (a, b) => a && b && a.d === b.d && a.tw === b.tw && a.bof === b.bof && a.tof === b.tof && a.bif === b.bif && a.tif === b.tif;
   const pct = v => Math.max(0, Math.min(100, v * 100));
@@ -16,7 +17,28 @@
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
   let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
-  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null };
+  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null };
+
+  // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
+  // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
+  const jobMarks = () => (state.job && state.job.marks) || [];
+  const mkHex = mk => HEX[(mk && mk.index > 0 ? mk.index : 0) % 4];
+  const mkVar = mk => MARK_COLORS[(mk && mk.index > 0 ? mk.index : 0) % 4];
+  const mkName = mk => (mk ? mk.mark + (mk.kind ? ' · ' + mk.kind : '') : '');
+  const mkOf = (r, id) => (r && r.marks ? r.marks.find(mk => mk.beams.includes(id)) : null);
+  const manyMezz = () => !!(state.all && state.all.length > 1);
+  // where a job mark's beams are: "BSW 2 · LEW 2"
+  const mkWhere = mk => {
+    const ms = state.job ? state.job.mezz : [];
+    if (ms.length < 2 || !mk.beamsAll) return '';
+    const n = new Map();
+    mk.beamsAll.forEach(x => n.set(x.mi, (n.get(x.mi) || 0) + 1));
+    return [...n].map(([mi, k]) => `${ms[mi].id} ${k}`).join(' · ');
+  };
+  // the shorter members of a mark: same section, own MB-sheet run — "+ 1 at 12'-4\""
+  const mkShort = mk => (mk.spanRuns || []).filter(q => q.span < mk.span - 1e-3).map(q => `+ ${q.qty} at ${ft(q.span)}`).join(' · ');
+  const runOf = (mk, span) => (mk && mk.spanRuns ? mk.spanRuns.find(q => Math.abs(q.span - span) < 1e-3) : null);
+  const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
 
   // ---------- theme (Astra default: dark) ----------
   try { const t = localStorage.getItem('mqd-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* storage unavailable */ }
@@ -108,7 +130,7 @@
   // user-level preferences survive a new file; job-specific ones (grid, overrides) do not
   function keepSettings() {
     const s = state.settings, keep = {};
-    ['target', 'dMin', 'dMax', 'symmetric', 'requireConc', 'marks', 'colLength', 'includeW818', 'partitionTo', 'division', 'edition', 'optionDefault'].forEach(k => { keep[k] = s[k]; });
+    ['target', 'dMin', 'dMax', 'symmetric', 'requireConc', 'marks', 'colPerJob', 'colLength', 'includeW818', 'partitionTo', 'division', 'edition', 'optionDefault'].forEach(k => { keep[k] = s[k]; });
     return keep;
   }
 
@@ -132,7 +154,7 @@
   function switchMezz(i) {
     if (!state.all || i === state.mi) return;
     state.all[state.mi] = { inputs: state.inputs, settings: state.settings };
-    state.mi = i; state.inputs = state.all[i].inputs; state.settings = state.all[i].settings; state.mark = 0; state.colGroup = 0;
+    state.mi = i; state.inputs = state.all[i].inputs; state.settings = state.all[i].settings; state.colGroup = 0;
     recompute();
   }
   function renderMezzTabs() {
@@ -141,7 +163,7 @@
     if (!many) { nav.innerHTML = ''; return; }
     nav.innerHTML = `<span class="mt-title">${state.all.length} mezzanines<small>designed together</small></span>` + state.job.mezz.map((m, i) => {
       const g = state.all[i].inputs.geom, size = `${ft(g.width.value)} × ${ft(g.length.value)}`;
-      const beams = m.incomplete ? '' : m.marks.map(mk => `${esc(mk.desc || '—')} × ${mk.qty}`).join(' · ');
+      const beams = m.incomplete ? '' : m.marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qty}`).join(' · ');
       const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length}` : (m.columns.length ? 'no column' : 'no columns');
       const st = m.incomplete ? `<em class="mt-need">needs ${m.need.length} input${m.need.length > 1 ? 's' : ''}</em>` : m.warn.some(w => w.level === 'stop') ? '<em class="mt-check">check notes</em>' : '<em class="mt-ok">designed</em>';
       return `<button class="mt ${i === state.mi ? 'is-on' : ''}" data-mi="${i}" aria-pressed="${i === state.mi}"><span class="mt-name">${esc(m.id)}</span><span class="mt-size">${size}</span>${st}<span class="mt-sec">${beams || '—'}${cols ? '<br>' + cols : ''}</span></button>`;
@@ -171,7 +193,7 @@
     const items = (state.all || [{ inputs: state.inputs, settings: state.settings }]).map(a => ({ inp: a.inputs, settings: a.settings }));
     try { state.job = RUN.runJob(items); state.res = state.job.mezz[state.all ? state.mi : 0]; } catch (err) { console.error(err); status('Design error: ' + err.message, 'bad'); return; }
     planCheck();
-    if (state.mark >= state.res.marks.length) state.mark = 0;
+    if (state.mark >= jobMarks().length) { state.mark = 0; state.markSpan = 0; }
     if (state.colGroup >= state.res.colGroups.length) state.colGroup = 0;
     $$('#nav button').forEach(b => { b.disabled = false; });
     $('#copyQuote').disabled = !!state.res.incomplete; $('#printBtn').disabled = false;
@@ -216,10 +238,10 @@
     if (r.layout.why && /arrows/.test(r.layout.why)) r.warn.unshift({ level: 'ok', text: `Joists span ${r.layout.joists === 'y' ? 'across the width' : 'along the length'}, read from the "Mez. Jst." arrows on the PCS floor plan.` });
   }
 
-  // job-level figures used across views
-  function totals() {
-    const r = state.res;
-    const beams = r.marks.reduce((a, mk) => a + (mk.check ? mk.qty * mk.span * mk.check.res.Wt : 0), 0);
+  // one mezzanine's figures: its own beams (each at its member length) and the columns it owns
+  function totals(r = state.res) {
+    const own = r.layout.beams.filter(b => !b.absorbed);
+    const beams = own.reduce((a, b) => { const mk = mkOf(r, b.id); return a + (mk && mk.check ? b.span * mk.check.res.Wt : 0); }, 0);
     const nB = r.marks.reduce((a, mk) => a + mk.qty, 0), nC = r.columns.length;
     const cols = r.colFinal ? nC * r.colLen * WF[r.colFinal.name].W : 0;
     const plates = nB * 40 + (r.colFinal ? nC * 46 : 0);
@@ -231,6 +253,13 @@
     const colMax = r.colFinal ? r.colFinal.max : null;
     const gov = govBeam && (colMax == null || govBeam.v >= colMax) ? { v: govBeam.v, who: `${govBeam.mk.mark} ${govBeam.what}` } : colMax != null ? { v: colMax, who: 'column combined' } : null;
     return { beams, cols, plates, total: beams + cols + plates, nB, nC, govBeam, colMax, gov };
+  }
+  // the whole job: every mezzanine's beams and the columns each owns (a shared column is counted once)
+  function jobTotals() {
+    const ts = (state.job ? state.job.mezz : [state.res]).filter(m => m && !m.incomplete).map(m => totals(m));
+    const sum = k => ts.reduce((a, t) => a + t[k], 0), top = k => ts.map(t => t[k]).filter(Boolean).sort((a, b) => b.v - a.v)[0] || null;
+    const cm = ts.map(t => t.colMax).filter(v => v != null);
+    return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
   function renderAll() { renderRail(); renderResults(); renderPlan(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); }
@@ -259,9 +288,9 @@
     return `${sec.d}" · web ${sec.tw}" · ${fl === fi ? fl + ' (' + sec.bof + ' × ' + sec.tof + ')' : 'OF ' + fl + ' / IF ' + fi}`;
   }
   // MB sheet: floor dead / live load (unfactored) — shear at left / right, kips: the beam end loads that go to the frame
-  function floorCard(r) {
-    const mks = r.marks.filter(mk => mk.check);
-    const rows = mks.map(mk => `<span class="fl-row"><b>${mk.mark}</b><span>D ${f(mk.check.V.D, 2)}</span><span>L ${f(mk.check.V.L, 2)}</span></span>`).join('');
+  function floorCard() {
+    const rows = jobMarks().filter(mk => mk.check).flatMap(mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, check: mk.check }]).map((q, i) =>
+      `<span class="fl-row"><b>${mk.mark}${i ? `<small>${ft(q.span)}</small>` : ''}</b><span>D ${f(q.check.V.D, 2)}</span><span>L ${f(q.check.V.L, 2)}</span></span>`)).join('');
     return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
       <div class="fl-rows">${rows || '—'}</div>
       <small>kips · unfactored shear at left &amp; right (MB sheet)</small></div></div>`;
@@ -443,17 +472,23 @@
       if (anyDone) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
       return;
     }
-    const t = totals(), cf = r.colFinal, mk0 = r.marks[0];
-    const beamsTxt = r.quote.beams.map(b => b.section || 'no beam').join(' / ');
-    $('#resTitle').innerHTML = `Mezzanine “${esc(inp.mezz.id || '—')}”<br><em class="nocase">${esc(beamsTxt)}${cf ? ' · ' + esc(cf.quoteAs) : ''}</em>`;
+    // a job of several mezzanines is one design: the beam marks, counts, columns and steel are the whole job's
+    const many = manyMezz(), t = many ? jobTotals() : totals(), cf = r.colFinal, marks = jobMarks(), mk0 = marks[0];
+    const done = many ? state.job.mezz.filter(m => !m.incomplete) : [r];
+    const secs = [...new Set(marks.map(mk => mk.desc || 'no beam'))].join(' / ');
+    const cols = [...new Set(done.filter(m => m.colFinal && m.columns.length).map(m => m.colFinal.quoteAs))].join(' / ');
+    const colLens = [...new Set(done.filter(m => m.columns.length).map(m => ft(m.colLen)))].join(' / ') || ft(r.colLen);
+    const spans = [...new Set(marks.flatMap(mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [mk]).map(q => +q.span.toFixed(3))))].sort((x, y) => y - x).map(ft).join(' / ');
+    const ids = many ? done.map(m => `“${esc(m.id)}”`).join(' + ') : `“${esc(inp.mezz.id || '—')}”`;
+    $('#resTitle').innerHTML = `Mezzanine${many && done.length > 1 ? 's' : ''} ${ids}<br><em class="nocase">${esc(secs)}${cols ? ' · ' + esc(cols) : ''}</em>`;
 
     // metric ring cards
-    const c0 = mk0 && mk0.check;
+    const foreign = !many && (r.foreignCols || []).length ? ` · + ${r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ')}` : '';
     $('#metrics').innerHTML = [
-      ringCard('Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${esc(beamsTxt)} · ${r.marks.map(m => ft(m.span)).join(' / ')} span`, t.govBeam ? t.govBeam.v : null),
-      ringCard('Mezzanine columns', `<span data-count="${t.nC}">${t.nC}</span>`, (cf ? `${esc(cf.quoteAs)} · ${ft(r.colLen)} · CSR ${f(cf.max, 3)}` : 'every beam end lands on a building column') + ((r.foreignCols || []).length ? ` · + ${r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ')}` : ''), cf ? cf.max : null),
-      floorCard(r),
-      ringCard('Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, t.total ? t.beams / t.total : null, 'var(--steel)'),
+      ringCard(many ? 'Beams · whole job' : 'Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qtyAll}`).join(' · ')} · ${spans} span`, t.govBeam ? t.govBeam.v : null),
+      ringCard(many ? 'Columns · whole job' : 'Mezzanine columns', `<span data-count="${t.nC}">${t.nC}</span>`, (cols ? `${esc(cols)} · ${colLens} · CSR ${f(t.colMax, 3)}` : 'every beam end lands on a building column') + foreign, t.colMax),
+      floorCard(),
+      ringCard(many ? 'Steel · whole job' : 'Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, t.total ? t.beams / t.total : null, 'var(--steel)'),
     ].join('');
     $('#needSlot').innerHTML = card;
     $('#warnings').innerHTML = notesHtml(r.warn, !!card);
@@ -464,27 +499,30 @@
     $('#checkPill').textContent = `${nCheck} to check before quoting ↓`;
     $('#checkPill').className = 'check-pill ' + (r.warn.some(w => w.level === 'stop') ? 'stop' : 'warn');
 
-    // hero field: beams -> governing ratio -> columns + plan check
-    const others = r.marks.slice(1).map(m => `${m.mark} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ');
+    // hero field: beam marks -> governing ratio -> columns + plan check
     const pc = r.planCheck;
-    const gv = t.gov ? t.gov.v : 0;
+    const gv = t.gov ? t.gov.v : 0, c0 = t.govBeam ? t.govBeam.mk.check : mk0 && mk0.check;
+    const nCases = done.reduce((a, m) => a + m.colGroups.length, 0);
+    const mkRows = marks.map(mk => `<div class="mk-row" style="--mk:${mkHex(mk)}"><div class="mk-id"><b>${mk.mark}</b><small>${mk.kind || (mk.optionKey && mk.optionKey !== 'lightest' ? mk.optionKey.replace('fit', 'best fit') : '')}</small></div>
+        <div class="mk-sec"><span class="nocase">${esc(mk.desc || '—')}</span></div><div class="mk-qty"><b>${mk.qtyAll}</b></div>
+        <div class="mk-meta">${ft(mk.span)} × ${ft(mk.trib)} trib${mkShort(mk) ? ' · ' + mkShort(mk) : ''}${mkWhere(mk) ? ' · ' + mkWhere(mk) : ''}</div></div>`).join('');
+    const kinds = marks.some(mk => mk.kind) ? '<div class="sub mk-why">interior: more trib than any edge beam · exterior: edge beams, joists on one side — each designed at its largest trib and longest span</div>' : '';
+    const joistTxt = done.map(m => `${many ? esc(m.id) + ': ' : ''}joists @ ${ft(m.beamBase.Lb)} span ${ft(m.layout.joistSpan)} ${m.layout.joists === 'y' ? 'across the width' : 'along the length'} onto ${m.layout.beamLines.length} beam lines`).join(' · ');
     $('#field').innerHTML = `
-      <div class="field-head"><div><div class="eyebrow">Framing summary</div><h3>Floor load → beams → columns</h3></div>
+      <div class="field-head"><div><div class="eyebrow">Framing summary${many ? ' · whole job' : ''}</div><h3>Floor load → beams → columns</h3></div>
         <p>The governing ratio across every beam and column check, with the quantities read from the layout and cross-checked against the floor plan.</p></div>
       <div class="field-stage"><div class="atlas">
-        <div class="fcard"><div class="step">01 / Mezzanine beams</div><h4>${mk0 ? mk0.mark : '—'} · ${mk0 ? mk0.qty : 0} beam${mk0 && mk0.qty === 1 ? '' : 's'}${mk0 && mk0.optionKey && mk0.optionKey !== 'lightest' ? ' · ' + mk0.optionKey.replace('fit', 'best fit') : ''}</h4>
-          <span class="big nocase">${esc(mk0 && mk0.desc ? mk0.desc : '—')}</span><div class="sub">${secParts(mk0 && mk0.sec)}</div>
-          <div class="ffacts"><div><span>Quantity</span><b class="qty">${mk0 ? mk0.qty : 0}</b></div><div><span>Span</span><b>${mk0 ? ft(mk0.span) : '—'}</b></div><div><span>Trib</span><b>${mk0 ? ft(mk0.trib) : '—'}</b></div></div>
-          ${others ? `<div class="sub" style="margin-top:12px">${others}</div>` : ''}</div>
+        <div class="fcard"><div class="step">01 / Mezzanine beams</div><h4>${t.nB} beam${t.nB === 1 ? '' : 's'} · ${marks.length} mark${marks.length === 1 ? '' : 's'}</h4>
+          <div class="mk-list">${mkRows || '<div class="sub">no beams</div>'}</div>${kinds}</div>
         <div class="disc-wrap"><div class="step">Governing ratio</div><div class="orbit"></div>
           <div class="disc" data-ring="${pct(gv).toFixed(1)}" style="--ring:0;--disc-a:${gv <= s.target ? '#64ffd0' : gv <= 1 ? '#ffd27a' : '#ff9d7a'}"><div class="disc-inner"><span>Max ratio</span><strong data-count="${gv}" data-fmt="sr">${f(gv, 2)}</strong><b>${esc(t.gov ? t.gov.who : '')}</b></div></div>
           <div class="disc-caption">Beams ≤ ${s.target} with L/360 live and L/240 total; columns &lt; 1.00 on all three combinations.</div>
-          <div class="disc-proof">${c0 ? `combined <b>${f(c0.res.CSR, 3)}</b> · shear <b>${f(c0.res.SRvx, 3)}</b>` : ''}${cf ? ` · column <b>${f(cf.max, 3)}</b>` : ''}</div></div>
+          <div class="disc-proof">${c0 ? `combined <b>${f(c0.res.CSR, 3)}</b> · shear <b>${f(c0.res.SRvx, 3)}</b>` : ''}${t.colMax != null ? ` · column <b>${f(t.colMax, 3)}</b>` : ''}</div></div>
         <div class="tallies">
-          <div class="tally"><div class="step">02 / Mezzanine columns</div><div class="tally-row"><div><h4 class="nocase">${cf ? esc(cf.quoteAs) : 'None needed'}</h4><p>${cf ? `${ft(r.colLen)} · ${r.colGroups.length} load case${r.colGroups.length > 1 ? 's' : ''}` : 'beams frame into building columns'}</p></div><div><strong>${t.nC}</strong><small>${cf ? 'CSR ' + f(cf.max, 3) : ''}</small></div></div></div>
+          <div class="tally"><div class="step">02 / Mezzanine columns</div><div class="tally-row"><div><h4 class="nocase">${cols ? esc(cols) : 'None needed'}</h4><p>${cols ? `${colLens} · ${nCases} load case${nCases > 1 ? 's' : ''}${many ? ' · one section, whole job' : ''}` : 'beams frame into building columns'}</p></div><div><strong>${t.nC}</strong><small>${t.colMax != null ? 'CSR ' + f(t.colMax, 3) : ''}</small></div></div></div>
           <div class="tally ${pc && pc.ok && pc.agree ? '' : 'warn'}"><div class="step">03 / Floor plan check</div><div class="tally-row"><div><h4>${pc ? (pc.ok ? (pc.agree ? 'Matches the drawing' : 'Differs from the drawing') : 'Not read') : 'No floor plan'}</h4><p>${pc && pc.ok ? '⊗ at ' + esc(pc.labels.join(', ')) : pc ? esc(pc.reason) : 'confirm the layout by eye'}</p></div><div><strong>${pc && pc.ok ? pc.matched.length + '/' + pc.labels.length : '—'}</strong><small>${pc && pc.ok ? 'columns found' : ''}</small></div></div></div>
         </div></div>
-        <div class="field-foot"><b>Field readout</b><span>Joists @ ${ft(r.beamBase.Lb)} span ${ft(r.layout.joistSpan)} ${r.layout.joists === 'y' ? 'across the width' : 'along the length'} onto ${r.layout.beamLines.length} beam lines; ${t.nB} beams frame into ${t.nC} mezzanine column${t.nC === 1 ? '' : 's'} and the building columns.</span></div>
+        <div class="field-foot"><b>Field readout</b><span>${joistTxt}; ${t.nB} beams frame into ${t.nC} mezzanine column${t.nC === 1 ? '' : 's'} and the building columns.</span></div>
       </div>`;
 
     renderOptions();
@@ -494,22 +532,26 @@
 
     // readout
     const fit = mk0 && mk0.options.find(o => o.key === 'fit');
+    const mkTxt = marks.map(mk => `<em>${mk.qtyAll}</em> ${mk.kind ? mk.kind + ' ' : ''}${esc(mk.desc || '—')} (${mk.mark}) at <em>${ft(mk.span)}</em> × <em>${ft(mk.trib)}</em> trib${mkShort(mk) ? ' ' + mkShort(mk) : ''}`).join('; ');
     $('#readout').innerHTML = `<div class="eyebrow">What the design establishes</div>
-      <p><em>${t.nB}</em> ${esc(beamsTxt)} beam${t.nB === 1 ? '' : 's'} at <em>${mk0 ? ft(mk0.span) : '—'}</em> carry <em>${mk0 ? ft(mk0.trib) : '—'}</em> of floor into <em>${t.nC}</em> ${cf ? esc(cf.quoteAs) : ''} column${t.nC === 1 ? '' : 's'} <em>${ft(r.colLen)}</em> tall — governing ratio <em>${f(gv, 2)}</em>${c0 ? `, live-load deflection <em>L/${f(c0.defl.rLL, 0)}</em>` : ''}.</p>
-      <div class="readout-facts"><span><b>${mk0 && mk0.check ? f(mk0.check.res.Wt, 1) : '—'}</b>plf beam</span>${fit ? `<span><b>+${f(fit.dPct * 100, 1)}%</b>for ${mk0.sec ? mk0.sec.d - fit.pick.d : 0}" less depth (${esc(fit.pick.desc)})</span>` : ''}<span><b>${n0(t.total)}</b>lb mezzanine steel</span><span><b>${r.joistDepthIn != null ? f(r.joistDepthIn, 0) + '"' : '—'}</b>total joist depth</span><span><b>${edLabel(r.edition.beamEd || r.edition.ed)}</b>ASD sheets</span></div>`;
+      <p>${mkTxt || 'No beams'} carry the floor into <em>${t.nC}</em> ${esc(cols)} column${t.nC === 1 ? '' : 's'} <em>${colLens}</em> tall — governing ratio <em>${f(gv, 2)}</em>${c0 ? `, live-load deflection <em>L/${f(c0.defl.rLL, 0)}</em>` : ''}.</p>
+      <div class="readout-facts"><span><b>${marks.filter(mk => mk.check).map(mk => f(mk.check.res.Wt, 1)).join(' / ') || '—'}</b>plf beam${marks.length > 1 ? 's' : ''}</span>${fit && mk0.sec ? `<span><b>+${f(fit.dPct * 100, 1)}%</b>for ${mk0.sec.d - fit.pick.d}" less depth on ${mk0.mark} (${esc(fit.pick.desc)})</span>` : ''}<span><b>${n0(t.total)}</b>lb mezzanine steel</span><span><b>${r.joistDepthIn != null ? f(r.joistDepthIn, 0) + '"' : '—'}</b>total joist depth</span><span><b>${edLabel(r.edition.beamEd || r.edition.ed)}</b>ASD sheets</span></div>`;
   }
 
   function renderOptions() {
     const r = state.res, inp = state.inputs;
     const A = inp.geom.A.value, slabIn = (inp.geom.slab.value || 0) * 12, seatIn = (inp.geom.seat.value || 0) * 12;
     const uo = usualOption(), uoLab = uo && { lightest: 'Lightest', fit: 'Best fit', headroom: 'Headroom' }[uo.key];
-    $('#optSub').textContent = (r.marks[0] && r.marks[0].search ? `${r.marks[0].search.evaluated.toLocaleString()} stocked combinations checked per mark · pick one for the quote` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
-    $('#options').innerHTML = r.marks.map(mk => {
-      if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mk.mark}</b> — no passing section in the depth range.</p></div>`;
-      return `<div class="mark-block"><p class="mark-label"><b>${mk.mark}</b> · ${mk.qty} beam${mk.qty > 1 ? 's' : ''} · ${ft(mk.span)} span × ${ft(mk.trib)} trib</p><div class="options">${mk.options.map(o => {
+    const marks = jobMarks();
+    $('#optSub').textContent = (marks[0] && marks[0].search ? `${marks[0].search.evaluated.toLocaleString()} stocked combinations checked per mark · pick one for the quote${manyMezz() ? ' — it goes on every mezzanine' : ''}` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
+    $('#options').innerHTML = marks.map(mk => {
+      if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — no passing section in the depth range.</p></div>`;
+      const len = (mk.beamsAll || []).reduce((a, x) => a + x.span, 0) || mk.qtyAll * mk.span;   // every member at its own length
+      const where = mkWhere(mk), short = mkShort(mk);
+      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${ft(mk.span)} span × ${ft(mk.trib)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options">${mk.options.map(o => {
         const p = o.pick, chosen = sameSec(p.sec, mk.sec);
         const under = A != null ? A - (slabIn + seatIn + p.sec.d) / 12 : null;
-        const dLbs = o.dWt * mk.qty * mk.span;
+        const dLbs = o.dWt * len;
         return `<article class="option ${chosen ? 'is-chosen' : ''}">
           <div class="option-top"><span class="option-tag">${o.label}</span><span class="option-delta ${o.dWt ? '' : 'zero'}">${o.dWt ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : 'lightest'}</span></div>
           <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · ${p.tier}</div>
@@ -524,21 +566,20 @@
     }).join('');
     $$('#options [data-opt]').forEach(b => { b.onclick = () => pickOption(b.dataset.mark, b.dataset.opt); });
   }
+  // a mark is one member over the job, so its pick goes into every mezzanine's settings
+  const setOverride = (mark, ov) => allSettings().forEach(st => { st.override = { ...(st.override || {}), [mark]: ov }; });
   function pickOption(mark, key) {
-    const mk = state.res.marks.find(m => m.mark === mark), o = mk.options.find(x => x.key === key);
-    state.settings.override = { ...(state.settings.override || {}) };
-    state.settings.override[mark] = { key };
+    const mk = jobMarks().find(m => m.mark === mark), o = mk.options.find(x => x.key === key);
+    setOverride(mark, { key });
     recompute(); toast(`${mark} → ${o.pick.desc} (${o.label.toLowerCase()})`);
   }
   function pickDepth(mark, d) {
-    const mk = state.res.marks.find(m => m.mark === mark), a = mk.search.byDepth.find(z => String(z.d) === String(d));
-    state.settings.override = { ...(state.settings.override || {}) };
-    state.settings.override[mark] = { d: +d };
+    const mk = jobMarks().find(m => m.mark === mark), a = mk.search.byDepth.find(z => String(z.d) === String(d));
+    setOverride(mark, { d: +d });
     recompute(); toast(`${mark} → ${a.desc} (lightest at ${d}")`);
   }
 
   // ---------- 3D framing model ----------
-  const HEX = ['#42e5ae', '#67bdf4', '#f6c779', '#c9a2ff'];
   let model = null;
   function buildScene() {
     const r = state.res, inp = state.inputs, lay = r.layout, g = r.grid, fp = lay.footprint;
@@ -546,16 +587,14 @@
     const zDeck = A - slab, zTop = zDeck - seat, J = r.joistDepthIn != null && r.joistDepthIn > 0 ? r.joistDepthIn / 12 : 1.33;
     const alongX = lay.joists === 'y';
     const members = [], labels = [], floor = [];
-    const markOf = id => r.marks.find(mk => mk.beams.includes(id));
-    const markIdx = id => r.marks.findIndex(mk => mk.beams.includes(id));
     const colNo = new Map(lay.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
     // beams: I-shapes (top flange, web, bottom flange) — web drawn at least 0.9" so it reads
     lay.beams.forEach(b => {
-      const mk = markOf(b.id), sec = mk && mk.sec;
+      const mk = mkOf(r, b.id), sec = mk && mk.sec;
       if (!sec) return;
       const d = sec.d / 12, bf = sec.bof / 12, tf = sec.tof / 12, bi = sec.bif / 12, ti = sec.tif / 12, tw = Math.max(sec.tw, 0.9) / 12;
       const box = (a0, a1, w, z0, z1) => (alongX ? { x0: a0, x1: a1, y0: b.line - w / 2, y1: b.line + w / 2, z0, z1 } : { x0: b.line - w / 2, x1: b.line + w / 2, y0: a0, y1: a1, z0, z1 });
-      members.push({ id: 'B' + (b.id + 1), kind: 'beam', color: HEX[markIdx(b.id) % 4], boxes: [box(b.from, b.to, bf, zTop - tf, zTop), box(b.from, b.to, tw, zTop - d + ti, zTop - tf), box(b.from, b.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', b, mk } });
+      members.push({ id: 'B' + (b.id + 1), kind: 'beam', color: mkHex(mk), boxes: [box(b.from, b.to, bf, zTop - tf, zTop), box(b.from, b.to, tw, zTop - d + ti, zTop - tf), box(b.from, b.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', b, mk } });
     });
     // mezzanine columns: W shape, web parallel to the beam web, from the floor to the underside of the beam
     const cf = r.colFinal, w = cf ? WF[cf.name] : null, dBeam = Math.max(0, ...r.marks.filter(m => m.sec).map(m => m.sec.d)) / 12;
@@ -657,9 +696,11 @@
     const s = Math.min((Vw - 2 * M) / Math.max(1, x1 - x0), (Vh - 2 * M - 10 * k - padTop) / Math.max(1, y1 - y0));
     const ox = (Vw - (x1 - x0) * s) / 2, oy = padTop + (Vh - padTop - 10 * k - (y1 - y0) * s) / 2;
     const X = x => ox + (x - x0) * s, Y = y => oy + (y1 - y) * s;
-    const cno = colNos(r), markIdx = id => r.marks.findIndex(mk => mk.beams.includes(id));
+    const cno = colNos(r);
     const grp = state.view === 'column' && r.colGroups[state.colGroup] ? r.colGroups[state.colGroup].cols.map(c => c.label) : null;
-    const mkOn = state.view === 'beam' && r.marks[state.mark] ? r.marks[state.mark].beams : null;
+    // on the Beam page: this mezzanine's beams of the mark (and member length) under review
+    const jm = state.view === 'beam' ? jobMarks()[state.mark] : null, run = jm && jm.spanRuns && jm.spanRuns.length > 1 ? jm.spanRuns[state.markSpan] : null;
+    const mkOn = jm ? lay.beams.filter(b => !b.absorbed && (mkOf(r, b.id) || {}).mark === jm.mark && (!run || Math.abs(b.span - run.span) < 1e-3)).map(b => b.id) : null;
     const o = [], br = 6.5 * k;
     lay.xLines.forEach(x => { o.push(`<line class="mp-grid" x1="${X(x)}" y1="${Y(y1) - 8 * k}" x2="${X(x)}" y2="${Y(y0) + 8 * k}"/>`); const lb = g.xLabel(x); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x)}" cy="${Y(y1) - 15 * k}" r="${br}"/><text x="${X(x)}" y="${Y(y1) - 15 * k}">${lb}</text></g>`); else o.push(`<text class="mp-off" x="${X(x)}" y="${Y(y1) - 13 * k}">${ft(x)}</text>`); });
     lay.yLines.forEach(y => { o.push(`<line class="mp-grid" x1="${X(x0) - 8 * k}" y1="${Y(y)}" x2="${X(x1) + 8 * k}" y2="${Y(y)}"/>`); const lb = g.yLabel(y); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x0) - 15 * k}" cy="${Y(y)}" r="${br}"/><text x="${X(x0) - 15 * k}" y="${Y(y)}">${lb}</text></g>`); });
@@ -667,23 +708,25 @@
     lay.beams.forEach(b => {
       const [p, q] = b.ends;
       if (b.absorbed) { o.push(`<line class="mp-beam carried" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>edge on ${esc(b.absorbed.mezz)}'s beam</title></line>`); return; }
-      const mi = markIdx(b.id), on = mkOn ? mkOn.includes(b.id) : null;
-      o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${HEX[Math.max(0, mi) % 4]}"><title>B${b.id + 1} · ${r.marks[mi] ? r.marks[mi].mark + ' ' + (r.marks[mi].desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}</title></line>`);
+      const mk = mkOf(r, b.id), on = mkOn ? mkOn.includes(b.id) : null;
+      o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkHex(mk)}"><title>B${b.id + 1} · ${mk ? mkName(mk) + ' ' + (mk.desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}</title></line>`);
     });
-    lay.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">B${b.id + 1}${k > 1.2 && r.marks[markIdx(b.id)] ? ' ' + r.marks[markIdx(b.id)].mark : ''}</text>`); });
+    lay.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">B${b.id + 1}${k > 1.2 && mkOf(r, b.id) ? ' ' + mkOf(r, b.id).mark : ''}</text>`); });
     lay.supports.filter(sp => sp.building).forEach(sp => o.push(`<rect class="mp-bc" x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"><title>${sp.label} · building column</title></rect>`));
     const xm = (cx, cy, R) => { const d = R * 0.68; return `<circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/>`; };
     const lbl = (cx, cy, t) => { const right = cx < Vw - 40 * k; return `<text class="mp-cl" x="${cx + (right ? 8 : -8) * k}" y="${cy + 12 * k}" text-anchor="${right ? 'start' : 'end'}">${t}</text>`; };
     lay.mezzCols.forEach(c => { const on = grp ? grp.includes(c.label) : null, cx = X(c.x), cy = Y(c.y);
       o.push(`<g class="mp-col ${on === true ? 'hi' : on === false || mkOn ? 'dim' : ''}" data-col="${c.label}"><title>C${cno.get(c.label)} · ${c.label}</title>${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, 'C' + cno.get(c.label) + (k > 1.2 ? ' · ' + c.label : ''))}`); });
     (r.foreignCols || []).forEach(c => { const cx = X(c.x), cy = Y(c.y); o.push(`<g class="mp-col shared"><title>${c.label} · counted with ${esc(c.ownerId)}</title>${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, esc(c.ownerId) + (k > 1.2 ? ' · ' + c.label : ''))}`); });
-    o.push(`<text class="mp-cap" x="${Vw / 2}" y="${Vh - 6 * k}">${esc(state.inputs.mezz.id || 'Mezzanine')} · joists ${lay.joists === 'y' ? '↕' : '↔'} @ ${ft(r.beamBase.Lb)}${grp ? ' · reviewing ' + grp.map(l => 'C' + cno.get(l)).join(', ') : mkOn ? ' · reviewing ' + r.marks[state.mark].mark : ''}</text>`);
+    o.push(`<text class="mp-cap" x="${Vw / 2}" y="${Vh - 6 * k}">${esc(state.inputs.mezz.id || 'Mezzanine')} · joists ${lay.joists === 'y' ? '↕' : '↔'} @ ${ft(r.beamBase.Lb)}${grp ? ' · reviewing ' + grp.map(l => 'C' + cno.get(l)).join(', ') : mkOn ? ' · reviewing ' + jm.mark + (run ? ' at ' + ft(run.span) : '') + (mkOn.length ? '' : ' — on ' + esc(elsewhere(jm, run))) : ''}</text>`);
     return o.join('');
   }
+  // the mezzanines that hold a mark's beams (of one member length) — when none of them is the one on screen
+  const elsewhere = (mk, run) => [...new Set((mk.beamsAll || []).filter(x => !run || Math.abs(x.span - run.span) < 1e-3).map(x => state.job.mezz[x.mi].id))].join(', ');
   function wirePlan(svg) {
-    const r = state.res, markIdx = id => r.marks.findIndex(mk => mk.beams.includes(id));
+    const r = state.res;
     svg.querySelectorAll('[data-col]').forEach(el => { el.onclick = () => { const gi = r.colGroups.findIndex(gp => gp.cols.some(c => c.label === el.dataset.col)); if (gi >= 0) state.colGroup = gi; go('column'); renderColumn(); }; });
-    svg.querySelectorAll('[data-beam]').forEach(el => { el.onclick = () => { const mi = markIdx(+el.dataset.beam); if (mi >= 0) state.mark = mi; go('beam'); renderBeam(); }; });
+    svg.querySelectorAll('[data-beam]').forEach(el => { el.onclick = () => { openBeam(r, +el.dataset.beam); }; });
   }
   function renderMiniPlan() {
     const svg = $('#miniPlan'), r = state.res, ok = !!(svg && r && !r.incomplete);
@@ -715,7 +758,7 @@
     const r = state.res, t = totals();
     $('#modelTitle').textContent = `${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
     $('#modelCount').textContent = `${ft(r.layout.footprint.x1 - r.layout.footprint.x0)} × ${ft(r.layout.footprint.y1 - r.layout.footprint.y0)} · T/slab ${ft(state.inputs.geom.A.value)}`;
-    $('#modelKey').innerHTML = r.marks.map((mk, i) => `<span><i style="background:${HEX[i % 4]}"></i>${mk.mark} ${esc(mk.desc || '')} × ${mk.qty}</span>`).join('') +
+    $('#modelKey').innerHTML = r.marks.map(mk => `<span><i style="background:${mkHex(mk)}"></i>${mkName(mk)} ${esc(mk.desc || '')} × ${mk.qty}</span>`).join('') +
       `<span><i style="background:#ff9f7a"></i>Mezzanine column ${r.colFinal ? esc(r.colFinal.quoteAs) : ''} × ${r.columns.length}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${ft(r.beamBase.Lb)}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${f((state.inputs.geom.slab.value || 0) * 12, 1)}"</span>`;
     model.pinned = null;
     showMember(null);
@@ -736,15 +779,15 @@
     }
     const ref = m.ref;
     if (ref.type === 'beam') {
-      const b = ref.b, mk = ref.mk, c = mk.check, rx = mk.sec ? RUN && DESIGN.reactions({ ...r.beamBase, L: b.span, trib: b.trib }, mk.sec) : null;
+      const b = ref.b, mk = ref.mk, run = runOf(mk, b.span), c = run ? run.check : mk.check, rx = mk.sec ? DESIGN.reactions({ ...r.beamBase, L: b.span, trib: b.trib }, mk.sec) : null;
       const g = r.grid, lay = r.layout, lab = (lay.joists === 'y' ? g.yLabel(b.line) : g.xLabel(b.line)) || ft(b.line), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
-      card.innerHTML = `<div class="eyebrow">${hover ? 'Member' : 'Selected member'}</div><h4>${m.id} · ${mk.mark}</h4><div class="kind">Beam on line ${esc(lab)} · ${esc(fl(b.from) || ft(b.from))} → ${esc(fl(b.to) || ft(b.to))}</div>
+      card.innerHTML = `<div class="eyebrow">${hover ? 'Member' : 'Selected member'}</div><h4>${m.id} · ${mkName(mk)}</h4><div class="kind">Beam on line ${esc(lab)} · ${esc(fl(b.from) || ft(b.from))} → ${esc(fl(b.to) || ft(b.to))}</div>
         <div class="sec nocase">${esc(mk.desc)}</div>
         <dl><div><dt>Span</dt><dd>${ft(b.span)}</dd></div><div><dt>Trib</dt><dd>${ft(b.trib)}</dd></div>
         <div><dt>R dead</dt><dd>${rx ? f(rx.D, 2) + 'k' : '—'}</dd></div><div><dt>R live</dt><dd>${rx ? f(rx.L, 2) + 'k' : '—'}</dd></div>
         <div><dt>Combined</dt><dd>${f(c.res.CSR, 3)}</dd></div><div><dt>Shear</dt><dd>${f(c.res.SRvx, 3)}</dd></div>
         <div><dt>Live defl.</dt><dd>L/${f(c.defl.rLL, 0)}</dd></div><div><dt>Weight</dt><dd>${f(c.res.Wt, 1)} plf</dd></div></dl>
-        <span class="pill">${b.trib < mk.trib ? `designed for ${ft(mk.trib)} trib (governing)` : 'governing trib'}</span>
+        <span class="pill">${b.span < mk.span - 1e-3 ? `shorter member — ${mk.mark} section, MB sheet at ${ft(b.span)}` : b.trib < mk.trib - 1e-3 ? `designed for ${ft(mk.trib)} trib (${mk.mark} governing)` : `governing ${mk.mark} beam`}</span>
         <div class="foot">${secParts(mk.sec)}</div>`;
     } else if (ref.type === 'col') {
       const col = r.columns.find(x => x.label === ref.c.label), cf = r.colFinal, gi = r.colGroups.findIndex(gp => gp.cols.some(x => x.label === ref.c.label));
@@ -770,15 +813,16 @@
 
   // ---------- quote sheet (workbook tables) ----------
   function renderQuoteSheet() {
-    const q = state.all && state.all.length > 1 ? RUN.quoteJob(state.job.mezz, state.all.map(a => a.inputs)) : RUN.quoteSheet(state.res, state.inputs);
+    // one holistic set of rows for the job: a row per beam mark and member length, a row per column section
+    const q = RUN.quoteJob(state.job ? state.job.mezz : [state.res], state.all ? state.all.map(a => a.inputs) : [state.inputs]);
     state.quote = q;
-    const cur = state.inputs.mezz.id || 'A', many = state.all && state.all.length > 1;
+    const cur = state.inputs.mezz.id || 'A', many = manyMezz();
     const block = (key, title, sub, foot) => {
       const h = q.heads[key], rows = q[key];
       const cls = k => (k === 'NOTES' ? 'qnotes' : k === 'SECTION' ? 'sec' : k === 'DLT' || k === 'LLT' || k === 'ENDWT' ? 'calc' : k === 'MEZZ' ? 'left' : '');
       return `<div class="qs-block"><div class="qs-head"><div><h4>${title}</h4>${sub ? `<small>${sub}</small>` : ''}</div><button class="btn-soft" data-copy="${key}"><svg><use href="#i-copy"/></svg>Copy rows</button></div>
         <div class="qs-wrap"><table><thead><tr>${h.map(([k, t]) => `<th class="${k === 'NOTES' || k === 'MEZZ' ? 'left' : ''}">${t}</th>`).join('')}</tr></thead>
-        <tbody>${rows.length ? rows.map(row => `<tr class="${many && row.MEZZ === cur ? 'is-cur' : ''}">${h.map(([k]) => `<td class="${cls(k)}">${esc(row[k])}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${h.length}" class="qnotes">No rows.</td></tr>`}</tbody></table></div>
+        <tbody>${rows.length ? rows.map(row => `<tr class="${many && String(row.MEZZ).split(' / ').includes(cur) ? 'is-cur' : ''}">${h.map(([k]) => `<td class="${cls(k)}">${esc(row[k])}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${h.length}" class="qnotes">No rows.</td></tr>`}</tbody></table></div>
         <div class="qs-foot">${foot}</div></div>`;
     };
     $('#quoteSheet').innerHTML =
@@ -788,7 +832,7 @@
     $$('#quoteSheet [data-copy]').forEach(b => { b.onclick = () => copyText(q.tsv[b.dataset.copy], 'Rows copied — paste into the quote sheet'); });
   }
   $('#copyQuote').onclick = () => {
-    const q = state.quote || RUN.quoteSheet(state.res, state.inputs);
+    const q = state.quote || RUN.quoteJob(state.job ? state.job.mezz : [state.res], state.all ? state.all.map(a => a.inputs) : [state.inputs]);
     copyText([q.tsv.design, '', q.tsv.beams, '', q.tsv.columns].join('\n'), 'Design, beam and column rows copied');
   };
   $('#printBtn').onclick = () => window.print();
@@ -820,7 +864,7 @@
     const colNo = new Map(lay.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
     const spans = [...new Set(lay.beams.map(b => b.span))];
     $('#planStats').innerHTML = `
-      <div class="pstat beams"><span>Mezzanine beams</span><strong>${t.nB}<small>beams</small></strong><em>${r.marks.map(m => `${m.mark} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ')}</em></div>
+      <div class="pstat beams"><span>Mezzanine beams</span><strong>${t.nB}<small>beams</small></strong><em>${r.marks.map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ')}</em></div>
       <div class="pstat cols"><span>Mezzanine columns ⊗</span><strong>${t.nC}<small>columns</small></strong><em>${lay.mezzCols.map(c => c.label).sort().join(' · ') || 'none'}${(r.foreignCols || []).length ? ' · + ' + r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ') : ''}</em></div>
       <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${lay.supportLines.length - 1} bay${lay.supportLines.length > 2 ? 's' : ''} × ${lay.beamLines.length} beam lines (${lay.beamLines.map(lineLab).join(', ')})</em></div>
       <div class="pstat"><span>Joists</span><strong>${ft(lay.joistSpan)}</strong><em>span · @ ${ft(r.beamBase.Lb)} · ${lay.joists === 'y' ? 'across the width' : 'along the length'}</em></div>`;
@@ -863,12 +907,11 @@
       oz.layout.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<line class="beam other" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>${esc(oz.id)} B${b.id + 1} · span ${ft(b.span)} · trib ${ft(b.trib)}</title></line>`); });
     });
     o.push(`<rect class="foot" x="${X(fp.x0)}" y="${Y(fp.y1)}" width="${(fp.x1 - fp.x0) * s}" height="${(fp.y1 - fp.y0) * s}"/>`);
-    const markIdx = id => r.marks.findIndex(mk => mk.beams.includes(id));
     lay.beams.filter(b => !b.absorbed).forEach(b => {
-      const mi = markIdx(b.id), i = lay.beamLines.indexOf(b.line);
+      const mk = mkOf(r, b.id), i = lay.beamLines.indexOf(b.line);
       const a = i > 0 ? (lay.beamLines[i - 1] + b.line) / 2 : b.line, c = i < lay.beamLines.length - 1 ? (b.line + lay.beamLines[i + 1]) / 2 : b.line;
-      if (lay.joists === 'y') o.push(`<rect class="trib" data-beam="${b.id}" x="${X(b.from)}" y="${Y(c)}" width="${(b.to - b.from) * s}" height="${(c - a) * s}" fill="${MARK_COLORS[mi % 4]}"/>`);
-      else o.push(`<rect class="trib" data-beam="${b.id}" x="${X(a)}" y="${Y(b.to)}" width="${(c - a) * s}" height="${(b.to - b.from) * s}" fill="${MARK_COLORS[mi % 4]}"/>`);
+      if (lay.joists === 'y') o.push(`<rect class="trib" data-beam="${b.id}" x="${X(b.from)}" y="${Y(c)}" width="${(b.to - b.from) * s}" height="${(c - a) * s}" fill="${mkVar(mk)}"/>`);
+      else o.push(`<rect class="trib" data-beam="${b.id}" x="${X(a)}" y="${Y(b.to)}" width="${(c - a) * s}" height="${(b.to - b.from) * s}" fill="${mkVar(mk)}"/>`);
     });
     const sp = r.beamBase.Lb;
     if (sp > 0) {
@@ -876,10 +919,10 @@
       else for (let y = fp.y0 + sp; y < fp.y1 - 0.01; y += sp) o.push(`<line class="joist" x1="${X(fp.x0)}" y1="${Y(y)}" x2="${X(fp.x1)}" y2="${Y(y)}"/>`);
     }
     lay.beams.forEach(b => {
-      const mi = markIdx(b.id), mk = r.marks[mi];
+      const mk = mkOf(r, b.id);
       const [p, q] = b.ends;
       if (b.absorbed) { o.push(`<line class="beam carried" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>Edge on the ${esc(b.absorbed.mezz)} beam line — its ${ft(b.tribOwn)} trib is carried by that beam</title></line>`); return; }
-      o.push(`<line class="beam" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${MARK_COLORS[mi % 4]}"><title>B${b.id + 1} · ${mk ? mk.mark + ' ' + (mk.desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}${b.extra ? ' (incl. ' + b.extra.map(x => x.mezz).join(', ') + ')' : ''}</title></line>`);
+      o.push(`<line class="beam" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkVar(mk)}"><title>B${b.id + 1} · ${mk ? mkName(mk) + ' ' + (mk.desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}${b.extra ? ' (incl. ' + b.extra.map(x => x.mezz).join(', ') + ')' : ''}</title></line>`);
     });
     // building columns
     const bcols = [];
@@ -890,9 +933,9 @@
     bcols.forEach(([x, y]) => o.push(`<rect class="bcol" x="${X(x) - 4}" y="${Y(y) - 4}" width="8" height="8"/>`));
     // beam number tags (B1..) at mid-span
     lay.beams.filter(b => !b.absorbed).forEach(b => {
-      const [p, q] = b.ends, mi = markIdx(b.id);
+      const [p, q] = b.ends, mc = mkVar(mkOf(r, b.id));
       const mx = (X(p.x) + X(q.x)) / 2, my = (Y(p.y) + Y(q.y)) / 2, lab = 'B' + (b.id + 1), w = 12 + lab.length * 6.5;
-      o.push(`<g class="tag b"><rect x="${mx - w / 2}" y="${my - 9}" width="${w}" height="18" rx="9" style="stroke:${MARK_COLORS[mi % 4]}"/><text x="${mx}" y="${my + .5}" style="fill:${MARK_COLORS[mi % 4]}">${lab}</text></g>`);
+      o.push(`<g class="tag b"><rect x="${mx - w / 2}" y="${my - 9}" width="${w}" height="18" rx="9" style="stroke:${mc}"/><text x="${mx}" y="${my + .5}" style="fill:${mc}">${lab}</text></g>`);
     });
     // mezzanine columns + numbers (C1..)
     lay.mezzCols.forEach(c => {
@@ -919,17 +962,16 @@
       el.addEventListener('mouseenter', () => tb && tb.classList.add('on'));
       el.addEventListener('mouseleave', () => tb && tb.classList.remove('on'));
     });
-    $('#planLegend').innerHTML = r.marks.map((mk, i) => `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="${MARK_COLORS[i % 4]}" stroke-width="5"/></svg>${mk.mark} ${esc(mk.desc || '')} · qty ${mk.qty}</span>`).join('') +
+    $('#planLegend').innerHTML = r.marks.map(mk => `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="${mkVar(mk)}" stroke-width="5"/></svg>${mkName(mk)} ${esc(mk.desc || '')} · qty ${mk.qty}${mk.qtyAll > mk.qty ? ' of ' + mk.qtyAll : ''}</span>`).join('') +
       `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${lay.mezzCols.length}</span>` +
       (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
       (others.length ? `<span><svg width="22" height="10"><rect width="22" height="10" class="foot other"/></svg>${others.map(oz => esc(oz.id)).join(', ')} (designed with this one)</span>` : '') +
       (lay.beams.some(b => b.absorbed) ? `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="beam carried"/></svg>Edge carried by the neighbour's beam</span>` : '') +
       `<span><svg width="10" height="10"><rect width="8" height="8" x="1" y="1" fill="var(--ink)"/></svg>Building column</span><span><svg width="22" height="10"><rect width="22" height="10" fill="url(#hatch)" stroke="var(--green)"/></svg>Footprint · hover a beam for its trib</span>`;
-    const markOf = id => r.marks.find(mk => mk.beams.includes(id));
     $('#beamTable').innerHTML = `<thead><tr><th>Beam</th><th>Line</th><th>From → to</th><th class="num">Span</th><th class="num">Trib</th><th>Mark</th><th>Section</th></tr></thead><tbody>` +
-      lay.beams.map(b => { const mk = markOf(b.id), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
+      lay.beams.map(b => { const mk = mkOf(r, b.id), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
         const trib = b.extra ? `${ft(b.trib)}<small class="sub-n"> ${ft(b.tribOwn)} + ${b.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')}</small>` : ft(b.trib);
-        return `<tr class="${b.absorbed ? 'muted' : ''}"><td class="mono"><b>B${b.id + 1}</b></td><td>${lineLab(b.line)}</td><td>${fl(b.from) || ft(b.from)} → ${fl(b.to) || ft(b.to)}</td><td class="num">${ft(b.span)}</td><td class="num">${trib}</td><td>${b.absorbed ? 'carried by ' + esc(b.absorbed.mezz) : mk ? mk.mark : ''}</td><td class="mono">${b.absorbed ? '—' : mk && mk.desc ? mk.desc : '—'}</td></tr>`; }).join('') + '</tbody>';
+        return `<tr class="${b.absorbed ? 'muted' : ''}"><td class="mono"><b>B${b.id + 1}</b></td><td>${lineLab(b.line)}</td><td>${fl(b.from) || ft(b.from)} → ${fl(b.to) || ft(b.to)}</td><td class="num">${ft(b.span)}</td><td class="num">${trib}</td><td>${b.absorbed ? 'carried by ' + esc(b.absorbed.mezz) : mk ? mkName(mk) + (b.span < mk.span - 1e-3 ? ' <small class="sub-n">own run at ' + ft(b.span) + '</small>' : '') : ''}</td><td class="mono">${b.absorbed ? '—' : mk && mk.desc ? mk.desc : '—'}</td></tr>`; }).join('') + '</tbody>';
     $('#supTable').innerHTML = `<thead><tr><th>Support</th><th>Type</th><th class="num">Trib area</th><th class="num">Left D / L (k)</th><th class="num">Right D / L (k)</th></tr></thead><tbody>` +
       lay.supports.slice().sort((a, b) => a.building - b.building || (colNo.get(a.label) || 0) - (colNo.get(b.label) || 0) || a.x - b.x || a.y - b.y).map(sp2 => {
         const own = r.columns.find(c2 => c2.label === sp2.label), fc = (r.foreignCols || []).find(c2 => c2.label === sp2.label), c = own || fc;
@@ -943,19 +985,43 @@
 
   // ---------- beam calc (MB sheet mirror) ----------
   const kv = rows => `<div class="kv">${rows.map(([k, v, cls, row]) => `<span class="${row || ''}">${k}</span><span class="${cls || ''} ${row || ''}">${v}</span>`).join('')}</div>`;
+  // open the Beam page on the mark, and the member length, of beam id of mezzanine r
+  function openBeam(r, id) {
+    const mk = mkOf(r, id), b = r.layout.beams[id], i = mk ? jobMarks().findIndex(m => m.mark === mk.mark) : -1;
+    if (i >= 0) { state.mark = i; state.markSpan = Math.max(0, (jobMarks()[i].spanRuns || []).findIndex(q => Math.abs(q.span - b.span) < 1e-3)); }
+    go('beam'); renderBeam();
+  }
+  // where the beams of one member length sit: "BSW B1, B2 (line C) · LEW B3 (line D)"
+  function runBeams(mk, span) {
+    const ms = state.job ? state.job.mezz : [state.res], many = ms.length > 1;
+    const xs = (mk.beamsAll || []).filter(x => span == null || Math.abs(x.span - span) < 1e-3), by = new Map();
+    xs.forEach(x => { if (!by.has(x.mi)) by.set(x.mi, []); by.get(x.mi).push(x); });
+    return [...by].map(([mi, bs]) => { const m = ms[mi], lines = [...new Set(bs.map(x => { const b = m.layout.beams[x.id]; return (m.layout.joists === 'y' ? m.grid.yLabel(b.line) : m.grid.xLabel(b.line)) || ft(b.line); }))];
+      return `${many ? esc(m.id) + ' ' : ''}${bs.map(x => 'B' + (x.id + 1)).join(', ')} (line ${lines.join(', ')})`; }).join(' · ');
+  }
   function renderBeam() {
-    const r = state.res, inp = state.inputs;
-    $('#markTabs').innerHTML = r.marks.map((mk, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}">${mk.mark} · ${esc(mk.desc || 'none')} · ${ft(mk.span)} × ${ft(mk.trib)}</button>`).join('');
-    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; renderBeam(); renderMiniPlan(); }; });
-    const mk = r.marks[state.mark];
-    if (!mk) { $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; return; }
-    $('#beamCalcTitle').innerHTML = `${mk.mark} · <em class="nocase">${esc(mk.desc || 'no section')}</em>`;
-    const c = mk.check, p = mk.params;
+    const marks = jobMarks();
+    $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
+    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); }; });
+    const mk = marks[state.mark];
+    if (!mk) { $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; return; }
+    // every member length of the mark: the governing run (longest span, largest trib) and the shorter beams — same section, own MB sheet
+    const runs = mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, qty: mk.qtyAll, check: mk.check, params: mk.params }];
+    if (state.markSpan >= runs.length) state.markSpan = 0;
+    const run = runs[state.markSpan], gov = state.markSpan === 0;
+    $('#spanRuns').innerHTML = `<div class="sr-head"><span class="eyebrow">MB sheet runs · ${mk.mark}</span><small>${runs.length > 1 ? 'one section; each member length is its own run' : 'one member length'} · trib ${ft(mk.trib)}${mk.kind ? ' (largest ' + mk.kind + ')' : ''}</small></div>` +
+      runs.map((q, i) => `<button class="sr ${i === state.markSpan ? 'is-on' : ''}" data-i="${i}"><b>${ft(q.span)}</b><span>${q.qty} beam${q.qty === 1 ? '' : 's'}${i === 0 ? ' · designed' : ''}</span><small>${runBeams(mk, q.span)}</small>${q.check ? `<em class="${q.check.res.CSR <= state.settings.target && q.check.res.SRvx <= state.settings.target && q.check.llOK && q.check.tlOK ? 'ok' : 'ng'}">${f(Math.max(q.check.res.CSR, q.check.res.SRvx), 2)}</em>` : ''}</button>`).join('');
+    $$('#spanRuns .sr').forEach(b => { b.onclick = () => { state.markSpan = +b.dataset.i; renderBeam(); renderMiniPlan(); }; });
+    // INPUT-sheet values (A, slab, seat, clearances) of a mezzanine that has this mark — the one on screen when it does
+    const r = mk.mezzIds && !mk.mezzIds.includes(state.res.index) && state.job ? state.job.mezz[mk.mezzIds[0]] : state.res;
+    const inp = state.all ? state.all[r.index].inputs : state.inputs;
+    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(run.span)}</small>`}`;
+    const c = run.check, p = run.params;
     if (!c) $('#mbSheet').innerHTML = '<div class="empty">No passing section in the depth range.</div>';
     else {
       const x = c.res, clear = r.clear;
       const clr = (k, lab) => [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${clear[k].ok === false ? '· NO GOOD' : clear[k].ok ? '· OK' : ''}`, clear[k].ok === false ? 'ng' : ''];
-      $('#mbSheet').innerHTML = beamViz(mk, r) + `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div><div class="sheet">
+      $('#mbSheet').innerHTML = beamViz(mk, r, run) + `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div><div class="sheet">
         <div><h4>INPUT sheet</h4>${kv([
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
@@ -1006,12 +1072,12 @@
     return r16 ? `${whole ? whole + ' ' : ''}${r16 / g}/${16 / g}` : String(whole);
   };
   // the beam of a mark, drawn: load, joists at Lb, reactions, deflected shape, moment and shear — and its section to scale
-  function beamViz(mk, r) {
-    const c = mk.check, sec = mk.sec, L = mk.span, Lb = r.beamBase.Lb, col = HEX[r.marks.indexOf(mk) % 4];
+  function beamViz(mk, r, run) {
+    const c = run.check, sec = mk.sec, L = run.span, Lb = r.beamBase.Lb, col = mkHex(mk);
     const x0 = 80, x1 = 660, X = t => x0 + (x1 - x0) * t / L, yB = 150, dp = 28, tfp = 5;
     const wD = c.w.joist + c.w.beam + c.w.FDL, wL = c.w.FLL;
     const o = [];
-    o.push(`<text class="bv-cap" x="${x0}" y="22" text-anchor="start">${mk.mark} · ${esc(c.desc)} · ${mk.qty} beam${mk.qty > 1 ? 's' : ''}</text>`);
+    o.push(`<text class="bv-cap" x="${x0}" y="22" text-anchor="start">${mkName(mk)} · ${esc(c.desc)} · ${run.qty} beam${run.qty > 1 ? 's' : ''} at ${ft(L)}</text>`);
     // uniform load
     o.push(`<line class="bv-load" x1="${x0}" y1="62" x2="${x1}" y2="62"/>`);
     for (let i = 0; i <= 16; i++) { const x = x0 + (x1 - x0) * i / 16; o.push(`<path class="bv-arr" d="M${x},62 L${x},96 M${x - 4},89 L${x},96 L${x + 4},89"/>`); }
@@ -1065,7 +1131,7 @@
     const beam = (sd, x0, x1) => {
       const ps = side(sd);
       if (!ps.length) return `<rect class="cv-none" x="${Math.min(x0, x1)}" y="${yT - 40}" width="${Math.abs(x1 - x0)}" height="40" rx="3"/><text class="cv-s" x="${(x0 + x1) / 2}" y="${yT - 16}">no beam on this side</text>`;
-      const i = info(ps[0]), d = i.mk && i.mk.sec ? i.mk.sec.d : 18, h = dpx(d), col = HEX[Math.max(0, i.mk ? state.job.mezz[ps[0].mi].marks.indexOf(i.mk) : 0) % 4];
+      const i = info(ps[0]), d = i.mk && i.mk.sec ? i.mk.sec.d : 18, h = dpx(d), col = mkHex(i.mk);
       const a = Math.min(x0, x1), wdt = Math.abs(x1 - x0);
       return `<rect x="${a}" y="${yT - h}" width="${wdt}" height="4" fill="${col}"/><rect class="cv-web" x="${a}" y="${yT - h + 4}" width="${wdt}" height="${h - 8}" style="fill:${col}"/><rect x="${a}" y="${yT - 4}" width="${wdt}" height="4" fill="${col}"/>
         <text class="cv-bl" x="${(x0 + x1) / 2}" y="${yT - h / 2 + 4}">${esc(ps.map(p => `${p.mezz !== r.id ? p.mezz + ' ' : ''}${p.beam}`).join(' + '))} · ${esc(i.mk ? i.mk.mark + ' ' + (i.mk.desc || '') : '')}</text>`;
@@ -1165,9 +1231,11 @@
     $('#colTried').innerHTML = `<thead><tr><th>Section</th><th class="num">Wt plf</th><th class="num">bf</th><th class="num">Max CSR</th><th>Result</th><th>Quote as</th></tr></thead><tbody>` +
       tried.map(t => { const q = DESIGN.COMMON_COLUMNS.includes(t.name) || t.name === 'W8X18' ? t.name : t.name.replace(/^W(\d+)X/, 'BU$1x');
         return `<tr class="pick ${cf && cf.name === t.name ? 'is-chosen' : ''}" data-n="${t.name}"><td class="mono"><b>${t.name}</b></td><td class="num">${f(WF[t.name].W, 0)}</td><td class="num">${WF[t.name].bf}</td><td class="num">${f(t.max, 3)}</td><td><span class="status-text ${t.ok ? 'ok' : 'ng'}">${t.ok ? 'OK' : 'NG'}</span></td><td class="mono">${q}</td></tr>`; }).join('') +
-      `<tr><td colspan="6"><div class="field-row wide" style="border:0"><label>Use a different W for every mezzanine column</label><select id="colPick"><option value="">Automatic (${g.design && g.design.name ? g.design.name : '—'})</option>${Object.keys(WF).filter(k => /^W(6|8|10|12|14)X/.test(k)).sort((a, b) => WF[a].W - WF[b].W).map(k => `<option ${state.settings.colOverride === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div></td></tr></tbody>`;
-    $$('#colTried tr.pick').forEach(tr => { tr.onclick = () => { state.settings.colOverride = tr.dataset.n === (g.design && g.design.name) ? undefined : tr.dataset.n; recompute(); }; });
-    $('#colPick').onchange = e => { state.settings.colOverride = e.target.value || undefined; recompute(); };
+      `<tr><td colspan="6"><div class="field-row wide" style="border:0"><label>Use a different W for every mezzanine column${manyMezz() && state.settings.colPerJob !== false ? ' of the job' : ''}</label><select id="colPick"><option value="">Automatic${!state.settings.colOverride && cf ? ' (' + cf.name + ')' : ''}</option>${Object.keys(WF).filter(k => /^W(6|8|10|12|14)X/.test(k)).sort((a, b) => WF[a].W - WF[b].W).map(k => `<option ${state.settings.colOverride === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div></td></tr></tbody>`;
+    // one column section for the job (Settings): the pick goes on every mezzanine
+    const setCol = n => { (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = n; }); recompute(); };
+    $$('#colTried tr.pick').forEach(tr => { tr.onclick = () => setCol(tr.dataset.n === (g.design && g.design.name) ? undefined : tr.dataset.n); });
+    $('#colPick').onchange = e => setCol(e.target.value || undefined);
   }
 
   // ---------- inputs ----------
@@ -1292,9 +1360,10 @@
       num('dMin', 'Min. depth, (in.)'), num('dMax', 'Max. depth, (in.)', 'also capped by clearance (C) when given'),
       sel('symmetric', 'Flanges', [['true', 'Same top and bottom'], ['false', 'Allow unequal (IF ≤ OF width)']]),
       sel('requireConc', 'Joist bearing check (MB L7)', [['true', 'Must pass'], ['false', 'Report only']]),
-      sel('marks', 'Beam marks', [['single', 'One governing mark (max span & trib)'], ['split', 'Split by trib / span (guide)']]),
+      sel('marks', 'Beam marks', [['intext', 'Interior / exterior (largest trib of each)'], ['single', 'One governing mark (max span & trib)'], ['split', 'Split by trib / span (guide)']], 'over the whole job · shorter beams keep the section, own MB run'),
       sel('partitionTo', 'Partition load', [['live', 'Add to live'], ['dead', 'Add to dead']]),
       '<div class="group-title">Columns</div>',
+      sel('colPerJob', 'Column section', [['true', 'One W for the whole job'], ['false', 'Per mezzanine']], 'several mezzanines: the lightest W that passes every column case'),
       sel('colLength', 'Column length L', [['A', 'Finish floor to top of mezzanine (A)'], ['clear', 'Clear below mezzanine beam (guide)']]),
       sel('includeW818', 'Also try W8X18', [['false', 'No — W10X22, W8X24, W12X26'], ['true', 'Yes (stocked at most divisions)']]),
       '<div class="group-title">Jobs remembered on this computer</div>',
@@ -1306,7 +1375,7 @@
         const k = el.dataset.set; let v = el.value;
         if (el.dataset.num) v = parseFloat(v); else if (v === 'true' || v === 'false') v = v === 'true';
         state.settings[k] = v;
-        if (k === 'marks' || k === 'optionDefault') { state.settings.override = {}; state.mark = 0; }
+        if (k === 'marks' || k === 'optionDefault') { state.settings.override = {}; state.mark = 0; state.markSpan = 0; }
         if (state.all) state.all.forEach(a => { a.settings[k] = v; if (k === 'marks' || k === 'optionDefault') a.settings.override = {}; });
         if (state.inputs) recompute(); else renderSettings();
       };
