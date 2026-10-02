@@ -89,7 +89,27 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
 4. **Checks & decisions**: check before quoting, confirmed against the PCS, design decisions, how it was read.
 5. **Quote sheet** rows for every mezzanine.
 
-The sidebar shows the mezzanine turning in **3D** or as a labelled **Plan** (grid bubbles, B# beams, C# columns, building columns). The plan lights what you are reviewing: the column case on Column calc, the mark's beams on Beam calc. Click a column or beam to open its calc, or ⤢ to see the plan large beside the page.
+**One drawing for the whole job.** The 3D model, the Plan & layout page and the sidebar plan show every mezzanine together, not one at a time:
+
+- **Colours:** interior beams are green and exterior beams blue, in the 3D model and on both plans.
+- **Plan & layout page:**
+  - Each beam's floor (its trib band) is shaded in its mark's colour.
+  - Interior beam tags are filled and exterior tags are outlined.
+  - Each run of beams is labelled along its line ("MB1 · INTERIOR · BU28x50").
+- **3D model:** each beam carries a tag ("MB1 INT"), which you can switch off.
+- **Columns:** numbered once over the job (C1 … C7), with the grid label beside the number.
+- **Editing:** the joist direction and the beam / support lines still edit the mezzanine picked at the top.
+- **Tables:** the beam and support tables list the whole job, with each beam's end shear.
+
+**Hover any column for its loads.**
+
+- **Mezzanine column:** the Column-sheet input. Left and right dead / live in kips, and each beam framing in, with its mark, section, span and trib. Also the W, height, CSR and trib area.
+- **Building column:** the load to the frame (total D / L) and the beams it comes from.
+- **Beam:** its span, trib (with any neighbour's share), MB-sheet run and end shear.
+
+The cards work on the plan page, the sidebar plan and the large plan. Clicking a column or beam opens its calc, and the 3D card shows the same loads.
+
+The sidebar shows the job turning in **3D** or as a labelled **Plan** (grid bubbles, beams, C# columns, building columns). The plan lights what you are reviewing: the column case on Column calc, or the mark and member length on Beam calc. Click a column or beam to open its calc, or ⤢ to see the plan large beside the page.
 
 The Beam calc page lists the job's marks (MB1 · interior, MB2 · exterior) and, under them, a chip per member length: the designed run and each shorter one, with which beams it covers and its ratio. The MB sheet and the drawing follow the chip. The page opens with a drawing of the mark: the uniform load (D + L in klf), joists at the unbraced length, reactions, the deflected shape, member length, and moment and shear diagrams. Beside it is the BU section to scale with its plates. The Column calc page draws the case: the W column with cap and base plates, the left and right beams on it, both reactions (D / L kips) at e = d/2, the height, and the W section to scale. A table underneath lists each beam's span and trib, so you can see why one column carries more than another.
 

@@ -21,7 +21,7 @@
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
 </svg>
-<div class="plan-pop" id="planPop" hidden role="dialog" aria-label="Floor plan"><div class="pp-head"><b id="ppTitle">Floor plan</b><span>click a column or beam to open its calc · Esc closes</span><button id="ppClose" aria-label="Close">✕</button></div><svg id="planPopSvg" role="img" aria-label="Floor plan, large"></svg></div>
+<div class="plan-pop" id="planPop" hidden role="dialog" aria-label="Floor plan"><div class="pp-head"><b id="ppTitle">Floor plan</b><span>hover a column for its dead / live · click to open its calc · Esc closes</span><button id="ppClose" aria-label="Close">✕</button></div><svg id="planPopSvg" role="img" aria-label="Floor plan, large"></svg></div>
 <div class="app">
   <aside class="rail" aria-label="Mezzanine design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
@@ -104,7 +104,7 @@
         <div class="model-head">
           <div><div class="eyebrow">3D framing model</div><h3 id="modelTitle">The mezzanine, built</h3></div>
           <div class="model-toggles" id="modelToggles">
-            <button data-t="slab" class="is-on">Slab</button><button data-t="joists" class="is-on">Joists</button><button data-t="building" class="is-on">Building columns</button>
+            <button data-t="slab" class="is-on">Slab</button><button data-t="joists" class="is-on">Joists</button><button data-t="building" class="is-on">Building columns</button><button data-t="tags" class="is-on">Mark tags</button>
           </div>
         </div>
         <div class="model-body">

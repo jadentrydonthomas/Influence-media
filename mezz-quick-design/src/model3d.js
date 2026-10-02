@@ -26,7 +26,7 @@
   /* scene: { center:[x,y,z], radius, members:[{ id, kind, color, boxes:[], lines:[[p,q],...], alpha, info }], labels:[{p:[x,y,z], text, kind}] } */
   function mount(canvas, opts = {}) {
     const ctx = canvas.getContext('2d');
-    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true } };
+    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
     let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1;
     const [PAD_T, PAD_B] = opts.pad || [34, 70];   // header text above, control bar below
@@ -135,6 +135,18 @@
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (const l of scene.labels || []) {
         const p = project(l.p);
+        if (l.kind === 'tag') {
+          // a mark tag on a beam (MB1 INT): outlined pill in the mark's colour
+          if (!view.toggles.tags) continue;
+          ctx.font = '700 10px "Cascadia Code", Consolas, monospace';
+          const tw = ctx.measureText(l.text).width + 12, y = p[1] - 9 + (l.dy || 0);
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(p[0] - tw / 2, y, tw, 17, 8.5); else ctx.rect(p[0] - tw / 2, y, tw, 17);
+          ctx.fillStyle = 'rgba(8,18,30,.86)'; ctx.fill(); ctx.strokeStyle = l.color; ctx.lineWidth = 1.2; ctx.stroke();
+          ctx.fillStyle = l.color; ctx.fillText(l.text, p[0], y + 9); ctx.lineWidth = 1;
+          ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
+          continue;
+        }
         if (l.kind === 'bubble') {
           ctx.beginPath(); ctx.arc(p[0], p[1], 10, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(12,24,38,.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(150,200,235,.55)'; ctx.stroke();

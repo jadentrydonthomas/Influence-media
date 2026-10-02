@@ -68,10 +68,22 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await page.click('#joistSeg button[data-j="x"]'); await log('joists span length');
   await page.screenshot({ path: path.join(shots, 'plan-joists-x.png'), fullPage: false });
   await page.click('#joistSeg button[data-j="auto"]');
-  await page.dispatchEvent('#planSvg .beam[data-beam="2"]', 'mouseenter');
-  const tribOn = await page.$eval('#planSvg .trib[data-beam="2"]', e => e.classList.contains('on'));
+  await page.dispatchEvent('#planSvg .beam[data-beam="0:2"]', 'mouseenter');
+  const tribOn = await page.$eval('#planSvg .trib[data-band="0:2"]', e => e.classList.contains('on'));
   console.log('trib band on hover'.padEnd(30), tribOn);
   if (!tribOn) fail('trib band did not light on hover');
+  // hover cards: every mezzanine column shows its Column-sheet left / right D and L; building columns their load to the frame
+  const tipAt = async sel => { const el = await page.$(sel); if (!el) return null; await el.scrollIntoViewIfNeeded(); await page.waitForTimeout(60); const b = await el.boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(80); return page.$eval('.hover-tip', e => (e.hidden ? '' : e.textContent.replace(/\s+/g, ' ').trim())); };
+  const colTip = await tipAt('#planSvg .mcol');
+  console.log('hover mezz column'.padEnd(30), (colTip || '').slice(0, 150));
+  if (!/Column sheet input/.test(colTip || '') || !/Left\s*D \d+\.\d\d\s*L \d+\.\d\d/.test(colTip) || !/Right\s*D \d+\.\d\d/.test(colTip)) fail('hovering a mezzanine column should show its left / right dead and live');
+  const bTip = await tipAt('#planSvg .bcol-g.ld');
+  console.log('hover building column'.padEnd(30), (bTip || '').slice(0, 150));
+  if (!/load to the frame/.test(bTip || '') || !/Total\s*D \d+\.\d\d\s*L \d+\.\d\d/.test(bTip)) fail('hovering a building column with beams in should show the load to the frame');
+  const beamTip = await tipAt('#planSvg .beam[data-beam="0:0"]');
+  console.log('hover beam'.padEnd(30), (beamTip || '').slice(0, 150));
+  if (!/End shear/.test(beamTip || '')) fail('hovering a beam should show its end shear');
+  await page.mouse.move(2, 2);
 
   // beam options on the results page
   await page.click('#nav button[data-view="results"]');
@@ -130,7 +142,7 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   const box = await page.$eval('#model3d', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   let hit = null;
   // aim at a beam's top face first (the renderer says where it is), then fall back to sweeping the canvas
-  for (const id of ['B1', 'B2', 'B3', 'B5']) {
+  for (const id of (await page.evaluate(() => window.MZ_DEBUG && window.MZ_DEBUG.beams ? window.MZ_DEBUG.beams().slice(0, 6) : ['B1', 'B2', 'B3', 'B5']))) {
     const pt = await page.evaluate(i => window.MZ_DEBUG && window.MZ_DEBUG.modelPoint(i), id);
     if (!pt) continue;
     await page.mouse.move(box.x + pt[0], box.y + pt[1]);

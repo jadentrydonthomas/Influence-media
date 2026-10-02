@@ -452,8 +452,8 @@ tr.none td { color: var(--ink-faint); }
 .plan .joist { stroke: var(--ink-faint); stroke-width: .8; opacity: .45; }
 .plan .beam { stroke-width: 5; stroke-linecap: butt; cursor: pointer; }
 .plan .beam:hover { stroke-width: 8; }
-.plan .trib { opacity: 0; transition: opacity 140ms var(--ease); pointer-events: none; }
-.plan .trib.on { opacity: .2; }
+.plan .trib { opacity: .13; transition: opacity 140ms var(--ease); pointer-events: none; }
+.plan .trib.on { opacity: .34; }
 .plan .bcol { fill: var(--ink); }
 .plan .mcol circle { fill: var(--surface); stroke: var(--red); stroke-width: 2; }
 .plan .mcol path { stroke: var(--red); stroke-width: 2; }
@@ -662,6 +662,63 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .sr.is-on { border-color: var(--green); box-shadow: 0 0 0 1px var(--green) inset; background: var(--green-soft); }
 .bc-run { color: var(--ink-faint); font: 500 .5em var(--mono); letter-spacing: 0; }
 @media (max-width: 640px) { .mk-row { grid-template-columns: 52px 1fr auto; gap: 8px; } .sr, .sr-head { min-width: 0; flex: 1 1 100%; } }
+#miniPlan .mp-bc rect, #planPopSvg .mp-bc rect { fill: #8fb2c7; }
+#miniPlan .mp-bc.ld rect, #planPopSvg .mp-bc.ld rect { fill: #f6c779; }
+#miniPlan .mp-bc, #planPopSvg .mp-bc, #miniPlan .mp-col, #planPopSvg .mp-col { cursor: pointer; }
+#miniPlan .mp-hit, #planPopSvg .mp-hit { fill: transparent; }
+#miniPlan .mp-mz, #planPopSvg .mp-mz { fill: #9fe9cf; font: 700 calc(8px * var(--k)) var(--body); letter-spacing: .06em; text-anchor: middle; dominant-baseline: central; opacity: .85; pointer-events: none; paint-order: stroke; stroke: #0b1724; stroke-width: calc(2.4px * var(--k)); }
+
+/* ---------- hover card: column D / L inputs, loads to the frame, beam end shears ---------- */
+.hover-tip { position: fixed; top: 0; left: 0; z-index: 1000; width: max-content; max-width: min(400px, calc(100vw - 16px)); padding: 12px 14px 11px; border: 1px solid var(--line-strong); border-radius: 14px; background: color-mix(in srgb, var(--surface) 96%, transparent); color: var(--ink); box-shadow: 0 18px 40px -18px #000c, 0 2px 8px #0004; pointer-events: none; font-size: 12px; backdrop-filter: blur(8px); }
+.hover-tip[hidden] { display: none; }
+.tip-h { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.tip-h b { font: 700 14px var(--mono); letter-spacing: -.02em; }
+.tip-h span { color: var(--ink-faint); font-size: 11px; }
+.tip-k { margin: 9px 0 5px; color: var(--ink-faint); font: 600 10px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.tip-lr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tip-lr.one { grid-template-columns: 1fr; }
+.tip-lr > div { display: grid; grid-template-columns: auto 1fr 1fr; align-items: baseline; gap: 8px; padding: 6px 9px; border-radius: 9px; background: var(--surface-soft); }
+.tip-lr span { color: var(--ink-muted); font-size: 11px; }
+.tip-lr b { font: 700 14px var(--mono); letter-spacing: -.02em; white-space: nowrap; }
+.hover-tip .d { color: var(--steel); } .hover-tip .l { color: var(--green); }
+.hover-tip table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 11.5px; }
+.hover-tip th { padding: 0 6px 3px 0; color: var(--ink-faint); font: 600 10px var(--mono); text-align: right; }
+.hover-tip th:nth-child(2) { text-align: left; }
+.hover-tip td { padding: 4px 6px 4px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.hover-tip td.sd { color: var(--ink-muted); font-size: 10.5px; }
+.hover-tip td.d, .hover-tip td.l { font: 600 12px var(--mono); text-align: right; white-space: nowrap; }
+.hover-tip td i, .tip-sec i { display: inline-block; width: 8px; height: 8px; margin: 0 4px 0 2px; border-radius: 50%; }
+.hover-tip td small { display: block; color: var(--ink-faint); font: 10.5px var(--mono); }
+.tip-sec { margin-top: 6px; font: 700 18px var(--mono); letter-spacing: -.03em; }
+.tip-dl { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 16px; margin: 8px 0 0; }
+.tip-dl dt { color: var(--ink-faint); font-size: 10.5px; }
+.tip-dl dd { margin: 1px 0 0; font: 600 12.5px var(--mono); }
+.tip-dl small { color: var(--ink-faint); font-size: 10px; }
+.tip-f { margin-top: 8px; color: var(--ink-muted); font-size: 11px; line-height: 1.45; }
+.tip-f:empty { display: none; }
+.mk-key b { font-weight: 700; }
+.mk-mini { display: grid; gap: 6px; margin-top: 12px; }
+.mk-mini > div { display: grid; grid-template-columns: auto 1fr auto; gap: 0 10px; align-items: baseline; padding: 7px 10px; border-radius: 10px; background: #0b182766; box-shadow: inset 3px 0 0 var(--mk); }
+.mk-mini b { color: var(--mk); font: 700 13px var(--mono); }
+.mk-mini span { color: #93b0c4; font-size: 11px; }
+.mk-mini em { grid-column: 1 / 3; color: #f2fbff; font: 500 17px var(--mono); font-style: normal; letter-spacing: -.03em; }
+.mk-mini small { grid-row: 1 / 3; grid-column: 3; align-self: center; color: #70f5c4; font: 600 15px var(--mono); }
+
+/* ---------- the job's plan: interior / exterior at a glance, every column hoverable ---------- */
+.plan .run-lab { font: 700 10.5px var(--mono); letter-spacing: .04em; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; pointer-events: none; }
+.plan .mz-name { fill: var(--ink); font: 700 15px var(--body); letter-spacing: .06em; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; opacity: .78; cursor: pointer; }
+.plan .mz-name.is-cur { fill: var(--green); opacity: 1; }
+.plan .hit { fill: transparent; }
+.plan .bcol-g, .plan .mcol, .plan .tag { cursor: pointer; }
+.plan .bcol-g.ld .bcol { fill: var(--amber); stroke: var(--ink); stroke-width: 1; }
+.plan .bcol-g:hover .bcol { stroke: var(--steel); stroke-width: 2; }
+.plan .mcol:hover circle:not(.hit) { fill: color-mix(in srgb, var(--red) 25%, var(--surface)); }
+.plan .tag.b.int text { font-weight: 800; }
+.legend .lg-mk b { font-weight: 700; }
+.legend .lg-hint { color: var(--ink-faint); font-style: italic; }
+.plan .bldg-cut { fill: none; stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 5; }
+#miniPlan .mp-cl2, #planPopSvg .mp-cl2 { fill: #9fb7ca; font-weight: 600; font-size: calc(6.5px * var(--k)); }
+.plan .dim[text-anchor="start"] { text-anchor: start; } .plan .dim[text-anchor="end"] { text-anchor: end; }
 
 </style>
 </head>
@@ -677,7 +734,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
 </svg>
-<div class="plan-pop" id="planPop" hidden role="dialog" aria-label="Floor plan"><div class="pp-head"><b id="ppTitle">Floor plan</b><span>click a column or beam to open its calc · Esc closes</span><button id="ppClose" aria-label="Close">✕</button></div><svg id="planPopSvg" role="img" aria-label="Floor plan, large"></svg></div>
+<div class="plan-pop" id="planPop" hidden role="dialog" aria-label="Floor plan"><div class="pp-head"><b id="ppTitle">Floor plan</b><span>hover a column for its dead / live · click to open its calc · Esc closes</span><button id="ppClose" aria-label="Close">✕</button></div><svg id="planPopSvg" role="img" aria-label="Floor plan, large"></svg></div>
 <div class="app">
   <aside class="rail" aria-label="Mezzanine design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
@@ -760,7 +817,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
         <div class="model-head">
           <div><div class="eyebrow">3D framing model</div><h3 id="modelTitle">The mezzanine, built</h3></div>
           <div class="model-toggles" id="modelToggles">
-            <button data-t="slab" class="is-on">Slab</button><button data-t="joists" class="is-on">Joists</button><button data-t="building" class="is-on">Building columns</button>
+            <button data-t="slab" class="is-on">Slab</button><button data-t="joists" class="is-on">Joists</button><button data-t="building" class="is-on">Building columns</button><button data-t="tags" class="is-on">Mark tags</button>
           </div>
         </div>
         <div class="model-body">
@@ -2532,7 +2589,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   /* scene: { center:[x,y,z], radius, members:[{ id, kind, color, boxes:[], lines:[[p,q],...], alpha, info }], labels:[{p:[x,y,z], text, kind}] } */
   function mount(canvas, opts = {}) {
     const ctx = canvas.getContext('2d');
-    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true } };
+    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
     let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1;
     const [PAD_T, PAD_B] = opts.pad || [34, 70];   // header text above, control bar below
@@ -2641,6 +2698,18 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (const l of scene.labels || []) {
         const p = project(l.p);
+        if (l.kind === 'tag') {
+          // a mark tag on a beam (MB1 INT): outlined pill in the mark's colour
+          if (!view.toggles.tags) continue;
+          ctx.font = '700 10px "Cascadia Code", Consolas, monospace';
+          const tw = ctx.measureText(l.text).width + 12, y = p[1] - 9 + (l.dy || 0);
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(p[0] - tw / 2, y, tw, 17, 8.5); else ctx.rect(p[0] - tw / 2, y, tw, 17);
+          ctx.fillStyle = 'rgba(8,18,30,.86)'; ctx.fill(); ctx.strokeStyle = l.color; ctx.lineWidth = 1.2; ctx.stroke();
+          ctx.fillStyle = l.color; ctx.fillText(l.text, p[0], y + 9); ctx.lineWidth = 1;
+          ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
+          continue;
+        }
         if (l.kind === 'bubble') {
           ctx.beginPath(); ctx.arc(p[0], p[1], 10, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(12,24,38,.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(150,200,235,.55)'; ctx.stroke();
@@ -3573,6 +3642,96 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   const runOf = (mk, span) => (mk && mk.spanRuns ? mk.spanRuns.find(q => Math.abs(q.span - span) < 1e-3) : null);
   const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
 
+  // ---------- one holistic drawing: every mezzanine of the job in this building, drawn together ----------
+  function jobView() {
+    const r = state.res;
+    if (!r || r.incomplete) return [];
+    const ms = state.job ? state.job.mezz.filter(o => !o.incomplete && o.grid.length === r.grid.length && o.grid.width === r.grid.width) : [];
+    return ms.length ? ms : [r];
+  }
+  const inpOf = m => (state.all && state.all[m.index] ? state.all[m.index].inputs : state.inputs);
+  const atPt = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
+  // C1, C2 … numbered once over the job (plans, 3D, Column page): along the length, then from the BSW
+  const colNos = () => new Map(jobView().flatMap(m => m.layout.mezzCols).sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  // building columns the mezzanine beams frame into, once each over the job
+  const bldgCols = () => { const out = []; jobView().forEach(m => m.layout.supports.filter(sp => sp.building).forEach(sp => { if (!out.some(q => atPt(q, sp))) out.push(sp); })); return out; };
+  // the mark that colours a beam: its own, or for an edge carried by a neighbour, the carrying beam's
+  const bandMark = (m, b) => (b.absorbed ? mkOf(state.job.mezz[b.absorbed.mi], b.absorbed.into[0]) : mkOf(m, b.id));
+  // a column's job record (loads, beams in) and where it is designed
+  function colInfo(pt) {
+    const job = state.job, c = job && job.columns.find(q => atPt(q, pt));
+    if (!c) return null;
+    const m = job.mezz[c.owner], gi = m.colGroups.findIndex(gp => gp.cols.some(q => q.label === c.label));
+    return { c, m, gi };
+  }
+  function openCol(pt) {
+    const ci = colInfo(pt);
+    if (!ci) return;
+    if (state.all && ci.m.index !== state.mi) switchMezz(ci.m.index);
+    if (ci.gi >= 0) state.colGroup = ci.gi;
+    go('column'); renderColumn(); renderMiniPlan();
+  }
+
+  // ---------- hover cards: what every column takes (Column-sheet D / L, or the load to the frame), each beam's end shears ----------
+  const sideTxt = sd => (sd === 'left' ? 'Left' : sd === 'right' ? 'Right' : '');
+  function partRow(p, side) {
+    const m = state.job.mezz[p.mi], id = p.id != null ? p.id : +String(p.beam).slice(1) - 1, bm = m.layout.beams[id], mk = mkOf(m, id);
+    return `<tr><td class="sd">${sideTxt(side)}</td><td><b>${manyMezz() ? esc(m.id) + ' ' : ''}B${id + 1}</b> <i style="background:${mkHex(mk)}"></i>${mk ? esc(mkName(mk)) : ''}<small>${mk ? esc(mk.desc || '') + ' · ' : ''}${ft(bm.span)} × ${ft(bm.trib)} trib</small></td><td class="d">${f(p.D, 2)}</td><td class="l">${f(p.L, 2)}</td></tr>`;
+  }
+  function tipHtml(key) {
+    const job = state.job, r = state.res;
+    if (!job || !r || r.incomplete) return '';
+    const [kind, a, b] = key.split('|'), cno = colNos(), many = manyMezz();
+    const head = (t, sub) => `<div class="tip-h"><b>${t}</b><span>${sub}</span></div>`;
+    const tbl = rows => `<table><thead><tr><th></th><th>beam framing in</th><th>D k</th><th>L k</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const pair = (lab, D, L) => `<div><span>${lab}</span><b class="d">D ${f(D, 2)}</b><b class="l">L ${f(L, 2)}</b></div>`;
+    if (kind === 'col') {
+      const ci = colInfo({ x: +a, y: +b });
+      if (!ci) return '';
+      const { c, m, gi } = ci, chk = m.colFinal && gi >= 0 ? m.colFinal.checks[gi] : null;
+      const rows = ['left', 'right'].map(sd => { const ps = c.parts.filter(p => p.sheetSide === sd); return ps.length ? ps.map((p, i) => partRow(p, i ? '' : sd)).join('') : `<tr><td class="sd">${sideTxt(sd)}</td><td><small>no beam on this side</small></td><td class="d">0.00</td><td class="l">0.00</td></tr>`; }).join('');
+      return head(`C${cno.get(c.label) || '?'} · ${esc(c.label)}`, `mezzanine column${many ? ' · ' + esc(m.id) : ''}`) +
+        `<div class="tip-k">Column sheet input · beam reactions, unfactored (kips)</div><div class="tip-lr">${pair('Left', c.DL_L, c.LL_L)}${pair('Right', c.DL_R, c.LL_R)}</div>` + tbl(rows) +
+        `<div class="tip-f">${m.colFinal ? `<b>${esc(m.colFinal.quoteAs)}</b> · ${ft(m.colLen)} · CSR ${chk ? f(chk.max, 3) : '—'}` : 'not sized yet'} · trib ${f(c.tribArea, 0)} ft²${c.shared ? ' · shared by ' + esc(c.mezzes.map(i => job.mezz[i].id).join(' + ')) : ''}</div>`;
+    }
+    if (kind === 'bcol') {
+      const pt = { x: +a, y: +b }, fl = (job.frameLoads || []).find(q => atPt(q, pt)), g = r.grid;
+      const lab = fl ? fl.label : `${g.xLabel(pt.x) || ft(pt.x)}/${g.yLabel(pt.y) || ft(pt.y)}`;
+      if (!fl) return head(esc(lab), 'building column') + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
+      return head(esc(lab), 'building column · load to the frame') + `<div class="tip-k">Mezzanine beam reactions · unfactored (kips)</div><div class="tip-lr one">${pair('Total', fl.D, fl.L)}</div>` +
+        tbl(fl.parts.map(p => partRow(p)).join('')) + '<div class="tip-f">Goes to the frame / endwall design, not the mezzanine Column sheet.</div>';
+    }
+    if (kind === 'beam' || kind === 'carried') {
+      const m = job.mezz[+a], id = +b, bm = m.layout.beams[id];
+      const fl = m.layout.joists === 'y' ? m.grid.xLabel : m.grid.yLabel, line = (m.layout.joists === 'y' ? m.grid.yLabel(bm.line) : m.grid.xLabel(bm.line)) || ft(bm.line);
+      const where = `line ${esc(line)} · ${esc(fl(bm.from) || ft(bm.from))} → ${esc(fl(bm.to) || ft(bm.to))}`;
+      if (kind === 'carried') return head(`${esc(m.id)} edge · B${id + 1}`, where) + `<div class="tip-f">Carried by ${esc(bm.absorbed.mezz)} ${bm.absorbed.into.map(i => 'B' + (i + 1)).join(', ')} on the same line — its ${ft(bm.tribOwn)} trib is added to that beam, so it is not counted here.</div>`;
+      const mk = mkOf(m, id), run = runOf(mk, bm.span), rx = mk && mk.sec ? DESIGN.reactions({ ...m.beamBase, L: bm.span, trib: bm.trib }, mk.sec) : null;
+      const trib = bm.extra ? `${ft(bm.trib)} <small>(${ft(bm.tribOwn)} + ${bm.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')})</small>` : ft(bm.trib);
+      return head(`${many ? esc(m.id) + ' ' : ''}B${id + 1} · ${esc(mkName(mk))}`, where) +
+        `<div class="tip-sec"><i style="background:${mkHex(mk)}"></i>${esc(mk ? mk.desc || 'no section' : '—')}</div>` +
+        `<dl class="tip-dl"><div><dt>Span</dt><dd>${ft(bm.span)}</dd></div><div><dt>Trib</dt><dd>${trib}</dd></div><div><dt>MB sheet run</dt><dd>${mk ? `${ft(run ? run.span : mk.span)} × ${ft(mk.trib)}` : '—'}</dd></div></dl>` +
+        (rx ? `<div class="tip-k">End shear, each end · own span and trib (MB H6 / H10)</div><div class="tip-lr one">${pair('Each end', rx.D, rx.L)}</div>` : '') +
+        `<div class="tip-f">${mk && mk.kind === 'interior' ? 'Interior: more trib than any edge beam — designed at the largest interior trib.' : mk && mk.kind === 'exterior' ? 'Exterior: edge beam, joists on one side — designed at the largest edge trib.' : ''}</div>`;
+    }
+    return '';
+  }
+  const tipEl = document.createElement('div');
+  tipEl.className = 'hover-tip'; tipEl.hidden = true; document.body.appendChild(tipEl);
+  let tipKey = null;
+  document.addEventListener('mousemove', e => {
+    const t = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (!t) { if (tipKey) { tipKey = null; tipEl.hidden = true; } return; }
+    if (t.dataset.tip !== tipKey) { tipKey = t.dataset.tip; const h = tipHtml(tipKey); tipEl.innerHTML = h; tipEl.hidden = !h; }
+    if (tipEl.hidden) return;
+    const w = tipEl.offsetWidth, h = tipEl.offsetHeight, pad = 16;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > innerWidth - 8) x = e.clientX - w - pad;
+    if (y + h > innerHeight - 8) y = e.clientY - h - pad;
+    tipEl.style.transform = `translate(${Math.max(8, x)}px, ${Math.max(8, y)}px)`;
+  });
+  window.addEventListener('scroll', () => { if (tipKey) { tipKey = null; tipEl.hidden = true; } }, { passive: true });
+
   // ---------- theme (Astra default: dark) ----------
   try { const t = localStorage.getItem('mqd-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* storage unavailable */ }
   const syncThemeBtn = () => { $('#themeBtn').textContent = document.documentElement.dataset.theme === 'dark' ? 'Light theme' : 'Dark theme'; };
@@ -3808,9 +3967,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     renderMezzTabs();
     const many = state.all && state.all.length > 1;
     if (r.incomplete) { $('#rsSub').textContent = 'Needs input — see Design'; renderMiniPlan(); return; }
-    $('#rsSub').textContent = many ? `${inp.mezz.id} · ${t.nB} beams · ${t.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
+    const jt = many ? jobTotals() : t;
+    $('#rsSub').textContent = many ? `${state.job.mezz.filter(m => !m.incomplete).map(m => m.id).join(' + ')} · ${jt.nB} beams · ${jt.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
     $('#navPlanCount').hidden = false;
-    $('#navPlanCount').textContent = `${t.nB}·${t.nC}`;
+    $('#navPlanCount').textContent = `${jt.nB}·${jt.nC}`;
   }
 
   // ---------- design (results) ----------
@@ -4114,76 +4274,74 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 
   // ---------- 3D framing model ----------
   let model = null;
+  // the whole job in one scene: every mezzanine at its own elevation, beams in their mark's colour (interior / exterior)
+  // with a mark tag at mid-span, every column once (numbered over the job), the building columns beams frame into
   function buildScene() {
-    const r = state.res, inp = state.inputs, lay = r.layout, g = r.grid, fp = lay.footprint;
-    const A = inp.geom.A.value ?? 12, slab = (inp.geom.slab.value || 4 / 12), seat = (inp.geom.seat.value || 2.5 / 12);
-    const zDeck = A - slab, zTop = zDeck - seat, J = r.joistDepthIn != null && r.joistDepthIn > 0 ? r.joistDepthIn / 12 : 1.33;
-    const alongX = lay.joists === 'y';
+    const r = state.res, g = r.grid, ms = jobView(), many = ms.length > 1, cno = colNos();
     const members = [], labels = [], floor = [];
-    const colNo = new Map(lay.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
-    // beams: I-shapes (top flange, web, bottom flange) — web drawn at least 0.9" so it reads
-    lay.beams.forEach(b => {
-      const mk = mkOf(r, b.id), sec = mk && mk.sec;
-      if (!sec) return;
-      const d = sec.d / 12, bf = sec.bof / 12, tf = sec.tof / 12, bi = sec.bif / 12, ti = sec.tif / 12, tw = Math.max(sec.tw, 0.9) / 12;
-      const box = (a0, a1, w, z0, z1) => (alongX ? { x0: a0, x1: a1, y0: b.line - w / 2, y1: b.line + w / 2, z0, z1 } : { x0: b.line - w / 2, x1: b.line + w / 2, y0: a0, y1: a1, z0, z1 });
-      members.push({ id: 'B' + (b.id + 1), kind: 'beam', color: mkHex(mk), boxes: [box(b.from, b.to, bf, zTop - tf, zTop), box(b.from, b.to, tw, zTop - d + ti, zTop - tf), box(b.from, b.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', b, mk } });
-    });
-    // mezzanine columns: W shape, web parallel to the beam web, from the floor to the underside of the beam
-    const cf = r.colFinal, w = cf ? WF[cf.name] : null, dBeam = Math.max(0, ...r.marks.filter(m => m.sec).map(m => m.sec.d)) / 12;
-    lay.mezzCols.forEach(c => {
-      const cd = (w ? w.d : 10) / 12, cb = (w ? w.bf : 6) / 12, ctf = Math.max(w ? w.tf : 0.4, 0.5) / 12, ctw = Math.max(w ? w.tw : 0.25, 0.9) / 12, zc = zTop - dBeam;
-      const bx = (dx0, dx1, dy0, dy1, z0, z1) => (alongX ? { x0: c.x + dx0, x1: c.x + dx1, y0: c.y + dy0, y1: c.y + dy1, z0, z1 } : { x0: c.x + dy0, x1: c.x + dy1, y0: c.y + dx0, y1: c.y + dx1, z0, z1 });
-      members.push({ id: 'C' + colNo.get(c.label), kind: 'col', color: '#ff9f7a', boxes: [
-        bx(-cd / 2, -cd / 2 + ctf, -cb / 2, cb / 2, 0, zc), bx(cd / 2 - ctf, cd / 2, -cb / 2, cb / 2, 0, zc), bx(-cd / 2 + ctf, cd / 2 - ctf, -ctw / 2, ctw / 2, 0, zc),
-        bx(-cd / 2 - 0.12, cd / 2 + 0.12, -cb / 2 - 0.12, cb / 2 + 0.12, zc - 0.06, zc), bx(-cd / 2 - 0.25, cd / 2 + 0.25, -cb / 2 - 0.25, cb / 2 + 0.25, 0, 0.07),
-      ], ref: { type: 'col', c, no: colNo.get(c.label) } });
-    });
-    (r.foreignCols || []).forEach(c => members.push({ id: 'S ' + c.label, kind: 'col', color: '#f6c779', boxes: [{ x0: c.x - 0.35, x1: c.x + 0.35, y0: c.y - 0.35, y1: c.y + 0.35, z0: 0, z1: zTop - dBeam }], ref: { type: 'foreign', c } }));
-    // building columns the beams frame into (stubs to just above the mezzanine)
-    lay.supports.filter(sp => sp.building).forEach(sp => members.push({ id: 'BC ' + sp.label, kind: 'bcol', color: '#6f89a3', boxes: [{ x0: sp.x - 0.33, x1: sp.x + 0.33, y0: sp.y - 0.33, y1: sp.y + 0.33, z0: 0, z1: A + 2.5 }], ref: { type: 'bcol', sp } }));
-    // joists: open-web lines between beam lines at the joist spacing
-    const sp = r.beamBase.Lb;
-    if (sp > 0) {
-      const a0 = alongX ? fp.x0 : fp.y0, a1 = alongX ? fp.x1 : fp.y1;
-      let k = 0;
-      for (let a = a0; a <= a1 + 1e-6; a += sp) {
-        lay.beamLines.slice(1).forEach((l1, i) => {
-          const l0 = lay.beamLines[i], lines = [], P = (t, z) => (alongX ? [a, t, z] : [t, a, z]);
-          const b0 = l0 + 0.5, b1 = l1 - 0.5;
-          lines.push([P(l0, zDeck), P(l1, zDeck)], [P(b0, zDeck - J), P(b1, zDeck - J)]);
-          const n = Math.max(2, Math.round((b1 - b0) / 2.2));
-          for (let q = 0; q < n; q++) { const t0 = b0 + (b1 - b0) * q / n, t1 = b0 + (b1 - b0) * (q + 0.5) / n, t2 = b0 + (b1 - b0) * (q + 1) / n; lines.push([P(t0, zDeck - J), P(t1, zDeck)], [P(t1, zDeck), P(t2, zDeck - J)]); }
-          lines.push([P(l0, zDeck), P(b0, zDeck - J)], [P(l1, zDeck), P(b1, zDeck - J)]);
-          members.push({ id: 'J' + (++k), kind: 'joist', color: '#a9cbe0', alpha: 0.55, width: 1, lines, ref: { type: 'joist' } });
-        });
-      }
-    }
-    // slab (translucent)
-    members.push({ id: 'slab', kind: 'slab', color: '#8fd3ff', alpha: 0.09, boxes: [{ x0: fp.x0, x1: fp.x1, y0: fp.y0, y1: fp.y1, z0: zDeck, z1: A }] });
-    // the other mezzanines of the job, in muted steel (their beams on a shared line carry this one's edge)
-    const others = (state.job ? state.job.mezz : []).filter(o => o !== r && !o.incomplete && o.grid.length === g.length && o.grid.width === g.width);
-    others.forEach(o => {
-      const oi = state.all && state.all[o.index] ? state.all[o.index].inputs : null;
-      const oA = oi ? oi.geom.A.value ?? A : A, oDeck = oA - (oi ? oi.geom.slab.value || slab : slab), oTop = oDeck - (oi ? oi.geom.seat.value || seat : seat), f2 = o.layout.footprint;
-      o.layout.beams.filter(b => !b.absorbed).forEach(b => {
-        const mk = o.marks.find(m => m.beams.includes(b.id)), d = mk && mk.sec ? mk.sec.d / 12 : 2, bf = mk && mk.sec ? mk.sec.bof / 12 : 0.5;
-        const box = b.dir === 'x' ? { x0: b.from, x1: b.to, y0: b.line - bf / 2, y1: b.line + bf / 2, z0: oTop - d, z1: oTop } : { x0: b.line - bf / 2, x1: b.line + bf / 2, y0: b.from, y1: b.to, z0: oTop - d, z1: oTop };
-        members.push({ id: `${o.id} B${b.id + 1}`, kind: 'other', color: '#7d93a8', boxes: [box], ref: { type: 'other', o, b, mk } });
+    let Atop = 0;
+    ms.forEach(m => {
+      const inp = inpOf(m), lay = m.layout, fp = lay.footprint, pre = many ? m.id + ' ' : '';
+      const A = inp.geom.A.value ?? 12, slab = (inp.geom.slab.value || 4 / 12), seat = (inp.geom.seat.value || 2.5 / 12);
+      const zDeck = A - slab, zTop = zDeck - seat, J = m.joistDepthIn != null && m.joistDepthIn > 0 ? m.joistDepthIn / 12 : 1.33;
+      const alongX = lay.joists === 'y';
+      Atop = Math.max(Atop, A);
+      // beams: I-shapes (top flange, web, bottom flange) — web drawn at least 0.9" so it reads; an edge carried by a
+      // neighbour's beam is that beam, drawn once by its owner
+      lay.beams.filter(bm => !bm.absorbed).forEach(bm => {
+        const mk = mkOf(m, bm.id), sec = mk && mk.sec;
+        if (!sec) return;
+        const d = sec.d / 12, bf = sec.bof / 12, tf = sec.tof / 12, bi = sec.bif / 12, ti = sec.tif / 12, tw = Math.max(sec.tw, 0.9) / 12;
+        const box = (a0, a1, w, z0, z1) => (alongX ? { x0: a0, x1: a1, y0: bm.line - w / 2, y1: bm.line + w / 2, z0, z1 } : { x0: bm.line - w / 2, x1: bm.line + w / 2, y0: a0, y1: a1, z0, z1 });
+        members.push({ id: pre + 'B' + (bm.id + 1), kind: 'beam', color: mkHex(mk), boxes: [box(bm.from, bm.to, bf, zTop - tf, zTop), box(bm.from, bm.to, tw, zTop - d + ti, zTop - tf), box(bm.from, bm.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', m, b: bm, mk } });
+        const mid = (bm.from + bm.to) / 2;
+        labels.push({ p: alongX ? [mid, bm.line, zTop + 0.2] : [bm.line, mid, zTop + 0.2], text: mk.mark + (mk.kind ? ' ' + mk.kind.slice(0, 3).toUpperCase() : ''), kind: 'tag', color: mkHex(mk) });
       });
-      o.columns.forEach(c => members.push({ id: `${o.id} ${c.label}`, kind: 'other', color: '#8c7f78', boxes: [{ x0: c.x - 0.3, x1: c.x + 0.3, y0: c.y - 0.3, y1: c.y + 0.3, z0: 0, z1: oTop - 2 }], ref: { type: 'otherCol', o, c } }));
-      members.push({ id: `${o.id} slab`, kind: 'slab', color: '#b8c7d6', alpha: 0.06, boxes: [{ x0: f2.x0, x1: f2.x1, y0: f2.y0, y1: f2.y1, z0: oDeck, z1: oA }] });
+      // mezzanine columns: W shape, web parallel to the beam web, from the floor to the underside of the beam
+      const cf = m.colFinal, w = cf ? WF[cf.name] : null, dBeam = Math.max(0, ...m.marks.filter(q => q.sec).map(q => q.sec.d)) / 12;
+      lay.mezzCols.forEach(c => {
+        const cd = (w ? w.d : 10) / 12, cb = (w ? w.bf : 6) / 12, ctf = Math.max(w ? w.tf : 0.4, 0.5) / 12, ctw = Math.max(w ? w.tw : 0.25, 0.9) / 12, zc = zTop - dBeam;
+        const bx = (dx0, dx1, dy0, dy1, z0, z1) => (alongX ? { x0: c.x + dx0, x1: c.x + dx1, y0: c.y + dy0, y1: c.y + dy1, z0, z1 } : { x0: c.x + dy0, x1: c.x + dy1, y0: c.y + dx0, y1: c.y + dx1, z0, z1 });
+        members.push({ id: 'C' + cno.get(c.label), kind: 'col', color: '#ff9f7a', boxes: [
+          bx(-cd / 2, -cd / 2 + ctf, -cb / 2, cb / 2, 0, zc), bx(cd / 2 - ctf, cd / 2, -cb / 2, cb / 2, 0, zc), bx(-cd / 2 + ctf, cd / 2 - ctf, -ctw / 2, ctw / 2, 0, zc),
+          bx(-cd / 2 - 0.12, cd / 2 + 0.12, -cb / 2 - 0.12, cb / 2 + 0.12, zc - 0.06, zc), bx(-cd / 2 - 0.25, cd / 2 + 0.25, -cb / 2 - 0.25, cb / 2 + 0.25, 0, 0.07),
+        ], ref: { type: 'col', m, c, no: cno.get(c.label) } });
+      });
+      // joists: open-web lines between beam lines at the joist spacing
+      const sp = m.beamBase.Lb;
+      if (sp > 0) {
+        const a0 = alongX ? fp.x0 : fp.y0, a1 = alongX ? fp.x1 : fp.y1;
+        let k = 0;
+        for (let t = a0; t <= a1 + 1e-6; t += sp) {
+          lay.beamLines.slice(1).forEach((l1, i) => {
+            const l0 = lay.beamLines[i], lines = [], P = (u, z) => (alongX ? [t, u, z] : [u, t, z]);
+            const b0 = l0 + 0.5, b1 = l1 - 0.5;
+            lines.push([P(l0, zDeck), P(l1, zDeck)], [P(b0, zDeck - J), P(b1, zDeck - J)]);
+            const n = Math.max(2, Math.round((b1 - b0) / 2.2));
+            for (let q = 0; q < n; q++) { const t0 = b0 + (b1 - b0) * q / n, t1 = b0 + (b1 - b0) * (q + 0.5) / n, t2 = b0 + (b1 - b0) * (q + 1) / n; lines.push([P(t0, zDeck - J), P(t1, zDeck)], [P(t1, zDeck), P(t2, zDeck - J)]); }
+            lines.push([P(l0, zDeck), P(b0, zDeck - J)], [P(l1, zDeck), P(b1, zDeck - J)]);
+            members.push({ id: pre + 'J' + (++k), kind: 'joist', color: '#a9cbe0', alpha: 0.55, width: 1, lines, ref: { type: 'joist' } });
+          });
+        }
+      }
+      // slab (translucent), footprint on the floor, the mezzanine's name
+      members.push({ id: pre + 'slab', kind: 'slab', color: '#8fd3ff', alpha: 0.09, boxes: [{ x0: fp.x0, x1: fp.x1, y0: fp.y0, y1: fp.y1, z0: zDeck, z1: A }] });
+      [[fp.x0, fp.y0], [fp.x1, fp.y0], [fp.x1, fp.y1], [fp.x0, fp.y1]].forEach((p, i, arr) => { const q = arr[(i + 1) % 4]; floor.push([[p[0], p[1], 0], [q[0], q[1], 0], 'rgba(105,250,197,.45)', false]); });
+      if (many) labels.push({ p: [(fp.x0 + fp.x1) / 2, (fp.y0 + fp.y1) / 2, 0], text: m.id, kind: 'text', color: '#9fe9cf' });
+      if (m === r || !many) {
+        labels.push({ p: [fp.x1, fp.y0, A], text: `T/slab ${ft(A)}`, kind: 'text', color: '#9fe9cf', dy: -8 });
+        labels.push({ p: [fp.x1, fp.y0, zTop], text: `T/beam ${ft(zTop)}`, kind: 'text', color: '#8fc0dc', dy: 8 });
+      }
     });
-    // floor: grid lines + footprint + bubbles
-    const u = { x0: Math.min(fp.x0, ...others.map(o => o.layout.footprint.x0)), x1: Math.max(fp.x1, ...others.map(o => o.layout.footprint.x1)), y0: Math.min(fp.y0, ...others.map(o => o.layout.footprint.y0)), y1: Math.max(fp.y1, ...others.map(o => o.layout.footprint.y1)) };
+    // building columns the beams frame into (stubs to just above the mezzanine), once each
+    bldgCols().forEach(sp => members.push({ id: 'BC ' + sp.label, kind: 'bcol', color: '#6f89a3', boxes: [{ x0: sp.x - 0.33, x1: sp.x + 0.33, y0: sp.y - 0.33, y1: sp.y + 0.33, z0: 0, z1: Atop + 2.5 }], ref: { type: 'bcol', sp } }));
+    // floor: grid lines + bubbles around every mezzanine
+    const u = { x0: Math.min(...ms.map(m => m.layout.footprint.x0)), x1: Math.max(...ms.map(m => m.layout.footprint.x1)), y0: Math.min(...ms.map(m => m.layout.footprint.y0)), y1: Math.max(...ms.map(m => m.layout.footprint.y1)) };
     const pad = 6, xLo = u.x0 - pad, xHi = u.x1 + pad, yLo = u.y0 - pad, yHi = u.y1 + pad;
     g.xs.filter(x => x >= xLo - 1e-6 && x <= xHi + 1e-6).forEach(x => { floor.push([[x, yLo, 0], [x, yHi, 0], 'rgba(140,200,235,.22)', true]); labels.push({ p: [x, yLo - 2.2, 0], text: g.xLabel(x), kind: 'bubble' }); });
     const colY = [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()])];
     colY.filter(y => y >= yLo - 1e-6 && y <= yHi + 1e-6).forEach(y => { floor.push([[xLo, y, 0], [xHi, y, 0], 'rgba(140,200,235,.22)', true]); labels.push({ p: [xLo - 2.2, y, 0], text: g.yLabel(y), kind: 'bubble' }); });
-    [[fp.x0, fp.y0], [fp.x1, fp.y0], [fp.x1, fp.y1], [fp.x0, fp.y1]].forEach((p, i, arr) => { const q = arr[(i + 1) % 4]; floor.push([[p[0], p[1], 0], [q[0], q[1], 0], 'rgba(105,250,197,.45)', false]); });
-    labels.push({ p: [fp.x1, fp.y0, A], text: `T/slab ${ft(A)}`, kind: 'text', color: '#9fe9cf', dy: -8 });
-    labels.push({ p: [fp.x1, fp.y0, zTop], text: `T/beam ${ft(zTop)}`, kind: 'text', color: '#8fc0dc', dy: 8 });
-    const Z = A + 2.5;
+    const Z = Atop + 2.5;
     const box = { x0: xLo - 3.4, x1: xHi, y0: yLo - 3.4, y1: yHi, z0: 0, z1: Z };   // bubbles sit 2.2' outside the grid ends
     return { center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, Z / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2, box, members, labels, floor };
   }
@@ -4221,45 +4379,49 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     mini.set({ ...scene, labels: [], floor: (scene.floor || []).filter(g => !g[3]), box, center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, box.z1 / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2 });
     setRailView(railView);
   }
-  /* sidebar floor plan: grid bubbles, B# beams, C# columns; what is under review is lit (the column case on the
-     Column page, the mark on the Beam page); click a column or beam to open its calc. ⤢ shows it large. */
+  /* sidebar floor plan, the whole job: grid bubbles, beams in their mark's colour, C# columns (numbered over the job),
+     building columns. What is under review is lit (the column case on the Column page, the mark and member length on
+     the Beam page). Hover a column for the dead / live it takes; click a column or beam to open its calc. ⤢ shows it large. */
   function planMarkup(Vw, Vh, k, padTop = 0) {
-    const r = state.res, lay = r.layout, g = r.grid, fp = lay.footprint, M = 24 * k;
-    const x0 = Math.min(fp.x0, ...lay.xLines), x1 = Math.max(fp.x1, ...lay.xLines), y0 = Math.min(fp.y0, ...lay.yLines), y1 = Math.max(fp.y1, ...lay.yLines);
+    const r = state.res, g = r.grid, ms = jobView(), many = ms.length > 1, M = 24 * k, cno = colNos();
+    const lays = ms.map(m => m.layout);
+    const x0 = Math.min(...lays.map(l => Math.min(l.footprint.x0, ...l.xLines))), x1 = Math.max(...lays.map(l => Math.max(l.footprint.x1, ...l.xLines)));
+    const y0 = Math.min(...lays.map(l => Math.min(l.footprint.y0, ...l.yLines))), y1 = Math.max(...lays.map(l => Math.max(l.footprint.y1, ...l.yLines)));
     const s = Math.min((Vw - 2 * M) / Math.max(1, x1 - x0), (Vh - 2 * M - 10 * k - padTop) / Math.max(1, y1 - y0));
     const ox = (Vw - (x1 - x0) * s) / 2, oy = padTop + (Vh - padTop - 10 * k - (y1 - y0) * s) / 2;
     const X = x => ox + (x - x0) * s, Y = y => oy + (y1 - y) * s;
-    const cno = colNos(r);
     const grp = state.view === 'column' && r.colGroups[state.colGroup] ? r.colGroups[state.colGroup].cols.map(c => c.label) : null;
-    // on the Beam page: this mezzanine's beams of the mark (and member length) under review
+    // on the Beam page: the job's beams of the mark (and member length) under review
     const jm = state.view === 'beam' ? jobMarks()[state.mark] : null, run = jm && jm.spanRuns && jm.spanRuns.length > 1 ? jm.spanRuns[state.markSpan] : null;
-    const mkOn = jm ? lay.beams.filter(b => !b.absorbed && (mkOf(r, b.id) || {}).mark === jm.mark && (!run || Math.abs(b.span - run.span) < 1e-3)).map(b => b.id) : null;
+    const isOn = (m, b) => !!jm && (mkOf(m, b.id) || {}).mark === jm.mark && (!run || Math.abs(b.span - run.span) < 1e-3);
     const o = [], br = 6.5 * k;
-    lay.xLines.forEach(x => { o.push(`<line class="mp-grid" x1="${X(x)}" y1="${Y(y1) - 8 * k}" x2="${X(x)}" y2="${Y(y0) + 8 * k}"/>`); const lb = g.xLabel(x); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x)}" cy="${Y(y1) - 15 * k}" r="${br}"/><text x="${X(x)}" y="${Y(y1) - 15 * k}">${lb}</text></g>`); else o.push(`<text class="mp-off" x="${X(x)}" y="${Y(y1) - 13 * k}">${ft(x)}</text>`); });
-    lay.yLines.forEach(y => { o.push(`<line class="mp-grid" x1="${X(x0) - 8 * k}" y1="${Y(y)}" x2="${X(x1) + 8 * k}" y2="${Y(y)}"/>`); const lb = g.yLabel(y); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x0) - 15 * k}" cy="${Y(y)}" r="${br}"/><text x="${X(x0) - 15 * k}" y="${Y(y)}">${lb}</text></g>`); });
-    o.push(`<rect class="mp-foot" x="${X(fp.x0)}" y="${Y(fp.y1)}" width="${(fp.x1 - fp.x0) * s}" height="${(fp.y1 - fp.y0) * s}" rx="2"/>`);
-    lay.beams.forEach(b => {
+    const xL = [...new Set(lays.flatMap(l => l.xLines).map(v => +v.toFixed(3)))], yL = [...new Set(lays.flatMap(l => l.yLines).map(v => +v.toFixed(3)))];
+    xL.forEach(x => { o.push(`<line class="mp-grid" x1="${X(x)}" y1="${Y(y1) - 8 * k}" x2="${X(x)}" y2="${Y(y0) + 8 * k}"/>`); const lb = g.xLabel(x); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x)}" cy="${Y(y1) - 15 * k}" r="${br}"/><text x="${X(x)}" y="${Y(y1) - 15 * k}">${lb}</text></g>`); else o.push(`<text class="mp-off" x="${X(x)}" y="${Y(y1) - 13 * k}">${ft(x)}</text>`); });
+    yL.forEach(y => { o.push(`<line class="mp-grid" x1="${X(x0) - 8 * k}" y1="${Y(y)}" x2="${X(x1) + 8 * k}" y2="${Y(y)}"/>`); const lb = g.yLabel(y); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x0) - 15 * k}" cy="${Y(y)}" r="${br}"/><text x="${X(x0) - 15 * k}" y="${Y(y)}">${lb}</text></g>`); });
+    ms.forEach(m => { const fp = m.layout.footprint; o.push(`<rect class="mp-foot" x="${X(fp.x0)}" y="${Y(fp.y1)}" width="${(fp.x1 - fp.x0) * s}" height="${(fp.y1 - fp.y0) * s}" rx="2"/>`); });
+    ms.forEach(m => m.layout.beams.forEach(b => {
       const [p, q] = b.ends;
-      if (b.absorbed) { o.push(`<line class="mp-beam carried" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>edge on ${esc(b.absorbed.mezz)}'s beam</title></line>`); return; }
-      const mk = mkOf(r, b.id), on = mkOn ? mkOn.includes(b.id) : null;
-      o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkHex(mk)}"><title>B${b.id + 1} · ${mk ? mkName(mk) + ' ' + (mk.desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}</title></line>`);
-    });
-    lay.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">B${b.id + 1}${k > 1.2 && mkOf(r, b.id) ? ' ' + mkOf(r, b.id).mark : ''}</text>`); });
-    lay.supports.filter(sp => sp.building).forEach(sp => o.push(`<rect class="mp-bc" x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"><title>${sp.label} · building column</title></rect>`));
+      if (b.absorbed) { o.push(`<line class="mp-beam carried" data-tip="carried|${m.index}|${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"/>`); return; }
+      const mk = mkOf(m, b.id), on = jm ? isOn(m, b) : null;
+      o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${m.index}:${b.id}" data-tip="beam|${m.index}|${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkHex(mk)}"/>`);
+    }));
+    ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends, mk = mkOf(m, b.id); o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">${k > 1.2 && mk ? mk.mark + ' ' : ''}B${b.id + 1}</text>`); }));
+    const fls = (state.job && state.job.frameLoads) || [];
+    bldgCols().forEach(sp => { const ld = fls.some(q => atPt(q, sp)); o.push(`<g class="mp-bc ${ld ? 'ld' : ''}" data-tip="bcol|${sp.x}|${sp.y}"><circle class="mp-hit" cx="${X(sp.x)}" cy="${Y(sp.y)}" r="${6 * k}"/><rect x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"/></g>`); });
     const xm = (cx, cy, R) => { const d = R * 0.68; return `<circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/>`; };
-    const lbl = (cx, cy, t) => { const right = cx < Vw - 40 * k; return `<text class="mp-cl" x="${cx + (right ? 8 : -8) * k}" y="${cy + 12 * k}" text-anchor="${right ? 'start' : 'end'}">${t}</text>`; };
-    lay.mezzCols.forEach(c => { const on = grp ? grp.includes(c.label) : null, cx = X(c.x), cy = Y(c.y);
-      o.push(`<g class="mp-col ${on === true ? 'hi' : on === false || mkOn ? 'dim' : ''}" data-col="${c.label}"><title>C${cno.get(c.label)} · ${c.label}</title>${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, 'C' + cno.get(c.label) + (k > 1.2 ? ' · ' + c.label : ''))}`); });
-    (r.foreignCols || []).forEach(c => { const cx = X(c.x), cy = Y(c.y); o.push(`<g class="mp-col shared"><title>${c.label} · counted with ${esc(c.ownerId)}</title>${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, esc(c.ownerId) + (k > 1.2 ? ' · ' + c.label : ''))}`); });
-    o.push(`<text class="mp-cap" x="${Vw / 2}" y="${Vh - 6 * k}">${esc(state.inputs.mezz.id || 'Mezzanine')} · joists ${lay.joists === 'y' ? '↕' : '↔'} @ ${ft(r.beamBase.Lb)}${grp ? ' · reviewing ' + grp.map(l => 'C' + cno.get(l)).join(', ') : mkOn ? ' · reviewing ' + jm.mark + (run ? ' at ' + ft(run.span) : '') + (mkOn.length ? '' : ' — on ' + esc(elsewhere(jm, run))) : ''}</text>`);
+    const lbl = (cx, cy, t, t2) => `<text class="mp-cl" x="${cx}" y="${cy + 13 * k}" text-anchor="middle">${t}${t2 ? `<tspan class="mp-cl2" x="${cx}" dy="${9 * k}">${t2}</tspan>` : ''}</text>`;
+    ms.forEach(m => m.layout.mezzCols.forEach(c => { const on = grp ? m === r && grp.includes(c.label) : null, cx = X(c.x), cy = Y(c.y);
+      o.push(`<g class="mp-col ${on === true ? 'hi' : on === false || jm ? 'dim' : ''}" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}">${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, 'C' + cno.get(c.label), k > 1.2 ? c.label : '')}`); }));
+    if (many) ms.forEach(m => { const fp = m.layout.footprint, bl = m.layout.beamLines, alongX = m.layout.joists === 'y';
+      const mid = bl.length > 1 ? (bl[0] + bl[1]) / 2 : null, cx = alongX ? (fp.x0 + fp.x1) / 2 : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : (fp.y0 + fp.y1) / 2;
+      o.push(`<text class="mp-mz" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}</text>`); });
+    const cap = grp ? ' · reviewing ' + grp.map(l => 'C' + cno.get(l)).join(', ') : jm ? ' · reviewing ' + jm.mark + (run ? ' at ' + ft(run.span) : '') : '';
+    o.push(`<text class="mp-cap" x="${Vw / 2}" y="${Vh - 6 * k}">${many ? esc(ms.map(m => m.id).join(' + ')) : esc(state.inputs.mezz.id || 'Mezzanine')}${k > 1.2 && jobMarks().some(mk => mk.kind) ? ' · ' + jobMarks().filter(mk => mk.kind).map(mk => mk.mark + ' ' + mk.kind).join(' / ') : ''}${cap}</text>`);
     return o.join('');
   }
-  // the mezzanines that hold a mark's beams (of one member length) — when none of them is the one on screen
-  const elsewhere = (mk, run) => [...new Set((mk.beamsAll || []).filter(x => !run || Math.abs(x.span - run.span) < 1e-3).map(x => state.job.mezz[x.mi].id))].join(', ');
   function wirePlan(svg) {
-    const r = state.res;
-    svg.querySelectorAll('[data-col]').forEach(el => { el.onclick = () => { const gi = r.colGroups.findIndex(gp => gp.cols.some(c => c.label === el.dataset.col)); if (gi >= 0) state.colGroup = gi; go('column'); renderColumn(); }; });
-    svg.querySelectorAll('[data-beam]').forEach(el => { el.onclick = () => { openBeam(r, +el.dataset.beam); }; });
+    svg.querySelectorAll('[data-col]').forEach(el => { el.onclick = () => { const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }; });
+    svg.querySelectorAll('[data-beam]').forEach(el => { el.onclick = () => { const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(state.job.mezz[mi], id); }; });
   }
   function renderMiniPlan() {
     const svg = $('#miniPlan'), r = state.res, ok = !!(svg && r && !r.incomplete);
@@ -4267,12 +4429,13 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     const pop = $('#planPop');
     if (!pop || pop.hidden) return;
     if (!ok) { pop.hidden = true; return; }
-    const lay = r.layout, fp = lay.footprint, w = 680, ratio = (Math.max(fp.y1, ...lay.yLines) - Math.min(fp.y0, ...lay.yLines)) / Math.max(1, Math.max(fp.x1, ...lay.xLines) - Math.min(fp.x0, ...lay.xLines));
+    const lays = jobView().map(m => m.layout), ext = (k, lo) => lays.map(l => (lo ? Math.min : Math.max)(l.footprint[k], ...(k[0] === 'x' ? l.xLines : l.yLines)));
+    const w = 680, ratio = (Math.max(...ext('y1')) - Math.min(...ext('y0', 1))) / Math.max(1, Math.max(...ext('x1')) - Math.min(...ext('x0', 1)));
     const h = Math.round(Math.max(240, Math.min(560, (w - 80) * ratio + 110)));
     const big = $('#planPopSvg');
     big.setAttribute('viewBox', `0 0 ${w} ${h}`); big.style.setProperty('--k', 1.8);
     big.innerHTML = planMarkup(w, h, 1.8); wirePlan(big);
-    $('#ppTitle').textContent = `${state.inputs.mezz.id || 'Mezzanine'} · floor plan`;
+    $('#ppTitle').textContent = `${jobView().map(m => m.id).join(' + ') || 'Mezzanine'} · floor plan`;
   }
   function renderModel() {
     const canvas = $('#model3d');
@@ -4287,34 +4450,35 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     state.scene = buildScene();
     model.set(state.scene);
     renderMini(state.scene);
-    window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null) };
-    const r = state.res, t = totals();
-    $('#modelTitle').textContent = `${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
-    $('#modelCount').textContent = `${ft(r.layout.footprint.x1 - r.layout.footprint.x0)} × ${ft(r.layout.footprint.y1 - r.layout.footprint.y0)} · T/slab ${ft(state.inputs.geom.A.value)}`;
-    $('#modelKey').innerHTML = r.marks.map(mk => `<span><i style="background:${mkHex(mk)}"></i>${mkName(mk)} ${esc(mk.desc || '')} × ${mk.qty}</span>`).join('') +
-      `<span><i style="background:#ff9f7a"></i>Mezzanine column ${r.colFinal ? esc(r.colFinal.quoteAs) : ''} × ${r.columns.length}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${ft(r.beamBase.Lb)}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${f((state.inputs.geom.slab.value || 0) * 12, 1)}"</span>`;
+    window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null), beams: () => state.scene.members.filter(x => x.kind === 'beam').map(x => x.id) };
+    const ms = jobView(), many = ms.length > 1, t = many ? jobTotals() : totals(), marks = jobMarks();
+    const cols = [...new Set(ms.filter(m => m.colFinal && m.columns.length).map(m => m.colFinal.quoteAs))].join(' / ');
+    $('#modelTitle').textContent = `${many ? ms.map(m => m.id).join(' + ') + ' · ' : ''}${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
+    $('#modelCount').textContent = ms.map(m => `${many ? m.id + ' ' : ''}${ft(m.layout.footprint.x1 - m.layout.footprint.x0)} × ${ft(m.layout.footprint.y1 - m.layout.footprint.y0)} · T/slab ${ft(inpOf(m).geom.A.value)}`).join(' · ');
+    $('#modelKey').innerHTML = marks.map(mk => `<span class="mk-key"><i style="background:${mkHex(mk)}"></i><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} × ${mk.qtyAll}</span>`).join('') +
+      `<span><i style="background:#ff9f7a"></i>Mezzanine column ${esc(cols)} × ${t.nC}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${[...new Set(ms.map(m => ft(m.beamBase.Lb)))].join(' / ')}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${[...new Set(ms.map(m => f((inpOf(m).geom.slab.value || 0) * 12, 1) + '"'))].join(' / ')}</span>`;
     model.pinned = null;
     showMember(null);
   }
   function showMember(id, hover) {
     const r = state.res, m = id && state.scene ? state.scene.members.find(x => x.id === id) : null;
     if (!hover && model) model.pinned = id || null;
-    const card = $('#modelCard');
+    const card = $('#modelCard'), many = manyMezz(), eb = hover ? 'Member' : 'Selected member';
+    const lr = (D, L) => `${f(D, 2)} / ${f(L, 2)}`;
     if (!m || !m.ref || m.ref.type === 'joist') {
       if (hover && model && model.pinned) return;
-      const mk = r.marks[0], c = mk && mk.check;
-      card.innerHTML = `<div class="eyebrow">Selected member</div><h4>${esc(state.inputs.mezz.id || 'Mezzanine')}</h4><div class="kind">Mezzanine · click a beam or column</div>
-        <div class="sec nocase">${esc(r.quote.beams.map(b => b.section).join(' / '))}</div>
-        <dl><div><dt>Beams</dt><dd>${totals().nB}</dd></div><div><dt>Columns</dt><dd>${r.columns.length}</dd></div><div><dt>Span</dt><dd>${mk ? ft(mk.span) : '—'}</dd></div><div><dt>Trib</dt><dd>${mk ? ft(mk.trib) : '—'}</dd></div>
-        <div><dt>Combined</dt><dd>${c ? f(c.res.CSR, 3) : '—'}</dd></div><div><dt>Live defl.</dt><dd>${c ? 'L/' + f(c.defl.rLL, 0) : '—'}</dd></div></dl>
-        <div class="foot">Joists bear on the beams at ${ft(r.beamBase.Lb)}; beams frame into the ⊗ mezzanine columns and the building columns.</div>`;
+      const ms = jobView(), t = many ? jobTotals() : totals(), marks = jobMarks();
+      card.innerHTML = `<div class="eyebrow">Selected member</div><h4>${esc(ms.map(q => q.id).join(' + ') || 'Mezzanine')}</h4><div class="kind">${many ? 'The whole job' : 'Mezzanine'} · click a beam or column</div>
+        <div class="mk-mini">${marks.map(mk => `<div style="--mk:${mkHex(mk)}"><b>${mk.mark}</b><span>${esc(mk.kind || 'beams')}</span><em class="nocase">${esc(mk.desc || '—')}</em><small>× ${mk.qtyAll}</small></div>`).join('')}</div>
+        <dl><div><dt>Beams</dt><dd>${t.nB}</dd></div><div><dt>Columns</dt><dd>${t.nC}</dd></div></dl>
+        <div class="foot">Green and blue beams are the interior and exterior marks. Click a column to see the left / right dead and live it takes from the beams.</div>`;
       return;
     }
     const ref = m.ref;
     if (ref.type === 'beam') {
-      const b = ref.b, mk = ref.mk, run = runOf(mk, b.span), c = run ? run.check : mk.check, rx = mk.sec ? DESIGN.reactions({ ...r.beamBase, L: b.span, trib: b.trib }, mk.sec) : null;
-      const g = r.grid, lay = r.layout, lab = (lay.joists === 'y' ? g.yLabel(b.line) : g.xLabel(b.line)) || ft(b.line), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
-      card.innerHTML = `<div class="eyebrow">${hover ? 'Member' : 'Selected member'}</div><h4>${m.id} · ${mkName(mk)}</h4><div class="kind">Beam on line ${esc(lab)} · ${esc(fl(b.from) || ft(b.from))} → ${esc(fl(b.to) || ft(b.to))}</div>
+      const o = ref.m, b = ref.b, mk = ref.mk, run = runOf(mk, b.span), c = run ? run.check : mk.check, rx = mk.sec ? DESIGN.reactions({ ...o.beamBase, L: b.span, trib: b.trib }, mk.sec) : null;
+      const g = o.grid, lay = o.layout, lab = (lay.joists === 'y' ? g.yLabel(b.line) : g.xLabel(b.line)) || ft(b.line), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
+      card.innerHTML = `<div class="eyebrow">${eb}${many ? ' · ' + esc(o.id) : ''}</div><h4>B${b.id + 1} · ${mkName(mk)}</h4><div class="kind">Beam on line ${esc(lab)} · ${esc(fl(b.from) || ft(b.from))} → ${esc(fl(b.to) || ft(b.to))}</div>
         <div class="sec nocase">${esc(mk.desc)}</div>
         <dl><div><dt>Span</dt><dd>${ft(b.span)}</dd></div><div><dt>Trib</dt><dd>${ft(b.trib)}</dd></div>
         <div><dt>R dead</dt><dd>${rx ? f(rx.D, 2) + 'k' : '—'}</dd></div><div><dt>R live</dt><dd>${rx ? f(rx.L, 2) + 'k' : '—'}</dd></div>
@@ -4323,24 +4487,20 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
         <span class="pill">${b.span < mk.span - 1e-3 ? `shorter member — ${mk.mark} section, MB sheet at ${ft(b.span)}` : b.trib < mk.trib - 1e-3 ? `designed for ${ft(mk.trib)} trib (${mk.mark} governing)` : `governing ${mk.mark} beam`}</span>
         <div class="foot">${secParts(mk.sec)}</div>`;
     } else if (ref.type === 'col') {
-      const col = r.columns.find(x => x.label === ref.c.label), cf = r.colFinal, gi = r.colGroups.findIndex(gp => gp.cols.some(x => x.label === ref.c.label));
-      const chk = cf && gi >= 0 ? cf.checks[gi] : null;
-      card.innerHTML = `<div class="eyebrow">${hover ? 'Member' : 'Selected member'}</div><h4>C${ref.no} · ${esc(ref.c.label)}</h4><div class="kind">Mezzanine column ⊗</div>
+      const ci = colInfo(ref.c), col = ci && ci.c, o = ci ? ci.m : ref.m, cf = o.colFinal, chk = cf && ci && ci.gi >= 0 ? cf.checks[ci.gi] : null;
+      const from = sd => (col ? col.parts.filter(p => p.sheetSide === sd).map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + ') || 'no beam' : '—');
+      card.innerHTML = `<div class="eyebrow">${eb}${many ? ' · ' + esc(o.id) : ''}</div><h4>C${ref.no} · ${esc(ref.c.label)}</h4><div class="kind">Mezzanine column ⊗ · Column sheet input</div>
         <div class="sec nocase">${cf ? esc(cf.quoteAs) : '—'}</div>
-        <dl><div><dt>Height</dt><dd>${ft(r.colLen)}</dd></div><div><dt>Trib area</dt><dd>${col ? f(col.tribArea, 0) + ' ft²' : '—'}</dd></div>
-        <div><dt>Left D / L</dt><dd>${col ? f(col.DL_L, 1) + ' / ' + f(col.LL_L, 1) : '—'}</dd></div><div><dt>Right D / L</dt><dd>${col ? f(col.DL_R, 1) + ' / ' + f(col.LL_R, 1) : '—'}</dd></div>
-        <div><dt>Max CSR</dt><dd>${chk ? f(chk.max, 3) : '—'}</dd></div><div><dt>Beams in</dt><dd>${col ? col.sides : '—'} side${col && col.sides === 1 ? '' : 's'}</dd></div></dl>
-        <div class="foot">e = d/2 · three load combinations · column self-weight included, as on the Column sheet.</div>`;
-    } else if (ref.type === 'other' || ref.type === 'otherCol' || ref.type === 'foreign') {
-      const who = ref.type === 'foreign' ? ref.c.ownerId : ref.o.id;
-      card.innerHTML = `<div class="eyebrow">${hover ? 'Member' : 'Selected member'}</div><h4>${esc(ref.type === 'other' ? 'B' + (ref.b.id + 1) : ref.c.label)}</h4><div class="kind">Mezzanine ${esc(who)}${ref.type === 'foreign' ? ' · shared column' : ''}</div>
-        <div class="sec nocase">${esc(ref.type === 'other' ? (ref.mk && ref.mk.desc) || '—' : (state.job.mezz.find(m => m.id === who) || {}).colFinal ? state.job.mezz.find(m => m.id === who).colFinal.quoteAs : '—')}</div>
-        ${ref.type === 'other' ? `<dl><div><dt>Span</dt><dd>${ft(ref.b.span)}</dd></div><div><dt>Trib</dt><dd>${ft(ref.b.trib)}</dd></div></dl>` : `<dl><div><dt>Left D / L</dt><dd>${f(ref.c.DL_L, 1)} / ${f(ref.c.LL_L, 1)}</dd></div><div><dt>Right D / L</dt><dd>${f(ref.c.DL_R, 1)} / ${f(ref.c.LL_R, 1)}</dd></div></dl>`}
-        <div class="foot">${ref.type === 'foreign' ? `Counted and sized with ${esc(who)}: ${ref.c.parts.map(p => `${esc(p.mezz)} ${p.beam} (${p.sheetSide})`).join(' + ')}.` : 'Designed with this mezzanine as one job — switch mezzanine at the top to see its calc.'}</div>`;
+        <dl><div><dt>Left D / L (k)</dt><dd>${col ? lr(col.DL_L, col.LL_L) : '—'}</dd></div><div><dt>Right D / L (k)</dt><dd>${col ? lr(col.DL_R, col.LL_R) : '—'}</dd></div>
+        <div><dt>Left from</dt><dd>${from('left')}</dd></div><div><dt>Right from</dt><dd>${from('right')}</dd></div>
+        <div><dt>Height</dt><dd>${ft(o.colLen)}</dd></div><div><dt>Max CSR</dt><dd>${chk ? f(chk.max, 3) : '—'}</dd></div></dl>
+        <div class="foot">Unfactored beam reactions (MB H6 / H10) · e = d/2 · three load combinations · column self-weight included, as on the Column sheet.</div>`;
     } else if (ref.type === 'bcol') {
-      card.innerHTML = `<div class="eyebrow">${hover ? 'Member' : 'Selected member'}</div><h4>${esc(ref.sp.label)}</h4><div class="kind">Building column</div>
-        <div class="sec" style="font-size:20px;color:#b9d4e8">By the frame / endwall design</div>
-        <div class="foot">Mezzanine beams frame into this column; its load goes to the building frame design, not the mezzanine column sheet.</div>`;
+      const fl = (state.job.frameLoads || []).find(q => atPt(q, ref.sp));
+      card.innerHTML = `<div class="eyebrow">${eb}</div><h4>${esc(ref.sp.label)}</h4><div class="kind">Building column · load to the frame</div>
+        <div class="sec nocase">${fl ? `D ${f(fl.D, 2)} · L ${f(fl.L, 2)} k` : '—'}</div>
+        ${fl ? `<dl>${fl.parts.map(p => `<div><dt>${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}</dt><dd>${lr(p.D, p.L)}</dd></div>`).join('')}</dl>` : ''}
+        <div class="foot">Unfactored mezzanine beam reactions (MB H6 / H10) that land on this column — they go to the frame / endwall design, not the mezzanine Column sheet.</div>`;
     }
   }
 
@@ -4392,128 +4552,161 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       $('#planLegend').innerHTML = ''; $('#beamTable').innerHTML = ''; $('#supTable').innerHTML = ''; $('#layWhy').textContent = '';
       return;
     }
-    const t = totals();
-    const lineLab = v => (lay.joists === 'y' ? g.yLabel(v) : g.xLabel(v)) || ft(v);
-    const colNo = new Map(lay.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
-    const spans = [...new Set(lay.beams.map(b => b.span))];
+    // one holistic plan for the job: every mezzanine of this building, every beam in its mark's colour, every column
+    // once; the controls (joist direction, beam / support lines) edit the mezzanine picked at the top
+    const ms = jobView(), many = ms.length > 1, cno = colNos(), t = many ? jobTotals() : totals(), marks = jobMarks(), job = state.job;
+    const lineOf = (m, v) => (m.layout.joists === 'y' ? g.yLabel(v) : g.xLabel(v)) || ft(v);
+    const spans = [...new Set(ms.flatMap(m => m.layout.beams.filter(b => !b.absorbed).map(b => +b.span.toFixed(3))))].sort((x, y) => y - x);
+    const allCols = ms.flatMap(m => m.layout.mezzCols).sort((x, y) => cno.get(x.label) - cno.get(y.label));
+    const uniq = a2 => [...new Set(a2)].join(' / ');
     $('#planStats').innerHTML = `
-      <div class="pstat beams"><span>Mezzanine beams</span><strong>${t.nB}<small>beams</small></strong><em>${r.marks.map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${m.qty}`).join(' · ')}</em></div>
-      <div class="pstat cols"><span>Mezzanine columns ⊗</span><strong>${t.nC}<small>columns</small></strong><em>${lay.mezzCols.map(c => c.label).sort().join(' · ') || 'none'}${(r.foreignCols || []).length ? ' · + ' + r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ') : ''}</em></div>
-      <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${lay.supportLines.length - 1} bay${lay.supportLines.length > 2 ? 's' : ''} × ${lay.beamLines.length} beam lines (${lay.beamLines.map(lineLab).join(', ')})</em></div>
-      <div class="pstat"><span>Joists</span><strong>${ft(lay.joistSpan)}</strong><em>span · @ ${ft(r.beamBase.Lb)} · ${lay.joists === 'y' ? 'across the width' : 'along the length'}</em></div>`;
+      <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${m.qtyAll}`).join(' · ')}</em></div>
+      <div class="pstat cols"><span>Mezzanine columns ⊗${many ? ' · whole job' : ''}</span><strong>${t.nC}<small>columns</small></strong><em>${allCols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · ') || 'none'}</em></div>
+      <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
+      <div class="pstat"><span>Joists</span><strong>${uniq(ms.map(m => ft(m.layout.joistSpan)))}</strong><em>span · @ ${uniq(ms.map(m => ft(m.beamBase.Lb)))} · ${uniq(ms.map(m => (m.layout.joists === 'y' ? 'across the width' : 'along the length')))}</em></div>`;
     $$('#joistSeg button').forEach(b => b.classList.toggle('is-active', b.dataset.j === (state.settings.joists || 'auto')));
-    $('#planTitle').textContent = `Framing plan · ${inp.mezz.id || 'mezzanine'}`;
-    $('#layWhy').textContent = `joists span ${lay.joists === 'y' ? 'across the width' : 'along the length'} — ${lay.why}`;
+    $('#planTitle').textContent = many ? `Framing plan · ${ms.map(m => m.id).join(' + ')}` : `Framing plan · ${inp.mezz.id || 'mezzanine'}`;
+    $('#layWhy').textContent = `${many ? 'editing ' + (inp.mezz.id || '') + ' (pick at the top) · ' : ''}joists span ${lay.joists === 'y' ? 'across the width' : 'along the length'} — ${lay.why}`;
     $('#beamLinesIn').value = lay.beamLines.map(v => +v.toFixed(3)).join(', ');
     $('#supLinesIn').value = lay.supportLines.map(v => +v.toFixed(3)).join(', ');
-    const L = g.length || 1, W = g.width || 1, fp = lay.footprint;
-    // the other mezzanines of the job (same building) are drawn faintly for context
-    const others = (state.job ? state.job.mezz : []).filter(o => o !== r && !o.incomplete && o.grid.length === g.length && o.grid.width === g.width);
-    const ux0 = Math.min(fp.x0, ...others.map(o => o.layout.footprint.x0)), ux1 = Math.max(fp.x1, ...others.map(o => o.layout.footprint.x1));
-    let xa = 0, xb = L;
+    const L = g.length || 1, W = g.width || 1;
+    const ux0 = Math.min(...ms.map(m => m.layout.footprint.x0)), ux1 = Math.max(...ms.map(m => m.layout.footprint.x1));
+    let xa = 0, xb = L, ya = 0, yb = W;
     if ((ux1 - ux0) / L < 0.4) { xa = Math.max(0, ux0 - 30); xb = Math.min(L, ux1 + 30); }
-    const VW = 1100, M = 64, s = Math.min((VW - 2 * M) / (xb - xa), 560 / W), VH = W * s + 2 * M + 24;
-    const X = x => M + (x - xa) * s, Y = y => M + 12 + (W - y) * s;
-    const inX = x => x >= xa - 0.01 && x <= xb + 0.01;
+    // crop to the mezzanines across the width too, out to the next column line, so the framing reads large
+    const uy0 = Math.min(...ms.map(m => m.layout.footprint.y0)), uy1 = Math.max(...ms.map(m => m.layout.footprint.y1));
+    const lineY = [...new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()])].sort((p2, q2) => p2 - q2);
+    if ((uy1 - uy0) / W < 0.75) { ya = Math.max(0, ...lineY.filter(y => y <= uy0 - 6)); yb = Math.min(W, ...lineY.filter(y => y >= uy1 + 6)); }
+    const VW = 1100, M = 64, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
+    const X = x => M + (x - xa) * s, Y = y => M + 12 + (yb - y) * s;
+    const inX = x => x >= xa - 0.01 && x <= xb + 0.01, inY = y => y >= ya - 0.01 && y <= yb + 0.01;
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
       <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker></defs>`);
     g.xs.filter(inX).forEach(x => {
-      o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(W) - 26}" x2="${X(x)}" y2="${Y(0) + 26}"/>`);
-      [Y(W) - 38, Y(0) + 38].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
+      o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(yb) - 26}" x2="${X(x)}" y2="${Y(ya) + 26}"/>`);
+      [Y(yb) - 38, Y(ya) + 38].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
     });
     // letters run over every column line (ridge included, as on the drawings); only column lines get a bubble
     const colY = new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => v.toFixed(2)));
-    g.allY.filter(y => colY.has(y.toFixed(2))).forEach(y => {
+    g.allY.filter(y => colY.has(y.toFixed(2)) && inY(y)).forEach(y => {
       o.push(`<line class="grid-line" x1="${X(xa) - 26}" y1="${Y(y)}" x2="${X(xb) + 26}" y2="${Y(y)}"/>`);
       [X(xa) - 38, X(xb) + 38].forEach(cx => o.push(`<g class="bubble"><circle cx="${cx}" cy="${Y(y)}" r="11"/><text x="${cx}" y="${Y(y)}">${g.yLabel(y)}</text></g>`));
     });
     const xsw = g.xs.filter(inX);
-    xsw.slice(1).forEach((x, i) => { const a = xsw[i]; o.push(`<text class="dim" x="${(X(a) + X(x)) / 2}" y="${Y(W) - 52}">${ft(x - a)}</text>`); });
-    o.push(`<rect class="bldg" x="${X(xa)}" y="${Y(W)}" width="${(xb - xa) * s}" height="${W * s}"/>`);
-    if (xa > 0) o.push(`<text class="dim" x="${X(xa) - 6}" y="${Y(W) - 8}" text-anchor="start">⟵ ${ft(xa)} more to LEW</text>`);
-    if (xb < L) o.push(`<text class="dim" x="${X(xb) + 6}" y="${Y(W) - 8}" text-anchor="end">${ft(L - xb)} more to REW ⟶</text>`);
-    o.push(`<text class="dim" x="${X(xa) + 4}" y="${Y(0) - 6}" text-anchor="start">FSW</text><text class="dim" x="${X(xa) + 4}" y="${Y(W) + 24}" text-anchor="start">BSW</text>`);
-    others.forEach(oz => {
-      const f2 = oz.layout.footprint;
-      o.push(`<rect class="foot other" x="${X(f2.x0)}" y="${Y(f2.y1)}" width="${(f2.x1 - f2.x0) * s}" height="${(f2.y1 - f2.y0) * s}"/><text class="dim other-t" x="${X((f2.x0 + f2.x1) / 2)}" y="${Y((f2.y0 + f2.y1) / 2)}">${esc(oz.id)}</text>`);
-      oz.layout.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<line class="beam other" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>${esc(oz.id)} B${b.id + 1} · span ${ft(b.span)} · trib ${ft(b.trib)}</title></line>`); });
+    xsw.slice(1).forEach((x, i) => { const a2 = xsw[i]; o.push(`<text class="dim" x="${(X(a2) + X(x)) / 2}" y="${Y(yb) - 52}">${ft(x - a2)}</text>`); });
+    // the building: walls solid where they are in view, the cut edges of a cropped view dashed
+    o.push(`<rect class="bldg-cut" x="${X(xa)}" y="${Y(yb)}" width="${(xb - xa) * s}" height="${(yb - ya) * s}"/>`);
+    [[xa === 0, X(0), Y(yb), X(0), Y(ya)], [xb === L, X(L), Y(yb), X(L), Y(ya)], [yb === W, X(xa), Y(W), X(xb), Y(W)], [ya === 0, X(xa), Y(0), X(xb), Y(0)]].forEach(([on, x1, y1, x2, y2]) => { if (on) o.push(`<line class="bldg" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`); });
+    if (xa > 0) o.push(`<text class="dim" x="${X(xa) - 6}" y="${Y(yb) - 8}" text-anchor="start">⟵ ${ft(xa)} more to LEW</text>`);
+    if (xb < L) o.push(`<text class="dim" x="${X(xb) + 6}" y="${Y(yb) - 8}" text-anchor="end">${ft(L - xb)} more to REW ⟶</text>`);
+    if (ya > 0) o.push(`<text class="dim" x="${X(xa) + 6}" y="${Y(ya) - 6}" text-anchor="start">${ft(ya)} more to the FSW ↓</text>`);
+    if (yb < W) o.push(`<text class="dim" x="${X(xa) + 6}" y="${Y(yb) + 14}" text-anchor="start">${ft(W - yb)} more to the BSW ↑</text>`);
+    if (ya === 0) o.push(`<text class="dim" x="${X(xa) + 4}" y="${Y(0) - 6}" text-anchor="start">FSW</text>`);
+    if (yb === W) o.push(`<text class="dim" x="${X(xa) + 4}" y="${Y(W) + 14}" text-anchor="start">BSW</text>`);
+    // footprints, then every beam's floor (trib band) in its mark's colour: interior and exterior read at a glance
+    ms.forEach(m => { const f2 = m.layout.footprint; o.push(`<rect class="foot" x="${X(f2.x0)}" y="${Y(f2.y1)}" width="${(f2.x1 - f2.x0) * s}" height="${(f2.y1 - f2.y0) * s}"/>`); });
+    ms.forEach(m => {
+      const ly = m.layout;
+      ly.beams.forEach(b => {
+        const mk = bandMark(m, b), i = ly.beamLines.indexOf(b.line);
+        const a2 = i > 0 ? (ly.beamLines[i - 1] + b.line) / 2 : b.line, c = i < ly.beamLines.length - 1 ? (b.line + ly.beamLines[i + 1]) / 2 : b.line;
+        const key = b.absorbed ? `${b.absorbed.mi}:${b.absorbed.into[0]}` : `${m.index}:${b.id}`;
+        if (ly.joists === 'y') o.push(`<rect class="trib" data-band="${key}" x="${X(b.from)}" y="${Y(c)}" width="${(b.to - b.from) * s}" height="${(c - a2) * s}" fill="${mkVar(mk)}"/>`);
+        else o.push(`<rect class="trib" data-band="${key}" x="${X(a2)}" y="${Y(b.to)}" width="${(c - a2) * s}" height="${(b.to - b.from) * s}" fill="${mkVar(mk)}"/>`);
+      });
+      const sp = m.beamBase.Lb, fp = ly.footprint;
+      if (sp > 0) {
+        if (ly.joists === 'y') for (let x = fp.x0 + sp; x < fp.x1 - 0.01; x += sp) o.push(`<line class="joist" x1="${X(x)}" y1="${Y(fp.y0)}" x2="${X(x)}" y2="${Y(fp.y1)}"/>`);
+        else for (let y = fp.y0 + sp; y < fp.y1 - 0.01; y += sp) o.push(`<line class="joist" x1="${X(fp.x0)}" y1="${Y(y)}" x2="${X(fp.x1)}" y2="${Y(y)}"/>`);
+      }
     });
-    o.push(`<rect class="foot" x="${X(fp.x0)}" y="${Y(fp.y1)}" width="${(fp.x1 - fp.x0) * s}" height="${(fp.y1 - fp.y0) * s}"/>`);
-    lay.beams.filter(b => !b.absorbed).forEach(b => {
-      const mk = mkOf(r, b.id), i = lay.beamLines.indexOf(b.line);
-      const a = i > 0 ? (lay.beamLines[i - 1] + b.line) / 2 : b.line, c = i < lay.beamLines.length - 1 ? (b.line + lay.beamLines[i + 1]) / 2 : b.line;
-      if (lay.joists === 'y') o.push(`<rect class="trib" data-beam="${b.id}" x="${X(b.from)}" y="${Y(c)}" width="${(b.to - b.from) * s}" height="${(c - a) * s}" fill="${mkVar(mk)}"/>`);
-      else o.push(`<rect class="trib" data-beam="${b.id}" x="${X(a)}" y="${Y(b.to)}" width="${(c - a) * s}" height="${(b.to - b.from) * s}" fill="${mkVar(mk)}"/>`);
-    });
-    const sp = r.beamBase.Lb;
-    if (sp > 0) {
-      if (lay.joists === 'y') for (let x = fp.x0 + sp; x < fp.x1 - 0.01; x += sp) o.push(`<line class="joist" x1="${X(x)}" y1="${Y(fp.y0)}" x2="${X(x)}" y2="${Y(fp.y1)}"/>`);
-      else for (let y = fp.y0 + sp; y < fp.y1 - 0.01; y += sp) o.push(`<line class="joist" x1="${X(fp.x0)}" y1="${Y(y)}" x2="${X(fp.x1)}" y2="${Y(y)}"/>`);
-    }
-    lay.beams.forEach(b => {
-      const mk = mkOf(r, b.id);
+    // beams; an edge carried by the neighbour's beam is dashed, under the beam that carries it
+    ms.forEach(m => m.layout.beams.filter(b => b.absorbed).forEach(b => { const [p, q] = b.ends; o.push(`<line class="beam carried" data-tip="carried|${m.index}|${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"/>`); }));
+    ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => {
       const [p, q] = b.ends;
-      if (b.absorbed) { o.push(`<line class="beam carried" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}"><title>Edge on the ${esc(b.absorbed.mezz)} beam line — its ${ft(b.tribOwn)} trib is carried by that beam</title></line>`); return; }
-      o.push(`<line class="beam" data-beam="${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkVar(mk)}"><title>B${b.id + 1} · ${mk ? mkName(mk) + ' ' + (mk.desc || '') : ''} · span ${ft(b.span)} · trib ${ft(b.trib)}${b.extra ? ' (incl. ' + b.extra.map(x => x.mezz).join(', ') + ')' : ''}</title></line>`);
+      const mk = mkOf(m, b.id);
+      o.push(`<line class="beam ${mk && mk.kind ? mk.kind : ''}" data-beam="${m.index}:${b.id}" data-tip="beam|${m.index}|${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkVar(mk)}"/>`);
+    }));
+    // mark labels along each run of beams of one mark on one line: "MB1 · INTERIOR · BU28x50"
+    ms.forEach(m => {
+      const bs = m.layout.beams.filter(b => !b.absorbed).slice().sort((a2, b2) => a2.line - b2.line || a2.from - b2.from), runs = [];
+      bs.forEach(b => { const mk = mkOf(m, b.id), last = runs[runs.length - 1];
+        if (last && last.mk === mk && Math.abs(last.line - b.line) < 1e-6 && Math.abs(last.to - b.from) < 0.05) last.to = b.to; else runs.push({ mk, line: b.line, from: b.from, to: b.to, dir: b.dir }); });
+      runs.forEach(rn => {
+        if (!rn.mk) return;
+        const len = (rn.to - rn.from) * s - 16, long = `${rn.mk.mark}${rn.mk.kind ? ' · ' + rn.mk.kind.toUpperCase() : ''} · ${rn.mk.desc || ''}`, short = `${rn.mk.mark}${rn.mk.kind ? ' ' + rn.mk.kind.slice(0, 3).toUpperCase() : ''}`;
+        const txt = long.length * 6.4 < len ? long : short.length * 6.4 < len ? short : '';
+        if (!txt) return;
+        if (rn.dir === 'x') o.push(`<text class="run-lab" x="${X(rn.from) + 8}" y="${Y(rn.line) - 10}" fill="${mkVar(rn.mk)}">${esc(txt)}</text>`);
+        else o.push(`<text class="run-lab" transform="translate(${X(rn.line) - 10},${Y(rn.from) - 8}) rotate(-90)" fill="${mkVar(rn.mk)}">${esc(txt)}</text>`);
+      });
     });
-    // building columns
-    const bcols = [];
+    // building columns (the ones mezzanine beams frame into carry a load to the frame — hover for it)
+    const fls = (job && job.frameLoads) || [], bcols = [];
     g.xs.filter(inX).forEach(x => { bcols.push([x, 0], [x, W]); const fi = g.xs.indexOf(x); (g.interior[fi] || []).forEach(y => bcols.push([x, y])); });
     if (inX(0)) g.lewY.forEach(y => bcols.push([0, y]));
     if (inX(L)) g.rewY.forEach(y => bcols.push([L, y]));
     (g.fswX || []).filter(inX).forEach(x => bcols.push([x, 0])); (g.bswX || []).filter(inX).forEach(x => bcols.push([x, W]));
-    bcols.forEach(([x, y]) => o.push(`<rect class="bcol" x="${X(x) - 4}" y="${Y(y) - 4}" width="8" height="8"/>`));
-    // beam number tags (B1..) at mid-span
-    lay.beams.filter(b => !b.absorbed).forEach(b => {
-      const [p, q] = b.ends, mc = mkVar(mkOf(r, b.id));
+    fls.forEach(q => { if (inX(q.x) && !bcols.some(([x, y]) => atPt({ x, y }, q))) bcols.push([q.x, q.y]); });
+    bcols.filter(([, y]) => inY(y)).forEach(([x, y]) => { const ld = fls.some(q => atPt(q, { x, y }));
+      o.push(`<g class="bcol-g ${ld ? 'ld' : ''}" data-tip="bcol|${x}|${y}"><circle class="hit" cx="${X(x)}" cy="${Y(y)}" r="11"/><rect class="bcol" x="${X(x) - (ld ? 5 : 4)}" y="${Y(y) - (ld ? 5 : 4)}" width="${ld ? 10 : 8}" height="${ld ? 10 : 8}"/></g>`); });
+    // beam number tags (B1..) at mid-span, in the mark's colour
+    ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => {
+      const [p, q] = b.ends, mk = mkOf(m, b.id), mc = mkVar(mk);
       const mx = (X(p.x) + X(q.x)) / 2, my = (Y(p.y) + Y(q.y)) / 2, lab = 'B' + (b.id + 1), w = 12 + lab.length * 6.5;
-      o.push(`<g class="tag b"><rect x="${mx - w / 2}" y="${my - 9}" width="${w}" height="18" rx="9" style="stroke:${mc}"/><text x="${mx}" y="${my + .5}" style="fill:${mc}">${lab}</text></g>`);
-    });
-    // mezzanine columns + numbers (C1..)
-    lay.mezzCols.forEach(c => {
-      const cx = X(c.x), cy = Y(c.y), R = 8, d = R * 0.7, lab = 'C' + colNo.get(c.label);
-      o.push(`<g class="mcol"><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/><title>${lab} · mezzanine column ${c.label}</title></g>`);
-      o.push(`<g class="tag c"><rect x="${cx + 11}" y="${cy + 7}" width="26" height="16" rx="8"/><text x="${cx + 24}" y="${cy + 15.5}">${lab}</text></g><text class="lbl" x="${cx + 41}" y="${cy + 19}">${c.label}</text>`);
-    });
-    // columns counted with another mezzanine (shared) and the other mezzanines' own columns
-    const xmark = (cx, cy, R, cls) => { const d = R * 0.7; return `<g class="mcol ${cls}"><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/></g>`; };
-    (r.foreignCols || []).forEach(c => { const cx = X(c.x), cy = Y(c.y); o.push(xmark(cx, cy, 8, 'shared') + `<text class="lbl" x="${cx + 12}" y="${cy + 19}">${c.label} · with ${esc(c.ownerId)}</text>`); });
-    others.forEach(oz => oz.columns.forEach(c => { if (!(r.foreignCols || []).some(f2 => f2.label === c.label)) o.push(xmark(X(c.x), Y(c.y), 6, 'other')); }));
+      o.push(`<g class="tag b ${mk && mk.kind === 'interior' ? 'int' : ''}" data-tip="beam|${m.index}|${b.id}" data-beam="${m.index}:${b.id}"><rect x="${mx - w / 2}" y="${my - 9}" width="${w}" height="18" rx="9" style="stroke:${mc}${mk && mk.kind === 'interior' ? ';fill:' + mc : ''}"/><text x="${mx}" y="${my + .5}" style="fill:${mk && mk.kind === 'interior' ? 'var(--surface)' : mc}">${lab}</text></g>`);
+    }));
+    // mezzanine columns, numbered once over the job (C1..) — hover for the Column-sheet left / right D and L
+    ms.forEach(m => m.layout.mezzCols.forEach(c => {
+      const cx = X(c.x), cy = Y(c.y), R = 8, d = R * 0.7, lab = 'C' + cno.get(c.label);
+      o.push(`<g class="mcol" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/></g>`);
+      o.push(`<g class="tag c" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}"><rect x="${cx + 11}" y="${cy + 7}" width="26" height="16" rx="8"/><text x="${cx + 24}" y="${cy + 15.5}">${lab}</text></g><text class="lbl" x="${cx + 41}" y="${cy + 19}">${c.label}</text>`);
+    }));
     if (r.planCheck && r.planCheck.ok) r.planCheck.cols.forEach(c => o.push(`<circle class="seen" cx="${X(c.x)}" cy="${Y(c.y)}" r="14"><title>Mezzanine column on the PCS floor plan</title></circle>`));
-    if (lay.joists === 'y') {
-      const x = (fp.x0 + Math.min(fp.x1, lay.supportLines[1] ?? fp.x1)) / 2 + sp / 2, y0 = lay.beamLines[0], y1 = lay.beamLines[1] ?? fp.y1;
-      o.push(`<line class="arrow" x1="${X(x)}" y1="${Y(y0) - 12}" x2="${X(x)}" y2="${Y(y1) + 12}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${X(x) + 7}" y="${(Y(y0) + Y(y1)) / 2}">JOISTS @ ${ft(sp)}</text>`);
-    } else {
-      const y = (fp.y0 + Math.min(fp.y1, lay.supportLines[1] ?? fp.y1)) / 2 + sp / 2, x0 = lay.beamLines[0], x1 = lay.beamLines[1] ?? fp.x1;
-      o.push(`<line class="arrow" x1="${X(x0) + 12}" y1="${Y(y)}" x2="${X(x1) - 12}" y2="${Y(y)}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${(X(x0) + X(x1)) / 2}" y="${Y(y) - 7}" text-anchor="middle">JOISTS @ ${ft(sp)}</text>`);
-    }
+    // joist direction, and the mezzanine's name in its first joist bay (click it to edit that mezzanine)
+    ms.forEach(m => {
+      const ly = m.layout, fp = ly.footprint, sp = m.beamBase.Lb, bl = ly.beamLines;
+      if (ly.joists === 'y') {
+        const x = (fp.x0 + Math.min(fp.x1, ly.supportLines[1] ?? fp.x1)) / 2 + sp / 2, y0 = bl[0], y1 = bl[1] ?? fp.y1;
+        o.push(`<line class="arrow" x1="${X(x)}" y1="${Y(y0) - 12}" x2="${X(x)}" y2="${Y(y1) + 12}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${X(x) + 7}" y="${(Y(y0) + Y(y1)) / 2}">JOISTS @ ${ft(sp)}</text>`);
+      } else {
+        const y = (fp.y0 + Math.min(fp.y1, ly.supportLines[1] ?? fp.y1)) / 2 + sp / 2, x0 = bl[0], x1 = bl[1] ?? fp.x1;
+        o.push(`<line class="arrow" x1="${X(x0) + 12}" y1="${Y(y)}" x2="${X(x1) - 12}" y2="${Y(y)}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${(X(x0) + X(x1)) / 2}" y="${Y(y) - 7}" text-anchor="middle">JOISTS @ ${ft(sp)}</text>`);
+      }
+      if (many) {
+        // in the second joist bay when there is one (the first has the joist arrow), else toward the far end of the bay
+        const bi = bl.length > 2 ? 1 : 0, mid = bl.length > 1 ? (bl[bi] + bl[bi + 1]) / 2 : null, alongX = ly.joists === 'y';
+        const along = bi ? 0.5 : 0.7, cx = alongX ? fp.x0 + (fp.x1 - fp.x0) * along : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : fp.y0 + (fp.y1 - fp.y0) * along;
+        o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r ? ' · editing' : ''}</text>`);
+      }
+    });
     $('#planSvg').setAttribute('viewBox', `0 0 ${VW} ${VH}`);
     $('#planSvg').innerHTML = o.join('');
-    $$('#planSvg .beam').forEach(el => {
-      const tb = $(`#planSvg .trib[data-beam="${el.dataset.beam}"]`);
-      el.addEventListener('mouseenter', () => tb && tb.classList.add('on'));
-      el.addEventListener('mouseleave', () => tb && tb.classList.remove('on'));
+    $$('#planSvg [data-beam]').forEach(el => {
+      const tb = $$(`#planSvg .trib[data-band="${el.dataset.beam}"]`);   // its own floor, and a neighbour's edge it carries
+      el.addEventListener('mouseenter', () => tb.forEach(x => x.classList.add('on')));
+      el.addEventListener('mouseleave', () => tb.forEach(x => x.classList.remove('on')));
+      el.addEventListener('click', () => { const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(job.mezz[mi], id); });
     });
-    $('#planLegend').innerHTML = r.marks.map(mk => `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="${mkVar(mk)}" stroke-width="5"/></svg>${mkName(mk)} ${esc(mk.desc || '')} · qty ${mk.qty}${mk.qtyAll > mk.qty ? ' of ' + mk.qtyAll : ''}</span>`).join('') +
-      `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${lay.mezzCols.length}</span>` +
+    $$('#planSvg [data-col]').forEach(el => { el.addEventListener('click', () => { const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }); });
+    $$('#planSvg [data-mezz]').forEach(el => { el.addEventListener('click', () => switchMezz(+el.dataset.mezz)); });
+    $('#planLegend').innerHTML = marks.map(mk => `<span class="lg-mk"><svg width="26" height="12"><rect width="26" height="12" rx="2" fill="${mkVar(mk)}" opacity=".22"/><line x1="0" y1="6" x2="26" y2="6" stroke="${mkVar(mk)}" stroke-width="5"/></svg><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} · ${mk.qtyAll} beam${mk.qtyAll === 1 ? '' : 's'} · ${ft(mk.span)} × ${ft(mk.trib)}${mkShort(mk) ? ' (' + mkShort(mk) + ')' : ''}</span>`).join('') +
+      `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${t.nC}</span>` +
       (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
-      (others.length ? `<span><svg width="22" height="10"><rect width="22" height="10" class="foot other"/></svg>${others.map(oz => esc(oz.id)).join(', ')} (designed with this one)</span>` : '') +
-      (lay.beams.some(b => b.absorbed) ? `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="beam carried"/></svg>Edge carried by the neighbour's beam</span>` : '') +
-      `<span><svg width="10" height="10"><rect width="8" height="8" x="1" y="1" fill="var(--ink)"/></svg>Building column</span><span><svg width="22" height="10"><rect width="22" height="10" fill="url(#hatch)" stroke="var(--green)"/></svg>Footprint · hover a beam for its trib</span>`;
-    $('#beamTable').innerHTML = `<thead><tr><th>Beam</th><th>Line</th><th>From → to</th><th class="num">Span</th><th class="num">Trib</th><th>Mark</th><th>Section</th></tr></thead><tbody>` +
-      lay.beams.map(b => { const mk = mkOf(r, b.id), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
+      (ms.some(m => m.layout.beams.some(b => b.absorbed)) ? `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="beam carried"/></svg>Edge carried by the neighbour's beam</span>` : '') +
+      `<span><svg width="12" height="12"><rect width="10" height="10" x="1" y="1" fill="var(--amber)"/></svg>Building column with a load to the frame</span><span><svg width="10" height="10"><rect width="8" height="8" x="1" y="1" fill="var(--ink)"/></svg>Building column</span><span class="lg-hint">Hover any column for the dead / live it takes · hover a beam for its trib and end shear</span>`;
+    // every beam of the job, with its end shear (what the columns take)
+    $('#beamTable').innerHTML = `<thead><tr>${many ? '<th>Mezz.</th>' : ''}<th>Beam</th><th>Line</th><th>From → to</th><th class="num">Span</th><th class="num">Trib</th><th>Mark</th><th>Section</th><th class="num">End shear D / L (k)</th></tr></thead><tbody>` +
+      ms.flatMap(m => m.layout.beams.map(b => {
+        const mk = mkOf(m, b.id), fl = m.layout.joists === 'y' ? g.xLabel : g.yLabel, rx = !b.absorbed && mk && mk.sec ? DESIGN.reactions({ ...m.beamBase, L: b.span, trib: b.trib }, mk.sec) : null;
         const trib = b.extra ? `${ft(b.trib)}<small class="sub-n"> ${ft(b.tribOwn)} + ${b.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')}</small>` : ft(b.trib);
-        return `<tr class="${b.absorbed ? 'muted' : ''}"><td class="mono"><b>B${b.id + 1}</b></td><td>${lineLab(b.line)}</td><td>${fl(b.from) || ft(b.from)} → ${fl(b.to) || ft(b.to)}</td><td class="num">${ft(b.span)}</td><td class="num">${trib}</td><td>${b.absorbed ? 'carried by ' + esc(b.absorbed.mezz) : mk ? mkName(mk) + (b.span < mk.span - 1e-3 ? ' <small class="sub-n">own run at ' + ft(b.span) + '</small>' : '') : ''}</td><td class="mono">${b.absorbed ? '—' : mk && mk.desc ? mk.desc : '—'}</td></tr>`; }).join('') + '</tbody>';
-    $('#supTable').innerHTML = `<thead><tr><th>Support</th><th>Type</th><th class="num">Trib area</th><th class="num">Left D / L (k)</th><th class="num">Right D / L (k)</th></tr></thead><tbody>` +
-      lay.supports.slice().sort((a, b) => a.building - b.building || (colNo.get(a.label) || 0) - (colNo.get(b.label) || 0) || a.x - b.x || a.y - b.y).map(sp2 => {
-        const own = r.columns.find(c2 => c2.label === sp2.label), fc = (r.foreignCols || []).find(c2 => c2.label === sp2.label), c = own || fc;
-        const fl = sp2.building ? (r.frameLoads || []).find(q => Math.abs(q.x - sp2.x) < 0.01 && Math.abs(q.y - sp2.y) < 0.01) : null;
-        if (fl) return `<tr class="frame-row"><td class="mono">${sp2.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${fl.parts.map(p => `${state.all && state.all.length > 1 ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(fl.D, 2)} · L ${f(fl.L, 2)} k</b></td></tr>`;
-        const type = sp2.building ? 'Building column' : fc ? `Mezzanine column · counted with ${esc(fc.ownerId)}` : `<b style="color:var(--red)">Mezzanine column ⊗</b>${own && own.shared ? ' · shared' : ''}`;
-        const from = c && c.shared ? `<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${esc(p.mezz)} ${p.beam}`).join(' · ')}</small>` : '';
-        return `<tr><td class="mono">${own ? `<b>C${colNo.get(sp2.label)}</b> · ` : ''}${sp2.label}</td><td>${type}${from}</td><td class="num">${c ? f(c.tribArea, 0) + ' ft²' : ''}</td><td class="num">${c ? f(c.DL_L, 2) + ' / ' + f(c.LL_L, 2) : ''}</td><td class="num">${c ? f(c.DL_R, 2) + ' / ' + f(c.LL_R, 2) : ''}</td></tr>`;
-      }).join('') + '</tbody>';
+        return `<tr class="${b.absorbed ? 'muted' : ''}">${many ? `<td>${esc(m.id)}</td>` : ''}<td class="mono"><b>B${b.id + 1}</b></td><td>${lineOf(m, b.line)}</td><td>${fl(b.from) || ft(b.from)} → ${fl(b.to) || ft(b.to)}</td><td class="num">${ft(b.span)}</td><td class="num">${trib}</td><td>${b.absorbed ? 'carried by ' + esc(b.absorbed.mezz) : mk ? `<i class="mk-dot" style="background:${mkHex(mk)}"></i>${mkName(mk)}` + (b.span < mk.span - 1e-3 ? ' <small class="sub-n">own run at ' + ft(b.span) + '</small>' : '') : ''}</td><td class="mono">${b.absorbed ? '—' : mk && mk.desc ? mk.desc : '—'}</td><td class="num">${rx ? f(rx.D, 2) + ' / ' + f(rx.L, 2) : ''}</td></tr>`; })).join('') + '</tbody>';
+    // every column of the job: the Column-sheet inputs of each mezzanine column, the load to the frame at each building column
+    const jcols = (job ? job.columns : []).filter(c => ms.some(m => m.index === c.owner)).sort((x, y) => (cno.get(x.label) || 0) - (cno.get(y.label) || 0));
+    $('#supTable').innerHTML = `<thead><tr><th>Column</th><th>Type · beams framing in</th><th class="num">Trib area</th><th class="num">Left D / L (k)</th><th class="num">Right D / L (k)</th></tr></thead><tbody>` +
+      jcols.map(c => `<tr><td class="mono"><b>C${cno.get(c.label)}</b> · ${c.label}</td><td><b style="color:var(--red)">Mezzanine column ⊗</b>${many ? ' · ' + esc(c.ownerId) : ''}${c.shared ? ' · shared' : ''}<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' · ')}</small></td><td class="num">${f(c.tribArea, 0)} ft²</td><td class="num">${f(c.DL_L, 2)} / ${f(c.LL_L, 2)}</td><td class="num">${f(c.DL_R, 2)} / ${f(c.LL_R, 2)}</td></tr>`).join('') +
+      fls.filter(q => ms.some(m => q.seenIn.includes(m.index))).map(q => `<tr class="frame-row"><td class="mono">${q.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${q.parts.map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(q.D, 2)} · L ${f(q.L, 2)} k</b></td></tr>`).join('') + '</tbody>';
   }
 
   // ---------- beam calc (MB sheet mirror) ----------
@@ -4707,8 +4900,6 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     return `<div class="viz"><svg class="cviz" viewBox="0 0 760 ${yF + 26}" role="img" aria-label="Column elevation">${o.join('')}</svg><svg class="csec" viewBox="0 0 280 ${yF + 26}" role="img" aria-label="${esc(cf.name)} section">${sv.join('')}</svg></div>
       <div class="table-wrap cv-table"><table><thead><tr><th>Side</th><th>Beam</th><th>Mark · section</th><th class="num">Span</th><th class="num">Trib</th><th class="num">Dead (k)</th><th class="num">Live (k)</th></tr></thead><tbody>${rows}</tbody></table></div>${same}`;
   }
-  // C1, C2 … numbered the same everywhere (plan tags, 3D, column sheet): along the length, then from the BSW
-  const colNos = r => new Map(r.layout.mezzCols.slice().sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
   // left beam → column ← right beam, with the dead / live shear each one brings (what goes in C27:D28)
   function lrDiagram(g, cno) {
     const c = g.cols[0];
@@ -4731,7 +4922,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   function renderColumn() {
     const r = state.res, cf = r.colFinal;
     if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; return; }
-    const cno = colNos(r);
+    const cno = colNos();
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); }; });

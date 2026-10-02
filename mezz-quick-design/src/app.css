@@ -443,8 +443,8 @@ tr.none td { color: var(--ink-faint); }
 .plan .joist { stroke: var(--ink-faint); stroke-width: .8; opacity: .45; }
 .plan .beam { stroke-width: 5; stroke-linecap: butt; cursor: pointer; }
 .plan .beam:hover { stroke-width: 8; }
-.plan .trib { opacity: 0; transition: opacity 140ms var(--ease); pointer-events: none; }
-.plan .trib.on { opacity: .2; }
+.plan .trib { opacity: .13; transition: opacity 140ms var(--ease); pointer-events: none; }
+.plan .trib.on { opacity: .34; }
 .plan .bcol { fill: var(--ink); }
 .plan .mcol circle { fill: var(--surface); stroke: var(--red); stroke-width: 2; }
 .plan .mcol path { stroke: var(--red); stroke-width: 2; }
@@ -653,3 +653,60 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .sr.is-on { border-color: var(--green); box-shadow: 0 0 0 1px var(--green) inset; background: var(--green-soft); }
 .bc-run { color: var(--ink-faint); font: 500 .5em var(--mono); letter-spacing: 0; }
 @media (max-width: 640px) { .mk-row { grid-template-columns: 52px 1fr auto; gap: 8px; } .sr, .sr-head { min-width: 0; flex: 1 1 100%; } }
+#miniPlan .mp-bc rect, #planPopSvg .mp-bc rect { fill: #8fb2c7; }
+#miniPlan .mp-bc.ld rect, #planPopSvg .mp-bc.ld rect { fill: #f6c779; }
+#miniPlan .mp-bc, #planPopSvg .mp-bc, #miniPlan .mp-col, #planPopSvg .mp-col { cursor: pointer; }
+#miniPlan .mp-hit, #planPopSvg .mp-hit { fill: transparent; }
+#miniPlan .mp-mz, #planPopSvg .mp-mz { fill: #9fe9cf; font: 700 calc(8px * var(--k)) var(--body); letter-spacing: .06em; text-anchor: middle; dominant-baseline: central; opacity: .85; pointer-events: none; paint-order: stroke; stroke: #0b1724; stroke-width: calc(2.4px * var(--k)); }
+
+/* ---------- hover card: column D / L inputs, loads to the frame, beam end shears ---------- */
+.hover-tip { position: fixed; top: 0; left: 0; z-index: 1000; width: max-content; max-width: min(400px, calc(100vw - 16px)); padding: 12px 14px 11px; border: 1px solid var(--line-strong); border-radius: 14px; background: color-mix(in srgb, var(--surface) 96%, transparent); color: var(--ink); box-shadow: 0 18px 40px -18px #000c, 0 2px 8px #0004; pointer-events: none; font-size: 12px; backdrop-filter: blur(8px); }
+.hover-tip[hidden] { display: none; }
+.tip-h { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.tip-h b { font: 700 14px var(--mono); letter-spacing: -.02em; }
+.tip-h span { color: var(--ink-faint); font-size: 11px; }
+.tip-k { margin: 9px 0 5px; color: var(--ink-faint); font: 600 10px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.tip-lr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tip-lr.one { grid-template-columns: 1fr; }
+.tip-lr > div { display: grid; grid-template-columns: auto 1fr 1fr; align-items: baseline; gap: 8px; padding: 6px 9px; border-radius: 9px; background: var(--surface-soft); }
+.tip-lr span { color: var(--ink-muted); font-size: 11px; }
+.tip-lr b { font: 700 14px var(--mono); letter-spacing: -.02em; white-space: nowrap; }
+.hover-tip .d { color: var(--steel); } .hover-tip .l { color: var(--green); }
+.hover-tip table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 11.5px; }
+.hover-tip th { padding: 0 6px 3px 0; color: var(--ink-faint); font: 600 10px var(--mono); text-align: right; }
+.hover-tip th:nth-child(2) { text-align: left; }
+.hover-tip td { padding: 4px 6px 4px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.hover-tip td.sd { color: var(--ink-muted); font-size: 10.5px; }
+.hover-tip td.d, .hover-tip td.l { font: 600 12px var(--mono); text-align: right; white-space: nowrap; }
+.hover-tip td i, .tip-sec i { display: inline-block; width: 8px; height: 8px; margin: 0 4px 0 2px; border-radius: 50%; }
+.hover-tip td small { display: block; color: var(--ink-faint); font: 10.5px var(--mono); }
+.tip-sec { margin-top: 6px; font: 700 18px var(--mono); letter-spacing: -.03em; }
+.tip-dl { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 16px; margin: 8px 0 0; }
+.tip-dl dt { color: var(--ink-faint); font-size: 10.5px; }
+.tip-dl dd { margin: 1px 0 0; font: 600 12.5px var(--mono); }
+.tip-dl small { color: var(--ink-faint); font-size: 10px; }
+.tip-f { margin-top: 8px; color: var(--ink-muted); font-size: 11px; line-height: 1.45; }
+.tip-f:empty { display: none; }
+.mk-key b { font-weight: 700; }
+.mk-mini { display: grid; gap: 6px; margin-top: 12px; }
+.mk-mini > div { display: grid; grid-template-columns: auto 1fr auto; gap: 0 10px; align-items: baseline; padding: 7px 10px; border-radius: 10px; background: #0b182766; box-shadow: inset 3px 0 0 var(--mk); }
+.mk-mini b { color: var(--mk); font: 700 13px var(--mono); }
+.mk-mini span { color: #93b0c4; font-size: 11px; }
+.mk-mini em { grid-column: 1 / 3; color: #f2fbff; font: 500 17px var(--mono); font-style: normal; letter-spacing: -.03em; }
+.mk-mini small { grid-row: 1 / 3; grid-column: 3; align-self: center; color: #70f5c4; font: 600 15px var(--mono); }
+
+/* ---------- the job's plan: interior / exterior at a glance, every column hoverable ---------- */
+.plan .run-lab { font: 700 10.5px var(--mono); letter-spacing: .04em; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; pointer-events: none; }
+.plan .mz-name { fill: var(--ink); font: 700 15px var(--body); letter-spacing: .06em; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; opacity: .78; cursor: pointer; }
+.plan .mz-name.is-cur { fill: var(--green); opacity: 1; }
+.plan .hit { fill: transparent; }
+.plan .bcol-g, .plan .mcol, .plan .tag { cursor: pointer; }
+.plan .bcol-g.ld .bcol { fill: var(--amber); stroke: var(--ink); stroke-width: 1; }
+.plan .bcol-g:hover .bcol { stroke: var(--steel); stroke-width: 2; }
+.plan .mcol:hover circle:not(.hit) { fill: color-mix(in srgb, var(--red) 25%, var(--surface)); }
+.plan .tag.b.int text { font-weight: 800; }
+.legend .lg-mk b { font-weight: 700; }
+.legend .lg-hint { color: var(--ink-faint); font-style: italic; }
+.plan .bldg-cut { fill: none; stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 5; }
+#miniPlan .mp-cl2, #planPopSvg .mp-cl2 { fill: #9fb7ca; font-weight: 600; font-size: calc(6.5px * var(--k)); }
+.plan .dim[text-anchor="start"] { text-anchor: start; } .plan .dim[text-anchor="end"] { text-anchor: end; }
