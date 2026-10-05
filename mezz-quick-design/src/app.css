@@ -710,3 +710,39 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .plan .bldg-cut { fill: none; stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 5; }
 #miniPlan .mp-cl2, #planPopSvg .mp-cl2 { fill: #9fb7ca; font-weight: 600; font-size: calc(6.5px * var(--k)); }
 .plan .dim[text-anchor="start"] { text-anchor: start; } .plan .dim[text-anchor="end"] { text-anchor: end; }
+
+/* ---------- design manual checklist (DM 15.1) ---------- */
+.dm { margin-bottom: 28px; }
+.dm-sum { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.dm-chip { padding: 5px 12px; border-radius: 999px; background: var(--surface-soft); color: var(--ink-muted); font-size: 12px; box-shadow: inset 0 0 0 1px var(--line); }
+.dm-chip b { font: 700 13px var(--mono); margin-right: 3px; }
+.dm-chip.s-ok b { color: var(--green); } .dm-chip.s-check b { color: var(--amber); } .dm-chip.s-stop b { color: var(--red); } .dm-chip.s-note b { color: var(--steel); }
+.dm-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 14px; }
+.dm-group { padding: 14px 16px 6px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.dm-group h5 { margin: 0 0 8px; color: var(--ink-faint); font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.dm-item { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.dm-item:first-of-type { border-top: 0; }
+.dm-ic { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font: 700 12px var(--mono); color: var(--surface); background: var(--ink-faint); }
+.dm-item.s-ok .dm-ic { background: var(--green); } .dm-item.s-check .dm-ic { background: var(--amber); } .dm-item.s-stop .dm-ic { background: var(--red); } .dm-item.s-note .dm-ic { background: var(--steel); }
+.dm-t { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
+.dm-t b { font-size: 13.5px; font-weight: 650; }
+.dm-ref { color: var(--ink-faint); font: 600 10.5px var(--mono); white-space: nowrap; }
+.dm-item p { margin: 3px 0 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
+
+/* ---------- Excel, step by step ---------- */
+.xl-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 18px; }
+.xl-cols h4, #xlCol h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 14px; }
+.xl-cols h4 span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--green-soft); color: var(--green-dark); font: 700 11px var(--mono); }
+.xl-cols h4 small { color: var(--ink-faint); font-weight: 400; font-size: 12px; }
+table.xl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.xl th { padding: 6px 8px; color: var(--ink-faint); font: 600 10.5px var(--mono); text-align: left; border-bottom: 1px solid var(--line-strong); }
+table.xl td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+table.xl .num { text-align: right; }
+table.xl td.n { color: var(--ink-faint); font: 600 11px var(--mono); width: 22px; }
+table.xl td.cell { color: var(--steel); white-space: nowrap; }
+table.xl td.val b { color: var(--ink); }
+table.xl tr.rb-h td { padding-top: 12px; color: var(--ink-faint); font: 600 10.5px var(--mono); letter-spacing: .04em; text-transform: uppercase; border-bottom: 1px solid var(--line-strong); }
+table.xl tr.rb td { color: var(--ink-muted); }
+table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
+.xl-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; color: var(--ink-faint); font-size: 12px; }
+@media (max-width: 640px) { table.xl td.cell { white-space: normal; word-break: break-all; } }

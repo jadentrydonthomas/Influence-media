@@ -546,6 +546,46 @@
     return grp(['stop', 'warn'], 'Check before quoting') + grp(['ok'], 'Confirmed against the PCS') + grp(['key'], 'Design decisions') + grp(['info'], 'How it was read', false);
   }
 
+  // the design manual (NBG DM 15.1 Mezzanine Systems): every item this job touches, grouped, with its status
+  const DM_ICON = { ok: '✓', check: '!', stop: '✕', note: '✎', info: 'i' }, DM_WORD = { ok: 'met', check: 'to check', stop: 'fails', note: 'callout', info: 'scope' };
+  function renderDM() {
+    const items = (state.job && state.job.dm) || [], el = $('#dmList');
+    $('#dmHead').hidden = !items.length;
+    if (!items.length) { el.innerHTML = ''; return; }
+    const count = st => items.filter(i => i.status === st).length;
+    el.innerHTML = `<div class="dm-sum">${['ok', 'check', 'stop', 'note', 'info'].filter(count).map(st => `<span class="dm-chip s-${st}"><b>${count(st)}</b> ${DM_WORD[st]}</span>`).join('')}</div><div class="dm-groups">` +
+      [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">DM ${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
+  }
+  // Excel, step by step: the cells to type, in order, then what the workbook shows
+  const xlCell = st => (st.where ? (st.where.includes('!') ? st.where : `${st.sheet}!${st.where}`) : `${st.sheet}!${st.cell}`);
+  function xlTable(steps, read, readTitle = 'Excel then shows') {
+    const rows = steps.map((st, i) => `<tr><td class="num n">${i + 1}</td><td class="mono cell">${esc(xlCell(st))}</td><td>${esc(st.label)}</td><td class="num mono val"><b>${esc(st.show)}</b></td></tr>`).join('');
+    const rb = (read || []).map(r => `<tr class="rb"><td class="num n">→</td><td class="mono cell">${esc(r.sheet + '!' + r.cell)}</td><td>${esc(r.label)}</td><td class="num mono val">${esc(String(r.expect))}</td></tr>`).join('');
+    return `<table class="xl"><thead><tr><th class="num">#</th><th>Cell</th><th>Field</th><th class="num">Type</th></tr></thead><tbody>${rows}${rb ? `<tr class="rb-h"><td></td><td colspan="3">${readTitle}</td></tr>${rb}` : ''}</tbody></table>`;
+  }
+  const xlTsv = steps => steps.map(st => `${xlCell(st)}\t${st.label}\t${st.show}`).join('\n');
+  const XL_FOOT = 'Typed cell by cell into the real workbooks (headless) and read back — these are the values Excel shows.';
+  function renderXlBeam(mk, run) {
+    const books = (state.job && state.job.excel && state.job.excel.beam) || [];
+    const book = books.find(b => b.sheets.some(sh => sh.mark === mk.mark && Math.abs(sh.span - run.span) < 1e-3));
+    if (!book) { $('#xlBeam').innerHTML = '<div class="empty">No section yet.</div>'; $('#xlBeamSub').textContent = ''; return; }
+    const sh = book.sheets.find(x => x.mark === mk.mark && Math.abs(x.span - run.span) < 1e-3), inp = book.inputs.find(x => x.mezz === state.res.id) || book.inputs[0];
+    $('#xlBeamSub').textContent = `${book.file}${book.copy > 1 ? ` (copy ${book.copy})` : ''} · ${book.sheets.map(x => `${x.sheet} = ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ''}`).join(' · ')}`;
+    $('#xlBeam').innerHTML = `<div class="xl-cols">
+      <div><h4><span>1</span>INPUT sheet <small>once for the workbook${book.inputs.length > 1 ? ' · ' + esc(inp.mezz) + ' heights' : ''}</small></h4>${xlTable(inp.steps, inp.read, 'Excel then shows (once every MB sheet is in — D26 is the deepest of MB1–MB4)')}</div>
+      <div><h4><span>2</span>${sh.sheet} sheet <small>${esc(mkName(mk))} at ${ft(sh.span)} × ${ft(sh.trib)} trib · ${sh.qty} beam${sh.qty > 1 ? 's' : ''}</small></h4>${xlTable(sh.steps, sh.read)}</div></div>
+      <div class="xl-foot"><span>${XL_FOOT}</span><button class="btn-soft" id="xlBeamCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
+    $('#xlBeamCopy').onclick = () => copyText(xlTsv(inp.steps.concat(sh.steps)), `INPUT + ${sh.sheet} cells copied`);
+  }
+  function renderXlCol(r, gi) {
+    let cs = null, book = null;
+    ((state.job && state.job.excel && state.job.excel.column) || []).forEach(b => b.cases.forEach(c => { if (c.mi === r.index && c.group === gi) { cs = c; book = b; } }));
+    if (!cs) { $('#xlCol').innerHTML = '<div class="empty">No column sized yet.</div>'; $('#xlColSub').textContent = ''; return; }
+    $('#xlColSub').textContent = `${book.file} · Column sheet, one case at a time`;
+    $('#xlCol').innerHTML = xlTable(cs.steps, cs.read) + `<div class="xl-foot"><span>${XL_FOOT} The reactions are the MB-sheet end shears of the beams framing in (H6 / H10), summed per side.</span><button class="btn-soft" id="xlColCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
+    $('#xlColCopy').onclick = () => copyText(xlTsv(cs.steps), 'Column cells copied');
+  }
+
   function renderResults() {
     const r = state.res, inp = state.inputs, s = state.settings;
     $('#resEyebrow').textContent = [inp.job.quote, inp.job.project].filter(Boolean).join(' / ') || 'Design result';
@@ -558,6 +598,7 @@
       $('#needSlot').innerHTML = card;
       $('#warnings').innerHTML = notesHtml(r.warn, !!card);
       wireNeed();
+      renderDM();
       const anyDone = state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete);
       $('#qsHead').hidden = !anyDone;
       if (anyDone) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
@@ -584,6 +625,7 @@
     $('#needSlot').innerHTML = card;
     $('#warnings').innerHTML = notesHtml(r.warn, !!card);
     wireNeed();
+    renderDM();
     $('#modelSec').hidden = false; $('#optHead').hidden = false; $('#qsHead').hidden = false;
     const nCheck = r.warn.filter(w => w.level === 'stop' || w.level === 'warn').length;
     $('#checkPill').hidden = !nCheck;
@@ -1128,7 +1170,7 @@
     $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
     $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); }; });
     const mk = marks[state.mark];
-    if (!mk) { $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; return; }
+    if (!mk) { $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; $('#xlBeam').innerHTML = ''; $('#xlBeamSub').textContent = ''; return; }
     // every member length of the mark: the governing run (longest span, largest trib) and the shorter beams — same section, own MB sheet
     const runs = mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, qty: mk.qtyAll, check: mk.check, params: mk.params }];
     if (state.markSpan >= runs.length) state.markSpan = 0;
@@ -1177,6 +1219,7 @@
             ['Web sidesway SR', c.conc.WSB == null ? '--' : f(c.conc.WSB, 3)], ['Result', c.conc.ok ? 'OK' : 'NG — L7 warning', c.conc.ok ? 'okc' : 'ng'],
           ]) : '<div class="faint">not on the 13th-edition sheet</div>'}</div></div>`;
     }
+    renderXlBeam(mk, run);
     const sr = mk.search;
     if (!sr || !sr.best) { $('#altTable').innerHTML = ''; return; }
     $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(mk.span)} span × ${ft(mk.trib)} trib · click a row to use it`;
@@ -1319,7 +1362,7 @@
   }
   function renderColumn() {
     const r = state.res, cf = r.colFinal;
-    if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; return; }
+    if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; $('#xlCol').innerHTML = ''; $('#xlColSub').textContent = ''; return; }
     const cno = colNos();
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
@@ -1346,9 +1389,10 @@
           <tr><td>Maximum CSR</td>${chk.combos.map(k => `<td class="num">${f(k.csr, 3)}</td>`).join('')}</tr>
           <tr><td>Design results</td>${chk.combos.map(k => `<td class="num"><span class="status-text ${k.ok ? 'ok' : 'ng'}">${k.okText}</span></td>`).join('')}</tr>
         </tbody></table></div>
-        <p class="foot-note">${r.edition.colEd === '16' ? '16th-edition sheet: C10 (Lby) is hard-coded to 120 in. — type L×12 when you check it in Excel.' : 'Run in the Mezzanine Column (AISC ' + (r.edition.colEd || '15') + 'th) sheet.'}</p></div>
+        <p class="foot-note">The three combinations are DM 15.1.1.4.2's two loading conditions for a column with beams on both sides: DL + LL one side with DL only on the other (each way), and full DL + LL both sides. ${r.edition.colEd === '16' ? '16th-edition sheet: C10 (Lby) is hard-coded to 120 in. and Fy opens at 55 ksi — type L × 12 and pick Fy 50 (see the steps below).' : 'Run in the Mezzanine Column (AISC ' + (r.edition.colEd || '15') + 'th) sheet.'}</p></div>
       </div>`;
     }
+    renderXlCol(r, state.colGroup);
     const tried = g.design ? g.design.tried : [];
     $('#colTried').innerHTML = `<thead><tr><th>Section</th><th class="num">Wt plf</th><th class="num">bf</th><th class="num">Max CSR</th><th>Result</th><th>Quote as</th></tr></thead><tbody>` +
       tried.map(t => { const q = DESIGN.COMMON_COLUMNS.includes(t.name) || t.name === 'W8X18' ? t.name : t.name.replace(/^W(\d+)X/, 'BU$1x');

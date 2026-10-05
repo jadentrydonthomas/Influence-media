@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mezzanine Design</title>
-<meta name="generator" content="mezz-quick-design build 2026-10-02; pdf.js 3.11.174">
+<meta name="generator" content="mezz-quick-design build 2026-10-05; pdf.js 3.11.174">
 <meta name="description" content="Upload a PCS and get the NBG mezzanine beam and column sections, spans, tribs and quantities.">
 <style>
 /* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
@@ -720,6 +720,42 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 #miniPlan .mp-cl2, #planPopSvg .mp-cl2 { fill: #9fb7ca; font-weight: 600; font-size: calc(6.5px * var(--k)); }
 .plan .dim[text-anchor="start"] { text-anchor: start; } .plan .dim[text-anchor="end"] { text-anchor: end; }
 
+/* ---------- design manual checklist (DM 15.1) ---------- */
+.dm { margin-bottom: 28px; }
+.dm-sum { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.dm-chip { padding: 5px 12px; border-radius: 999px; background: var(--surface-soft); color: var(--ink-muted); font-size: 12px; box-shadow: inset 0 0 0 1px var(--line); }
+.dm-chip b { font: 700 13px var(--mono); margin-right: 3px; }
+.dm-chip.s-ok b { color: var(--green); } .dm-chip.s-check b { color: var(--amber); } .dm-chip.s-stop b { color: var(--red); } .dm-chip.s-note b { color: var(--steel); }
+.dm-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 14px; }
+.dm-group { padding: 14px 16px 6px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.dm-group h5 { margin: 0 0 8px; color: var(--ink-faint); font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.dm-item { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.dm-item:first-of-type { border-top: 0; }
+.dm-ic { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font: 700 12px var(--mono); color: var(--surface); background: var(--ink-faint); }
+.dm-item.s-ok .dm-ic { background: var(--green); } .dm-item.s-check .dm-ic { background: var(--amber); } .dm-item.s-stop .dm-ic { background: var(--red); } .dm-item.s-note .dm-ic { background: var(--steel); }
+.dm-t { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
+.dm-t b { font-size: 13.5px; font-weight: 650; }
+.dm-ref { color: var(--ink-faint); font: 600 10.5px var(--mono); white-space: nowrap; }
+.dm-item p { margin: 3px 0 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
+
+/* ---------- Excel, step by step ---------- */
+.xl-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 18px; }
+.xl-cols h4, #xlCol h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 14px; }
+.xl-cols h4 span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--green-soft); color: var(--green-dark); font: 700 11px var(--mono); }
+.xl-cols h4 small { color: var(--ink-faint); font-weight: 400; font-size: 12px; }
+table.xl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.xl th { padding: 6px 8px; color: var(--ink-faint); font: 600 10.5px var(--mono); text-align: left; border-bottom: 1px solid var(--line-strong); }
+table.xl td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+table.xl .num { text-align: right; }
+table.xl td.n { color: var(--ink-faint); font: 600 11px var(--mono); width: 22px; }
+table.xl td.cell { color: var(--steel); white-space: nowrap; }
+table.xl td.val b { color: var(--ink); }
+table.xl tr.rb-h td { padding-top: 12px; color: var(--ink-faint); font: 600 10.5px var(--mono); letter-spacing: .04em; text-transform: uppercase; border-bottom: 1px solid var(--line-strong); }
+table.xl tr.rb td { color: var(--ink-muted); }
+table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
+.xl-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; color: var(--ink-faint); font-size: 12px; }
+@media (max-width: 640px) { table.xl td.cell { white-space: normal; word-break: break-all; } }
+
 </style>
 </head>
 <body>
@@ -835,6 +871,8 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       <div id="options"></div>
       <div class="section-title" id="notesHead"><h3>Checks &amp; decisions</h3><p>What to check before quoting, what was confirmed against the PCS, and the calls the design made on its own</p></div>
       <div class="notes" id="warnings"></div>
+      <div class="section-title" id="dmHead"><h3>Design manual · DM 15.1</h3><p>Every item of NBG DM 15.1 Mezzanine Systems this job touches — met, to check, or a callout for detailing</p></div>
+      <div class="dm" id="dmList"></div>
       <div class="section-title" id="qsHead"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
       <div class="qs" id="quoteSheet"></div>
       <section class="readout" id="readout"></section>
@@ -878,6 +916,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       <div class="tabs" id="markTabs"></div>
       <div class="span-runs" id="spanRuns"></div>
       <div class="panel"><div class="panel-body" id="mbSheet"></div></div>
+      <div class="panel xl-panel">
+        <div class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlBeamSub"></span></div>
+        <div class="panel-body" id="xlBeam"></div>
+      </div>
       <div class="panel">
         <div class="panel-head"><h3>Lightest section at each depth</h3><span class="sub" id="altSub"></span></div>
         <div style="overflow-x:auto"><table id="altTable"></table></div>
@@ -892,6 +934,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       </div>
       <div class="tabs" id="colTabs"></div>
       <div class="panel"><div class="panel-body" id="colSheet"></div></div>
+      <div class="panel xl-panel">
+        <div class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlColSub"></span></div>
+        <div class="panel-body" id="xlCol"></div>
+      </div>
       <div class="panel">
         <div class="panel-head"><h3>Columns tried</h3><span class="sub">W10X22 → W8X24 → W12X26, then heavier W (quoted as BU)</span></div>
         <div style="overflow-x:auto"><table id="colTried"></table></div>
@@ -2234,7 +2280,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     const buildings = {};
     [...new Set(mezz.map(m => m.building || ''))].forEach(n => { buildings[n] = { building: building(pages, n || null), frames: frames(pages, n || null) }; });
     const first = buildings[(mezz[0] && mezz[0].building) || ''] || { building: building(pages, null), frames: frames(pages, null) };
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz };
+    // Ecospan (Vulcraft composite joist floor, DM 15.1.5): named anywhere in the text or the blue notes
+    const words = allLines(pages).map(l => l.text).concat(pages.flatMap(p => (p.annots || []).map(a => a.text || ''))).join('\n');
+    const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null };
   }
 
   const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts };
@@ -3073,7 +3122,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText: m.deckType, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText: m.deckType, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -3177,16 +3226,15 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 
     // flags from Box 22
     const prov = inp.mezz.provided || {};
-    if (prov['Designed For Load Provisions Only']) warn.push({ level: 'stop', text: 'Designed For Load Provisions Only is checked — NBG supplies no mezzanine beams or columns.' });
+    if (prov['Designed For Load Provisions Only']) warn.push({ level: 'stop', text: 'Designed For Load Provisions Only is checked — NBG supplies no mezzanine beams or columns. The connection hole patterns must be known at order entry, otherwise they are field drilled or field welded (DM 15.1.1, 15.1.1.4.2).' });
     if (prov['Support Beams'] === false) warn.push({ level: 'warn', text: 'Support Beams are not checked under Materials Provided By Seller.' });
     if (prov['Auxiliary Columns'] === false) warn.push({ level: 'warn', text: 'Auxiliary Columns are not checked under Materials Provided By Seller.' });
     const mat = inp.mezz.material;
     if (mat && !/Concrete/i.test(mat)) warn.push({ level: 'stop', text: `Mezzanine material is "${mat}" — per the training guide the quote engineer runs anything other than deck + concrete. Enter the dead load manually.` });
     if (inp.loads.dead.source === 'estimate') warn.push({ level: 'warn', text: `Dead load ${val(inp.loads.dead)} psf: ${inp.loads.dead.note}` });
     if (part > 0) warn.push({ level: 'info', text: `Partition load ${part} psf added to the ${s.partitionTo} load.` });
-    if (spacing > 5) warn.push({ level: 'warn', text: `Joist spacing ${PCS.fmtFtIn(spacing)} exceeds the 5'-0" NBG maximum (DM 15.1.1.3).` });
     ['joistSpacing', 'seat'].forEach(k => { if (inp.geom[k].source === 'default') warn.push({ level: 'warn', text: inp.geom[k].note }); });
-    if (inp.mezz.openings) warn.push({ level: 'warn', text: `Floor openings listed: ${inp.mezz.openings} — frame openings by hand.` });
+    if (inp.mezz.openings) warn.push({ level: 'warn', text: `Floor openings listed: ${inp.mezz.openings} — frame openings by hand. An opening wider than one joist spacing needs a joist header; its size and exact location must be on the order documents, and the header locations go to the joist manufacturer (DM 15.1.2).` });
 
     // layout — joist direction: Plan-page choice, else the "Mez. Jst." arrows on the PCS floor plan, else auto
     const bl = inp.building;
@@ -3300,7 +3348,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       } else if (mode === 'split') {
         sets = LAYOUT.beamMarks(bs.map((x, i) => ({ id: i, span: x.span, trib: x.trib })), 'split').map(m => [m.beams.map(u => bs[u]), '']);
       } else sets = [[bs, '']];
-      sets.forEach(([xs, kind]) => marks.push({ group: g, kind, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
+      sets.forEach(([xs, kind]) => marks.push({ group: g, groupKey: g.key, kind, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
     });
     marks.sort((a, b) => b.span * b.trib - a.span * a.trib || (a.kind === 'interior' ? -1 : 1));
     marks.forEach((m, i) => { m.mark = 'MB' + (i + 1); m.index = i; m.qtyAll = m.beamsAll.length; m.mezzIds = [...new Set(m.beamsAll.map(x => x.mi))]; });
@@ -3460,7 +3508,6 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/);
       colFinal = { name, quoteAs: DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
       if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${s.colOverride ? ' — the column pick on the Column page overrides the automatic W' : ''}.` });
-      if (WF[name].bf < 7) warn.push({ level: 'info', text: `${name} flange is ${WF[name].bf}" (< 7" DM 15.1.1.4.2 min for beams to the flange) — relies on the standard 4" bolt gage.` });
       if (!DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'info', text: `${name} is not a stocked W at ${division}.` });
     }
     if (cols.length && !colLen) warn.push({ level: 'stop', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' });
@@ -3484,6 +3531,242 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   }
   const near2 = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
 
+  /* ---------- NBG DM 15.1 Mezzanine Systems: every item of the manual this job touches, checked or called out ----------
+     status  ok    met — read from the design numbers
+             check needs a decision, or extra material on the quote (also listed in the notes)
+             stop  fails (also listed in the notes)
+             note  a callout for detailing / the D2D sheet
+             info  scope and standard practice
+     mi is the mezzanine an item belongs to (null: the whole job). */
+  function dmChecklist(ctxs, mezz, marks, cols) {
+    const F = PCS.fmtFtIn, out = [];
+    const live = ctxs.filter(c => !c.incomplete), many = live.length > 1;
+    if (!live.length) return out;
+    const add = (ref, group, title, status, text, mi = null, opt = {}) => out.push({ ref, group, title, status, text, mi, ...opt });
+    const tag = c => (many ? c.id + ': ' : '');
+    const n3 = v => +(+v).toFixed(3), plates = v => { const n = Math.round(v * 16), g = (a, b) => (b ? g(b, a % b) : a), w = Math.floor(n / 16), r = n % 16; return Math.abs(v * 16 - n) > 0.02 ? String(n3(v)) : r ? `${w ? w + ' ' : ''}${r / g(r, 16)}/${16 / g(r, 16)}` : String(w); };
+    const idOf = i => (ctxs[i] ? ctxs[i].id : '');
+    // edges two mezzanines share at one floor level (one slab across): from the framed footprints
+    const shared = [];
+    live.forEach((a, i) => live.slice(i + 1).forEach(b => {
+      if (a.bkey !== b.bkey || Math.abs((a.A || 0) - (b.A || 0)) > 0.01) return;
+      const fa = a.lay.footprint, fb = b.lay.footprint, ov = (p0, p1, q0, q1) => [Math.max(p0, q0), Math.min(p1, q1)];
+      [[fa.y1, fb.y0], [fa.y0, fb.y1]].forEach(([u, v2]) => { const [s0, s1] = ov(fa.x0, fa.x1, fb.x0, fb.x1); if (Math.abs(u - v2) < 0.6 && s1 - s0 > 1) shared.push({ a: a.index, b: b.index, axis: 'y', at: u, from: s0, to: s1 }); });
+      [[fa.x1, fb.x0], [fa.x0, fb.x1]].forEach(([u, v2]) => { const [s0, s1] = ov(fa.y0, fa.y1, fb.y0, fb.y1); if (Math.abs(u - v2) < 0.6 && s1 - s0 > 1) shared.push({ a: a.index, b: b.index, axis: 'x', at: u, from: s0, to: s1 }); });
+    }));
+
+    // ---- layout (15.1.1.3, 15.1.1.4)
+    live.forEach(c => {
+      const L = c.lay, alt = L.alt, sp = c.beamBase.Lb, shorter = !alt || alt.beamSpan >= L.beamSpan - 1e-6;
+      add('15.1.1.3', 'Layout', 'Beams on the shorter span, joists the longer', shorter ? 'ok' : 'info',
+        `${tag(c)}beams span ${F(L.beamSpan)}, joists ${F(L.joistSpan)}${/arrows/.test(L.why || '') ? ', as the "Mez. Jst." arrows on the PCS show' : ''}${shorter ? '.' : ` — the other direction would put the beams on ${F(alt.beamSpan)}; the drawing governs, confirm it was intended.`}`, c.index);
+      add('15.1.1.3', 'Layout', 'Joists no more than 5\'-0" on center', sp <= 5 + 1e-9 ? 'ok' : 'stop', `${tag(c)}joists @ ${F(sp)} O.C.${sp <= 5 + 1e-9 ? '' : ' — NBG will not space joists more than 5\'-0" apart.'}`, c.index);
+    });
+    if (shared.length) {
+      const clash = shared.filter(e => ctxs[e.a].lay.joists !== ctxs[e.b].lay.joists);
+      add('15.1.1.4', 'Layout', 'One joist direction across a floor level', clash.length ? 'check' : 'ok', clash.length
+        ? clash.map(e => `${idOf(e.a)} and ${idOf(e.b)} meet at ${F(e.at)} with their joists running different ways`).join('; ') + ' — the camber of one set holds the deck off the other and off the beam. Keep one direction, or confirm with Engineering Leadership.'
+        : `${[...new Set(shared.flatMap(e => [idOf(e.a), idOf(e.b)]))].join(' and ')} meet at one level with their joists running the same way, so no joists run parallel to a beam close by.`);
+    }
+    const lv = [...new Set(live.map(c => c.beamBase.live))];
+    add('15.1.1.4 (4)', 'Layout', 'No live load reduction', 'ok', `${lv.join(' / ')} psf live used unreduced on every beam and column${live.some(c => val(c.inp.loads.partition) > 0 && c.s.partitionTo === 'live') ? ' (partition included)' : ''}.`);
+    live.forEach(c => {
+      const r = mezz[c.index], cl = r && r.clear;
+      if (!cl) return;
+      const bad = ['A', 'B', 'C'].filter(k => cl[k].ok === false);
+      add('15.1.1', 'Layout', 'Finish floor and clear heights defined', bad.length ? 'stop' : 'ok', `${tag(c)}A ${F(c.A)} · B ${c.Bq != null ? F(c.Bq) : '—'} · C ${c.inp.geom.C && c.inp.geom.C.source === 'none' ? 'no requirement' : c.Cq != null ? F(c.Cq) : '—'}${bad.length ? ` — clearance ${bad.join(', ')} not met` : ', each one met'}.`, c.index, { mirror: false });
+    });
+
+    // ---- beams (15.1.1.4.1)
+    const ms = marks.filter(mk => mk.sec && mk.check);
+    if (ms.length) {
+      const runs = mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, check: mk.check }]);
+      const lo = (mk, k) => Math.min(...runs(mk).map(q => q.check.defl[k]));
+      add('15.1.1.4.1.1', 'Beams', 'Deflection L/360 live, L/240 total', ms.every(mk => runs(mk).every(q => q.check.llOK && q.check.tlOK)) ? 'ok' : 'stop',
+        ms.map(mk => `${mk.mark} L/${Math.round(lo(mk, 'rLL'))} live · L/${Math.round(lo(mk, 'rTL'))} total`).join(' · ') + ' (MB sheet K11 / K15).');
+      add('15.1.1.4.1.2', 'Beams', 'Flange at least 5½" wide (2½" joist seat bearing)', ms.every(mk => mk.sec.bof >= 5.5 - 1e-9) ? 'ok' : 'stop', ms.map(mk => `${mk.mark} ${plates(mk.sec.bof)}"`).join(' · ') + ' top flange.');
+      const conc = ms.every(mk => mk.check.conc);
+      const jb = mk => Math.max(mk.check.conc.WLY, mk.check.conc.WC, mk.check.conc.WSB || 0);
+      add('15.1.1.4.1.3', 'Beams', 'Top flange at least ¼" thick, no stiffeners at the joists', !ms.every(mk => mk.sec.tof >= 0.25 - 1e-9) || (conc && !ms.every(mk => mk.check.conc.ok)) ? 'stop' : conc ? 'ok' : 'check',
+        ms.map(mk => `${mk.mark} ${plates(mk.sec.bof)} × ${plates(mk.sec.tof)}"${mk.check.conc ? `, joist bearing SR ${jb(mk).toFixed(2)}` : ''}`).join(' · ') + (conc ? ' (web local yielding, crippling and sidesway under the joist reaction, J10 — Concentrated Load Checks).' : ' — the 13th-edition sheet has no joist-bearing check: check J10 by hand.'));
+      add('15.1.1.4.1.4', 'Beams', 'Web without intermediate stiffeners', ms.every(mk => runs(mk).every(q => q.check.res.SRvx <= 1)) ? 'ok' : 'stop',
+        ms.map(mk => `${mk.mark} web ${plates(mk.sec.tw)}", shear SR ${Math.max(...runs(mk).map(q => q.check.res.SRvx)).toFixed(2)}`).join(' · ') + ' — unstiffened web shear on the MB sheet (G2).');
+      // perimeter beams: joists from one side only (DM 15.1.1.4.1.3 user note)
+      const per = ms.map(mk => ({ mk, bs: (mk.beamsAll || []).filter(x => x.edgeOnly) })).filter(x => x.bs.length);
+      if (per.length) {
+        const R = per.map(({ mk, bs }) => { const c = ctxs[bs[0].mi], b = c.beamBase, w = b.dead + b.coll + b.joistWt + b.live; return Math.max(...bs.map(x => w * b.Lb * ctxs[x.mi].lay.beams[x.id].tribOwn / 1000)); });
+        add('15.1.1.4.1.3', 'Beams', 'Perimeter beams: joists bear on one side', 'note',
+          per.map(({ mk, bs }) => `${mk.mark}${mk.kind ? ' ' + mk.kind : ''} ${mk.desc} (${bs.length} edge beam${bs.length > 1 ? 's' : ''})`).join(', ') +
+          `: carry the joist top-chord extensions to the edge of the beam flange, so the single-sided flange-to-web weld is not overloaded. Half the flange (${per.map(({ mk }) => plates(mk.sec.bof / 2) + '"').join(' / ')}) is more than a 2½" seat — where a seat stops short of the web, check top-flange local bending for the joist reaction, about ${Math.max(...R).toFixed(2)} k per joist (DM 9.7.11). Put it on the D2D sheet.`);
+      }
+      add('15.1.1.4.1.5', 'Beams', 'Axial load only when a beam is part of a bracing system', 'info', 'No mezzanine beam is part of a bracing system in this layout (MB sheet D15 axial left blank). A beam on a line that gets independent X-bracing (see Bracing) is re-run with the brace axial load, unbraced, and its end connections take that axial too.');
+      add('15.1.1.4 (1)', 'Beams', 'No camber in the floor beams', 'info', 'Beams are not cambered (standard). The joists are, so no joist runs parallel to a beam close by.');
+      add('15.1.1.4.2', 'Connections & columns', 'Beam end connections (Mezzanine Beam Clips)', 'note',
+        `Field bolted: ¾" A325 bearing type, threads included, short horizontal slots in the framing angles; double L4×3×⅜ (A572-50) at building columns, 3" bolt pitch, two bolt rows minimum. End reaction for the clips (MB sheet shear, unfactored): ${ms.map(mk => `${mk.mark} D ${mk.check.V.D.toFixed(2)} + L ${mk.check.V.L.toFixed(2)} = ${(mk.check.V.D + mk.check.V.L).toFixed(2)} k`).join(' · ')}. Call out one bolt-row quantity for most connections (DM 15.1.1.4 item 5).`);
+    }
+
+    // ---- columns (15.1.1.4.2, 15.1.1.4.3)
+    const withCols = mezz.filter(r => r && !r.incomplete && r.colFinal && r.columns.length);
+    if (withCols.length) {
+      const nCase = withCols.reduce((a, r) => a + r.colGroups.length, 0);
+      add('15.1.1.4.2 (1E)', 'Connections & columns', 'Columns: full DL + LL both sides, and DL + LL one side with DL only on the other', withCols.every(r => r.colFinal.ok) ? 'ok' : 'stop',
+        `The Column sheet's three combinations are exactly these: DLt+LLt+DRt and DLt+DRt+LRt (live on one side) and DLt+LLt+DRt+LRt (both sides) — max CSR ${Math.max(...withCols.map(r => r.colFinal.max)).toFixed(3)} over ${nCase} case${nCase > 1 ? 's' : ''}.`);
+      [...new Map(withCols.map(r => [r.colFinal.name + '|' + r.colLen, r])).values()].forEach(r => {
+        const name = r.colFinal.name, w = WF[name], bu = /^BU/.test(r.colFinal.quoteAs);
+        if (bu) add('15.1.1.4.2 (2A)', 'Connections & columns', 'Built-up column: flange at least 8" × ¼" for beams on the flange', w.bf >= 8 && w.tf >= 0.25 ? 'ok' : 'check',
+          `Quoted as ${r.colFinal.quoteAs}, sized as ${name} (flange ${w.bf}" × ${w.tf}")${w.bf >= 8 && w.tf >= 0.25 ? '.' : ' — a built-up column with beams on its flange needs an 8" × ¼" flange: build it with an 8" flange, or frame the beams onto a cap plate.'}`);
+        else add('15.1.1.4.2 (2B)', 'Connections & columns', 'Hot-rolled column: flange at least 7" for beams on the flange', w.bf >= 7 ? 'ok' : 'note',
+          `${name} flange ${w.bf}"${w.bf >= 7 ? '' : ' — under 7": acceptable with the standard 4" bolt gage (DM note 1); the angles may run past the flange edges'}. Beams frame to the flange, column web parallel to the beam web (the preferred orientation)${/^W8X/.test(name) ? '; no W8 has the 7" + tw "T" needed for beams on its web' : ''}.`);
+        const shaft = w.W * r.colLen, all = shaft + END_WT_COL;
+        add('15.1.1.4.3', 'Connections & columns', 'Posts under 300 lb (OSHA 1926)', 'note',
+          `${name} × ${F(r.colLen)} = ${Math.round(shaft)} lb, ${Math.round(all)} lb with the ${END_WT_COL} lb end plates. ${all <= 300 ? 'Under 300 lb: a post, so the four-anchor-rod requirement does not apply.' : shaft <= 300 ? 'The shaft is under 300 lb but not with the plates — confirm which weight the four-anchor-rod requirement is judged on.' : 'Over 300 lb: four anchor rods (OSHA 1926.755).'}`);
+      });
+      const owned = cols.filter(q => mezz[q.owner] && !mezz[q.owner].incomplete), one = owned.filter(q => !q.mixed);
+      if (one.length) add('15.1.1.4.3', 'Connections & columns', 'OSHA stabilizer plate where a column is braced one way', 'note',
+        `${one.length === owned.length ? 'Every mezzanine column' : one.map(q => q.label).join(', ')} is braced by beams in one direction only: the joists at ${one.length === 1 ? 'it' : 'those columns'} are bolted (not field welded) with a vertical stabilizer plate — 6" × 6" min., 3" below the joist bottom chord, 13/16" holes in the lower corners (AISC Manual Part 2, Fig. 2-2). The same goes for a joist at a sidewall or endwall column the mezzanine braces.`);
+    }
+
+    // ---- deck and pour stop (15.1.1.4.5, 15.1.1.5)
+    const decks = [...new Set(live.map(c => c.inp.mezz.deck || '1.0C'))];
+    add('15.1.1.4.5', 'Deck & pour stop', 'Floor deck', 'info', `${decks.join(' / ')} non-composite deck per Vulcraft and SDI SD-2022, NBG standard fastening (CED AP0003), concrete diaphragm values; weld washers where the deck is lighter than 22 ga (t < 0.0280", by Vulcraft).`);
+    if (live.some(c => (c.inp.mezz.provided || {})['Edge Angle / Pour Stop'])) {
+      const perim = live.reduce((a, c) => a + 2 * (c.mz.length + c.mz.width), 0) - 2 * shared.reduce((a, e) => a + (e.to - e.from), 0);
+      const slab = [...new Set(live.map(c => n3(c.slabIn)))];
+      add('15.1.1.5', 'Deck & pour stop', 'Pour stop (edge angle) by seller', 'note',
+        `Standard PST120: 3" horizontal leg, ${slab.join(' / ')}" vertical leg (= slab), 1" return at 45°, gage from the SDI pour stop table at 0" overhang, G60 galvanized from the deck supplier. About ${Math.round(perim)} ft for the slab perimeter${shared.length ? ' (where mezzanines meet at one level the slab runs through)' : ''}, plus framing around any column through the slab and around openings. It carries no vertical load, only the wet-concrete pressure on the vertical leg.`);
+    }
+
+    // ---- bracing (15.1.3)
+    live.forEach(c => {
+      const fp = c.lay.footprint, g = c.grid, W = g.width, L = g.length, area = c.mz.length * c.mz.width;
+      const fdl = c.beamBase.dead + c.beamBase.coll, fll = c.beamBase.live, H = area * (fdl + fll) / 1000 * 0.01;
+      const frames = (g.xs || []).filter(x => x > 0.5 && x < L - 0.5);
+      const lab = (axis, at) => (axis === 'y' ? g.yLabel(at) : g.xLabel(at)) || F(at);
+      const sides = [['y', fp.y0, fp.x0, fp.x1], ['y', fp.y1, fp.x0, fp.x1], ['x', fp.x0, fp.y0, fp.y1], ['x', fp.x1, fp.y0, fp.y1]];
+      let needs = false;
+      const desc = sides.map(([axis, at, s0, s1]) => {
+        const sh = shared.filter(e => (e.a === c.index || e.b === c.index) && e.axis === axis && Math.abs(e.at - at) < 0.6);
+        const shLen = sh.reduce((a, e) => a + (e.to - e.from), 0), rest = s1 - s0 - shLen;
+        const joins = sh.length ? `joins ${sh.map(e => idOf(e.a === c.index ? e.b : e.a)).join(', ')} for ${F(shLen)}` : '';
+        if (rest < 1) return `line ${lab(axis, at)}: ${joins} (one floor)`;
+        let what;
+        if (axis === 'y' && (Math.abs(at) < 0.6 || Math.abs(at - W) < 0.6)) what = 'sidewall — its bracing tiered at the mezzanine level';
+        else if (axis === 'x' && (Math.abs(at) < 0.6 || Math.abs(at - L) < 0.6)) what = 'endwall — its bracing tiered at the mezzanine level, or a rigid end frame';
+        else if (axis === 'x' && frames.some(x => Math.abs(x - at) < 0.6)) what = 'rigid frame line';
+        else what = 'free — independent X-bracing';
+        if (what !== 'rigid frame line') needs = true;
+        return `line ${lab(axis, at)}: ${joins ? joins + ', then ' : ''}${what}`;
+      });
+      add('15.1.3', 'Bracing', 'Mezzanine braced on all four sides', needs ? 'check' : 'ok',
+        `${tag(c)}${desc.join(' · ')}. Independent X-bracing runs from the mezzanine level to the floor between two adjacent supports and is designed for 1% of the FDL + FLL tributary to it — the whole floor is ${Math.round(area).toLocaleString('en-US')} ft² × (${n3(fdl)} + ${n3(fll)}) psf, 1% = ${H.toFixed(2)} k.`, c.index);
+    });
+
+    // ---- scope (15.1.1.2, 15.1.5)
+    add('15.1.1.2', 'Scope', 'Not in the NBG scope — carry as quote qualifications', 'info', 'Floor slab design; composite floor design; stairs, handrails and miscellaneous steel; elevator shafts; floor vibration (AISC Design Guide 11); floor deck other than SDI deck (plywood, grating, checker plate); weld washers. The Engineer of Record verifies the joist spacing suits the end use (DM 15.1.1.3).');
+    live.forEach(c => { if ((c.inp.mezz.provided || {})['Designed For Load Provisions Only']) add('15.1.1', 'Scope', 'Designed for load provisions only', 'stop', `${tag(c)}NBG supplies no mezzanine beams or columns — the connection hole patterns must be known at order entry, otherwise field drilled or field welded.`, c.index, { mirror: false }); });
+    const eco = live.find(c => c.inp.mezz.ecospan);
+    if (eco) {
+      const thin = live.filter(c => c.slabIn < 3.5 - 1e-9), long = live.filter(c => c.lay.joistSpan > 50 + 1e-9);
+      add('15.1.5', 'Scope', 'Ecospan composite joist floor', thin.length || long.length ? 'stop' : 'check',
+        `"${eco.inp.mezz.ecospan}" on the PCS. Vulcraft returns the layout (beam and column lines, joist direction and spacing, deck) on the NBG-Vulcraft mezzanine quote sheet: quote the beams and columns on that layout and verify the assumed loads on the Ecospan supplemental sheet before it goes to the customer. E-series joists 10–24" deep, up to about 50'-0" long, typically 4'-0" O.C., 1.0C deck, 3½" slab minimum.${thin.length ? ` Slab under 3½" on ${thin.map(c => c.id).join(', ')}.` : ''}${long.length ? ` Joists over 50'-0" on ${long.map(c => c.id).join(', ')}.` : ''}`);
+    }
+    return out;
+  }
+
+  /* ---------- Excel, step by step: the cells to type in the NBG workbooks, in order, and what to read back ----------
+     One beam workbook per load group (INPUT once, a run per MB sheet: the marks on MB1, MB2 …, then their shorter
+     member lengths; four MB sheets a workbook). One Column-sheet run per column case. The addresses are the
+     workbooks' own input cells, and oracle/steps_oracle.py types exactly these and reads the results back. */
+  const XL = {
+    input: {
+      13: [['dead', 'C11', 'Dead, (psf)'], ['coll', 'C12', 'Collateral, (psf)'], ['live', 'C13', 'Live, (psf)'], ['joistWt', 'C14', 'Est. Joist Wt., (psf)'], ['A', 'C21', 'Top of Mezzanine, (ft.)'], ['slab', 'C22', 'Slab & Deck Thickness, (in.)'], ['seat', 'C23', 'Joist Seat Depth, (in.)'], ['joistDepth', 'C24', 'Total Joist Depth, (in.)'], ['beamDepth', 'C25', 'Beam Depth, (in.)'], ['B', 'E32', 'B - clearance under joist, Requested (ft.)'], ['C', 'E33', 'C - clearance under support beams, Requested (ft.)']],
+      15: [['dead', 'D14', 'Dead, (psf)'], ['coll', 'D15', 'Collateral, (psf)'], ['live', 'D16', 'Live, (psf)'], ['joistWt', 'D17', 'Est. Joist Wt., (psf)'], ['A', 'D22', 'Top of Mezzanine, (ft.)'], ['slab', 'D23', 'Slab & Deck Thickness, (in.)'], ['seat', 'D24', 'Joist Seat Depth, (in.)'], ['joistDepth', 'D25', 'Total Joist Depth, (in.)'], ['B', 'F37', 'B - clearance under joist, Requested (ft.)'], ['C', 'F38', 'C - clearance under support beams, Requested (ft.)']],
+    },
+    clear: { 13: [['B', 'F32', 'G32'], ['C', 'F33', 'G33']], 15: [['B', 'G37', 'H37'], ['C', 'G38', 'H38']] },
+    beamBook: { 13: 'Mezzanine_Beam_Design_13th.xls', 15: 'Mezzanine_Beam_Design_15th.xls', 16: 'Mezzanine_Beam_Design_16th.xls' },
+    colBook: { 15: 'Mezzanine_Column_15th_S16-14.xls', 16: 'Mezzanine_Column_16th_S16-19.xls' },
+  };
+  function excelSteps(ctxs, mezz, marks) {
+    const F = PCS.fmtFtIn, n3 = v => (v == null || !isFinite(v) ? null : +(+v).toFixed(3));
+    const live = ctxs.filter(c => !c.incomplete);
+    const beam = [];
+    [...new Set(marks.map(m => m.groupKey))].forEach(gk => {
+      const ms = marks.filter(m => m.groupKey === gk && m.sec && m.spanRuns && m.spanRuns.length);
+      if (!ms.length) return;
+      const c0 = live.find(c => ms[0].mezzIds.includes(c.index)), ed = c0.ed.beamEd, e13 = ed === '13', map = XL.input[e13 ? 13 : 15];
+      const runs = ms.map(m => ({ m, q: m.spanRuns[0], i: 0 })).concat(ms.flatMap(m => m.spanRuns.slice(1).map((q, i) => ({ m, q, i: i + 1 }))));
+      const dMax = Math.max(...ms.map(m => m.sec.d));
+      // the INPUT sheet: loads once; heights and clearances of each mezzanine in the group (the MB results do not use them)
+      const inputFor = c => {
+        const v = { dead: c.beamBase.dead, coll: c.beamBase.coll, live: c.beamBase.live, joistWt: c.beamBase.joistWt, A: c.A, slab: c.slabIn, seat: c.seatIn, joistDepth: c.joistDepthIn, beamDepth: dMax, B: c.Bq, C: c.Cq };
+        const steps = map.map(([k, cell, label]) => ({ sheet: 'INPUT', cell, label, value: n3(v[k]), show: v[k] == null ? '(leave blank)' : String(n3(v[k])) }));
+        const read = XL.clear[e13 ? 13 : 15].map(([k, prov, ok]) => {
+          const p = k === 'B' ? c.A - (c.slabIn + c.joistDepthIn) / 12 : c.A - (c.slabIn + c.seatIn + dMax) / 12, req = k === 'B' ? c.Bq : c.Cq;
+          return [{ sheet: 'INPUT', cell: prov, label: `${k} provided (ft.)`, expect: n3(p) }, { sheet: 'INPUT', cell: ok, label: `${k} check`, expect: req == null || p >= req - 1e-9 ? 'OK' : 'No Good' }];
+        }).flat();
+        return { mezz: c.id, steps, read };
+      };
+      const members = live.filter(c => ms.some(m => m.mezzIds.includes(c.index)));
+      const inputs = members.map(inputFor);
+      for (let k = 0; k < runs.length; k += 4) {
+        const sheets = runs.slice(k, k + 4).map(({ m, q, i }, j) => {
+          const sheet = 'MB' + (j + 1), c = q.check, sec = m.sec;
+          const steps = [
+            { sheet, cell: 'D5', label: 'Beam Mark', value: i ? `${m.mark} ${F(q.span)}` : m.mark, show: i ? `${m.mark} ${F(q.span)}` : m.mark },
+            { sheet, cell: 'D7', label: 'Member Length, ft.', value: n3(q.span), show: String(n3(q.span)) },
+            { sheet, cell: 'D8', label: 'Unbraced Length, ft. (joist spacing)', value: n3(q.params.Lb), show: String(n3(q.params.Lb)) },
+            { sheet, cell: 'D9', label: 'Tributary Width, ft.', value: n3(q.params.trib), show: String(n3(q.params.trib)) },
+          ].concat(e13 ? [] : [{ sheet, cell: 'D15', label: 'Axial Load, Kip', value: null, show: '(leave blank)' }]).concat([
+            { sheet, cell: 'Q4', where: 'K19 drop-down', label: 'Wide-flange/Built-up Sect.', value: 2, show: 'BU' },
+            { sheet, cell: 'M22', label: 'Total Depth, in.', value: sec.d, show: String(sec.d) },
+            { sheet, cell: 'M23', label: 'Web Thickness, in.', value: sec.tw, show: String(sec.tw) },
+            { sheet, cell: 'M24', label: 'O. Flange Width, in.', value: sec.bof, show: String(sec.bof) },
+            { sheet, cell: 'M25', label: 'O. Flange Thickness, in.', value: sec.tof, show: String(sec.tof) },
+            { sheet, cell: 'M26', label: 'I. Flange Width, in.', value: sec.bif, show: String(sec.bif) },
+            { sheet, cell: 'M27', label: 'I. Flange Thickness, in.', value: sec.tif, show: String(sec.tif) },
+          ]);
+          const read = [
+            { sheet, cell: 'M20', label: 'Section Description', expect: c.desc },
+            { sheet, cell: 'H6', label: 'Floor dead load — shear at left / right, kips', expect: n3(c.V.D) },
+            { sheet, cell: 'H10', label: 'Floor live load — shear at left / right, kips', expect: n3(c.V.L) },
+            { sheet, cell: 'K11', label: 'Live load deflection, L /', expect: Math.round(c.defl.rLL) },
+            { sheet, cell: 'K15', label: 'Total load deflection, L /', expect: Math.round(c.defl.rTL) },
+            { sheet, cell: 'G19', label: 'Combined', expect: c.combinedText },
+            { sheet, cell: 'G20', label: 'Shear', expect: c.shearText },
+          ];
+          return { sheet, mark: m.mark, kind: m.kind, desc: m.desc, span: q.span, trib: q.params.trib, qty: q.qty, shorter: i > 0, mezzIds: m.mezzIds, steps, read };
+        });
+        beam.push({ file: XL.beamBook[e13 ? 13 : ed === '16' ? 16 : 15], edition: ed, copy: k / 4 + 1, marks: ms.map(m => m.mark), inputs, sheets });
+      }
+    });
+    // Column sheet: one run per column case
+    const column = [];
+    mezz.filter(r => r && !r.incomplete && r.colFinal).forEach(r => {
+      const c = ctxs[r.index], ed = c.ed.colEd, name = r.colFinal.name, L = r.colLen;
+      let book = column.find(b => b.edition === ed);
+      if (!book) column.push(book = { file: XL.colBook[ed] || XL.colBook[15], edition: ed, cases: [] });
+      r.colGroups.forEach((gp, gi) => {
+        const ck = r.colFinal.checks[gi], ld = gp.loads;
+        const steps = [
+          { sheet: 'Column', cell: 'C7', label: 'Column Mark', value: 'MC1', show: 'MC1' },
+          { sheet: 'Column', cell: 'C8', label: 'Column Length, L (ft.)', value: n3(L), show: String(n3(L)) },
+        ].concat(ed === '16' ? [{ sheet: 'Column', cell: 'C10', label: 'Y-Axis Unbraced Length, Lby (in.) — hard-coded 120 on this sheet: type L × 12', value: n3(L * 12), show: String(n3(L * 12)) }] : []).concat([
+          { sheet: 'Column', cell: 'C16', label: `Section${r.colFinal.quoteAs !== name ? ` (quoted as ${r.colFinal.quoteAs})` : ''}`, value: name, show: name },
+          // the Fy drop-down beside the section writes Miscellaneous!K8; the 16th sheet opens at 55 ksi, a W column is 50
+          { sheet: 'Miscellaneous', cell: 'K8', where: 'Column!D16 Fy (ksi) drop-down', label: `Fy (ksi) — 50 for a W column${ed === '16' ? ' (this sheet opens at 55)' : ''}`, value: '50', show: '50' },
+          { sheet: 'Column', cell: 'C27', label: 'Left Beam Reaction — Dead (kip)', value: n3(ld.DL_L), show: String(n3(ld.DL_L)) },
+          { sheet: 'Column', cell: 'D27', label: 'Left Beam Reaction — Live (kip)', value: n3(ld.LL_L), show: String(n3(ld.LL_L)) },
+          { sheet: 'Column', cell: 'C28', label: 'Right Beam Reaction — Dead (kip)', value: n3(ld.DL_R), show: String(n3(ld.DL_R)) },
+          { sheet: 'Column', cell: 'D28', label: 'Right Beam Reaction — Live (kip)', value: n3(ld.LL_R), show: String(n3(ld.LL_R)) },
+        ]);
+        const read = ['C', 'D', 'E'].flatMap((col, k) => [{ sheet: 'Column', cell: col + '39', label: `${['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'][k]} result`, expect: ck.combos[k].okText }, { sheet: 'Column', cell: col + '40', label: 'Maximum CSR', expect: n3(ck.combos[k].csr) }]);
+        if (ed !== '16') read.unshift({ sheet: 'Column', cell: 'C10', label: 'Lby follows C8 × 12 (in.)', expect: n3(L * 12) });
+        book.cases.push({ mezz: r.id, mi: r.index, group: gi, labels: gp.cols.map(q => q.label), steps, read });
+      });
+    });
+    return { beam, column };
+  }
+
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
   function runJob(items) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
@@ -3506,7 +3789,15 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
     mezz.forEach(r => { if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName} passes every column case of every mezzanine.` }); });
-    return { mezz, merges, columns: cols, frameLoads: cols.frame, marks: marks.map(({ group, ...m }) => m) };
+    // the design manual items, and the Excel cells to type
+    const dm = dmChecklist(ctxs, mezz, marks, cols);
+    mezz.forEach(r => {
+      if (r.incomplete) return;
+      r.dm = dm.filter(it => it.mi == null || it.mi === r.index);
+      r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (DM ${it.ref}): ${it.text}` }));
+    });
+    const excel = excelSteps(ctxs, mezz, marks);
+    return { mezz, merges, columns: cols, frameLoads: cols.frame, marks: marks.map(({ group, ...m }) => m), dm, excel };
   }
 
   function run(inp, settings = {}) { return runJob([{ inp, settings }]).mezz[0]; }
@@ -3593,7 +3884,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { REQUIRED, inputsFromPCS, applyPlan, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition };
+  const api = { REQUIRED, inputsFromPCS, applyPlan, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -4148,6 +4439,46 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     return grp(['stop', 'warn'], 'Check before quoting') + grp(['ok'], 'Confirmed against the PCS') + grp(['key'], 'Design decisions') + grp(['info'], 'How it was read', false);
   }
 
+  // the design manual (NBG DM 15.1 Mezzanine Systems): every item this job touches, grouped, with its status
+  const DM_ICON = { ok: '✓', check: '!', stop: '✕', note: '✎', info: 'i' }, DM_WORD = { ok: 'met', check: 'to check', stop: 'fails', note: 'callout', info: 'scope' };
+  function renderDM() {
+    const items = (state.job && state.job.dm) || [], el = $('#dmList');
+    $('#dmHead').hidden = !items.length;
+    if (!items.length) { el.innerHTML = ''; return; }
+    const count = st => items.filter(i => i.status === st).length;
+    el.innerHTML = `<div class="dm-sum">${['ok', 'check', 'stop', 'note', 'info'].filter(count).map(st => `<span class="dm-chip s-${st}"><b>${count(st)}</b> ${DM_WORD[st]}</span>`).join('')}</div><div class="dm-groups">` +
+      [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">DM ${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
+  }
+  // Excel, step by step: the cells to type, in order, then what the workbook shows
+  const xlCell = st => (st.where ? (st.where.includes('!') ? st.where : `${st.sheet}!${st.where}`) : `${st.sheet}!${st.cell}`);
+  function xlTable(steps, read, readTitle = 'Excel then shows') {
+    const rows = steps.map((st, i) => `<tr><td class="num n">${i + 1}</td><td class="mono cell">${esc(xlCell(st))}</td><td>${esc(st.label)}</td><td class="num mono val"><b>${esc(st.show)}</b></td></tr>`).join('');
+    const rb = (read || []).map(r => `<tr class="rb"><td class="num n">→</td><td class="mono cell">${esc(r.sheet + '!' + r.cell)}</td><td>${esc(r.label)}</td><td class="num mono val">${esc(String(r.expect))}</td></tr>`).join('');
+    return `<table class="xl"><thead><tr><th class="num">#</th><th>Cell</th><th>Field</th><th class="num">Type</th></tr></thead><tbody>${rows}${rb ? `<tr class="rb-h"><td></td><td colspan="3">${readTitle}</td></tr>${rb}` : ''}</tbody></table>`;
+  }
+  const xlTsv = steps => steps.map(st => `${xlCell(st)}\t${st.label}\t${st.show}`).join('\n');
+  const XL_FOOT = 'Typed cell by cell into the real workbooks (headless) and read back — these are the values Excel shows.';
+  function renderXlBeam(mk, run) {
+    const books = (state.job && state.job.excel && state.job.excel.beam) || [];
+    const book = books.find(b => b.sheets.some(sh => sh.mark === mk.mark && Math.abs(sh.span - run.span) < 1e-3));
+    if (!book) { $('#xlBeam').innerHTML = '<div class="empty">No section yet.</div>'; $('#xlBeamSub').textContent = ''; return; }
+    const sh = book.sheets.find(x => x.mark === mk.mark && Math.abs(x.span - run.span) < 1e-3), inp = book.inputs.find(x => x.mezz === state.res.id) || book.inputs[0];
+    $('#xlBeamSub').textContent = `${book.file}${book.copy > 1 ? ` (copy ${book.copy})` : ''} · ${book.sheets.map(x => `${x.sheet} = ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ''}`).join(' · ')}`;
+    $('#xlBeam').innerHTML = `<div class="xl-cols">
+      <div><h4><span>1</span>INPUT sheet <small>once for the workbook${book.inputs.length > 1 ? ' · ' + esc(inp.mezz) + ' heights' : ''}</small></h4>${xlTable(inp.steps, inp.read, 'Excel then shows (once every MB sheet is in — D26 is the deepest of MB1–MB4)')}</div>
+      <div><h4><span>2</span>${sh.sheet} sheet <small>${esc(mkName(mk))} at ${ft(sh.span)} × ${ft(sh.trib)} trib · ${sh.qty} beam${sh.qty > 1 ? 's' : ''}</small></h4>${xlTable(sh.steps, sh.read)}</div></div>
+      <div class="xl-foot"><span>${XL_FOOT}</span><button class="btn-soft" id="xlBeamCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
+    $('#xlBeamCopy').onclick = () => copyText(xlTsv(inp.steps.concat(sh.steps)), `INPUT + ${sh.sheet} cells copied`);
+  }
+  function renderXlCol(r, gi) {
+    let cs = null, book = null;
+    ((state.job && state.job.excel && state.job.excel.column) || []).forEach(b => b.cases.forEach(c => { if (c.mi === r.index && c.group === gi) { cs = c; book = b; } }));
+    if (!cs) { $('#xlCol').innerHTML = '<div class="empty">No column sized yet.</div>'; $('#xlColSub').textContent = ''; return; }
+    $('#xlColSub').textContent = `${book.file} · Column sheet, one case at a time`;
+    $('#xlCol').innerHTML = xlTable(cs.steps, cs.read) + `<div class="xl-foot"><span>${XL_FOOT} The reactions are the MB-sheet end shears of the beams framing in (H6 / H10), summed per side.</span><button class="btn-soft" id="xlColCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
+    $('#xlColCopy').onclick = () => copyText(xlTsv(cs.steps), 'Column cells copied');
+  }
+
   function renderResults() {
     const r = state.res, inp = state.inputs, s = state.settings;
     $('#resEyebrow').textContent = [inp.job.quote, inp.job.project].filter(Boolean).join(' / ') || 'Design result';
@@ -4160,6 +4491,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
       $('#needSlot').innerHTML = card;
       $('#warnings').innerHTML = notesHtml(r.warn, !!card);
       wireNeed();
+      renderDM();
       const anyDone = state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete);
       $('#qsHead').hidden = !anyDone;
       if (anyDone) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
@@ -4186,6 +4518,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     $('#needSlot').innerHTML = card;
     $('#warnings').innerHTML = notesHtml(r.warn, !!card);
     wireNeed();
+    renderDM();
     $('#modelSec').hidden = false; $('#optHead').hidden = false; $('#qsHead').hidden = false;
     const nCheck = r.warn.filter(w => w.level === 'stop' || w.level === 'warn').length;
     $('#checkPill').hidden = !nCheck;
@@ -4730,7 +5063,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
     $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
     $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); }; });
     const mk = marks[state.mark];
-    if (!mk) { $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; return; }
+    if (!mk) { $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; $('#xlBeam').innerHTML = ''; $('#xlBeamSub').textContent = ''; return; }
     // every member length of the mark: the governing run (longest span, largest trib) and the shorter beams — same section, own MB sheet
     const runs = mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, qty: mk.qtyAll, check: mk.check, params: mk.params }];
     if (state.markSpan >= runs.length) state.markSpan = 0;
@@ -4779,6 +5112,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
             ['Web sidesway SR', c.conc.WSB == null ? '--' : f(c.conc.WSB, 3)], ['Result', c.conc.ok ? 'OK' : 'NG — L7 warning', c.conc.ok ? 'okc' : 'ng'],
           ]) : '<div class="faint">not on the 13th-edition sheet</div>'}</div></div>`;
     }
+    renderXlBeam(mk, run);
     const sr = mk.search;
     if (!sr || !sr.best) { $('#altTable').innerHTML = ''; return; }
     $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(mk.span)} span × ${ft(mk.trib)} trib · click a row to use it`;
@@ -4921,7 +5255,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
   }
   function renderColumn() {
     const r = state.res, cf = r.colFinal;
-    if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; return; }
+    if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; $('#xlCol').innerHTML = ''; $('#xlColSub').textContent = ''; return; }
     const cno = colNos();
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
@@ -4948,9 +5282,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
           <tr><td>Maximum CSR</td>${chk.combos.map(k => `<td class="num">${f(k.csr, 3)}</td>`).join('')}</tr>
           <tr><td>Design results</td>${chk.combos.map(k => `<td class="num"><span class="status-text ${k.ok ? 'ok' : 'ng'}">${k.okText}</span></td>`).join('')}</tr>
         </tbody></table></div>
-        <p class="foot-note">${r.edition.colEd === '16' ? '16th-edition sheet: C10 (Lby) is hard-coded to 120 in. — type L×12 when you check it in Excel.' : 'Run in the Mezzanine Column (AISC ' + (r.edition.colEd || '15') + 'th) sheet.'}</p></div>
+        <p class="foot-note">The three combinations are DM 15.1.1.4.2's two loading conditions for a column with beams on both sides: DL + LL one side with DL only on the other (each way), and full DL + LL both sides. ${r.edition.colEd === '16' ? '16th-edition sheet: C10 (Lby) is hard-coded to 120 in. and Fy opens at 55 ksi — type L × 12 and pick Fy 50 (see the steps below).' : 'Run in the Mezzanine Column (AISC ' + (r.edition.colEd || '15') + 'th) sheet.'}</p></div>
       </div>`;
     }
+    renderXlCol(r, state.colGroup);
     const tried = g.design ? g.design.tried : [];
     $('#colTried').innerHTML = `<thead><tr><th>Section</th><th class="num">Wt plf</th><th class="num">bf</th><th class="num">Max CSR</th><th>Result</th><th>Quote as</th></tr></thead><tbody>` +
       tried.map(t => { const q = DESIGN.COMMON_COLUMNS.includes(t.name) || t.name === 'W8X18' ? t.name : t.name.replace(/^W(\d+)X/, 'BU$1x');

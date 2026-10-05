@@ -5,19 +5,11 @@
 // usage: node oracle/job_dump.js PCS.pdf oracle/out/job   (open values a PCS leaves TBD: B 9'-0", C none, seat 5", joists @ 4'-0")
 const fs = require('fs');
 const M = require('path').join(__dirname, '..');
-const RUN = require(M + '/src/run.js'), PCS = require(M + '/src/pcs.js'), PLAN = require(M + '/src/plan.js'), LAYOUT = require(M + '/src/layout.js'), DESIGN = require(M + '/src/design.js'), WF = require(M + '/src/wf-db.js');
-const { readPcs, loadPdfjs } = require(M + '/test/pdf-node.js');
+const PCS = require(M + '/src/pcs.js'), DESIGN = require(M + '/src/design.js'), WF = require(M + '/src/wf-db.js');
+const { loadJob } = require('./job_load.js');
 (async () => {
   const [pdf, pre] = process.argv.slice(2);
-  const pages = await readPcs(pdf), pcs = PCS.parse(pages);
-  const g = LAYOUT.buildingGrid({ ...pcs.building, frames: pcs.frames });
-  const p = pages[pages.length - 1];
-  const reg = PLAN.registerAndRead(PLAN.subpaths(await p._page.getOperatorList(), loadPdfjs().OPS, p.height), { xs: g.xs, colY: [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()])], lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
-  RUN.applyPlan(pcs, reg);
-  const inps = pcs.mezzanines.map((m, i) => RUN.inputsFromPCS(pcs, i));
-  const miss = n => !n || n.value == null || n.source === 'missing';
-  inps.forEach(inp => { const q = inp.geom; if (miss(q.B)) q.B = { value: 9, source: 'manual' }; if (miss(q.C)) q.C = { value: null, source: 'none' }; if (miss(q.seat)) q.seat = { value: 5 / 12, source: 'manual' }; if (miss(q.joistSpacing)) q.joistSpacing = { value: 4, source: 'manual' }; });
-  const job = RUN.runJob(inps.map(inp => ({ inp, settings: {} })));
+  const { job } = await loadJob(pdf);
   const ed = job.mezz[0].edition;
   const P = q => ({ dead: q.dead, coll: q.coll, live: q.live, joistWt: q.joistWt, L: q.L, Lb: q.Lb, trib: q.trib });
   const beams = [], cols = [], ties = [];

@@ -82,7 +82,54 @@ function inputs(id, geom, loads = {}) {
   assert.deepStrictEqual(j.quote, a.quote);
 }
 
-// 4. the two-mezzanine PCS (W0S-26160) when it is present locally
+// 4. the design manual (NBG DM 15.1) checklist and the Excel steps, on synthetic jobs
+{
+  const dmOf = (job, ref, title) => job.dm.find(i => i.ref === ref && (!title || i.title.includes(title)));
+  // stacked A + B (one floor across y = 40), pour stop by seller
+  const A = inputs('A', { width: 40, length: 40, joists: 'y' }), B = inputs('B', { width: 20, length: 40, fsw: 40, joists: 'y' });
+  A.mezz.provided = { 'Edge Angle / Pour Stop': true };
+  const job = RUN.runJob([{ inp: A }, { inp: B }]);
+  assert.strictEqual(dmOf(job, '15.1.1.4', 'One joist direction').status, 'ok', 'same joist direction across the shared edge');
+  assert.ok(job.dm.filter(i => i.title.startsWith('Joists no more')).every(i => i.status === 'ok'));
+  const pour = dmOf(job, '15.1.1.5');
+  assert.ok(pour && /About 200 ft/.test(pour.text), 'pour stop: 2·(40+40) + 2·(40+20) − 2·40 shared = 200 ft — ' + (pour && pour.text));
+  assert.ok(/4" vertical leg/.test(pour.text), 'vertical leg = slab');
+  const brA = job.dm.find(i => i.ref === '15.1.3' && i.mi === 0);
+  assert.ok(/joins B for 40'-0" \(one floor\)/.test(brA.text) && /1% = 2\.77 k/.test(brA.text), brA.text);   // 1600 ft² × (48 + 125) psf × 1%
+  assert.ok(job.mezz[0].warn.some(w => w.level === 'warn' && /Mezzanine braced on all four sides/.test(w.text)), 'bracing check is in the notes');
+  ['15.1.1.4.1.1', '15.1.1.4.1.2', '15.1.1.4.1.3', '15.1.1.4.1.4'].forEach(ref => assert.strictEqual(dmOf(job, ref).status, 'ok', ref));
+  assert.strictEqual(dmOf(job, '15.1.1.4.2 (1E)').status, 'ok');
+  assert.ok(/W10X22 × 12'-0" = 264 lb, 310 lb with the 46 lb end plates/.test(dmOf(job, '15.1.1.4.3', 'Posts').text));
+  // perpendicular joists on the shared edge: camber clash
+  const C = inputs('C', { width: 20, length: 40, fsw: 40, joists: 'x' });
+  const jx = RUN.runJob([{ inp: inputs('A', { width: 40, length: 40, joists: 'y' }) }, { inp: C }]);
+  assert.strictEqual(dmOf(jx, '15.1.1.4', 'One joist direction').status, 'check');
+  // joists over 5'-0": stop, in the notes too
+  const W6 = inputs('A', { width: 40, length: 40, joists: 'y' }); W6.geom.joistSpacing = v(6);
+  const r6 = RUN.run(W6, {});
+  assert.strictEqual(r6.dm.find(i => i.title.startsWith('Joists no more')).status, 'stop');
+  assert.ok(r6.warn.some(w => w.level === 'stop' && /5'-0"/.test(w.text)));
+  // a heavy floor quoted as a BU column: DM 15.1.1.4.2 (2A) 8" flange check
+  const H = RUN.run(inputs('A', { width: 60, length: 40, joists: 'y' }, { live: 250 }), {});
+  if (/^BU/.test(H.colFinal.quoteAs)) assert.strictEqual(H.dm.find(i => i.ref === '15.1.1.4.2 (2A)').status, WF8(H.colFinal.name) ? 'ok' : 'check');
+  // Excel steps: one 15th workbook, the marks on MB1, MB2 …; INPUT loads; every column case with its reactions
+  const xb = job.excel.beam[0];
+  assert.strictEqual(xb.file, 'Mezzanine_Beam_Design_15th.xls');
+  assert.deepStrictEqual(xb.sheets.map(sh => sh.sheet), xb.sheets.map((sh, i) => 'MB' + (i + 1)));
+  const cellOf = (steps, c) => steps.find(st => st.cell === c).value;
+  assert.deepStrictEqual(['D14', 'D15', 'D16', 'D17'].map(c => cellOf(xb.inputs[0].steps, c)), [43, 5, 125, 8]);
+  const s1 = xb.sheets[0], m1 = job.marks[0];
+  assert.strictEqual(cellOf(s1.steps, 'D7'), m1.span); assert.strictEqual(cellOf(s1.steps, 'D9'), m1.trib); assert.strictEqual(cellOf(s1.steps, 'M22'), m1.sec.d);
+  assert.strictEqual(s1.read.find(r => r.cell === 'G19').expect, m1.check.combinedText);
+  const nCases = job.mezz.reduce((a, r) => a + r.colGroups.length, 0);
+  assert.strictEqual(job.excel.column[0].cases.length, nCases);
+  const c0 = job.excel.column[0].cases[0], g0 = job.mezz[c0.mi].colGroups[c0.group];
+  close(cellOf(c0.steps, 'C27'), g0.loads.DL_L, 0.0006); close(cellOf(c0.steps, 'D28'), g0.loads.LL_R, 0.0006);
+  assert.strictEqual(cellOf(c0.steps, 'K8'), '50', 'Fy 50 for a W column');
+}
+function WF8(name) { const W = require('../src/wf-db.js')[name]; return W.bf >= 8 && W.tf >= 0.25; }
+
+// 5. the two-mezzanine PCS (W0S-26160) when it is present locally
 const pdf = process.env.MZ_PCS2 || path.join(__dirname, '..', 'private', 'pcs', 'PCS_job2.pdf');
 let pdfjsOK = true;
 try { require('./pdf-node.js').loadPdfjs(); } catch (e) { pdfjsOK = false; }
@@ -172,5 +219,16 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.ok(/^MB1 interior: BSW B1, B2 \(line C\); LEW B3 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);
   assert.ok(/shorter span — same section, MB sheet at 12'-4"/.test(q.beams[1].NOTES), q.beams[1].NOTES);
   assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW / LEW', 'W8X24', 7]]);
+  // DM 15.1 on the job: perimeter beams are the exterior mark; both mezzanines need bracing decisions; a W8 column
+  const per = job.dm.find(i => i.title.startsWith('Perimeter beams'));
+  assert.ok(per && /^MB2 exterior BU26x36 \(10 edge beams\)/.test(per.text) && /9\.77 k per joist/.test(per.text), per && per.text);
+  assert.deepStrictEqual(job.dm.filter(i => i.ref === '15.1.3').map(i => i.status), ['check', 'check']);
+  assert.ok(/W8X24 × 11'-6" = 276 lb, 322 lb/.test(job.dm.find(i => i.title.startsWith('Posts')).text));
+  assert.ok(/MB1 D 19\.74 \+ L 36\.40 = 56\.14 k/.test(job.dm.find(i => i.title.startsWith('Beam end connections')).text));
+  // Excel steps: one 15th workbook — MB1, MB2 at 28'-0", then their 12'-4" runs on MB3 / MB4; six Column cases
+  assert.deepStrictEqual(job.excel.beam.map(b => b.sheets.map(sh => `${sh.sheet}=${sh.mark}@${sh.span}`)), [['MB1=MB1@28', 'MB2=MB2@28', 'MB3=MB1@12.333', 'MB4=MB2@12.333']]);
+  assert.strictEqual(job.excel.beam[0].sheets[2].steps.find(st => st.cell === 'D5').value, `MB1 12'-4"`);
+  const x2c = job.excel.column[0].cases.find(c => c.labels.includes('2/C'));
+  assert.deepStrictEqual(['C27', 'D27', 'C28', 'D28'].map(c => x2c.steps.find(st => st.cell === c).value), [19.743, 36.4, 17.522, 32.154]);
   console.log('multi tests passed (W0S-26160: MB1 interior BU28x50 ×4 (3 @ 28\' + 1 @ 12\'-4"), MB2 exterior BU26x36 ×10 (9 + 1), W8X24 ×7, 7/7 columns on the drawing)');
 })().catch(e => { console.error(e); process.exit(1); });

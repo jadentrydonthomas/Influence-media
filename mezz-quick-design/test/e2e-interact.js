@@ -85,6 +85,20 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   if (!/End shear/.test(beamTip || '')) fail('hovering a beam should show its end shear');
   await page.mouse.move(2, 2);
 
+  // the design manual checklist (DM 15.1) and the Excel steps on the Beam and Column pages
+  await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
+  const dm = await page.$$eval('#dmList .dm-item', xs => xs.map(x => x.className.replace('dm-item s-', '')[0] + ':' + x.querySelector('.dm-ref').textContent));
+  console.log('DM 15.1 checklist'.padEnd(30), dm.length, 'items ·', dm.join(' '));
+  if (dm.length < 12) fail('the DM 15.1 checklist should list the design-manual items');
+  await page.click('#nav button[data-view="beam"]'); await page.waitForTimeout(150);
+  const xlB = await page.$$eval('#xlBeam table.xl', ts => ts.map(t => [...t.querySelectorAll('tbody tr:not(.rb):not(.rb-h)')].map(tr => tr.cells[1].textContent + '=' + tr.cells[3].textContent)));
+  console.log('Excel steps, beam'.padEnd(30), xlB.map(t => t.length).join(' + '), '·', (xlB[1] || []).slice(0, 4).join(' '));
+  if (xlB.length !== 2 || xlB[0].length < 10 || !xlB[1].some(x => /!D7=/.test(x))) fail('the Beam page should list the INPUT and MB-sheet cells to type');
+  await page.click('#nav button[data-view="column"]'); await page.waitForTimeout(150);
+  const xlC = await page.$$eval('#xlCol table.xl tbody tr:not(.rb):not(.rb-h)', trs => trs.map(tr => tr.cells[1].textContent + '=' + tr.cells[3].textContent));
+  console.log('Excel steps, column'.padEnd(30), xlC.join(' '));
+  if (!xlC.some(x => /Column!C27=/.test(x)) || !xlC.some(x => /Fy/.test(x) || /K8/.test(x))) fail('the Column page should list the Column-sheet cells to type');
+
   // beam options on the results page
   await page.click('#nav button[data-view="results"]');
   const opts = await page.$$eval('#options .option', os => os.length);

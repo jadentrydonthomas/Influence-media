@@ -115,6 +115,62 @@ The Beam calc page lists the job's marks (MB1 · interior, MB2 · exterior) and,
 
 On the Column calc page every case is named like the plan (*C1 · 2/C*) with its max CSR. A left / right diagram shows which beam, from which mezzanine, gives each Column-sheet reaction.
 
+### Design manual (NBG DM 15.1 Mezzanine Systems)
+
+The Design page lists every item of DM 15.1 the job touches, under *Checks & decisions*. Each one is marked:
+
+- **met**: read from the design numbers;
+- **to check**: a decision, or extra material for the quote;
+- **fails**: the item is not met;
+- **callout**: for detailing or the D2D sheet;
+- **scope**: standard practice or exclusions.
+
+Items marked *to check* or *fails* also appear in the notes. The items are:
+
+- **Layout:**
+  - beams on the shorter span (or the drawing's arrows, flagged when they differ);
+  - joists no more than 5'-0" on center;
+  - one joist direction where mezzanines meet at one level (joist camber);
+  - no live load reduction;
+  - A / B / C defined and met.
+- **Beams:**
+  - L/360 and L/240;
+  - flange ≥ 5½" for the 2½" joist seat;
+  - top flange ≥ ¼" with the J10 joist-bearing check;
+  - web without stiffeners;
+  - axial only when a beam is part of a bracing system;
+  - no camber.
+  - **Perimeter beams** (the exterior mark) get the one-sided-joist callout: joist top chords to the flange edge, plus a flange local-bending check (DM 9.7.11) with the joist reaction.
+- **Connections and columns:**
+  - the beam-clip standard, with each mark's end reaction for the Mezzanine Beam Clips tool;
+  - the column's two loading conditions (the Column sheet's three combinations);
+  - the 7" hot-rolled flange rule;
+  - for a column quoted as BU, the 8" × ¼" built-up flange rule;
+  - the OSHA 300 lb post weight, with and without end plates;
+  - the OSHA stabilizer plate for columns braced one way.
+- **Deck and pour stop:**
+  - deck and fastening standard;
+  - when the seller provides it, the PST120 pour stop sized to the slab, with the perimeter length (shared edges left out).
+- **Bracing:**
+  - each side of each mezzanine: sidewall, endwall, rigid frame, shared with another mezzanine, or free (independent X-bracing);
+  - the 1% FDL + FLL brace force.
+- **Scope:**
+  - the DM 15.1.1.2 exclusions, as quote qualifications;
+  - load-provisions-only hole patterns;
+  - Ecospan, when the PCS mentions it.
+
+### Excel, step by step
+
+The Beam calc and Column calc pages list the exact cells to type into the NBG workbooks, in order, and what Excel should then show.
+
+- **Beam workbook.** One per load group:
+  - **INPUT, once:** the loads, top of mezzanine, slab, seat, total joist depth, and the B / C requested values.
+  - **One MB sheet per run:** the marks go on MB1, MB2 …, then their shorter member lengths. Each run lists the beam mark, member length, unbraced length, trib, BU, then the six plates.
+  - **What to read back:** the end shears (H6 / H10), deflection ratios, COMBINED / SHEAR OK, and the INPUT clearance checks.
+- **Column workbook.** One run per column case: mark, length, section, **Fy 50**, the four reactions, then the three results.
+  - The 16th-edition Column workbook opens at Fy 55 ksi, and its Lby (C10) is hard-coded to 120 in. The steps set Fy to 50 and type L × 12.
+- **Copy cells** copies the list as text.
+
 ### Jobs remembered
 
 When a job is fully designed it is saved in the browser on that computer: the values you typed for open fields, the option you picked, the joist direction and the sections. Next time:
@@ -184,6 +240,8 @@ On top of the random sweeps, every section the tool actually picks in the varian
 - Every column case's left / right dead and live equals the sum of the workbook end shears (MB `H6` / `H10`) of the beams framing in. The loads to the frame at each building column check the same way.
 - The job's W passes all three combinations of every column case on the Column sheet, and every lighter W fails at least one.
 
+**The Excel steps, typed into the workbooks.** `oracle/steps_oracle.py` types each step list into the real workbook, one cell at a time, and reads back what Excel shows. Both example jobs were run on the 13th, 15th and 16th sheets: **244 read-backs, 0 differences**. The read-backs cover the shears, deflections, OK strings, INPUT clearances, and Column results and CSRs.
+
 ### Variant loop
 
 `test/variants.test.js` re-reads the example PCS as phrases, edits it the ways other jobs differ, and designs each variant on the 13th, 15th and 16th sheets with each of the three options (90 designs, plus the three code-year runs):
@@ -220,6 +278,11 @@ node oracle/job_dump.js private/pcs/JOB.pdf oracle/out/job
 python3 oracle/beam_oracle.py oracle/out/job_beam.json oracle/out/job_beam_res.json Mezzanine_Beam_Design_15th.xls
 python3 oracle/col_oracle.py oracle/out/job_col.json oracle/out/job_col_res.json Mezzanine_Column_15th_S16-14.xls
 node oracle/job_ties.js oracle/out/job
+
+# the app's "Excel, step by step" lists: type them into the workbooks, compare what Excel shows
+node oracle/steps_dump.js private/pcs/JOB.pdf oracle/out/steps '{"edition":"16"}'
+python3 oracle/steps_oracle.py oracle/out/steps.json oracle/out/steps_res.json
+node oracle/steps_check.js oracle/out/steps
 ```
 
 `private/` is gitignored. The NBG workbooks, design manuals and customer PCS files never go in this public repo.
@@ -228,7 +291,7 @@ node oracle/job_ties.js oracle/out/job
 
 - **Editions (IBC chapter 35):** IBC 2024 → AISC 360-22 (16th sheets); IBC 2018 / 2021 → AISC 360-16 (15th); IBC 2012 / 2015 → AISC 360-10, run on the 13th sheet since no 14th exists (flagged); IBC 2006 / 2009 → AISC 360-05 (13th). A state code with no IBC year maps through its IBC base (Massachusetts 9th / 10th Ed. → IBC 2015 / 2021, Florida 7th / 8th → IBC 2018 / 2021, California 2019 / 2022 / 2025 → IBC 2018 / 2021 / 2024). If the state code isn't in that table, its ASCE 7 year is used: 7-22 → IBC 2024, 7-16 → IBC 2018 / 2021, 7-10 → IBC 2012 / 2015.
 - **Editions, short form:** IBC 2018/2021 → 15th and IBC 2024 → 16th. IBC ≤ 2015 → 13th beam sheet (Q-factor compression, kv = 5, 360-05 shear and rt, no joist-bearing check), with the 15th column sheet since there is no 13th column sheet. All three are verified. NBCC (CSA S16) jobs are flagged to run in the S16 workbooks.
-- **16th-edition column sheet:** Lby (C10) is hard-coded to 120 in. The tool uses L × 12. Type L × 12 into C10 when you check a job in Excel.
+- **16th-edition column sheet:** Lby (C10) is hard-coded to 120 in., and Fy (Miscellaneous!K8, the drop-down beside the section) opens at 55 ksi. The tool uses L × 12 and Fy 50 for a W column, and its Excel steps set both.
 - **Materials other than deck + concrete**, and the "Designed For Load Provisions Only" box, are flagged. The quote engineer runs those by hand.
 - **Dead load when the PCS says "Per Seller":** see the table above. Only 4" and 3½" NW on 1.0C are exact deck-guide values; everything else is flagged as an estimate.
 - **Beam lines under 12' apart** (an interior frame column line between endwall lines, or a mezzanine edge just off a grid line) are kept, because they are real supports, but noted — drop a line on the Plan page if the joists should span past it.
