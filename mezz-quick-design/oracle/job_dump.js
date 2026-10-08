@@ -24,7 +24,8 @@ const { loadJob } = require('./job_load.js');
     beams.push({ ...P({ ...r.beamBase, L: b.span, trib: b.trib }), sec: { type: 'BU', ...pick(mk.sec) }, tag: `${r.id} B${b.id + 1} own shear (${mk.mark})`, role: 'shear' });
   }));
   // columns: every case, every W the job-wide search tried
-  const tried = DESIGN.COMMON_COLUMNS.slice().sort((a, b) => WF[a].W - WF[b].W);
+  // (and the section the job ended on when none of the three passes — the next heavier W, quoted as BU)
+  const tried = [...new Set(DESIGN.COMMON_COLUMNS.concat(job.mezz.filter(r => r.colFinal).map(r => r.colFinal.name)))].sort((a, b) => WF[a].W - WF[b].W);
   job.mezz.forEach(r => r.colGroups.forEach(gp => {
     const c = gp.cols[0];
     tried.forEach(name => cols.push({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: r.colLen, Lby: r.colLen * 12, ...gp.loads, tag: `${r.id} ${gp.cols.map(q => q.label).join(',')} ${name}`, chosen: name === r.colFinal.name, mezz: r.id }));

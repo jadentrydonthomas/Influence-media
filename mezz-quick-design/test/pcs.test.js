@@ -52,6 +52,24 @@ assert.strictEqual(PCS.divisionFrom('Nucor Building Systems - IN'), 'NBS-IN');
   assert.strictEqual(ls[1].items[1].str, 'Live');
 }
 
+// Box 22 checkboxes: the base scope's "NONE REQUIRED" page is not rendered, an alternate's pages are; two mezzanines
+// on one page each keep the ticks on their own rows ("Other Deck Type" is not the material "Other")
+{
+  const it = (str, x, y) => ({ str, x, y, w: str.length * 4, h: 8 });
+  const mezz = (id, y) => [it(`Mezzanine ID: ${id}`, 40, y), it('Standard Weight Concrete', 60, y + 40), it('Light Weight Concrete', 220, y + 40), it('Plywood', 380, y + 40), it('Other', 470, y + 40),
+    it('Storage', 60, y + 60), it('Office', 160, y + 60), it('Theater', 260, y + 60), it('Other Deck Type: 22ga B deck', 40, y + 80)];
+  const none = { num: 1, items: [it('22) MEZZANINES - NONE REQUIRED', 30, 100), it('23) CRANES - NONE REQUIRED', 30, 130)], annots: [] };
+  const alt = { num: 2, items: [it('22) MEZZANINES', 30, 100), ...mezz('M1', 120), ...mezz('M2', 320)], annots: [] };
+  assert.deepStrictEqual(PCS.box22Pages([none, alt]).map(p => p.num), [2]);
+  const tg = PCS.checkboxTargets(alt);
+  assert.strictEqual(tg.length, 14, 'material and use rows of both mezzanines, no "Other Deck Type"');
+  assert.strictEqual(new Set(tg.map(t => t.key)).size, 14);
+  alt.checks = Object.fromEntries(tg.map(t => [t.key, t.y < 300 ? /Standard|Theater/.test(t.label) : /Light|Office/.test(t.label)]));
+  const [m1, m2] = PCS.parse([none, alt]).mezzanines;
+  assert.deepStrictEqual([m1.checks.material['Standard Weight Concrete'], m1.checks.use.Theater, m1.checks.material.Other], [true, true, false]);
+  assert.deepStrictEqual([m2.checks.material['Light Weight Concrete'], m2.checks.use.Office, m2.checks.use.Theater], [true, true, false]);
+}
+
 // Full example job (the PCS is customer data and stays out of the repo)
 const pdf = process.env.MZ_PCS || path.join(__dirname, '..', 'private', 'pcs', 'Project_Confirmation_Summary_W2H-26018.pdf');
 if (!fs.existsSync(pdf)) { console.log('pcs tests passed (example PCS not present, full-job test skipped)'); process.exit(0); }

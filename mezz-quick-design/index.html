@@ -840,6 +840,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 .nbg-steps li { margin: 2px 0; }
 .nbg-all { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 640px) { .nbg-drop strong + small { margin-left: 0; } .nbg-drop { flex-wrap: wrap; } }
+.nbg-path { display: block; margin-top: 6px; color: var(--ink-muted); line-height: 1.45; }
+.nbg-path code { font-size: 11px; }
 
 </style>
 </head>
@@ -2293,6 +2295,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     material: ['Standard Weight Concrete', 'Light Weight Concrete', 'Extruded-Mesh or Diamond-Plate Steel', 'Plywood', 'Other'],
     use: ['Storage', 'Office', 'Retail Store', 'Manufacturing', 'Classroom', 'Theater'],
     provided: ['Designed For Load Provisions Only', 'Auxiliary Columns', 'Support Beams', 'Edge Angle / Pour Stop'],
+    joists: ['Bolted Joists', 'Welded Joists', 'Bolted Bridging', 'Welded Bridging'],
   };
 
   /* Box 22. A quote can carry it more than once: "22) MEZZANINES - NONE REQUIRED" in the base scope and the
@@ -2346,6 +2349,9 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       startFSW: ftin(grab(txt, new RegExp(String.raw`Start Location from FSW\s*(` + DIM + ')'))),
       deckType: grab(txt, /(?:^|\s)Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
       deckOther: grab(txt, /Other Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckAttach: grab(txt, /Deck Attachment:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckFinish: grab(txt, /Deck Finish:\s*(.+?)(?:\s{2,}|\n|$)/),
+      primer: grab(txt, /Joist Primer Colou?r:?\s*(.+?)(?:\s{2,}|\n|$)/),
       openings: grab(txt, /Floor Openings[^\n]*\n([^\n]*)/),
       dims: {}, checks: {}, sources: {}, page: ls[0] && ls[0].page,
     };
@@ -2381,33 +2387,37 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       else if (ftin(prov) != null) { value = ftin(prov); src = 'provided'; }
       m.dims[key] = { requested: req, provided: prov, annotation: annTxt, value, source: src };
     });
-    // checkboxes (only available when the page was rendered)
-    if (pageRef && pageRef.checks) {
+    // checkboxes (only available when the page was rendered): each label read off this mezzanine's own row, so two
+    // mezzanines on one page keep their own ticks
+    if (ls.some(l => l.pageRef && l.pageRef.checks)) {
       Object.entries(CHECK_LABELS).forEach(([grp, labels]) => {
         m.checks[grp] = {};
-        labels.forEach(lb => { m.checks[grp][lb] = pageRef.checks[lb] ?? null; });
+        labels.forEach(lb => {
+          const row = ls.find(l => l.pageRef && l.pageRef.checks && checkRow(l, grp) && l.items.some(it => isLabel(it.str, lb)));
+          const it = row && row.items.find(i => isLabel(i.str, lb)), ck = row ? row.pageRef.checks : (pageRef && pageRef.checks) || {};
+          m.checks[grp][lb] = (it && ck[checkKey(lb, it.y)]) ?? ck[lb] ?? null;
+        });
       });
     }
     return m;
   }
 
-  // positions of checkbox labels on a page (for the renderer to sample just left of them)
+  // positions of checkbox labels on a page (for the renderer to sample just left of them): every mezzanine's rows,
+  // each keyed by label and height ("Other" only on the material row, not "Other Deck Type")
+  const isLabel = (str, lb) => str === lb || (str.startsWith(lb) && !(lb === 'Other' && /^Other\s+Deck/i.test(str)));
+  const checkRow = (l, grp) => CHECK_LABELS[grp].filter(lb => l.items.some(it => isLabel(it.str, lb))).length >= 2;
+  const checkKey = (lb, y) => `${lb}@${Math.round(y)}`;
   function checkboxTargets(page) {
-    const want = Object.values(CHECK_LABELS).flat();
     const out = [];
-    lines(page).forEach(l => l.items.forEach(it => {
-      const lb = want.find(w => it.str === w || it.str.startsWith(w));
-      if (lb && !out.some(o => o.label === lb)) out.push({ label: lb, x: it.x, y: it.y, h: it.h || 8 });
-    }));
+    lines(page).forEach(l => Object.keys(CHECK_LABELS).filter(g => checkRow(l, g)).forEach(g => l.items.forEach(it => {
+      const lb = CHECK_LABELS[g].find(w => isLabel(it.str, w));
+      if (lb) out.push({ label: lb, key: checkKey(lb, it.y), x: it.x, y: it.y, h: it.h || 8 });
+    })));
     return out;
   }
-  // pages that carry Box 22 (for checkbox rendering)
+  // pages that carry a Box 22 listing a mezzanine (for checkbox rendering): the base scope's and an alternate's
   function box22Pages(pages) {
-    const s = pages.findIndex(p => lines(p).some(l => /22\)\s*MEZZANINES/i.test(l.text)));
-    if (s < 0) return [];
-    const out = [];
-    for (let i = s; i < pages.length; i++) { out.push(pages[i]); if (lines(pages[i]).some(l => /^2[3-9]\)/.test(l.text))) break; }
-    return out;
+    return pages.filter(p => lines(p).some(l => isBox22(l.text) || /Mezzanine ID:/i.test(l.text)));
   }
 
   // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------
@@ -2498,7 +2508,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       const img = ctx.getImageData(Math.max(0, bx | 0), Math.max(0, by | 0), Math.max(1, bw | 0), Math.max(1, bh | 0)).data;
       let n = 0;
       for (let i = 0; i < img.length; i += 4) if (img[i] + img[i + 1] + img[i + 2] < 300) n++;
-      dark.push({ label: t.label, n });
+      dark.push({ label: t.key || t.label, n });
     });
     // an empty box has only its outline; a checked one carries the tick as well
     const counts = dark.map(d => d.n).sort((a, b) => a - b);
@@ -3745,7 +3755,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -3757,6 +3767,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
         A: dimV('A'), B: dimV('B'), C: dimV('C'),
         // no silent defaults: TBD with no blue note means the quote engineer enters it (the Design page asks)
         joistSpacing: dimV('joistSpacing'), seat: dimV('seat'),
+        // read for the record and carried to the frame / edge design (not used by the mezzanine beams or columns)
+        D: dimV('D'), E: dimV('E'), F: dimV('F'),
       },
       building: {
         width: b.width, length: b.length, ridge: b.ridge, bays: b.bays || [], lewCols: b.lewCols || [], rewCols: b.rewCols || [],
@@ -4276,10 +4288,27 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     }
     const lv = [...new Set(live.map(c => c.beamBase.live))];
     add('15.1.1.4 (4)', 'Layout', 'No live load reduction', 'ok', `${lv.join(' / ')} psf live used unreduced on every beam and column${live.some(c => val(c.inp.loads.partition) > 0 && c.s.partitionTo === 'live') ? ' (partition included)' : ''}.`);
+    // floor use (the Box 22 checkbox) against the code minimum live load, IBC 1607.1 / ASCE 7 Table 4.3-1
+    const USE_LL = {
+      Storage: [125, 'light storage 125 psf, heavy storage 250'], Manufacturing: [125, 'light manufacturing 125 psf, heavy 250'],
+      Office: [50, 'offices 50 psf (corridors above the first floor 80, lobbies 100)'], 'Retail Store': [75, 'retail upper floors 75 psf (first floor 100)'],
+      Classroom: [40, 'classrooms 40 psf (corridors above the first floor 80)'], Theater: [100, 'assembly: balconies, lobbies and movable seats 100 psf (fixed seats only 60)'],
+    };
+    live.forEach(c => {
+      const use = c.inp.mezz.use, ll = val(c.inp.loads.live), part = val(c.inp.loads.partition) || 0, u = USE_LL[use];
+      if (!use) return add('IBC 1607.1', 'Loads', 'Floor use and live load', 'check', `${tag(c)}${c.inp.mezz.useRead ? 'no floor use is ticked in Box 22' : 'the floor use checkboxes were not read (the page is not rendered here)'} — confirm ${ll} psf live suits what the floor is for.`, c.index);
+      const low = ll < u[0], noPart = use === 'Office' && ll <= 80 && part < 15;
+      add('IBC 1607.1', 'Loads', `Floor use: ${use}`, low || noPart ? 'check' : 'ok', `${tag(c)}${ll} psf live${part ? ` + ${part} psf partition` : ''} for ${use.toLowerCase()} — code minimum ${u[1]}${low ? `: ${ll} psf is below it, confirm the load with the customer` : ''}${noPart ? '; an office floor at 80 psf live or less also carries a 15 psf partition load (IBC 1607.5)' : ''}. The building code on the PCS governs.`, c.index);
+    });
     live.forEach(c => {
       const r = mezz[c.index], cl = r && r.clear;
       if (!cl) return;
       const bad = ['A', 'B', 'C'].filter(k => cl[k].ok === false);
+      // D / F: clearances under the frame — the frame design has to hold them; E: where the slab edge sits
+      const gv = k => { const n = c.inp.geom[k]; return n && n.value != null ? `${F(n.value)}${n.source === 'annotation' ? ' (blue note)' : ''}` : null; };
+      const DF = [['D', 'minimum clearance under the frame'], ['F', 'clearance under the frame']].filter(([k]) => gv(k));
+      if (DF.length) add('15.1.1', 'Layout', 'Clearance under the frame (D, F)', 'check', `${tag(c)}${DF.map(([k, t]) => `${k} ${t} ${gv(k)}`).join(' · ')} — not part of the mezzanine design: carry ${DF.length > 1 ? 'them' : 'it'} to the frame design (NBG Frame clear height under the rafters).`, c.index);
+      if (gv('E')) add('15.1.1', 'Layout', 'Slab edge setback (E)', 'note', `${tag(c)}E edge of slab / deck ${gv('E')} from the steel line — the edge angle / pour stop line; the edge beams stay on the column lines.`, c.index, { mirror: false });
       add('15.1.1', 'Layout', 'Finish floor and clear heights defined', bad.length ? 'stop' : 'ok', `${tag(c)}A ${F(c.A)} · B ${c.Bq != null ? F(c.Bq) : '—'} · C ${c.inp.geom.C && c.inp.geom.C.source === 'none' ? 'no requirement' : c.Cq != null ? F(c.Cq) : '—'}${bad.length ? ` — clearance ${bad.join(', ')} not met` : ', each one met'}.`, c.index, { mirror: false });
     });
 
@@ -4341,6 +4370,17 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       add('15.1.1.5', 'Deck & pour stop', 'Pour stop (edge angle) by seller', 'note',
         `Standard PST120: 3" horizontal leg, ${slab.join(' / ')}" vertical leg (= slab), 1" return at 45°, gage from the SDI pour stop table at 0" overhang, G60 galvanized from the deck supplier. About ${Math.round(perim)} ft for the slab perimeter${shared.length ? ' (where mezzanines meet at one level the slab runs through)' : ''}, plus framing around any column through the slab and around openings. It carries no vertical load, only the wet-concrete pressure on the vertical leg.`);
     }
+
+    // the joist and deck order as Box 22 asks for it: not part of the beam / column design, carried to the joist and deck
+    // purchase and the D2D sheet (bolted joists put the seat holes in the beam top flange)
+    live.forEach(c => {
+      const z = c.inp.mezz, j = z.joists || {}, pick = (a, b) => (j[a] ? a.split(' ')[0].toLowerCase() : j[b] ? b.split(' ')[0].toLowerCase() : null);
+      const jc = pick('Bolted Joists', 'Welded Joists'), bc = pick('Bolted Bridging', 'Welded Bridging');
+      const parts = [z.joists ? `joists ${jc || 'not ticked'}, bridging ${bc || 'not ticked'}` : 'joist / bridging connection not read (the page is not rendered here)',
+        `deck ${z.deckText || z.deck}${z.deckAttach ? `, ${z.deckAttach.toLowerCase()}` : ''}${z.deckFinish ? `, ${z.deckFinish}` : ''}`, z.primer ? `joist primer ${z.primer}` : null].filter(Boolean);
+      const open = z.joists && (!jc || !bc);
+      add('PCS Box 22', 'Deck & pour stop', 'Joists, bridging and deck as ordered', open ? 'check' : 'note', `${tag(c)}${parts.join(' · ')} — for the joist and deck order and the D2D sheet${jc === 'bolted' ? '; bolted joists: the beam top flanges carry the joist seat holes' : ''}${open ? '; tick bolted or welded before the joists are ordered' : ''}.`, c.index, { mirror: !!open });
+    });
 
     // ---- bracing (15.1.3)
     live.forEach(c => {
@@ -4534,7 +4574,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     mezz.forEach(r => {
       if (r.incomplete) return;
       r.dm = dm.filter(it => it.mi == null || it.mi === r.index);
-      r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (DM ${it.ref}): ${it.text}` }));
+      r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (${/^\d/.test(it.ref) ? 'DM ' : ''}${it.ref}): ${it.text}` }));
     });
     const excel = excelSteps(ctxs, mezz, marks);
     return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: frameEntries(ctxs, cols.frame), marks: marks.map(({ group, ...m }) => m), dm, excel };
@@ -5224,7 +5264,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     if (!items.length) { el.innerHTML = ''; return; }
     const count = st => items.filter(i => i.status === st).length;
     el.innerHTML = `<div class="dm-sum">${['ok', 'check', 'stop', 'note', 'info'].filter(count).map(st => `<span class="dm-chip s-${st}"><b>${count(st)}</b> ${DM_WORD[st]}</span>`).join('')}</div><div class="dm-groups">` +
-      [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">DM ${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
+      [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">${/^\d/.test(i.ref) ? 'DM ' : ''}${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
   }
   // Excel, step by step: the cells to type, in order, then what the workbook shows
   const xlCell = st => (st.where ? (st.where.includes('!') ? st.where : `${st.sheet}!${st.where}`) : `${st.sheet}!${st.cell}`);
@@ -5857,6 +5897,17 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   };
   const linesText = ls => { const a = ls.map(Number).sort((x, y) => x - y); return a.length > 2 && a.every((v, i) => !i || v === a[i - 1] + 1) ? `${a[0]}-${a[a.length - 1]}` : a.join(', '); };
   const parseLines = t => String(t || '').split(/[,\s]+/).filter(Boolean).flatMap(p => { const m = /^(\d+)(?:-(\d+))?$/.exec(p); if (!m) return []; const out = []; for (let k = +m[1]; k <= +(m[2] || m[1]); k++) out.push(k); return out; });
+  // NBG Frame's analysis reads the file's full path into 64 characters ("No input file …(3.f" past that — the
+  // modeller opens the file, the run fails), and the browser adds " (1)" to a name already in Downloads: so a short
+  // name with no spaces — job, building, frame lines: 1234567-B1-2_mz.frame
+  const outName = (it, lines, tail = 'mz') => {
+    const info = (it.ff && it.ff.info) || {};
+    const job = String((/(\d{6,})/.exec(it.name) || [])[1] || info.job || '').replace(/[^A-Za-z0-9]+/g, '');   // the frame number, else the quote
+    const b = String(info.building || '').trim(), bt = /^bldg\.?\s*\w+$/i.test(b) ? 'B' + b.replace(/^bldg\.?\s*/i, '') : b.replace(/[^A-Za-z0-9]+/g, '').slice(0, 4);
+    const ln = lines && lines.length ? String(lines[0]) + (lines.length > 1 ? '-' + lines[lines.length - 1] : '') : '';
+    const parts = [job, bt, ln].filter(Boolean);
+    return (parts.length ? parts.join('-') : it.name.replace(/\.frame$/i, '').replace(/[^A-Za-z0-9]+/g, '').slice(0, 16)) + `_${tail}.frame`;
+  };
   const sameName = (a, b) => FF.bldgKey(a) === FF.bldgKey(b);
   // the Ecc. Loc. code NBG Frame uses for WebCenterline: learned from a saved file or confirmed once, then kept (this browser)
   const WEB_KEY = 'mz.nbg.webCenterline';
@@ -5945,7 +5996,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
     };
     const anyRows = webCode().how !== 'guess' && plans.some((p, i) => p && files[i].include && p.r.rows.length);
-    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol><small class="nbg-path">Files are named short on purpose (e.g. <code>${esc(files.find(x => x.ff) ? outName(files.find(x => x.ff), parseLines(files.find(x => x.ff).lines)) : '1234567-B1-2_mz.frame')}</code>): NBG Frame's analysis only reads a file path up to <b>64 characters</b>, folder included — past that the frame opens but the run stops with “No input file …”. Keep the file in a short folder (Downloads is fine) and delete older copies first, so the browser does not add “ (1)”, “ (2)” to the name.</small></div>` : '';
     const w = webCode();
     const firstOk = files.find(x => x.ff);
     const ecc = files.length ? (w.how === 'guess'
@@ -5969,8 +6020,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     $$('[data-nbg-rm]').forEach(b => { b.onclick = () => { files.splice(+b.dataset.nbgRm, 1); renderNbg(); }; });
     $$('[data-nbg-inc]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgInc].include = b.checked; renderNbg(); }; });
     $$('[data-nbg-lines]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgLines].lines = b.value; renderNbg(); }; });
-    const outName = n => n.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_mezz.frame';
-    const build = async i => { const it = files[i], p = plans[i]; return { name: outName(it.name), bytes: await FF.write(it.ff, p.add.xml, zipIO) }; };
+    const build = async i => { const it = files[i], p = plans[i]; return { name: outName(it, p.lines), bytes: await FF.write(it.ff, p.add.xml, zipIO) }; };
     const save = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
     $$('[data-nbg-dl]').forEach(b => { b.onclick = async () => { const o = await build(+b.dataset.nbgDl); save(o.bytes, o.name, 'application/octet-stream'); toast(`${o.name} — ${plans[+b.dataset.nbgDl].r.rows.length} rows`); }; });
     const all = $('#nbgAll');
@@ -5985,7 +6035,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const rs = $('#nbgEccReset'), ef = $('#nbgEccFile');
     if (rs) rs.onclick = () => { setWebCode({ code: FF.WEB_GUESS, how: 'guess' }); renderNbg(); };
     if (ef) ef.onclick = async () => {
-      const it = files.find(x => x.ff), name = it.name.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_ECC-CHECK.frame';
+      const it = files.find(x => x.ff), name = outName(it, parseLines(it.lines), 'ECC');
       save(await FF.write(it.ff, FF.eccCheck(it.ff), zipIO), name, 'application/octet-stream');
       toast(`${name} — open it in NBG Frame, then click the row that reads WebCenterline`);
     };
@@ -6311,7 +6361,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const deckSel = `<div class="field-row"><label>Deck type<small>${inp.mezz.deckText ? 'PCS: ' + esc(inp.mezz.deckText) : 'Per seller → 1.0C (training guide)'}</small></label><select data-mezz="deck">${Object.entries(DESIGN.DECKS).map(([k, d]) => `<option value="${k}" ${inp.mezz.deck === k ? 'selected' : ''} title="${d.label}">${k} ${d.label.includes('composite') ? 'comp.' : 'form'}</option>`).join('')}</select></div>`;
     const concSel = `<div class="field-row"><label>Concrete<small>${inp.mezz.concrete === 'LW' ? 'lightweight' : 'standard weight'} · from the material checkbox</small></label><select data-mezz="concrete"><option value="NW" ${inp.mezz.concrete !== 'LW' ? 'selected' : ''}>NW · 145 pcf</option><option value="LW" ${inp.mezz.concrete === 'LW' ? 'selected' : ''}>LW · 110 pcf</option></select></div>`;
     const deadReset = inp.loads.dead && !inp.loads.dead.auto && inp.loads.dead.source === 'manual' ? `<div class="field-row"><label>Dead load<small>typed by hand</small></label><button class="btn-ghost" id="deadReset">Back to deck guide</button></div>` : '';
-    const ck = checks('material', 'Material (not by seller)') + checks('use', 'Floor use') + checks('provided', 'Materials provided by seller');
+    const ck = checks('material', 'Material (not by seller)') + checks('use', 'Floor use') + checks('provided', 'Materials provided by seller') + checks('joists', 'Bar joist and bridging');
     const many = state.all && state.all.length > 1;
     const link = many ? `<div class="field-row full link-row"><label>Edits apply to<small>loads, elevations, clearances and joists; the footprint is always per mezzanine</small></label>
       <div class="seg" id="linkSeg"><button data-l="1" class="${state.linkEdits !== false ? 'is-active' : ''}">Every mezzanine (${state.all.length})</button><button data-l="0" class="${state.linkEdits === false ? 'is-active' : ''}">Only ${esc(inp.mezz.id || 'this one')}</button></div></div>` : '';

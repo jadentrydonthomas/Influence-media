@@ -119,7 +119,7 @@
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -131,6 +131,8 @@
         A: dimV('A'), B: dimV('B'), C: dimV('C'),
         // no silent defaults: TBD with no blue note means the quote engineer enters it (the Design page asks)
         joistSpacing: dimV('joistSpacing'), seat: dimV('seat'),
+        // read for the record and carried to the frame / edge design (not used by the mezzanine beams or columns)
+        D: dimV('D'), E: dimV('E'), F: dimV('F'),
       },
       building: {
         width: b.width, length: b.length, ridge: b.ridge, bays: b.bays || [], lewCols: b.lewCols || [], rewCols: b.rewCols || [],
@@ -650,10 +652,27 @@
     }
     const lv = [...new Set(live.map(c => c.beamBase.live))];
     add('15.1.1.4 (4)', 'Layout', 'No live load reduction', 'ok', `${lv.join(' / ')} psf live used unreduced on every beam and column${live.some(c => val(c.inp.loads.partition) > 0 && c.s.partitionTo === 'live') ? ' (partition included)' : ''}.`);
+    // floor use (the Box 22 checkbox) against the code minimum live load, IBC 1607.1 / ASCE 7 Table 4.3-1
+    const USE_LL = {
+      Storage: [125, 'light storage 125 psf, heavy storage 250'], Manufacturing: [125, 'light manufacturing 125 psf, heavy 250'],
+      Office: [50, 'offices 50 psf (corridors above the first floor 80, lobbies 100)'], 'Retail Store': [75, 'retail upper floors 75 psf (first floor 100)'],
+      Classroom: [40, 'classrooms 40 psf (corridors above the first floor 80)'], Theater: [100, 'assembly: balconies, lobbies and movable seats 100 psf (fixed seats only 60)'],
+    };
+    live.forEach(c => {
+      const use = c.inp.mezz.use, ll = val(c.inp.loads.live), part = val(c.inp.loads.partition) || 0, u = USE_LL[use];
+      if (!use) return add('IBC 1607.1', 'Loads', 'Floor use and live load', 'check', `${tag(c)}${c.inp.mezz.useRead ? 'no floor use is ticked in Box 22' : 'the floor use checkboxes were not read (the page is not rendered here)'} — confirm ${ll} psf live suits what the floor is for.`, c.index);
+      const low = ll < u[0], noPart = use === 'Office' && ll <= 80 && part < 15;
+      add('IBC 1607.1', 'Loads', `Floor use: ${use}`, low || noPart ? 'check' : 'ok', `${tag(c)}${ll} psf live${part ? ` + ${part} psf partition` : ''} for ${use.toLowerCase()} — code minimum ${u[1]}${low ? `: ${ll} psf is below it, confirm the load with the customer` : ''}${noPart ? '; an office floor at 80 psf live or less also carries a 15 psf partition load (IBC 1607.5)' : ''}. The building code on the PCS governs.`, c.index);
+    });
     live.forEach(c => {
       const r = mezz[c.index], cl = r && r.clear;
       if (!cl) return;
       const bad = ['A', 'B', 'C'].filter(k => cl[k].ok === false);
+      // D / F: clearances under the frame — the frame design has to hold them; E: where the slab edge sits
+      const gv = k => { const n = c.inp.geom[k]; return n && n.value != null ? `${F(n.value)}${n.source === 'annotation' ? ' (blue note)' : ''}` : null; };
+      const DF = [['D', 'minimum clearance under the frame'], ['F', 'clearance under the frame']].filter(([k]) => gv(k));
+      if (DF.length) add('15.1.1', 'Layout', 'Clearance under the frame (D, F)', 'check', `${tag(c)}${DF.map(([k, t]) => `${k} ${t} ${gv(k)}`).join(' · ')} — not part of the mezzanine design: carry ${DF.length > 1 ? 'them' : 'it'} to the frame design (NBG Frame clear height under the rafters).`, c.index);
+      if (gv('E')) add('15.1.1', 'Layout', 'Slab edge setback (E)', 'note', `${tag(c)}E edge of slab / deck ${gv('E')} from the steel line — the edge angle / pour stop line; the edge beams stay on the column lines.`, c.index, { mirror: false });
       add('15.1.1', 'Layout', 'Finish floor and clear heights defined', bad.length ? 'stop' : 'ok', `${tag(c)}A ${F(c.A)} · B ${c.Bq != null ? F(c.Bq) : '—'} · C ${c.inp.geom.C && c.inp.geom.C.source === 'none' ? 'no requirement' : c.Cq != null ? F(c.Cq) : '—'}${bad.length ? ` — clearance ${bad.join(', ')} not met` : ', each one met'}.`, c.index, { mirror: false });
     });
 
@@ -715,6 +734,17 @@
       add('15.1.1.5', 'Deck & pour stop', 'Pour stop (edge angle) by seller', 'note',
         `Standard PST120: 3" horizontal leg, ${slab.join(' / ')}" vertical leg (= slab), 1" return at 45°, gage from the SDI pour stop table at 0" overhang, G60 galvanized from the deck supplier. About ${Math.round(perim)} ft for the slab perimeter${shared.length ? ' (where mezzanines meet at one level the slab runs through)' : ''}, plus framing around any column through the slab and around openings. It carries no vertical load, only the wet-concrete pressure on the vertical leg.`);
     }
+
+    // the joist and deck order as Box 22 asks for it: not part of the beam / column design, carried to the joist and deck
+    // purchase and the D2D sheet (bolted joists put the seat holes in the beam top flange)
+    live.forEach(c => {
+      const z = c.inp.mezz, j = z.joists || {}, pick = (a, b) => (j[a] ? a.split(' ')[0].toLowerCase() : j[b] ? b.split(' ')[0].toLowerCase() : null);
+      const jc = pick('Bolted Joists', 'Welded Joists'), bc = pick('Bolted Bridging', 'Welded Bridging');
+      const parts = [z.joists ? `joists ${jc || 'not ticked'}, bridging ${bc || 'not ticked'}` : 'joist / bridging connection not read (the page is not rendered here)',
+        `deck ${z.deckText || z.deck}${z.deckAttach ? `, ${z.deckAttach.toLowerCase()}` : ''}${z.deckFinish ? `, ${z.deckFinish}` : ''}`, z.primer ? `joist primer ${z.primer}` : null].filter(Boolean);
+      const open = z.joists && (!jc || !bc);
+      add('PCS Box 22', 'Deck & pour stop', 'Joists, bridging and deck as ordered', open ? 'check' : 'note', `${tag(c)}${parts.join(' · ')} — for the joist and deck order and the D2D sheet${jc === 'bolted' ? '; bolted joists: the beam top flanges carry the joist seat holes' : ''}${open ? '; tick bolted or welded before the joists are ordered' : ''}.`, c.index, { mirror: !!open });
+    });
 
     // ---- bracing (15.1.3)
     live.forEach(c => {
@@ -908,7 +938,7 @@
     mezz.forEach(r => {
       if (r.incomplete) return;
       r.dm = dm.filter(it => it.mi == null || it.mi === r.index);
-      r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (DM ${it.ref}): ${it.text}` }));
+      r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (${/^\d/.test(it.ref) ? 'DM ' : ''}${it.ref}): ${it.text}` }));
     });
     const excel = excelSteps(ctxs, mezz, marks);
     return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: frameEntries(ctxs, cols.frame), marks: marks.map(({ group, ...m }) => m), dm, excel };

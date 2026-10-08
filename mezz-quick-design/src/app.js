@@ -589,7 +589,7 @@
     if (!items.length) { el.innerHTML = ''; return; }
     const count = st => items.filter(i => i.status === st).length;
     el.innerHTML = `<div class="dm-sum">${['ok', 'check', 'stop', 'note', 'info'].filter(count).map(st => `<span class="dm-chip s-${st}"><b>${count(st)}</b> ${DM_WORD[st]}</span>`).join('')}</div><div class="dm-groups">` +
-      [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">DM ${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
+      [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">${/^\d/.test(i.ref) ? 'DM ' : ''}${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
   }
   // Excel, step by step: the cells to type, in order, then what the workbook shows
   const xlCell = st => (st.where ? (st.where.includes('!') ? st.where : `${st.sheet}!${st.where}`) : `${st.sheet}!${st.cell}`);
@@ -1222,6 +1222,17 @@
   };
   const linesText = ls => { const a = ls.map(Number).sort((x, y) => x - y); return a.length > 2 && a.every((v, i) => !i || v === a[i - 1] + 1) ? `${a[0]}-${a[a.length - 1]}` : a.join(', '); };
   const parseLines = t => String(t || '').split(/[,\s]+/).filter(Boolean).flatMap(p => { const m = /^(\d+)(?:-(\d+))?$/.exec(p); if (!m) return []; const out = []; for (let k = +m[1]; k <= +(m[2] || m[1]); k++) out.push(k); return out; });
+  // NBG Frame's analysis reads the file's full path into 64 characters ("No input file …(3.f" past that — the
+  // modeller opens the file, the run fails), and the browser adds " (1)" to a name already in Downloads: so a short
+  // name with no spaces — job, building, frame lines: 1234567-B1-2_mz.frame
+  const outName = (it, lines, tail = 'mz') => {
+    const info = (it.ff && it.ff.info) || {};
+    const job = String((/(\d{6,})/.exec(it.name) || [])[1] || info.job || '').replace(/[^A-Za-z0-9]+/g, '');   // the frame number, else the quote
+    const b = String(info.building || '').trim(), bt = /^bldg\.?\s*\w+$/i.test(b) ? 'B' + b.replace(/^bldg\.?\s*/i, '') : b.replace(/[^A-Za-z0-9]+/g, '').slice(0, 4);
+    const ln = lines && lines.length ? String(lines[0]) + (lines.length > 1 ? '-' + lines[lines.length - 1] : '') : '';
+    const parts = [job, bt, ln].filter(Boolean);
+    return (parts.length ? parts.join('-') : it.name.replace(/\.frame$/i, '').replace(/[^A-Za-z0-9]+/g, '').slice(0, 16)) + `_${tail}.frame`;
+  };
   const sameName = (a, b) => FF.bldgKey(a) === FF.bldgKey(b);
   // the Ecc. Loc. code NBG Frame uses for WebCenterline: learned from a saved file or confirmed once, then kept (this browser)
   const WEB_KEY = 'mz.nbg.webCenterline';
@@ -1310,7 +1321,7 @@
       return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
     };
     const anyRows = webCode().how !== 'guess' && plans.some((p, i) => p && files[i].include && p.r.rows.length);
-    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol><small class="nbg-path">Files are named short on purpose (e.g. <code>${esc(files.find(x => x.ff) ? outName(files.find(x => x.ff), parseLines(files.find(x => x.ff).lines)) : '1234567-B1-2_mz.frame')}</code>): NBG Frame's analysis only reads a file path up to <b>64 characters</b>, folder included — past that the frame opens but the run stops with “No input file …”. Keep the file in a short folder (Downloads is fine) and delete older copies first, so the browser does not add “ (1)”, “ (2)” to the name.</small></div>` : '';
     const w = webCode();
     const firstOk = files.find(x => x.ff);
     const ecc = files.length ? (w.how === 'guess'
@@ -1334,8 +1345,7 @@
     $$('[data-nbg-rm]').forEach(b => { b.onclick = () => { files.splice(+b.dataset.nbgRm, 1); renderNbg(); }; });
     $$('[data-nbg-inc]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgInc].include = b.checked; renderNbg(); }; });
     $$('[data-nbg-lines]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgLines].lines = b.value; renderNbg(); }; });
-    const outName = n => n.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_mezz.frame';
-    const build = async i => { const it = files[i], p = plans[i]; return { name: outName(it.name), bytes: await FF.write(it.ff, p.add.xml, zipIO) }; };
+    const build = async i => { const it = files[i], p = plans[i]; return { name: outName(it, p.lines), bytes: await FF.write(it.ff, p.add.xml, zipIO) }; };
     const save = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
     $$('[data-nbg-dl]').forEach(b => { b.onclick = async () => { const o = await build(+b.dataset.nbgDl); save(o.bytes, o.name, 'application/octet-stream'); toast(`${o.name} — ${plans[+b.dataset.nbgDl].r.rows.length} rows`); }; });
     const all = $('#nbgAll');
@@ -1350,7 +1360,7 @@
     const rs = $('#nbgEccReset'), ef = $('#nbgEccFile');
     if (rs) rs.onclick = () => { setWebCode({ code: FF.WEB_GUESS, how: 'guess' }); renderNbg(); };
     if (ef) ef.onclick = async () => {
-      const it = files.find(x => x.ff), name = it.name.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_ECC-CHECK.frame';
+      const it = files.find(x => x.ff), name = outName(it, parseLines(it.lines), 'ECC');
       save(await FF.write(it.ff, FF.eccCheck(it.ff), zipIO), name, 'application/octet-stream');
       toast(`${name} — open it in NBG Frame, then click the row that reads WebCenterline`);
     };
@@ -1676,7 +1686,7 @@
     const deckSel = `<div class="field-row"><label>Deck type<small>${inp.mezz.deckText ? 'PCS: ' + esc(inp.mezz.deckText) : 'Per seller → 1.0C (training guide)'}</small></label><select data-mezz="deck">${Object.entries(DESIGN.DECKS).map(([k, d]) => `<option value="${k}" ${inp.mezz.deck === k ? 'selected' : ''} title="${d.label}">${k} ${d.label.includes('composite') ? 'comp.' : 'form'}</option>`).join('')}</select></div>`;
     const concSel = `<div class="field-row"><label>Concrete<small>${inp.mezz.concrete === 'LW' ? 'lightweight' : 'standard weight'} · from the material checkbox</small></label><select data-mezz="concrete"><option value="NW" ${inp.mezz.concrete !== 'LW' ? 'selected' : ''}>NW · 145 pcf</option><option value="LW" ${inp.mezz.concrete === 'LW' ? 'selected' : ''}>LW · 110 pcf</option></select></div>`;
     const deadReset = inp.loads.dead && !inp.loads.dead.auto && inp.loads.dead.source === 'manual' ? `<div class="field-row"><label>Dead load<small>typed by hand</small></label><button class="btn-ghost" id="deadReset">Back to deck guide</button></div>` : '';
-    const ck = checks('material', 'Material (not by seller)') + checks('use', 'Floor use') + checks('provided', 'Materials provided by seller');
+    const ck = checks('material', 'Material (not by seller)') + checks('use', 'Floor use') + checks('provided', 'Materials provided by seller') + checks('joists', 'Bar joist and bridging');
     const many = state.all && state.all.length > 1;
     const link = many ? `<div class="field-row full link-row"><label>Edits apply to<small>loads, elevations, clearances and joists; the footprint is always per mezzanine</small></label>
       <div class="seg" id="linkSeg"><button data-l="1" class="${state.linkEdits !== false ? 'is-active' : ''}">Every mezzanine (${state.all.length})</button><button data-l="0" class="${state.linkEdits === false ? 'is-active' : ''}">Only ${esc(inp.mezz.id || 'this one')}</button></div></div>` : '';

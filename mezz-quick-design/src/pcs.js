@@ -262,6 +262,7 @@
     material: ['Standard Weight Concrete', 'Light Weight Concrete', 'Extruded-Mesh or Diamond-Plate Steel', 'Plywood', 'Other'],
     use: ['Storage', 'Office', 'Retail Store', 'Manufacturing', 'Classroom', 'Theater'],
     provided: ['Designed For Load Provisions Only', 'Auxiliary Columns', 'Support Beams', 'Edge Angle / Pour Stop'],
+    joists: ['Bolted Joists', 'Welded Joists', 'Bolted Bridging', 'Welded Bridging'],
   };
 
   /* Box 22. A quote can carry it more than once: "22) MEZZANINES - NONE REQUIRED" in the base scope and the
@@ -315,6 +316,9 @@
       startFSW: ftin(grab(txt, new RegExp(String.raw`Start Location from FSW\s*(` + DIM + ')'))),
       deckType: grab(txt, /(?:^|\s)Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
       deckOther: grab(txt, /Other Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckAttach: grab(txt, /Deck Attachment:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckFinish: grab(txt, /Deck Finish:\s*(.+?)(?:\s{2,}|\n|$)/),
+      primer: grab(txt, /Joist Primer Colou?r:?\s*(.+?)(?:\s{2,}|\n|$)/),
       openings: grab(txt, /Floor Openings[^\n]*\n([^\n]*)/),
       dims: {}, checks: {}, sources: {}, page: ls[0] && ls[0].page,
     };
@@ -350,33 +354,37 @@
       else if (ftin(prov) != null) { value = ftin(prov); src = 'provided'; }
       m.dims[key] = { requested: req, provided: prov, annotation: annTxt, value, source: src };
     });
-    // checkboxes (only available when the page was rendered)
-    if (pageRef && pageRef.checks) {
+    // checkboxes (only available when the page was rendered): each label read off this mezzanine's own row, so two
+    // mezzanines on one page keep their own ticks
+    if (ls.some(l => l.pageRef && l.pageRef.checks)) {
       Object.entries(CHECK_LABELS).forEach(([grp, labels]) => {
         m.checks[grp] = {};
-        labels.forEach(lb => { m.checks[grp][lb] = pageRef.checks[lb] ?? null; });
+        labels.forEach(lb => {
+          const row = ls.find(l => l.pageRef && l.pageRef.checks && checkRow(l, grp) && l.items.some(it => isLabel(it.str, lb)));
+          const it = row && row.items.find(i => isLabel(i.str, lb)), ck = row ? row.pageRef.checks : (pageRef && pageRef.checks) || {};
+          m.checks[grp][lb] = (it && ck[checkKey(lb, it.y)]) ?? ck[lb] ?? null;
+        });
       });
     }
     return m;
   }
 
-  // positions of checkbox labels on a page (for the renderer to sample just left of them)
+  // positions of checkbox labels on a page (for the renderer to sample just left of them): every mezzanine's rows,
+  // each keyed by label and height ("Other" only on the material row, not "Other Deck Type")
+  const isLabel = (str, lb) => str === lb || (str.startsWith(lb) && !(lb === 'Other' && /^Other\s+Deck/i.test(str)));
+  const checkRow = (l, grp) => CHECK_LABELS[grp].filter(lb => l.items.some(it => isLabel(it.str, lb))).length >= 2;
+  const checkKey = (lb, y) => `${lb}@${Math.round(y)}`;
   function checkboxTargets(page) {
-    const want = Object.values(CHECK_LABELS).flat();
     const out = [];
-    lines(page).forEach(l => l.items.forEach(it => {
-      const lb = want.find(w => it.str === w || it.str.startsWith(w));
-      if (lb && !out.some(o => o.label === lb)) out.push({ label: lb, x: it.x, y: it.y, h: it.h || 8 });
-    }));
+    lines(page).forEach(l => Object.keys(CHECK_LABELS).filter(g => checkRow(l, g)).forEach(g => l.items.forEach(it => {
+      const lb = CHECK_LABELS[g].find(w => isLabel(it.str, w));
+      if (lb) out.push({ label: lb, key: checkKey(lb, it.y), x: it.x, y: it.y, h: it.h || 8 });
+    })));
     return out;
   }
-  // pages that carry Box 22 (for checkbox rendering)
+  // pages that carry a Box 22 listing a mezzanine (for checkbox rendering): the base scope's and an alternate's
   function box22Pages(pages) {
-    const s = pages.findIndex(p => lines(p).some(l => /22\)\s*MEZZANINES/i.test(l.text)));
-    if (s < 0) return [];
-    const out = [];
-    for (let i = s; i < pages.length; i++) { out.push(pages[i]); if (lines(pages[i]).some(l => /^2[3-9]\)/.test(l.text))) break; }
-    return out;
+    return pages.filter(p => lines(p).some(l => isBox22(l.text) || /Mezzanine ID:/i.test(l.text)));
   }
 
   // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------

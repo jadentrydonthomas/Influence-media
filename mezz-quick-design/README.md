@@ -11,7 +11,10 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
      - Box 22 is found wherever it is. A base scope can say "22) MEZZANINES – NONE REQUIRED" while an alternate's Box 22 pages are appended after the drawings ("ALTERNATE #1 MEZZANINE SPECS"). Every block that lists a mezzanine is read.
      - Deck "Other" is read from its written-out type, e.g. "22ga B deck 1.5"" → 1.5" ribs.
    - The blue handwritten values (PDF FreeText annotations), used wherever a row says TBD. A blue number over "Dead Load: Per Seller" (e.g. 62.5psf) is taken as the dead load, and the deck-guide value is shown beside it.
-   - The material, floor-use and "provided by seller" checkboxes.
+   - The checkboxes: material, floor use, "provided by seller", and bar joist and bridging (bolted / welded).
+     - They are read on every Box 22 page, each mezzanine from its own rows, including an alternate's pages.
+     - The floor use is checked against the code minimum live load (IBC 1607.1 / ASCE 7 Table 4.3-1; 15 psf partition on an office floor at 80 psf or less).
+   - Deck attachment, deck finish and joist primer go to the checklist note for the joist and deck order.
    - Box 2: bays, endwall column spacing and soldier columns, per building. On a single slope or a lean-to the "Distance to Ridge" is N/A, so there is no ridge line.
    - Box 3: building code, which picks the workbook edition.
    - Box 5: frame interior modules.
@@ -206,13 +209,14 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
 
 **Frame loads.** Each frame line lists the mezzanine dead and live that reach the frame's own columns: the unfactored beam end shears (MB `H6` / `H10`) summed at each column, at T/beam. Columns are numbered the way NBG Frame numbers them: COL01 at the FSW, then each Box 5 interior column, the BSW column last. Mezzanine columns are never in this list. An endwall column beside a rigid end frame is shown, dimmed, as *not a member of this frame*, because its load goes to the endwall design. Copy a frame line, or download the whole table as CSV.
 
-**NBG Frame files.** Drop the job's `.frame` files (one per frame line or group, e.g. `…_Bldg_1_3-5.frame`) on the Plan page. Each file comes back as `…_mezz.frame` with the loads typed in, the same rows you would add under *Tools → Concentrated (Panel) Loads*:
+**NBG Frame files.** Drop the job's `.frame` files (one per frame line or group, e.g. `…_Bldg_1_3-5.frame`) on the Plan page. Each file comes back with the loads typed in, the same rows you would add under *Tools → Concentrated (Panel) Loads*:
 
 | Description | Load Case | Member | X Force | Y Force (kip) | Moment | Location (ft) | Ecc. Loc. | Ecc. Offset | Loc. Sys. |
 |---|---|---|---|---|---|---|---|---|---|
 | FDL 2 | FDL | COL02 | 0 | −dead | 0 | T/beam | WebCenterline | 0 | Global |
 | FLL 2 | FLL | COL02 | 0 | −live | 0 | T/beam | WebCenterline | 0 | Global |
 
+- **File names are short on purpose:** frame number, building, frame lines, e.g. `1234567-B1-3-5_mz.frame`. NBG Frame's analysis only reads a file path up to 64 characters, folder included. A longer path still opens, but the run stops with *No input file …* (e.g. `C:\Users\<name>\Downloads\Frame-…-Bldg 1-2_mezz (3).frame`). Keep the file in a short folder, and delete older copies so the browser doesn't add " (1)" to the name.
 - **Frame lines** come from the file name (`_3-5` → 3, 4, 5) and can be retyped on the card. A file that designs several lines gets, for each column, the largest dead and the largest live of those lines.
 - **Columns are matched by position** across the frame (GlobalX, within 2'-0"), so the file's own member IDs are used. A load at a column the file does not have, such as an endwall column of a rigid end frame, is listed under *Not in this file* with its values. It is never moved onto another member.
 - **Which side is the FSW.** Taken from the file itself when it can tell:

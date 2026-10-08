@@ -831,3 +831,5 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 .nbg-steps li { margin: 2px 0; }
 .nbg-all { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 640px) { .nbg-drop strong + small { margin-left: 0; } .nbg-drop { flex-wrap: wrap; } }
+.nbg-path { display: block; margin-top: 6px; color: var(--ink-muted); line-height: 1.45; }
+.nbg-path code { font-size: 11px; }

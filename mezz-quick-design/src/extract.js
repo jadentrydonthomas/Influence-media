@@ -54,7 +54,7 @@
       const img = ctx.getImageData(Math.max(0, bx | 0), Math.max(0, by | 0), Math.max(1, bw | 0), Math.max(1, bh | 0)).data;
       let n = 0;
       for (let i = 0; i < img.length; i += 4) if (img[i] + img[i + 1] + img[i + 2] < 300) n++;
-      dark.push({ label: t.label, n });
+      dark.push({ label: t.key || t.label, n });
     });
     // an empty box has only its outline; a checked one carries the tick as well
     const counts = dark.map(d => d.n).sort((a, b) => a - b);

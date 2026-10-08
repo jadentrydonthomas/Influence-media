@@ -43,7 +43,7 @@ T.ties.forEach(t => {
 const okCol = r => ['C', 'D', 'E'].every(L => /OK/.test(r['COL.' + L + '39']) && n(r['COL.' + L + '40']) < 1);
 const names = [...new Set(C.map(c => c.sec.name))];
 const res = names.map(nm => ({ nm, all: C.map((c, i) => ({ c, r: CR[i] })).filter(x => x.c.sec.name === nm) })).map(x => ({ ...x, ok: x.all.every(y => okCol(y.r)), max: Math.max(...x.all.map(y => Math.max(...['C', 'D', 'E'].map(L => n(y.r['COL.' + L + '40']))))) }));
-const chosen = [...new Set(T.chosenCol)];
+const chosen = [...new Set(T.chosenCol.filter(Boolean))];   // a mezzanine with no columns has none
 if (chosen.length !== 1) fail('more than one column section: ' + chosen);
 const first = res.find(x => x.ok);
 res.forEach(x => console.log(`  ${x.ok ? '✓' : '·'} ${x.nm}: ${x.ok ? 'passes every case' : 'fails at least one case'} on the Column sheet (max CSR ${x.max.toFixed(3)}, ${x.all.length} cases)`));

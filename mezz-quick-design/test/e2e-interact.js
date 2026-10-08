@@ -137,6 +137,7 @@ if (pdfArgs.length > 1) {
       const ck = await FF0.read(new Uint8Array(fs.readFileSync(cp)), io0, dc.suggestedFilename());
       const ecc = ck.info.cloads.filter(c => /^ECC /.test(c.name)).map(c => c.toFlange);
       console.log('NBG Ecc. Loc. check file'.padEnd(30), dc.suggestedFilename(), 'codes', ecc.join(' '));
+      if (!/^[A-Za-z0-9-]+_ECC\.frame$/.test(dc.suggestedFilename())) fail('the check file name should be short too');
       if (ecc.join() !== FF0.ECC_CANDIDATES.join()) fail('the check file should carry one row per candidate code');
     }
     await page.click('#nbgList [data-ecc="3"]'); await page.waitForTimeout(200);
@@ -147,7 +148,11 @@ if (pdfArgs.length > 1) {
     if (!/frames-mezz\.zip$/.test(dl.suggestedFilename()) || fs.statSync(zp).size < 100000) fail('Download checked should give the zip of frame files');
     { const zz = require('zlib'), FFz = require('../src/framefile.js');
       const zipped = FFz.unzip(new Uint8Array(fs.readFileSync(zp)));
-      const one = zipped.find(e => /_1_2_mezz\.frame$/.test(e.name)), inner = FFz.unzip(one.data).find(e => e.name === '.nfrx');
+      // NBG Frame's run reads the path into 64 characters: C:\Users\<name>\Downloads\ (~32) + the name + " (9)" fits
+      const names = zipped.map(e => e.name);
+      console.log('NBG file names'.padEnd(30), names.join(' '));
+      if (!names.every(n => /^[A-Za-z0-9-]+_mz\.frame$/.test(n) && n.length <= 26)) fail('frame file names must stay short, without spaces or brackets: ' + names.join(', '));
+      const one = zipped.find(e => /^\d+-B1-2_mz\.frame$/.test(e.name)), inner = FFz.unzip(one.data).find(e => e.name === '.nfrx');
       const codes = [...new Set(FFz.cloadsOf(new TextDecoder().decode(zz.inflateRawSync(inner.data))).map(c => c.fields).filter(FFz.isOurs).map(c => c.toFlange))];
       if (codes.join() !== '3') fail('the frame files should carry the confirmed code'); }
     await page.click('#nbgEccReset'); await page.waitForTimeout(150);
