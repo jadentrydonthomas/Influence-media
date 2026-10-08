@@ -146,8 +146,8 @@
         <div class="plan-wrap"><svg id="planSvg" role="img" aria-label="Mezzanine framing plan"></svg></div>
         <div class="legend" id="planLegend"></div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Beams &amp; supports</h3><span class="sub" id="layWhy"></span></div>
+      <details class="panel fold">
+        <summary class="panel-head"><h3>Beams &amp; supports</h3><span class="sub" id="layWhy"></span></summary>
         <div class="panel-body">
           <div class="inputs-grid">
             <div class="field-row wide"><label>Beam lines<small>ft from FSW / LEW, comma separated</small></label><input id="beamLinesIn"></div>
@@ -157,7 +157,7 @@
           <div class="table-wrap" style="margin-top:14px"><table id="beamTable"></table></div>
           <div class="table-wrap" style="margin-top:14px"><table id="supTable"></table></div>
         </div>
-      </div>
+      </details>
       <div class="panel" id="frameLoadsPanel">
         <div class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">mezzanine dead and live on each frame's own columns, by frame line — mezzanine columns are not frame members and are left out</span></div>
         <div class="panel-body"><div id="frameLoads"></div>
@@ -200,17 +200,18 @@
         <p class="lede">Laid out like the MB sheet so the same numbers can be typed into Excel to confirm. Click a row in the depth table to use that section.</p>
       </div>
       <div class="tabs" id="markTabs"></div>
+      <details class="explain" id="beamExplain"><summary id="beamExplainHead">How this beam was designed</summary><div class="explain-body" id="beamHow"></div></details>
       <div class="beam-inputs" id="beamInputs"></div>
       <div class="span-runs" id="spanRuns"></div>
       <div class="panel"><div class="panel-body" id="mbSheet"></div></div>
-      <div class="panel xl-panel">
-        <div class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlBeamSub"></span></div>
+      <details class="panel fold xl-panel">
+        <summary class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlBeamSub"></span></summary>
         <div class="panel-body" id="xlBeam"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Lightest section at each depth</h3><span class="sub" id="altSub"></span></div>
+      </details>
+      <details class="panel fold">
+        <summary class="panel-head"><h3>Lightest section at each depth</h3><span class="sub" id="altSub"></span></summary>
         <div style="overflow-x:auto"><table id="altTable"></table></div>
-      </div>
+      </details>
     </section>
 
     <!-- COLUMN CALC -->
@@ -220,15 +221,16 @@
         <p class="lede">Left / right beam reactions, e = d/2, the three load combinations and column self-weight, as the Column sheet runs them. Every value must read &lt; 1.00 with OK.</p>
       </div>
       <div class="tabs" id="colTabs"></div>
+      <details class="explain" id="colExplain"><summary id="colExplainHead">How the column was chosen</summary><div class="explain-body" id="colHow"></div></details>
       <div class="panel"><div class="panel-body" id="colSheet"></div></div>
-      <div class="panel xl-panel">
-        <div class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlColSub"></span></div>
+      <details class="panel fold xl-panel">
+        <summary class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlColSub"></span></summary>
         <div class="panel-body" id="xlCol"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Columns tried</h3><span class="sub">W10X22 → W8X24 → W12X26, then heavier W (quoted as BU)</span></div>
+      </details>
+      <details class="panel fold">
+        <summary class="panel-head"><h3>Columns tried</h3><span class="sub">W10X22 → W8X24 → W12X26 (by weight), then heavier W (quoted as BU)</span></summary>
         <div style="overflow-x:auto"><table id="colTried"></table></div>
-      </div>
+      </details>
     </section>
 
     <!-- INPUTS -->

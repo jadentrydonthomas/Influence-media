@@ -29,12 +29,15 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
      - The result is compared with the derived columns. The tool says whether they match, or which joist direction or beam lines would.
    - The framing plan is drawn with those ⊗ overlaid, so you can confirm it at a glance.
 3. **Sizes the beams** the way the MB sheet is iterated by hand:
-   - Tries every DM 5.1-stocked web and flange for the division (flanges ≥ 6" × 1/4"), whole-inch depths 10–30" by default.
+   - Tries every DM 5.1-stocked web and flange for the division (flanges ≥ 6" × 1/4"), whole-inch depths 10–30" by default, capped by clearance C.
+   - **Only what the plant builds:** the NBG Production Guidelines (rev. 2026.01.15, Primary & Secondary Steel, built-up) are a hard filter, by division — tw ≤ tf (DG 25; NBG-UT: tf > tw + 1/16" / 1/8"), tw / tf ≥ 0.30, bf ≤ d, d / bf ≤ 7, thickest / thinnest flange ≤ 2, the thinnest web's flange limit, part depth / width / thickness / length / weight, and the handling minimum flange over 40 ft. (W1S-26062 MB1 was BU15x93 — 12 × 1 flanges on a 1/4" web, tw / tf 0.25; it is now BU15x95 with a 5/16" web.) Settings can switch the filter off.
    - Keeps sections with combined and shear SR ≤ 0.99, LL ≤ L/360, TL ≤ L/240, and a passing joist-bearing check (MB `L7`).
    - **Three options per mark**, side by side:
-     - *Lightest*: minimum weight of every stocked combination that passes.
-     - *Best fit*: the shallowest depth within 8% of the lightest weight.
-     - *Headroom*: the lightest section with d ≤ A − B − slab − seat (the total joist depth), so the beam stays inside the joist zone. If nothing passes there, the lightest 8"-flange alternative.
+     - *Lightest*: the least weight that passes.
+     - *Best fit*: less depth for nearly the same steel — working down from the deepest depth allowed, the lightest section at each depth; the shallowest within 8 % of the lightest weight.
+     - *Most economical*: the lightest with economical flange plate (the green sizes of NBG "Economical Flange Sections"); yellow only when no green size works.
+     - A card says when two options are the same section (a tight clearance often leaves one answer).
+   - **How it was designed** (Beam calc page, click to open): the load on the beam with its numbers, how deep it can be (clearance C worked out), the plates and how many combinations the MB sheet ran and the production rules removed (by rule), what has to pass, the three options with the best fit's depth-by-depth table, and what went on the quote. The Column calc page has the same for the column: its loads (which beams, which side), its length, the three combinations, the sizes tried in order, and a note on tubes / pipe. The long tables (Excel steps, depth table, columns tried, beams and supports) fold closed.
    - Pick an option (or a row in the depth table) and the choice is kept as intent: change a load, the slab or a clearance and it re-designs that option instead of pinning an old section.
    - **Beam marks over the whole job: interior and exterior** (see below). A mark is designed once, at its longest span and largest trib. Its shorter beams keep the section and get their own MB-sheet run.
 4. **Sizes the columns** on the Column sheet:
@@ -109,7 +112,7 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
 
 1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame**. That is the MB sheet's *Floor dead load (unfactored)* and *Floor live load (unfactored)* shear at left / right, in kips, per beam mark. The same two rows are highlighted on the Beam calc sheet. The Plan page lists the summed D / L that lands on each building column (the load into the frame).
 2. **3D framing model**, then the **framing summary** (beams → governing ratio → columns, floor-plan check).
-3. **Beam options** (Lightest / Best fit / Headroom) to pick from.
+3. **Beam options** (Lightest / Best fit / Most economical) to pick from.
 4. **Checks & decisions**: check before quoting, confirmed against the PCS, design decisions, how it was read.
 5. **Quote sheet** rows for every mezzanine.
 
@@ -295,11 +298,9 @@ The dead load is the one value the tool fills itself when Box 22 says *Per Selle
 
 With several mezzanines, a card per mezzanine sits at the top of every page (size, sections, status) — click one to switch. Edits on the Inputs page go to **every mezzanine** by default (loads, elevations, clearances, joists; the footprint is always per mezzanine), or only the one on screen.
 
-When the lightest section already fits under the headroom limit (e.g. C caps every depth), there is no separate Headroom option — the Lightest card says it is already within the limit.
-
 Notes on the Design page are grouped: **Check before quoting** (flags), **Confirmed against the PCS** (e.g. the floor plan matched, joist arrows read), **Design decisions** (shared beams and columns, snapped edges, joist direction), and a collapsed **How it was read** list.
 
-Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided) and the Headroom option's depth limit.
+Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided).
 
 ### Dead load by deck and concrete
 

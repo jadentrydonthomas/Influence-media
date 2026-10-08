@@ -30,7 +30,8 @@ const PLAN = require('../src/plan.js');
   assert.deepStrictEqual(fr(1).entries.filter(e => !e.member).map(e => e.label), ['1/C', '1/B'], 'wind columns beside the rigid end frame are not members');
   const e2a = fr(2).entries.find(e => e.label === '2/A');
   // dead 40 psf: 4" NW on the PCS's "Other: 1.5B x 22Ga." deck (1.5" ribs)
-  assert.ok(Math.abs(e2a.D - 18.92) < 0.01 && Math.abs(e2a.L - 42) < 0.01 && Math.abs(e2a.elev - 10.75) < 1e-9);
+  // MB1 BU15x95 (12 × 1 flanges on a 5/16" web: the production guidelines' tw/tf ≥ 0.30 rules out the 1/4" web)
+  assert.ok(Math.abs(e2a.D - 18.95) < 0.01 && Math.abs(e2a.L - 42) < 0.01 && Math.abs(e2a.elev - 10.75) < 1e-9 && Math.abs(e2a.A - 11.5) < 1e-9);
   assert.ok(!job.frameEntries.some(f => f.entries.some(e => job.columns.some(c => c.label === e.label))), 'no mezzanine column in the frame loads');
   // the Beam calc design span: MB1 at 22'-4" (between column faces) — the plan, the columns and frame line A are kept
   const RUN = require('../src/run.js');

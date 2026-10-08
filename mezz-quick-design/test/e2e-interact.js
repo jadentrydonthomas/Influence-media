@@ -70,7 +70,9 @@ if (pdfArgs.length > 1) {
   await setSetting('includeW818', 'true'); await log('W8X18 allowed');
   await setSetting('includeW818', 'false');
   await setSetting('optionDefault', 'fit'); await log('default option: best fit');
-  await setSetting('optionDefault', 'headroom'); await log('default option: headroom');
+  await setSetting('optionDefault', 'econ'); await log('default option: most economical');
+  await setSetting('production', 'false'); await log('production rules off');
+  await setSetting('production', 'true');
   await setSetting('optionDefault', 'lightest');
   await setNum('dMax', 18); await log('max depth 18');
   await setNum('dMax', 30);
@@ -125,7 +127,7 @@ if (pdfArgs.length > 1) {
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
     const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
     // floor dead / live at the floor level A (11'-6"), web centreline
-    if (!two || two[1].filter(r => /^F[DL]L/.test(r)).join('|') !== 'FDL 2 COL02 0.000 -11.527 11.50 WebCenterline Global|FLL 2 COL02 0.000 -25.000 11.50 WebCenterline Global|FDL 3 COL03 0.000 -18.921 11.50 WebCenterline Global|FLL 3 COL03 0.000 -42.000 11.50 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
+    if (!two || two[1].filter(r => /^F[DL]L/.test(r)).join('|') !== 'FDL 2 COL02 0.000 -11.555 11.50 WebCenterline Global|FLL 2 COL02 0.000 -25.000 11.50 WebCenterline Global|FDL 3 COL03 0.000 -18.954 11.50 WebCenterline Global|FLL 3 COL03 0.000 -42.000 11.50 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
     // seismic: the frame files gave NBG Frame's roof dead, so the Seismic page is complete and each frame gets EQR / EQL
     const eq2 = two ? two[1].filter(r => /^EQ/.test(r)).map(r => r.split(' ')) : [];
     console.log('NBG seismic rows, frame 2'.padEnd(30), eq2.map(r => r.join(' ')).join(' | '));
@@ -198,16 +200,23 @@ if (pdfArgs.length > 1) {
   await page.click('#nav button[data-view="results"]');
   const opts = await page.$$eval('#options .option', os => os.length);
   if (opts < 2) fail('expected at least two beam options');
-  for (const k of ['fit', 'headroom']) {
+  for (const k of ['fit', 'econ']) {
     const b = await page.$(`#options [data-opt="${k}"]`);
     if (!b) continue;
     await b.click(); await page.waitForTimeout(150); await log('option ' + k);
   }
-  await page.click('#options [data-opt="lightest"]'); await page.waitForTimeout(150);
+  // (no button when the option on screen is the lightest section already — every card reads "In the quote")
+  const lt = await page.$('#options [data-opt="lightest"]');
+  if (lt) { await lt.click(); await page.waitForTimeout(150); }
   if (await quote() !== base) fail('back to lightest did not restore the quote');
 
   // pick a depth from the beam calc table, then return
   await page.click('#nav button[data-view="beam"]');
+  // the long tables are folded: open the depth table, and the explanation, before using them
+  await page.$$eval('#v-beam details.fold, #v-beam details.explain', ds => ds.forEach(d => { d.open = true; }));
+  const how = await page.$eval('#beamHow', e => e.innerText);
+  console.log('Beam explanation'.padEnd(30), how.split('\n').length, 'lines ·', /How deep it can be/.test(how) && /The plates/.test(how) && /three options/.test(how) ? 'steps present' : 'MISSING');
+  if (!/How deep it can be/.test(how) || !/The three options/.test(how)) fail('the beam explanation should list the steps');
   const depths = await page.$$eval('#altTable tr.pick', trs => trs.map(t => t.dataset.d));
   await page.click(`#altTable tr.pick[data-d="${depths[Math.floor(depths.length / 2)]}"]`); await log(`picked ${depths[Math.floor(depths.length / 2)]}" row`);
   await page.click('#nav button[data-view="results"]');
@@ -234,8 +243,10 @@ if (pdfArgs.length > 1) {
   await page.click('#nav button[data-view="beam"]'); await page.click('#biReset'); await page.waitForTimeout(300);
   if (await quote() !== qBase) fail('"Back to the layout" should restore the quote');
 
-  // column override
+  // column override (the tried-columns table is folded: open it); the explanation lists the steps
   await page.click('#nav button[data-view="column"]');
+  await page.$$eval('#v-column details.fold, #v-column details.explain', ds => ds.forEach(d => { d.open = true; }));
+  if (await page.$('#colHow li') && !/Sizes, in order/.test(await page.$eval('#colHow', e => e.innerText))) fail('the column explanation should list the sizes tried');
   await page.selectOption('#colPick', 'W12X26'); await log('column override W12X26');
   await page.selectOption('#colPick', '');
 

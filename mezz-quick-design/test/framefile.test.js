@@ -146,8 +146,8 @@ const lines = [
   assert.deepStrictEqual(leanTo, { building: 'Bldg 2', wall: 'BSW', to: 'Bldg 1', toWall: 'FSW', at: 0 });
   const want = {
     '1': { rows: [['FDL 2', 'COL02', 7.84], ['FLL 2', 'COL02', 17.5], ['FDL 3', 'COL03', 9.41], ['FLL 3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
-    '2': { rows: [['FDL 2', 'COL02', 11.53], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 18.92], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '3-5': { rows: [['FDL 3', 'COL03', 18.92], ['FLL 3', 'COL03', 42]], unplaced: [] },
+    '2': { rows: [['FDL 2', 'COL02', 11.55], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 18.95], ['FLL 3', 'COL03', 42]], unplaced: [] },
+    '3-5': { rows: [['FDL 3', 'COL03', 18.95], ['FLL 3', 'COL03', 42]], unplaced: [] },
     '6': { rows: [['FDL 3', 'COL03', 9.41], ['FLL 3', 'COL03', 21]], unplaced: ['6/B'] },
   };
   const outDir = process.env.MZ_FRAME_OUT;
@@ -178,5 +178,5 @@ const lines = [
     file.entries.filter(e => e.name !== '.nfrx').forEach(e => assert.deepStrictEqual(Buffer.from(FF.unzip(outBytes).find(x => x.name === e.name).data), Buffer.from(e.data)));
     if (outDir) { fs.mkdirSync(outDir, { recursive: true }); fs.writeFileSync(path.join(outDir, name.replace(/\.frame$/, '_mezz.frame')), outBytes); }
   }
-  console.log('frame file tests passed (W1S-26062: frames 1, 2, 3-5, 6 — FDL / FLL on COL02 / COL03 at 10\'-9", COL01 = FSW from the lean-to, 1/B 1/C 6/B listed as endwall columns)');
+  console.log('frame file tests passed (W1S-26062: frames 1, 2, 3-5, 6 — FDL / FLL on COL02 / COL03 at the floor level 11\'-6" (T/beam 10\'-9" on request), EQR / EQL rows, COL01 = FSW from the lean-to, 1/B 1/C 6/B listed as endwall columns)');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -22,6 +22,7 @@
     colLength: 'A',           // 'A' finish floor to top of mezzanine | 'clear' clear below mezzanine beam
     includeW818: false, joists: 'auto', partitionTo: 'live',
     optionDefault: 'lightest', // which of the three beam options goes on the quote by default
+    production: true,          // NBG Production Guidelines (built-up) as a hard filter on the beam search
   };
 
   const v = (value, source, note) => ({ value, source, note });
@@ -447,7 +448,7 @@
     const dSpan = mi && +mi.span > 0 ? +mi.span : m.span, dTrib = mi && +mi.trib > 0 ? +mi.trib : m.trib, cut = m.span - dSpan;
     m.design = { span: dSpan, trib: dTrib, cut, set: dSpan !== m.span || dTrib !== m.trib };
     const p = { ...c0.beamBase, L: dSpan, trib: dTrib };
-    const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined });
+    const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
     const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: dSpan }) : [];
     // a pick is stored as intent — an option key or a depth — so every input change re-runs the search:
     //   { key: 'fit' } → that option for the current loads; { d: 20 } → lightest passing section at 20";

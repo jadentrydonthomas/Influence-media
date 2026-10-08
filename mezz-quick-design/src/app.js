@@ -242,7 +242,7 @@
   // user-level preferences survive a new file; job-specific ones (grid, overrides) do not
   function keepSettings() {
     const s = state.settings, keep = {};
-    ['target', 'dMin', 'dMax', 'symmetric', 'requireConc', 'marks', 'colPerJob', 'colLength', 'includeW818', 'partitionTo', 'division', 'edition', 'optionDefault'].forEach(k => { keep[k] = s[k]; });
+    ['target', 'dMin', 'dMax', 'symmetric', 'requireConc', 'marks', 'colPerJob', 'colLength', 'includeW818', 'partitionTo', 'division', 'edition', 'optionDefault', 'production'].forEach(k => { keep[k] = s[k]; });
     return keep;
   }
 
@@ -617,7 +617,8 @@
     let cs = null, book = null;
     ((state.job && state.job.excel && state.job.excel.column) || []).forEach(b => b.cases.forEach(c => { if (c.mi === r.index && c.group === gi) { cs = c; book = b; } }));
     if (!cs) { $('#xlCol').innerHTML = '<div class="empty">No column sized yet.</div>'; $('#xlColSub').textContent = ''; return; }
-    $('#xlColSub').textContent = `${book.file} · Column sheet, one case at a time`;
+    const cno = colNos(), g = r.colGroups[gi];
+    $('#xlColSub').textContent = `${book.file} · Column sheet for ${g ? g.cols.map(c => `C${cno.get(c.label) || '?'} (${c.label})`).join(', ') : 'this case'}`;
     $('#xlCol').innerHTML = xlTable(cs.steps, cs.read) + `<div class="xl-foot"><span>${XL_FOOT} The reactions are the MB-sheet end shears of the beams framing in (H6 / H10), summed per side.</span><button class="btn-soft" id="xlColCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
     $('#xlColCopy').onclick = () => copyText(xlTsv(cs.steps), 'Column cells copied');
   }
@@ -672,7 +673,7 @@
     const pc = r.planCheck;
     const gv = t.gov ? t.gov.v : 0, c0 = t.govBeam ? t.govBeam.mk.check : mk0 && mk0.check;
     const nCases = done.reduce((a, m) => a + m.colGroups.length, 0);
-    const mkRows = marks.map(mk => `<div class="mk-row" style="--mk:${mkHex(mk)}"><div class="mk-id"><b>${mk.mark}</b><small>${mk.kind || (mk.optionKey && mk.optionKey !== 'lightest' ? mk.optionKey.replace('fit', 'best fit') : '')}</small></div>
+    const mkRows = marks.map(mk => `<div class="mk-row" style="--mk:${mkHex(mk)}"><div class="mk-id"><b>${mk.mark}</b><small>${mk.kind || (mk.optionKey && mk.optionKey !== 'lightest' ? ({ fit: 'best fit', econ: 'economical', custom: 'picked' })[mk.optionKey] || mk.optionKey : '')}</small></div>
         <div class="mk-sec"><span class="nocase">${esc(mk.desc || '—')}</span></div><div class="mk-qty"><b>${mk.qtyAll}</b></div>
         <div class="mk-meta">${mkDims(mk)} trib${mkShort(mk) ? ' · ' + mkShort(mk) : ''}${mkWhere(mk) ? ' · ' + mkWhere(mk) : ''}</div></div>`).join('');
     const kinds = marks.some(mk => mk.kind) ? '<div class="sub mk-why">interior: more trib than any edge beam · exterior: edge beams, joists on one side — each designed at its largest trib and longest span</div>' : '';
@@ -710,7 +711,7 @@
   function renderOptions() {
     const r = state.res, inp = state.inputs;
     const A = inp.geom.A.value, slabIn = (inp.geom.slab.value || 0) * 12, seatIn = (inp.geom.seat.value || 0) * 12;
-    const uo = usualOption(), uoLab = uo && { lightest: 'Lightest', fit: 'Best fit', headroom: 'Headroom' }[uo.key];
+    const uo = usualOption(), uoLab = uo && { lightest: 'Lightest', fit: 'Best fit', econ: 'Most economical' }[uo.key];
     const marks = jobMarks();
     $('#optSub').textContent = (marks[0] && marks[0].search ? `${marks[0].search.evaluated.toLocaleString()} stocked combinations checked per mark · pick one for the quote${manyMezz() ? ' — it goes on every mezzanine' : ''}` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
     $('#options').innerHTML = marks.map(mk => {
@@ -722,8 +723,8 @@
         const under = A != null ? A - (slabIn + seatIn + p.sec.d) / 12 : null;
         const dLbs = o.dWt * len;
         return `<article class="option ${chosen ? 'is-chosen' : ''}">
-          <div class="option-top"><span class="option-tag">${o.label}</span><span class="option-delta ${o.dWt ? '' : 'zero'}">${o.dWt ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : 'lightest'}</span></div>
-          <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · ${p.tier}</div>
+          <div class="option-top"><span class="option-tag">${o.label}</span><span class="option-delta ${o.dWt ? '' : 'zero'}">${o.dWt ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : o.key === 'lightest' ? 'lightest' : 'same weight'}</span></div>
+          <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · flange ${({ G: 'economical', Y: 'somewhat economical', R: 'non-economical' })[p.tier] || p.tier}${o.sameAs && o.sameAs.length ? ` · <b>same as ${o.sameAs.map(k => ({ lightest: 'lightest', fit: 'best fit', econ: 'most economical' })[k]).join(', ')}</b>` : ''}</div>
           <p class="option-why">${esc(o.why)}</p>
           <div class="option-grid">
             <div><span>Weight</span><b>${f(p.wt, 1)} plf</b></div><div><span>Depth</span><b>${p.sec.d}"</b></div><div><span>Under beam</span><b>${under != null ? ft(under) : '—'}</b></div>
@@ -1312,7 +1313,7 @@
         <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num">Seismic EQR/EQL (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) : sj && sj.ok ? '—' : '<small class="sub-n">Seismic page</small>'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td class="num mono e">${fl.seismic ? '±' + F2(fl.seismic.mezzLoads.reduce((a, m) => a + m.F, 0)) : ''}</td><td>${fl.seismic ? `<small class="sub-n">roof seismic DL ${F2(fl.seismic.roofPsf)} psf · Cs ${f(fl.seismic.Cs, 4)}</small>` : ''}</td></tr></tfoot></table></div>`;
     }).join('');
-    el.innerHTML = `<div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic page), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
+    el.innerHTML = `<div class="name-key"><b>Column names</b> · <span class="mono">2/A</span> the grid point, frame line 2 × column line A · <span class="mono">COL03</span> the member in that frame's NBG Frame file: COL01 at the FSW, then each interior column, the BSW column last · mezzanine columns (C1, C2 … on the plan) are not frame members and are not listed here.</div><div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic page), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
     const eqOf = e => (e.eq && e.eq.length ? +e.eq.reduce((a, q) => a + q.F, 0).toFixed(3) : '');
     const tsv = fl => [(twoB ? 'Building\t' : '') + `Frame line\tColumn\tMember\tWhere\tAt ${atLab} (ft)\tFloor dead (k)\tFloor live (k)\tSeismic EQR/EQL (k)\tFrom`].concat(fl.entries.map(e => [...(twoB ? [fl.building] : []), fl.frame, e.label, e.member || '', e.where, (+atOf(e).toFixed(3)), (+e.D.toFixed(3)), (+e.L.toFixed(3)), eqOf(e), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].join('\t'))).join('\n');
     $$('#frameLoads [data-fl]').forEach(b => { const fl = fr[+b.dataset.fl]; b.onclick = () => copyText(tsv(fl), `${twoB ? fl.building + ' ' : ''}Frame line ${fl.frame} loads copied`); });
@@ -1591,6 +1592,47 @@
     });
     $('#biReset').onclick = () => { setMarkInput(mk.mark, null); recompute(); toast(`${mk.mark} back to the layout ${ft(mk.span)} × ${ft(mk.trib)}`); };
   }
+  // ---------- how a beam / a column was arrived at: the steps, with this job's numbers (folded under the tabs) ----------
+  const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
+  function renderBeamHow(mk, r, inp) {
+    const el = $('#beamHow');
+    if (!el) return;
+    $('#beamExplainHead').innerHTML = `How ${esc(mk.mark)} was designed <small>${esc(mk.desc || 'no section')} · the steps, with this job's numbers</small>`;
+    const p = mk.params, sr = mk.search, dz = mkDz(mk), s = state.settings;
+    if (!p || !sr) { el.innerHTML = '<p>No section search for this mark.</p>'; return; }
+    const D = p.dead + p.coll + p.joistWt, A = inp.geom.A.value, C = inp.geom.C.value, slab = (inp.geom.slab.value || 0) * 12, seat = (inp.geom.seat.value || 0) * 12;
+    const div = (state.res.division || 'NBS-IN'), stock = DESIGN.candidates(div, { minFlangeWidth: 6, minFlangeThk: 0.25 });
+    const removed = Object.entries(sr.removed || {}).sort((a, b) => b[1] - a[1]);
+    const nPass = (sr.all || []).length, opt = k => mk.options.find(o => o.key === k), fit = opt('fit');
+    const pick = mk.options.find(o => o.key === mk.optionKey);
+    el.innerHTML = `<ol>
+      <li><b>The load on the beam.</b> Floor dead ${f(p.dead, 1)} + collateral ${f(p.coll, 1)} + joists ${f(p.joistWt, 1)} = <span class="eq">${f(D, 1)} psf</span>, live <span class="eq">${f(p.live, 1)} psf</span>${s.partitionTo === 'live' && +inp.loads.partition.value ? ` (partition ${f(+inp.loads.partition.value, 1)} psf in it)` : ''}, over a <span class="eq">${ft(dz.trib)}</span> trib${mk.kind ? ` — the largest ${esc(mk.kind)} trib of the mark` : ''}: <span class="eq">w = ${f(D * dz.trib / 1000, 3)} k/ft dead, ${f(p.live * dz.trib / 1000, 3)} k/ft live</span> (+ the beam's own weight, as the MB sheet adds it), on a <span class="eq">${ft(dz.span)}</span> span${dz.set ? ' (design span set above)' : ''}. The joists brace the top flange every <span class="eq">${ft(p.Lb)}</span>.</li>
+      <li><b>How deep it can be.</b> ${sr.dTop < sr.options.dMax ? `Clearance (C) under the floor beams caps it: <span class="eq">(A − C) × 12 − slab − seat = (${ft(A)} − ${ft(C)}) × 12 − ${f(slab, 2)} − ${f(seat, 2)} = ${f(mk.maxDepth, 0)}"</span>.` : `No clearance (C) limit below the ${sr.options.dMax}" top of the range (Settings).`} Depths ${sr.options.dMin}"–${sr.dTop}" are searched, an inch at a time.</li>
+      <li><b>The plates.</b> ${esc(div)} stock (DM 5.1): webs ${stock.webs.map(t => 'W' + String(Math.round(t * 1000)).padStart(3, '0')).join(', ')}; flanges ${stock.flanges.length} widths × thicknesses, 6"–12" × ¼"–1"${s.symmetric ? ', the same plate top and bottom' : ''}. <b>${sr.evaluated.toLocaleString()}</b> combinations were run through the MB sheet${removed.length ? `; ${removed.reduce((a, x) => a + x[1], 0).toLocaleString()} more were left out by the NBG Production Guidelines: ${removed.map(([k, n]) => `${n.toLocaleString()} ${RULE_TXT[k] || k}`).join(' · ')}` : ''}.</li>
+      <li><b>What has to pass</b> (each combination, MB sheet, ASD ${esc(edLabel(state.res.edition.beamEd || ''))}): combined stress ratio ≤ ${s.target} (flexure with the joists bracing the top flange), shear ≤ ${s.target}, live deflection ≤ L/360, total ≤ L/240${s.requireConc ? ', and the joist-seat concentrated-load (bearing) check' : ''}. <b>${nPass.toLocaleString()}</b> pass.</li>
+      <li><b>The three options.</b><ul>${mk.options.map(o => `<li><b>${esc(o.label)}</b> — ${esc(o.pick.desc)}, ${f(o.pick.wt, 1)} plf${o.dWt ? ` (+${f(o.dPct * 100, 1)} %)` : ''}: ${esc(o.why)}</li>`).join('')}</ul>
+        ${fit && fit.steps ? `<h5>Best fit, depth by depth (the lightest section at each)</h5><table><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">vs lightest</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">LL</th><th></th></tr></thead><tbody>${fit.steps.map(st => `<tr class="${st.pass ? 'pass' : 'fail'}"><td class="num">${st.d}"</td><td class="mono">${esc(st.desc)}</td><td class="num">${f(st.wt, 1)}</td><td class="num">${st.pct ? '+' + f(st.pct * 100, 1) + ' %' : '—'}</td><td class="num">${f(st.CSR, 3)}</td><td class="num">${f(st.SRv, 3)}</td><td class="num">L/${f(st.rLL, 0)}</td><td>${esc(st.note)}</td></tr>`).join('')}</tbody></table>` : ''}</li>
+      <li><b>On the quote:</b> ${pick ? `<b>${esc(pick.label)}</b> — ${mk.pinned && mk.pinned.key ? 'picked on the Design page' : `the default option (Settings: ${esc(({ lightest: 'Lightest', fit: 'Best fit', econ: 'Most economical' })[s.optionDefault] || s.optionDefault)})`}` : mk.optionKey === 'custom' ? 'a section picked by depth or by hand' : '—'}: <b>${esc(mk.desc || '—')}</b>${mk.check ? ` — combined ${f(mk.check.res.CSR, 3)}, shear ${f(mk.check.res.SRvx, 3)}, live L/${f(mk.check.defl.rLL, 0)}, total L/${f(mk.check.defl.rTL, 0)}; end shear ${f(mk.check.V.D, 2)} k dead, ${f(mk.check.V.L, 2)} k live to the column or frame` : ''}.${(mk.spanRuns || []).length > 1 ? ` The shorter members of the mark (${mkShort(mk)}) take the same section, each checked at its own length.` : ''}</li>
+    </ol>`;
+  }
+  function renderColHow(r, g, cno, nm) {
+    const el = $('#colHow');
+    if (!el) return;
+    const cf = r.colFinal, tried = (g.design ? g.design.tried : (cf && cf.tried) || []);
+    $('#colExplainHead').innerHTML = `How the column was chosen <small>${cf ? esc(cf.quoteAs) : 'none'} · ${esc(g.cols.map(nm).join(', '))}</small>`;
+    const s = state.settings, inp = state.inputs;
+    const parts = side => (g.cols[0].parts || []).filter(q => q.sheetSide === side).map(q => `${esc(q.mezz)} ${esc(q.beam)}${q.mark ? ' (' + esc(q.mark) + ')' : ''}`).join(' + ') || 'no beam';
+    el.innerHTML = `<ol>
+      <li><b>Which column.</b> ${esc(g.cols.map(nm).join(', '))} — a mezzanine column (not a frame member) under ${g.cols.length > 1 ? 'these grid points, which carry the same loads, so one Column-sheet case covers them' : 'this grid point'}. The C-number counts the job's mezzanine columns on the plan; the grid label is the frame line / column line it stands on.</li>
+      <li><b>Its loads.</b> The unfactored end shears (MB sheet H6 / H10) of the beams framing in. Left: ${parts('left')} → <span class="eq">D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)} k</span>; right: ${parts('right')} → <span class="eq">D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k</span>. Each reaction acts at e = d/2 off the column centre (the Column sheet's eccentricity), and the column's own weight is added.</li>
+      <li><b>Its length.</b> <span class="eq">${ft(r.colLen)}</span> — ${s.colLength === 'clear' ? 'the clear height to the underside of the beams (A − slab − seat − beam depth)' : `the top of the mezzanine floor, A = ${ft(inp.geom.A.value)} (the Column sheet's L, braced at the ends only: Lbx = Lby = L)`}.</li>
+      <li><b>The three combinations</b> (DM 15.1.1.4.2): dead + live on the left with dead only on the right, the same the other way, and dead + live on both — the unbalanced cases put the most moment in the column. Each must read OK with CSR ≤ 1.00.</li>
+      <li><b>Sizes, in order.</b> The common columns first, lightest first: ${DESIGN.COMMON_COLUMNS.slice().sort((a, b) => WF[a].W - WF[b].W).map(n => `${n} (${WF[n].W} plf)`).join(' → ')}${s.includeW818 ? ', with W8X18 ahead of them' : ''}. The first that passes every case is used${manyMezz() && s.colPerJob !== false ? ' — one section for every mezzanine column of the job' : ''}. If none does, the next heavier W8–W14 that passes is used and quoted as BU (training guide).
+        <table><thead><tr><th>Tried</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th></tr></thead><tbody>${tried.map(t => `<tr class="${t.ok ? 'pass' : 'fail'}"><td class="mono">${esc(t.name)}</td><td class="num">${f(WF[t.name].W, 0)}</td><td class="num">${f(t.max, 3)}</td><td>${t.ok ? (cf && cf.name === t.name ? 'passes — used' : 'passes') : 'fails'}</td></tr>`).join('')}</tbody></table></li>
+      <li><b>Tubes / pipe.</b> When a customer asks for tube (HSS) or pipe columns, they are not on the Column sheet — size them separately and note it on the quote; this page designs W / BU only.</li>
+    </ol>`;
+  }
+
   function renderBeam() {
     const marks = jobMarks();
     $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
@@ -1609,6 +1651,7 @@
     const r = mk.mezzIds && !mk.mezzIds.includes(state.res.index) && state.job ? state.job.mezz[mk.mezzIds[0]] : state.res;
     const inp = state.all ? state.all[r.index].inputs : state.inputs;
     $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(runL(run))}</small>`}`;
+    renderBeamHow(mk, r, inp);
     const c = run.check, p = run.params;
     if (!c) $('#mbSheet').innerHTML = '<div class="empty">No passing section in the depth range.</div>';
     else {
@@ -1796,6 +1839,7 @@
     const cno = colNos();
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
+    $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C3</span> the mezzanine column's number on the plan · <span class="mono">2/B</span> the grid point, frame line 2 × column line B · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); }; });
     const g = r.colGroups[state.colGroup];
     if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
@@ -1823,6 +1867,7 @@
       </div>`;
     }
     renderXlCol(r, state.colGroup);
+    renderColHow(r, g, cno, nm);
     const tried = g.design ? g.design.tried : [];
     $('#colTried').innerHTML = `<thead><tr><th>Section</th><th class="num">Wt plf</th><th class="num">bf</th><th class="num">Max CSR</th><th>Result</th><th>Quote as</th></tr></thead><tbody>` +
       tried.map(t => { const q = DESIGN.COMMON_COLUMNS.includes(t.name) || t.name === 'W8X18' ? t.name : t.name.replace(/^W(\d+)X/, 'BU$1x');
@@ -1951,10 +1996,11 @@
       sel('edition', 'Workbook edition', [['auto', 'Auto from PCS' + (code && code.edition ? ' (' + code.edition + 'th)' : '')], ['15', 'AISC 15th (360-16)'], ['16', 'AISC 16th (360-22)'], ['13', 'AISC 13th (360-05)']], 'IBC 2018/2021 → 15th · IBC 2024 → 16th · ≤ 2015 → 13th'),
       sel('division', 'Division stock', [['auto', 'Auto from PCS'], ...DESIGN.DIVISIONS.map(d => [d, d])], 'DM 5.1 flange / web / WF stock'),
       '<div class="group-title">Beam search</div>',
-      sel('optionDefault', 'Option on the quote', [['lightest', 'Lightest'], ['fit', 'Best fit (within 8%, shallower)'], ['headroom', 'Headroom (d ≤ A − B − slab − seat)']], 'per job you can still pick any option'),
+      sel('optionDefault', 'Option on the quote', [['lightest', 'Lightest'], ['fit', 'Best fit (less depth, within 8 % of the lightest)'], ['econ', 'Most economical (economical flange plate)']], 'per job you can still pick any option'),
       num('target', 'Target SR (combined & shear)', '≤ this; the sheet says NG at 1.00', 0.01),
       num('dMin', 'Min. depth, (in.)'), num('dMax', 'Max. depth, (in.)', 'also capped by clearance (C) when given'),
       sel('symmetric', 'Flanges', [['true', 'Same top and bottom'], ['false', 'Allow unequal (IF ≤ OF width)']]),
+      sel('production', 'Production Guidelines', [['true', 'Apply (tw ≤ tf, tw/tf ≥ 0.30, bf ≤ d, d/bf ≤ 7, part limits)'], ['false', 'Off — stock and the MB sheet only']], 'NBG Production Guidelines, built-up, by division'),
       sel('requireConc', 'Joist bearing check (MB L7)', [['true', 'Must pass'], ['false', 'Report only']]),
       sel('marks', 'Beam marks', [['intext', 'Interior / exterior (largest trib of each)'], ['single', 'One governing mark (max span & trib)'], ['split', 'Split by trib / span (guide)']], 'over the whole job · shorter beams keep the section, own MB run'),
       sel('partitionTo', 'Partition load', [['live', 'Add to live'], ['dead', 'Add to dead']]),
