@@ -127,11 +127,31 @@ if (pdfArgs.length > 1) {
     if (!two || two[1].join('|') !== 'FDL 2 COL02 -12.127 10.75 WebCenterline Global|FLL 2 COL02 -25.000 10.75 WebCenterline Global|FDL 3 COL03 -19.929 10.75 WebCenterline Global|FLL 3 COL03 -42.000 10.75 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
     if (!one || one[2].join() !== '1/C,1/B' || one[1].some(r => /COL01/.test(r))) fail('frame 1: 1/E and 1/A on the frame, 1/B and 1/C listed apart, nothing on the FSW column');
     if (!/Every frame line/.test(await page.$eval('#nbgList .nbg-cover', e => e.textContent))) fail('all frame lines with load should be covered');
+    // nothing is made with an unconfirmed Ecc. Loc. code: the check file first, then the row that reads WebCenterline
+    if (!(await page.$eval('#nbgAll', b => b.disabled)) || (await page.$$eval('[data-nbg-dl]', bs => bs.some(b => !b.disabled)))) fail('downloads must wait for the Ecc. Loc. code');
+    const [dc] = await Promise.all([page.waitForEvent('download'), page.click('#nbgEccFile')]);
+    const cp = path.join(shots, dc.suggestedFilename()); await dc.saveAs(cp);
+    {
+      const FF0 = require('../src/framefile.js'), z0 = require('zlib');
+      const io0 = { inflate: async u => new Uint8Array(z0.inflateRawSync(u)), deflate: async u => new Uint8Array(z0.deflateRawSync(u)) };
+      const ck = await FF0.read(new Uint8Array(fs.readFileSync(cp)), io0, dc.suggestedFilename());
+      const ecc = ck.info.cloads.filter(c => /^ECC /.test(c.name)).map(c => c.toFlange);
+      console.log('NBG Ecc. Loc. check file'.padEnd(30), dc.suggestedFilename(), 'codes', ecc.join(' '));
+      if (ecc.join() !== FF0.ECC_CANDIDATES.join()) fail('the check file should carry one row per candidate code');
+    }
+    await page.click('#nbgList [data-ecc="3"]'); await page.waitForTimeout(200);
+    if (!/code 3/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('picking the row should confirm the code');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#nbgAll')]);
     const zp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(zp);
     console.log('NBG download'.padEnd(30), dl.suggestedFilename(), fs.statSync(zp).size, 'bytes');
     if (!/frames-mezz\.zip$/.test(dl.suggestedFilename()) || fs.statSync(zp).size < 100000) fail('Download checked should give the zip of frame files');
-    if (!/check once/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('the Ecc. Loc. code should be marked as not confirmed at first');
+    { const zz = require('zlib'), FFz = require('../src/framefile.js');
+      const zipped = FFz.unzip(new Uint8Array(fs.readFileSync(zp)));
+      const one = zipped.find(e => /_1_2_mezz\.frame$/.test(e.name)), inner = FFz.unzip(one.data).find(e => e.name === '.nfrx');
+      const codes = [...new Set(FFz.cloadsOf(new TextDecoder().decode(zz.inflateRawSync(inner.data))).map(c => c.fields).filter(FFz.isOurs).map(c => c.toFlange))];
+      if (codes.join() !== '3') fail('the frame files should carry the confirmed code'); }
+    await page.click('#nbgEccReset'); await page.waitForTimeout(150);
+    if (!/One-time setup/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('Reset should ask for the code again');
     // a frame saved from NBG Frame with the rows set to WebCenterline by hand (stand-in code 3): the code is learned and used
     const FF = require('../src/framefile.js'), zlib = require('zlib');
     const io = { inflate: async u => new Uint8Array(zlib.inflateRawSync(u)), deflate: async u => new Uint8Array(zlib.deflateRawSync(u)) };
@@ -151,7 +171,7 @@ if (pdfArgs.length > 1) {
     console.log('NBG rows written with'.padEnd(30), 'toFlange', codes.join(', '));
     if (codes.join() !== '3') fail('every FDL / FLL row should carry the learned code');
     await page.click('#nbgEccReset'); await page.waitForTimeout(150);
-    if (!/check once/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('Reset should go back to the unconfirmed code');
+    if (!/One-time setup/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('Reset should go back to the unconfirmed code');
     await page.click('#nbgClear');
   } else console.log('NBG Frame files'.padEnd(30), 'block present (no frame files for this job)');
 

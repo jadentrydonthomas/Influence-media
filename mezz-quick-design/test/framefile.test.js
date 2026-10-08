@@ -108,6 +108,11 @@ const lines = [
   assert.strictEqual(re.xml, a1.xml);
   const e0 = FF.unzip(out).find(e => e.name === '.connections.xml'), e1 = f.entries.find(e => e.name === '.connections.xml');
   assert.deepStrictEqual(Buffer.from(e0.data), Buffer.from(e1.data));
+  // the Ecc. Loc. check file: one zero-load row per candidate code, nothing else changed (floors left as they are)
+  const chk = FF.cloadsOf(FF.eccCheck(f)).map(c => c.fields);
+  assert.deepStrictEqual(chk.map(c => [c.name, c.toFlange, c.yMag, c.memberID, c.loadCaseID]), [['Lean-To', '1', '-1.5', 'COL01', 'RDL']].concat(FF.ECC_CANDIDATES.map(c => [`ECC ${c}`, c, '0', 'COL01', 'RDL'])));
+  assert.ok(FF.eccCheck(f).includes('<FloorDead>0</FloorDead>'), 'the check file leaves the floor loads');
+  assert.ok(!FF.ECC_CANDIDATES.includes('0') && !FF.ECC_CANDIDATES.includes(FF.ECC_TOP_LEFT));
   // a byte-order mark stays where it was
   const withBom = new Uint8Array([0xEF, 0xBB, 0xBF, ...new TextEncoder().encode(model())]);
   const bf = FF.zip([{ verMade: 20, verNeed: 20, flags: 0, method: 0, time: 0, date: 33, crc: FF.crc32(withBom), usize: withBom.length, intAttr: 0, extAttr: 0, nameBytes: new TextEncoder().encode('.nfrx'), data: withBom }]);

@@ -217,11 +217,15 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
   3. Tools → Concentrated (Panel) Loads: check the rows, then *Save and Gen Loads*.
   4. Run.
 - *Location* is the height of the load above the finished floor (Loc. Sys. Global): T/beam by default, or the top of the floor (A) with the switch.
-- *Ecc. Loc.* is the row's `toFlange` code. NBG Frame shows `1` as Top/Left (its own Lean-To rows). `0` is not one of its choices: the cell comes up blank and the dialog says *Invalid data was entered or pasted*, so it is never written. The WebCenterline code is not documented anywhere available. The tool writes `2` until it is confirmed, and the Plan page asks you to check it once:
-  - if the rows read *WebCenterline*, click *It reads WebCenterline*;
-  - if not, set those rows to WebCenterline in NBG Frame, *Save and Gen Loads*, save, and drop the saved file on the page. The tool reads the code you picked from the rows you changed.
-
-  Either way the code is kept in the browser for every later job (*Reset* starts over).
+- *Ecc. Loc.* is the row's `toFlange` code.
+  - NBG Frame shows `1` as Top/Left (its own Lean-To rows).
+  - `0` is not one of its choices: the cell comes up blank and the dialog says *Invalid data was entered or pasted*.
+  - The WebCenterline code is not written in any file the tool can read, so **no frame file is made until it is confirmed** (one time per computer):
+    1. *Make the check file*. This is a copy of a dropped frame with one zero-load row per candidate code: ECC 2, 3, 4, −1, −2.
+    2. Open it in NBG Frame → Tools → Concentrated (Panel) Loads. Codes NBG does not have come up blank; click OK and close without saving.
+    3. Click the ECC row that reads *WebCenterline*.
+  - Alternatively, drop a frame saved from NBG Frame with FDL / FLL rows set to WebCenterline by hand; the code is read from it.
+  - The code is kept in the browser; *Reset* starts over.
 
 ### Jobs remembered
 

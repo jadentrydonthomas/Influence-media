@@ -262,7 +262,8 @@ tr.muted td { color: var(--ink-faint); }
 .option-grid b.ok { color: var(--green); } .option-grid b.bad { color: var(--red); }
 .option-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .btn-soft { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--green-dark); background: var(--green-soft); font-size: 13px; font-weight: 600; }
-.btn-soft:hover { border-color: var(--green); }
+.btn-soft:hover:not(:disabled) { border-color: var(--green); }
+.btn-soft:disabled, .btn-ghost:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.6); }
 .btn-ghost { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); font-size: 13px; }
 .btn-ghost:hover { border-color: var(--green); }
 .chosen-pill { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-size: 12.5px; font-weight: 600; }
@@ -804,6 +805,12 @@ table.fl-t .star { color: var(--amber); font-weight: 700; }
 .nbg-drop strong + small { margin-left: auto; }
 .nbg-ecc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 12px; padding: 10px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5; }
 .nbg-ecc > div { flex: 1 1 360px; }
+.nbg-ecc ol { margin: 6px 0 0; padding-left: 20px; } .nbg-ecc li { margin: 3px 0; }
+.nbg-eccbtns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; flex: 1 1 100%; }
+.nbg-eccpick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nbg-eccpick small { color: var(--ink-faint); font-size: 12px; margin-right: 2px; }
+.nbg-eccpick .chip { cursor: pointer; border: 0; }
+.nbg-eccpick .chip:hover { box-shadow: inset 0 0 0 1px var(--green); color: var(--green); }
 .nbg-ecc.ok { background: var(--green-soft); } .nbg-ecc.warn { background: var(--amber-soft); border-left: 3px solid var(--amber); }
 .nbg-cover { margin-top: 12px; padding: 9px 13px; border-radius: 10px; font-size: 12.5px; }
 .nbg-cover.ok { background: var(--green-soft); } .nbg-cover.warn { background: var(--amber-soft); }
@@ -2927,6 +2934,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
      for WebCenterline is learned from a saved file where FDL / FLL rows were set to WebCenterline by hand
      (learnWebCode); until then WEB_GUESS is written and the page says it is not confirmed. */
   const ECC_TOP_LEFT = '1', WEB_GUESS = '2';
+  // the codes the Ecc. Loc. check file tries (Top/Left = 1 is known, 0 is refused)
+  const ECC_CANDIDATES = ['2', '3', '4', '-1', '-2'];
   // the WebCenterline code from the FDL / FLL rows of a saved file: a code this tool did not write (not `wrote`), not
   // the invalid 0 and not Top/Left; the most common one when rows differ
   function learnWebCode(cloads, wrote) {
@@ -2975,7 +2984,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       `${i1}<CLoad>`,
       `${i2}<loadGroup>${conv.loadGroup}</loadGroup>`, `${i2}<status>${conv.status}</status>`, `${i2}<xMag>0</xMag>`, `${i2}<yMag>${fmt(r.y)}</yMag>`, `${i2}<moment>0</moment>`,
       `${i2}<location>${fmt(r.location)}</location>`, `${i2}<eccentricity>${conv.eccentricity}</eccentricity>`, `${i2}<memberID>${r.member}</memberID>`,
-      `${i2}<loadCaseID>${r.caseId}</loadCaseID>`, `${i2}<locSys>${conv.locSys}</locSys>`, `${i2}<toFlange>${conv.toFlange}</toFlange>`, `${i2}<name>${r.name}</name>`,
+      `${i2}<loadCaseID>${r.caseId}</loadCaseID>`, `${i2}<locSys>${conv.locSys}</locSys>`, `${i2}<toFlange>${r.toFlange != null ? r.toFlange : conv.toFlange}</toFlange>`, `${i2}<name>${r.name}</name>`,
       `${i1}</CLoad>`,
     ].join(nl) + nl).join('');
     if (out.startsWith('<CLoads />', open)) out = out.slice(0, open) + `<CLoads>${nl}${block}${ind}</CLoads>` + out.slice(open + '<CLoads />'.length);
@@ -2986,7 +2995,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     // floor dead / live 1 psf when 0, so NBG Frame makes the FDL / FLL cases
     const floors = {};
     const loadsAt = out.indexOf('<Loads>');
-    ['FloorDead', 'FloorLive'].forEach(k => {
+    if (opt.floors !== false) ['FloorDead', 'FloorLive'].forEach(k => {
       const at = out.indexOf(`<${k}>`, loadsAt), endAt = out.indexOf(`</${k}>`, at);
       if (at < 0 || endAt < 0) return;
       const v = +out.slice(at + k.length + 2, endAt);
@@ -3062,6 +3071,16 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     return { lines, used: use.map(f => f.frame), members, rows, unplaced, width: W };
   }
 
+  /* The Ecc. Loc. check: a copy of a frame with one zero-load row per candidate code, named "ECC <code>", on the first
+     column under a load case the file already uses. Opened in NBG Frame (Tools → Concentrated (Panel) Loads), the row
+     that reads WebCenterline gives the code; codes NBG Frame does not have show blank. Nothing else changes. */
+  function eccCheck(file) {
+    const cols = file.info.columns, member = cols.length ? cols[0].id : 'COL01';
+    const caseId = ((file.info.cloads || [])[0] || {}).loadCaseID || 'RDL';
+    const rows = ECC_CANDIDATES.map(code => ({ name: `ECC ${code}`, caseId, member, y: 0, location: 0, toFlange: code }));
+    return addLoads(file.xml, rows, { floors: false, toFlange: ECC_TOP_LEFT }).xml;
+  }
+
   // several finished files in one download: a zip of the .frame files, stored as they are
   const dosDate = d => ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), dosTime = d => (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
   function bundle(files, now = new Date()) {
@@ -3071,7 +3090,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, WEB_GUESS, ECC_TOP_LEFT, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -5734,7 +5753,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       const p = plans[i], info = it.ff.info, a = p.add;
       const head = `<div class="nbg-fh"><label class="nbg-inc"><input type="checkbox" data-nbg-inc="${i}" ${it.include ? 'checked' : ''}></label><div><b>${esc(it.name)}</b><small>${esc(info.title || '')} · ${esc(info.type || '')} · bay ${ft(info.bayWidth)} · ${info.columns.map(c => `${esc(c.id)} at ${ft(c.x)}`).join(', ')}</small></div>
         <label class="nbg-lines">Frame lines<input data-nbg-lines="${i}" value="${esc(it.lines)}" inputmode="numeric" spellcheck="false"></label>
-        <button class="btn-soft" data-nbg-dl="${i}" ${p.r.rows.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download</button><button class="btn-ghost" data-nbg-rm="${i}" aria-label="Remove">✕</button></div>`;
+        <button class="btn-soft" data-nbg-dl="${i}" ${p.r.rows.length && webCode().how !== 'guess' ? '' : 'disabled'} title="${webCode().how === 'guess' ? 'Confirm the Ecc. Loc. code first (above)' : ''}"><svg><use href="#i-file"/></svg>Download</button><button class="btn-ghost" data-nbg-rm="${i}" aria-label="Remove">✕</button></div>`;
       const checks = `<div class="nbg-checks">${p.checks.map(([k, t]) => `<span class="chip ${k === 'ok' ? 'ok' : k === 'bad' ? 'bad' : 'warn'}">${esc(t)}</span>`).join('')}</div>`;
       const from = m => { const fs = [...new Set(m.from.map(x => x.frame))]; return m.from.map(x => x.label).join(', ') + (fs.length > 1 ? ' · the largest of the lines' : ''); };
       const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline <small class="sub-n">${esc(webCode().code)}${webCode().how === 'guess' ? '?' : ''}</small></td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
@@ -5743,12 +5762,18 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+o.yMag).toFixed(2)}`).join(', ')}) — check they are not the same loads` : ''].filter(Boolean);
       return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
     };
-    const anyRows = plans.some((p, i) => p && files[i].include && p.r.rows.length);
+    const anyRows = webCode().how !== 'guess' && plans.some((p, i) => p && files[i].include && p.r.rows.length);
     const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
     const w = webCode();
+    const firstOk = files.find(x => x.ff);
     const ecc = files.length ? (w.how === 'guess'
-      ? `<div class="nbg-ecc warn"><div><b>Ecc. Loc. — check once.</b> WebCenterline is written as code ${esc(w.code)}, not yet confirmed in NBG Frame. Open one file → Tools → Concentrated (Panel) Loads. If the FDL / FLL rows read <i>WebCenterline</i>, click the button. If the cell is blank or reads something else, set those rows to WebCenterline, Save and Gen Loads, save the file and drop it here: the tool reads the code from it and uses it from then on.</div><button class="btn-soft" id="nbgEccOk">It reads WebCenterline</button></div>`
-      : `<div class="nbg-ecc ok"><div><b>Ecc. Loc. WebCenterline = code ${esc(w.code)}</b> — ${w.how === 'learned' ? `learned from ${esc(w.from || 'a saved file')}` : 'confirmed in NBG Frame'}; kept in this browser.</div><button class="btn-ghost" id="nbgEccReset">Reset</button></div>`) : '';
+      ? `<div class="nbg-ecc warn"><div><b>One-time setup: the Ecc. Loc. code.</b> NBG Frame stores Ecc. Loc. as a number, and the one for <i>WebCenterline</i> is not written anywhere the tool can read. A wrong number is what made the "Invalid data" message. So frame files are only made once it is confirmed:
+          <ol><li><b>Make the check file</b> (a copy of ${firstOk ? esc(firstOk.name) : 'your frame'} with ${FF.ECC_CANDIDATES.length} zero-load rows named ECC ${FF.ECC_CANDIDATES.join(', ECC ')}).</li>
+          <li>Open it in NBG Frame → Tools → Concentrated (Panel) Loads. Rows with a number NBG does not have come up blank with the same message — click OK. Close without saving.</li>
+          <li>Click the row that reads <i>WebCenterline</i> below. Done for good on this computer.</li></ol></div>
+          <div class="nbg-eccbtns"><button class="btn-soft" id="nbgEccFile" ${firstOk ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Make the check file</button>
+          <div class="nbg-eccpick"><small>Reads WebCenterline:</small>${FF.ECC_CANDIDATES.map(c => `<button class="chip" data-ecc="${esc(c)}">ECC ${esc(c)}</button>`).join('')}</div></div></div>`
+      : `<div class="nbg-ecc ok"><div><b>Ecc. Loc. WebCenterline = code ${esc(w.code)}</b> — ${w.how === 'learned' ? `learned from ${esc(w.from || 'a saved file')}` : 'confirmed in NBG Frame'}; kept on this computer.</div><button class="btn-ghost" id="nbgEccReset">Reset</button></div>`) : '';
     $('#nbgList').innerHTML = ecc + cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
     // events
     const input = $('#nbgFile'), drop = $('#nbgDrop');
@@ -5775,9 +5800,14 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     };
     const clr = $('#nbgClear');
     if (clr) clr.onclick = () => { state.nbg.files = []; renderNbg(); };
-    const ok = $('#nbgEccOk'), rs = $('#nbgEccReset');
-    if (ok) ok.onclick = () => { setWebCode({ code: webCode().code, how: 'confirmed' }); renderNbg(); toast(`Ecc. Loc. WebCenterline = code ${webCode().code}, confirmed`); };
+    const rs = $('#nbgEccReset'), ef = $('#nbgEccFile');
     if (rs) rs.onclick = () => { setWebCode({ code: FF.WEB_GUESS, how: 'guess' }); renderNbg(); };
+    if (ef) ef.onclick = async () => {
+      const it = files.find(x => x.ff), name = it.name.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_ECC-CHECK.frame';
+      save(await FF.write(it.ff, FF.eccCheck(it.ff), zipIO), name, 'application/octet-stream');
+      toast(`${name} — open it in NBG Frame, then click the row that reads WebCenterline`);
+    };
+    $$('#nbgList [data-ecc]').forEach(b => { b.onclick = () => { setWebCode({ code: b.dataset.ecc, how: 'confirmed' }); renderNbg(); toast(`Ecc. Loc. WebCenterline = code ${b.dataset.ecc} — frame files can be made now`); }; });
   }
 
   // ---------- beam calc (MB sheet mirror) ----------

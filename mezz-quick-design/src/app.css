@@ -253,7 +253,8 @@ tr.muted td { color: var(--ink-faint); }
 .option-grid b.ok { color: var(--green); } .option-grid b.bad { color: var(--red); }
 .option-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .btn-soft { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--green-dark); background: var(--green-soft); font-size: 13px; font-weight: 600; }
-.btn-soft:hover { border-color: var(--green); }
+.btn-soft:hover:not(:disabled) { border-color: var(--green); }
+.btn-soft:disabled, .btn-ghost:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.6); }
 .btn-ghost { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); font-size: 13px; }
 .btn-ghost:hover { border-color: var(--green); }
 .chosen-pill { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-size: 12.5px; font-weight: 600; }
@@ -795,6 +796,12 @@ table.fl-t .star { color: var(--amber); font-weight: 700; }
 .nbg-drop strong + small { margin-left: auto; }
 .nbg-ecc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 12px; padding: 10px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5; }
 .nbg-ecc > div { flex: 1 1 360px; }
+.nbg-ecc ol { margin: 6px 0 0; padding-left: 20px; } .nbg-ecc li { margin: 3px 0; }
+.nbg-eccbtns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; flex: 1 1 100%; }
+.nbg-eccpick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nbg-eccpick small { color: var(--ink-faint); font-size: 12px; margin-right: 2px; }
+.nbg-eccpick .chip { cursor: pointer; border: 0; }
+.nbg-eccpick .chip:hover { box-shadow: inset 0 0 0 1px var(--green); color: var(--green); }
 .nbg-ecc.ok { background: var(--green-soft); } .nbg-ecc.warn { background: var(--amber-soft); border-left: 3px solid var(--amber); }
 .nbg-cover { margin-top: 12px; padding: 9px 13px; border-radius: 10px; font-size: 12.5px; }
 .nbg-cover.ok { background: var(--green-soft); } .nbg-cover.warn { background: var(--amber-soft); }

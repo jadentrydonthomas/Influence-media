@@ -137,6 +137,8 @@
      for WebCenterline is learned from a saved file where FDL / FLL rows were set to WebCenterline by hand
      (learnWebCode); until then WEB_GUESS is written and the page says it is not confirmed. */
   const ECC_TOP_LEFT = '1', WEB_GUESS = '2';
+  // the codes the Ecc. Loc. check file tries (Top/Left = 1 is known, 0 is refused)
+  const ECC_CANDIDATES = ['2', '3', '4', '-1', '-2'];
   // the WebCenterline code from the FDL / FLL rows of a saved file: a code this tool did not write (not `wrote`), not
   // the invalid 0 and not Top/Left; the most common one when rows differ
   function learnWebCode(cloads, wrote) {
@@ -185,7 +187,7 @@
       `${i1}<CLoad>`,
       `${i2}<loadGroup>${conv.loadGroup}</loadGroup>`, `${i2}<status>${conv.status}</status>`, `${i2}<xMag>0</xMag>`, `${i2}<yMag>${fmt(r.y)}</yMag>`, `${i2}<moment>0</moment>`,
       `${i2}<location>${fmt(r.location)}</location>`, `${i2}<eccentricity>${conv.eccentricity}</eccentricity>`, `${i2}<memberID>${r.member}</memberID>`,
-      `${i2}<loadCaseID>${r.caseId}</loadCaseID>`, `${i2}<locSys>${conv.locSys}</locSys>`, `${i2}<toFlange>${conv.toFlange}</toFlange>`, `${i2}<name>${r.name}</name>`,
+      `${i2}<loadCaseID>${r.caseId}</loadCaseID>`, `${i2}<locSys>${conv.locSys}</locSys>`, `${i2}<toFlange>${r.toFlange != null ? r.toFlange : conv.toFlange}</toFlange>`, `${i2}<name>${r.name}</name>`,
       `${i1}</CLoad>`,
     ].join(nl) + nl).join('');
     if (out.startsWith('<CLoads />', open)) out = out.slice(0, open) + `<CLoads>${nl}${block}${ind}</CLoads>` + out.slice(open + '<CLoads />'.length);
@@ -196,7 +198,7 @@
     // floor dead / live 1 psf when 0, so NBG Frame makes the FDL / FLL cases
     const floors = {};
     const loadsAt = out.indexOf('<Loads>');
-    ['FloorDead', 'FloorLive'].forEach(k => {
+    if (opt.floors !== false) ['FloorDead', 'FloorLive'].forEach(k => {
       const at = out.indexOf(`<${k}>`, loadsAt), endAt = out.indexOf(`</${k}>`, at);
       if (at < 0 || endAt < 0) return;
       const v = +out.slice(at + k.length + 2, endAt);
@@ -272,6 +274,16 @@
     return { lines, used: use.map(f => f.frame), members, rows, unplaced, width: W };
   }
 
+  /* The Ecc. Loc. check: a copy of a frame with one zero-load row per candidate code, named "ECC <code>", on the first
+     column under a load case the file already uses. Opened in NBG Frame (Tools → Concentrated (Panel) Loads), the row
+     that reads WebCenterline gives the code; codes NBG Frame does not have show blank. Nothing else changes. */
+  function eccCheck(file) {
+    const cols = file.info.columns, member = cols.length ? cols[0].id : 'COL01';
+    const caseId = ((file.info.cloads || [])[0] || {}).loadCaseID || 'RDL';
+    const rows = ECC_CANDIDATES.map(code => ({ name: `ECC ${code}`, caseId, member, y: 0, location: 0, toFlange: code }));
+    return addLoads(file.xml, rows, { floors: false, toFlange: ECC_TOP_LEFT }).xml;
+  }
+
   // several finished files in one download: a zip of the .frame files, stored as they are
   const dosDate = d => ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), dosTime = d => (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
   function bundle(files, now = new Date()) {
@@ -281,6 +293,6 @@
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, WEB_GUESS, ECC_TOP_LEFT, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);
