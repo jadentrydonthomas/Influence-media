@@ -73,7 +73,15 @@ const lines = [
   assert.strictEqual(a1.added, 4);
   assert.ok(!/[^\r]\n/.test(a1.xml), 'CRLF only');
   assert.ok(a1.xml.includes('            <CLoad>\r\n              <loadGroup>0</loadGroup>'));
-  assert.ok(a1.xml.includes('<name>FDL 2</name>') && a1.xml.includes('<toFlange>0</toFlange>') && a1.xml.includes('<yMag>-7</yMag>'));
+  assert.ok(a1.xml.includes('<name>FDL 2</name>') && a1.xml.includes(`<toFlange>${FF.WEB_GUESS}</toFlange>`) && a1.xml.includes('<yMag>-7</yMag>'));
+  assert.ok(!/<toFlange>0<\/toFlange>/.test(a1.xml), 'never the code NBG Frame rejects (blank Ecc. Loc., "Invalid data")');
+  assert.throws(() => FF.addLoads(f.xml, r.rows, { toFlange: '0' }));
+  assert.ok(FF.addLoads(f.xml, r.rows, { toFlange: '3' }).xml.includes('<toFlange>3</toFlange>'));
+  // the WebCenterline code from a saved file: rows fixed by hand in NBG Frame, not the code written, not 0 / Top/Left
+  const fixed = FF.cloadsOf(a1.xml.replace(/<toFlange>2<\/toFlange>(\r\n\s*<name>FDL 2<)/, '<toFlange>3</toFlange>$1')).map(c => c.fields);
+  assert.deepStrictEqual(FF.learnWebCode(fixed, '2'), { code: '3', rows: 1 });
+  assert.strictEqual(FF.learnWebCode(FF.cloadsOf(a1.xml).map(c => c.fields), '2'), null, 'nothing changed by hand, nothing learned');
+  assert.deepStrictEqual(FF.learnWebCode([{ loadCaseID: 'FDL', name: 'FDL 2', toFlange: '0' }, { loadCaseID: 'FLL', name: 'FLL 2', toFlange: '3' }, { loadCaseID: 'FDL', name: 'FDL 3', toFlange: '1' }], '2'), { code: '3', rows: 1 });
   assert.ok(a1.xml.includes('<FloorDead>1</FloorDead>') && a1.xml.includes('<FloorLive>1</FloorLive>'));
   const back = FF.cloadsOf(a1.xml).map(c => c.fields);
   assert.deepStrictEqual(back.map(c => c.name), ['Lean-To', 'FDL 2', 'FLL 2', 'FDL 3', 'FLL 3'], 'after the rows already there');

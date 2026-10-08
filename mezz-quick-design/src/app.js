@@ -17,7 +17,7 @@
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
   let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
-  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'beam' } };
+  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'beam', web: null } };
 
   // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
   // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
@@ -1201,6 +1201,20 @@
   const linesText = ls => { const a = ls.map(Number).sort((x, y) => x - y); return a.length > 2 && a.every((v, i) => !i || v === a[i - 1] + 1) ? `${a[0]}-${a[a.length - 1]}` : a.join(', '); };
   const parseLines = t => String(t || '').split(/[,\s]+/).filter(Boolean).flatMap(p => { const m = /^(\d+)(?:-(\d+))?$/.exec(p); if (!m) return []; const out = []; for (let k = +m[1]; k <= +(m[2] || m[1]); k++) out.push(k); return out; });
   const sameName = (a, b) => FF.bldgKey(a) === FF.bldgKey(b);
+  // the Ecc. Loc. code NBG Frame uses for WebCenterline: learned from a saved file or confirmed once, then kept (this browser)
+  const WEB_KEY = 'mz.nbg.webCenterline';
+  function webCode() {
+    if (!state.nbg.web) {
+      let v = null;
+      try { v = JSON.parse(localStorage.getItem(WEB_KEY) || 'null'); } catch (e) { v = null; }
+      state.nbg.web = v && /^-?\d+$/.test(v.code) && v.code !== '0' ? v : { code: FF.WEB_GUESS, how: 'guess' };
+    }
+    return state.nbg.web;
+  }
+  function setWebCode(v) {
+    state.nbg.web = v;
+    try { if (v.how === 'guess') localStorage.removeItem(WEB_KEY); else localStorage.setItem(WEB_KEY, JSON.stringify(v)); } catch (e) { /* kept for this session only */ }
+  }
   async function addFrameFiles(list) {
     if (!zipIO.ok) { toast('This browser cannot open .frame files (no deflate-raw streams) — use a current Chrome or Edge'); return; }
     for (const file of list) {
@@ -1209,6 +1223,10 @@
         item.bytes = new Uint8Array(await file.arrayBuffer());
         item.ff = await FF.read(item.bytes, zipIO, file.name);
         item.lines = linesText(item.ff.info.lines);
+        // FDL / FLL rows set to WebCenterline by hand in NBG Frame give its code (only while it is unconfirmed, so an
+        // old export never overrides a code already learned or confirmed — Reset starts over)
+        const learnt = webCode().how === 'guess' ? FF.learnWebCode(item.ff.info.cloads, webCode().code) : null;
+        if (learnt) { setWebCode({ code: learnt.code, how: 'learned', from: file.name }); toast(`Ecc. Loc. WebCenterline learned from ${file.name}: code ${learnt.code}`); }
       } catch (e) { item.err = e.message || String(e); }
       // the same file dropped again replaces the first
       const at = state.nbg.files.findIndex(x => x.name === item.name);
@@ -1229,7 +1247,7 @@
     const bldgs = [...new Set(fr.map(x => x.building).filter(Boolean))];
     const building = bldgs.length && info.building ? info.building : null;   // a file for another building takes none of these loads
     const r = FF.rowsFor(info, fr, { lines, mirrored: o.mirrored, height: state.nbg.height, building });
-    const add = FF.addLoads(item.ff.xml, r.rows);
+    const add = FF.addLoads(item.ff.xml, r.rows, { toFlange: webCode().code });
     const checks = [];
     const quote = pcs.job && pcs.job.quote;
     if (quote && info.job && !sameName(quote, info.job)) checks.push(['bad', `job ${info.job} in the file, ${quote} on the PCS`]);
@@ -1263,15 +1281,19 @@
         <button class="btn-soft" data-nbg-dl="${i}" ${p.r.rows.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download</button><button class="btn-ghost" data-nbg-rm="${i}" aria-label="Remove">✕</button></div>`;
       const checks = `<div class="nbg-checks">${p.checks.map(([k, t]) => `<span class="chip ${k === 'ok' ? 'ok' : k === 'bad' ? 'bad' : 'warn'}">${esc(t)}</span>`).join('')}</div>`;
       const from = m => { const fs = [...new Set(m.from.map(x => x.frame))]; return m.from.map(x => x.label).join(', ') + (fs.length > 1 ? ' · the largest of the lines' : ''); };
-      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline</td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
+      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline <small class="sub-n">${esc(webCode().code)}${webCode().how === 'guess' ? '?' : ''}</small></td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
       const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns (endwall columns are designed with the endwall), so their loads are not put on it:${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
       const fl = a.floors, flTxt = ['FloorDead', 'FloorLive'].filter(k => fl[k]).map(k => `${k === 'FloorDead' ? 'Floor Dead' : 'Floor Live'} ${fl[k].was > 0 ? `${f(fl[k].was, 3)} psf (left as it is)` : '0 → 1.000 psf'}`).join(' · ');
       const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+o.yMag).toFixed(2)}`).join(', ')}) — check they are not the same loads` : ''].filter(Boolean);
       return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
     };
     const anyRows = plans.some((p, i) => p && files[i].include && p.r.rows.length);
-    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table, then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
-    $('#nbgList').innerHTML = cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
+    const w = webCode();
+    const ecc = files.length ? (w.how === 'guess'
+      ? `<div class="nbg-ecc warn"><div><b>Ecc. Loc. — check once.</b> WebCenterline is written as code ${esc(w.code)}, not yet confirmed in NBG Frame. Open one file → Tools → Concentrated (Panel) Loads. If the FDL / FLL rows read <i>WebCenterline</i>, click the button. If the cell is blank or reads something else, set those rows to WebCenterline, Save and Gen Loads, save the file and drop it here: the tool reads the code from it and uses it from then on.</div><button class="btn-soft" id="nbgEccOk">It reads WebCenterline</button></div>`
+      : `<div class="nbg-ecc ok"><div><b>Ecc. Loc. WebCenterline = code ${esc(w.code)}</b> — ${w.how === 'learned' ? `learned from ${esc(w.from || 'a saved file')}` : 'confirmed in NBG Frame'}; kept in this browser.</div><button class="btn-ghost" id="nbgEccReset">Reset</button></div>`) : '';
+    $('#nbgList').innerHTML = ecc + cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
     // events
     const input = $('#nbgFile'), drop = $('#nbgDrop');
     input.onchange = () => { addFrameFiles(Array.from(input.files || [])); input.value = ''; };
@@ -1297,6 +1319,9 @@
     };
     const clr = $('#nbgClear');
     if (clr) clr.onclick = () => { state.nbg.files = []; renderNbg(); };
+    const ok = $('#nbgEccOk'), rs = $('#nbgEccReset');
+    if (ok) ok.onclick = () => { setWebCode({ code: webCode().code, how: 'confirmed' }); renderNbg(); toast(`Ecc. Loc. WebCenterline = code ${webCode().code}, confirmed`); };
+    if (rs) rs.onclick = () => { setWebCode({ code: FF.WEB_GUESS, how: 'guess' }); renderNbg(); };
   }
 
   // ---------- beam calc (MB sheet mirror) ----------

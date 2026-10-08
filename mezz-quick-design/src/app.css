@@ -777,6 +777,9 @@ table.fl-t .star { color: var(--amber); font-weight: 700; }
 .nbg-drop strong { font-size: 14px; }
 .nbg-drop small { display: block; color: var(--ink-faint); font: 11.5px var(--mono); }
 .nbg-drop strong + small { margin-left: auto; }
+.nbg-ecc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 12px; padding: 10px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5; }
+.nbg-ecc > div { flex: 1 1 360px; }
+.nbg-ecc.ok { background: var(--green-soft); } .nbg-ecc.warn { background: var(--amber-soft); border-left: 3px solid var(--amber); }
 .nbg-cover { margin-top: 12px; padding: 9px 13px; border-radius: 10px; font-size: 12.5px; }
 .nbg-cover.ok { background: var(--green-soft); } .nbg-cover.warn { background: var(--amber-soft); }
 .nbg-file { margin-top: 12px; padding: 12px 14px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }

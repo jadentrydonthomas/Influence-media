@@ -786,6 +786,9 @@ table.fl-t .star { color: var(--amber); font-weight: 700; }
 .nbg-drop strong { font-size: 14px; }
 .nbg-drop small { display: block; color: var(--ink-faint); font: 11.5px var(--mono); }
 .nbg-drop strong + small { margin-left: auto; }
+.nbg-ecc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 12px; padding: 10px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5; }
+.nbg-ecc > div { flex: 1 1 360px; }
+.nbg-ecc.ok { background: var(--green-soft); } .nbg-ecc.warn { background: var(--amber-soft); border-left: 3px solid var(--amber); }
 .nbg-cover { margin-top: 12px; padding: 9px 13px; border-radius: 10px; font-size: 12.5px; }
 .nbg-cover.ok { background: var(--green-soft); } .nbg-cover.warn { background: var(--amber-soft); }
 .nbg-file { margin-top: 12px; padding: 12px 14px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
@@ -2773,7 +2776,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
    The mezzanine floor loads go in the way the quote engineer enters them by hand, under Tools → Concentrated (Panel)
    Loads: one row per column and case — description "FDL 1" / "FLL 1" (the number is the column's), load case FDL /
    FLL, member COL0n, Y force in kips (down is negative), location = the height on the column in feet (Loc. Sys.
-   Global: above the finished floor), Ecc. Loc. WebCenterline with no offset. Those rows are the
+   Global: above the finished floor), Ecc. Loc. WebCenterline with no offset (see WEB_GUESS). Those rows are the
    <SpecialLoads><CLoads> list of the model. Floor dead / floor live are set to 1 psf when they are 0, as done by hand
    so that NBG Frame makes the FDL / FLL cases (Process → Get Applied Loads). Everything else in the file is left
    byte for byte: the other two zip entries are copied as they are, and the model text only gains the new rows and
@@ -2902,19 +2905,38 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   const isOurs = f => (f.loadCaseID === 'FDL' || f.loadCaseID === 'FLL') && /^F[DL]L\s*\d*$/i.test(String(f.name || '').trim());
   const fmt = v => String(+(+v).toFixed(4));
 
-  /* rows: [{ name, caseId, member, y (kips, down −), location (ft) }]; opt: { toFlange, eccentricity } (defaults: web
-     centre, 0 — or what FDL / FLL rows already in the file use). Earlier FDL<n> / FLL<n> rows are replaced, so a
-     second export of the same file gives the same result. Returns the new model text and what changed. */
+  /* Ecc. Loc. is the <toFlange> code of a row. NBG Frame shows 1 as Top/Left (the Lean-To rows it writes). 0 is not
+     one of its choices: the cell comes up blank and the dialog says "Invalid data was entered or pasted". The code
+     for WebCenterline is learned from a saved file where FDL / FLL rows were set to WebCenterline by hand
+     (learnWebCode); until then WEB_GUESS is written and the page says it is not confirmed. */
+  const ECC_TOP_LEFT = '1', WEB_GUESS = '2';
+  // the WebCenterline code from the FDL / FLL rows of a saved file: a code this tool did not write (not `wrote`), not
+  // the invalid 0 and not Top/Left; the most common one when rows differ
+  function learnWebCode(cloads, wrote) {
+    const n = new Map();
+    (cloads || []).filter(isOurs).forEach(c => {
+      const v = String(c.toFlange == null ? '' : c.toFlange).trim();
+      if (/^-?\d+$/.test(v) && v !== '0' && v !== ECC_TOP_LEFT && v !== String(wrote)) n.set(v, (n.get(v) || 0) + 1);
+    });
+    const best = [...n].sort((a, b) => b[1] - a[1])[0];
+    return best ? { code: best[0], rows: best[1] } : null;
+  }
+
+  /* rows: [{ name, caseId, member, y (kips, down −), location (ft) }]; opt: { toFlange (the WebCenterline code; default
+     WEB_GUESS), eccentricity (in, default 0) }. Earlier FDL<n> / FLL<n> rows are replaced, so a second export of the
+     same file gives the same result. Returns the new model text and what changed. */
   function addLoads(xml, rows, opt = {}) {
     const nl = xml.includes('\r\n') ? '\r\n' : '\n';
     const s = xml.indexOf('<SpecialLoads>'), e = xml.indexOf('</SpecialLoads>', s);
     if (s < 0 || e < 0) throw new Error('no <SpecialLoads> in the frame model');
     const existing = cloadsOf(xml), ours = existing.filter(c => isOurs(c.fields)), theirs = existing.filter(c => !isOurs(c.fields));
-    // conventions: a hand-entered FDL / FLL row in the file wins, then the options, then web centre with no eccentricity
-    const like = (ours[0] || {}).fields || {}, other = (theirs[0] || {}).fields || {};
+    // load group, status and location system as the rows NBG Frame wrote; Ecc. Loc. web centre with no offset
+    const other = (theirs[0] || {}).fields || {};
+    const code = String(opt.toFlange == null ? WEB_GUESS : opt.toFlange);
+    if (!/^-?\d+$/.test(code) || code === '0') throw new Error(`Ecc. Loc. code ${code} is not one NBG Frame accepts`);
     const conv = {
-      loadGroup: like.loadGroup ?? other.loadGroup ?? '0', status: like.status ?? other.status ?? 'Global', locSys: like.locSys ?? other.locSys ?? '1',
-      toFlange: opt.toFlange ?? like.toFlange ?? '0', eccentricity: opt.eccentricity ?? like.eccentricity ?? '0',
+      loadGroup: other.loadGroup ?? '0', status: other.status ?? 'Global', locSys: other.locSys ?? '1',
+      toFlange: code, eccentricity: String(opt.eccentricity == null ? 0 : opt.eccentricity),
     };
     // drop earlier mezzanine rows (back to front so the spans stay valid)
     let out = xml;
@@ -3032,7 +3054,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, WEB_GUESS, ECC_TOP_LEFT, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -4402,7 +4424,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
   let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
-  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'beam' } };
+  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'beam', web: null } };
 
   // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
   // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
@@ -5586,6 +5608,20 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   const linesText = ls => { const a = ls.map(Number).sort((x, y) => x - y); return a.length > 2 && a.every((v, i) => !i || v === a[i - 1] + 1) ? `${a[0]}-${a[a.length - 1]}` : a.join(', '); };
   const parseLines = t => String(t || '').split(/[,\s]+/).filter(Boolean).flatMap(p => { const m = /^(\d+)(?:-(\d+))?$/.exec(p); if (!m) return []; const out = []; for (let k = +m[1]; k <= +(m[2] || m[1]); k++) out.push(k); return out; });
   const sameName = (a, b) => FF.bldgKey(a) === FF.bldgKey(b);
+  // the Ecc. Loc. code NBG Frame uses for WebCenterline: learned from a saved file or confirmed once, then kept (this browser)
+  const WEB_KEY = 'mz.nbg.webCenterline';
+  function webCode() {
+    if (!state.nbg.web) {
+      let v = null;
+      try { v = JSON.parse(localStorage.getItem(WEB_KEY) || 'null'); } catch (e) { v = null; }
+      state.nbg.web = v && /^-?\d+$/.test(v.code) && v.code !== '0' ? v : { code: FF.WEB_GUESS, how: 'guess' };
+    }
+    return state.nbg.web;
+  }
+  function setWebCode(v) {
+    state.nbg.web = v;
+    try { if (v.how === 'guess') localStorage.removeItem(WEB_KEY); else localStorage.setItem(WEB_KEY, JSON.stringify(v)); } catch (e) { /* kept for this session only */ }
+  }
   async function addFrameFiles(list) {
     if (!zipIO.ok) { toast('This browser cannot open .frame files (no deflate-raw streams) — use a current Chrome or Edge'); return; }
     for (const file of list) {
@@ -5594,6 +5630,10 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
         item.bytes = new Uint8Array(await file.arrayBuffer());
         item.ff = await FF.read(item.bytes, zipIO, file.name);
         item.lines = linesText(item.ff.info.lines);
+        // FDL / FLL rows set to WebCenterline by hand in NBG Frame give its code (only while it is unconfirmed, so an
+        // old export never overrides a code already learned or confirmed — Reset starts over)
+        const learnt = webCode().how === 'guess' ? FF.learnWebCode(item.ff.info.cloads, webCode().code) : null;
+        if (learnt) { setWebCode({ code: learnt.code, how: 'learned', from: file.name }); toast(`Ecc. Loc. WebCenterline learned from ${file.name}: code ${learnt.code}`); }
       } catch (e) { item.err = e.message || String(e); }
       // the same file dropped again replaces the first
       const at = state.nbg.files.findIndex(x => x.name === item.name);
@@ -5614,7 +5654,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const bldgs = [...new Set(fr.map(x => x.building).filter(Boolean))];
     const building = bldgs.length && info.building ? info.building : null;   // a file for another building takes none of these loads
     const r = FF.rowsFor(info, fr, { lines, mirrored: o.mirrored, height: state.nbg.height, building });
-    const add = FF.addLoads(item.ff.xml, r.rows);
+    const add = FF.addLoads(item.ff.xml, r.rows, { toFlange: webCode().code });
     const checks = [];
     const quote = pcs.job && pcs.job.quote;
     if (quote && info.job && !sameName(quote, info.job)) checks.push(['bad', `job ${info.job} in the file, ${quote} on the PCS`]);
@@ -5648,15 +5688,19 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
         <button class="btn-soft" data-nbg-dl="${i}" ${p.r.rows.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download</button><button class="btn-ghost" data-nbg-rm="${i}" aria-label="Remove">✕</button></div>`;
       const checks = `<div class="nbg-checks">${p.checks.map(([k, t]) => `<span class="chip ${k === 'ok' ? 'ok' : k === 'bad' ? 'bad' : 'warn'}">${esc(t)}</span>`).join('')}</div>`;
       const from = m => { const fs = [...new Set(m.from.map(x => x.frame))]; return m.from.map(x => x.label).join(', ') + (fs.length > 1 ? ' · the largest of the lines' : ''); };
-      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline</td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
+      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline <small class="sub-n">${esc(webCode().code)}${webCode().how === 'guess' ? '?' : ''}</small></td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
       const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns (endwall columns are designed with the endwall), so their loads are not put on it:${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
       const fl = a.floors, flTxt = ['FloorDead', 'FloorLive'].filter(k => fl[k]).map(k => `${k === 'FloorDead' ? 'Floor Dead' : 'Floor Live'} ${fl[k].was > 0 ? `${f(fl[k].was, 3)} psf (left as it is)` : '0 → 1.000 psf'}`).join(' · ');
       const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+o.yMag).toFixed(2)}`).join(', ')}) — check they are not the same loads` : ''].filter(Boolean);
       return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
     };
     const anyRows = plans.some((p, i) => p && files[i].include && p.r.rows.length);
-    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table, then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
-    $('#nbgList').innerHTML = cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (Ecc. Loc. WebCenterline), then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
+    const w = webCode();
+    const ecc = files.length ? (w.how === 'guess'
+      ? `<div class="nbg-ecc warn"><div><b>Ecc. Loc. — check once.</b> WebCenterline is written as code ${esc(w.code)}, not yet confirmed in NBG Frame. Open one file → Tools → Concentrated (Panel) Loads. If the FDL / FLL rows read <i>WebCenterline</i>, click the button. If the cell is blank or reads something else, set those rows to WebCenterline, Save and Gen Loads, save the file and drop it here: the tool reads the code from it and uses it from then on.</div><button class="btn-soft" id="nbgEccOk">It reads WebCenterline</button></div>`
+      : `<div class="nbg-ecc ok"><div><b>Ecc. Loc. WebCenterline = code ${esc(w.code)}</b> — ${w.how === 'learned' ? `learned from ${esc(w.from || 'a saved file')}` : 'confirmed in NBG Frame'}; kept in this browser.</div><button class="btn-ghost" id="nbgEccReset">Reset</button></div>`) : '';
+    $('#nbgList').innerHTML = ecc + cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
     // events
     const input = $('#nbgFile'), drop = $('#nbgDrop');
     input.onchange = () => { addFrameFiles(Array.from(input.files || [])); input.value = ''; };
@@ -5682,6 +5726,9 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     };
     const clr = $('#nbgClear');
     if (clr) clr.onclick = () => { state.nbg.files = []; renderNbg(); };
+    const ok = $('#nbgEccOk'), rs = $('#nbgEccReset');
+    if (ok) ok.onclick = () => { setWebCode({ code: webCode().code, how: 'confirmed' }); renderNbg(); toast(`Ecc. Loc. WebCenterline = code ${webCode().code}, confirmed`); };
+    if (rs) rs.onclick = () => { setWebCode({ code: FF.WEB_GUESS, how: 'guess' }); renderNbg(); };
   }
 
   // ---------- beam calc (MB sheet mirror) ----------

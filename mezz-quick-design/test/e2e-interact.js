@@ -121,7 +121,7 @@ if (pdfArgs.length > 1) {
   else if (frames.length) {
     await page.setInputFiles('#nbgFile', frames);
     await page.waitForSelector('#nbgList .nbg-file', { timeout: 20000 }); await page.waitForTimeout(300);
-    const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 4, 6, 7, 9].map(i => tr.cells[i].textContent).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
+    const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
     const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
     if (!two || two[1].join('|') !== 'FDL 2 COL02 -12.127 10.75 WebCenterline Global|FLL 2 COL02 -25.000 10.75 WebCenterline Global|FDL 3 COL03 -19.929 10.75 WebCenterline Global|FLL 3 COL03 -42.000 10.75 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
@@ -131,6 +131,27 @@ if (pdfArgs.length > 1) {
     const zp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(zp);
     console.log('NBG download'.padEnd(30), dl.suggestedFilename(), fs.statSync(zp).size, 'bytes');
     if (!/frames-mezz\.zip$/.test(dl.suggestedFilename()) || fs.statSync(zp).size < 100000) fail('Download checked should give the zip of frame files');
+    if (!/check once/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('the Ecc. Loc. code should be marked as not confirmed at first');
+    // a frame saved from NBG Frame with the rows set to WebCenterline by hand (stand-in code 3): the code is learned and used
+    const FF = require('../src/framefile.js'), zlib = require('zlib');
+    const io = { inflate: async u => new Uint8Array(zlib.inflateRawSync(u)), deflate: async u => new Uint8Array(zlib.deflateRawSync(u)) };
+    const src = frames.find(n => /_1_2\.frame$/.test(n)), ff = await FF.read(new Uint8Array(fs.readFileSync(src)), io, path.basename(src));
+    const rows = [{ name: 'FDL 2', caseId: 'FDL', member: 'COL02', y: -1, location: 10 }, { name: 'FLL 2', caseId: 'FLL', member: 'COL02', y: -2, location: 10 }];
+    const handFixed = FF.addLoads(ff.xml, rows, { toFlange: FF.WEB_GUESS }).xml.split(`<toFlange>${FF.WEB_GUESS}</toFlange>`).join('<toFlange>3</toFlange>');
+    const fixedPath = path.join(shots, path.basename(src));
+    fs.writeFileSync(fixedPath, await FF.write(ff, handFixed, io));
+    await page.setInputFiles('#nbgFile', [fixedPath]); await page.waitForTimeout(500);
+    const eccTxt = await page.$eval('#nbgList .nbg-ecc', e => e.textContent);
+    console.log('NBG Ecc. Loc. learned'.padEnd(30), eccTxt.replace(/\s+/g, ' ').slice(0, 90));
+    if (!/code 3/.test(eccTxt) || !/learned/.test(eccTxt)) fail('the WebCenterline code should be learned from rows set by hand');
+    const [d2] = await Promise.all([page.waitForEvent('download'), page.click('#nbgList .nbg-file [data-nbg-dl]')]);
+    const p2 = path.join(shots, 'learned_' + d2.suggestedFilename()); await d2.saveAs(p2);
+    const back = await FF.read(new Uint8Array(fs.readFileSync(p2)), io, d2.suggestedFilename());
+    const codes = [...new Set(back.info.cloads.filter(FF.isOurs).map(c => c.toFlange))];
+    console.log('NBG rows written with'.padEnd(30), 'toFlange', codes.join(', '));
+    if (codes.join() !== '3') fail('every FDL / FLL row should carry the learned code');
+    await page.click('#nbgEccReset'); await page.waitForTimeout(150);
+    if (!/check once/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('Reset should go back to the unconfirmed code');
     await page.click('#nbgClear');
   } else console.log('NBG Frame files'.padEnd(30), 'block present (no frame files for this job)');
 

@@ -3,7 +3,7 @@
    The mezzanine floor loads go in the way the quote engineer enters them by hand, under Tools → Concentrated (Panel)
    Loads: one row per column and case — description "FDL 1" / "FLL 1" (the number is the column's), load case FDL /
    FLL, member COL0n, Y force in kips (down is negative), location = the height on the column in feet (Loc. Sys.
-   Global: above the finished floor), Ecc. Loc. WebCenterline with no offset. Those rows are the
+   Global: above the finished floor), Ecc. Loc. WebCenterline with no offset (see WEB_GUESS). Those rows are the
    <SpecialLoads><CLoads> list of the model. Floor dead / floor live are set to 1 psf when they are 0, as done by hand
    so that NBG Frame makes the FDL / FLL cases (Process → Get Applied Loads). Everything else in the file is left
    byte for byte: the other two zip entries are copied as they are, and the model text only gains the new rows and
@@ -132,19 +132,38 @@
   const isOurs = f => (f.loadCaseID === 'FDL' || f.loadCaseID === 'FLL') && /^F[DL]L\s*\d*$/i.test(String(f.name || '').trim());
   const fmt = v => String(+(+v).toFixed(4));
 
-  /* rows: [{ name, caseId, member, y (kips, down −), location (ft) }]; opt: { toFlange, eccentricity } (defaults: web
-     centre, 0 — or what FDL / FLL rows already in the file use). Earlier FDL<n> / FLL<n> rows are replaced, so a
-     second export of the same file gives the same result. Returns the new model text and what changed. */
+  /* Ecc. Loc. is the <toFlange> code of a row. NBG Frame shows 1 as Top/Left (the Lean-To rows it writes). 0 is not
+     one of its choices: the cell comes up blank and the dialog says "Invalid data was entered or pasted". The code
+     for WebCenterline is learned from a saved file where FDL / FLL rows were set to WebCenterline by hand
+     (learnWebCode); until then WEB_GUESS is written and the page says it is not confirmed. */
+  const ECC_TOP_LEFT = '1', WEB_GUESS = '2';
+  // the WebCenterline code from the FDL / FLL rows of a saved file: a code this tool did not write (not `wrote`), not
+  // the invalid 0 and not Top/Left; the most common one when rows differ
+  function learnWebCode(cloads, wrote) {
+    const n = new Map();
+    (cloads || []).filter(isOurs).forEach(c => {
+      const v = String(c.toFlange == null ? '' : c.toFlange).trim();
+      if (/^-?\d+$/.test(v) && v !== '0' && v !== ECC_TOP_LEFT && v !== String(wrote)) n.set(v, (n.get(v) || 0) + 1);
+    });
+    const best = [...n].sort((a, b) => b[1] - a[1])[0];
+    return best ? { code: best[0], rows: best[1] } : null;
+  }
+
+  /* rows: [{ name, caseId, member, y (kips, down −), location (ft) }]; opt: { toFlange (the WebCenterline code; default
+     WEB_GUESS), eccentricity (in, default 0) }. Earlier FDL<n> / FLL<n> rows are replaced, so a second export of the
+     same file gives the same result. Returns the new model text and what changed. */
   function addLoads(xml, rows, opt = {}) {
     const nl = xml.includes('\r\n') ? '\r\n' : '\n';
     const s = xml.indexOf('<SpecialLoads>'), e = xml.indexOf('</SpecialLoads>', s);
     if (s < 0 || e < 0) throw new Error('no <SpecialLoads> in the frame model');
     const existing = cloadsOf(xml), ours = existing.filter(c => isOurs(c.fields)), theirs = existing.filter(c => !isOurs(c.fields));
-    // conventions: a hand-entered FDL / FLL row in the file wins, then the options, then web centre with no eccentricity
-    const like = (ours[0] || {}).fields || {}, other = (theirs[0] || {}).fields || {};
+    // load group, status and location system as the rows NBG Frame wrote; Ecc. Loc. web centre with no offset
+    const other = (theirs[0] || {}).fields || {};
+    const code = String(opt.toFlange == null ? WEB_GUESS : opt.toFlange);
+    if (!/^-?\d+$/.test(code) || code === '0') throw new Error(`Ecc. Loc. code ${code} is not one NBG Frame accepts`);
     const conv = {
-      loadGroup: like.loadGroup ?? other.loadGroup ?? '0', status: like.status ?? other.status ?? 'Global', locSys: like.locSys ?? other.locSys ?? '1',
-      toFlange: opt.toFlange ?? like.toFlange ?? '0', eccentricity: opt.eccentricity ?? like.eccentricity ?? '0',
+      loadGroup: other.loadGroup ?? '0', status: other.status ?? 'Global', locSys: other.locSys ?? '1',
+      toFlange: code, eccentricity: String(opt.eccentricity == null ? 0 : opt.eccentricity),
     };
     // drop earlier mezzanine rows (back to front so the spans stay valid)
     let out = xml;
@@ -262,6 +281,6 @@
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, WEB_GUESS, ECC_TOP_LEFT, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);
