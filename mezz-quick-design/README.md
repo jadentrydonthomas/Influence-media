@@ -32,12 +32,13 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - Tries every DM 5.1-stocked web and flange for the division (flanges ≥ 6" × 1/4"), whole-inch depths 10–30" by default, capped by clearance C.
    - **Only what the plant builds:** the NBG Production Guidelines (rev. 2026.01.15, Primary & Secondary Steel, built-up) are a hard filter, by division — tw ≤ tf (DG 25; NBG-UT: tf > tw + 1/16" / 1/8"), tw / tf ≥ 0.30, bf ≤ d, d / bf ≤ 7, thickest / thinnest flange ≤ 2, the thinnest web's flange limit, part depth / width / thickness / length / weight, and the handling minimum flange over 40 ft. (W1S-26062 MB1 was BU15x93 — 12 × 1 flanges on a 1/4" web, tw / tf 0.25; it is now BU15x95 with a 5/16" web.) Settings can switch the filter off.
    - Keeps sections with combined and shear SR ≤ 0.99, LL ≤ L/360, TL ≤ L/240, and a passing joist-bearing check (MB `L7`).
-   - **Three options per mark**, side by side:
-     - *Lightest*: the least weight that passes.
-     - *Best fit*: less depth for nearly the same steel — working down from the deepest depth allowed, the lightest section at each depth; the shallowest within 8 % of the lightest weight.
-     - *Most economical*: the lightest with economical flange plate (the green sizes of NBG "Economical Flange Sections"); yellow only when no green size works.
-     - A card says when two options are the same section (a tight clearance often leaves one answer).
-   - **How it was designed** (Beam calc page, click to open): the load on the beam with its numbers, how deep it can be (clearance C worked out), the plates and how many combinations the MB sheet ran and the production rules removed (by rule), what has to pass, the three options with the best fit's depth-by-depth table, and what went on the quote. The Column calc page has the same for the column: its loads (which beams, which side), its length, the three combinations, the sizes tried in order, and a note on tubes / pipe. The long tables (Excel steps, depth table, columns tried, beams and supports) fold closed.
+   - **The options per mark** — every one of them passes the MB sheet and the production rules:
+     - *Lightest*: the least weight.
+     - *Best fit*: the quote engineer's method, step by step, as the steps appear in the explanation: start as deep as the clearance allows; the thinnest web that works in shear there; flanges from F8.31 up the economical sizes (8", then 10", then 12") until it passes; take depth out an inch at a time with the same plates while it still passes (the stress ratio comes up toward the limit); then a lighter plate at that depth if one works. When the method stops deeper and heavier than the lightest (it only tries 8"+ flanges on the way down), the card says so.
+     - *Most economical*: NBG "Economical Flange Sections" — green plate only, 5"–8" wide first, 10" when no 8" plate works ("start considering 10" flanges when F8.50 / F8.38 start failing"), 12" last ("typically more expensive"); the lightest of those. Yellow only when no green plate works.
+     - Options that land on the same section are **one card** with both names. When fewer than three different designs come out, the next different ones are added — *Shallower* (the shallowest green-plate section within 15 % of the lightest) or another flange width — so the real choices are on screen.
+     - When the clearance leaves **one depth** (W1S-26062: C 9'-6" under A 11'-6" leaves 15" for the beam, and at 15" only 12 × 1 flanges carry the deflection), the card says why and lists what 16"–21" would weigh and the clearance C each needs.
+   - **How it was designed** (Beam calc page, click to open): the load on the beam with its numbers, how deep it can be (clearance C worked out), the plates and how many combinations the MB sheet ran and the production rules removed (by rule), what has to pass, the options (one line per different section) with the best fit's steps and every try, and what went on the quote. The Column calc page has the same for the column: its loads (which beams, which side), its length, the three combinations, the sizes tried in order, and a note on tubes / pipe. The long tables (Excel steps, depth table, columns tried, beams and supports) fold closed.
    - Pick an option (or a row in the depth table) and the choice is kept as intent: change a load, the slab or a clearance and it re-designs that option instead of pinning an old section.
    - **Beam marks over the whole job: interior and exterior** (see below). A mark is designed once, at its longest span and largest trib. Its shorter beams keep the section and get their own MB-sheet run.
 4. **Sizes the columns** on the Column sheet:
@@ -112,9 +113,10 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
 
 1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame**. That is the MB sheet's *Floor dead load (unfactored)* and *Floor live load (unfactored)* shear at left / right, in kips, per beam mark. The same two rows are highlighted on the Beam calc sheet. The Plan page lists the summed D / L that lands on each building column (the load into the frame).
 2. **3D framing model**, then the **framing summary** (beams → governing ratio → columns, floor-plan check).
-3. **Beam options** (Lightest / Best fit / Most economical) to pick from.
-4. **Checks & decisions**: check before quoting, confirmed against the PCS, design decisions, how it was read.
-5. **Quote sheet** rows for every mezzanine.
+3. **Beam options** to pick from.
+4. **Quote sheet** rows for every mezzanine.
+5. **Check it in the NBG workbooks** — every beam sheet set, column case and frame line as a filled copy of the real workbook (below).
+6. **Checks & decisions**: what to check before quoting; what was confirmed against the PCS, the design decisions and how it was read are folded under it. The **DM 15.1** list is folded too, with its counts on the bar.
 
 **One drawing for the whole job.** The 3D model, the Plan & layout page and the sidebar plan show every mezzanine together, not one at a time:
 
@@ -196,9 +198,18 @@ Each mark has a **design span** and a **design trib**. They change only the beam
 
 Don't shorten the mezzanine footprint for this. On W1S-26062, cutting Mezz 1 to 22'-4" moves its edge 1'-8" off the BSW column line. That puts six new mezzanine columns along 118'-4", and frame line A loses its loads. Now that case is flagged: a footprint edge between 1'-0" and 3'-0" short of a line of building columns gets a warning on the Design page.
 
+### The NBG workbooks themselves
+
+The spreadsheets are the foundation: everything the tool designs is an input put into NBG's own workbooks and their output read back. To walk an engineer through a job:
+
+- **Add the workbooks once** (Design page → *Check it in the NBG workbooks* → *Add workbooks…*): Mezzanine Beam Design 13th / 15th / 16th, Mezzanine Column 15th / 16th, IBC Seismic. They are recognised by their sheets and kept in this browser (IndexedDB) — nothing is uploaded, and no workbook is part of this tool or this repository.
+- **Download a filled copy** of any of them: a beam workbook per sheet set (INPUT + MB1–MB4), a Column workbook per column case, an IBC Seismic workbook per frame line (Input Data, Lateral Calcs. (1) for that frame, Longitudinal Calcs.). The buttons are on the Design page, under *In the workbook · cell by cell* on the Beam and Column pages, and on each frame row of the Seismic page.
+- **What the copy is:** your own workbook with this job's values typed into its input cells (the cells listed below) — numbers, text from the drop-downs, the check boxes as TRUE / FALSE — and nothing else changed: every other part of the file, the VBA project included, is byte for byte the original. Excel recalculates the whole workbook when it opens the copy (and asks to save on closing), so every result is the workbook's own.
+- **Checked:** `oracle/fill_dump.js` fills every workbook for the four sample jobs and `oracle/fill_check.py` opens each copy: xlrd reads all 2,206 typed cells back, and LibreOffice recalculates and reads 571 results — beam end shears, deflections, combined / shear, the column combinations, Cs, each frame's mezzanine load and base shear, the bracing loads — all equal to the tool's.
+
 ### Excel, step by step
 
-The Beam calc and Column calc pages list the exact cells to type into the NBG workbooks, in order, and what Excel should then show.
+The Beam calc and Column calc pages list the exact cells to type into the NBG workbooks, in order, and what Excel should then show (the same cells the filled copies carry).
 
 - **Beam workbook.** One per load group:
   - **INPUT, once:** the loads, top of mezzanine, slab, seat, total joist depth, and the B / C requested values.
@@ -233,7 +244,7 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
 - **Floor Dead / Floor Live** are set to 1 psf when they are 0 (as done by hand), so that NBG Frame creates the FDL and FLL cases. Values already set are left alone.
 - **Re-export** replaces the earlier FDL / FLL / EQR / EQL rows (including hand-typed "FDL1" or "EQR 1" rows) and doesn't add a second set. NBG's own *Lean-To* seismic rows are never touched. Other rows of those cases already in the file are kept and flagged.
 - **Seismic rows** (from the Seismic page) are written the way NBG Frame writes its own lean-to seismic rows: X force ± at the mezzanine level, Ecc. Loc. Top/Left — an X force with no offset takes no moment from the flange it is drawn at. EQR rows switch to Bottom/Right once that code is confirmed (pick it from the same check file, or drop a frame where EQR rows were set to Bottom/Right by hand).
-- **The roof seismic** each card asks for (Frame Loads: Roof Seismic Dead Load and Roof Seismic Factor) is shown next to the file's own values and marked once they match. It is not written: NBG Frame works it out again on Get Applied Loads.
+- **The roof seismic** stays NBG Frame's own. The card shows, for information, the workbook's alternate roof seismic weight for those lines (Lateral G64) — it is not in the procedure and not written.
 - **Nothing else in the file changes.**
   - The connections and detailing entries are copied byte for byte.
   - The model text only gains the new rows and the two 1-psf values: CRLF line endings and indentation as NBG writes them.
@@ -242,7 +253,7 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
   1. Open the file.
   2. Process → Get Applied Loads → final pass.
   3. Tools → Concentrated (Panel) Loads: check the rows, then *Save and Gen Loads*.
-  4. With seismic: Frame Loads → Roof Seismic Dead Load and Roof Seismic Factor as on the card.
+  4. With seismic: the EQR / EQL rows are in — check them against the Seismic page.
   5. Run.
 - *Location* is the height of the load above the finished floor (Loc. Sys. Global): the floor level A by default (11'-6" on W1S-26062), or T/beam (A − slab − joist seat, 10'-9" there) with the switch. For the dead and live it makes no practical difference — with WebCenterline there is no eccentric moment, only where the column axial starts — but the seismic acts at the floor, where the mass is.
 - *Ecc. Loc.* is the row's `toFlange` code.
@@ -257,28 +268,24 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
 
 ### Seismic to the frames and the bracing (Seismic page)
 
-The mezzanine's seismic load, worked the way NBG's **IBC Seismic workbook** (rev. 2021.01.20) works it — ASCE 7 equivalent lateral force, 12.8 — and put where it goes.
+The page follows the procedure in the IBC Seismic workbook's order (rev. 2021.01.20 — ASCE 7 equivalent lateral force, 12.8), every field with the workbook cell it goes in, and every frame line opens as a filled copy of the workbook.
 
-- **Inputs.**
-  - Box 3: Ss, S1, site class ("Soils Report" / "Assumed"), risk category; the code line picks ASCE 7-05 / 7-10 / 7-16 (7-22 asks for SDS and SD1 from the ASCE Hazard Tool).
-  - Box 2: roof profile, eaves, slope, distance to ridge. Box 4: roof snow and collateral.
-  - Roof dead is "Per Seller" on the PCS: it is read from a dropped frame file (NBG Frame's *RoofDead*), or typed — never guessed.
-  - Frame self weight 2 psf (workbook default), roof self weight 1 psf, walls 3 psf metal panel — all editable.
-  - Each mezzanine: its floor dead (from the design, or typed — e.g. 55), collateral, joists, 25 % of the live where Box 22 says Storage, partition, and the framing self weight from this design (beams + half the columns, untick when the dead already includes it).
-- **Frames (lateral).** One calculation per frame line with mezzanine in its strip (half the bay each side; an end frame half the end bay): that strip of roof (on the slope, 20 % of the snow over 30 psf), its sidewalls, the endwall at an end frame, and each mezzanine's slab area in the strip. Cs from SDS / SD1 / R / Ie / Ta, distributed over height with k from Ta. In SDC A–C the workbook's "steel systems not detailed for seismic" (R = 3); NBG Frame's own file uses OMF R 3.5 — both are shown.
-  - The mezzanine row is the frame's concentrated seismic load at the mezzanine level. It goes on the frame columns that mezzanine's beams frame into (DM 15.1.3: a side on a rigid frame is held by the frame), shared by the dead load each takes (or equally) → the EQR / EQL rows.
-  - The roof and walls go into NBG Frame as its roof seismic dead load with Cs (the workbook's "alt. roof weight"). With a mezzanine low in the building the vertical distribution puts more of the shear at the roof than NBG Frame's single-level roof seismic does — on W1S-26062 frame 2 the roof's share is about 1.8 × Cs × its weight.
-  - A frame line with mezzanine area but no frame column the mezzanine frames into is flagged: that share needs independent bracing or another frame.
-- **Editing the EQ loads.** Whatever is shown is what the frame files get.
-  - *All EQ loads ×* multiplies every calculated load (e.g. 1.1).
-  - A value typed on one column of the Seismic page (frame line × column × level) is used as typed; ↺ goes back to the calculated load.
-  - A value typed in a frame-file card's EQR X Force sets that column for every frame line the file designs (e.g. 3, 4 and 5 for a 3-5 file).
-  - Typing 0 leaves the EQ rows off that column.
-  - The calculated value stays beside every edited one (Seismic page, Frame loads, the card's *From* column, hover).
-  - *Back to the calculated loads* clears every edit.
-  - Edits are kept on this computer with the job's other Seismic-page values (by quote number). A typed value whose column or level no longer exists after a layout change is flagged and not used.
-- **Bracing (longitudinal).** The whole building: the roof psf and Cs for the bracing software (which otherwise fixes the roof at 8 psf), the sidewall loads at the eave, each mezzanine's force at its level. Then what each line has to hold: the floor spans across the building between its edges as a flexible diaphragm (lever rule, cut along the length wherever the floor changes width). A sidewall line is the building's bracing, tiered at the mezzanine level; any other line is independent X-bracing, designed for the larger of the seismic and the DM's 1 % (FDL + FLL) stability force.
-- **Checked** against the IBC Seismic workbook in LibreOffice (`oracle/seismic_oracle.py`, `oracle/seismic_check.js`): 15 cases covering ASCE 7-05 / 7-10 / 7-16, site classes B–D, risk categories I–IV, SDC A–D, the 12.8.1.3 caps, the 7-16 11.4.8 exception, snow over 30 psf, partitions, concentrated loads, k = 0 and k > 1, gable / unequal gable / single slope, end and interior frames, the building-limit warning and a rigid mezzanine diaphragm — **1,386 of 1,386 values tie**. A user's own longitudinal table for W1S-26062 (V 44.92 k, mezzanines 13.95 + 5.98 k) is reproduced row for row.
+1. **Code and site** (Input Data, Seismic Design Calcs. D11): the code from the PCS code line (ASCE 7-05 / 7-10 / 7-16; 7-22 asks for SDS and SD1 from the ASCE Hazard Tool), Ss, S1, site class ("Soils Report" / "Assumed"), occupancy from Box 3.
+2. **Building** (Input Data B7–B22, B33–B37, walls): profile, width, length, ridge, slope, eaves from Box 2; frame self weight 2 psf (the workbook's default) and roof self weight 1 psf — the split that reproduces your W1S-26062 longitudinal table; roof dead from a dropped frame file (NBG Frame's *RoofDead*, since the PCS says "Per Seller") or typed — never guessed; collateral and snow from Box 4; walls 3 psf; vertical distribution; "steel systems not detailed for seismic" in SDC A–C (R 3); whether the mezzanine is a story (over ⅓ of the floor); the mezzanine diaphragm.
+3. **Mezzanine loads** (Input Data B89–B95 / F89–F95, the storage check box): elevation (A), floor dead (the design's, or typed — e.g. 55), collateral, joists, floor live (the workbook takes 25 % for storage), partition. The workbook takes two mezzanines per building.
+4. **Each frame** (Lateral Calcs. (1)): the frame's system (B9), its bay width — the strip it carries, half the bay each side, an end frame half the end bay (B18, which is how the workbook's formulas use it: roof weight = bay × width × psf) — where it is (Q1), and each mezzanine's floor area in that strip (B31 / B34). The workbook's mezzanine rows (G77 / G78) are that frame's mezzanine seismic forces. Click a row for the full distribution and the cell-by-cell entries; *Workbook* downloads the filled copy.
+5. **Into NBG Frame**: one table, one row per frame line × column × level — the frame columns the mezzanine's beams frame into, the mezzanine force shared by the dead load each takes (or equally), **Calculated** and **Applied**. Applied is what the frame files get, EQR = +Applied, EQL = −Applied, at the mezzanine level:
+   - type a value in Applied to use your own (↺ goes back); *All loads ×* multiplies every calculated load; typing 0 leaves the rows off that column;
+   - a value typed in a frame-file card's EQR X Force sets that column for every line the file designs (3, 4 and 5 for a 3-5 file);
+   - *Back to the calculated loads* clears every edit; edits are kept on this computer with the job (by quote number), and a typed value whose column or level no longer exists is flagged and not used.
+   - A frame line with mezzanine area but no frame column the mezzanine frames into is flagged: that share needs independent bracing or another frame.
+6. **Bracing** (Longitudinal Calcs.): the whole building; the mezzanine rows (G77 / G78) are the seismic forces your bracing takes at the mezzanine level, with the roof psf and Cs for the bracing software. Folded under it: the multistory distribution, and which bracing lines take the force (the floor spans between its edges as a flexible diaphragm, lever rule; a sidewall line is the building bracing, tiered at the mezzanine level; any other line is independent X-bracing for the larger of the seismic and the DM 15.1.3 1 % stability force).
+
+**What the tool does beyond the procedure** is listed on the page, each with its switch: the framing weight added to the floor dead; the self-weight split; how a frame's load is split between its columns; R 3 (the workbook) against NBG Frame's OMF R 3.5; the workbook's alternate roof seismic weight (G64, shown for information, not written — the frame files keep NBG Frame's own roof seismic); the bracing-line split and 1 % check; EQR Top/Left until Bottom/Right is confirmed.
+
+**Load level.** The workbook's values are Q<sub>E</sub> (12.8), before ρ and the ASD 0.7; NBG Frame's load combinations apply them.
+
+**Checked** against the IBC Seismic workbook in LibreOffice (`oracle/seismic_oracle.py`, `oracle/seismic_check.js`): 15 cases covering ASCE 7-05 / 7-10 / 7-16, site classes B–D, risk categories I–IV, SDC A–D, the 12.8.1.3 caps, the 7-16 11.4.8 exception, snow over 30 psf, partitions, concentrated loads, k = 0 and k > 1, gable / unequal gable / single slope, end and interior frames, the building-limit warning and a rigid mezzanine diaphragm — **1,386 of 1,386 values tie**. And every frame line of the four sample jobs typed into the real workbook and recalculated gives the tool's numbers (`oracle/fill_check.py`). A user's own longitudinal table for W1S-26062 (V 44.92 k, mezzanines 13.95 + 5.98 k) is reproduced row for row.
 
 ### Jobs remembered
 
@@ -368,10 +375,11 @@ Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the li
 ```bash
 npm install            # pdfjs-dist 3.11.174 (inlined into the build)
 npm run build          # -> index.html
-npm test               # guide examples, layout cases, parser, plan symbols, frame-file writer; the example jobs,
-                       # variant loop and real frame files when private/pcs/ and private/frame/ have them
+npm test               # guide examples, layout cases, parser, plan symbols, frame-file writer, beam options, the
+                       # workbook writer; the example jobs, variant loop, real frame files and workbooks when
+                       # private/pcs/, private/frame/ and private/workbooks/ have them
 npm run e2e            # drive index.html in Chromium for every PDF in private/pcs/: load, every control, 3D pick,
-                       # copy, manual entry, NBG Frame files
+                       # copy, manual entry, NBG Frame files, seismic edits, filled-workbook downloads
 MZ_DUMP=oracle/out node test/variants.test.js   # also write the picked sections as oracle cases
 ```
 
@@ -392,6 +400,10 @@ node oracle/job_ties.js oracle/out/job
 node oracle/steps_dump.js private/pcs/JOB.pdf oracle/out/steps '{"edition":"16"}'
 python3 oracle/steps_oracle.py oracle/out/steps.json oracle/out/steps_res.json
 node oracle/steps_check.js oracle/out/steps
+
+# the filled workbooks the page downloads (src/xls.js): fill all of them for the jobs, then xlrd + LibreOffice
+node oracle/fill_dump.js oracle/out/filled private/pcs/*.pdf
+cd oracle && python3 fill_check.py out/filled
 ```
 
 `private/` is gitignored. The NBG workbooks, design manuals, customer PCS files and NBG Frame files (`private/frame/`) never go in this public repo. `MZ_FRAME_OUT=dir node test/framefile.test.js` also writes the finished frame files, to check them in NBG Frame or with any zip / XML tool.

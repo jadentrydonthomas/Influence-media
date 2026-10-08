@@ -973,3 +973,5 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .fit-tries span.ok { background: var(--green-soft); color: var(--green-dark); }
 .seis-grid .lab { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .seis-grid > label .lab .src, .seis-grid > label .lab .wb-cell { margin-left: 0; }
+.nbg-seis.note { background: var(--surface-soft); border-left-color: var(--line-strong); }
+.nbg-seis.note small { display: block; margin-top: 6px; color: var(--ink-faint); }
