@@ -207,14 +207,16 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
 
 ### Frame loads and NBG Frame files (Plan page)
 
-**Frame loads.** Each frame line lists the mezzanine dead and live that reach the frame's own columns: the unfactored beam end shears (MB `H6` / `H10`) summed at each column, at T/beam. Columns are numbered the way NBG Frame numbers them: COL01 at the FSW, then each Box 5 interior column, the BSW column last. Mezzanine columns are never in this list. An endwall column beside a rigid end frame is shown, dimmed, as *not a member of this frame*, because its load goes to the endwall design. Copy a frame line, or download the whole table as CSV.
+**Frame loads.** Each frame line lists the mezzanine dead and live that reach the frame's own columns: the unfactored beam end shears (MB `H6` / `H10`) summed at each column, at the floor level (A) — the height the seismic workbook uses for the mezzanine — or at T/beam with the switch. With the Seismic page complete, each column also shows its EQR / EQL share. Columns are numbered the way NBG Frame numbers them: COL01 at the FSW, then each Box 5 interior column, the BSW column last. Mezzanine columns are never in this list. An endwall column beside a rigid end frame is shown, dimmed, as *not a member of this frame*, because its load goes to the endwall design. Copy a frame line, or download the whole table as CSV.
 
 **NBG Frame files.** Drop the job's `.frame` files (one per frame line or group, e.g. `…_Bldg_1_3-5.frame`) on the Plan page. Each file comes back with the loads typed in, the same rows you would add under *Tools → Concentrated (Panel) Loads*:
 
 | Description | Load Case | Member | X Force | Y Force (kip) | Moment | Location (ft) | Ecc. Loc. | Ecc. Offset | Loc. Sys. |
 |---|---|---|---|---|---|---|---|---|---|
-| FDL 2 | FDL | COL02 | 0 | −dead | 0 | T/beam | WebCenterline | 0 | Global |
-| FLL 2 | FLL | COL02 | 0 | −live | 0 | T/beam | WebCenterline | 0 | Global |
+| FDL 2 | FDL | COL02 | 0 | −dead | 0 | floor level A | WebCenterline | 0 | Global |
+| FLL 2 | FLL | COL02 | 0 | −live | 0 | floor level A | WebCenterline | 0 | Global |
+| EQR 2 | EQR | COL02 | +seismic | 0 | 0 | floor level A | Top/Left (Bottom/Right once confirmed) | 0 | Global |
+| EQL 2 | EQL | COL02 | −seismic | 0 | 0 | floor level A | Top/Left | 0 | Global |
 
 - **File names are short on purpose:** frame number, building, frame lines, e.g. `1234567-B1-3-5_mz.frame`. NBG Frame's analysis only reads a file path up to 64 characters, folder included. A longer path still opens, but the run stops with *No input file …* (e.g. `C:\Users\<name>\Downloads\Frame-…-Bldg 1-2_mezz (3).frame`). Keep the file in a short folder, and delete older copies so the browser doesn't add " (1)" to the name.
 - **Frame lines** come from the file name (`_3-5` → 3, 4, 5) and can be retyped on the card. A file that designs several lines gets, for each column, the largest dead and the largest live of those lines.
@@ -226,7 +228,9 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
   With neither, COL01 is taken as the FSW column, and the card says so.
 - **Checks on every card:** job number, building and width against the PCS. A file for another building takes none of this building's loads.
 - **Floor Dead / Floor Live** are set to 1 psf when they are 0 (as done by hand), so that NBG Frame creates the FDL and FLL cases. Values already set are left alone.
-- **Re-export** replaces the earlier FDL / FLL rows (including hand-typed "FDL1" rows) and doesn't add a second set. Other FDL / FLL rows already in the file are kept and flagged.
+- **Re-export** replaces the earlier FDL / FLL / EQR / EQL rows (including hand-typed "FDL1" or "EQR 1" rows) and doesn't add a second set. NBG's own *Lean-To* seismic rows are never touched. Other rows of those cases already in the file are kept and flagged.
+- **Seismic rows** (from the Seismic page) are written the way NBG Frame writes its own lean-to seismic rows: X force ± at the mezzanine level, Ecc. Loc. Top/Left — an X force with no offset takes no moment from the flange it is drawn at. EQR rows switch to Bottom/Right once that code is confirmed (pick it from the same check file, or drop a frame where EQR rows were set to Bottom/Right by hand).
+- **The roof seismic** each card asks for (Frame Loads: Roof Seismic Dead Load and Roof Seismic Factor) is shown next to the file's own values and marked once they match. It is not written: NBG Frame works it out again on Get Applied Loads.
 - **Nothing else in the file changes.**
   - The connections and detailing entries are copied byte for byte.
   - The model text only gains the new rows and the two 1-psf values: CRLF line endings and indentation as NBG writes them.
@@ -235,8 +239,9 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
   1. Open the file.
   2. Process → Get Applied Loads → final pass.
   3. Tools → Concentrated (Panel) Loads: check the rows, then *Save and Gen Loads*.
-  4. Run.
-- *Location* is the height of the load above the finished floor (Loc. Sys. Global): T/beam by default, or the top of the floor (A) with the switch.
+  4. With seismic: Frame Loads → Roof Seismic Dead Load and Roof Seismic Factor as on the card.
+  5. Run.
+- *Location* is the height of the load above the finished floor (Loc. Sys. Global): the floor level A by default (11'-6" on W1S-26062), or T/beam (A − slab − joist seat, 10'-9" there) with the switch. For the dead and live it makes no practical difference — with WebCenterline there is no eccentric moment, only where the column axial starts — but the seismic acts at the floor, where the mass is.
 - *Ecc. Loc.* is the row's `toFlange` code.
   - NBG Frame shows `1` as Top/Left (its own Lean-To rows).
   - `0` is not one of its choices: the cell comes up blank and the dialog says *Invalid data was entered or pasted*.
@@ -246,6 +251,23 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
     3. Click the ECC row that reads *WebCenterline*.
   - Alternatively, drop a frame saved from NBG Frame with FDL / FLL rows set to WebCenterline by hand; the code is read from it.
   - The code is kept in the browser; *Reset* starts over.
+
+### Seismic to the frames and the bracing (Seismic page)
+
+The mezzanine's seismic load, worked the way NBG's **IBC Seismic workbook** (rev. 2021.01.20) works it — ASCE 7 equivalent lateral force, 12.8 — and put where it goes.
+
+- **Inputs.**
+  - Box 3: Ss, S1, site class ("Soils Report" / "Assumed"), risk category; the code line picks ASCE 7-05 / 7-10 / 7-16 (7-22 asks for SDS and SD1 from the ASCE Hazard Tool).
+  - Box 2: roof profile, eaves, slope, distance to ridge. Box 4: roof snow and collateral.
+  - Roof dead is "Per Seller" on the PCS: it is read from a dropped frame file (NBG Frame's *RoofDead*), or typed — never guessed.
+  - Frame self weight 2 psf (workbook default), roof self weight 1 psf, walls 3 psf metal panel — all editable.
+  - Each mezzanine: its floor dead (from the design, or typed — e.g. 55), collateral, joists, 25 % of the live where Box 22 says Storage, partition, and the framing self weight from this design (beams + half the columns, untick when the dead already includes it).
+- **Frames (lateral).** One calculation per frame line with mezzanine in its strip (half the bay each side; an end frame half the end bay): that strip of roof (on the slope, 20 % of the snow over 30 psf), its sidewalls, the endwall at an end frame, and each mezzanine's slab area in the strip. Cs from SDS / SD1 / R / Ie / Ta, distributed over height with k from Ta. In SDC A–C the workbook's "steel systems not detailed for seismic" (R = 3); NBG Frame's own file uses OMF R 3.5 — both are shown.
+  - The mezzanine row is the frame's concentrated seismic load at the mezzanine level. It goes on the frame columns that mezzanine's beams frame into (DM 15.1.3: a side on a rigid frame is held by the frame), shared by the dead load each takes (or equally) → the EQR / EQL rows.
+  - The roof and walls go into NBG Frame as its roof seismic dead load with Cs (the workbook's "alt. roof weight"). With a mezzanine low in the building the vertical distribution puts more of the shear at the roof than NBG Frame's single-level roof seismic does — on W1S-26062 frame 2 the roof's share is about 1.8 × Cs × its weight.
+  - A frame line with mezzanine area but no frame column the mezzanine frames into is flagged: that share needs independent bracing or another frame.
+- **Bracing (longitudinal).** The whole building: the roof psf and Cs for the bracing software (which otherwise fixes the roof at 8 psf), the sidewall loads at the eave, each mezzanine's force at its level. Then what each line has to hold: the floor spans across the building between its edges as a flexible diaphragm (lever rule, cut along the length wherever the floor changes width). A sidewall line is the building's bracing, tiered at the mezzanine level; any other line is independent X-bracing, designed for the larger of the seismic and the DM's 1 % (FDL + FLL) stability force.
+- **Checked** against the IBC Seismic workbook in LibreOffice (`oracle/seismic_oracle.py`, `oracle/seismic_check.js`): 14 cases covering ASCE 7-05 / 7-10 / 7-16, site classes B–D, risk categories I–IV, SDC A–D, the 12.8.1.3 caps, the 7-16 11.4.8 exception, snow over 30 psf, partitions, concentrated loads, k = 0 and k > 1, gable / unequal gable / single slope, end and interior frames, and the building-limit warning — **1,293 of 1,293 values tie**. A user's own longitudinal table for W1S-26062 (V 44.92 k, mezzanines 13.95 + 5.98 k) is reproduced row for row.
 
 ### Jobs remembered
 

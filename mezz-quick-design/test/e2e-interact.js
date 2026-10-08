@@ -121,10 +121,22 @@ if (pdfArgs.length > 1) {
   else if (frames.length) {
     await page.setInputFiles('#nbgFile', frames);
     await page.waitForSelector('#nbgList .nbg-file', { timeout: 20000 }); await page.waitForTimeout(300);
-    const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
+    const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 3, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
     const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
-    if (!two || two[1].join('|') !== 'FDL 2 COL02 -11.527 10.75 WebCenterline Global|FLL 2 COL02 -25.000 10.75 WebCenterline Global|FDL 3 COL03 -18.921 10.75 WebCenterline Global|FLL 3 COL03 -42.000 10.75 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
+    // floor dead / live at the floor level A (11'-6"), web centreline
+    if (!two || two[1].filter(r => /^F[DL]L/.test(r)).join('|') !== 'FDL 2 COL02 0.000 -11.527 11.50 WebCenterline Global|FLL 2 COL02 0.000 -25.000 11.50 WebCenterline Global|FDL 3 COL03 0.000 -18.921 11.50 WebCenterline Global|FLL 3 COL03 0.000 -42.000 11.50 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
+    // seismic: the frame files gave NBG Frame's roof dead, so the Seismic page is complete and each frame gets EQR / EQL
+    const eq2 = two ? two[1].filter(r => /^EQ/.test(r)).map(r => r.split(' ')) : [];
+    console.log('NBG seismic rows, frame 2'.padEnd(30), eq2.map(r => r.join(' ')).join(' | '));
+    if (eq2.map(r => r.slice(0, 3).join(' ')).join() !== 'EQR 2 COL02,EQL 2 COL02,EQR 3 COL03,EQL 3 COL03' || eq2.some(r => r[5] !== '11.50' || r[6] !== 'Top/Left') || +eq2[0][3] <= 0 || +eq2[0][3] !== -eq2[1][3]) fail('frame 2 should carry EQR + / EQL − on COL02 (Mezz 2) and COL03 (Mezz 1) at the floor level');
+    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(200);
+    const seisTxt = await page.$eval('#v-seismic', e => e.innerText);
+    console.log('Seismic page'.padEnd(30), (seisTxt.match(/SDC\s*\S+/) || [''])[0], '· frames', (await page.$$('#seisFrames .seis-fr')).length, '· brace lines', (await page.$$('#seisBracing tbody tr')).length);
+    if (!/FRAME FILE/i.test(seisTxt) || (await page.$$('#seisFrames .seis-fr')).length !== 6 || /Needs:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
+    await page.click('#seisFrames .seis-fr'); await page.waitForTimeout(120);
+    if (await page.$eval('#seisFrames .seis-dist-row', e => e.hidden)) fail('a frame row should open its distribution');
+    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
     if (!one || one[2].join() !== '1/C,1/B' || one[1].some(r => /COL01/.test(r))) fail('frame 1: 1/E and 1/A on the frame, 1/B and 1/C listed apart, nothing on the FSW column');
     if (!/Every frame line/.test(await page.$eval('#nbgList .nbg-cover', e => e.textContent))) fail('all frame lines with load should be covered');
     // nothing is made with an unconfirmed Ecc. Loc. code: the check file first, then the row that reads WebCenterline
@@ -153,8 +165,10 @@ if (pdfArgs.length > 1) {
       console.log('NBG file names'.padEnd(30), names.join(' '));
       if (!names.every(n => /^[A-Za-z0-9-]+_mz\.frame$/.test(n) && n.length <= 26)) fail('frame file names must stay short, without spaces or brackets: ' + names.join(', '));
       const one = zipped.find(e => /^\d+-B1-2_mz\.frame$/.test(e.name)), inner = FFz.unzip(one.data).find(e => e.name === '.nfrx');
-      const codes = [...new Set(FFz.cloadsOf(new TextDecoder().decode(zz.inflateRawSync(inner.data))).map(c => c.fields).filter(FFz.isOurs).map(c => c.toFlange))];
-      if (codes.join() !== '3') fail('the frame files should carry the confirmed code'); }
+      const cl = FFz.cloadsOf(new TextDecoder().decode(zz.inflateRawSync(inner.data))).map(c => c.fields);
+      const codes = [...new Set(cl.filter(FFz.isGravity).map(c => c.toFlange))];
+      if (codes.join() !== '3') fail('the frame files should carry the confirmed code');
+      if (cl.filter(FFz.isSeismic).length !== 4 || cl.filter(c => /lean/i.test(c.name)).length < 2) fail('the frame file should carry the 4 EQ rows and keep NBG\'s lean-to rows'); }
     await page.click('#nbgEccReset'); await page.waitForTimeout(150);
     if (!/One-time setup/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('Reset should ask for the code again');
     // a frame saved from NBG Frame with the rows set to WebCenterline by hand (stand-in code 3): the code is learned and used
@@ -172,7 +186,7 @@ if (pdfArgs.length > 1) {
     const [d2] = await Promise.all([page.waitForEvent('download'), page.click('#nbgList .nbg-file [data-nbg-dl]')]);
     const p2 = path.join(shots, 'learned_' + d2.suggestedFilename()); await d2.saveAs(p2);
     const back = await FF.read(new Uint8Array(fs.readFileSync(p2)), io, d2.suggestedFilename());
-    const codes = [...new Set(back.info.cloads.filter(FF.isOurs).map(c => c.toFlange))];
+    const codes = [...new Set(back.info.cloads.filter(FF.isGravity).map(c => c.toFlange))];
     console.log('NBG rows written with'.padEnd(30), 'toFlange', codes.join(', '));
     if (codes.join() !== '3') fail('every FDL / FLL row should carry the learned code');
     await page.click('#nbgEccReset'); await page.waitForTimeout(150);

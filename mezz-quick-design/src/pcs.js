@@ -163,12 +163,51 @@
     return { family: 'AISC', year: null, edition: '15', spec: 'AISC 360-16', note: 'Building code not found; defaulting to the 15th-edition sheets.' };
   }
 
+  /* ---------- Box 3: seismic, snow, risk category ----------
+     "Occupancy Classification: II - Standard Buildings", "Seismic Information: Ss: 0.169", "S1: 0.058",
+     "Site Class: D Soils Report", "Ground Snow Load: 30 psf" */
+  function seismicFacts(pages) {
+    const txt = allLines(pages.slice(0, 8)).map(l => l.text).join('\n');
+    const occ = grab(txt, /Occupancy Classification:\s*(.+?)(?:\s{2,}|\n|$)/);
+    const risk = occ && (occ.match(/^\s*(IV|III|II|I)\b/) || [])[1];
+    const num = re => { const v = grab(txt, re); return v != null && isFinite(parseFloat(v)) ? parseFloat(v) : null; };
+    const site = grab(txt, /Site Class:\s*(.+?)(?:\s{2,}|\n|$)/);
+    return {
+      occupancy: occ, risk: risk || null, Ss: num(/\bSs:\s*([\d.]+)/), S1: num(/\bS1:\s*([\d.]+)/),
+      siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
+      groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
+    };
+  }
+  /* ---------- Box 4: roof loads per building ----------
+     Building | Roof Dead | Roof Snow | Wind Enclosure | Thermal | Primary Collateral | Secondary Collateral | …
+     ("Per Seller" or "n psf"; a * on the snow marks a user override) */
+  function roofLoads(pages, name) {
+    for (const p of pages.slice(0, 8)) {
+      const ls = lines(p), h = findLine(ls, /Roof Dead\s+Roof Snow|Roof Dead/i);
+      if (h < 0 || !/Collateral/i.test(ls[h].text)) continue;
+      const hx = re => { for (const l of ls.slice(h, h + 3)) for (const it of l.items) if (re.test(it.str)) return it.x; return null; };
+      const xPrim = hx(/^Primary/i), xSec = hx(/^Secondary/i), xDue = hx(/^Collateral$|Collateral Load/i);
+      const end = findLine(ls, /DEFLECTION REQUIREMENTS|^\* /i, h + 1);
+      const rows = ls.slice(h + 2, end < 0 ? h + 12 : end).filter(l => l.items.length >= 3 && !/psf/i.test(l.items[0].str));
+      const row = rows.find(l => !name || bkey(l.items[0].str) === bkey(name)) || (!name ? rows[0] : null);
+      if (!row) continue;
+      const psf = t => { const m = /([\d.]+)\s*psf(\*)?/i.exec(t || ''); return m ? { value: +m[1], override: !!m[2] } : /per seller/i.test(t || '') ? { value: null, perSeller: true } : null; };
+      const rest = row.items.slice(1);
+      const bin = x => [[xPrim, 'coll1'], [xSec, 'coll2'], [xDue, 'due']].filter(c => c[0] != null).sort((a, b) => Math.abs(a[0] - x) - Math.abs(b[0] - x))[0];
+      const out = { building: clean(row.items[0].str), dead: psf(rest[0] && rest[0].str), snow: psf(rest[1] && rest[1].str), coll1: null, coll2: null };
+      rest.slice(2).forEach(it => { const v = psf(it.str), b = v && v.value != null && bin(it.x); if (b && (b[1] === 'coll1' || b[1] === 'coll2') && out[b[1]] == null) out[b[1]] = v.value; });
+      return out;
+    }
+    return null;
+  }
+  const bkey = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+
   // ---------- Box 2: building geometry ----------
   function building(pages, name) {
     const pi = pages.findIndex(p => lines(p).some(l => /BUILDING DESCRIPTION/i.test(l.text)));
     if (pi < 0) return null;
     const ls = lines(pages[pi]);
-    const out = { name: null, width: null, length: null, ridge: null, eave: null, bays: [], lewCols: [], rewCols: [], fswSoldier: [], bswSoldier: [] };
+    const out = { name: null, width: null, length: null, ridge: null, eave: null, eaveFSW: null, eaveBSW: null, slopeFSW: null, slopeBSW: null, profile: null, bays: [], lewCols: [], rewCols: [], fswSoldier: [], bswSoldier: [] };
     // building information row: first line after the header carrying >= 3 dimensions
     const hi = findLine(ls, /BUILDING INFORMATION/i);
     for (let i = hi + 1; i < ls.length && i >= 0; i++) {
@@ -178,6 +217,12 @@
         // width, length, distance to ridge (N/A on a single slope or a lean-to), eave heights: N/A keeps its place
         const tok = (ls[i].text.match(new RegExp(DIM + '|N\\/A', 'g')) || []).map(t => (t === 'N/A' ? null : ftin(t)));
         [out.width, out.length, out.ridge, out.eave] = tok.length >= 3 ? tok : dims;
+        // eave heights FSW / BSW and roof slopes FSW / BSW ("1:12\"", N/A on the low side of a single slope); the
+        // slope's 12" would read as a dimension, so slopes are taken on their own
+        out.eaveFSW = out.eave; out.eaveBSW = tok.length >= 5 && tok[4] != null ? tok[4] : out.eave;
+        const sl = [...ls[i].text.matchAll(/(\d+(?:\.\d+)?)\s*:\s*12/g)].map(m => +m[1]);
+        out.slopeFSW = sl[0] ?? null; out.slopeBSW = sl[1] ?? null;
+        out.profile = /single\s*slope/i.test(ls[i].text) ? 'Single Slope' : /lean/i.test(ls[i].text) ? 'Lean-To' : /gable/i.test(ls[i].text) ? 'Gable' : null;
         out.name = clean(ls[i].items[0].str);
         if (!name || out.name.toUpperCase() === name.toUpperCase()) break;
       }
@@ -404,14 +449,14 @@
     const mezz = mezzanines(pages);
     // geometry per building the mezzanines sit in (a job can have a main building plus a lean-to, etc.)
     const buildings = {};
-    [...new Set(mezz.map(m => m.building || ''))].forEach(n => { buildings[n] = { building: building(pages, n || null), frames: frames(pages, n || null) }; });
+    [...new Set(mezz.map(m => m.building || ''))].forEach(n => { buildings[n] = { building: building(pages, n || null), frames: frames(pages, n || null), roof: roofLoads(pages, n || null) }; });
     const first = buildings[(mezz[0] && mezz[0].building) || ''] || { building: building(pages, null), frames: frames(pages, null) };
     // Ecospan (Vulcraft composite joist floor, DM 15.1.5): named anywhere in the text or the blue notes
     const words = allLines(pages).map(l => l.text).concat(pages.flatMap(p => (p.annots || []).map(a => a.text || ''))).join('\n');
     const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages) };
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages) };
   }
 
-  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments };
+  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);

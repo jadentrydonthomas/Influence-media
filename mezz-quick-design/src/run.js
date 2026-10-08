@@ -7,6 +7,7 @@
   const LAYOUT = root.MZ_LAYOUT || req('./layout.js');
   const DESIGN = root.MZ_DESIGN || req('./design.js');
   const PCS = root.MZ_PCS || req('./pcs.js');
+  const SEIS = root.MZ_SEISMIC || req('./seismic.js');
 
   const DEFAULTS = {
     joistWt: 8,          // psf, standard average (Econ. Joist Guide)
@@ -119,6 +120,8 @@
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
+      // Box 3: seismic site data and risk category (the seismic loads to the frames and the bracing)
+      seismic: { ...(pcs.seismic || {}) },
       mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
@@ -141,6 +144,9 @@
         // column symbols on the floor plan: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column
         planCols: planFor(pcs, mi).planCols,
         attach: (pcs.attachments || []).find(a => bkeyName(a.building) === bkeyName(m.building)) || null,
+        // Box 2 roof shape and Box 4 roof loads, for the seismic weight of the roof and walls
+        geo: { profile: b.profile || null, eaveFSW: b.eaveFSW ?? b.eave ?? null, eaveBSW: b.eaveBSW ?? b.eave ?? null, slopeFSW: b.slopeFSW ?? null, slopeBSW: b.slopeBSW ?? null },
+        roofLoads: (own && own.roof) || null,
       },
     };
   }
@@ -903,8 +909,182 @@
     return out.sort((a, b) => a.x - b.x);
   }
 
+  /* ---------- seismic: the mezzanine's share of each frame (EQR / EQL) and of the bracing ----------
+     NBG's IBC Seismic workbook, case for case (src/seismic.js is tied to it value by value):
+       LATERAL — every frame line with mezzanine area in its strip (half the bay each side; an end frame half the end
+         bay): that strip of roof and sidewalls, the endwall at an end frame, and each mezzanine's slab area in the strip,
+         distributed over height (12.8.3, k from Ta). The mezzanine row is the frame's concentrated seismic load at the
+         mezzanine level. It goes on the frame columns that mezzanine's beams frame into (DM 15.1.3: a side on a rigid
+         frame is held by the frame), in proportion to the dead load each column takes from it, or equally. The roof and
+         wall rows, lumped into the roof ("alt. roof weight"), are the roof seismic dead load NBG Frame needs in place of
+         its own, with the seismic factor Cs: NBG Frame leaves the walls and the mezzanine out of its roof seismic, and
+         with a mezzanine the vertical distribution puts more of the base shear at the roof.
+       LONGITUDINAL — the whole building, for the bracing: roof psf and Cs for the bracing software, the sidewall loads
+         at the eave, and each mezzanine's force at its level. A mezzanine's force goes to its two long edges as a simply
+         supported flexible diaphragm (mezzanines that meet at one level act as one floor): an edge on a sidewall is held
+         by the building's sidewall bracing, tiered at the mezzanine level (DM 15.1.3); any other edge needs independent
+         X-bracing, designed for the larger of that force and 1 % of the (FDL + FLL) tributary to it.
+     cfg (Seismic page): { ed, Ss, S1, siteClass, risk, SDS, SD1, vertical, ignoreNDFS, split: 'dead' | 'equal',
+       types: [FSW, BSW], buildings: { [bkey]: { SW, RSW, RDL, CDL, Pf, walls: {fsw, bsw, lew, rew}, story } },
+       mezz: { [mezzanine id]: { FDL, framing: false, storage } } } — anything left out comes from the PCS / defaults. */
+  const SEIS_DEFAULTS = { SW: 2, RSW: 1, wall: 3, split: 'dead', types: ['X-Bracing', 'X-Bracing'] };
+  const secWt = sec => (!sec ? 0 : sec.type === 'WF' ? (WF[sec.name] || {}).W || 0 : (sec.bof * sec.tof + sec.bif * sec.tif + (sec.d - sec.tof - sec.tif) * sec.tw) * 490 / 144);
+  function seismicJob(ctxs, mezz, frames, cfg = {}) {
+    const live = ctxs.filter(c => !c.incomplete);
+    if (!live.length || !SEIS) return null;
+    const F = PCS.fmtFtIn, c0 = live[0], px = c0.inp.seismic || {}, need = [], notes = [];
+    const src = (typed, pcs, def, pcsLabel = 'PCS') => (typed != null && typed !== '' ? { value: +typed, source: 'typed' } : pcs != null ? { value: pcs, source: pcsLabel } : def != null ? { value: def, source: 'default' } : { value: null, source: 'missing' });
+    const code = SEIS.editionOf(((c0.inp.job || {}).code || {}).text);
+    const ed = cfg.ed || code.ed;
+    if (code.note) notes.push({ level: 'warn', text: code.note });
+    const inp = {
+      ed, Ss: src(cfg.Ss, px.Ss), S1: src(cfg.S1, px.S1),
+      siteClass: cfg.siteClass ? { value: cfg.siteClass, source: 'typed' } : { value: px.siteClass || 'D', source: px.siteClass ? 'PCS' : 'default' },
+      risk: cfg.risk ? { value: cfg.risk, source: 'typed' } : { value: px.risk || 'II', source: px.risk ? 'PCS' : 'default' },
+      SDS: src(cfg.SDS, null), SD1: src(cfg.SD1, null),
+    };
+    if (px.siteNote && /assumed/i.test(px.siteNote) && !cfg.siteClass) notes.push({ level: 'info', text: `Site Class ${inp.siteClass.value} is "${px.siteNote}" on the PCS — ASCE 7 11.4.2: Site Class D where soil properties are not known.` });
+    if (inp.Ss.value == null || inp.S1.value == null) need.push('Ss and S1 (PCS Box 3)');
+    const d = need.length ? null : SEIS.design({ ed, Ss: inp.Ss.value, S1: inp.S1.value, siteClass: inp.siteClass.value, risk: inp.risk.value, SDS: inp.SDS.value, SD1: inp.SD1.value });
+    if (d && !d.ok) d.flags.forEach(t => need.push(t));
+    const out = { ok: false, need, notes, inputs: inp, design: d, buildings: [], cfg };
+    // per building
+    [...new Set(live.map(c => c.bkey))].forEach(bk => {
+      const cs = live.filter(c => c.bkey === bk), b = cs[0].inp.building, geo = b.geo || {}, rl = b.roofLoads || {}, bo = (cfg.buildings || {})[bk] || {};
+      const name = cs[0].inp.mezz.building || 'Building', W = b.width, Lg = b.length;
+      const eF = geo.eaveFSW ?? b.eave, eB = geo.eaveBSW ?? eF;
+      // the workbook's convention: the BSW is the high / "left" eave, slope and ridge measured from it
+      let g, geoNote = null;
+      if ((geo.profile === 'Gable' || (!geo.profile && b.ridge > 0)) && b.ridge > 0 && b.ridge < W) g = { width: W, length: Lg, rooftype: 'Gable', dtr: W - b.ridge, slope: geo.slopeBSW ?? geo.slopeFSW ?? 1, leh: eF, heh: eB };
+      else {
+        const lo = Math.min(eF, eB), hi = Math.max(eF, eB);
+        g = { width: W, length: Lg, rooftype: 'Single Slope', dtr: 0, slope: geo.slopeFSW ?? geo.slopeBSW ?? ((hi - lo) * 12 / W), leh: lo, heh: hi };
+        if (eF > eB) geoNote = 'High eave on the FSW side: the sidewall rows are labelled by low / high eave.';
+      }
+      if (g.rooftype === 'Gable' && Math.abs(b.ridge - W / 2) > 0.5) geoNote = `Unequal gable: ridge ${F(b.ridge)} on the PCS taken from the FSW (${F(g.dtr)} from the BSW) — confirm the side.`;
+      if (!(eF > 0)) need.push(`${name}: eave height (PCS Box 2)`);
+      const ff = bo.frameFile || {};   // roof loads NBG Frame uses, read off a dropped frame file
+      const roof = {
+        SW: src(bo.SW, null, SEIS_DEFAULTS.SW), RSW: src(bo.RSW, null, SEIS_DEFAULTS.RSW),
+        RDL: src(bo.RDL, rl.dead && rl.dead.value != null ? rl.dead.value : ff.roofDead ?? null, null, rl.dead && rl.dead.value != null ? 'PCS' : 'frame file'),
+        CDL: src(bo.CDL, rl.coll1 ?? ff.roofCollateral ?? null, 0, rl.coll1 != null ? 'PCS' : 'frame file'),
+        Pf: src(bo.Pf, rl.snow && rl.snow.value != null ? rl.snow.value : null, 0),
+      };
+      if (roof.RDL.value == null) need.push(`${name}: roof dead load — "Per Seller" on the PCS; drop the frame files (NBG Frame's roof dead is read from them) or type it`);
+      if (rl.snow && rl.snow.override && roof.Pf.value > 30 && roof.Pf.source === 'PCS') notes.push({ level: 'warn', text: `${name}: roof snow ${roof.Pf.value} psf* (user override on the PCS) is taken as the flat-roof snow — over 30 psf, 20 % of it is in the seismic weight (ASCE 7 12.7.2). Confirm.` });
+      const walls = {}; ['fsw', 'bsw', 'lew', 'rew'].forEach(k => { walls[k] = src((bo.walls || {})[k], null, SEIS_DEFAULTS.wall); });
+      // mezzanines in this building: seismic weight per sq ft (12.7.2) and slab footprint
+      const mz = cs.map(c => {
+        const r = mezz[c.index], mo = (cfg.mezz || {})[c.id] || {};
+        const area = c.mz.length * c.mz.width;
+        // framing self weight from the design: every beam of this mezzanine, and half its columns
+        const bw = c.lay.beams.filter(bm => !bm.absorbed).reduce((a, bm) => { const mk = c.markOf(bm.id); return a + (mk && mk.sec ? secWt(mk.sec) * bm.span : 0); }, 0);
+        const cw = r && r.colFinal && r.colLen ? (WF[r.colFinal.name] || {}).W * r.colLen * r.columns.length / 2 : 0;
+        const framing = mo.framing === false ? 0 : (bw + cw) / area;
+        const FDL = src(mo.FDL, val(c.inp.loads.dead), null, 'design');
+        const storage = mo.storage != null ? !!mo.storage : c.inp.mezz.use === 'Storage';
+        const m = { id: c.id, index: c.index, elev: c.A, FDL: FDL.value, FDLsrc: FDL.source, FLC: val(c.inp.loads.coll) || 0, FLJ: val(c.inp.loads.joistWt) ?? DEFAULTS.joistWt,
+          FLL: val(c.inp.loads.live) || 0, storage, FLP: val(c.inp.loads.partition) || 0, framing, framingLb: bw + cw, area,
+          x0: c.mz.startLEW, x1: c.mz.startLEW + c.mz.length, y0: c.mz.startFSW, y1: c.mz.startFSW + c.mz.width, useText: c.inp.mezz.use || null };
+        m.psf = m.FDL + m.FLC + m.FLJ + (storage ? 0.25 * m.FLL : 0) + m.FLP + m.framing;
+        return m;
+      });
+      const story = bo.story != null ? !!bo.story : mz.reduce((a, m) => a + m.area, 0) > (W * Lg) / 3;
+      const bOut = { bkey: bk, name, g, geoNote, roof, walls, mezz: mz, story, frames: [], long: null, braceLines: [] };
+      out.buildings.push(bOut);
+      if (need.length || !d || !d.ok) return;
+      const j = { d, g, roof: { SW: roof.SW.value, RSW: roof.RSW.value, RDL: roof.RDL.value, CDL: roof.CDL.value, Pf: roof.Pf.value, P: 0 },
+        walls: { fsw: walls.fsw.value, bsw: walls.bsw.value, lew: walls.lew.value, rew: walls.rew.value }, vertical: cfg.vertical !== false, ignoreNDFS: !!cfg.ignoreNDFS, story };
+      // least R of the building's frames (Risk Category III / IV)
+      const grid = cs[0].grid, xs = grid.xs, nF = xs.length;
+      const typeAt = i => SEIS.frameType(((b.frames || []).find(fr => i + 1 >= fr.from && i + 1 <= fr.to) || {}).type);
+      j.Rmin = Math.min(...xs.map((x, i) => SEIS.system(typeAt(i), d.SDC, j.ignoreNDFS).R));
+      xs.forEach((x, i) => {
+        const lo = i === 0 ? xs[0] : (xs[i - 1] + x) / 2, hi = i === nF - 1 ? xs[nF - 1] : (x + xs[i + 1]) / 2;
+        const inStrip = mz.map(m => ({ m, a: Math.max(0, Math.min(hi, m.x1) - Math.max(lo, m.x0)) * (m.y1 - m.y0) })).filter(o => o.a > 0.5);
+        if (!inStrip.length) return;
+        const at = i === 0 ? 'lew' : i === nF - 1 ? 'rew' : 'interior';
+        const lat = SEIS.lateral(j, { label: grid.xLabel(x), type: typeAt(i), bay: hi - lo, at, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: 0, elev: o.m.elev, FDL: o.m.FDL, FLC: o.m.FLC, FLJ: o.m.FLJ, FLL: o.m.FLL, storage: o.m.storage, FLP: o.m.FLP, framing: o.m.framing })) });
+        if (lat.limit) notes.push({ level: 'stop', text: `Frame ${grid.xLabel(x)} (${name}): ${lat.limit}` });
+        // the frame columns each mezzanine frames into on this line, and its share of the frame's mezzanine load
+        const fe = frames.find(f => f.bkey === bk && Math.abs(f.x - x) < 0.05);
+        const eqs = [], loose = [];
+        lat.mezzLoads.forEach(ml => {
+          const m = mz.find(q => q.id === ml.id);
+          const cols = (fe ? fe.entries : []).map(e => ({ e, D: e.parts.filter(p => p.mi === m.index).reduce((a, p) => a + p.D, 0) })).filter(o => o.D > 0);
+          const members = cols.filter(o => o.e.member), off = cols.filter(o => !o.e.member);
+          if (!members.length) { loose.push({ id: ml.id, F: ml.F, at: ml.at, area: ml.area, why: cols.length ? 'its beams on this line bear only on endwall columns that are not members of this frame' : 'none of its beams frame into a column of this frame' }); return; }
+          const tot = cfg.split === 'equal' ? members.length : members.reduce((a, o) => a + o.D, 0);
+          members.forEach(o => {
+            const share = cfg.split === 'equal' ? 1 / tot : o.D / tot, Fc = ml.F * share;
+            o.e.eq = o.e.eq || [];
+            o.e.eq.push({ mezz: ml.id, F: Fc, at: ml.at, share, frameF: ml.F });
+            eqs.push({ member: o.e.member, label: o.e.label, mezz: ml.id, F: Fc, at: ml.at, share });
+          });
+          if (off.length) notes.push({ level: 'info', text: `Frame ${grid.xLabel(x)}: ${ml.id} also bears on ${off.map(o => o.e.label).join(', ')} — endwall columns, not part of the frame's lateral system. Its seismic on this line goes to ${members.map(o => `${o.e.member} (${o.e.label})`).join(', ')}.` });
+        });
+        loose.forEach(l => notes.push({ level: 'stop', text: `Frame ${grid.xLabel(x)} (${name}): ${l.id}'s seismic share ${l.F.toFixed(2)} k at ${F(l.at)} (${Math.round(l.area)} sq ft in this frame's strip) has no frame to go to — ${l.why}. Brace the mezzanine on this line (independent X-bracing, DM 15.1.3) or carry it to the next frames.` }));
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose };
+        if (fe) fe.seismic = { roofPsf: lat.altRoof, roofPsfSplit: lat.roofOverride, Cs: lat.cs.Cs, R: lat.R, V: lat.frameV, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
+        bOut.frames.push(fr);
+      });
+      // longitudinal: the bracing
+      const types = cfg.types || SEIS_DEFAULTS.types;
+      const long = SEIS.longitudinal(j, { types, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0, elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, FLP: m.FLP, framing: m.framing })) });
+      bOut.long = long;
+      // each mezzanine's longitudinal force to the lines along the length that hold it. The floor is a flexible
+      // diaphragm spanning across the building between its edges; where mezzanines meet at one level it spans across
+      // all of them. Cut along the length where that changes; in each piece a mezzanine's force (by its length in the
+      // piece) goes to the two edges by the lever rule. Then the same for the DM's 1 % (FDL + FLL) stability force.
+      const xsCut = [...new Set(mz.flatMap(m => [m.x0, m.x1]).map(v => +v.toFixed(3)))].sort((a, b) => a - b);
+      const lines = new Map();
+      const add = (y, xa, xb, Fq, st, ids, elev) => {
+        const k = y.toFixed(2), L = lines.get(k) || { y, segs: [], F: 0, stab: 0, mezz: new Set(), at: 0 };
+        L.F += Fq; L.stab += st; ids.forEach(i => L.mezz.add(i)); L.at = Math.max(L.at, elev);
+        const last = L.segs[L.segs.length - 1];
+        if (last && Math.abs(last[1] - xa) < 0.01) last[1] = xb; else L.segs.push([xa, xb]);
+        lines.set(k, L);
+      };
+      const force = id => (long.mezzLoads.find(q => q.id === id) || { F: 0 }).F;
+      const gravity = m => ((m.FDL + m.FLC + m.FLJ + m.FLP + m.framing) + m.FLL) * m.area / 1000;   // FDL + FLL, kips
+      for (let i = 0; i + 1 < xsCut.length; i++) {
+        const xa = xsCut[i], xb = xsCut[i + 1], here = mz.filter(m => m.x0 <= xa + 0.01 && m.x1 >= xb - 0.01);
+        // floors in this piece: mezzanines at one level whose long edges touch
+        const left = here.slice();
+        while (left.length) {
+          const fl = [left.shift()];
+          for (let grew = true; grew;) {
+            grew = false;
+            for (let q = left.length - 1; q >= 0; q--) {
+              const m = left[q];
+              if (fl.some(a => Math.abs(a.elev - m.elev) < 0.01 && (Math.abs(a.y1 - m.y0) < 0.6 || Math.abs(a.y0 - m.y1) < 0.6))) { fl.push(m); left.splice(q, 1); grew = true; }
+            }
+          }
+          const yA = Math.min(...fl.map(m => m.y0)), yB = Math.max(...fl.map(m => m.y1)), span = yB - yA;
+          let FA = 0, FB = 0, SA = 0, SB = 0;
+          fl.forEach(m => {
+            const part = (xb - xa) / (m.x1 - m.x0), yc = (m.y0 + m.y1) / 2, a = (yB - yc) / span;
+            FA += force(m.id) * part * a; FB += force(m.id) * part * (1 - a);
+            SA += 0.01 * gravity(m) * part * a; SB += 0.01 * gravity(m) * part * (1 - a);
+          });
+          const ids = fl.map(m => m.id), elev = Math.max(...fl.map(m => m.elev));
+          add(yA, xa, xb, FA, SA, ids, elev); add(yB, xa, xb, FB, SB, ids, elev);
+        }
+      }
+      [...lines.values()].sort((a, b) => a.y - b.y).forEach(L => {
+        const onWall = L.y < 0.6 ? 'FSW' : L.y > W - 0.6 ? 'BSW' : null;
+        const lab = onWall ? `${onWall} sidewall` : `${grid.yLabel(L.y) ? 'line ' + grid.yLabel(L.y) + ', ' : ''}${F(L.y)} from the FSW`;
+        bOut.braceLines.push({ mezz: [...L.mezz], y: L.y, segs: L.segs, edge: lab, at: L.at,
+          element: onWall ? `${onWall} sidewall bracing, tiered at the mezzanine level (DM 15.1.3)` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
+          independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
+      });
+    });
+    out.ok = !need.length && !!d && d.ok;
+    return out;
+  }
+
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
-  function runJob(items) {
+  function runJob(items, opts = {}) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
     // a mezzanine in a building attached to another mezzanine's building: where its beams sit in that building
     ctxs.forEach(c => {
@@ -941,7 +1121,10 @@
       r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (${/^\d/.test(it.ref) ? 'DM ' : ''}${it.ref}): ${it.text}` }));
     });
     const excel = excelSteps(ctxs, mezz, marks);
-    return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: frameEntries(ctxs, cols.frame), marks: marks.map(({ group, ...m }) => m), dm, excel };
+    const fEntries = frameEntries(ctxs, cols.frame);
+    let seismic = null;
+    try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
+    return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
   }
 
   function run(inp, settings = {}) { return runJob([{ inp, settings }]).mezz[0]; }
@@ -1030,6 +1213,6 @@
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { SEIS_DEFAULTS, seismicJob, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);

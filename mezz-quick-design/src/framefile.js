@@ -110,6 +110,13 @@
       width: num(tag(xml, 'WidthInFeet')), length: num(tag(xml, 'LengthInFeet')), eave: num(tag(xml, 'LeftEaveHeight')), bayWidth: num(tag(xml, 'BayWidth')),
       type: tag(xml, 'Type', xml.indexOf('<Geometry>')), columns: columns.filter(c => c.id),
       floorDead: num(tag(xml, 'FloorDead', loadsAt)), floorLive: num(tag(xml, 'FloorLive', loadsAt)),
+      // NBG Frame's own seismic: the roof dead / collateral it uses, its roof seismic weight and factor, its system
+      seismic: {
+        roofDead: num(tag(xml, 'RoofDead', loadsAt)), roofCollateral: num(tag(xml, 'RoofCollateral', loadsAt)),
+        roofSeismicDeadLoad: num(tag(xml, 'RoofSeismicDeadLoad', loadsAt)), roofSeismicFactor: num(tag(xml, 'RoofSeismicFactor', loadsAt)),
+        R: num(tag(xml, 'R', xml.indexOf('<SharedSeismicFactors>'))), sds: num(tag(xml, 'Sds', xml.indexOf('<SharedSeismicFactors>'))),
+        framing: tag(xml, 'FramingTypeName', xml.indexOf('<SeismicFramingType>')),
+      },
       cloads: cloadsOf(xml).map(c => c.fields), hasSpecialLoads: sl >= 0,
     };
     return { entries, model, xml, bom, info };
@@ -128,8 +135,11 @@
     }
     return out;
   }
-  // rows this tool writes (and the same rows typed by hand): case FDL / FLL, description "FDL 1", "FLL1", "FDL" …
-  const isOurs = f => (f.loadCaseID === 'FDL' || f.loadCaseID === 'FLL') && /^F[DL]L\s*\d*$/i.test(String(f.name || '').trim());
+  // rows this tool writes (and the same rows typed by hand): case FDL / FLL, description "FDL 1", "FLL1", "FDL" …, and the
+  // mezzanine seismic rows, case EQR / EQL, "EQR 2", "EQL 2b" — never NBG's own "Lean-To" seismic rows
+  const isGravity = f => (f.loadCaseID === 'FDL' || f.loadCaseID === 'FLL') && /^F[DL]L\s*\d*$/i.test(String(f.name || '').trim());
+  const isSeismic = f => (f.loadCaseID === 'EQR' || f.loadCaseID === 'EQL') && /^EQ[RL]\s*\d*[a-z]?$/i.test(String(f.name || '').trim());
+  const isOurs = f => isGravity(f) || isSeismic(f);
   const fmt = v => String(+(+v).toFixed(4));
 
   /* Ecc. Loc. is the <toFlange> code of a row. NBG Frame shows 1 as Top/Left (the Lean-To rows it writes). 0 is not
@@ -143,9 +153,22 @@
   // the invalid 0 and not Top/Left; the most common one when rows differ
   function learnWebCode(cloads, wrote) {
     const n = new Map();
-    (cloads || []).filter(isOurs).forEach(c => {
+    (cloads || []).filter(isGravity).forEach(c => {
       const v = String(c.toFlange == null ? '' : c.toFlange).trim();
       if (/^-?\d+$/.test(v) && v !== '0' && v !== ECC_TOP_LEFT && v !== String(wrote)) n.set(v, (n.get(v) || 0) + 1);
+    });
+    const best = [...n].sort((a, b) => b[1] - a[1])[0];
+    return best ? { code: best[0], rows: best[1] } : null;
+  }
+  /* The Bottom/Right code, the same way: from EQR rows set to Bottom/Right by hand (the user's convention for the
+     seismic right case). Not Top/Left, not 0, not the WebCenterline code. Until it is known, EQR rows are written
+     Top/Left — as NBG Frame's own lean-to seismic rows are: an X force with no offset takes no moment from the flange
+     it is drawn at. */
+  function learnBottomRight(cloads, web) {
+    const n = new Map();
+    (cloads || []).filter(c => c.loadCaseID === 'EQR' && isSeismic(c)).forEach(c => {
+      const v = String(c.toFlange == null ? '' : c.toFlange).trim();
+      if (/^-?\d+$/.test(v) && v !== '0' && v !== ECC_TOP_LEFT && v !== String(web)) n.set(v, (n.get(v) || 0) + 1);
     });
     const best = [...n].sort((a, b) => b[1] - a[1])[0];
     return best ? { code: best[0], rows: best[1] } : null;
@@ -185,7 +208,7 @@
     const i1 = ind + '  ', i2 = ind + '    ';
     const block = rows.map(r => [
       `${i1}<CLoad>`,
-      `${i2}<loadGroup>${conv.loadGroup}</loadGroup>`, `${i2}<status>${conv.status}</status>`, `${i2}<xMag>0</xMag>`, `${i2}<yMag>${fmt(r.y)}</yMag>`, `${i2}<moment>0</moment>`,
+      `${i2}<loadGroup>${conv.loadGroup}</loadGroup>`, `${i2}<status>${conv.status}</status>`, `${i2}<xMag>${fmt(r.x || 0)}</xMag>`, `${i2}<yMag>${fmt(r.y || 0)}</yMag>`, `${i2}<moment>0</moment>`,
       `${i2}<location>${fmt(r.location)}</location>`, `${i2}<eccentricity>${conv.eccentricity}</eccentricity>`, `${i2}<memberID>${r.member}</memberID>`,
       `${i2}<loadCaseID>${r.caseId}</loadCaseID>`, `${i2}<locSys>${conv.locSys}</locSys>`, `${i2}<toFlange>${r.toFlange != null ? r.toFlange : conv.toFlange}</toFlange>`, `${i2}<name>${r.name}</name>`,
       `${i1}</CLoad>`,
@@ -205,7 +228,7 @@
       floors[k] = { was: v, now: v > 0 ? v : 1 };
       if (!(v > 0)) out = out.slice(0, at + k.length + 2) + '1' + out.slice(endAt);
     });
-    const others = theirs.filter(c => c.fields.loadCaseID === 'FDL' || c.fields.loadCaseID === 'FLL').map(c => c.fields);
+    const others = theirs.filter(c => c.fields.loadCaseID === 'FDL' || c.fields.loadCaseID === 'FLL' || ((c.fields.loadCaseID === 'EQR' || c.fields.loadCaseID === 'EQL') && !/lean/i.test(c.fields.name || ''))).map(c => c.fields);
     return { xml: out, added: rows.length, replaced: ours.length, others, conv, floors };
   }
 
@@ -260,8 +283,11 @@
       if (!col) { unplaced.push({ ...e, frame: f.frame, gx }); return; }
       const k = col.c.id, cur = byMember.get(k) || { member: k, x: col.c.x, D: 0, L: 0, elev: 0, from: [] };
       cur.D = Math.max(cur.D, e.D); cur.L = Math.max(cur.L, e.L);
-      cur.elev = Math.max(cur.elev, opt.height === 'A' && e.A != null ? e.A : e.elev);
-      cur.from.push({ frame: f.frame, label: e.label, D: e.D, L: e.L, elev: e.elev, parts: e.parts });
+      cur.elev = Math.max(cur.elev, opt.height === 'beam' ? e.elev : e.A != null ? e.A : e.elev);
+      cur.from.push({ frame: f.frame, label: e.label, D: e.D, L: e.L, elev: e.elev, parts: e.parts, eq: e.eq || [] });
+      // seismic at this column: per elevation, the largest of the lines the file designs
+      cur.eq = cur.eq || new Map();
+      if (opt.seismic !== false) (e.eq || []).forEach(q => { const h = (+q.at).toFixed(3), sum = (e.eq || []).filter(z => (+z.at).toFixed(3) === h).reduce((a, z) => a + z.F, 0); cur.eq.set(h, Math.max(cur.eq.get(h) || 0, sum)); });
       byMember.set(k, cur);
     }));
     const members = [...byMember.values()].sort((a, b) => a.x - b.x);
@@ -270,6 +296,17 @@
       const n = +(/(\d+)\s*$/.exec(m.member) || [0, 0])[1];
       if (m.D > 0) rows.push({ name: `FDL ${n}`, caseId: 'FDL', member: m.member, y: -m.D, location: m.elev });
       if (m.L > 0) rows.push({ name: `FLL ${n}`, caseId: 'FLL', member: m.member, y: -m.L, location: m.elev });
+    });
+    // EQR +X, EQL −X at the mezzanine level (Ecc. Loc.: EQR Bottom/Right once that code is known, else Top/Left; EQL Top/Left)
+    members.forEach(m => {
+      const n = +(/(\d+)\s*$/.exec(m.member) || [0, 0])[1];
+      [...(m.eq || new Map())].sort((a, b) => +a[0] - +b[0]).forEach(([h, F], i) => {
+        if (!(F > 0)) return;
+        const suf = i ? String.fromCharCode(97 + i) : '';
+        rows.push({ name: `EQR ${n}${suf}`, caseId: 'EQR', member: m.member, x: F, y: 0, location: +h, toFlange: opt.bottomRight || ECC_TOP_LEFT, seismic: true });
+        rows.push({ name: `EQL ${n}${suf}`, caseId: 'EQL', member: m.member, x: -F, y: 0, location: +h, toFlange: ECC_TOP_LEFT, seismic: true });
+      });
+      m.eq = [...(m.eq || new Map())].map(([h, F]) => ({ at: +h, F }));
     });
     return { lines, used: use.map(f => f.frame), members, rows, unplaced, width: W };
   }
@@ -293,6 +330,6 @@
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, learnWebCode, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);

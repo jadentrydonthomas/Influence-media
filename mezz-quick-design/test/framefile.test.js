@@ -58,12 +58,25 @@ const lines = [
   assert.deepStrictEqual([FF.orient(asym.info, { interior: [40] }).mirrored, FF.orient(asym.info, { interior: [80] }).mirrored], [false, true]);
 
   // rows: lines 3-5 only (6 is another file), the larger load per column, a column the file does not have listed apart
+  // (at the floor level A by default — the seismic workbook's hx; T/beam on request)
   const r = FF.rowsFor(f.info, lines);
   assert.deepStrictEqual(r.used, ['3', '4']);
   assert.deepStrictEqual(r.rows.map(x => [x.name, x.caseId, x.member, x.y, x.location]), [
-    ['FDL 2', 'FDL', 'COL02', -7, 10.75], ['FLL 2', 'FLL', 'COL02', -14, 10.75], ['FDL 3', 'FDL', 'COL03', -12, 10.75], ['FLL 3', 'FLL', 'COL03', -20, 10.75]]);
+    ['FDL 2', 'FDL', 'COL02', -7, 11.5], ['FLL 2', 'FLL', 'COL02', -14, 11.5], ['FDL 3', 'FDL', 'COL03', -12, 11.5], ['FLL 3', 'FLL', 'COL03', -20, 11.5]]);
   assert.deepStrictEqual(r.unplaced.map(u => u.label), ['3/C']);
-  assert.strictEqual(FF.rowsFor(f.info, lines, { height: 'A' }).rows[0].location, 11.5);
+  assert.strictEqual(FF.rowsFor(f.info, lines, { height: 'beam' }).rows[0].location, 10.75);
+  // seismic: EQR +X / EQL −X at the mezzanine level, the largest of the lines per column; Top/Left until Bottom/Right is known
+  {
+    const eqLines = lines.map(fl => ({ ...fl, entries: fl.entries.map(e => ({ ...e, eq: e.label === '3/A' ? [{ mezz: 'M', F: 2.5, at: 11.5, share: 1, frameF: 2.5 }] : e.label === '4/A' ? [{ mezz: 'M', F: 3.1, at: 11.5, share: 1, frameF: 3.1 }] : [] })) }));
+    const er = FF.rowsFor(f.info, eqLines).rows.filter(x => /^EQ/.test(x.caseId));
+    assert.deepStrictEqual(er.map(x => [x.name, x.caseId, x.member, x.x, x.y, x.location, x.toFlange]), [['EQR 3', 'EQR', 'COL03', 3.1, 0, 11.5, '1'], ['EQL 3', 'EQL', 'COL03', -3.1, 0, 11.5, '1']]);
+    assert.strictEqual(FF.rowsFor(f.info, eqLines, { bottomRight: '2' }).rows.find(x => x.caseId === 'EQR').toFlange, '2');
+    assert.strictEqual(FF.rowsFor(f.info, eqLines, { seismic: false }).rows.filter(x => /^EQ/.test(x.caseId)).length, 0);
+    // rows named EQR / EQL n are ours (and hand-typed ones), NBG's "Lean-To" seismic rows never
+    assert.ok(FF.isOurs({ loadCaseID: 'EQR', name: 'EQR 1' }) && FF.isOurs({ loadCaseID: 'EQL', name: 'EQL2b' }) && !FF.isOurs({ loadCaseID: 'EQR', name: 'Lean-To' }));
+    assert.deepStrictEqual(FF.learnBottomRight([{ loadCaseID: 'EQR', name: 'EQR 1', toFlange: '1' }, { loadCaseID: 'EQR', name: 'EQR 2', toFlange: '4' }], '3'), { code: '4', rows: 1 });
+    assert.strictEqual(FF.learnBottomRight([{ loadCaseID: 'EQR', name: 'Lean-To', toFlange: '4' }], '3'), null);
+  }
   // mirrored: the BSW loads go on COL01
   assert.deepStrictEqual(FF.rowsFor(f.info, lines, { mirrored: true }).rows.map(x => x.member), ['COL01', 'COL01', 'COL02', 'COL02']);
   assert.strictEqual(FF.rowsFor(f.info, lines, { building: 'Bldg 2' }).rows.length, 0, 'another building’s loads never go in');
@@ -148,7 +161,8 @@ const lines = [
     assert.deepStrictEqual([o.mirrored, o.how], [false, 'lean-to'], name + ': COL01 is the FSW (the lean-to side)');
     const rr = FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building });
     assert.deepStrictEqual(rr.rows.map(x => [x.name, x.member, +(-x.y).toFixed(2)]), w.rows, name);
-    assert.ok(rr.rows.every(x => near(x.location, 10.75)), name + ': at T/beam 10\'-9"');
+    assert.ok(rr.rows.every(x => near(x.location, 11.5)), name + ': at the floor level A 11\'-6"');
+    assert.ok(FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building, height: 'beam' }).rows.every(x => near(x.location, 10.75)), name + ': at T/beam 10\'-9"');
     assert.deepStrictEqual(rr.unplaced.map(u => u.label), w.unplaced, name);
     const add = FF.addLoads(file.xml, rr.rows);
     assert.strictEqual(add.added, w.rows.length);
