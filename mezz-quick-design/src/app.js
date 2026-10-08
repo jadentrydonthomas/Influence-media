@@ -38,6 +38,12 @@
   // the shorter members of a mark: same section, own MB-sheet run — "+ 1 at 12'-4\""
   const mkShort = mk => (mk.spanRuns || []).filter(q => q.span < mk.span - 1e-3).map(q => `+ ${q.qty} at ${ft(q.span)}`).join(' · ');
   const runOf = (mk, span) => (mk && mk.spanRuns ? mk.spanRuns.find(q => Math.abs(q.span - span) < 1e-3) : null);
+  // a mark's MB-sheet span and trib (set on the Beam calc page) vs the layout's; a run's MB-sheet length
+  const mkDz = mk => (mk && mk.design) || { span: mk ? mk.span : 0, trib: mk ? mk.trib : 0, cut: 0, set: false };
+  const runL = q => (q && q.L != null ? q.L : q ? q.span : 0);
+  const mkDims = mk => { const d = mkDz(mk); return `${ft(d.span)} × ${ft(d.trib)}${d.set ? ` <small class="sub-n">design · layout ${ft(mk.span)} × ${ft(mk.trib)}</small>` : ''}`; };
+  // the beam end loads that go to the frame and the columns: the layout span and trib with the mark's section
+  const layoutV = (mk, q) => (mk && mk.sec && mk.params ? DESIGN.reactions({ ...mk.params, L: q ? q.span : mk.span, trib: mk.trib }, mk.sec) : null);
   const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
 
   // ---------- one holistic drawing: every mezzanine of the job in this building, drawn together ----------
@@ -119,7 +125,7 @@
       const trib = bm.extra ? `${ft(bm.trib)} <small>(${ft(bm.tribOwn)} + ${bm.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')})</small>` : ft(bm.trib);
       return head(`${many ? esc(m.id) + ' ' : ''}B${id + 1} · ${esc(mkName(mk))}`, where) +
         `<div class="tip-sec"><i style="background:${mkHex(mk)}"></i>${esc(mk ? mk.desc || 'no section' : '—')}</div>` +
-        `<dl class="tip-dl"><div><dt>Span</dt><dd>${ft(bm.span)}</dd></div><div><dt>Trib</dt><dd>${trib}</dd></div><div><dt>MB sheet run</dt><dd>${mk ? `${ft(run ? run.span : mk.span)} × ${ft(mk.trib)}` : '—'}</dd></div></dl>` +
+        `<dl class="tip-dl"><div><dt>Span</dt><dd>${ft(bm.span)}</dd></div><div><dt>Trib</dt><dd>${trib}</dd></div><div><dt>MB sheet run</dt><dd>${mk ? `${ft(run ? runL(run) : mkDz(mk).span)} × ${ft(mkDz(mk).trib)}` : '—'}</dd></div></dl>` +
         (rx ? `<div class="tip-k">End shear, each end · own span and trib (MB H6 / H10)</div><div class="tip-lr one">${pair('Each end', rx.D, rx.L)}</div>` : '') +
         `<div class="tip-f">${mk && mk.kind === 'interior' ? 'Interior: more trib than any edge beam — designed at the largest interior trib.' : mk && mk.kind === 'exterior' ? 'Exterior: edge beam, joists on one side — designed at the largest edge trib.' : ''}</div>`;
     }
@@ -395,7 +401,7 @@
   // MB sheet: floor dead / live load (unfactored) — shear at left / right, kips: the beam end loads that go to the frame
   function floorCard() {
     const rows = jobMarks().filter(mk => mk.check).flatMap(mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, check: mk.check }]).map((q, i) =>
-      `<span class="fl-row"><b>${mk.mark}${i ? `<small>${ft(q.span)}</small>` : ''}</b><span>D ${f(q.check.V.D, 2)}</span><span>L ${f(q.check.V.L, 2)}</span></span>`)).join('');
+      { const v = mkDz(mk).set ? layoutV(mk, q) : q.check.V; return `<span class="fl-row"><b>${mk.mark}${i ? `<small>${ft(q.span)}</small>` : ''}</b><span>D ${f(v.D, 2)}</span><span>L ${f(v.L, 2)}</span></span>`; })).join('');
     return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
       <div class="fl-rows">${rows || '—'}</div>
       <small>kips · unfactored shear at left &amp; right (MB sheet)</small></div></div>`;
@@ -652,7 +658,7 @@
     const nCases = done.reduce((a, m) => a + m.colGroups.length, 0);
     const mkRows = marks.map(mk => `<div class="mk-row" style="--mk:${mkHex(mk)}"><div class="mk-id"><b>${mk.mark}</b><small>${mk.kind || (mk.optionKey && mk.optionKey !== 'lightest' ? mk.optionKey.replace('fit', 'best fit') : '')}</small></div>
         <div class="mk-sec"><span class="nocase">${esc(mk.desc || '—')}</span></div><div class="mk-qty"><b>${mk.qtyAll}</b></div>
-        <div class="mk-meta">${ft(mk.span)} × ${ft(mk.trib)} trib${mkShort(mk) ? ' · ' + mkShort(mk) : ''}${mkWhere(mk) ? ' · ' + mkWhere(mk) : ''}</div></div>`).join('');
+        <div class="mk-meta">${mkDims(mk)} trib${mkShort(mk) ? ' · ' + mkShort(mk) : ''}${mkWhere(mk) ? ' · ' + mkWhere(mk) : ''}</div></div>`).join('');
     const kinds = marks.some(mk => mk.kind) ? '<div class="sub mk-why">interior: more trib than any edge beam · exterior: edge beams, joists on one side — each designed at its largest trib and longest span</div>' : '';
     const joistTxt = done.map(m => `${many ? esc(m.id) + ': ' : ''}joists @ ${ft(m.beamBase.Lb)} span ${ft(m.layout.joistSpan)} ${m.layout.joists === 'y' ? 'across the width' : 'along the length'} onto ${m.layout.beamLines.length} beam lines`).join(' · ');
     $('#field').innerHTML = `
@@ -679,7 +685,7 @@
 
     // readout
     const fit = mk0 && mk0.options.find(o => o.key === 'fit');
-    const mkTxt = marks.map(mk => `<em>${mk.qtyAll}</em> ${mk.kind ? mk.kind + ' ' : ''}${esc(mk.desc || '—')} (${mk.mark}) at <em>${ft(mk.span)}</em> × <em>${ft(mk.trib)}</em> trib${mkShort(mk) ? ' ' + mkShort(mk) : ''}`).join('; ');
+    const mkTxt = marks.map(mk => `<em>${mk.qtyAll}</em> ${mk.kind ? mk.kind + ' ' : ''}${esc(mk.desc || '—')} (${mk.mark}) at <em>${ft(mkDz(mk).span)}</em> × <em>${ft(mkDz(mk).trib)}</em> trib${mkDz(mk).set ? ` (design; layout ${ft(mk.span)} × ${ft(mk.trib)})` : ''}${mkShort(mk) ? ' ' + mkShort(mk) : ''}`).join('; ');
     $('#readout').innerHTML = `<div class="eyebrow">What the design establishes</div>
       <p>${mkTxt || 'No beams'} carry the floor into <em>${t.nC}</em> ${esc(cols)} column${t.nC === 1 ? '' : 's'} <em>${colLens}</em> tall — governing ratio <em>${f(gv, 2)}</em>${c0 ? `, live-load deflection <em>L/${f(c0.defl.rLL, 0)}</em>` : ''}.</p>
       <div class="readout-facts"><span><b>${marks.filter(mk => mk.check).map(mk => f(mk.check.res.Wt, 1)).join(' / ') || '—'}</b>plf beam${marks.length > 1 ? 's' : ''}</span>${fit && mk0.sec ? `<span><b>+${f(fit.dPct * 100, 1)}%</b>for ${mk0.sec.d - fit.pick.d}" less depth on ${mk0.mark} (${esc(fit.pick.desc)})</span>` : ''}<span><b>${n0(t.total)}</b>lb mezzanine steel</span><span><b>${r.joistDepthIn != null ? f(r.joistDepthIn, 0) + '"' : '—'}</b>total joist depth</span><span><b>${edLabel(r.edition.beamEd || r.edition.ed)}</b>ASD sheets</span></div>`;
@@ -695,7 +701,7 @@
       if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — no passing section in the depth range.</p></div>`;
       const len = (mk.beamsAll || []).reduce((a, x) => a + x.span, 0) || mk.qtyAll * mk.span;   // every member at its own length
       const where = mkWhere(mk), short = mkShort(mk);
-      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${ft(mk.span)} span × ${ft(mk.trib)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options">${mk.options.map(o => {
+      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options">${mk.options.map(o => {
         const p = o.pick, chosen = sameSec(p.sec, mk.sec);
         const under = A != null ? A - (slabIn + seatIn + p.sec.d) / 12 : null;
         const dLbs = o.dWt * len;
@@ -938,7 +944,7 @@
         <div><dt>R dead</dt><dd>${rx ? f(rx.D, 2) + 'k' : '—'}</dd></div><div><dt>R live</dt><dd>${rx ? f(rx.L, 2) + 'k' : '—'}</dd></div>
         <div><dt>Combined</dt><dd>${f(c.res.CSR, 3)}</dd></div><div><dt>Shear</dt><dd>${f(c.res.SRvx, 3)}</dd></div>
         <div><dt>Live defl.</dt><dd>L/${f(c.defl.rLL, 0)}</dd></div><div><dt>Weight</dt><dd>${f(c.res.Wt, 1)} plf</dd></div></dl>
-        <span class="pill">${b.span < mk.span - 1e-3 ? `shorter member — ${mk.mark} section, MB sheet at ${ft(b.span)}` : b.trib < mk.trib - 1e-3 ? `designed for ${ft(mk.trib)} trib (${mk.mark} governing)` : `governing ${mk.mark} beam`}</span>
+        <span class="pill">${b.span < mk.span - 1e-3 ? `shorter member — ${mk.mark} section, MB sheet at ${ft(runL(runOf(mk, b.span) || { span: b.span }))}` : b.trib < mk.trib - 1e-3 ? `designed for ${ft(mk.trib)} trib (${mk.mark} governing)` : `governing ${mk.mark} beam`}</span>
         <div class="foot">${secParts(mk.sec)}</div>`;
     } else if (ref.type === 'col') {
       const ci = colInfo(ref.c), col = ci && ci.c, o = ci ? ci.m : ref.m, cf = o.colFinal, chk = cf && ci && ci.gi >= 0 ? cf.checks[ci.gi] : null;
@@ -1145,7 +1151,7 @@
     });
     $$('#planSvg [data-col]').forEach(el => { el.addEventListener('click', () => { const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }); });
     $$('#planSvg [data-mezz]').forEach(el => { el.addEventListener('click', () => switchMezz(+el.dataset.mezz)); });
-    $('#planLegend').innerHTML = marks.map(mk => `<span class="lg-mk"><svg width="26" height="12"><rect width="26" height="12" rx="2" fill="${mkVar(mk)}" opacity=".22"/><line x1="0" y1="6" x2="26" y2="6" stroke="${mkVar(mk)}" stroke-width="5"/></svg><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} · ${mk.qtyAll} beam${mk.qtyAll === 1 ? '' : 's'} · ${ft(mk.span)} × ${ft(mk.trib)}${mkShort(mk) ? ' (' + mkShort(mk) + ')' : ''}</span>`).join('') +
+    $('#planLegend').innerHTML = marks.map(mk => `<span class="lg-mk"><svg width="26" height="12"><rect width="26" height="12" rx="2" fill="${mkVar(mk)}" opacity=".22"/><line x1="0" y1="6" x2="26" y2="6" stroke="${mkVar(mk)}" stroke-width="5"/></svg><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} · ${mk.qtyAll} beam${mk.qtyAll === 1 ? '' : 's'} · ${ft(mkDz(mk).span)} × ${ft(mkDz(mk).trib)}${mkDz(mk).set ? ' design' : ''}${mkShort(mk) ? ' (' + mkShort(mk) + ')' : ''}</span>`).join('') +
       `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${t.nC}</span>` +
       (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
       (ms.some(m => m.layout.beams.some(b => b.absorbed)) ? `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="beam carried"/></svg>Edge carried by the neighbour's beam</span>` : '') +
@@ -1340,29 +1346,63 @@
     return [...by].map(([mi, bs]) => { const m = ms[mi], lines = [...new Set(bs.map(x => { const b = m.layout.beams[x.id]; return (m.layout.joists === 'y' ? m.grid.yLabel(b.line) : m.grid.xLabel(b.line)) || ft(b.line); }))];
       return `${many ? esc(m.id) + ' ' : ''}${bs.map(x => 'B' + (x.id + 1)).join(', ')} (line ${lines.join(', ')})`; }).join(' · ');
   }
+  // Beam inputs: the span and trib on the MB sheet for a mark (e.g. the member length between column faces). They change
+  // the beam design only — the plan, the columns and the loads to the frame keep the layout. One member over the job.
+  const setMarkInput = (mark, v) => allSettings().forEach(st => { const mi = { ...(st.markInput || {}) }; if (v) mi[mark] = v; else delete mi[mark]; st.markInput = mi; });
+  function renderBeamInputs(mk) {
+    const dz = mkDz(mk), cur = (state.settings.markInput || {})[mk.mark] || {};
+    const runs = (mk.spanRuns || []).slice(1);
+    $('#beamInputs').innerHTML = `<div class="bi-head"><div><span class="eyebrow">Beam inputs · ${mk.mark}</span><small>MB sheet only — the plan, the columns and the loads to the frame keep the layout (${ft(mk.span)} × ${ft(mk.trib)})</small></div>
+        <button class="btn-ghost" id="biReset" ${dz.set ? '' : 'disabled'}>Back to the layout</button></div>
+      <div class="bi-row">
+        <label class="bi-f ${cur.span ? 'is-set' : ''}"><span>Design span <small>member length</small></span><input data-bi="span" value="${esc(ft(dz.span))}" spellcheck="false" autocomplete="off"><small>${dz.cut ? `${dz.cut > 0 ? '−' : '+'}${ft(Math.abs(dz.cut))} from ${ft(mk.span)}${runs.length ? ', also on the ' + runs.map(q => ft(q.span) + ' → ' + ft(runL(q))).join(', ') + ' run' + (runs.length > 1 ? 's' : '') : ''}` : `layout ${ft(mk.span)}`}</small></label>
+        <label class="bi-f ${cur.trib ? 'is-set' : ''}"><span>Design trib <small>tributary width</small></span><input data-bi="trib" value="${esc(ft(dz.trib))}" spellcheck="false" autocomplete="off"><small>layout ${ft(mk.trib)}</small></label>
+        <div class="bi-out">${mk.check ? `<b class="nocase">${esc(mk.desc)}</b><small>combined ${f(mk.check.res.CSR, 3)} · shear ${f(mk.check.res.SRvx, 3)} · L/${f(mk.check.defl.rLL, 0)}</small>` : '<b>no section</b><small>nothing passes — see the depth table</small>'}</div>
+      </div>`;
+    const lay = { span: mk.span, trib: mk.trib };
+    $$('#beamInputs input[data-bi]').forEach(inp => {
+      inp.onchange = () => {
+        const k = inp.dataset.bi, raw = inp.value.trim();
+        const v = raw === '' ? lay[k] : (PCS.ftin(raw) ?? PCS.ftin(raw + "'"));
+        if (v == null || !(v > 0)) { toast(`${raw} is not a length — e.g. 22'-4" or 22.333`); inp.value = ft(mkDz(mk)[k]); return; }
+        const next = { ...((state.settings.markInput || {})[mk.mark] || {}) };
+        if (Math.abs(v - lay[k]) < 1e-4) delete next[k]; else next[k] = v;
+        setMarkInput(mk.mark, Object.keys(next).length ? next : null);
+        recompute();
+        const nm = jobMarks().find(m => m.mark === mk.mark);
+        toast(`${mk.mark} at ${ft(mkDz(nm).span)} × ${ft(mkDz(nm).trib)} → ${nm && nm.desc ? nm.desc : 'no section'}`);
+      };
+      inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    });
+    $('#biReset').onclick = () => { setMarkInput(mk.mark, null); recompute(); toast(`${mk.mark} back to the layout ${ft(mk.span)} × ${ft(mk.trib)}`); };
+  }
   function renderBeam() {
     const marks = jobMarks();
     $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
     $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); }; });
     const mk = marks[state.mark];
-    if (!mk) { $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; $('#xlBeam').innerHTML = ''; $('#xlBeamSub').textContent = ''; return; }
+    if (!mk) { $('#beamInputs').innerHTML = ''; $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; $('#xlBeam').innerHTML = ''; $('#xlBeamSub').textContent = ''; return; }
     // every member length of the mark: the governing run (longest span, largest trib) and the shorter beams — same section, own MB sheet
     const runs = mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, qty: mk.qtyAll, check: mk.check, params: mk.params }];
     if (state.markSpan >= runs.length) state.markSpan = 0;
-    const run = runs[state.markSpan], gov = state.markSpan === 0;
-    $('#spanRuns').innerHTML = `<div class="sr-head"><span class="eyebrow">MB sheet runs · ${mk.mark}</span><small>${runs.length > 1 ? 'one section; each member length is its own run' : 'one member length'} · trib ${ft(mk.trib)}${mk.kind ? ' (largest ' + mk.kind + ')' : ''}</small></div>` +
-      runs.map((q, i) => `<button class="sr ${i === state.markSpan ? 'is-on' : ''}" data-i="${i}"><b>${ft(q.span)}</b><span>${q.qty} beam${q.qty === 1 ? '' : 's'}${i === 0 ? ' · designed' : ''}</span><small>${runBeams(mk, q.span)}</small>${q.check ? `<em class="${q.check.res.CSR <= state.settings.target && q.check.res.SRvx <= state.settings.target && q.check.llOK && q.check.tlOK ? 'ok' : 'ng'}">${f(Math.max(q.check.res.CSR, q.check.res.SRvx), 2)}</em>` : ''}</button>`).join('');
+    const run = runs[state.markSpan], gov = state.markSpan === 0, dz = mkDz(mk);
+    renderBeamInputs(mk);
+    $('#spanRuns').innerHTML = `<div class="sr-head"><span class="eyebrow">MB sheet runs · ${mk.mark}</span><small>${runs.length > 1 ? 'one section; each member length is its own run' : 'one member length'} · trib ${ft(dz.trib)}${mk.kind ? ' (largest ' + mk.kind + ')' : ''}${dz.set ? ' · design inputs set above' : ''}</small></div>` +
+      runs.map((q, i) => `<button class="sr ${i === state.markSpan ? 'is-on' : ''}" data-i="${i}"><b>${ft(runL(q))}</b><span>${q.qty} beam${q.qty === 1 ? '' : 's'}${i === 0 ? ' · designed' : ''}</span><small>${runBeams(mk, q.span)}${Math.abs(runL(q) - q.span) > 1e-3 ? ' · layout ' + ft(q.span) : ''}</small>${q.check ? `<em class="${q.check.res.CSR <= state.settings.target && q.check.res.SRvx <= state.settings.target && q.check.llOK && q.check.tlOK ? 'ok' : 'ng'}">${f(Math.max(q.check.res.CSR, q.check.res.SRvx), 2)}</em>` : ''}</button>`).join('');
     $$('#spanRuns .sr').forEach(b => { b.onclick = () => { state.markSpan = +b.dataset.i; renderBeam(); renderMiniPlan(); }; });
     // INPUT-sheet values (A, slab, seat, clearances) of a mezzanine that has this mark — the one on screen when it does
     const r = mk.mezzIds && !mk.mezzIds.includes(state.res.index) && state.job ? state.job.mezz[mk.mezzIds[0]] : state.res;
     const inp = state.all ? state.all[r.index].inputs : state.inputs;
-    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(run.span)}</small>`}`;
+    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(runL(run))}</small>`}`;
     const c = run.check, p = run.params;
     if (!c) $('#mbSheet').innerHTML = '<div class="empty">No passing section in the depth range.</div>';
     else {
       const x = c.res, clear = r.clear;
       const clr = (k, lab) => [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${clear[k].ok === false ? '· NO GOOD' : clear[k].ok ? '· OK' : ''}`, clear[k].ok === false ? 'ng' : ''];
-      $('#mbSheet').innerHTML = beamViz(mk, r, run) + `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div><div class="sheet">
+      const lv = dz.set ? layoutV(mk, run) : null;
+      $('#mbSheet').innerHTML = beamViz(mk, r, run) + (lv
+        ? `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame and columns · ${mk.mark} at the layout ${ft(run.span)} × ${ft(mk.trib)}</span><b>Dead ${f(lv.D, 3)} k</b><b>Live ${f(lv.L, 3)} k</b><small>per beam end, ${esc(mk.desc)} — the MB sheet below is at the design ${ft(runL(run))} × ${ft(dz.trib)} (shear D ${f(c.V.D, 3)} / L ${f(c.V.L, 3)} k, highlighted)</small></div>`
+        : `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div>`) + `<div class="sheet">
         <div><h4>INPUT sheet</h4>${kv([
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
@@ -1397,7 +1437,7 @@
     renderXlBeam(mk, run);
     const sr = mk.search;
     if (!sr || !sr.best) { $('#altTable').innerHTML = ''; return; }
-    $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(mk.span)} span × ${ft(mk.trib)} trib · click a row to use it`;
+    $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(dz.span)} span × ${ft(dz.trib)} trib${dz.set ? ' (design inputs)' : ''} · click a row to use it`;
     const optAt = sec => (mk.options.find(o => sameSec(o.pick.sec, sec)) || {}).label;
     $('#altTable').innerHTML = `<thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">Wt plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">LL L/</th><th class="num">TL L/</th><th class="num">Bearing</th></tr></thead><tbody>` +
       sr.byDepth.map(a => a.none ? `<tr class="none"><td class="num">${a.d}"</td><td colspan="10">nothing stocked passes at this depth</td></tr>` :
@@ -1415,7 +1455,7 @@
   };
   // the beam of a mark, drawn: load, joists at Lb, reactions, deflected shape, moment and shear — and its section to scale
   function beamViz(mk, r, run) {
-    const c = run.check, sec = mk.sec, L = run.span, Lb = r.beamBase.Lb, col = mkHex(mk);
+    const c = run.check, sec = mk.sec, L = runL(run), Lb = r.beamBase.Lb, col = mkHex(mk);
     const x0 = 80, x1 = 660, X = t => x0 + (x1 - x0) * t / L, yB = 150, dp = 28, tfp = 5;
     const wD = c.w.joist + c.w.beam + c.w.FDL, wL = c.w.FLL;
     const o = [];
@@ -1423,7 +1463,7 @@
     // uniform load
     o.push(`<line class="bv-load" x1="${x0}" y1="62" x2="${x1}" y2="62"/>`);
     for (let i = 0; i <= 16; i++) { const x = x0 + (x1 - x0) * i / 16; o.push(`<path class="bv-arr" d="M${x},62 L${x},96 M${x - 4},89 L${x},96 L${x + 4},89"/>`); }
-    o.push(`<text class="bv-t" x="${x0}" y="52" text-anchor="start">w = ${f(wD, 3)} D + ${f(wL, 3)} L = <tspan class="bv-b">${f(c.w.total, 3)} klf</tspan>  (trib ${ft(mk.trib)})</text>`);
+    o.push(`<text class="bv-t" x="${x0}" y="52" text-anchor="start">w = ${f(wD, 3)} D + ${f(wL, 3)} L = <tspan class="bv-b">${f(c.w.total, 3)} klf</tspan>  (trib ${ft(mkDz(mk).trib)})</text>`);
     // joists bearing at the spacing (= unbraced length)
     for (let t = Lb; t < L - 1e-6; t += Lb) o.push(`<line class="bv-joist" x1="${X(t)}" y1="106" x2="${X(t)}" y2="${yB - 3}"/><rect class="bv-seat" x="${X(t) - 3}" y="${yB - 4}" width="6" height="4"/>`);
     o.push(`<text class="bv-s" x="${x1}" y="52" text-anchor="end">joists @ ${ft(Lb)} = unbraced Lb</text>`);

@@ -176,6 +176,25 @@ if (pdfArgs.length > 1) {
   const lightest = await page.$('#options [data-opt="lightest"]');
   if (lightest) { await lightest.click(); await page.waitForTimeout(150); }
 
+  // Beam calc inputs: a design span 1'-0" under the layout goes on the MB sheet and the quote; the plan's columns and the
+  // frame loads stay where they are; "Back to the layout" restores the answer
+  const qBase = await quote();
+  await page.click('#nav button[data-view="plan"]');
+  const flCols = () => page.$$eval('#frameLoads tbody tr', trs => trs.map(tr => tr.cells[0].textContent.trim() + ':' + tr.cells[1].textContent.trim().slice(0, 5)).join(' '));
+  const fl0 = await flCols();
+  await page.click('#nav button[data-view="beam"]'); await page.click('#markTabs .tab[data-i="0"]'); await page.waitForTimeout(150);
+  const sp0 = await page.$eval('#beamInputs input[data-bi="span"]', e => e.value), m0 = /(\d+)'-(\d+)/.exec(sp0), v0 = +m0[1] + +m0[2] / 12;
+  await page.fill('#beamInputs input[data-bi="span"]', (v0 - 1).toFixed(3)); await page.press('#beamInputs input[data-bi="span"]', 'Enter'); await page.waitForTimeout(300);
+  const biTxt = await page.$eval('#beamInputs', e => e.innerText.replace(/\s+/g, ' '));
+  console.log('beam inputs, span − 1\'-0"'.padEnd(30), biTxt.slice(biTxt.indexOf('Design span'), biTxt.indexOf('Design span') + 120));
+  if (!(await page.$('#beamInputs .bi-f.is-set'))) fail('the design span should show as set');
+  const q1 = await quote();
+  if (q1 === qBase) fail('a design span should change the quote rows (SPAN at the design length)');
+  await page.click('#nav button[data-view="plan"]');
+  if (await flCols() !== fl0) fail('a design span must not move the frame columns / members');
+  await page.click('#nav button[data-view="beam"]'); await page.click('#biReset'); await page.waitForTimeout(300);
+  if (await quote() !== qBase) fail('"Back to the layout" should restore the quote');
+
   // column override
   await page.click('#nav button[data-view="column"]');
   await page.selectOption('#colPick', 'W12X26'); await log('column override W12X26');

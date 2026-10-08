@@ -164,6 +164,16 @@ Items marked *to check* or *fails* also appear in the notes. The items are:
   - load-provisions-only hole patterns;
   - Ecospan, when the PCS mentions it.
 
+### Beam inputs (Beam calc page)
+
+Each mark has a **design span** and a **design trib**. They change only the beam design: the MB sheet, the section search, the options, the Excel steps and the quote row.
+- **The plan stays as laid out.** Footprint, beam lines, which columns are mezzanine or frame columns, the Column sheet and the loads to the frame all keep the layout's spans and tribs. Only the mark's new section changes the beam self-weight in those loads.
+- **Use it when a member is shorter than the grid**, e.g. the clear length between column faces: MB1 at 22'-4" instead of the 24'-0" column-line span.
+- **The change in span applies to every member length of the mark.** With MB1 at 24'-0" → 22'-4", its 20'-0" and 16'-0" runs go to 18'-4" and 14'-4".
+- **One member over the job:** a mark's inputs go on every mezzanine. *Back to the layout* clears them.
+
+Don't shorten the mezzanine footprint for this. On W1S-26062, cutting Mezz 1 to 22'-4" moves its edge 1'-8" off the BSW column line. That puts six new mezzanine columns along 118'-4", and frame line A loses its loads. Now that case is flagged: a footprint edge between 1'-0" and 3'-0" short of a line of building columns gets a warning on the Design page.
+
 ### Excel, step by step
 
 The Beam calc and Column calc pages list the exact cells to type into the NBG workbooks, in order, and what Excel should then show.

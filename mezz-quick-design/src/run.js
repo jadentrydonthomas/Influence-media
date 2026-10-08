@@ -198,6 +198,21 @@
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
     lay.snaps.forEach(sn => warn.push({ level: 'key', text: `Mezzanine edge at ${sn.axis === 'y' ? 'FSW' : 'LEW'} ${PCS.fmtFtIn(sn.edge)} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
+    // an edge just past the 1'-0" snap of a line of building columns: the layout frames it with new mezzanine columns, and
+    // the beams there stop loading the frame (a footprint cut to a beam's clear length does this). Say so.
+    {
+      const fp = lay.footprint, F = PCS.fmtFtIn, W = grid.width, Lg = grid.length;
+      const inX = grid.xs.map((x, i) => (x >= fp.x0 - 1 && x <= fp.x1 + 1 ? grid.interior[i] || [] : [])).flat();
+      const yLines = [...new Set([0, W, ...inX].map(v => +v.toFixed(3)))], xLines = grid.xs;
+      const off = (edge, lines, out) => lines.map(l => ({ l, d: Math.abs(l - edge) })).filter(o => o.d > 1 + 1e-6 && o.d <= 3 + 1e-6 && (out ? o.l > edge : o.l < edge)).sort((a, b) => a.d - b.d)[0];
+      [['y', fp.y0, false, 'FSW-side'], ['y', fp.y1, true, 'BSW-side'], ['x', fp.x0, false, 'LEW-side'], ['x', fp.x1, true, 'REW-side']].forEach(([ax, edge, out, side]) => {
+        if (ax === 'y' ? (edge < 1e-6 || edge > W - 1e-6) : (edge < 1e-6 || edge > Lg - 1e-6)) return;
+        const o = off(edge, ax === 'y' ? yLines : xLines, out);
+        if (!o) return;
+        const lab = (ax === 'y' ? grid.yLabel(o.l) : grid.xLabel(o.l)) || F(o.l);
+        warn.push({ level: 'warn', text: `${inp.mezz.id || 'This mezzanine'}'s ${side} edge is at ${F(edge)}, ${F(o.d)} short of the building column line ${lab} (${F(o.l)}), more than the 1'-0" the layout frames on a line. Its beams there go on new mezzanine columns along ${F(edge)}, and no load reaches line ${lab}. If only the beams are shorter (clear span between column faces), keep the footprint on line ${lab} and set the design span on the Beam calc page.` });
+      });
+    }
     // grid lines that only some frames share (interior frame columns off the endwall grid) can put beam lines close together
     const tight = lay.beamLines.slice(1).map((v, i) => [lay.beamLines[i], v]).filter(([a, b]) => b - a < 12 - 1e-6);
     if (tight.length && !(s.xLines || s.yLines)) warn.push({ level: 'key', text: `Beam lines ${tight.map(([a, b]) => `${PCS.fmtFtIn(a)} / ${PCS.fmtFtIn(b)}`).join(', ')} are under 12'-0" apart — joists span only ${PCS.fmtFtIn(Math.min(...tight.map(([a, b]) => b - a)))} there. Drop a line on the Plan page if the joists should span past it.` });
@@ -342,9 +357,15 @@
     const say = (level, text) => members.forEach(c => c.warn.push({ level, text }));
     const caps = members.map(c => c.maxDepthByC).filter(v => v != null), maxDepth = caps.length ? Math.min(...caps) : null;
     const jd = members.map(c => c.joistDepthIn).filter(v => v != null), dLimit = jd.length ? Math.floor(Math.min(...jd) + 1e-6) : null;
-    const p = { ...c0.beamBase, L: m.span, trib: m.trib };
+    // the design span / trib set on the Beam calc page (e.g. the member length between column faces): they go on the MB
+    // sheet only. The plan, the columns and the loads to the frame keep the layout's spans and tribs. The change in
+    // span is applied to every member length of the mark.
+    const mi = s.markInput && s.markInput[m.mark];
+    const dSpan = mi && +mi.span > 0 ? +mi.span : m.span, dTrib = mi && +mi.trib > 0 ? +mi.trib : m.trib, cut = m.span - dSpan;
+    m.design = { span: dSpan, trib: dTrib, cut, set: dSpan !== m.span || dTrib !== m.trib };
+    const p = { ...c0.beamBase, L: dSpan, trib: dTrib };
     const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined });
-    const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: m.span }) : [];
+    const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: dSpan }) : [];
     // a pick is stored as intent — an option key or a depth — so every input change re-runs the search:
     //   { key: 'fit' } → that option for the current loads; { d: 20 } → lightest passing section at 20";
     //   { sec } → that exact section (checked, flagged if it fails)
@@ -371,14 +392,17 @@
     const spans = [];   // distinct member lengths, kept exact (12'-4" = 12.3333 ft, not 12.333)
     m.beamsAll.forEach(x => { if (!spans.some(L => Math.abs(L - x.span) < 1e-3)) spans.push(x.span); });
     spans.sort((a, b) => b - a);
-    const spanRuns = chosen ? spans.map(L => {
-      const qty = m.beamsAll.filter(x => Math.abs(x.span - L) < 1e-3).length;
-      const ck = Math.abs(L - m.span) < 1e-3 ? check : MZ.beamCheck({ ...p, L, sec: chosen }, WF);
-      return { span: L, qty, check: ck, params: { ...p, L } };
+    // span: the layout length (which beams are in the run); L: the length on the MB sheet (the design span's change applied)
+    const spanRuns = chosen ? spans.map(Ly => {
+      const qty = m.beamsAll.filter(x => Math.abs(x.span - Ly) < 1e-3).length, L = Math.max(1, Ly - cut);
+      const ck = Math.abs(Ly - m.span) < 1e-3 ? check : MZ.beamCheck({ ...p, L, sec: chosen }, WF);
+      return { span: Ly, L, qty, check: ck, params: { ...p, L } };
     }) : [];
+    const F = PCS.fmtFtIn;
+    if (m.design.set) say('key', `${m.mark} is designed at ${F(dSpan)} span${cut ? ` (layout ${F(m.span)}; ${cut > 0 ? '−' : '+'}${F(Math.abs(cut))} on every member length of the mark)` : ''} × ${F(dTrib)} trib${dTrib !== m.trib ? ` (layout ${F(m.trib)})` : ''}, set on the Beam calc page. The plan, the columns and the loads to the frame stay at the layout spans and tribs.`);
     spanRuns.filter(r => r.check !== check).forEach(r => {
       const c = r.check, ok = c.res.CSR <= s.target && c.res.SRvx <= s.target && c.llOK && c.tlOK;
-      say(ok ? 'key' : 'stop', `${m.mark} also has ${r.qty} beam${r.qty > 1 ? 's' : ''} at ${PCS.fmtFtIn(r.span)} — same ${check.desc}; MB sheet at member length ${PCS.fmtFtIn(r.span)}: combined ${c.res.CSR.toFixed(2)}, shear ${c.res.SRvx.toFixed(2)}, L/${Math.round(c.defl.rLL)}.`);
+      say(ok ? 'key' : 'stop', `${m.mark} also has ${r.qty} beam${r.qty > 1 ? 's' : ''} at ${F(r.span)} — same ${check.desc}; MB sheet at member length ${F(r.L)}: combined ${c.res.CSR.toFixed(2)}, shear ${c.res.SRvx.toFixed(2)}, L/${Math.round(c.defl.rLL)}.`);
     });
     Object.assign(m, { params: p, search: dz, options, optionKey, pinned: ov || null, sec: chosen, check, desc: check ? check.desc : null, spanRuns, maxDepth, dLimit });
     return m;
@@ -505,7 +529,7 @@
     const keep = sp => sp.building ? ['L', 'R'].some(k => sp.beams[k] != null && !lay.beams[sp.beams[k]].absorbed) : owned.some(q => near2(q, sp)) || foreign.some(q => near2(q, sp));
     const layout = { ...lay, supports: lay.supports.filter(keep), mezzCols: owned.map(q => ({ ...(lay.supports.find(sp => near2(q, sp)) || { x: q.x, y: q.y, beams: { L: null, R: null } }), label: q.label, building: false })) };
     const quote = {
-      beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: mk.span, trib: mk.trib, qty: mk.qty })),
+      beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: (mk.design || mk).span, trib: (mk.design || mk).trib, qty: mk.qty })),
       columns: colFinal ? [{ mark: 'MC1', section: colFinal.quoteAs, length: colLen, qty: owned.length }] : [],
     };
     return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
@@ -693,8 +717,8 @@
         const sheets = runs.slice(k, k + 4).map(({ m, q, i }, j) => {
           const sheet = 'MB' + (j + 1), c = q.check, sec = m.sec;
           const steps = [
-            { sheet, cell: 'D5', label: 'Beam Mark', value: i ? `${m.mark} ${F(q.span)}` : m.mark, show: i ? `${m.mark} ${F(q.span)}` : m.mark },
-            { sheet, cell: 'D7', label: 'Member Length, ft.', value: n3(q.span), show: String(n3(q.span)) },
+            { sheet, cell: 'D5', label: 'Beam Mark', value: i ? `${m.mark} ${F(q.params.L)}` : m.mark, show: i ? `${m.mark} ${F(q.params.L)}` : m.mark },
+            { sheet, cell: 'D7', label: 'Member Length, ft.', value: n3(q.params.L), show: String(n3(q.params.L)) },
             { sheet, cell: 'D8', label: 'Unbraced Length, ft. (joist spacing)', value: n3(q.params.Lb), show: String(n3(q.params.Lb)) },
             { sheet, cell: 'D9', label: 'Tributary Width, ft.', value: n3(q.params.trib), show: String(n3(q.params.trib)) },
           ].concat(e13 ? [] : [{ sheet, cell: 'D15', label: 'Axial Load, Kip', value: null, show: '(leave blank)' }]).concat([
@@ -715,7 +739,7 @@
             { sheet, cell: 'G19', label: 'Combined', expect: c.combinedText },
             { sheet, cell: 'G20', label: 'Shear', expect: c.shearText },
           ];
-          return { sheet, mark: m.mark, kind: m.kind, desc: m.desc, span: q.span, trib: q.params.trib, qty: q.qty, shorter: i > 0, mezzIds: m.mezzIds, steps, read };
+          return { sheet, mark: m.mark, kind: m.kind, desc: m.desc, span: q.span, L: q.params.L, trib: q.params.trib, qty: q.qty, shorter: i > 0, mezzIds: m.mezzIds, steps, read };
         });
         beam.push({ file: XL.beamBook[e13 ? 13 : ed === '16' ? 16 : 15], edition: ed, copy: k / 4 + 1, marks: ms.map(m => m.mark), inputs, sheets });
       }
@@ -762,7 +786,7 @@
       const W = g.width, members = [0, ...(g.interior[fi] || []).filter(y => y > 0.05 && y < W - 0.05), W].sort((a, b) => a - b);
       const mi = members.findIndex(y => near(y, q.y));
       const wall = fi === 0 || fi === g.xs.length - 1;
-      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? `interior column at ${PCS.fmtFtIn(q.y)} from the FSW` : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
+      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of this end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
       // top of the mezzanine beam bearing there (the higher one when two mezzanines frame in)
       const elev = Math.max(...q.parts.map(p => { const k = ctxs[p.mi]; return k.A - (k.slabIn + k.seatIn) / 12; }));
       const A = Math.max(...q.parts.map(p => ctxs[p.mi].A));
@@ -867,10 +891,12 @@
           return `${results.length > 1 ? idOf(mi) + ' ' : ''}${xs.map(x => 'B' + (x.id + 1)).join(', ')} (line ${lines.join(', ')})`;
         });
         const carried = bs.some(x => { const b = results[x.mi].layout.beams[x.id]; return b && b.extra; });
+        const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
         const notes = [`${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
-          run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(run.span)}` : `designed ${PCS.fmtFtIn(mk.span)} × ${PCS.fmtFtIn(mk.trib)} trib`,
+          run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
+          dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
           carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey && mk.optionKey !== 'lightest' && mk.options ? (mk.options.find(o => o.key === mk.optionKey) || {}).label + ' option' : ''].filter(Boolean).join('; ');
-        beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(run.span, 3), TRIB: round(mk.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || '', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
+        beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || '', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
       });
     });
     // columns: one row per section and height over the job

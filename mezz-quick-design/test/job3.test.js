@@ -31,5 +31,27 @@ const PLAN = require('../src/plan.js');
   const e2a = fr(2).entries.find(e => e.label === '2/A');
   assert.ok(Math.abs(e2a.D - 19.93) < 0.01 && Math.abs(e2a.L - 42) < 0.01 && Math.abs(e2a.elev - 10.75) < 1e-9);
   assert.ok(!job.frameEntries.some(f => f.entries.some(e => job.columns.some(c => c.label === e.label))), 'no mezzanine column in the frame loads');
-  console.log('job3 tests passed (W1S-26062: 8/8 ⊗, ✱ 3/E–6/E, I 2/E, joists along the length from the truss symbols, frame loads on members)');
+  // the Beam calc design span: MB1 at 22'-4" (between column faces) — the plan, the columns and frame line A are kept
+  const RUN = require('../src/run.js');
+  const { inps } = await loadJob(pdf);
+  const dj = RUN.runJob(inps.map(inp => ({ inp, settings: { markInput: { MB1: { span: 22 + 4 / 12 } } } })));
+  const mb1 = dj.marks.find(m => m.mark === 'MB1');
+  assert.ok(mb1.design.set && Math.abs(mb1.design.span - 22.3333) < 1e-3 && mb1.span === 24, 'design span on the MB sheet, layout span kept');
+  assert.deepStrictEqual(mb1.spanRuns.map(q => [q.span, +q.L.toFixed(3)]), [[24, 22.333], [20, 18.333], [16, 14.333]], 'the cut on every member length');
+  assert.ok(mb1.check.res.CSR <= 0.99 && mb1.desc !== job.marks[0].desc, 'redesigned at the shorter span');
+  assert.deepStrictEqual(dj.columns.map(c => c.label).sort(), job.columns.map(c => c.label).sort(), 'same mezzanine columns');
+  assert.deepStrictEqual(dj.frameEntries.map(f => f.frame + ':' + f.entries.map(e => e.label + (e.member || '')).join(',')), job.frameEntries.map(f => f.frame + ':' + f.entries.map(e => e.label + (e.member || '')).join(',')), 'same frame columns, same members');
+  const fA = n => dj.frameEntries.find(f => f.frame === String(n)).entries.find(e => e.label === n + '/A');
+  [2, 3, 4, 5].forEach(n => assert.ok(Math.abs(fA(n).L - 42) < 1e-6 && Math.abs(fA(n).D - (19.929 - (93 - 73) / 1000 * 12)) < 0.01, `frame ${n}: line A keeps the layout load (lighter beam self-weight only)`));
+  const xl = dj.excel.beam[0].sheets.find(sh => sh.mark === 'MB1' && !sh.shorter).steps.find(st => st.cell === 'D7');
+  assert.strictEqual(xl.value, 22.333, 'Excel D7 at the design span');
+  assert.ok(dj.mezz[0].warn.some(w => /designed at 22'-4" span \(layout 24'-0"/.test(w.text)));
+  // the other way (footprint cut to 22'-4"): the loads leave line A, and the page says so
+  const cut = JSON.parse(JSON.stringify(inps));
+  cut[0].geom.width = { value: 22 + 4 / 12, source: 'manual' };
+  const cj = RUN.runJob(cut.map(inp => ({ inp, settings: {} })));
+  assert.ok(!cj.frameEntries.some(f => f.frame === '3'), 'no load on frame 3 once the edge leaves line A');
+  assert.ok(cj.mezz[0].warn.some(w => w.level === 'warn' && /BSW-side edge is at 118'-4", 1'-8" short of the building column line A/.test(w.text)), 'the guard names it');
+  assert.ok(!job.mezz.some(r => r.warn.some(w => /short of the building column line/.test(w.text))), 'no guard on the job as quoted');
+  console.log('job3 tests passed (W1S-26062: 8/8 ⊗, ✱ 3/E–6/E, I 2/E, joists along the length from the truss symbols, frame loads on members; MB1 design span 22\'-4" keeps line A on the frame; footprint cut flagged)');
 })().catch(e => { console.error(e); process.exit(1); });
