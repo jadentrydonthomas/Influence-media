@@ -255,7 +255,13 @@ tr.muted td { color: var(--ink-faint); }
 .option-delta.zero { color: var(--green-dark); background: var(--green-soft); }
 .option-sec { margin: 6px 0 2px; font: 600 clamp(22px, 1.9vw, 28px) var(--mono); letter-spacing: -.05em; line-height: 1.05; }
 .option-parts { color: var(--ink-muted); font: 12px var(--mono); }
-.option-why { flex: 1; margin: 6px 0 8px; color: var(--ink-faint); font-size: 12.5px; line-height: 1.5; }
+.option-why { flex: 1; margin: 10px 0 4px; padding: 0; list-style: none; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
+.option-why li { margin: 0 0 6px; } .option-why li b { color: var(--ink); font-weight: 600; }
+.option-tags { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.options.is-one { grid-template-columns: minmax(0, 1.4fr); max-width: 720px; }
+.option-one { margin: 10px 0 6px; padding: 10px 13px; border-radius: 10px; background: var(--surface-soft); color: var(--ink-muted); font-size: 12.5px; line-height: 1.55; }
+.option-one b { color: var(--ink); }
+table.deeper { max-width: 900px; margin-bottom: 14px; }
 .option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 12px; padding-top: 9px; border-top: 1px solid var(--line); }
 .option-grid span { display: block; color: var(--ink-faint); font-size: 11px; }
 .option-grid b { display: block; margin-top: 1px; font: 600 14px var(--mono); }
@@ -928,6 +934,55 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
 table.nbg-t td .card-eq { width: 78px; }
 .eq-tag { display: block; color: var(--amber) !important; }
 
+/* the NBG workbooks: kept on this computer, filled per job */
+.wb-have { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.wb-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; }
+.wb-chip small { color: var(--ink-faint); font: 11px var(--mono); }
+.wb-chip.ok { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); background: var(--green-soft); }
+.wb-chip.miss { border-style: dashed; color: var(--ink-muted); }
+.wb-x { border: 0; background: none; color: var(--ink-faint); cursor: pointer; padding: 0 2px; }
+.wb-add { cursor: pointer; }
+.wb-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 10px; }
+.wb-group h5 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
+.wb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.wb-row b { display: block; font-size: 13px; } .wb-row small { display: block; color: var(--ink-faint); font-size: 11.5px; }
+.wb-btn { white-space: nowrap; }
+
+.wb-panel { padding: 16px 18px; }
+.dm-fold { margin: 18px 0 28px; border: 1px solid var(--line); border-radius: 14px; background: var(--glass); }
+.dm-fold > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 14px 18px; }
+.dm-fold > summary::-webkit-details-marker { display: none; }
+.dm-fold > summary::before { content: '▸'; color: var(--green); transition: transform .15s; }
+.dm-fold[open] > summary::before { transform: rotate(90deg); }
+.dm-fold-t { font-weight: 600; font-size: 15px; }
+.dm-fold > summary small { color: var(--ink-faint); font-size: 12px; }
+.dm-fold .dm { padding: 0 16px 16px; }
+.xl-btns { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+
+/* seismic page, step by step */
+.step-no { display: inline-grid; place-items: center; min-width: 28px; height: 22px; margin-right: 8px; padding: 0 6px; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font: 700 11.5px var(--mono); vertical-align: 2px; }
+.step-no.sm { min-width: 20px; height: 18px; font-size: 10.5px; }
+.wb-cell { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 5px; background: var(--surface-soft); color: var(--ink-faint); font: 500 10px var(--mono); vertical-align: 1px; text-transform: none; letter-spacing: 0; }
+th .wb-cell { display: block; margin: 2px 0 0; width: max-content; }
+.seis-echo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; background: var(--surface-soft); font-size: 12.5px; color: var(--ink-muted); }
+.seis-echo b { color: var(--ink); font-family: var(--mono); }
+.seis-h-mz { margin: 16px 0 8px; font-size: 13.5px; }
+table.seis-apply tr.is-typed td { background: var(--amber-soft); }
+table.seis-apply td small { display: block; }
+table.seis-apply tr.bad-row td { background: var(--red-soft); }
+.seis-flags { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.55; }
+.seis-flags li { margin: 0 0 10px; }
+.seis-flags .seis-chk { display: inline-flex; grid-column: auto; margin-left: 4px; }
+.seis-flags select { font: 600 12.5px var(--mono); padding: 3px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.seis-sum .wb-btn { margin-left: auto; }
+
+.fit-steps { margin: 4px 0 8px; padding-left: 20px; } .fit-steps li { margin: 4px 0; }
+.fit-tries { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; }
+.fit-tries span { padding: 1px 7px; border-radius: 6px; font: 11px var(--mono); background: var(--surface-soft); color: var(--ink-muted); }
+.fit-tries span.ok { background: var(--green-soft); color: var(--green-dark); }
+.seis-grid .lab { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.seis-grid > label .lab .src, .seis-grid > label .lab .wb-cell { margin-left: 0; }
+
 </style>
 </head>
 <body>
@@ -1043,13 +1098,15 @@ table.nbg-t td .card-eq { width: 78px; }
       <section class="field" id="field"></section>
       <div class="section-title" id="optHead"><h3>Beam options</h3><p id="optSub"></p></div>
       <div id="options"></div>
-      <div class="section-title" id="notesHead"><h3>Checks &amp; decisions</h3><p>What to check before quoting, what was confirmed against the PCS, and the calls the design made on its own</p></div>
-      <div class="notes" id="warnings"></div>
-      <div class="section-title" id="dmHead"><h3>Design manual · DM 15.1</h3><p>Every item of NBG DM 15.1 Mezzanine Systems this job touches — met, to check, or a callout for detailing</p></div>
-      <div class="dm" id="dmList"></div>
       <div class="section-title" id="qsHead"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
       <div class="qs" id="quoteSheet"></div>
-      <section class="readout" id="readout"></section>
+      <div class="section-title" id="wbHead"><h3>Check it in the NBG workbooks</h3><p>The real Mezzanine Beam Design, Mezzanine Column and IBC Seismic workbooks with this job typed in — open them in Excel and walk through them</p></div>
+      <div class="panel wb-panel" id="wbPanel"></div>
+      <div class="section-title" id="notesHead"><h3>Checks &amp; decisions</h3><p>What to check before quoting first; what was confirmed and the calls the design made are folded below it</p></div>
+      <div class="notes" id="warnings"></div>
+      <details class="dm-fold" id="dmFold"><summary><span class="dm-fold-t">Design manual · DM 15.1</span><span id="dmSum"></span><small>every item of NBG DM 15.1 this job touches — open the list</small></summary>
+        <div class="dm" id="dmList"></div></details>
+      <section class="readout" id="readout" hidden></section>
     </section>
 
     <!-- PLAN -->
@@ -1095,21 +1152,29 @@ table.nbg-t td .card-eq { width: 78px; }
     <!-- SEISMIC -->
     <section class="screen" id="v-seismic">
       <div class="screen-heading">
-        <div><div class="eyebrow">ASCE 7 equivalent lateral force · NBG IBC Seismic workbook</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
-        <p class="lede">The mezzanine's seismic load on each frame (EQR / EQL at the mezzanine level, on the columns it frames into) and on the bracing, worked the way the IBC Seismic workbook does it — and the roof seismic weight NBG Frame needs once a mezzanine is in the building.</p>
+        <div><div class="eyebrow">NBG IBC Seismic workbook · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
+        <p class="lede">Your procedure, in the workbook's order: the building and the mezzanine loads on <b>Input Data</b>; each frame on <b>Lateral Calcs. (1)</b> — its mezzanine row is the load for that frame; split onto the columns the mezzanine frames into as EQR + / EQL − in NBG Frame; the bracing from <b>Longitudinal Calcs.</b> Every step can be opened in the workbook itself.</p>
       </div>
       <div class="seis-status" id="seisStatus"></div>
-      <div class="panel">
-        <div class="panel-head"><h3>Inputs</h3><span class="sub">from the PCS (Box 2 / 3 / 4) and the design · type over any value</span></div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">1–3</span>Input Data</h3><span class="sub">code &amp; site, building, roof &amp; walls, mezzanine loads · from the PCS and the design · type over any value</span></div>
         <div class="panel-body" id="seisInputs"></div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Frames · lateral</h3><span class="sub">one calculation per frame line with mezzanine in its strip · click a frame for its distribution</span></div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">4</span>Each frame · Lateral Calcs. (1)</h3><span class="sub">frame type, bay width (its strip), where it is, the loading area of each mezzanine → the mezzanine's seismic force at that frame · click a row for the full distribution</span></div>
         <div class="panel-body" id="seisFrames"></div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Bracing · longitudinal</h3><span class="sub">the whole building · what each bracing line has to hold at the mezzanine level</span></div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">5</span>Into NBG Frame · EQR / EQL</h3><span class="sub">the frame's mezzanine force on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
+        <div class="panel-body" id="seisApply"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">6</span>Bracing · Longitudinal Calcs.</h3><span class="sub">the whole building · the mezzanine's seismic force for the bracing</span></div>
         <div class="panel-body" id="seisBracing"></div>
+      </div>
+      <div class="panel seis-step" id="seisFlagsPanel">
+        <div class="panel-head"><h3>What the tool does beyond your procedure</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
+        <div class="panel-body" id="seisFlags"></div>
       </div>
       <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
     </section>
@@ -1126,7 +1191,7 @@ table.nbg-t td .card-eq { width: 78px; }
       <div class="span-runs" id="spanRuns"></div>
       <div class="panel"><div class="panel-body" id="mbSheet"></div></div>
       <details class="panel fold xl-panel">
-        <summary class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlBeamSub"></span></summary>
+        <summary class="panel-head"><h3>In the workbook · cell by cell</h3><span class="sub" id="xlBeamSub"></span></summary>
         <div class="panel-body" id="xlBeam"></div>
       </details>
       <details class="panel fold">
@@ -1145,7 +1210,7 @@ table.nbg-t td .card-eq { width: 78px; }
       <details class="explain" id="colExplain"><summary id="colExplainHead">How the column was chosen</summary><div class="explain-body" id="colHow"></div></details>
       <div class="panel"><div class="panel-body" id="colSheet"></div></div>
       <details class="panel fold xl-panel">
-        <summary class="panel-head"><h3>Excel, step by step</h3><span class="sub" id="xlColSub"></span></summary>
+        <summary class="panel-head"><h3>In the workbook · cell by cell</h3><span class="sub" id="xlColSub"></span></summary>
         <div class="panel-body" id="xlCol"></div>
       </details>
       <details class="panel fold">
@@ -3383,6 +3448,402 @@ table.nbg-t td .card-eq { width: 78px; }
 
 </script>
 <script>
+/* ---- xls.js ---- */
+/* The NBG workbooks themselves, filled in: type values into input cells of an Excel 97–2003 (.xls) workbook and give
+   it back, everything else byte for byte (sheets, formulas, formats, drop-downs, the VBA project). Excel recalculates
+   the whole workbook when it opens the copy, so what it shows is the workbook's own answer for these inputs.
+
+   The workbook is the user's own file, dropped into the page and kept in this browser; nothing is sent anywhere and
+   no workbook is part of this tool.
+
+   Format: an OLE2 compound file (MS-CFB) holding the "Workbook" stream of BIFF8 records (MS-XLS). Only that stream is
+   rewritten: each edited cell's record is replaced (a NUMBER / RK for a number, a LABELSST for text — a string the
+   workbook does not have yet is added to its shared-string table), multi-cell records are split around it, and every
+   stream position the format keeps (BOUNDSHEET, INDEX, DBCELL, EXTSST) is re-pointed. The RECALCID record goes, which
+   makes Excel recalculate on load. */
+(function (root) {
+  'use strict';
+  const FREE = 0xFFFFFFFF, END = 0xFFFFFFFE, FATSECT = 0xFFFFFFFD;
+  const SIG = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+  // ---------------- compound file ----------------
+  function cfbRead(bytes) {
+    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    if (!SIG.every((b, i) => u8[i] === b)) throw new Error('not an Excel 97–2003 workbook (.xls)');
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    const ss = 1 << dv.getUint16(0x1E, true), mss = 1 << dv.getUint16(0x20, true);
+    const nFat = dv.getUint32(0x2C, true), dir0 = dv.getUint32(0x30, true), cutoff = dv.getUint32(0x38, true);
+    const mfat0 = dv.getUint32(0x3C, true), nMfat = dv.getUint32(0x40, true), difat0 = dv.getUint32(0x44, true), nDifat = dv.getUint32(0x48, true);
+    const at = s => (s + 1) * ss;
+    // the FAT sector list: 109 in the header, then the DIFAT chain
+    const fatSecs = [];
+    for (let i = 0; i < 109 && fatSecs.length < nFat; i++) fatSecs.push(dv.getUint32(0x4C + i * 4, true));
+    for (let d = difat0, k = 0; k < nDifat && d < END; k++) {
+      for (let i = 0; i < ss / 4 - 1 && fatSecs.length < nFat; i++) fatSecs.push(dv.getUint32(at(d) + i * 4, true));
+      d = dv.getUint32(at(d) + ss - 4, true);
+    }
+    const fat = new Uint32Array(fatSecs.length * ss / 4);
+    fatSecs.forEach((s, i) => { for (let j = 0; j < ss / 4; j++) fat[i * ss / 4 + j] = dv.getUint32(at(s) + j * 4, true); });
+    const chain = s => { const out = []; const seen = new Set(); while (s < END) { if (seen.has(s) || s >= fat.length) throw new Error('broken sector chain'); seen.add(s); out.push(s); s = fat[s]; } return out; };
+    const readChain = (s, size) => { const c = chain(s), out = new Uint8Array(c.length * ss); c.forEach((x, i) => out.set(u8.subarray(at(x), at(x) + ss), i * ss)); return size == null ? out : out.subarray(0, size); };
+    const dirBytes = readChain(dir0);
+    const ents = [];
+    for (let o = 0; o + 128 <= dirBytes.length; o += 128) {
+      const e = new DataView(dirBytes.buffer, dirBytes.byteOffset + o, 128), nl = e.getUint16(0x40, true), type = e.getUint8(0x42);
+      let name = ''; for (let i = 0; i < Math.max(0, nl / 2 - 1); i++) name += String.fromCharCode(e.getUint16(i * 2, true));
+      ents.push({ i: ents.length, name, type, start: e.getUint32(0x74, true), size: e.getUint32(0x78, true), off: o });
+    }
+    const rootE = ents[0];
+    const mini = rootE && rootE.start < END ? readChain(rootE.start, rootE.size) : new Uint8Array(0);
+    const mfat = nMfat ? (() => { const b = readChain(mfat0); const a = new Uint32Array(b.length / 4); const v = new DataView(b.buffer, b.byteOffset, b.byteLength); for (let i = 0; i < a.length; i++) a[i] = v.getUint32(i * 4, true); return a; })() : new Uint32Array(0);
+    const stream = name => {
+      const e = ents.find(x => x.type === 2 && x.name.toLowerCase() === name.toLowerCase());
+      if (!e) return null;
+      if (e.size >= cutoff) return readChain(e.start, e.size).slice();
+      const out = new Uint8Array(e.size); let s = e.start, p = 0;
+      while (p < e.size && s < END) { out.set(mini.subarray(s * mss, s * mss + Math.min(mss, e.size - p)), p); p += mss; s = mfat[s]; }
+      return out;
+    };
+    return { u8, dv, ss, mss, cutoff, nFat, fatSecs, fat, ents, dir0, chain, stream, dirBytes, at };
+  }
+
+  /* the same file with one stream (≥ the mini-stream cutoff, e.g. "Workbook") replaced. Its old sectors are reused,
+     extra ones are appended at the end (with a new FAT sector when the FAT is full); nothing else moves. */
+  function cfbReplace(cf, name, data) {
+    const e = cf.ents.find(x => x.type === 2 && x.name.toLowerCase() === name.toLowerCase());
+    if (!e) throw new Error(`no "${name}" stream`);
+    if (e.size < cf.cutoff || data.length < cf.cutoff) throw new Error('only a large stream can be replaced');
+    const ss = cf.ss, per = ss / 4;
+    let fat = Array.from(cf.fat), fatSecs = cf.fatSecs.slice();
+    let nSec = Math.ceil(cf.u8.length / ss) - 1;   // sectors in the file now
+    const old = cf.chain(e.start), need = Math.ceil(data.length / ss);
+    const use = old.slice(0, need);
+    old.slice(need).forEach(s => { fat[s] = FREE; });
+    const grow = () => { while (fat.length <= nSec) { fatSecs.push(null); fat = fat.concat(new Array(per).fill(FREE)); } };
+    while (use.length < need) {
+      // a free sector inside the file, else a new one at the end
+      let s = fat.findIndex((v, i) => v === FREE && i < nSec && !use.includes(i));
+      if (s < 0) { s = nSec++; grow(); }
+      use.push(s);
+    }
+    // FAT sectors added by grow(): put them at the end too, marked as FAT sectors
+    for (let i = 0; i < fatSecs.length; i++) if (fatSecs[i] == null) { const s = nSec++; grow(); fatSecs[i] = s; fat[s] = FATSECT; }
+    if (fatSecs.length > 109) throw new Error('workbook too large to rewrite (DIFAT)');
+    use.forEach((s, i) => { fat[s] = i + 1 < use.length ? use[i + 1] : END; });
+    const out = new Uint8Array((nSec + 1) * ss);
+    out.set(cf.u8.subarray(0, Math.min(cf.u8.length, out.length)));
+    const dv = new DataView(out.buffer);
+    use.forEach((s, i) => { const chunk = data.subarray(i * ss, Math.min(data.length, (i + 1) * ss)); out.fill(0, (s + 1) * ss, (s + 2) * ss); out.set(chunk, (s + 1) * ss); });
+    // header: FAT sector count and list
+    dv.setUint32(0x2C, fatSecs.length, true);
+    for (let i = 0; i < 109; i++) dv.setUint32(0x4C + i * 4, i < fatSecs.length ? fatSecs[i] : FREE, true);
+    fatSecs.forEach((s, i) => { for (let j = 0; j < per; j++) dv.setUint32((s + 1) * ss + j * 4, fat[i * per + j] == null ? FREE : fat[i * per + j], true); });
+    // the directory entry: start sector and size
+    const dsec = cf.chain(cf.dir0), eo = e.off, ds = dsec[Math.floor(eo / ss)], base = (ds + 1) * ss + (eo % ss);
+    dv.setUint32(base + 0x74, use[0], true); dv.setUint32(base + 0x78, data.length, true); dv.setUint32(base + 0x7C, 0, true);
+    return out;
+  }
+
+  // ---------------- BIFF8 ----------------
+  const R = { BOF: 0x809, EOF: 0x0A, BOUNDSHEET: 0x85, SST: 0xFC, EXTSST: 0xFF, CONTINUE: 0x3C, INDEX: 0x20B, DBCELL: 0xD7, ROW: 0x208,
+    NUMBER: 0x203, RK: 0x27E, MULRK: 0xBD, LABELSST: 0xFD, LABEL: 0x204, BLANK: 0x201, MULBLANK: 0xBE, BOOLERR: 0x205, FORMULA: 0x06,
+    STRING: 0x207, SHRFMLA: 0x4BC, ARRAY: 0x221, TABLE: 0x236, RECALCID: 0x1C1, DIMENSIONS: 0x200 };
+  function records(s) {
+    const out = [], dv = new DataView(s.buffer, s.byteOffset, s.byteLength);
+    for (let o = 0; o + 4 <= s.length;) {
+      const type = dv.getUint16(o, true), len = dv.getUint16(o + 2, true);
+      if (o + 4 + len > s.length) break;
+      out.push({ type, off: o, data: s.subarray(o + 4, o + 4 + len) });
+      o += 4 + len;
+    }
+    return out;
+  }
+  const u16 = (d, o) => d[o] | (d[o + 1] << 8), u32 = (d, o) => (d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24)) >>> 0;
+  const put16 = (d, o, v) => { d[o] = v & 255; d[o + 1] = (v >> 8) & 255; }, put32 = (d, o, v) => { d[o] = v & 255; d[o + 1] = (v >>> 8) & 255; d[o + 2] = (v >>> 16) & 255; d[o + 3] = (v >>> 24) & 255; };
+  const rec = (type, data) => ({ type, data: data instanceof Uint8Array ? data : new Uint8Array(data) });
+
+  // the workbook's sheets (BOUNDSHEET), in order, with where each starts
+  function sheetsOf(rs) {
+    return rs.filter(r => r.type === R.BOUNDSHEET).map(r => {
+      const d = r.data, cch = d[6], hi = d[7] & 1;
+      let name = ''; for (let i = 0; i < cch; i++) name += String.fromCharCode(hi ? u16(d, 8 + i * 2) : d[8 + i]);
+      return { name, pos: u32(d, 0), rec: r, hidden: d[4] & 3, kind: d[5] };
+    });
+  }
+
+  // ---------------- shared strings ----------------
+  // every string of the SST (with its rich-text / phonetic tails, kept as they are), across CONTINUE records
+  function sstRead(rs, i0) {
+    const parts = [rs[i0].data.subarray(8)];
+    let j = i0 + 1;
+    while (j < rs.length && rs[j].type === R.CONTINUE) parts.push(rs[j++].data);
+    const unique = u32(rs[i0].data, 4), total = u32(rs[i0].data, 0), strs = [];
+    let pi = 0, p = 0;
+    const left = () => parts[pi].length - p;
+    const next = () => { pi++; p = 0; };
+    const bytes = n => { const out = new Uint8Array(n); let k = 0; while (k < n) { if (!left()) next(); const t = Math.min(n - k, left()); out.set(parts[pi].subarray(p, p + t), k); k += t; p += t; } return out; };
+    for (let s = 0; s < unique; s++) {
+      if (!left()) next();
+      const head = bytes(3), cch = u16(head, 0), fl = head[2];
+      const rich = fl & 8 ? u16(bytes(2), 0) : 0, ext = fl & 4 ? u32(bytes(4), 0) : 0;
+      let hi = fl & 1, text = '';
+      for (let k = 0; k < cch;) {
+        if (!left()) { next(); hi = parts[pi][p] & 1; p++; }   // a CONTINUE inside the characters repeats the high-byte flag
+        const n = Math.min(cch - k, Math.floor(left() / (hi ? 2 : 1)));
+        for (let q = 0; q < n; q++) text += String.fromCharCode(hi ? u16(parts[pi], p + q * 2) : parts[pi][p + q]);
+        p += n * (hi ? 2 : 1); k += n;
+      }
+      const tail = bytes(rich * 4 + ext);
+      strs.push({ text, rich, ext, tail });
+    }
+    return { total, strs, end: j };
+  }
+  // SST + CONTINUE records (strings never split) and the EXTSST that indexes them, for a stream offset `at`
+  function sstWrite(total, strs, at) {
+    const enc = s => {
+      const wide = [...s.text].some(c => c.charCodeAt(0) > 255), n = s.text.length;
+      const b = new Uint8Array(3 + (s.rich ? 2 : 0) + (s.ext ? 4 : 0) + n * (wide ? 2 : 1) + s.tail.length);
+      put16(b, 0, n); b[2] = (wide ? 1 : 0) | (s.rich ? 8 : 0) | (s.ext ? 4 : 0);
+      let o = 3; if (s.rich) { put16(b, o, s.rich); o += 2; } if (s.ext) { put32(b, o, s.ext); o += 4; }
+      for (let k = 0; k < n; k++) { if (wide) { put16(b, o, s.text.charCodeAt(k)); o += 2; } else b[o++] = s.text.charCodeAt(k); }
+      b.set(s.tail, o);
+      return b;
+    };
+    const MAX = 8224, recs = [], pos = [];
+    let cur = [], len = 8, first = true, recStart = at;
+    const flush = () => { const d = new Uint8Array(len); let o = 0; if (first) { put32(d, 0, total); put32(d, 4, strs.length); o = 8; } cur.forEach(b => { d.set(b, o); o += b.length; }); recs.push(rec(first ? R.SST : R.CONTINUE, d)); recStart += 4 + len; first = false; cur = []; len = 0; };
+    strs.forEach(s => {
+      const b = enc(s);
+      if (len + b.length > MAX && cur.length) flush();
+      if (b.length > MAX) throw new Error('shared string too long to rewrite');
+      pos.push({ ib: recStart + 4 + len, cb: 4 + len });
+      cur.push(b); len += b.length;
+    });
+    flush();
+    const dsst = Math.max(8, Math.ceil(strs.length / 128)), buckets = Math.ceil(strs.length / dsst);
+    const ex = new Uint8Array(2 + buckets * 8); put16(ex, 0, dsst);
+    for (let k = 0; k < buckets; k++) { const q = pos[k * dsst]; put32(ex, 2 + k * 8, q.ib); put16(ex, 6 + k * 8, q.cb); }
+    return { recs, extsst: rec(R.EXTSST, ex) };
+  }
+
+  // ---------------- cells ----------------
+  const colOf = s => [...s].reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+  const addr = a => { const m = /^\$?([A-Z]{1,3})\$?(\d+)$/i.exec(String(a).trim()); if (!m) throw new Error('bad cell ' + a); return { r: +m[2] - 1, c: colOf(m[1].toUpperCase()) }; };
+  // RK: the value exactly as a 30-bit integer (optionally ÷100), else null
+  function rkOf(v) {
+    if (Number.isInteger(v) && v >= -(2 ** 29) && v < 2 ** 29) return ((v << 2) | 2) >>> 0;
+    const h = Math.round(v * 100);
+    if (Math.abs(h / 100 - v) === 0 && h >= -(2 ** 29) && h < 2 ** 29) return ((h << 2) | 3) >>> 0;
+    return null;
+  }
+  function rkVal(rk) {
+    let v;
+    if (rk & 2) v = (rk | 0) >> 2;
+    else { const b = new DataView(new ArrayBuffer(8)); b.setUint32(4, rk & 0xFFFFFFFC, true); b.setUint32(0, 0, true); v = b.getFloat64(0, true); }
+    return rk & 1 ? v / 100 : v;
+  }
+  function numRec(r, c, xf, v) {
+    const rk = rkOf(v);
+    if (rk != null) { const d = new Uint8Array(10); put16(d, 0, r); put16(d, 2, c); put16(d, 4, xf); put32(d, 6, rk); return rec(R.RK, d); }
+    const d = new Uint8Array(14); put16(d, 0, r); put16(d, 2, c); put16(d, 4, xf); new DataView(d.buffer).setFloat64(6, v, true); return rec(R.NUMBER, d);
+  }
+  const sstRec = (r, c, xf, i) => { const d = new Uint8Array(10); put16(d, 0, r); put16(d, 2, c); put16(d, 4, xf); put32(d, 6, i); return rec(R.LABELSST, d); };
+  // the cells a record covers: [{c, xf, single record for it}]
+  function splitMulti(x) {
+    const d = x.data, r = u16(d, 0), c0 = u16(d, 2);
+    if (x.type === R.MULRK) { const n = (d.length - 6) / 6; return Array.from({ length: n }, (_, k) => ({ r, c: c0 + k, xf: u16(d, 4 + k * 6), rk: u32(d, 6 + k * 6) })); }
+    const n = (d.length - 6) / 2; return Array.from({ length: n }, (_, k) => ({ r, c: c0 + k, xf: u16(d, 4 + k * 2) }));
+  }
+  function joinMulti(type, cells) {
+    if (!cells.length) return [];
+    if (cells.length === 1) {
+      const q = cells[0], d = new Uint8Array(type === R.MULRK ? 10 : 6); put16(d, 0, q.r); put16(d, 2, q.c); put16(d, 4, q.xf);
+      if (type === R.MULRK) put32(d, 6, q.rk);
+      return [rec(type === R.MULRK ? R.RK : R.BLANK, d)];
+    }
+    const w = type === R.MULRK ? 6 : 2, d = new Uint8Array(6 + cells.length * w);
+    put16(d, 0, cells[0].r); put16(d, 2, cells[0].c);
+    cells.forEach((q, k) => { put16(d, 4 + k * w, q.xf); if (type === R.MULRK) put32(d, 6 + k * w, q.rk); });
+    put16(d, 4 + cells.length * w, cells[cells.length - 1].c);
+    return [rec(type, d)];
+  }
+
+  /* fill a workbook: edits [{ sheet, cell: 'D14', value: number | string | null }] (null leaves the cell empty).
+     Returns { bytes, done: [{sheet, cell, value, was}], missing: [...] } — a cell the workbook has no record for (never
+     formatted, nowhere on the sheet) is reported in missing, not written. */
+  function fill(bytes, edits) {
+    const cf = cfbRead(bytes);
+    const wb = cf.stream('Workbook') || cf.stream('Book');
+    if (!wb) throw new Error('no Workbook stream — save it as an Excel 97–2003 workbook');
+    let rs = records(wb);
+    const sheets = sheetsOf(rs);
+    // shared strings: find or add
+    const si = rs.findIndex(r => r.type === R.SST);
+    const sst = si >= 0 ? sstRead(rs, si) : null;
+    const strIndex = new Map(); if (sst) sst.strs.forEach((s, i) => { if (!strIndex.has(s.text)) strIndex.set(s.text, i); });
+    let added = 0, refs = 0;   // strings added; net change in string-cell references
+    const sstIdx = t => { if (!sst) throw new Error('no shared-string table'); let i = strIndex.get(t); if (i == null) { i = sst.strs.length; sst.strs.push({ text: t, rich: 0, ext: 0, tail: new Uint8Array(0) }); strIndex.set(t, i); added++; } refs++; return i; };
+    // edits by sheet and cell
+    const want = new Map(), done = [], missing = [];
+    edits.forEach(ed => {
+      const sh = sheets.find(s => s.name.toLowerCase() === String(ed.sheet).toLowerCase());
+      if (!sh) { missing.push({ ...ed, why: `no sheet "${ed.sheet}"` }); return; }
+      const { r, c } = addr(ed.cell);
+      want.set(`${sh.pos}|${r}|${c}`, { ...ed, r, c });
+    });
+    // walk the stream: which substream a record is in (by its BOF position)
+    const out = [];   // { type, data, from: old record or null }
+    let cur = null;
+    for (let i = 0; i < rs.length; i++) {
+      const x = rs[i];
+      if (x.type === R.BOF) cur = x.off;
+      if (x.type === R.RECALCID) continue;   // gone: Excel then recalculates the workbook on load
+      const isCell = [R.NUMBER, R.RK, R.LABELSST, R.LABEL, R.BLANK, R.BOOLERR, R.FORMULA].includes(x.type);
+      if (isCell) {
+        const r = u16(x.data, 0), c = u16(x.data, 2), w = want.get(`${cur}|${r}|${c}`);
+        if (w) {
+          let n = 1;
+          if (x.type === R.FORMULA) {
+            // a formula typed over (as a user would); a shared / array formula anchor cannot be
+            if (rs[i + 1] && [R.SHRFMLA, R.ARRAY, R.TABLE].includes(rs[i + 1].type)) { missing.push({ ...w, why: 'a shared-formula cell' }); out.push({ ...x, from: x }); continue; }
+            if (rs[i + 1] && rs[i + 1].type === R.STRING) n = 2;
+          }
+          const xf = u16(x.data, 4), was = cellText(x, sst);
+          if (x.type === R.LABELSST) refs--;
+          out.push({ ...newCell(w, xf), from: x });
+          done.push({ sheet: w.sheet, cell: w.cell, value: w.value, was });
+          want.delete(`${cur}|${r}|${c}`);
+          if (n === 2) { out.push({ type: -1, data: null, from: rs[i + 1] }); i++; }   // dropped STRING keeps its position mapped
+          continue;
+        }
+      }
+      if (x.type === R.MULRK || x.type === R.MULBLANK) {
+        const cells = splitMulti(x), hit = cells.filter(q => want.has(`${cur}|${q.r}|${q.c}`));
+        if (hit.length) {
+          const parts = []; let run = [];
+          cells.forEach(q => {
+            const key = `${cur}|${q.r}|${q.c}`, w = want.get(key);
+            if (!w) { run.push(q); return; }
+            parts.push(...joinMulti(x.type, run)); run = [];
+            parts.push(newCell(w, q.xf));
+            done.push({ sheet: w.sheet, cell: w.cell, value: w.value, was: x.type === R.MULRK ? rkVal(q.rk) : '' });
+            want.delete(key);
+          });
+          parts.push(...joinMulti(x.type, run));
+          parts.forEach((p, k) => out.push({ ...p, from: k ? null : x }));
+          continue;
+        }
+      }
+      out.push({ ...x, from: x });
+    }
+    want.forEach(w => missing.push({ ...w, why: 'no cell there in the workbook' }));
+    function newCell(w, xf) {
+      if (w.value == null || w.value === '') { const d = new Uint8Array(6); put16(d, 0, w.r); put16(d, 2, w.c); put16(d, 4, xf); return rec(R.BLANK, d); }
+      if (typeof w.value === 'boolean') { const d = new Uint8Array(8); put16(d, 0, w.r); put16(d, 2, w.c); put16(d, 4, xf); d[6] = w.value ? 1 : 0; d[7] = 0; return rec(R.BOOLERR, d); }   // a check box's linked cell
+      if (typeof w.value === 'number' && isFinite(w.value)) return numRec(w.r, w.c, xf, w.value);
+      return sstRec(w.r, w.c, xf, sstIdx(String(w.value)));
+    }
+    // the shared strings, rewritten when strings were added (and their reference count)
+    let body = out;
+    if (sst && !added && refs) {
+      const a = out.find(x => x.from && x.from.type === R.SST);
+      a.data = a.data.slice(); put32(a.data, 0, Math.max(0, sst.total + refs));
+    }
+    if (sst && added) {
+      const a = out.findIndex(x => x.from && x.from.type === R.SST);
+      let b = a + 1; while (b < out.length && out[b].from && out[b].from.type === R.CONTINUE) b++;
+      const e = out.findIndex(x => x.from && x.from.type === R.EXTSST);
+      body = out.map(x => x);
+      body.splice(a, b - a, { type: 'SST*', from: out[a].from, olds: out.slice(a, b) });
+      if (e >= 0) { const ei = body.findIndex(x => x.from && x.from.type === R.EXTSST); body.splice(ei, 1, { type: 'EXTSST*', from: out[e].from }); }
+      sst.total += refs;
+    }
+    // serialise, keeping old offset → new offset for every record that stays (or is replaced)
+    const map = new Map(), chunks = [];
+    let pos = 0, sstOut = null;
+    body.forEach(x => {
+      if (x.type === -1) { if (x.from) map.set(x.from.off, pos); return; }
+      if (x.type === 'SST*') {
+        sstOut = sstWrite(sst.total, sst.strs, pos);
+        map.set(x.from.off, pos);
+        x.olds.slice(1).forEach(o => map.set(o.from.off, pos));
+        sstOut.recs.forEach(r => { chunks.push(r); pos += 4 + r.data.length; });
+        return;
+      }
+      if (x.type === 'EXTSST*') { map.set(x.from.off, pos); const r = sstOut.extsst; chunks.push(r); pos += 4 + r.data.length; return; }
+      if (x.from && !map.has(x.from.off)) map.set(x.from.off, pos);
+      const r = { type: x.type, data: x.data.slice() }; r.newOff = pos; r.from = x.from;
+      chunks.push(r); pos += 4 + r.data.length;
+    });
+    // a position inside the old stream → the new one (exact for record starts)
+    const olds = rs.map(r => r.off);
+    const mapPos = p => {
+      if (map.has(p)) return map.get(p);
+      let lo = 0, hi = olds.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (olds[m] <= p) lo = m; else hi = m - 1; }
+      return (map.get(olds[lo]) ?? 0) + (p - olds[lo]);
+    };
+    // re-point what the format keeps as stream positions
+    chunks.forEach(r => {
+      if (!r.from) return;
+      if (r.type === R.BOUNDSHEET) put32(r.data, 0, mapPos(u32(r.data, 0)));
+      if (r.type === R.INDEX) {
+        if (u32(r.data, 12)) put32(r.data, 12, mapPos(u32(r.data, 12)));
+        for (let o = 16; o + 4 <= r.data.length; o += 4) put32(r.data, o, mapPos(u32(r.data, o)));
+      }
+      if (r.type === R.DBCELL) {
+        const oldDb = r.from.off, firstRow = oldDb - u32(r.data, 0);
+        const rowsAt = rs.filter(q => q.type === R.ROW && q.off >= firstRow && q.off < oldDb).map(q => q.off);
+        put32(r.data, 0, r.newOff - mapPos(firstRow));
+        // the first cell of each row: from the second ROW record (or the end of the only one), then row to row
+        let oldBase = rowsAt.length > 1 ? rowsAt[1] : firstRow + 4 + 16, newBase = mapPos(oldBase);
+        for (let o = 4; o + 2 <= r.data.length; o += 2) {
+          const oldP = oldBase + u16(r.data, o), newP = mapPos(oldP);
+          put16(r.data, o, newP - newBase);
+          oldBase = oldP; newBase = newP;
+        }
+      }
+    });
+    const ns = new Uint8Array(pos);
+    let o = 0; chunks.forEach(r => { put16(ns, o, r.type); put16(ns, o + 2, r.data.length); ns.set(r.data, o + 4); o += 4 + r.data.length; });
+    return { bytes: cfbReplace(cf, cf.ents.find(x => x.type === 2 && /^(workbook|book)$/i.test(x.name)).name, ns), done, missing, sheets: sheets.map(s => s.name), stringsAdded: added };
+  }
+  function cellText(x, sst) {
+    const d = x.data;
+    if (x.type === R.NUMBER) return new DataView(d.buffer, d.byteOffset, d.byteLength).getFloat64(6, true);
+    if (x.type === R.RK) return rkVal(u32(d, 6));
+    if (x.type === R.LABELSST) return sst && sst.strs[u32(d, 6)] ? sst.strs[u32(d, 6)].text : '';
+    if (x.type === R.FORMULA) return '(formula)';
+    if (x.type === R.BOOLERR) return d[7] ? '#ERR' : !!d[6];
+    return '';
+  }
+
+  /* read cells back (cached values as saved — a filled copy has none until Excel recalculates it) */
+  function read(bytes, cells) {
+    const cf = cfbRead(bytes), wb = cf.stream('Workbook') || cf.stream('Book'), rs = records(wb), sheets = sheetsOf(rs);
+    const si = rs.findIndex(r => r.type === R.SST), sst = si >= 0 ? sstRead(rs, si) : null;
+    const res = {};
+    const want = new Map(cells.map(q => { const sh = sheets.find(s => s.name.toLowerCase() === q.sheet.toLowerCase()); const { r, c } = addr(q.cell); return [`${sh ? sh.pos : -1}|${r}|${c}`, q]; }));
+    let cur = null;
+    rs.forEach((x, i) => {
+      if (x.type === R.BOF) cur = x.off;
+      const take = (r, c, v) => { const q = want.get(`${cur}|${r}|${c}`); if (q) res[`${q.sheet}!${q.cell}`] = v; };
+      if ([R.NUMBER, R.RK, R.LABELSST, R.BLANK, R.BOOLERR].includes(x.type)) take(u16(x.data, 0), u16(x.data, 2), cellText(x, sst));
+      else if (x.type === R.FORMULA) {
+        const d = x.data;
+        if (d[12] === 0xFF && d[13] === 0xFF) take(u16(d, 0), u16(d, 2), d[6] === 0 && rs[i + 1] && rs[i + 1].type === R.STRING ? strRec(rs[i + 1].data) : d[6] === 1 ? !!d[8] : d[6] === 2 ? '#ERR' : '');
+        else take(u16(d, 0), u16(d, 2), new DataView(d.buffer, d.byteOffset, d.byteLength).getFloat64(6, true));
+      } else if (x.type === R.MULRK) splitMulti(x).forEach(q => take(q.r, q.c, rkVal(q.rk)));
+    });
+    return res;
+  }
+  const strRec = d => { const n = u16(d, 0), hi = d[2] & 1; let t = ''; for (let k = 0; k < n; k++) t += String.fromCharCode(hi ? u16(d, 3 + k * 2) : d[3 + k]); return t; };
+
+  const api = { fill, read, cfbRead, cfbReplace, records, sheetsOf, addr, rkOf, rkVal, R };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_XLS = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
 /* ---- model3d.js ---- */
 /* 3D framing model — a small canvas renderer (no libraries).
    Members are boxes (I-shapes = 3 boxes) and polylines in building feet (x along length from LEW,
@@ -3692,7 +4153,7 @@ table.nbg-t td .card-eq { width: 78px; }
     return null;
   }
   const inStock = (tbl, key, div) => { const s = tbl[key]; const i = DIVISIONS.indexOf(div); return !!s && s[i < 0 ? 2 : i] === 'Y'; };
-  const flangeName = (b, t) => 'F' + b + ({ 0.25: '.25', 0.3125: '.31', 0.375: '.38', 0.5: '.50', 0.625: '.63', 0.75: '.75', 1: '1.0' })[t];
+  const flangeName = (b, t) => 'F' + b + ({ 0.1875: '.19', 0.25: '.25', 0.3125: '.31', 0.375: '.38', 0.5: '.50', 0.625: '.63', 0.75: '.75', 1: '×1' })[t];
   const tierOf = (b, t) => (ECON[b] && ECON[b][t] != null ? ECON[b][t] : 2);
 
   // Dead load from the deck guide (slab + deck weight; excludes joists and beams).
@@ -3782,39 +4243,129 @@ table.nbg-t td .card-eq { width: 78px; }
     };
   }
 
-  /* The three options, from one exhaustive search of stocked plates within the production rules:
-       Lightest         the least weight that passes (combined + shear SR ≤ target, L/360, L/240, joist bearing).
-       Best fit         the way a quote engineer works it by hand: as deep as the clearance allows; the lightest plates
-                        that work there; then take depth out an inch at a time with the same plates until the next inch
-                        would fail — the section that fits the load, with the CSR up near the limit.
-       Most economical  the lightest with economical flange plate (the green sizes of NBG "Economical Flange Sections");
-                        somewhat economical (yellow) only when no green size works.
-     Each option carries why, and the best fit its steps (for the explanation on the Beam calc page). */
+  /* The options, from one exhaustive search of stocked plates within the NBG production rules (every one passes the MB
+     sheet: combined and shear ≤ target, L/360 live, L/240 total, joist bearing):
+       Lightest         the least weight.
+       Best fit         the quote engineer's way, step by step: as deep as the clearance allows; the thinnest web that
+                        works in shear there; flanges from F8.31 up the economical sizes (8", then 10", then 12") until the
+                        section passes; then take depth out an inch at a time with the same plates while it still passes
+                        (the stress ratio comes up toward the limit); then a lighter plate at that depth if one works.
+       Most economical  NBG "Economical Flange Sections": economical (green) flange plate only, 5"–8" wide first, 10"
+                        when no 8" plate works, 12" last (typically more expensive); the lightest of those. Somewhat
+                        economical (yellow) only when no green plate works.
+     Options that land on the same section are one design (the UI shows them as one, with both names). When fewer than
+     three different designs come out, the next different ones are added as alternates (shallower; another flange
+     width), so the engineer sees the real choices. */
+  const LADDER = [[8, 0.3125], [8, 0.375], [8, 0.5], [10, 0.375], [10, 0.5], [10, 0.625], [10, 0.75], [12, 0.5], [12, 0.625], [12, 0.75], [12, 1]];
+  const widthClass = b => (b <= 8 ? 0 : b <= 10 ? 1 : 2);
   function beamOptions(search, ctx = {}) {
     if (!search || !search.best) return [];
-    const p = search.params, o = search.options, target = o.target;
-    const same = (a, b) => a && b && a.sec.d === b.sec.d && a.sec.tw === b.sec.tw && a.sec.bof === b.sec.bof && a.sec.tof === b.sec.tof && a.sec.bif === b.sec.bif && a.sec.tif === b.sec.tif;
+    const p = search.params, o = search.options, target = o.target, div = o.division;
+    const same = (a, b) => a && b && ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => a[k] === b[k]);
     const light = search.best;
-    const passes = r => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
-    const opts = [{ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked web / flange combination that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (capped by clearance C)' : ''}.`, pick: light }];
-    // best fit: less depth for nearly the same steel — work down from the deepest depth allowed (clearance C, else the
-    // range), the lightest section at each depth; the shallowest whose weight is within `near` of the lightest
-    const near = ctx.near ?? 0.08, rows = search.byDepth.filter(r => !r.none).sort((a, b) => b.d - a.d);
-    if (rows.length) {
-      const capTxt = search.dTop < o.dMax ? `the clearance under the beams (C) allows ${search.dTop}"` : `no clearance (C) limit — the ${search.dTop}" top of the range`;
-      const steps = rows.map(r => ({ d: r.d, desc: r.desc, CSR: r.CSR, SRv: r.SRv, rLL: r.rLL, rTL: r.rTL, wt: r.wt, pct: (r.wt - light.wt) / light.wt, pass: r.wt <= light.wt * (1 + near) + 1e-9 }));
-      const okRows = rows.filter(r => r.wt <= light.wt * (1 + near) + 1e-9);
-      const fit = okRows.sort((a, b) => a.d - b.d || a.wt - b.wt)[0];
-      steps.forEach(st => { st.note = st.d === fit.d ? `shallowest within ${Math.round(near * 100)} % — the best fit` : st.d === light.d ? 'the lightest' : st.pass ? `within ${Math.round(near * 100)} % of the lightest` : `+${(st.pct * 100).toFixed(1)} % — more steel than it saves depth`; });
-      opts.push({ key: 'fit', label: 'Best fit', why: `Less depth for nearly the same steel: from ${capTxt}, the lightest section at each depth on the way down; the shallowest within ${Math.round(near * 100)} % of the lightest weight is ${fit.d}" (${fit.desc}, combined ${fit.CSR.toFixed(2)} / shear ${fit.SRv.toFixed(2)})${fit.d === light.d ? ' — the lightest already is' : `, ${light.d - fit.d}" shallower than the lightest`}.`, pick: fit, steps, near });
-    }
-    // most economical: green flange plate, else yellow
     const all = (search.all || []).filter(e => e.pass);
-    for (const t of [0, 1]) {
-      const e = all.filter(x => x.tier === t).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
-      if (e) { const pk = summarize(e); opts.push({ key: 'econ', label: 'Most economical', why: t === 0 ? `Lightest with economical (green) flange plate — ${pk.flange}${same(pk, light) ? '; the lightest is already economical' : ''}.` : `No economical (green) flange size works — lightest with somewhat-economical (yellow) plate, ${pk.flange}.`, pick: pk, tier: TIER[t] }); break; }
+    const passes = r => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
+    const webs = candidates(div, o).webs;
+    const run = sec => {
+      const h = sec.d - sec.tof - sec.tif;
+      if (h <= 0 || h / sec.tw >= 260) return { ok: false, why: `web h/tw ${(h / sec.tw).toFixed(0)} ≥ 260` };
+      const pr = o.production !== false ? prodRule(sec, div, p.L, 0) : null;
+      if (pr) return { ok: false, why: pr.text, rule: pr.rule };
+      const r = MZ.beamCheck({ ...p, sec }, null);
+      const pw = o.production !== false ? prodRule(sec, div, p.L, r.res.Wt) : null;
+      if (pw) return { ok: false, why: pw.text, rule: pw.rule, r };
+      const ok = passes(r);
+      const gov = !ok ? (r.res.CSR > target ? `combined ${r.res.CSR.toFixed(3)} > ${target}` : r.res.SRvx > target ? `shear ${r.res.SRvx.toFixed(3)} > ${target}` : r.defl.rLL < 360 ? `live deflection L/${Math.round(r.defl.rLL)} < L/360` : r.defl.rTL < 240 ? `total deflection L/${Math.round(r.defl.rTL)} < L/240` : 'joist bearing') : null;
+      return { ok, why: gov, r };
+    };
+    const asPick = (sec, r) => summarize({ sec, r, tier: Math.max(tierOf(sec.bof, sec.tof), tierOf(sec.bif, sec.tif)) });
+    const sym = (d, tw, [b, t]) => ({ type: 'BU', d, tw, bof: b, tof: t, bif: b, tif: t });
+    const flName = ([b, t]) => flangeName(b, t), webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
+    const opts = [];
+    opts.push({ key: 'lightest', label: 'Lightest', why: `The least weight of every stocked web and flange that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (the clearance C caps the depth)' : ''}.`, pick: light });
+
+    // ---- best fit, step by step ----
+    const ladder = LADDER.filter(([b, t]) => inStock(FLANGE_STOCK, b + 'x' + t, div) && tierOf(b, t) === 0);
+    const steps = [];
+    let fit = null;
+    {
+      const d0 = search.dTop;
+      steps.push({ step: 'depth', text: search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
+      // the web: the thinnest that works in shear at that depth (with the starting flange)
+      const f0 = ladder[0];
+      let tw = null; const webTries = [];
+      for (const w of webs) {
+        const t = run(sym(d0, w, f0));
+        const shearOk = t.r && t.r.res.SRvx <= target;
+        webTries.push({ web: webName(w), shear: t.r ? t.r.res.SRvx : null, ok: !!shearOk, why: t.r ? null : t.why });
+        if (shearOk) { tw = w; break; }
+      }
+      steps.push({ step: 'web', text: tw != null ? `Web: the thinnest that works in shear at ${d0}" is ${webName(tw)}.` : `No stocked web works in shear at ${d0}".`, tries: webTries });
+      if (tw != null && f0) {
+        // flanges up the economical sizes; a plate that needs a thicker web (production: web ≥ 0.30 tf, tw ≤ tf) takes it
+        let sec = null; const flTries = [];
+        for (const fl of ladder) {
+          let s0 = null, t = null;
+          for (const w of webs.filter(x => x >= tw)) { const tr = run(sym(d0, w, fl)); if (tr.rule && /tw/.test(tr.rule)) continue; s0 = sym(d0, w, fl); t = tr; break; }
+          flTries.push({ sec: s0 ? `BU${d0} ${flName(fl)} ${webName(s0.tw)}` : flName(fl), ok: !!(t && t.ok), why: t ? t.why : 'no web fits the production rules', CSR: t && t.r ? t.r.res.CSR : null });
+          if (t && t.ok) { sec = s0; break; }
+        }
+        steps.push({ step: 'flange', text: sec ? `Flanges from F8.31 up the economical sizes: ${flName([sec.bof, sec.tof])} is the first that passes at ${d0}"${sec.tw > tw ? `, on ${webName(sec.tw)} (production: a web at least 0.30 × the flange thickness)` : ''}.` : `No economical flange passes at ${d0}" with this web.`, tries: flTries });
+        if (sec) {
+          // take depth out with the same plates while it passes
+          const dTries = []; let d = sec.d;
+          for (let dd = sec.d - o.dStep; dd >= o.dMin - 1e-9; dd -= o.dStep) {
+            const tr = run({ ...sec, d: dd });
+            dTries.push({ d: dd, ok: tr.ok, why: tr.why, CSR: tr.r ? tr.r.res.CSR : null, SRv: tr.r ? tr.r.res.SRvx : null, rLL: tr.r ? tr.r.defl.rLL : null });
+            if (!tr.ok) break;
+            d = dd;
+          }
+          const kept = { ...sec, d };
+          const rk = run(kept);
+          steps.push({ step: 'reduce', text: d < sec.d ? `Take depth out with the same plates: it still passes at ${d}" (combined ${rk.r.res.CSR.toFixed(3)}, shear ${rk.r.res.SRvx.toFixed(3)}, L/${Math.round(rk.r.defl.rLL)})${dTries.some(x => !x.ok) ? `; at ${d - o.dStep}" it does not (${dTries.find(x => !x.ok).why})` : ''}.` : `Taking depth out with the same plates fails at once (${(dTries[0] || {}).why || 'the bottom of the range'}) — ${d}" it is.`, tries: dTries });
+          // a lighter plate at that depth (same or narrower flange, economical)
+          const lighter = all.filter(e => e.d === d && e.tier === 0 && e.sec.bof <= kept.bof && e.wt < rk.r.res.Wt - 1e-9).sort((a, b) => a.wt - b.wt)[0];
+          if (lighter) {
+            steps.push({ step: 'cut', text: `At ${d}" a lighter plate still works: ${lighter.r.desc} (${flangeName(lighter.sec.bof, lighter.sec.tof)}, ${webName(lighter.sec.tw)}), ${lighter.wt.toFixed(1)} plf against ${rk.r.res.Wt.toFixed(1)}.` });
+            fit = summarize(lighter);
+          } else {
+            steps.push({ step: 'cut', text: `No lighter economical plate passes at ${d}" — ${rk.r.desc} it is.` });
+            fit = asPick(kept, rk.r);
+          }
+        }
+      }
     }
-    return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick, x.pick)).map(y => y.key) }));
+    if (fit) {
+      // the step-by-step method can stop where the exhaustive search has a lighter and shallower section: say so
+      const dom = light.wt < fit.wt - 1e-9 && light.d <= fit.d && !same(light.sec, fit.sec);
+      opts.push({ key: 'fit', label: 'Best fit', why: `Worked the quote engineer's way: deepest allowed, web for shear, F8.31 and up the economical flanges, then less depth until the next inch fails${fit.d < search.dTop ? ` (${search.dTop - fit.d}" less than the deepest)` : ''}; combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}, live L/${Math.round(fit.rLL)}.${dom ? ` The lightest (${light.desc}) is lighter and no deeper — the step-by-step method stops at ${fit.d}" because one inch less needs a heavier 8" plate; the full search also tries 6" plates at every depth.` : ''}`, pick: fit, steps, dominated: dom });
+    }
+
+    // ---- most economical: green plate, 5"–8" first, then 10", then 12" (yellow only when no green works) ----
+    let econ = null, econWhy = '';
+    for (const t of [0, 1]) {
+      for (const wc of [0, 1, 2]) {
+        const e = all.filter(x => x.tier === t && widthClass(Math.max(x.sec.bof, x.sec.bif)) === wc).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
+        if (e) { econ = summarize(e); econWhy = `${t === 0 ? 'Economical (green) flange plate' : 'No green plate works — somewhat economical (yellow)'}, ${['5"–8" wide, as the guide starts', '10" — no 8" plate works', '12" — no 8" or 10" plate works (typically more expensive)'][wc]}: the lightest of those is ${econ.flange} on ${econ.web}.`; break; }
+      }
+      if (econ) break;
+    }
+    if (econ) opts.push({ key: 'econ', label: 'Most economical', why: econWhy, pick: econ, tier: econ.tier });
+
+    // ---- alternates, when fewer than three different designs came out ----
+    const distinct = () => opts.reduce((a, x) => (a.some(y => same(y.pick.sec, x.pick.sec)) ? a : a.concat(x)), []);
+    if (distinct().length < 3) {
+      const shown = () => opts.map(x => x.pick.sec);
+      const minD = Math.min(...shown().map(q => q.d));
+      const sh = all.filter(e => e.tier === 0 && e.d < minD && e.wt <= light.wt * 1.15).sort((a, b) => a.d - b.d || a.wt - b.wt)[0];
+      if (sh) opts.push({ key: 'shallow', label: 'Shallower', why: `${minD - sh.d}" less depth than the others for ${(((sh.wt - light.wt) / light.wt) * 100).toFixed(1)} % more steel (the shallowest green-plate section within 15 % of the lightest) — more clearance under the beam.`, pick: summarize(sh) });
+    }
+    if (distinct().length < 3) {
+      const widths = new Set(opts.map(x => x.pick.sec.bof));
+      const ow = all.filter(e => e.tier === 0 && !widths.has(e.sec.bof)).sort((a, b) => a.wt - b.wt)[0];
+      if (ow) opts.push({ key: 'width', label: `${ow.sec.bof}" flanges`, why: `The lightest with ${ow.sec.bof}" economical flanges (the others use ${[...widths].join('" / ')}") — ${flangeName(ow.sec.bof, ow.sec.tof)} on ${'W' + String(Math.round(ow.sec.tw * 1000)).padStart(3, '0')}.`, pick: summarize(ow) });
+    }
+    return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
 
   // Beam reactions for a given section (MB!H6 dead, MB!H10 live)
@@ -4596,6 +5147,13 @@ table.nbg-t td .card-eq { width: 78px; }
     const p = { ...c0.beamBase, L: dSpan, trib: dTrib };
     const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
     const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: dSpan }) : [];
+    // the clearance leaves one design: what more depth would give (each needs C lowered to suit)
+    let deeper = null;
+    if (dz && dz.best && maxDepth != null && maxDepth < s.dMax && new Set(options.map(o => ['d', 'tw', 'bof', 'tof'].map(k => o.pick.sec[k]).join())).size === 1) {
+      const up = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: maxDepth + 1, dMax: Math.min(s.dMax, maxDepth + 6), symmetric: s.symmetric, requireConc: s.requireConc, production: s.production !== false });
+      const A = Math.min(...members.map(c => c.A)), lose = Math.max(...members.map(c => (c.slabIn + c.seatIn) / 12));
+      deeper = up.byDepth.filter(z => !z.none).map(z => ({ d: z.d, desc: z.desc, wt: z.wt, flange: z.flange, web: z.web, CSR: z.CSR, rLL: z.rLL, needC: A - lose - z.d / 12 }));
+    }
     // a pick is stored as intent — an option key or a depth — so every input change re-runs the search:
     //   { key: 'fit' } → that option for the current loads; { d: 20 } → lightest passing section at 20";
     //   { sec } → that exact section (checked, flagged if it fails)
@@ -4634,7 +5192,7 @@ table.nbg-t td .card-eq { width: 78px; }
       const c = r.check, ok = c.res.CSR <= s.target && c.res.SRvx <= s.target && c.llOK && c.tlOK;
       say(ok ? 'key' : 'stop', `${m.mark} also has ${r.qty} beam${r.qty > 1 ? 's' : ''} at ${F(r.span)} — same ${check.desc}; MB sheet at member length ${F(r.L)}: combined ${c.res.CSR.toFixed(2)}, shear ${c.res.SRvx.toFixed(2)}, L/${Math.round(c.defl.rLL)}.`);
     });
-    Object.assign(m, { params: p, search: dz, options, optionKey, pinned: ov || null, sec: chosen, check, desc: check ? check.desc : null, spanRuns, maxDepth, dLimit });
+    Object.assign(m, { params: p, search: dz, options, deeper, optionKey, pinned: ov || null, sec: chosen, check, desc: check ? check.desc : null, spanRuns, maxDepth, dLimit });
     return m;
   }
 
@@ -5194,7 +5752,7 @@ table.nbg-t td .card-eq { width: 78px; }
         });
         eqs.length = 0;
         (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
-        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose };
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
         if (fe) fe.seismic = { roofPsf: lat.altRoof, roofPsfSplit: lat.roofOverride, Cs: lat.cs.Cs, R: lat.R, V: lat.frameV, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
       });
@@ -5248,9 +5806,76 @@ table.nbg-t td .card-eq { width: 78px; }
           element: onWall ? `${onWall} sidewall bracing, tiered at the mezzanine level (DM 15.1.3)` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
           independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
+      bOut.workbook = seismicSteps({ inp, d, ed, code, j, g, roof, walls, mz, story, rigid, types, name, quote: (c0.inp.job || {}).quote }, bOut);
     });
     out.ok = !need.length && !!d && d.ok;
     return out;
+  }
+
+  /* ---------- the IBC Seismic workbook, typed in: one copy per frame line (its lateral sheet) with the building's
+     longitudinal sheet. Every entry is a workbook input cell, as the engineer types them; `read` is what the workbook
+     then shows, which the tool's own numbers must equal (oracle/fill_check.py). ---------- */
+  const OCC = { I: 'Low Hazard', II: 'Standard Buildings', III: 'Substantial Hazard', IV: 'Essential Facilities' };
+  const AT = { lew: 1, rew: 2, interior: 3 };
+  function seismicSteps(q, bOut) {
+    const n3 = v => (v == null || !isFinite(v) ? null : +(+v).toFixed(4));
+    const choice = q.code && q.code.ed === q.ed && q.code.choice ? q.code.choice : ({ '7-05': 2, '7-10': 5, '7-16': 7 })[q.ed] || null;
+    const notes = [];
+    if (!choice) notes.push(`ASCE ${q.ed}: the workbook (rev. 2021.01.20) has no such code — not typed.`);
+    if (q.mz.length > 2) notes.push(`${q.mz.length} mezzanines in ${q.name}: the workbook takes two — only ${q.mz[0].id} and ${q.mz[1].id} are typed.`);
+    const slot = q.mz.slice(0, 2);
+    const S = (sheet, cell, label, value, show) => ({ sheet, cell, label, value, show: show != null ? show : value == null ? '(blank)' : typeof value === 'boolean' ? (value ? 'checked' : 'unchecked') : String(value) });
+    const I = 'Input Data', LAT = 'Lateral Calcs. (1)', LNG = 'Longitudinal Calcs.';
+    const input = [
+      S(I, 'B5', 'Building', q.name),
+      S(I, 'B7', 'Nature of Occupancy', OCC[q.d.risk] || 'Standard Buildings'),
+      S(I, 'B8', 'Gable/Single Slope', q.g.rooftype),
+      S(I, 'B9', 'Building Width (ft)', n3(q.g.width)), S(I, 'B10', 'Building Length (ft)', n3(q.g.length)),
+      S(I, 'B11', 'Distance to Ridge, from BSW (ft)', n3(q.g.dtr)), S(I, 'B12', 'Roof Slope, s:12', n3(q.g.slope)),
+      S(I, 'B13', 'Low Eave Height, FSW (ft)', n3(q.g.leh)), S(I, 'B14', 'High Eave Height, BSW (ft)', n3(q.g.heh)),
+      S(I, 'B18', 'Roof Level Diaphragm', 'Flexible'),
+      S(I, 'B19', 'Mezzanine Level Diaphragm', q.rigid ? 'Rigid' : 'None'),
+      S(I, 'B21', 'Vertical Distribution Required', q.j.vertical !== false),
+      S(I, 'B22', 'Seismic Irregularities Exist', false),
+      S(I, 'F16', 'Ignore "Steel Systems Not Detailed for Seismic"', !!q.j.ignoreNDFS),
+      S(I, 'B26', 'Ss', n3(q.d.Ss)), S(I, 'B27', 'S1', n3(q.d.S1)), S(I, 'B29', 'Site Classification', q.d.siteClass),
+      S(I, 'B33', 'Lateral Frame Self weight, SW (psf)', n3(q.roof.SW.value)), S(I, 'B34', 'Roof Dead Load, RDL (psf)', n3(q.roof.RDL.value)),
+      S(I, 'B35', 'Roof Collateral Load, CDL (psf)', n3(q.roof.CDL.value)), S(I, 'B36', 'Roof Self Weight — bracing, beams etc. (psf)', n3(q.roof.RSW.value)),
+      S(I, 'B37', 'Roof Snow, Pf (psf)', n3(q.roof.Pf.value)),
+      S(I, 'B47', 'Left EW Wall Weight (psf)', n3(q.walls.lew.value)), S(I, 'F47', 'Right EW Wall Weight (psf)', n3(q.walls.rew.value)),
+      S(I, 'B59', 'Front SW Wall Weight (psf)', n3(q.walls.fsw.value)), S(I, 'F59', 'Back SW Wall Weight (psf)', n3(q.walls.bsw.value)),
+    ];
+    [['B', 'Misc. B36'], ['F', 'Misc. B38']].forEach(([col], k) => {
+      const m = slot[k], tag = `Mezzanine #${k + 1}${m ? ' (' + m.id + ')' : ''}`;
+      input.push(S(I, col + '89', `${tag} Elevation (ft)`, m ? n3(m.elev) : null),
+        S(I, col + '90', `${tag} Floor Dead (psf)${m && m.framing ? ` — ${n3(m.FDL)} + ${n3(m.framing)} framing` : ''}`, m ? n3(m.FDL + m.framing) : null),
+        S(I, col + '91', `${tag} Floor Collateral (psf)`, m ? n3(m.FLC) : null), S(I, col + '92', `${tag} Estimated Joist weight (psf)`, m ? n3(m.FLJ) : null),
+        S(I, col + '94', `${tag} Floor Live (psf)`, m ? n3(m.FLL) : null), S(I, col + '95', `${tag} Partition (psf)`, m ? n3(m.FLP) : null),
+        S('Miscellaneous', k ? 'B38' : 'B36', `${tag} designed for storage (check box)`, !!(m && m.storage)));
+    });
+    if (choice) input.push(S('Seismic Design Calcs.', 'D11', 'Building code (drop-down)', choice, `${choice} — ASCE ${q.ed}`));
+    const long = [
+      S(LNG, 'B8', 'Low SW (FSW) Force Resisting System', q.types[0]), S(LNG, 'B9', 'High SW (BSW) Force Resisting System', q.types[1]),
+      ...slot.flatMap((m, k) => [S(LNG, k ? 'B30' : 'B27', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(m.area) : 0), S(LNG, k ? 'B31' : 'B28', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
+    ];
+    const G = bOut.long, gm = id => (G && G.mezzLoads.find(x => x.id === id)) || null;
+    const longRead = G ? [{ sheet: LNG, cell: 'C58', label: 'Cs', expect: n3(G.cs.Cs) }, { sheet: LNG, cell: 'H79', label: 'Bracing base shear (kips)', expect: n3(G.bracingV) }, { sheet: LNG, cell: 'H66', label: 'Roof seismic dead load for the bracing (psf)', expect: n3(G.roofPsf) }]
+      .concat(slot.map((m, k) => m && gm(m.id) ? { sheet: LNG, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load (kips)`, expect: n3(gm(m.id).F) } : null).filter(Boolean)) : [];
+    const frames = bOut.frames.map(fr => {
+      const L = fr.lat, ml = id => L.mezzLoads.find(x => x.id === id);
+      const steps = [
+        S(LAT, 'B9', 'Seismic Force Resisting System', SEIS.frameType(fr.type) || 'Rigid Frame'),
+        S(LAT, 'B18', 'Bay Width — this frame\'s strip (ft)', n3(fr.bay)),
+        S(LAT, 'Q1', 'Frame Located at Bay (option buttons)', AT[fr.at], ({ lew: '1 — Left Endwall', rew: '2 — Right Endwall', interior: '3 — Interior Frame' })[fr.at]),
+        S(LAT, 'B30', 'Is Mez #1 or #2 Considered a Story?', q.story ? 'YES' : 'NO'),
+        ...slot.flatMap((m, k) => [S(LAT, k ? 'B34' : 'B31', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(fr.areas[m.id] || 0) : 0), S(LAT, k ? 'B35' : 'B32', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
+      ];
+      const read = [{ sheet: LAT, cell: 'C62', label: 'Cs', expect: n3(L.cs.Cs) }, { sheet: LAT, cell: 'H79', label: 'Frame base shear (kips)', expect: n3(L.frameV) },
+        { sheet: LAT, cell: 'G64', label: 'Alt. roof seismic weight (psf)', expect: n3(L.altRoof) }]
+        .concat(slot.map((m, k) => m && ml(m.id) ? { sheet: LAT, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load at this frame (kips)`, expect: n3(ml(m.id).F) } : null).filter(Boolean));
+      return { label: fr.label, at: fr.at, steps, read };
+    });
+    return { file: 'IBC_Seismic.xls', building: q.name, input, long, longRead, frames, notes };
   }
 
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
@@ -5393,7 +6018,7 @@ table.nbg-t td .card-eq { width: 78px; }
 /* Mezzanine Quick-Design — browser UI (Astra skin). */
 (function () {
   'use strict';
-  const PCS = window.MZ_PCS, FF = window.MZ_FRAMEFILE, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
+  const PCS = window.MZ_PCS, FF = window.MZ_FRAMEFILE, XLS = window.MZ_XLS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -5780,7 +6405,7 @@ table.nbg-t td .card-eq { width: 78px; }
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); }
+  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -5971,17 +6596,18 @@ table.nbg-t td .card-eq { width: 78px; }
     const item = w => `<div class="note ${w.level}">${esc(w.text)}</div>`;
     const grp = (lv, title, open = true) => { const xs = ws.filter(w => lv.includes(w.level)); if (!xs.length) return '';
       return open ? `<div class="note-group"><h5>${title}</h5>${xs.map(item).join('')}</div>` : `<details class="note-group more"><summary>${title} · ${xs.length} note${xs.length > 1 ? 's' : ''}</summary>${xs.map(item).join('')}</details>`; };
-    return grp(['stop', 'warn'], 'Check before quoting') + grp(['ok'], 'Confirmed against the PCS') + grp(['key'], 'Design decisions') + grp(['info'], 'How it was read', false);
+    return grp(['stop', 'warn'], 'Check before quoting') + grp(['ok'], 'Confirmed against the PCS', false) + grp(['key'], 'Design decisions', false) + grp(['info'], 'How it was read', false);
   }
 
   // the design manual (NBG DM 15.1 Mezzanine Systems): every item this job touches, grouped, with its status
   const DM_ICON = { ok: '✓', check: '!', stop: '✕', note: '✎', info: 'i' }, DM_WORD = { ok: 'met', check: 'to check', stop: 'fails', note: 'callout', info: 'scope' };
   function renderDM() {
     const items = (state.job && state.job.dm) || [], el = $('#dmList');
-    $('#dmHead').hidden = !items.length;
+    $('#dmFold').hidden = !items.length;
     if (!items.length) { el.innerHTML = ''; return; }
     const count = st => items.filter(i => i.status === st).length;
-    el.innerHTML = `<div class="dm-sum">${['ok', 'check', 'stop', 'note', 'info'].filter(count).map(st => `<span class="dm-chip s-${st}"><b>${count(st)}</b> ${DM_WORD[st]}</span>`).join('')}</div><div class="dm-groups">` +
+    $('#dmSum').innerHTML = `<span class="dm-sum">${['ok', 'check', 'stop', 'note', 'info'].filter(count).map(st => `<span class="dm-chip s-${st}"><b>${count(st)}</b> ${DM_WORD[st]}</span>`).join('')}</span>`;
+    el.innerHTML = `<div class="dm-groups">` +
       [...new Set(items.map(i => i.group))].map(gn => `<div class="dm-group"><h5>${esc(gn)}</h5>${items.filter(i => i.group === gn).map(i => `<div class="dm-item s-${i.status}"><span class="dm-ic" title="${DM_WORD[i.status]}">${DM_ICON[i.status]}</span><div><div class="dm-t"><b>${esc(i.title)}</b><span class="dm-ref">${/^\d/.test(i.ref) ? 'DM ' : ''}${esc(i.ref)}</span></div><p>${esc(i.text)}</p></div></div>`).join('')}</div>`).join('') + '</div>';
   }
   // Excel, step by step: the cells to type, in order, then what the workbook shows
@@ -5992,7 +6618,7 @@ table.nbg-t td .card-eq { width: 78px; }
     return `<table class="xl"><thead><tr><th class="num">#</th><th>Cell</th><th>Field</th><th class="num">Type</th></tr></thead><tbody>${rows}${rb ? `<tr class="rb-h"><td></td><td colspan="3">${readTitle}</td></tr>${rb}` : ''}</tbody></table>`;
   }
   const xlTsv = steps => steps.map(st => `${xlCell(st)}\t${st.label}\t${st.show}`).join('\n');
-  const XL_FOOT = 'Typed cell by cell into the real workbooks (headless) and read back — these are the values Excel shows.';
+  const XL_FOOT = 'These are the workbook\'s own input cells. "Download the filled workbook" types them into a copy of your workbook; checked against the real workbooks (LibreOffice, recalculated): every result below is what the workbook shows.';
   function renderXlBeam(mk, run) {
     const books = (state.job && state.job.excel && state.job.excel.beam) || [];
     const book = books.find(b => b.sheets.some(sh => sh.mark === mk.mark && Math.abs(sh.span - run.span) < 1e-3));
@@ -6002,7 +6628,7 @@ table.nbg-t td .card-eq { width: 78px; }
     $('#xlBeam').innerHTML = `<div class="xl-cols">
       <div><h4><span>1</span>INPUT sheet <small>once for the workbook${book.inputs.length > 1 ? ' · ' + esc(inp.mezz) + ' heights' : ''}</small></h4>${xlTable(inp.steps, inp.read, 'Excel then shows (once every MB sheet is in — D26 is the deepest of MB1–MB4)')}</div>
       <div><h4><span>2</span>${sh.sheet} sheet <small>${esc(mkName(mk))} at ${ft(sh.span)} × ${ft(sh.trib)} trib · ${sh.qty} beam${sh.qty > 1 ? 's' : ''}</small></h4>${xlTable(sh.steps, sh.read)}</div></div>
-      <div class="xl-foot"><span>${XL_FOOT}</span><button class="btn-soft" id="xlBeamCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
+      <div class="xl-foot"><span>${XL_FOOT}</span><span class="xl-btns">${wbBtn(`beam|${book.copy}|${book.marks.join('+')}`, 'Download the filled workbook')}<button class="btn-soft" id="xlBeamCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></span></div>`;
     $('#xlBeamCopy').onclick = () => copyText(xlTsv(inp.steps.concat(sh.steps)), `INPUT + ${sh.sheet} cells copied`);
   }
   function renderXlCol(r, gi) {
@@ -6011,8 +6637,110 @@ table.nbg-t td .card-eq { width: 78px; }
     if (!cs) { $('#xlCol').innerHTML = '<div class="empty">No column sized yet.</div>'; $('#xlColSub').textContent = ''; return; }
     const cno = colNos(), g = r.colGroups[gi];
     $('#xlColSub').textContent = `${book.file} · Column sheet for ${g ? g.cols.map(c => `C${cno.get(c.label) || '?'} (${c.label})`).join(', ') : 'this case'}`;
-    $('#xlCol').innerHTML = xlTable(cs.steps, cs.read) + `<div class="xl-foot"><span>${XL_FOOT} The reactions are the MB-sheet end shears of the beams framing in (H6 / H10), summed per side.</span><button class="btn-soft" id="xlColCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></div>`;
+    $('#xlCol').innerHTML = xlTable(cs.steps, cs.read) + `<div class="xl-foot"><span>${XL_FOOT} The reactions are the MB-sheet end shears of the beams framing in (H6 / H10), summed per side.</span><span class="xl-btns">${wbBtn(`column|${r.index}|${gi}`, 'Download the filled workbook')}<button class="btn-soft" id="xlColCopy"><svg><use href="#i-copy"/></svg>Copy cells</button></span></div>`;
     $('#xlColCopy').onclick = () => copyText(xlTsv(cs.steps), 'Column cells copied');
+  }
+
+  /* ---------- the NBG workbooks themselves ----------
+     The engineer drops the real workbooks once (Mezzanine Beam Design, Mezzanine Column, IBC Seismic); they are kept in
+     this browser (IndexedDB) and never leave the computer. "Open in the workbook" types this job's entries into a copy
+     (src/xls.js) and downloads it: Excel recalculates on opening, so the copy shows the workbook's own answer. */
+  const WB_DB = 'mzd-workbooks', WB_STORE = 'books';
+  const books = { list: [], loaded: false };
+  const wbIdb = () => new Promise((ok, no) => { try { const r = indexedDB.open(WB_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(WB_STORE, { keyPath: 'id' }); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+  async function wbLoadAll() {
+    try { const db = await wbIdb(); books.list = await new Promise((ok, no) => { const q = db.transaction(WB_STORE).objectStore(WB_STORE).getAll(); q.onsuccess = () => ok(q.result || []); q.onerror = () => no(q.error); }); } catch (e) { /* private window: kept for this session only */ }
+    books.loaded = true;
+  }
+  async function wbPut(it) { try { const db = await wbIdb(); await new Promise((ok, no) => { const t = db.transaction(WB_STORE, 'readwrite'); t.objectStore(WB_STORE).put(it); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* session only */ } }
+  async function wbDel(id) { try { const db = await wbIdb(); await new Promise(ok => { const t = db.transaction(WB_STORE, 'readwrite'); t.objectStore(WB_STORE).delete(id); t.oncomplete = ok; t.onerror = ok; }); } catch (e) { /* session only */ } }
+  // which workbook a file is: by its sheets (and the edition from the name, else from the sheets)
+  function wbKind(name, bytes) {
+    const cf = XLS.cfbRead(bytes), wb = cf.stream('Workbook') || cf.stream('Book');
+    if (!wb) throw new Error('not an Excel 97–2003 workbook');
+    const sh = XLS.sheetsOf(XLS.records(wb)).map(x => x.name), has = n => sh.includes(n), nm = String(name);
+    if (has('Input Data') && has('Lateral Calcs. (1)') && has('Longitudinal Calcs.')) return { kind: 'seismic', ed: null, label: 'IBC Seismic' };
+    if (has('INPUT') && has('MB1')) {
+      if (/S16/i.test(nm) || has('Section Properties')) return { kind: 'beam', ed: 'S16', label: 'Mezzanine Beam Design (CSA S16)' };
+      const ed = /13th/i.test(nm) ? '13' : /15th/i.test(nm) ? '15' : /16th/i.test(nm) ? '16' : has('D2D') ? '16' : has('Chapter B') && !has('ReadMe') ? '13' : '15';
+      return { kind: 'beam', ed, label: `Mezzanine Beam Design ${ed}th` };
+    }
+    if (has('Column') && has('Base Plate')) {
+      const ed = /16th/i.test(nm) ? '16' : /15th/i.test(nm) ? '15' : (XLS.read(bytes, [{ sheet: 'Column', cell: 'C10' }])['Column!C10'] === '(formula)' ? '15' : '16');
+      return { kind: 'column', ed, label: `Mezzanine Column ${ed}th` };
+    }
+    return { kind: null, ed: null, label: 'not an NBG mezzanine / seismic workbook' };
+  }
+  async function wbAdd(files) {
+    let n = 0;
+    for (const file of files) {
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer()), k = wbKind(file.name, bytes);
+        if (!k.kind || k.ed === 'S16') { toast(`${file.name}: ${k.kind ? 'the CSA S16 sheets are not used by this tool' : k.label}`); continue; }
+        const it = { id: k.kind + '|' + (k.ed || ''), name: file.name, kind: k.kind, ed: k.ed, label: k.label, bytes, added: Date.now() };
+        books.list = books.list.filter(x => x.id !== it.id).concat(it);
+        await wbPut(it); n++;
+      } catch (e) { toast(`${file.name}: ${e.message || e}`); }
+    }
+    if (n) toast(`${n} workbook${n > 1 ? 's' : ''} kept on this computer`);
+    renderAll();
+  }
+  const wbFind = (kind, ed) => books.list.find(x => x.kind === kind && (!ed || x.ed === String(ed))) || null;
+  const WB_NAME = { beam: ed => `Mezzanine Beam Design ${ed}th`, column: ed => `Mezzanine Column ${ed}th`, seismic: () => 'IBC Seismic' };
+  // every copy the job can open in a workbook: { key, kind, ed, title, name, edits, entries, read }
+  function wbJobs() {
+    const out = [], q = (state.pcs && state.pcs.job.quote) || 'mezzanine', ex = (state.job && state.job.excel) || { beam: [], column: [] }, cno = colNos();
+    ex.beam.forEach(b => {
+      const inp = b.inputs[0], steps = inp.steps.concat(b.sheets.flatMap(sh => sh.steps));
+      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: `Beams · ${b.sheets.map(x => `sheet ${x.sheet}: ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ' ' + ft(x.span)}`).join(' · ')}`,
+        note: b.inputs.length > 1 ? `INPUT sheet with ${inp.mezz}'s heights (the MB results do not use them)` : '', name: `${q}-MB${b.copy > 1 ? '-' + b.copy : ''}.xls`, steps, read: b.sheets.flatMap(sh => sh.read).concat(inp.read) });
+    });
+    ex.column.forEach(b => b.cases.forEach(c => {
+      const r = (state.job.mezz || [])[c.mi], g = r && r.colGroups[c.group];
+      const lab = g ? g.cols.map(x => `C${cno.get(x.label) || '?'}`).join(', ') : c.labels.join(', ');
+      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `Column ${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, note: '', name: `${q}-Column-${lab.replace(/[^A-Za-z0-9]+/g, '')}.xls`, steps: c.steps, read: c.read });
+    }));
+    const sj = state.job && state.job.seismic;
+    (sj && sj.ok ? sj.buildings : []).forEach(b => (b.workbook ? b.workbook.frames : []).forEach(fr => out.push({
+      key: `seismic|${b.bkey}|${fr.label}`, kind: 'seismic', ed: null, title: `Seismic · ${sj.buildings.length > 1 ? b.name + ' · ' : ''}frame line ${fr.label}`, note: b.workbook.notes.join(' '),
+      name: `${q}-Seismic-${sj.buildings.length > 1 ? b.name.replace(/[^A-Za-z0-9]+/g, '') + '-' : ''}F${fr.label}.xls`, steps: b.workbook.input.concat(b.workbook.long, fr.steps), read: fr.read.concat(b.workbook.longRead) })));
+    return out;
+  }
+  // a button for one copy; clicking it fills and downloads (or asks for the workbook first)
+  const wbBtn = (key, label = 'Open in the workbook') => `<button class="btn-soft wb-btn" data-wb="${esc(key)}"><svg><use href="#i-file"/></svg>${esc(label)}</button>`;
+  async function wbDownload(key) {
+    const j = wbJobs().find(x => x.key === key);
+    if (!j) return;
+    let bk = wbFind(j.kind, j.ed);
+    if (!bk) {
+      const pick = document.createElement('input'); pick.type = 'file'; pick.accept = '.xls'; pick.multiple = true;
+      toast(`Choose the ${WB_NAME[j.kind](j.ed)} workbook (.xls) — it is kept on this computer for next time`);
+      pick.onchange = async () => { await wbAdd(Array.from(pick.files || [])); if (wbFind(j.kind, j.ed)) wbDownload(key); };
+      pick.click();
+      return;
+    }
+    try {
+      const r = XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value })));
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.bytes], { type: 'application/vnd.ms-excel' })); a.download = j.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast(`${j.name} — ${r.done.length} cells typed into ${bk.name}${r.missing.length ? ` · not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')}` : ''}. Excel recalculates when it opens.`);
+    } catch (e) { toast(`${bk.name}: ${e.message || e}`); }
+  }
+  // the workbook buttons anywhere on the page
+  document.addEventListener('click', ev => { const b = ev.target.closest('[data-wb]'); if (b) { ev.preventDefault(); ev.stopPropagation(); wbDownload(b.dataset.wb); } });
+  // the panel: which workbooks this computer has, and every copy for this job
+  function renderWorkbooks() {
+    const el = $('#wbPanel');
+    if (!el) return;
+    const jobs = state.job ? wbJobs() : [];
+    const kinds = [['beam', '13'], ['beam', '15'], ['beam', '16'], ['column', '15'], ['column', '16'], ['seismic', null]];
+    const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
+    const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
+    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t}</h5>${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(WB_NAME[k](j.ed))} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download filled workbook')}</div>`).join('')}</div>` : ''; }).join('');
+    el.innerHTML = `<div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
+      ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
+      <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
+    const inp = $('#wbFile'); if (inp) inp.onchange = () => { wbAdd(Array.from(inp.files || [])); inp.value = ''; };
+    $$('#wbPanel [data-wbdel]').forEach(b => { b.onclick = async () => { await wbDel(b.dataset.wbdel); books.list = books.list.filter(x => x.id !== b.dataset.wbdel); renderAll(); }; });
   }
 
   function renderResults() {
@@ -6093,38 +6821,48 @@ table.nbg-t td .card-eq { width: 78px; }
     animateIn();
 
     // readout
-    const fit = mk0 && mk0.options.find(o => o.key === 'fit');
     const mkTxt = marks.map(mk => `<em>${mk.qtyAll}</em> ${mk.kind ? mk.kind + ' ' : ''}${esc(mk.desc || '—')} (${mk.mark}) at <em>${ft(mkDz(mk).span)}</em> × <em>${ft(mkDz(mk).trib)}</em> trib${mkDz(mk).set ? ` (design; layout ${ft(mk.span)} × ${ft(mk.trib)})` : ''}${mkShort(mk) ? ' ' + mkShort(mk) : ''}`).join('; ');
     $('#readout').innerHTML = `<div class="eyebrow">What the design establishes</div>
       <p>${mkTxt || 'No beams'} carry the floor into <em>${t.nC}</em> ${esc(cols)} column${t.nC === 1 ? '' : 's'} <em>${colLens}</em> tall — governing ratio <em>${f(gv, 2)}</em>${c0 ? `, live-load deflection <em>L/${f(c0.defl.rLL, 0)}</em>` : ''}.</p>
-      <div class="readout-facts"><span><b>${marks.filter(mk => mk.check).map(mk => f(mk.check.res.Wt, 1)).join(' / ') || '—'}</b>plf beam${marks.length > 1 ? 's' : ''}</span>${fit && mk0.sec ? `<span><b>+${f(fit.dPct * 100, 1)}%</b>for ${mk0.sec.d - fit.pick.d}" less depth on ${mk0.mark} (${esc(fit.pick.desc)})</span>` : ''}<span><b>${n0(t.total)}</b>lb mezzanine steel</span><span><b>${r.joistDepthIn != null ? f(r.joistDepthIn, 0) + '"' : '—'}</b>total joist depth</span><span><b>${edLabel(r.edition.beamEd || r.edition.ed)}</b>ASD sheets</span></div>`;
+      <div class="readout-facts"><span><b>${marks.filter(mk => mk.check).map(mk => f(mk.check.res.Wt, 1)).join(' / ') || '—'}</b>plf beam${marks.length > 1 ? 's' : ''}</span><span><b>${n0(t.total)}</b>lb mezzanine steel</span><span><b>${r.joistDepthIn != null ? f(r.joistDepthIn, 0) + '"' : '—'}</b>total joist depth</span><span><b>${edLabel(r.edition.beamEd || r.edition.ed)}</b>ASD sheets</span></div>`;
   }
 
   function renderOptions() {
-    const r = state.res, inp = state.inputs;
+    const inp = state.inputs;
     const A = inp.geom.A.value, slabIn = (inp.geom.slab.value || 0) * 12, seatIn = (inp.geom.seat.value || 0) * 12;
     const uo = usualOption(), uoLab = uo && { lightest: 'Lightest', fit: 'Best fit', econ: 'Most economical' }[uo.key];
     const marks = jobMarks();
-    $('#optSub').textContent = (marks[0] && marks[0].search ? `${marks[0].search.evaluated.toLocaleString()} stocked combinations checked per mark · pick one for the quote${manyMezz() ? ' — it goes on every mezzanine' : ''}` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
+    $('#optSub').textContent = (marks[0] && marks[0].search ? `every stocked web and flange within the production rules, through the MB sheet — ${marks[0].search.evaluated.toLocaleString()} combinations a mark · pick one for the quote${manyMezz() ? ' (it goes on every mezzanine)' : ''}` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
+    const TIERW = { G: 'economical', Y: 'somewhat economical', R: 'non-economical' };
     $('#options').innerHTML = marks.map(mk => {
       if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — no passing section in the depth range.</p></div>`;
       const len = (mk.beamsAll || []).reduce((a, x) => a + x.span, 0) || mk.qtyAll * mk.span;   // every member at its own length
       const where = mkWhere(mk), short = mkShort(mk);
-      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options">${mk.options.map(o => {
-        const p = o.pick, chosen = sameSec(p.sec, mk.sec);
+      // one card per different section; the options that land on it are named together
+      const groups = [];
+      mk.options.forEach(o => { const g = groups.find(x => sameSec(x.sec, o.pick.sec)); if (g) g.roles.push(o); else groups.push({ sec: o.pick.sec, pick: o.pick, roles: [o] }); });
+      const one = groups.length === 1, sr = mk.search, capped = sr && sr.dTop < sr.options.dMax;
+      const card = g => {
+        const p = g.pick, o = g.roles[0], chosen = sameSec(p.sec, mk.sec);
         const under = A != null ? A - (slabIn + seatIn + p.sec.d) / 12 : null;
         const dLbs = o.dWt * len;
-        return `<article class="option ${chosen ? 'is-chosen' : ''}">
-          <div class="option-top"><span class="option-tag">${o.label}</span><span class="option-delta ${o.dWt ? '' : 'zero'}">${o.dWt ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : o.key === 'lightest' ? 'lightest' : 'same weight'}</span></div>
-          <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · flange ${({ G: 'economical', Y: 'somewhat economical', R: 'non-economical' })[p.tier] || p.tier}${o.sameAs && o.sameAs.length ? ` · <b>same as ${o.sameAs.map(k => ({ lightest: 'lightest', fit: 'best fit', econ: 'most economical' })[k]).join(', ')}</b>` : ''}</div>
-          <p class="option-why">${esc(o.why)}</p>
+        return `<article class="option ${chosen ? 'is-chosen' : ''} ${g.roles.length > 1 ? 'is-merged' : ''}">
+          <div class="option-top"><span class="option-tags">${g.roles.map(x => `<span class="option-tag">${esc(x.label)}</span>`).join('')}</span><span class="option-delta ${o.dWt ? '' : 'zero'}">${o.dWt ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : 'least weight'}</span></div>
+          <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · flange ${TIERW[p.tier] || p.tier}</div>
           <div class="option-grid">
             <div><span>Weight</span><b>${f(p.wt, 1)} plf</b></div><div><span>Depth</span><b>${p.sec.d}"</b></div><div><span>Under beam</span><b>${under != null ? ft(under) : '—'}</b></div>
             <div><span>Combined</span><b class="${p.CSR <= state.settings.target ? 'ok' : 'bad'}">${f(p.CSR, 3)}</b></div><div><span>Shear</span><b class="${p.SRv <= state.settings.target ? 'ok' : 'bad'}">${f(p.SRv, 3)}</b></div><div><span>Live defl.</span><b class="ok">L/${f(p.rLL, 0)}</b></div>
           </div>
-          <div class="option-actions">${chosen ? '<span class="chosen-pill">In the quote</span>' : `<button class="btn-soft" data-opt="${o.key}" data-mark="${mk.mark}">Use this option</button>`}<button class="btn-ghost" data-go="beam">Calc</button></div>
+          <ul class="option-why">${g.roles.map(x => `<li><b>${esc(x.label)}</b> — ${esc(x.why)}</li>`).join('')}</ul>
+          <div class="option-actions">${chosen ? '<span class="chosen-pill">In the quote</span>' : `<button class="btn-soft" data-opt="${o.key}" data-mark="${mk.mark}">Use this</button>`}<button class="btn-ghost" data-go="beam">Calc</button></div>
         </article>`;
-      }).join('')}</div></div>`;
+      };
+      // why only one: the lighter plates that fail at that depth (from the step-by-step tries)
+      const fitO = mk.options.find(o => o.key === 'fit'), flStep = fitO && fitO.steps && fitO.steps.find(x => x.step === 'flange');
+      const lastFail = flStep && flStep.tries ? flStep.tries.filter(t => !t.ok && t.why && !/production|no web/.test(t.why)).pop() : null;
+      const oneTxt = one ? `<div class="option-one"><b>One design for these inputs.</b> ${capped ? `The clearance C leaves ${sr.dTop}" for the beam (A − C − slab − seat)${lastFail ? `; at ${sr.dTop}" the next lighter plate fails (${esc(lastFail.sec)}: ${esc(lastFail.why)})` : ''}, so ` : ''}every way of building it — the lightest, the step-by-step method, the economical flanges — lands on the same section.${mk.deeper && mk.deeper.length ? ` More depth would take less steel, but needs the clearance under the beams lowered:` : ''}</div>
+        ${mk.deeper && mk.deeper.length ? `<table class="fl-t deeper"><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">Saves</th><th class="num">Combined</th><th class="num">Live</th><th class="num">C would be at most</th></tr></thead><tbody>${mk.deeper.map(z => `<tr><td class="num mono">${z.d}"</td><td class="mono">${esc(z.desc)} <small class="sub-n">${esc(z.flange)} · ${esc(z.web)}</small></td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(groups[0].pick.wt - z.wt, 1)} plf (${f((1 - z.wt / groups[0].pick.wt) * 100, 0)} %)</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td class="num mono">${ft(z.needC)}</td></tr>`).join('')}</tbody></table>` : ''}` : '';
+      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options ${one ? 'is-one' : ''}">${groups.map(card).join('')}</div>${oneTxt}</div>`;
     }).join('');
     $$('#options [data-opt]').forEach(b => { b.onclick = () => pickOption(b.dataset.mark, b.dataset.opt); });
   }
@@ -6579,111 +7317,145 @@ table.nbg-t td .card-eq { width: 78px; }
   }
 
   // ---------- seismic: the mezzanine on the frames (EQR / EQL) and the bracing, as the IBC Seismic workbook ----------
+  const SEIS_TYPE = t => (window.MZ_SEISMIC && window.MZ_SEISMIC.frameType(t)) || 'Rigid Frame';
   function renderSeismic() {
     const sj = state.job && state.job.seismic, box = $('#seisInputs');
     if (!box) return;
-    if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; $('#seisFrames').innerHTML = ''; $('#seisBracing').innerHTML = ''; $('#seisHow').innerHTML = ''; return; }
+    const clear = () => ['#seisFrames', '#seisApply', '#seisBracing', '#seisFlags', '#seisHow'].forEach(q => { $(q).innerHTML = ''; });
+    if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; clear(); return; }
     const cfg = state.seis, d = sj.design, F2 = v => f(v, 2), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, o, step = 'any', w = '') => `<input class="seis-in ${o.value == null ? 'need' : ''}" data-seis="${esc(key)}" value="${o.value == null ? '' : +(+o.value).toFixed(4)}" inputmode="decimal" step="${step}" ${w}>`;
     const sel = (key, val, opts) => `<select data-seis="${esc(key)}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     const chk = (key, on, label) => `<label class="seis-chk"><input type="checkbox" data-seis="${esc(key)}" ${on ? 'checked' : ''}> ${label}</label>`;
-    const I = sj.inputs, live = sj.ok;
+    const cell = c => `<small class="wb-cell">${esc(c)}</small>`;
+    const I = sj.inputs, live = sj.ok, many = sj.buildings.length > 1;
     // status
     const notes = (sj.notes || []).filter(n => n.level !== 'info').map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('');
     const infos = (sj.notes || []).filter(n => n.level === 'info');
     $('#seisStatus').innerHTML = (sj.need.length ? `<div class="seis-msg stop"><b>Needs:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
       + (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span><span>SDS <b>${f(d.SDS, 4)}</b></span><span>SD1 <b>${f(d.SD1, 4)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${f(d.Ie, 2)}</b></span><span>Risk Category <b>${esc(d.risk)}</b></span>${d.Fa != null ? `<span>Fa ${f(d.Fa, 3)} · Fv ${f(d.Fv, 3)}</span>` : ''}</div>` : '') + notes;
-    // inputs
-    const site = `<div class="seis-group"><h4>Site and code</h4><div class="seis-grid">
-        <label>ASCE 7${sel('ed', I.ed, [['7-05', '7-05 (IBC 2006/09)'], ['7-10', '7-10 (IBC 2012/15)'], ['7-16', '7-16 (IBC 2018/21)'], ['7-22', '7-22 (IBC 2024)']])}</label>
-        <label>Ss ${srcTag(I.Ss)}${num('Ss', I.Ss)}</label><label>S1 ${srcTag(I.S1)}${num('S1', I.S1)}</label>
-        <label>Site class ${srcTag(I.siteClass)}${sel('siteClass', I.siteClass.value, ['A', 'B', 'C', 'D', 'E', 'F'].map(x => [x, x]))}</label>
-        <label>Risk category ${srcTag(I.risk)}${sel('risk', I.risk.value, [['I', 'I'], ['II', 'II'], ['III', 'III'], ['IV', 'IV']])}</label>
+
+    // ---- steps 1–3: Input Data ----
+    const site = `<div class="seis-group"><h4><span class="step-no sm">1</span>Code and site <small class="sub-n">Input Data B26–B29 · Seismic Design Calcs. D11</small></h4><div class="seis-grid">
+        <label><span class="lab">ASCE 7 ${cell('code drop-down')}</span>${sel('ed', I.ed, [['7-05', '7-05 (IBC 2006/09)'], ['7-10', '7-10 (IBC 2012/15)'], ['7-16', '7-16 (IBC 2018/21)'], ['7-22', '7-22 (IBC 2024)']])}</label>
+        <label><span class="lab">Ss ${srcTag(I.Ss)} ${cell('B26')}</span>${num('Ss', I.Ss)}</label><label><span class="lab">S1 ${srcTag(I.S1)} ${cell('B27')}</span>${num('S1', I.S1)}</label>
+        <label><span class="lab">Site class ${srcTag(I.siteClass)} ${cell('B29')}</span>${sel('siteClass', I.siteClass.value, ['A', 'B', 'C', 'D', 'E', 'F'].map(x => [x, x]))}</label>
+        <label><span class="lab">Risk category ${srcTag(I.risk)} ${cell('B7')}</span>${sel('risk', I.risk.value, [['I', 'I — Low Hazard'], ['II', 'II — Standard Buildings'], ['III', 'III — Substantial Hazard'], ['IV', 'IV — Essential Facilities']])}</label>
         ${I.ed === '7-22' ? `<label>SDS ${srcTag(I.SDS)}${num('SDS', I.SDS)}</label><label>SD1 ${srcTag(I.SD1)}${num('SD1', I.SD1)}</label>` : ''}
-      </div></div>
-      <div class="seis-group"><h4>System</h4><div class="seis-grid">
-        ${chk('ndfs', cfg.ignoreNDFS !== true, '"Steel systems not detailed for seismic" in SDC A–C (R = 3, the workbook\'s default)')}
-        ${chk('vertical', cfg.vertical !== false, 'Vertical distribution, 12.8.3 (a mezzanine is a level)')}
-        <label>Frame load to the columns${sel('split', cfg.split || 'dead', [['dead', 'by the dead load each takes'], ['equal', 'equally']])}</label>
-        <label>Mezzanine diaphragm${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'flexible — by tributary area (workbook default)'], ['rigid', 'rigid — accidental torsion 1.10 on the bracing, least R']])}<small class="sub-n">ASCE 7 12.3.1: a concrete-filled deck with span / depth ≤ 3 may be taken as rigid</small></label>
-        <label>FSW bracing${sel('types.0', (cfg.types || RUN.SEIS_DEFAULTS.types)[0], [['X-Bracing', 'X-bracing'], ['Portal Frame', 'Portal frame']])}</label>
-        <label>BSW bracing${sel('types.1', (cfg.types || RUN.SEIS_DEFAULTS.types)[1], [['X-Bracing', 'X-bracing'], ['Portal Frame', 'Portal frame']])}</label>
       </div></div>`;
     const bldg = sj.buildings.map(b => {
       const k = 'b.' + b.bkey, g = b.g, ffl = ((cfg.buildings || {})[b.bkey] || {}).frameFile;
-      const mz = b.mezz.map(m => `<tr><td><b>${esc(m.id)}</b><small class="sub-n">${n0(m.area)} sq ft at ${ft(m.elev)}</small></td>
-          <td>${num('m.' + m.id + '.FDL', { value: m.FDL })}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc)}</small></td><td class="num mono">${F2(m.FLC)}</td><td class="num mono">${F2(m.FLJ)}</td>
-          <td>${chk('m.' + m.id + '.storage', m.storage, `25 % of ${F2(m.FLL)}`)}</td><td class="num mono">${F2(m.FLP)}</td>
-          <td>${chk('m.' + m.id + '.framing', m.framing > 0 || ((cfg.mezz || {})[m.id] || {}).framing !== false, `${F2(m.framing)}`)}<small class="sub-n">${n0(m.framingLb)} lb beams + ½ columns</small></td>
+      const mz = b.mezz.map((m, i) => `<tr><td><b>${esc(m.id)}</b>${i < 2 ? `<small class="sub-n">Mezzanine #${i + 1} · ${n0(m.area)} sq ft</small>` : '<small class="bad">the workbook takes two mezzanines</small>'}</td>
+          <td class="num mono">${ft(m.elev)}</td>
+          <td>${num('m.' + m.id + '.FDL', { value: m.FDL })}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc)}</small>${m.framing ? `<small class="sub-n">+ ${F2(m.framing)} framing = <b>${F2(m.FDL + m.framing)}</b> typed</small>` : ''}</td>
+          <td class="num mono">${F2(m.FLC)}</td><td class="num mono">${F2(m.FLJ)}</td>
+          <td>${chk('m.' + m.id + '.storage', m.storage, `storage: 25 % of ${F2(m.FLL)}`)}</td><td class="num mono">${F2(m.FLP)}</td>
           <td class="num mono"><b>${F2(m.psf)}</b></td><td class="num mono">${lb(m.psf * m.area)}</td></tr>`).join('');
-      return `<div class="seis-group"><h4>${esc(b.name)} <small class="sub-n">${esc(g.rooftype)} · ${ft(g.width)} × ${ft(g.length)} · eaves ${ft(g.leh)} / ${ft(g.heh)} · ${f(g.slope, 2)}:12 · mean roof height ${b.long ? ft(b.long.hn) : '—'}</small></h4>
+      return `<div class="seis-group"><h4><span class="step-no sm">2</span>${esc(b.name)} <small class="sub-n">Input Data B7–B22 · B33–B37 · walls</small></h4>
+        <div class="seis-echo"><span>${esc(g.rooftype)}</span><span>Width <b>${ft(g.width)}</b></span><span>Length <b>${ft(g.length)}</b></span>${g.rooftype === 'Gable' ? `<span>Ridge <b>${ft(g.dtr)}</b> from the BSW</span>` : ''}<span>Slope <b>${f(g.slope, 2)}:12</b></span><span>Eaves <b>${ft(g.leh)}</b> FSW · <b>${ft(g.heh)}</b> BSW</span><span>Mean roof height <b>${b.long ? ft(b.long.hn) : '—'}</b></span><small class="sub-n">PCS Box 2</small></div>
         ${b.geoNote ? `<div class="seis-msg info">${esc(b.geoNote)}</div>` : ''}
         <div class="seis-grid">
-          <label>Frame self weight (psf) ${srcTag(b.roof.SW)}${num(k + '.SW', b.roof.SW)}</label>
-          <label>Roof self weight — bracing, purlins (psf) ${srcTag(b.roof.RSW)}${num(k + '.RSW', b.roof.RSW)}</label>
-          <label>Roof dead (psf) ${srcTag(b.roof.RDL)}${num(k + '.RDL', b.roof.RDL)}${ffl ? `<small class="sub-n">NBG Frame: ${f(ffl.roofDead, 2)} in ${esc(ffl.from)}</small>` : '<small class="sub-n">"Per Seller" on the PCS — NBG Frame\'s value is read from a dropped frame file</small>'}</label>
-          <label>Roof collateral (psf) ${srcTag(b.roof.CDL)}${num(k + '.CDL', b.roof.CDL)}</label>
-          <label>Roof snow Pf (psf) ${srcTag(b.roof.Pf)}${num(k + '.Pf', b.roof.Pf)}<small class="sub-n">20 % in the weight when over 30 psf</small></label>
-          <label>Walls FSW / BSW / LEW / REW (psf) <span class="seis-walls">${['fsw', 'bsw', 'lew', 'rew'].map(w => num(k + '.walls.' + w, b.walls[w])).join('')}</span><small class="sub-n">3 psf metal panel (workbook default) — more for insulated panels or masonry</small></label>
-          ${chk(k + '.story', b.story, `Mezzanine counted as a story (over ⅓ of the floor: ${n0(b.mezz.reduce((a, m) => a + m.area, 0))} of ${n0(g.width * g.length)} sq ft) — building-limit checks only`)}
+          <label><span class="lab">Lateral frame self weight, SW (psf) ${srcTag(b.roof.SW)} ${cell('B33')}</span>${num(k + '.SW', b.roof.SW)}</label>
+          <label><span class="lab">Roof self weight — bracing, beams (psf) ${srcTag(b.roof.RSW)} ${cell('B36')}</span>${num(k + '.RSW', b.roof.RSW)}</label>
+          <label><span class="lab">Roof dead, RDL (psf) ${srcTag(b.roof.RDL)} ${cell('B34')}</span>${num(k + '.RDL', b.roof.RDL)}${ffl ? `<small class="sub-n">from ${esc(ffl.from)}</small>` : '<small class="sub-n">"Per Seller" on the PCS — read from a dropped frame file, or type it</small>'}</label>
+          <label><span class="lab">Roof collateral, CDL (psf) ${srcTag(b.roof.CDL)} ${cell('B35')}</span>${num(k + '.CDL', b.roof.CDL)}</label>
+          <label><span class="lab">Roof snow, Pf (psf) ${srcTag(b.roof.Pf)} ${cell('B37')}</span>${num(k + '.Pf', b.roof.Pf)}<small class="sub-n">20 % in the weight when over 30 psf</small></label>
+          <label><span class="lab">Wall weight FSW / BSW / LEW / REW (psf) ${cell('B59 F59 B47 F47')}</span><span class="seis-walls">${['fsw', 'bsw', 'lew', 'rew'].map(w => num(k + '.walls.' + w, b.walls[w])).join('')}</span><small class="sub-n">3 psf metal panel (the workbook's default)</small></label>
         </div>
-        <div class="table-wrap"><table class="fl-t seis-mz"><thead><tr><th>Mezzanine</th><th>Floor dead (psf)</th><th class="num">Collateral</th><th class="num">Joists</th><th>Live — storage</th><th class="num">Partition</th><th>Framing (psf)</th><th class="num">Seismic psf</th><th class="num">W (lb)</th></tr></thead><tbody>${mz}</tbody></table></div>
-        <small class="sub-n">ASCE 7 12.7.2: the dead load, 25 % of the floor live where it is storage, the partition load. The framing line is this design's beams and half its columns over the floor area; untick it when the floor dead already includes them.</small></div>`;
+        <div class="seis-grid">
+          ${chk('vertical', cfg.vertical !== false, `Vertical distribution required ${cell('B21')}`)}
+          ${chk('ndfs', cfg.ignoreNDFS !== true, `"Steel systems not detailed for seismic" in SDC A–C — R = 3 (the workbook's default) ${cell('F16')}`)}
+          ${chk(k + '.story', b.story, `Mezzanine considered a story ${cell('Lateral B30')} — ${n0(b.mezz.reduce((a, m) => a + m.area, 0))} of ${n0(g.width * g.length)} sq ft is ${b.mezz.reduce((a, m) => a + m.area, 0) > g.width * g.length / 3 ? 'over' : 'under'} ⅓ of the floor`)}
+          <label><span class="lab">Mezzanine level diaphragm ${cell('B19')}</span>${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'None / flexible (the workbook\'s default)'], ['rigid', 'Rigid — accidental torsion on the bracing']])}</label>
+        </div>
+        <h4 class="seis-h-mz"><span class="step-no sm">3</span>Mezzanine loads <small class="sub-n">Input Data B89–B95 / F89–F95 · storage check box</small></h4>
+        <div class="table-wrap"><table class="fl-t seis-mz"><thead><tr><th>Mezzanine</th><th class="num">Elevation</th><th>Floor dead (psf)</th><th class="num">Collateral</th><th class="num">Joists</th><th>Floor live</th><th class="num">Partition</th><th class="num">Seismic psf</th><th class="num">W (lb)</th></tr></thead><tbody>${mz}</tbody></table></div>
+        <small class="sub-n">Floor dead is the design's dead load unless you type it (e.g. 55). The workbook takes 25 % of the floor live where the mezzanine is storage, and the partition load.</small></div>`;
     }).join('');
     box.innerHTML = site + bldg;
-    // frames
-    const distT = (rows, k) => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight W (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">W·hx^k</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-k)</th></tr></thead><tbody>${rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.D)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.M)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(rows.reduce((a, r) => a + r.W, 0))}</td><td></td><td class="num mono">${lb(rows.reduce((a, r) => a + r.D, 0))}</td><td class="num mono"><b>${F2(rows.reduce((a, r) => a + r.Fx, 0))}</b></td><td class="num mono">${F2(rows.reduce((a, r) => a + r.M, 0))}</td></tr></tfoot></table>`;
-    const fileNow = (b, fr) => { const it = state.nbg.files.find(x => x.ff && (!x.ff.info.building || sameName(x.ff.info.building, b.name) || sj.buildings.length === 1) && parseLines(x.lines).map(String).includes(String(fr.label))); return it ? it.ff.info.seismic : null; };
+
+    // ---- step 4: each frame (Lateral Calcs. (1)) ----
+    const distT = rows => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight W (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">W·hx^k</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-k)</th></tr></thead><tbody>${rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.D)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.M)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(rows.reduce((a, r) => a + r.W, 0))}</td><td></td><td class="num mono">${lb(rows.reduce((a, r) => a + r.D, 0))}</td><td class="num mono"><b>${F2(rows.reduce((a, r) => a + r.Fx, 0))}</b></td><td class="num mono">${F2(rows.reduce((a, r) => a + r.M, 0))}</td></tr></tfoot></table>`;
+    const AT = { lew: 'Left Endwall', rew: 'Right Endwall', interior: 'Interior Frame' };
+    $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
+      if (!b.frames.length) return '';
+      const slot = b.mezz.slice(0, 2);
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frame line</th><th>System ${cell('B9')}</th><th class="num">Bay width ${cell('B18')}</th><th>Located at ${cell('Q1')}</th>${slot.map((m, k) => `<th class="num">${esc(m.id)} area ${cell(k ? 'B34' : 'B31')}</th>`).join('')}<th class="num">Cs</th>${slot.map((m, k) => `<th class="num">${esc(m.id)} load ${cell(k ? 'G78' : 'G77')}</th>`).join('')}<th class="num">Frame V ${cell('H79')}</th><th></th></tr></thead><tbody>${b.frames.map(fr => { const L = fr.lat, ml = id => L.mezzLoads.find(x => x.id === id); return `<tr class="seis-fr" data-fr="${esc(b.bkey + '|' + fr.label)}">
+        <td><b class="mono">${esc(fr.label)}</b></td><td>${esc(SEIS_TYPE(fr.type))}<small class="sub-n">${esc(L.sys.name)} · R ${f(L.R, 2)}</small></td><td class="num mono">${ft(fr.bay)}<small class="sub-n">${fr.at === 'interior' ? 'half the bay each side' : 'half the end bay'}</small></td><td>${AT[fr.at]}</td>
+        ${slot.map(m => `<td class="num mono">${n0(fr.areas[m.id] || 0)}</td>`).join('')}<td class="num mono">${f(L.cs.Cs, 4)}</td>
+        ${slot.map(m => `<td class="num mono">${ml(m.id) ? `<b>${F2(ml(m.id).F)}</b> k` : '—'}</td>`).join('')}<td class="num mono">${F2(L.frameV)}</td>
+        <td>${wbBtn(`seismic|${b.bkey}|${fr.label}`, 'Workbook')}</td></tr>
+        <tr class="seis-dist-row" hidden><td colspan="${7 + 2 * slot.length}"><div class="seis-dist-wrap">${distT(L.rows)}
+          ${(() => { const w = b.workbook && b.workbook.frames.find(x => x.label === fr.label); return w ? `<details class="seis-d"><summary>What goes into the workbook for frame ${esc(fr.label)} — ${b.workbook.input.length + b.workbook.long.length + w.steps.length} cells</summary><div class="xl-cols"><div><h4><span>1</span>Input Data <small>the building and the mezzanines</small></h4>${xlTable(b.workbook.input, [])}</div><div><h4><span>2</span>Lateral Calcs. (1) <small>this frame</small></h4>${xlTable(w.steps, w.read, 'The workbook then shows')}<h4><span>3</span>Longitudinal Calcs. <small>the bracing</small></h4>${xlTable(b.workbook.long, b.workbook.longRead, 'The workbook then shows')}</div></div></details>` : ''; })()}
+          <div class="seis-out">Ta = ${f(L.sys.Ct, 3)} × ${F2(L.hn)}<sup>${L.sys.x}</sup> = ${f(L.Ta, 3)} s → k = ${f(L.k, 2)} · Cs ${f(L.cs.Cs, 4)} by ${esc(L.cs.governs)}${L.cs.note ? ' · ' + esc(L.cs.note) : ''} · ${esc(L.sys.name)} (R ${f(L.R, 2)}, Ω ${f(L.sys.Omega, 1)}, Cd ${f(L.sys.Cd, 1)})${fr.loose.length ? `<div class="bad">${fr.loose.map(l => `${esc(l.id)} ${F2(l.F)} k has no frame column on this line — ${esc(l.why)}`).join('<br>')}</div>` : ''}</div></div></td></tr>`; }).join('')}</tbody></table></div>`;
+    }).join('') + (live && infos.length ? `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>` : '');
+    $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('button')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
+
+    // ---- step 5: into NBG Frame — one row per frame line × column × level; Applied is what the files get ----
     const nEdit = Object.keys(cfg.eqOverride || {}).length, scale = cfg.eqScale > 0 ? +cfg.eqScale : 1;
-    // typed values whose frame line × column × level is no longer in the job (the layout or the elevation changed): not used
     const usedKeys = new Set(live ? sj.buildings.flatMap(b => b.frames.flatMap(fr => fr.eqs.map(e => e.key))) : []);
     const stale = Object.keys(cfg.eqOverride || {}).filter(k => !usedKeys.has(k)).length;
-    const eqBar = !live ? '' : `<div class="eq-bar"><label>All EQ loads × <input class="seis-in" data-seis="eqScale" value="${scale}" inputmode="decimal"></label>
-        <span>Every computed EQR / EQL load is multiplied by this; a value typed on a column below (or on a frame file's card) is used as typed — what shows here is what the frame files get.${nEdit - stale ? ` <b>${nEdit - stale} typed value${nEdit - stale > 1 ? 's' : ''}.</b>` : ''}${stale ? ` <b class="bad">${stale} typed value${stale > 1 ? 's' : ''} no longer match${stale > 1 ? '' : 'es'} a column (the layout or the mezzanine level changed) — not used.</b>` : ''}</span>
-        <button class="btn-ghost" id="eqResetAll" ${nEdit || scale !== 1 ? '' : 'disabled'}>Back to the calculated loads</button></div>`;
-    const eqCell = e => `<div class="eq-edit ${e.edited ? 'is-' + e.edited : ''}"><span class="mono"><b>${esc(e.member)}</b> (${esc(e.label)})</span> ± <input class="seis-in eq-in" data-eqkey="${esc(e.key)}" value="${f(e.F, 3)}" inputmode="decimal" title="kips — EQR +, EQL −"> k${e.edited ? `${e.edited === 'typed' ? `<button class="eq-x" data-eqclear="${esc(e.key)}" title="back to the calculated load">↺</button>` : ''} <small class="sub-n">${e.edited === 'typed' ? 'typed' : '× ' + scale} · calc. ${f(e.calc, 2)}</small>` : ` <small class="sub-n">${Math.round(e.share * 100)} %</small>`}</div>`;
-    $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : eqBar + sj.buildings.map(b => !b.frames.length ? '' : `${sj.buildings.length > 1 ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
-      <div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frame</th><th class="num">Strip</th><th class="num">Cs · R</th><th class="num">Frame V (k)</th><th>Mezzanine Fx at its level</th><th>EQR / EQL on</th><th class="num">Roof seismic DL (psf)</th><th>NBG Frame file now</th></tr></thead><tbody>${b.frames.map(fr => { const L = fr.lat, now = fileNow(b, fr); return `<tr class="seis-fr" data-fr="${esc(b.bkey + '|' + fr.label)}">
-        <td><b class="mono">${esc(fr.label)}</b><small class="sub-n">${esc(fr.type)} · ${fr.at === 'interior' ? 'interior' : fr.at === 'lew' ? 'left endwall' : 'right endwall'}</small></td><td class="num mono">${ft(fr.bay)}</td>
-        <td class="num mono">${f(L.cs.Cs, 4)}<small class="sub-n">R ${f(L.R, 2)} · k ${f(L.k, 2)}</small></td><td class="num mono">${F2(L.frameV)}</td>
-        <td>${L.mezzLoads.map(m => `<div><b class="mono">${F2(m.F)} k</b> ${esc(m.id)} at ${ft(m.at)}</div>`).join('')}${fr.loose.map(l => `<div class="bad">${esc(l.id)} ${F2(l.F)} k — no frame column</div>`).join('')}</td>
-        <td class="eq-td">${fr.eqs.map(eqCell).join('') || '—'}</td>
-        <td class="num mono"><b>${F2(L.altRoof)}</b><small class="sub-n">with Cs ${f(L.cs.Cs, 4)}</small></td>
-        <td>${now ? `<small>${F2(now.roofSeismicDeadLoad)} psf · ${f(now.roofSeismicFactor, 3)} (R ${f(now.R, 1)})</small>` : '<small class="sub-n">drop it on the Plan page</small>'}</td></tr>
-        <tr class="seis-dist-row" hidden><td colspan="8"><div class="seis-dist-wrap">${distT(L.rows)}
-          <div class="seis-out"><b>To NBG Frame (frame ${esc(fr.label)})</b><ul>
-            <li>Concentrated loads: ${fr.eqs.map(e => `EQR ${esc(e.member)} +${F2(e.F)} k, EQL −${F2(e.F)} k at ${ft(e.at)}`).join('; ') || '—'} <small class="sub-n">(in the frame file when you download it)</small></li>
-            <li>Frame Loads: Roof Seismic Dead Load <b>${F2(L.altRoof)} psf</b>, Roof Seismic Factor <b>${f(L.cs.Cs, 4)}</b> — roof, sidewalls${fr.at !== 'interior' ? ' and endwall' : ''} lumped at the roof (the workbook's alt. roof weight). Or roof only ${F2(L.roofOverride)} psf with the sidewalls as concentrated loads: ${L.wallLoads.map(w => `${w.key.toUpperCase()} ${F2(w.F)} k at ${ft(w.at)}`).join(', ')}.</li>
-            <li>Ta = ${f(L.sys.Ct, 3)} × ${F2(L.hn)}^${L.sys.x} = ${f(L.Ta, 3)} s → k = ${f(L.k, 2)}; Cs ${f(L.cs.Cs, 4)} by ${esc(L.cs.governs)}${L.cs.note ? ' · ' + esc(L.cs.note) : ''}; ${esc(L.sys.name)} (R ${f(L.R, 2)}, Ω ${f(L.sys.Omega, 1)}, Cd ${f(L.sys.Cd, 1)})</li>
-          </ul></div></div></td></tr>`; }).join('')}</tbody></table></div>`).join('');
-    if (live && infos.length) $('#seisFrames').insertAdjacentHTML('beforeend', `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`);
-    $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('.eq-edit')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
-    $$('#seisFrames [data-eqkey]').forEach(el => { el.onchange = () => setEq([el.dataset.eqkey], el.value); });
-    $$('#seisFrames [data-eqclear]').forEach(el => { el.onclick = ev => { ev.stopPropagation(); setEq([el.dataset.eqclear], ''); }; });
+    const fileFor = (b, fr) => state.nbg.files.find(x => x.ff && (!x.ff.info.building || sameName(x.ff.info.building, b.name) || !many) && parseLines(x.lines).map(String).includes(String(fr.label)));
+    $('#seisApply').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : `<div class="eq-bar"><label>All loads × <input class="seis-in" data-seis="eqScale" value="${scale}" inputmode="decimal"></label>
+        <span>Type a value in <b>Applied</b> to use your own load for that column (↺ goes back). The multiplier changes every calculated load. What this table shows is exactly what goes into the frame files: EQR = +Applied, EQL = −Applied, on that member at the mezzanine level.${nEdit - stale ? ` <b>${nEdit - stale} typed.</b>` : ''}${stale ? ` <b class="bad">${stale} typed value${stale > 1 ? 's' : ''} no longer match${stale > 1 ? '' : 'es'} a column — not used.</b>` : ''}</span>
+        <button class="btn-ghost" id="eqResetAll" ${nEdit || scale !== 1 ? '' : 'disabled'}>Back to the calculated loads</button></div>` + sj.buildings.map(b => {
+      const rows = b.frames.flatMap(fr => {
+        const byKey = new Map();
+        fr.eqs.forEach(e => { const r = byKey.get(e.key) || { fr, e, F: 0, calc: 0, mezz: [], shares: [], edited: null }; r.F += e.F; r.calc += e.calc; r.mezz.push(e.mezz); r.shares.push(e.share); r.edited = r.edited || e.edited; byKey.set(e.key, r); });
+        return [...byKey.values()].concat(fr.loose.map(l => ({ fr, loose: l })));
+      });
+      if (!rows.length) return '';
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-apply"><thead><tr><th>Frame line</th><th>Column</th><th>NBG Frame member</th><th class="num">At</th><th>From</th><th class="num">Calculated (k)</th><th class="num">Applied (k)</th><th>In the frame file</th></tr></thead><tbody>${rows.map(r => {
+        if (r.loose) return `<tr class="bad-row"><td class="mono"><b>${esc(r.fr.label)}</b></td><td colspan="7"><span class="bad">${esc(r.loose.id)} ${F2(r.loose.F)} k — no frame column on this line: ${esc(r.loose.why)}. Brace the mezzanine here (independent X-bracing) or carry it to the next frames.</span></td></tr>`;
+        const e = r.e, it = fileFor(b, r.fr), from = r.edited === 'typed' ? `${r.mezz.join(' + ')}` : r.mezz.map((m, i) => `${m} ${Math.round(r.shares[i] * 100)} %`).join(' + ');
+        return `<tr class="${r.edited ? 'is-' + r.edited : ''}" data-fr="${esc(b.bkey + '|' + r.fr.label)}" data-member="${esc(e.member)}"><td class="mono"><b>${esc(r.fr.label)}</b></td><td class="mono">${esc(e.label)}</td><td class="mono"><b>${esc(e.member)}</b></td><td class="num mono">${ft(e.at)}</td>
+          <td class="sub-n">${esc(from)}${r.edited !== 'typed' && r.shares.some(x => x < 0.999) ? ` <small>of the frame's ${esc(r.mezz.join(' / '))} load (by dead load)</small>` : ''}</td>
+          <td class="num mono">${F2(r.calc)}</td>
+          <td class="num"><span class="eq-edit ${r.edited ? 'is-' + r.edited : ''}">± <input class="seis-in eq-in" data-eqkey="${esc(e.key)}" value="${f(r.F, 3)}" inputmode="decimal" title="kips — EQR +, EQL −">${r.edited === 'typed' ? `<button class="eq-x" data-eqclear="${esc(e.key)}" title="back to the calculated load">↺</button>` : ''}</span>${r.edited ? `<small class="sub-n eq-tag">${r.edited === 'typed' ? 'typed' : '× ' + scale}</small>` : ''}</td>
+          <td>${it ? `<small class="mono">${esc(outName(it, parseLines(it.lines)))}</small><small class="sub-n">EQR +${F2(r.F)} / EQL −${F2(r.F)}</small>` : '<small class="sub-n">drop its .frame file on the Plan page</small>'}</td></tr>`;
+      }).join('')}</tbody></table></div>`;
+    }).join('');
+    $$('#seisApply [data-eqkey]').forEach(el => { el.onchange = () => setEq([el.dataset.eqkey], el.value); });
+    $$('#seisApply [data-eqclear]').forEach(el => { el.onclick = ev => { ev.stopPropagation(); setEq([el.dataset.eqclear], ''); }; });
     const ra = $('#eqResetAll');
     if (ra) ra.onclick = () => { delete state.seis.eqOverride; delete state.seis.eqScale; seisSave(); recompute(); toast('EQ loads back to the calculated values'); };
-    // bracing
-    $('#seisBracing').innerHTML = !live ? '' : sj.buildings.map(b => { const G = b.long; if (!G) return ''; return `${sj.buildings.length > 1 ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
-      <div class="seis-sum"><span>${esc(G.sys.name)} · R ${f(G.sys.R, 2)}</span><span>Ta ${f(G.Ta, 3)} s · k ${f(G.k, 2)}</span><span>Cs <b>${f(G.cs.Cs, 4)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span></div>
-      <details class="seis-d"><summary>Multistory distribution (as the workbook's Longitudinal sheet)</summary>${distT(G.rows)}</details>
-      <div class="seis-out"><b>For the bracing software</b><ul>
-        <li>Roof: seismic dead weight <b>${F2(G.roofPsf)} psf</b> with seismic factor <b>${f(G.cs.Cs, 4)}</b> (roof and endwalls; the bracing software otherwise fixes the roof at 8.0 psf).</li>
-        <li>Sidewalls: ${G.wallLoads.map(w => `${w.key.toUpperCase()} ${F2(w.F)} k at the eave ${ft(w.at)}`).join(' · ')}.</li>
-        <li>Mezzanine concentrated loads: ${G.mezzLoads.map(m => `<b>${esc(m.id)} ${F2(m.F)} k</b> at ${ft(m.at)}`).join(' · ')} — total ${F2(G.mezzLoads.reduce((a, m) => a + m.F, 0))} k.</li>
-      </ul></div>
-      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Bracing line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
-      <small class="sub-n">The floor spans across the building between these lines as a flexible diaphragm (lever rule, piece by piece along the length where the floor changes width). A line on a sidewall is the building's own bracing — it must be tiered at the mezzanine level (DM 15.1.3). Any other line needs independent X-bracing from the mezzanine to the floor, for the larger of the seismic and the DM's 1 % stability force.</small>`; }).join('');
+
+    // ---- step 6: bracing (Longitudinal Calcs.) ----
+    $('#seisBracing').innerHTML = !live ? '' : sj.buildings.map(b => { const G = b.long; if (!G) return ''; const slot = b.mezz.slice(0, 2), first = b.frames[0];
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
+      <div class="seis-sum"><span>${esc(G.sys.name)} · R ${f(G.sys.R, 2)}</span><span>Ta ${f(G.Ta, 3)} s · k ${f(G.k, 2)}</span><span>Cs <b>${f(G.cs.Cs, 4)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span><span>FSW ${esc((cfg.types || RUN.SEIS_DEFAULTS.types)[0])} ${cell('B8')} · BSW ${esc((cfg.types || RUN.SEIS_DEFAULTS.types)[1])} ${cell('B9')}</span>${first ? wbBtn(`seismic|${b.bkey}|${first.label}`, 'Workbook') : ''}</div>
+      <div class="table-wrap"><table class="fl-t seis-brace"><thead><tr><th>Mezzanine</th><th class="num">Loading area ${cell('B27 / B30')}</th><th class="num">At</th><th class="num">Seismic force for the bracing ${cell('G77 / G78')}</th></tr></thead><tbody>${G.mezzLoads.map((m, k) => `<tr><td><b>${esc(m.id)}</b></td><td class="num mono">${n0((slot[k] || {}).area || 0)}</td><td class="num mono">${ft(m.at)}</td><td class="num mono"><b>${F2(m.F)} k</b></td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3">Mezzanine total</td><td class="num mono"><b>${F2(G.mezzLoads.reduce((a, m) => a + m.F, 0))} k</b></td></tr></tfoot></table></div>
+      <div class="seis-out"><b>For the bracing software</b> — roof seismic dead weight <b>${F2(G.roofPsf)} psf</b> ${cell('H66')} with factor <b>${f(G.cs.Cs, 4)}</b>; sidewalls ${G.wallLoads.map(w => `${w.key.toUpperCase()} ${F2(w.F)} k at ${ft(w.at)}`).join(' · ')}; the mezzanine loads above at their level.</div>
+      <details class="seis-d"><summary>Multistory distribution (the workbook's Longitudinal sheet)</summary>${distT(G.rows)}</details>
+      <details class="seis-d"><summary>Which bracing lines take it (DM 15.1.3) — the tool's own step</summary>
+        <div class="table-wrap"><table class="fl-t"><thead><tr><th>Bracing line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
+        <small class="sub-n">The floor spans across the building between these lines (lever rule, piece by piece along the length). A sidewall line is the building's bracing, tiered at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force.</small></details>`; }).join('');
+
+    // ---- what the tool adds beyond the procedure ----
+    const flags = [];
+    if (live) {
+      const b0 = sj.buildings[0];
+      const fOn = sj.buildings.some(b => b.mezz.some(m => m.framing > 0));
+      flags.push(`<b>Framing weight in the floor dead.</b> ${fOn ? `${sj.buildings.flatMap(b => b.mezz.filter(m => m.framing > 0).map(m => `${esc(m.id)} + ${F2(m.framing)} psf (this design's beams and half its columns)`)).join(' · ')}, so the workbook's Floor Dead gets ${sj.buildings.flatMap(b => b.mezz.map(m => `${F2(m.FDL + m.framing)}`)).join(' / ')} psf.` : 'Off — the Floor Dead is typed as it is.'} ${chk('framingAll', fOn, 'add the framing weight')} — untick when your floor dead already includes it (e.g. 55).`);
+      flags.push(`<b>Self weight.</b> Lateral frame self weight ${F2(b0.roof.SW.value)} psf (B33, the workbook's default) and roof self weight ${F2(b0.roof.RSW.value)} psf (B36). This is how your W1S-26062 longitudinal table reads (roof W 230,283 lb); if "self weight 1 psf" meant the frame's, type B33 = 1 and B36 = 0 in step 2.`);
+      flags.push(`<b>Each frame's mezzanine load split between its columns</b> ${sel('split', cfg.split || 'dead', [['dead', 'by the dead load each column takes'], ['equal', 'equally']])} — or type each column's load in step 5.`);
+      flags.push(`<b>R.</b> The workbook takes "steel systems not detailed for seismic" (R 3) in SDC A–C; NBG Frame's own seismic uses OMF R 3.5. The EQ loads here are the workbook's (R ${f((b0.frames[0] || { lat: { R: 3 } }).lat.R, 2)}). Untick the check box in step 2 for OMF.`);
+      const roofT = sj.buildings.map(b => b.frames.map(fr => `${esc(fr.label)}: ${F2(fr.lat.altRoof)} psf`).join(' · ')).join(' | ');
+      flags.push(`<b>Roof seismic for NBG Frame (not in your procedure, not written).</b> The workbook also gives an alternate roof seismic weight (Lateral G64) that lumps the roof, the walls and, with the mezzanine in the building, the extra share the vertical distribution puts at the roof: ${roofT}, with factor Cs. NBG Frame's own roof seismic leaves the mezzanine out. Shown for information; the frame files keep NBG Frame's.`);
+      flags.push(`<b>Bracing lines.</b> Step 6's split of the bracing force to the lines that hold the floor, and the DM 15.1.3 1 % check for independent bracing, are the tool's own — the workbook gives the total.`);
+      flags.push(`<b>EQR Ecc. Loc.</b> ${brCode().code ? `Bottom/Right = code ${esc(brCode().code)} (${brCode().how}).` : 'Written Top/Left (as NBG Frame writes its own lean-to seismic rows) until the Bottom/Right code is confirmed on the Plan page — an X force with no offset takes no moment from the flange it is drawn at.'}`);
+    }
+    $('#seisFlags').innerHTML = flags.length ? `<ol class="seis-flags">${flags.map(t => `<li>${t}</li>`).join('')}</ol>` : '';
+    $('#seisFlagsPanel').hidden = !flags.length;
+
     // how
     $('#seisHow').innerHTML = `<ol>
-      <li><b>Design values</b> — Ss, S1, site class and risk category from PCS Box 3. Fa, Fv from ASCE 7 Tables 11.4-1 / 11.4-2 (interpolated as the workbook does), SMS = Fa·Ss, SDS = ⅔ SMS (same for the 1-second values); SDC from Tables 11.6-1 / 11.6-2; Ie from the risk category.</li>
-      <li><b>System</b> — frames: rigid frame (moment frame, Ct 0.028, x 0.8); post-and-beam end frames and X-bracing: Ct 0.02, x 0.75. In SDC A–C the workbook takes "steel systems not detailed for seismic", R = 3; otherwise OMF R 3.5 / OCBF R 3.25. Risk Category III / IV: the least R of the building's frames (12.2.3.3).</li>
-      <li><b>Cs</b> — SDS/(R/Ie), not above SD1/(Ta·R/Ie), not below 0.044·SDS·Ie or 0.01 (0.5·S1/(R/Ie) when S1 ≥ 0.6); ASCE 7-16 caps SDS for regular low buildings (12.8.1.3) and applies the 11.4.8 exception for Site Class D. Ta = Ct·hn^x with hn the mean roof height.</li>
-      <li><b>Frames</b> — each frame line with mezzanine in its strip (half the bay each side; an end frame half the end bay) gets its own calculation: the strip of roof (on the slope, with 20 % of the snow over 30 psf), its sidewalls, the endwall at an end frame, and each mezzanine's slab area in the strip × (dead + collateral + joists + framing + 25 % live for storage + partition). Fx = Cs·W·(W<sub>x</sub>·h<sub>x</sub><sup>k</sup> / Σ W·h<sup>k</sup>) — with a mezzanine low in the building, more of the shear goes to the roof than NBG Frame's single-level roof seismic gives it.</li>
-      <li><b>Into the frame</b> — the mezzanine row is the frame's concentrated seismic load at the mezzanine level: EQR +X and EQL −X on the frame columns that mezzanine's beams frame into, shared by the dead load each takes (DM 15.1.3: a side on a rigid frame is held by the frame). The roof and walls go in as NBG Frame's roof seismic dead load with Cs — the workbook's override, because NBG Frame leaves walls and mezzanines out of its own.</li>
-      <li><b>Bracing</b> — the longitudinal calculation is the whole building; its mezzanine rows are the bracing's concentrated loads at the mezzanine level. Each line that holds the floor gets its share (lever rule); a sidewall line is the building bracing, tiered at the mezzanine level; any other line is independent X-bracing, designed for the larger of that force and 1 % of the (FDL + FLL) tributary to it (DM 15.1.3).</li>
-      <li><b>Load level.</b> The EQR / EQL rows and the roof weight are Q<sub>E</sub> — the strength-level seismic forces of 12.8, before the redundancy factor ρ and the ASD 0.7 — exactly as the workbook gives them; NBG Frame's load combinations apply ρ and 0.7 (and the vertical 0.2 SDS·D).</li>
-      <li><b>Diaphragm.</b> Flexible by default (the workbook's): each frame takes its tributary strip. A rigid mezzanine diaphragm (a concrete-filled deck may be, ASCE 7 12.3.1) adds the 5 % accidental torsion to the bracing loads (×1.10) and takes the least R of the frames; the frame loads stay tributary, as in the workbook.</li>
-      <li><b>Checked against</b> NBG's IBC Seismic workbook (rev. 2021.01.20) case for case — 1,386 of 1,386 values tie across 15 cases (oracle/seismic_check.js).</li></ol>`;
+      <li><b>Input Data</b> — the code from the PCS code line (the workbook's drop-down), Ss, S1, site class and occupancy from Box 3; the building from Box 2; roof dead from NBG Frame (the frame file) since the PCS says "Per Seller"; collateral and snow from Box 4; walls at 3 psf; each mezzanine's elevation (A), floor dead, collateral, joists, live (storage) and partition.</li>
+      <li><b>Lateral Calcs. (1), one frame at a time</b> — the frame's system, its bay width (the strip it carries: half the bay each side, an end frame half the end bay), where it is (left endwall / interior / right endwall), and each mezzanine's floor area inside that strip. The sheet's mezzanine row (G77 / G78) is that frame's mezzanine seismic force.</li>
+      <li><b>Into the frame</b> — that force goes on the frame columns the mezzanine's beams frame into, shared by the dead load each takes (DM 15.1.3: a side on a rigid frame is held by the frame): EQR = +F, EQL = −F as X forces at the mezzanine elevation.</li>
+      <li><b>Longitudinal Calcs.</b> — the whole building; the mezzanine rows are the seismic forces the bracing takes at the mezzanine level.</li>
+      <li><b>Load level.</b> The workbook's values are Q<sub>E</sub> (12.8), before ρ and the ASD 0.7 — NBG Frame's load combinations apply them.</li>
+      <li><b>Checked</b> — the tool's engine against the workbook: 1,386 of 1,386 values over 15 cases; and every frame of the four sample jobs typed into the real workbook and recalculated: the same numbers (oracle/fill_check.py).</li></ol>`;
     // input handlers
     $$('#v-seismic [data-seis]').forEach(el => {
       el.onchange = () => {
@@ -6699,6 +7471,7 @@ table.nbg-t td .card-eq { width: 78px; }
         else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); const path = k.slice(2 + id.length + 1); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; c.mezz[id][path] = typeof v === 'boolean' ? v : v === '' ? undefined : +v; if (c.mezz[id][path] === undefined) delete c.mezz[id][path]; }
         else if (k === 'ed' || k === 'siteClass' || k === 'risk') c[k] = v;
         else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
+        else if (k === 'framingAll') { c.mezz = c.mezz || {}; sj.buildings.forEach(b => b.mezz.forEach(m => { c.mezz[m.id] = { ...(c.mezz[m.id] || {}), framing: !!v }; if (v) delete c.mezz[m.id].framing; })); }
         else c[k] = v === '' ? undefined : +v;
         seisSave(); recompute();
       };
@@ -7049,8 +7822,9 @@ table.nbg-t td .card-eq { width: 78px; }
       <li><b>How deep it can be.</b> ${sr.dTop < sr.options.dMax ? `Clearance (C) under the floor beams caps it: <span class="eq">(A − C) × 12 − slab − seat = (${ft(A)} − ${ft(C)}) × 12 − ${f(slab, 2)} − ${f(seat, 2)} = ${f(mk.maxDepth, 0)}"</span>.` : `No clearance (C) limit below the ${sr.options.dMax}" top of the range (Settings).`} Depths ${sr.options.dMin}"–${sr.dTop}" are searched, an inch at a time.</li>
       <li><b>The plates.</b> ${esc(div)} stock (DM 5.1): webs ${stock.webs.map(t => 'W' + String(Math.round(t * 1000)).padStart(3, '0')).join(', ')}; flanges ${stock.flanges.length} widths × thicknesses, 6"–12" × ¼"–1"${s.symmetric ? ', the same plate top and bottom' : ''}. <b>${sr.evaluated.toLocaleString()}</b> combinations were run through the MB sheet${removed.length ? `; ${removed.reduce((a, x) => a + x[1], 0).toLocaleString()} more were left out by the NBG Production Guidelines: ${removed.map(([k, n]) => `${n.toLocaleString()} ${RULE_TXT[k] || k}`).join(' · ')}` : ''}.</li>
       <li><b>What has to pass</b> (each combination, MB sheet, ASD ${esc(edLabel(state.res.edition.beamEd || ''))}): combined stress ratio ≤ ${s.target} (flexure with the joists bracing the top flange), shear ≤ ${s.target}, live deflection ≤ L/360, total ≤ L/240${s.requireConc ? ', and the joist-seat concentrated-load (bearing) check' : ''}. <b>${nPass.toLocaleString()}</b> pass.</li>
-      <li><b>The three options.</b><ul>${mk.options.map(o => `<li><b>${esc(o.label)}</b> — ${esc(o.pick.desc)}, ${f(o.pick.wt, 1)} plf${o.dWt ? ` (+${f(o.dPct * 100, 1)} %)` : ''}: ${esc(o.why)}</li>`).join('')}</ul>
-        ${fit && fit.steps ? `<h5>Best fit, depth by depth (the lightest section at each)</h5><table><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">vs lightest</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">LL</th><th></th></tr></thead><tbody>${fit.steps.map(st => `<tr class="${st.pass ? 'pass' : 'fail'}"><td class="num">${st.d}"</td><td class="mono">${esc(st.desc)}</td><td class="num">${f(st.wt, 1)}</td><td class="num">${st.pct ? '+' + f(st.pct * 100, 1) + ' %' : '—'}</td><td class="num">${f(st.CSR, 3)}</td><td class="num">${f(st.SRv, 3)}</td><td class="num">L/${f(st.rLL, 0)}</td><td>${esc(st.note)}</td></tr>`).join('')}</tbody></table>` : ''}</li>
+      <li><b>The options.</b> ${(() => { const gs = []; mk.options.forEach(o => { const g = gs.find(x => sameSec(x.sec, o.pick.sec)); if (g) g.roles.push(o); else gs.push({ sec: o.pick.sec, pick: o.pick, roles: [o] }); }); return `${gs.length === 1 ? 'They all land on one section' : `${gs.length} different sections`}:<ul>${gs.map(g => `<li><b>${esc(g.pick.desc)}</b> (${f(g.pick.wt, 1)} plf, ${esc(g.pick.flange)} on ${esc(g.pick.web)}) — ${g.roles.map(o => `<b>${esc(o.label)}</b>: ${esc(o.why)}`).join(' ')}</li>`).join('')}</ul>`; })()}
+        ${fit && fit.steps ? `<h5>Best fit, step by step (the quote engineer's method)</h5><ol class="fit-steps">${fit.steps.map(st => `<li>${esc(st.text)}${st.tries && st.tries.length > 1 ? `<div class="fit-tries">${st.tries.map(t => `<span class="${t.ok ? 'ok' : 'no'}">${esc(t.sec || t.web || (t.d != null ? t.d + '"' : ''))}${t.CSR != null ? ` · ${f(t.CSR, 2)}` : t.shear != null ? ` · shear ${f(t.shear, 2)}` : ''}${!t.ok && t.why ? ` — ${esc(t.why)}` : ''}</span>`).join('')}</div>` : ''}</li>`).join('')}</ol>` : ''}
+        ${mk.deeper && mk.deeper.length ? `<h5>More depth (needs a lower clearance C)</h5><p>${mk.deeper.map(z => `${z.d}" ${esc(z.desc)} ${f(z.wt, 1)} plf (C ≤ ${ft(z.needC)})`).join(' · ')}</p>` : ''}</li>
       <li><b>On the quote:</b> ${pick ? `<b>${esc(pick.label)}</b> — ${mk.pinned && mk.pinned.key ? 'picked on the Design page' : `the default option (Settings: ${esc(({ lightest: 'Lightest', fit: 'Best fit', econ: 'Most economical' })[s.optionDefault] || s.optionDefault)})`}` : mk.optionKey === 'custom' ? 'a section picked by depth or by hand' : '—'}: <b>${esc(mk.desc || '—')}</b>${mk.check ? ` — combined ${f(mk.check.res.CSR, 3)}, shear ${f(mk.check.res.SRvx, 3)}, live L/${f(mk.check.defl.rLL, 0)}, total L/${f(mk.check.defl.rTL, 0)}; end shear ${f(mk.check.V.D, 2)} k dead, ${f(mk.check.V.L, 2)} k live to the column or frame` : ''}.${(mk.spanRuns || []).length > 1 ? ` The shorter members of the mark (${mkShort(mk)}) take the same section, each checked at its own length.` : ''}</li>
     </ol>`;
   }
@@ -7435,7 +8209,7 @@ table.nbg-t td .card-eq { width: 78px; }
       sel('edition', 'Workbook edition', [['auto', 'Auto from PCS' + (code && code.edition ? ' (' + code.edition + 'th)' : '')], ['15', 'AISC 15th (360-16)'], ['16', 'AISC 16th (360-22)'], ['13', 'AISC 13th (360-05)']], 'IBC 2018/2021 → 15th · IBC 2024 → 16th · ≤ 2015 → 13th'),
       sel('division', 'Division stock', [['auto', 'Auto from PCS'], ...DESIGN.DIVISIONS.map(d => [d, d])], 'DM 5.1 flange / web / WF stock'),
       '<div class="group-title">Beam search</div>',
-      sel('optionDefault', 'Option on the quote', [['lightest', 'Lightest'], ['fit', 'Best fit (less depth, within 8 % of the lightest)'], ['econ', 'Most economical (economical flange plate)']], 'per job you can still pick any option'),
+      sel('optionDefault', 'Option on the quote', [['lightest', 'Lightest'], ['fit', 'Best fit (the step-by-step method)'], ['econ', 'Most economical (Economical Flange Sections)']], 'per job you can still pick any option'),
       num('target', 'Target SR (combined & shear)', '≤ this; the sheet says NG at 1.00', 0.01),
       num('dMin', 'Min. depth, (in.)'), num('dMax', 'Max. depth, (in.)', 'also capped by clearance (C) when given'),
       sel('symmetric', 'Flanges', [['true', 'Same top and bottom'], ['false', 'Allow unequal (IF ≤ OF width)']]),
@@ -7463,6 +8237,7 @@ table.nbg-t td .card-eq { width: 78px; }
     });
   }
   renderSettings();
+  wbLoadAll().then(() => renderWorkbooks());
 })();
 
 </script>

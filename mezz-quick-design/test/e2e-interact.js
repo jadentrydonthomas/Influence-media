@@ -163,10 +163,10 @@ if (pdfArgs.length > 1) {
     const eqOf = rows => Object.fromEntries(rows.filter(r => /^EQ/.test(r)).map(r => r.split(' ')).map(r => [r[0] + ' ' + r[1], +r[3]]));
     const calc2 = eqOf(two[1]), calc35 = eqOf((got.find(g => /_1_3-5\.frame$/.test(g[0])) || [0, []])[1]);
     await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
-    await setVal('#seisFrames [data-seis="eqScale"]', '1.1');
-    const k2 = await page.$$eval('#seisFrames tr.seis-fr[data-fr$="|2"] .eq-edit', xs => xs.find(x => /COL02/.test(x.textContent)).querySelector('input').dataset.eqkey);
-    await setVal(`#seisFrames [data-eqkey="${k2}"]`, '5');
-    const seisEq = await page.$$eval('#seisFrames tr.seis-fr', trs => trs.map(tr => tr.dataset.fr.split('|').pop() + ': ' + [...tr.querySelectorAll('.eq-edit')].map(x => x.querySelector('b').textContent + ' ' + x.querySelector('input').value + (x.classList.contains('is-typed') ? ' typed' : x.classList.contains('is-scaled') ? ' scaled' : '')).join(', ')));
+    await setVal('#seisApply [data-seis="eqScale"]', '1.1');
+    const k2 = await page.$eval('#seisApply tr[data-fr$="|2"][data-member="COL02"] input[data-eqkey]', x => x.dataset.eqkey);
+    await setVal(`#seisApply [data-eqkey="${k2}"]`, '5');
+    const seisEq = await page.$$eval('#seisApply tr[data-member]', trs => trs.map(tr => tr.dataset.fr.split('|').pop() + ' ' + tr.dataset.member + ' ' + tr.querySelector('input').value + (tr.classList.contains('is-typed') ? ' typed' : tr.classList.contains('is-scaled') ? ' scaled' : '')));
     console.log('EQ edits, Seismic page'.padEnd(30), seisEq.join(' | '));
     await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
     const card35 = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.findIndex(f => /_1_3-5\.frame$/.test(f.querySelector('.nbg-fh b').textContent)));
@@ -179,7 +179,7 @@ if (pdfArgs.length > 1) {
     if (!near3(e2['EQR 2'], 5) || !near3(e2['EQL 2'], -5) || !near3(e2['EQR 3'], calc2['EQR 3'] * 1.1) || !near3(e2['EQL 3'], -e2['EQR 3'])) fail('frame 2: COL02 typed 5 k, COL03 the calculated load × 1.1');
     if (!near3(e35['EQR 3'], 2.75) || !near3(e35['EQL 3'], -2.75)) fail('frames 3-5: 2.75 k typed on the card');
     await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
-    const seis35 = await page.$$eval('#seisFrames tr.seis-fr', trs => trs.filter(tr => /\|[345]$/.test(tr.dataset.fr)).map(tr => +tr.querySelector('.eq-edit input').value));
+    const seis35 = await page.$$eval('#seisApply tr[data-member]', trs => trs.filter(tr => /\|[345]$/.test(tr.dataset.fr)).map(tr => +tr.querySelector('input').value));
     console.log('EQ edits, frames 3-5'.padEnd(30), seis35.join(' '));
     if (seis35.join() !== '2.75,2.75,2.75') fail('a value typed on the 3-5 card should go to frames 3, 4 and 5');
     await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
@@ -234,6 +234,39 @@ if (pdfArgs.length > 1) {
     await page.click('#nbgClear');
   } else console.log('NBG Frame files'.padEnd(30), 'block present (no frame files for this job)');
 
+  // the NBG workbooks: added once, then each copy downloads with the job typed in (xlrd reads the cells back)
+  const wbDir = path.join(__dirname, '..', 'private', 'workbooks');
+  if (fs.existsSync(path.join(wbDir, 'IBC_Seismic.xls'))) {
+    await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
+    const wbs = fs.readdirSync(wbDir).filter(n => /^(Mezzanine_(Beam_Design|Column)_1[356]|IBC_Seismic).*\.xls$/.test(n) && !/S16-1[49]\.xls$/.test(n) || /Column_1[56]th_S16/.test(n));
+    await page.setInputFiles('#wbFile', wbs.map(n => path.join(wbDir, n)));
+    await page.waitForFunction(() => document.querySelectorAll('#wbPanel .wb-chip.ok').length >= 3, null, { timeout: 15000 }).catch(() => null);
+    const chips = await page.$$eval('#wbPanel .wb-chip', xs => xs.map(x => (x.classList.contains('ok') ? '✓ ' : '· ') + x.firstChild.textContent.trim()));
+    const keys = await page.$$eval('#wbPanel [data-wb]', bs => bs.map(b => b.dataset.wb));
+    console.log('NBG workbooks'.padEnd(30), chips.join(' | '), '·', keys.length, 'copies');
+    if (!keys.length) fail('the workbook panel should list a copy per beam sheet set, column case and frame line');
+    const xr = (file, cells) => JSON.parse(require('child_process').execFileSync('python3', ['-I', '-c', `import sys, json, xlrd
+b = xlrd.open_workbook(sys.argv[1], on_demand=True)
+def rc(a):
+    col = ''.join(c for c in a if c.isalpha()); n = 0
+    for ch in col: n = n * 26 + ord(ch) - 64
+    return int(''.join(c for c in a if c.isdigit())) - 1, n - 1
+out = {}
+for q in json.loads(sys.argv[2]):
+    sh = b.sheet_by_name(q[0]); r, c = rc(q[1]); out[q[0] + '!' + q[1]] = sh.cell_value(r, c)
+print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
+    for (const key of [keys.find(k => /^beam/.test(k)), keys.find(k => /^column/.test(k)), keys.find(k => /^seismic/.test(k))].filter(Boolean)) {
+      const [dl] = await Promise.all([page.waitForEvent('download'), page.click(`#wbPanel [data-wb="${key}"]`)]);
+      const fp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(fp);
+      const kind = key.split('|')[0];
+      const got = xr(fp, kind === 'beam' ? [['MB1', 'D5'], ['MB1', 'D7'], ['MB1', 'M22'], ['INPUT', 'D14']] : kind === 'column' ? [['Column', 'C16'], ['Column', 'C27']] : [['Input Data', 'B26'], ['Input Data', 'B89'], ['Lateral Calcs. (1)', 'B18'], ['Miscellaneous', 'B36']]);
+      console.log(('workbook ' + kind).padEnd(30), dl.suggestedFilename(), JSON.stringify(got));
+      if (kind === 'beam' && !(got['MB1!D5'] === 'MB1' && got['MB1!D7'] > 0 && got['MB1!M22'] >= 10)) fail('the beam workbook copy should carry MB1');
+      if (kind === 'column' && !/^W\d+X\d+/.test(got['Column!C16'])) fail('the column workbook copy should carry the section');
+      if (kind === 'seismic' && !(got['Input Data!B26'] > 0 && got['Input Data!B89'] > 0 && got['Lateral Calcs. (1)!B18'] > 0)) fail('the seismic workbook copy should carry Ss, the mezzanine and the bay');
+    }
+  } else console.log('NBG workbooks'.padEnd(30), 'not present — download test skipped');
+
   // beam options on the results page
   await page.click('#nav button[data-view="results"]');
   const opts = await page.$$eval('#options .option', os => os.length);
@@ -253,8 +286,8 @@ if (pdfArgs.length > 1) {
   // the long tables are folded: open the depth table, and the explanation, before using them
   await page.$$eval('#v-beam details.fold, #v-beam details.explain', ds => ds.forEach(d => { d.open = true; }));
   const how = await page.$eval('#beamHow', e => e.innerText);
-  console.log('Beam explanation'.padEnd(30), how.split('\n').length, 'lines ·', /How deep it can be/.test(how) && /The plates/.test(how) && /three options/.test(how) ? 'steps present' : 'MISSING');
-  if (!/How deep it can be/.test(how) || !/The three options/.test(how)) fail('the beam explanation should list the steps');
+  console.log('Beam explanation'.padEnd(30), how.split('\n').length, 'lines ·', /How deep it can be/.test(how) && /The plates/.test(how) && /The options/.test(how) && /step by step/i.test(how) ? 'steps present' : 'MISSING');
+  if (!/How deep it can be/.test(how) || !/The options/.test(how) || !/Best fit, step by step/i.test(how)) fail('the beam explanation should list the steps and the best-fit method');
   const depths = await page.$$eval('#altTable tr.pick', trs => trs.map(t => t.dataset.d));
   await page.click(`#altTable tr.pick[data-d="${depths[Math.floor(depths.length / 2)]}"]`); await log(`picked ${depths[Math.floor(depths.length / 2)]}" row`);
   await page.click('#nav button[data-view="results"]');

@@ -65,7 +65,7 @@
     return null;
   }
   const inStock = (tbl, key, div) => { const s = tbl[key]; const i = DIVISIONS.indexOf(div); return !!s && s[i < 0 ? 2 : i] === 'Y'; };
-  const flangeName = (b, t) => 'F' + b + ({ 0.25: '.25', 0.3125: '.31', 0.375: '.38', 0.5: '.50', 0.625: '.63', 0.75: '.75', 1: '1.0' })[t];
+  const flangeName = (b, t) => 'F' + b + ({ 0.1875: '.19', 0.25: '.25', 0.3125: '.31', 0.375: '.38', 0.5: '.50', 0.625: '.63', 0.75: '.75', 1: '×1' })[t];
   const tierOf = (b, t) => (ECON[b] && ECON[b][t] != null ? ECON[b][t] : 2);
 
   // Dead load from the deck guide (slab + deck weight; excludes joists and beams).
@@ -155,39 +155,129 @@
     };
   }
 
-  /* The three options, from one exhaustive search of stocked plates within the production rules:
-       Lightest         the least weight that passes (combined + shear SR ≤ target, L/360, L/240, joist bearing).
-       Best fit         the way a quote engineer works it by hand: as deep as the clearance allows; the lightest plates
-                        that work there; then take depth out an inch at a time with the same plates until the next inch
-                        would fail — the section that fits the load, with the CSR up near the limit.
-       Most economical  the lightest with economical flange plate (the green sizes of NBG "Economical Flange Sections");
-                        somewhat economical (yellow) only when no green size works.
-     Each option carries why, and the best fit its steps (for the explanation on the Beam calc page). */
+  /* The options, from one exhaustive search of stocked plates within the NBG production rules (every one passes the MB
+     sheet: combined and shear ≤ target, L/360 live, L/240 total, joist bearing):
+       Lightest         the least weight.
+       Best fit         the quote engineer's way, step by step: as deep as the clearance allows; the thinnest web that
+                        works in shear there; flanges from F8.31 up the economical sizes (8", then 10", then 12") until the
+                        section passes; then take depth out an inch at a time with the same plates while it still passes
+                        (the stress ratio comes up toward the limit); then a lighter plate at that depth if one works.
+       Most economical  NBG "Economical Flange Sections": economical (green) flange plate only, 5"–8" wide first, 10"
+                        when no 8" plate works, 12" last (typically more expensive); the lightest of those. Somewhat
+                        economical (yellow) only when no green plate works.
+     Options that land on the same section are one design (the UI shows them as one, with both names). When fewer than
+     three different designs come out, the next different ones are added as alternates (shallower; another flange
+     width), so the engineer sees the real choices. */
+  const LADDER = [[8, 0.3125], [8, 0.375], [8, 0.5], [10, 0.375], [10, 0.5], [10, 0.625], [10, 0.75], [12, 0.5], [12, 0.625], [12, 0.75], [12, 1]];
+  const widthClass = b => (b <= 8 ? 0 : b <= 10 ? 1 : 2);
   function beamOptions(search, ctx = {}) {
     if (!search || !search.best) return [];
-    const p = search.params, o = search.options, target = o.target;
-    const same = (a, b) => a && b && a.sec.d === b.sec.d && a.sec.tw === b.sec.tw && a.sec.bof === b.sec.bof && a.sec.tof === b.sec.tof && a.sec.bif === b.sec.bif && a.sec.tif === b.sec.tif;
+    const p = search.params, o = search.options, target = o.target, div = o.division;
+    const same = (a, b) => a && b && ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => a[k] === b[k]);
     const light = search.best;
-    const passes = r => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
-    const opts = [{ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked web / flange combination that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (capped by clearance C)' : ''}.`, pick: light }];
-    // best fit: less depth for nearly the same steel — work down from the deepest depth allowed (clearance C, else the
-    // range), the lightest section at each depth; the shallowest whose weight is within `near` of the lightest
-    const near = ctx.near ?? 0.08, rows = search.byDepth.filter(r => !r.none).sort((a, b) => b.d - a.d);
-    if (rows.length) {
-      const capTxt = search.dTop < o.dMax ? `the clearance under the beams (C) allows ${search.dTop}"` : `no clearance (C) limit — the ${search.dTop}" top of the range`;
-      const steps = rows.map(r => ({ d: r.d, desc: r.desc, CSR: r.CSR, SRv: r.SRv, rLL: r.rLL, rTL: r.rTL, wt: r.wt, pct: (r.wt - light.wt) / light.wt, pass: r.wt <= light.wt * (1 + near) + 1e-9 }));
-      const okRows = rows.filter(r => r.wt <= light.wt * (1 + near) + 1e-9);
-      const fit = okRows.sort((a, b) => a.d - b.d || a.wt - b.wt)[0];
-      steps.forEach(st => { st.note = st.d === fit.d ? `shallowest within ${Math.round(near * 100)} % — the best fit` : st.d === light.d ? 'the lightest' : st.pass ? `within ${Math.round(near * 100)} % of the lightest` : `+${(st.pct * 100).toFixed(1)} % — more steel than it saves depth`; });
-      opts.push({ key: 'fit', label: 'Best fit', why: `Less depth for nearly the same steel: from ${capTxt}, the lightest section at each depth on the way down; the shallowest within ${Math.round(near * 100)} % of the lightest weight is ${fit.d}" (${fit.desc}, combined ${fit.CSR.toFixed(2)} / shear ${fit.SRv.toFixed(2)})${fit.d === light.d ? ' — the lightest already is' : `, ${light.d - fit.d}" shallower than the lightest`}.`, pick: fit, steps, near });
-    }
-    // most economical: green flange plate, else yellow
     const all = (search.all || []).filter(e => e.pass);
-    for (const t of [0, 1]) {
-      const e = all.filter(x => x.tier === t).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
-      if (e) { const pk = summarize(e); opts.push({ key: 'econ', label: 'Most economical', why: t === 0 ? `Lightest with economical (green) flange plate — ${pk.flange}${same(pk, light) ? '; the lightest is already economical' : ''}.` : `No economical (green) flange size works — lightest with somewhat-economical (yellow) plate, ${pk.flange}.`, pick: pk, tier: TIER[t] }); break; }
+    const passes = r => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
+    const webs = candidates(div, o).webs;
+    const run = sec => {
+      const h = sec.d - sec.tof - sec.tif;
+      if (h <= 0 || h / sec.tw >= 260) return { ok: false, why: `web h/tw ${(h / sec.tw).toFixed(0)} ≥ 260` };
+      const pr = o.production !== false ? prodRule(sec, div, p.L, 0) : null;
+      if (pr) return { ok: false, why: pr.text, rule: pr.rule };
+      const r = MZ.beamCheck({ ...p, sec }, null);
+      const pw = o.production !== false ? prodRule(sec, div, p.L, r.res.Wt) : null;
+      if (pw) return { ok: false, why: pw.text, rule: pw.rule, r };
+      const ok = passes(r);
+      const gov = !ok ? (r.res.CSR > target ? `combined ${r.res.CSR.toFixed(3)} > ${target}` : r.res.SRvx > target ? `shear ${r.res.SRvx.toFixed(3)} > ${target}` : r.defl.rLL < 360 ? `live deflection L/${Math.round(r.defl.rLL)} < L/360` : r.defl.rTL < 240 ? `total deflection L/${Math.round(r.defl.rTL)} < L/240` : 'joist bearing') : null;
+      return { ok, why: gov, r };
+    };
+    const asPick = (sec, r) => summarize({ sec, r, tier: Math.max(tierOf(sec.bof, sec.tof), tierOf(sec.bif, sec.tif)) });
+    const sym = (d, tw, [b, t]) => ({ type: 'BU', d, tw, bof: b, tof: t, bif: b, tif: t });
+    const flName = ([b, t]) => flangeName(b, t), webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
+    const opts = [];
+    opts.push({ key: 'lightest', label: 'Lightest', why: `The least weight of every stocked web and flange that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (the clearance C caps the depth)' : ''}.`, pick: light });
+
+    // ---- best fit, step by step ----
+    const ladder = LADDER.filter(([b, t]) => inStock(FLANGE_STOCK, b + 'x' + t, div) && tierOf(b, t) === 0);
+    const steps = [];
+    let fit = null;
+    {
+      const d0 = search.dTop;
+      steps.push({ step: 'depth', text: search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
+      // the web: the thinnest that works in shear at that depth (with the starting flange)
+      const f0 = ladder[0];
+      let tw = null; const webTries = [];
+      for (const w of webs) {
+        const t = run(sym(d0, w, f0));
+        const shearOk = t.r && t.r.res.SRvx <= target;
+        webTries.push({ web: webName(w), shear: t.r ? t.r.res.SRvx : null, ok: !!shearOk, why: t.r ? null : t.why });
+        if (shearOk) { tw = w; break; }
+      }
+      steps.push({ step: 'web', text: tw != null ? `Web: the thinnest that works in shear at ${d0}" is ${webName(tw)}.` : `No stocked web works in shear at ${d0}".`, tries: webTries });
+      if (tw != null && f0) {
+        // flanges up the economical sizes; a plate that needs a thicker web (production: web ≥ 0.30 tf, tw ≤ tf) takes it
+        let sec = null; const flTries = [];
+        for (const fl of ladder) {
+          let s0 = null, t = null;
+          for (const w of webs.filter(x => x >= tw)) { const tr = run(sym(d0, w, fl)); if (tr.rule && /tw/.test(tr.rule)) continue; s0 = sym(d0, w, fl); t = tr; break; }
+          flTries.push({ sec: s0 ? `BU${d0} ${flName(fl)} ${webName(s0.tw)}` : flName(fl), ok: !!(t && t.ok), why: t ? t.why : 'no web fits the production rules', CSR: t && t.r ? t.r.res.CSR : null });
+          if (t && t.ok) { sec = s0; break; }
+        }
+        steps.push({ step: 'flange', text: sec ? `Flanges from F8.31 up the economical sizes: ${flName([sec.bof, sec.tof])} is the first that passes at ${d0}"${sec.tw > tw ? `, on ${webName(sec.tw)} (production: a web at least 0.30 × the flange thickness)` : ''}.` : `No economical flange passes at ${d0}" with this web.`, tries: flTries });
+        if (sec) {
+          // take depth out with the same plates while it passes
+          const dTries = []; let d = sec.d;
+          for (let dd = sec.d - o.dStep; dd >= o.dMin - 1e-9; dd -= o.dStep) {
+            const tr = run({ ...sec, d: dd });
+            dTries.push({ d: dd, ok: tr.ok, why: tr.why, CSR: tr.r ? tr.r.res.CSR : null, SRv: tr.r ? tr.r.res.SRvx : null, rLL: tr.r ? tr.r.defl.rLL : null });
+            if (!tr.ok) break;
+            d = dd;
+          }
+          const kept = { ...sec, d };
+          const rk = run(kept);
+          steps.push({ step: 'reduce', text: d < sec.d ? `Take depth out with the same plates: it still passes at ${d}" (combined ${rk.r.res.CSR.toFixed(3)}, shear ${rk.r.res.SRvx.toFixed(3)}, L/${Math.round(rk.r.defl.rLL)})${dTries.some(x => !x.ok) ? `; at ${d - o.dStep}" it does not (${dTries.find(x => !x.ok).why})` : ''}.` : `Taking depth out with the same plates fails at once (${(dTries[0] || {}).why || 'the bottom of the range'}) — ${d}" it is.`, tries: dTries });
+          // a lighter plate at that depth (same or narrower flange, economical)
+          const lighter = all.filter(e => e.d === d && e.tier === 0 && e.sec.bof <= kept.bof && e.wt < rk.r.res.Wt - 1e-9).sort((a, b) => a.wt - b.wt)[0];
+          if (lighter) {
+            steps.push({ step: 'cut', text: `At ${d}" a lighter plate still works: ${lighter.r.desc} (${flangeName(lighter.sec.bof, lighter.sec.tof)}, ${webName(lighter.sec.tw)}), ${lighter.wt.toFixed(1)} plf against ${rk.r.res.Wt.toFixed(1)}.` });
+            fit = summarize(lighter);
+          } else {
+            steps.push({ step: 'cut', text: `No lighter economical plate passes at ${d}" — ${rk.r.desc} it is.` });
+            fit = asPick(kept, rk.r);
+          }
+        }
+      }
     }
-    return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick, x.pick)).map(y => y.key) }));
+    if (fit) {
+      // the step-by-step method can stop where the exhaustive search has a lighter and shallower section: say so
+      const dom = light.wt < fit.wt - 1e-9 && light.d <= fit.d && !same(light.sec, fit.sec);
+      opts.push({ key: 'fit', label: 'Best fit', why: `Worked the quote engineer's way: deepest allowed, web for shear, F8.31 and up the economical flanges, then less depth until the next inch fails${fit.d < search.dTop ? ` (${search.dTop - fit.d}" less than the deepest)` : ''}; combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}, live L/${Math.round(fit.rLL)}.${dom ? ` The lightest (${light.desc}) is lighter and no deeper — the step-by-step method stops at ${fit.d}" because one inch less needs a heavier 8" plate; the full search also tries 6" plates at every depth.` : ''}`, pick: fit, steps, dominated: dom });
+    }
+
+    // ---- most economical: green plate, 5"–8" first, then 10", then 12" (yellow only when no green works) ----
+    let econ = null, econWhy = '';
+    for (const t of [0, 1]) {
+      for (const wc of [0, 1, 2]) {
+        const e = all.filter(x => x.tier === t && widthClass(Math.max(x.sec.bof, x.sec.bif)) === wc).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
+        if (e) { econ = summarize(e); econWhy = `${t === 0 ? 'Economical (green) flange plate' : 'No green plate works — somewhat economical (yellow)'}, ${['5"–8" wide, as the guide starts', '10" — no 8" plate works', '12" — no 8" or 10" plate works (typically more expensive)'][wc]}: the lightest of those is ${econ.flange} on ${econ.web}.`; break; }
+      }
+      if (econ) break;
+    }
+    if (econ) opts.push({ key: 'econ', label: 'Most economical', why: econWhy, pick: econ, tier: econ.tier });
+
+    // ---- alternates, when fewer than three different designs came out ----
+    const distinct = () => opts.reduce((a, x) => (a.some(y => same(y.pick.sec, x.pick.sec)) ? a : a.concat(x)), []);
+    if (distinct().length < 3) {
+      const shown = () => opts.map(x => x.pick.sec);
+      const minD = Math.min(...shown().map(q => q.d));
+      const sh = all.filter(e => e.tier === 0 && e.d < minD && e.wt <= light.wt * 1.15).sort((a, b) => a.d - b.d || a.wt - b.wt)[0];
+      if (sh) opts.push({ key: 'shallow', label: 'Shallower', why: `${minD - sh.d}" less depth than the others for ${(((sh.wt - light.wt) / light.wt) * 100).toFixed(1)} % more steel (the shallowest green-plate section within 15 % of the lightest) — more clearance under the beam.`, pick: summarize(sh) });
+    }
+    if (distinct().length < 3) {
+      const widths = new Set(opts.map(x => x.pick.sec.bof));
+      const ow = all.filter(e => e.tier === 0 && !widths.has(e.sec.bof)).sort((a, b) => a.wt - b.wt)[0];
+      if (ow) opts.push({ key: 'width', label: `${ow.sec.bof}" flanges`, why: `The lightest with ${ow.sec.bof}" economical flanges (the others use ${[...widths].join('" / ')}") — ${flangeName(ow.sec.bof, ow.sec.tof)} on ${'W' + String(Math.round(ow.sec.tw * 1000)).padStart(3, '0')}.`, pick: summarize(ow) });
+    }
+    return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
 
   // Beam reactions for a given section (MB!H6 dead, MB!H10 live)
