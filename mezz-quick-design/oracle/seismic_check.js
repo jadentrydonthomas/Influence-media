@@ -31,15 +31,16 @@ const CASES = [
   ['unequal gable, ridge 40 ft from the BSW', v({ width: 100, dtr: 40, leh: 18, heh: 20, lat: { bay: 25, area: [600, 0] } })],
   ['SDC D, mezzanine a story, portal frame + X-brace', v({ Ss: 1.0, S1: 0.4, site: 'D', lat: { story: true }, long: { types: ['Portal Frame', 'X-Bracing'] } })],
   ['tall, T > 0.5 s (k > 1)', v({ leh: 60, heh: 60, Ss: 0.5, S1: 0.2, site: 'C' })],
+  ['rigid mezzanine diaphragm (accidental torsion 1.10 on the bracing)', v({ rigid: true })],
 ];
 
 function engine(c) {
   const d = S.design({ ed: ED[c.code], Ss: c.Ss, S1: c.S1, siteClass: c.site, risk: RC[c.occupancy] });
   const g = { width: c.width, length: c.length, rooftype: c.rooftype, dtr: c.dtr, slope: c.slope, leh: c.leh, heh: c.heh };
-  const j = { d, g, roof: { SW: c.SW, RSW: c.RSW, RDL: c.RDL, CDL: c.CDL, Pf: c.Pf, P: 0 }, walls: c.walls, vertical: c.vertical, ignoreNDFS: !!c.ignoreNDFS, story: !!c.lat.story };
+  const j = { d, g, roof: { SW: c.SW, RSW: c.RSW, RDL: c.RDL, CDL: c.CDL, Pf: c.Pf, P: 0 }, walls: c.walls, vertical: c.vertical, ignoreNDFS: !!c.ignoreNDFS, story: !!c.lat.story, rigid: !!c.rigid };
   const mz = (area, conc) => c.mezz.map((m, i) => ({ id: `Mezz ${i + 1}`, ...m, area: area[i] || 0, conc: conc[i] || 0 })).filter(m => m.area || m.conc);
   const lat = S.lateral(j, { type: c.lat.type, bay: c.lat.bay, at: { 1: 'lew', 2: 'rew', 3: 'interior' }[c.lat.at], mezz: mz(c.lat.area, c.lat.conc) });
-  const long = S.longitudinal(j, { types: c.long.types, mezz: mz(c.long.area, c.long.conc) });
+  const long = S.longitudinal(j, { types: c.long.types, torsion: c.rigid ? 1.1 : 1, mezz: mz(c.long.area, c.long.conc) });
   return { d, g, lat, long };
 }
 

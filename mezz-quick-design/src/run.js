@@ -123,7 +123,7 @@
       job: { ...pcs.job, code: pcs.code },
       // Box 3: seismic site data and risk category (the seismic loads to the frames and the bracing)
       seismic: { ...(pcs.seismic || {}) },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -778,6 +778,9 @@
         `${tag(c)}${desc.join(' · ')}. Independent X-bracing runs from the mezzanine level to the floor between two adjacent supports and is designed for 1% of the FDL + FLL tributary to it — the whole floor is ${Math.round(area).toLocaleString('en-US')} ft² × (${n3(fdl)} + ${n3(fll)}) psf, 1% = ${H.toFixed(2)} k.`, c.index);
     });
 
+    // a tube / pipe column request on the PCS: not on the Column sheet
+    const req = live.map(c => c.inp.mezz.colRequest).find(Boolean);
+    if (req) add('15.1.1.4.2', 'Columns', 'Tube / pipe columns asked for', 'check', `The PCS reads: "${req}". The Column sheet sizes W and BU columns only — size the tube (HSS) or pipe column separately (AISC 360 Chapter E / H, the same loads and e = d/2 eccentricity) and note it on the quote.`);
     // ---- scope (15.1.1.2, 15.1.5)
     add('15.1.1.2', 'Scope', 'Not in the NBG scope — carry as quote qualifications', 'info', 'Floor slab design; composite floor design; stairs, handrails and miscellaneous steel; elevator shafts; floor vibration (AISC Design Guide 11); floor deck other than SDI deck (plywood, grating, checker plate); weld washers. The Engineer of Record verifies the joist spacing suits the end use (DM 15.1.1.3).');
     live.forEach(c => { if ((c.inp.mezz.provided || {})['Designed For Load Provisions Only']) add('15.1.1', 'Scope', 'Designed for load provisions only', 'stop', `${tag(c)}NBG supplies no mezzanine beams or columns — the connection hole patterns must be known at order entry, otherwise field drilled or field welded.`, c.index, { mirror: false }); });
@@ -994,8 +997,12 @@
       const bOut = { bkey: bk, name, g, geoNote, roof, walls, mezz: mz, story, frames: [], long: null, braceLines: [] };
       out.buildings.push(bOut);
       if (need.length || !d || !d.ok) return;
+      // the mezzanine floor as a diaphragm: flexible (the workbook's default; loads by tributary area) or rigid (ASCE 7
+      // 12.3.1 — a concrete-filled deck with span / depth ≤ 3 may be): accidental torsion 1.10 on the bracing's
+      // mezzanine loads, and the least R of the frames
+      const rigid = cfg.diaphragm === 'rigid';
       const j = { d, g, roof: { SW: roof.SW.value, RSW: roof.RSW.value, RDL: roof.RDL.value, CDL: roof.CDL.value, Pf: roof.Pf.value, P: 0 },
-        walls: { fsw: walls.fsw.value, bsw: walls.bsw.value, lew: walls.lew.value, rew: walls.rew.value }, vertical: cfg.vertical !== false, ignoreNDFS: !!cfg.ignoreNDFS, story };
+        walls: { fsw: walls.fsw.value, bsw: walls.bsw.value, lew: walls.lew.value, rew: walls.rew.value }, vertical: cfg.vertical !== false, ignoreNDFS: !!cfg.ignoreNDFS, story, rigid };
       // least R of the building's frames (Risk Category III / IV)
       const grid = cs[0].grid, xs = grid.xs, nF = xs.length;
       const typeAt = i => SEIS.frameType(((b.frames || []).find(fr => i + 1 >= fr.from && i + 1 <= fr.to) || {}).type);
@@ -1031,7 +1038,7 @@
       });
       // longitudinal: the bracing
       const types = cfg.types || SEIS_DEFAULTS.types;
-      const long = SEIS.longitudinal(j, { types, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0, elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, FLP: m.FLP, framing: m.framing })) });
+      const long = SEIS.longitudinal(j, { types, torsion: rigid ? 1.1 : 1, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0, elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, FLP: m.FLP, framing: m.framing })) });
       bOut.long = long;
       // each mezzanine's longitudinal force to the lines along the length that hold it. The floor is a flexible
       // diaphragm spanning across the building between its edges; where mezzanines meet at one level it spans across

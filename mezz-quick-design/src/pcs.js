@@ -454,7 +454,9 @@
     // Ecospan (Vulcraft composite joist floor, DM 15.1.5): named anywhere in the text or the blue notes
     const words = allLines(pages).map(l => l.text).concat(pages.flatMap(p => (p.annots || []).map(a => a.text || ''))).join('\n');
     const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages) };
+    // a request for tube / HSS / pipe columns (the Column sheet sizes W / BU only): the word next to "column"
+    const colReq = allLines(pages).map(l => l.text).find(t => /\b(?:tube|tubular|hss|pipe)\b[^.\n]{0,30}\bcol(?:umn)?s?\b|\bcol(?:umn)?s?\b[^.\n]{0,30}\b(?:tube|tubular|hss|pipe)\b/i.test(t));
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), columnRequest: colReq ? clean(colReq) : null };
   }
 
   const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads };

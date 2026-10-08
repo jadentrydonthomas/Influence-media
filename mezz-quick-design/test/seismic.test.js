@@ -1,6 +1,6 @@
 // Seismic (src/seismic.js): the ASCE 7 equivalent lateral force the way NBG's IBC Seismic workbook does it. The expected
-// values are what the workbook gives for the same inputs (oracle/seismic_check.js runs the full set against it: 1,293 of
-// 1,293 values tie across 14 cases). Then the job-level step: each frame's mezzanine load to the frame columns it
+// values are what the workbook gives for the same inputs (oracle/seismic_check.js runs the full set against it: 1,386 of
+// 1,386 values tie across 15 cases). Then the job-level step: each frame's mezzanine load to the frame columns it
 // frames into, the roof seismic override, the bracing lines.
 const assert = require('assert');
 const fs = require('fs');

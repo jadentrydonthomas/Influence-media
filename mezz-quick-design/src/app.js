@@ -1213,6 +1213,7 @@
         ${chk('ndfs', cfg.ignoreNDFS !== true, '"Steel systems not detailed for seismic" in SDC A–C (R = 3, the workbook\'s default)')}
         ${chk('vertical', cfg.vertical !== false, 'Vertical distribution, 12.8.3 (a mezzanine is a level)')}
         <label>Frame load to the columns${sel('split', cfg.split || 'dead', [['dead', 'by the dead load each takes'], ['equal', 'equally']])}</label>
+        <label>Mezzanine diaphragm${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'flexible — by tributary area (workbook default)'], ['rigid', 'rigid — accidental torsion 1.10 on the bracing, least R']])}<small class="sub-n">ASCE 7 12.3.1: a concrete-filled deck with span / depth ≤ 3 may be taken as rigid</small></label>
         <label>FSW bracing${sel('types.0', (cfg.types || RUN.SEIS_DEFAULTS.types)[0], [['X-Bracing', 'X-bracing'], ['Portal Frame', 'Portal frame']])}</label>
         <label>BSW bracing${sel('types.1', (cfg.types || RUN.SEIS_DEFAULTS.types)[1], [['X-Bracing', 'X-bracing'], ['Portal Frame', 'Portal frame']])}</label>
       </div></div>`;
@@ -1276,7 +1277,9 @@
       <li><b>Frames</b> — each frame line with mezzanine in its strip (half the bay each side; an end frame half the end bay) gets its own calculation: the strip of roof (on the slope, with 20 % of the snow over 30 psf), its sidewalls, the endwall at an end frame, and each mezzanine's slab area in the strip × (dead + collateral + joists + framing + 25 % live for storage + partition). Fx = Cs·W·(W<sub>x</sub>·h<sub>x</sub><sup>k</sup> / Σ W·h<sup>k</sup>) — with a mezzanine low in the building, more of the shear goes to the roof than NBG Frame's single-level roof seismic gives it.</li>
       <li><b>Into the frame</b> — the mezzanine row is the frame's concentrated seismic load at the mezzanine level: EQR +X and EQL −X on the frame columns that mezzanine's beams frame into, shared by the dead load each takes (DM 15.1.3: a side on a rigid frame is held by the frame). The roof and walls go in as NBG Frame's roof seismic dead load with Cs — the workbook's override, because NBG Frame leaves walls and mezzanines out of its own.</li>
       <li><b>Bracing</b> — the longitudinal calculation is the whole building; its mezzanine rows are the bracing's concentrated loads at the mezzanine level. Each line that holds the floor gets its share (lever rule); a sidewall line is the building bracing, tiered at the mezzanine level; any other line is independent X-bracing, designed for the larger of that force and 1 % of the (FDL + FLL) tributary to it (DM 15.1.3).</li>
-      <li><b>Checked against</b> NBG's IBC Seismic workbook (rev. 2021.01.20) case for case — 1,293 of 1,293 values tie across 14 cases (oracle/seismic_check.js).</li></ol>`;
+      <li><b>Load level.</b> The EQR / EQL rows and the roof weight are Q<sub>E</sub> — the strength-level seismic forces of 12.8, before the redundancy factor ρ and the ASD 0.7 — exactly as the workbook gives them; NBG Frame's load combinations apply ρ and 0.7 (and the vertical 0.2 SDS·D).</li>
+      <li><b>Diaphragm.</b> Flexible by default (the workbook's): each frame takes its tributary strip. A rigid mezzanine diaphragm (a concrete-filled deck may be, ASCE 7 12.3.1) adds the 5 % accidental torsion to the bracing loads (×1.10) and takes the least R of the frames; the frame loads stay tributary, as in the workbook.</li>
+      <li><b>Checked against</b> NBG's IBC Seismic workbook (rev. 2021.01.20) case for case — 1,386 of 1,386 values tie across 15 cases (oracle/seismic_check.js).</li></ol>`;
     // input handlers
     $$('#v-seismic [data-seis]').forEach(el => {
       el.onchange = () => {
@@ -1286,6 +1289,7 @@
         if (k === 'ndfs') c.ignoreNDFS = !v;
         else if (k === 'vertical') c.vertical = v;
         else if (k === 'split') c.split = v;
+        else if (k === 'diaphragm') c.diaphragm = v;
         else if (k.startsWith('types.')) { c.types = (c.types || RUN.SEIS_DEFAULTS.types).slice(); c.types[+k.slice(6)] = v; }
         else if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); const path = rest.slice(bk.length + 1); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], path, typeof v === 'boolean' ? v : v === '' ? '' : +v); }
         else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); const path = k.slice(2 + id.length + 1); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; c.mezz[id][path] = typeof v === 'boolean' ? v : v === '' ? undefined : +v; if (c.mezz[id][path] === undefined) delete c.mezz[id][path]; }

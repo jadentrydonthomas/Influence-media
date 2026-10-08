@@ -34,7 +34,7 @@ def main():
                      ('B33', 'SW'), ('B34', 'RDL'), ('B35', 'CDL'), ('B36', 'RSW'), ('B37', 'Pf')]:
             lo.setv(inp, a, c[k])
         lo.setv(inp, 'B18', 'Flexible')
-        lo.setv(inp, 'B19', 'None')
+        lo.setv(inp, 'B19', 'Rigid' if c.get('rigid') else 'None')
         lo.setv(inp, 'B21', 1 if c.get('vertical', True) else 0)
         lo.setv(inp, 'B22', 0)
         lo.setv(inp, 'F16', 1 if c.get('ignoreNDFS') else 0)
