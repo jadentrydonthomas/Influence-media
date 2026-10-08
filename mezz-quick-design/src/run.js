@@ -1048,7 +1048,7 @@
         });
         eqs.length = 0;
         (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
-        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose };
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
         if (fe) fe.seismic = { roofPsf: lat.altRoof, roofPsfSplit: lat.roofOverride, Cs: lat.cs.Cs, R: lat.R, V: lat.frameV, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
       });
@@ -1102,9 +1102,76 @@
           element: onWall ? `${onWall} sidewall bracing, tiered at the mezzanine level (DM 15.1.3)` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
           independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
+      bOut.workbook = seismicSteps({ inp, d, ed, code, j, g, roof, walls, mz, story, rigid, types, name, quote: (c0.inp.job || {}).quote }, bOut);
     });
     out.ok = !need.length && !!d && d.ok;
     return out;
+  }
+
+  /* ---------- the IBC Seismic workbook, typed in: one copy per frame line (its lateral sheet) with the building's
+     longitudinal sheet. Every entry is a workbook input cell, as the engineer types them; `read` is what the workbook
+     then shows, which the tool's own numbers must equal (oracle/fill_check.py). ---------- */
+  const OCC = { I: 'Low Hazard', II: 'Standard Buildings', III: 'Substantial Hazard', IV: 'Essential Facilities' };
+  const AT = { lew: 1, rew: 2, interior: 3 };
+  function seismicSteps(q, bOut) {
+    const n3 = v => (v == null || !isFinite(v) ? null : +(+v).toFixed(4));
+    const choice = q.code && q.code.ed === q.ed && q.code.choice ? q.code.choice : ({ '7-05': 2, '7-10': 5, '7-16': 7 })[q.ed] || null;
+    const notes = [];
+    if (!choice) notes.push(`ASCE ${q.ed}: the workbook (rev. 2021.01.20) has no such code — not typed.`);
+    if (q.mz.length > 2) notes.push(`${q.mz.length} mezzanines in ${q.name}: the workbook takes two — only ${q.mz[0].id} and ${q.mz[1].id} are typed.`);
+    const slot = q.mz.slice(0, 2);
+    const S = (sheet, cell, label, value, show) => ({ sheet, cell, label, value, show: show != null ? show : value == null ? '(blank)' : typeof value === 'boolean' ? (value ? 'checked' : 'unchecked') : String(value) });
+    const I = 'Input Data', LAT = 'Lateral Calcs. (1)', LNG = 'Longitudinal Calcs.';
+    const input = [
+      S(I, 'B5', 'Building', q.name),
+      S(I, 'B7', 'Nature of Occupancy', OCC[q.d.risk] || 'Standard Buildings'),
+      S(I, 'B8', 'Gable/Single Slope', q.g.rooftype),
+      S(I, 'B9', 'Building Width (ft)', n3(q.g.width)), S(I, 'B10', 'Building Length (ft)', n3(q.g.length)),
+      S(I, 'B11', 'Distance to Ridge, from BSW (ft)', n3(q.g.dtr)), S(I, 'B12', 'Roof Slope, s:12', n3(q.g.slope)),
+      S(I, 'B13', 'Low Eave Height, FSW (ft)', n3(q.g.leh)), S(I, 'B14', 'High Eave Height, BSW (ft)', n3(q.g.heh)),
+      S(I, 'B18', 'Roof Level Diaphragm', 'Flexible'),
+      S(I, 'B19', 'Mezzanine Level Diaphragm', q.rigid ? 'Rigid' : 'None'),
+      S(I, 'B21', 'Vertical Distribution Required', q.j.vertical !== false),
+      S(I, 'B22', 'Seismic Irregularities Exist', false),
+      S(I, 'F16', 'Ignore "Steel Systems Not Detailed for Seismic"', !!q.j.ignoreNDFS),
+      S(I, 'B26', 'Ss', n3(q.d.Ss)), S(I, 'B27', 'S1', n3(q.d.S1)), S(I, 'B29', 'Site Classification', q.d.siteClass),
+      S(I, 'B33', 'Lateral Frame Self weight, SW (psf)', n3(q.roof.SW.value)), S(I, 'B34', 'Roof Dead Load, RDL (psf)', n3(q.roof.RDL.value)),
+      S(I, 'B35', 'Roof Collateral Load, CDL (psf)', n3(q.roof.CDL.value)), S(I, 'B36', 'Roof Self Weight — bracing, beams etc. (psf)', n3(q.roof.RSW.value)),
+      S(I, 'B37', 'Roof Snow, Pf (psf)', n3(q.roof.Pf.value)),
+      S(I, 'B47', 'Left EW Wall Weight (psf)', n3(q.walls.lew.value)), S(I, 'F47', 'Right EW Wall Weight (psf)', n3(q.walls.rew.value)),
+      S(I, 'B59', 'Front SW Wall Weight (psf)', n3(q.walls.fsw.value)), S(I, 'F59', 'Back SW Wall Weight (psf)', n3(q.walls.bsw.value)),
+    ];
+    [['B', 'Misc. B36'], ['F', 'Misc. B38']].forEach(([col], k) => {
+      const m = slot[k], tag = `Mezzanine #${k + 1}${m ? ' (' + m.id + ')' : ''}`;
+      input.push(S(I, col + '89', `${tag} Elevation (ft)`, m ? n3(m.elev) : null),
+        S(I, col + '90', `${tag} Floor Dead (psf)${m && m.framing ? ` — ${n3(m.FDL)} + ${n3(m.framing)} framing` : ''}`, m ? n3(m.FDL + m.framing) : null),
+        S(I, col + '91', `${tag} Floor Collateral (psf)`, m ? n3(m.FLC) : null), S(I, col + '92', `${tag} Estimated Joist weight (psf)`, m ? n3(m.FLJ) : null),
+        S(I, col + '94', `${tag} Floor Live (psf)`, m ? n3(m.FLL) : null), S(I, col + '95', `${tag} Partition (psf)`, m ? n3(m.FLP) : null),
+        S('Miscellaneous', k ? 'B38' : 'B36', `${tag} designed for storage (check box)`, !!(m && m.storage)));
+    });
+    if (choice) input.push(S('Seismic Design Calcs.', 'D11', 'Building code (drop-down)', choice, `${choice} — ASCE ${q.ed}`));
+    const long = [
+      S(LNG, 'B8', 'Low SW (FSW) Force Resisting System', q.types[0]), S(LNG, 'B9', 'High SW (BSW) Force Resisting System', q.types[1]),
+      ...slot.flatMap((m, k) => [S(LNG, k ? 'B30' : 'B27', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(m.area) : 0), S(LNG, k ? 'B31' : 'B28', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
+    ];
+    const G = bOut.long, gm = id => (G && G.mezzLoads.find(x => x.id === id)) || null;
+    const longRead = G ? [{ sheet: LNG, cell: 'C58', label: 'Cs', expect: n3(G.cs.Cs) }, { sheet: LNG, cell: 'H79', label: 'Bracing base shear (kips)', expect: n3(G.bracingV) }, { sheet: LNG, cell: 'H66', label: 'Roof seismic dead load for the bracing (psf)', expect: n3(G.roofPsf) }]
+      .concat(slot.map((m, k) => m && gm(m.id) ? { sheet: LNG, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load (kips)`, expect: n3(gm(m.id).F) } : null).filter(Boolean)) : [];
+    const frames = bOut.frames.map(fr => {
+      const L = fr.lat, ml = id => L.mezzLoads.find(x => x.id === id);
+      const steps = [
+        S(LAT, 'B9', 'Seismic Force Resisting System', SEIS.frameType(fr.type) || 'Rigid Frame'),
+        S(LAT, 'B18', 'Bay Width — this frame\'s strip (ft)', n3(fr.bay)),
+        S(LAT, 'Q1', 'Frame Located at Bay (option buttons)', AT[fr.at], ({ lew: '1 — Left Endwall', rew: '2 — Right Endwall', interior: '3 — Interior Frame' })[fr.at]),
+        S(LAT, 'B30', 'Is Mez #1 or #2 Considered a Story?', q.story ? 'YES' : 'NO'),
+        ...slot.flatMap((m, k) => [S(LAT, k ? 'B34' : 'B31', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(fr.areas[m.id] || 0) : 0), S(LAT, k ? 'B35' : 'B32', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
+      ];
+      const read = [{ sheet: LAT, cell: 'C62', label: 'Cs', expect: n3(L.cs.Cs) }, { sheet: LAT, cell: 'H79', label: 'Frame base shear (kips)', expect: n3(L.frameV) },
+        { sheet: LAT, cell: 'G64', label: 'Alt. roof seismic weight (psf)', expect: n3(L.altRoof) }]
+        .concat(slot.map((m, k) => m && ml(m.id) ? { sheet: LAT, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load at this frame (kips)`, expect: n3(ml(m.id).F) } : null).filter(Boolean));
+      return { label: fr.label, at: fr.at, steps, read };
+    });
+    return { file: 'IBC_Seismic.xls', building: q.name, input, long, longRead, frames, notes };
   }
 
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
