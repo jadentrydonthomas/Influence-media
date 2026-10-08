@@ -8,9 +8,11 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
 
 1. **Reads the PCS.**
    - Box 22: dead, live and collateral loads; slab; footprint and start location; rows A–F; joist spacing; seat depth.
-   - The blue handwritten values (PDF FreeText annotations), used wherever a row says TBD.
+     - Box 22 is found wherever it is. A base scope can say "22) MEZZANINES – NONE REQUIRED" while an alternate's Box 22 pages are appended after the drawings ("ALTERNATE #1 MEZZANINE SPECS"). Every block that lists a mezzanine is read.
+     - Deck "Other" is read from its written-out type, e.g. "22ga B deck 1.5"" → 1.5" ribs.
+   - The blue handwritten values (PDF FreeText annotations), used wherever a row says TBD. A blue number over "Dead Load: Per Seller" (e.g. 62.5psf) is taken as the dead load, and the deck-guide value is shown beside it.
    - The material, floor-use and "provided by seller" checkboxes.
-   - Box 2: bays, endwall column spacing and soldier columns.
+   - Box 2: bays, endwall column spacing and soldier columns, per building. On a single slope or a lean-to the "Distance to Ridge" is N/A, so there is no ridge line.
    - Box 3: building code, which picks the workbook edition.
    - Box 5: frame interior modules.
 2. **Lays out the framing.**
@@ -41,6 +43,14 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - *Mezz. Beams*: SPAN, TRIB, DLᴛ (= DL + COL), LLᴛ, SECTION, END WT (40), QTY. One holistic set for the job: a row per mark and member length (the notes say which beams, on which lines, of which mezzanine).
    - *Mezz. Columns*: HEIGHT, TRIB. AREA (worst column), SECTION, END WT (46), QTY. A row per section and height over the job.
 6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit, scroll to zoom, click a member for its calc.
+
+### Buildings attached to each other
+
+A mezzanine can sit in a building attached to another one, such as a lean-to. Box 2 *Building Attachment* says how: "the BSW of Lean To attaches to the BSW of Sanctuary at 0'-0" from the left steel line".
+- **Placement.** The attached building is placed in the other building's coordinates. Back to back (BSW to BSW, FSW to FSW) it is turned 180°; BSW to FSW it runs the same way.
+- **Plan reading.** It takes the plan's letters, symbols and joist markup through that placement.
+- **Shared wall line.** If both buildings have a beam on the wall they share, it is one member. The host building keeps it, because its columns carry it, and adds the attached floor's edge trib. On W1G-26097, line B carries 9'-8 ¾" + 14'-1" = 23'-9 ¾", and its loads go to the Sanctuary's BSW frame columns.
+- **Frame loads.** They are listed per building.
 
 ### Beam marks: interior and exterior
 
@@ -73,6 +83,12 @@ The plan has no text layer, so its geometry is read:
   - a ✱ or an interior I where the layout had a mezzanine column → taken as a building column (its load goes to the frame).
   - An I on a sidewall or endwall line never changes a support (wall openings are drawn with I-like marks).
 - **Grid letters as drawn.** Bubbles on both endwalls, column lines and the ridge are lettered from the BSW, skipping I and O, so "2/C" in the notes is the drawing's 2/C.
+- **The plan page is found by what it is,** not where it is: the page with no text and thousands of vector paths, counting from the back.
+- **Frame-line bubbles may carry extras.** An attached building's end line can be drawn 1'-4" off the endwall, overlapping. Every frame line just has to find its bubble. When that pushes the drawing's numbering (the Sanctuary of W1G-26097 is drawn as lines 2–10), the Design page says so and keeps the PCS frame lines 1–9 (Box 5, NBG Frame files).
+- **Markup over the plan.** A quote engineer's annotations are read too, and they win over the drawn symbols:
+  - an **"X"** text box is a mezzanine column;
+  - a line labelled **JOISTS**, and every line of its colour and direction, gives the joist direction wherever it crosses a mezzanine;
+  - lines of another colour (the red beam lines) are kept as beams.
 
 Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line). B = 9'-0", seat 5", joists @ 4'-0", no C requirement:
 

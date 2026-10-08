@@ -2206,7 +2206,9 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       if (/ROOF SECONDARY|SIDEWALL AND ENDWALL/i.test(ls[i].text)) break;
       const dims = (ls[i].text.match(reDimAll) || []).map(ftin).filter(v => v != null);
       if (dims.length >= 3 && (!name || ls[i].text.toUpperCase().includes(name.toUpperCase()) || !out.width)) {
-        [out.width, out.length, out.ridge, out.eave] = dims;
+        // width, length, distance to ridge (N/A on a single slope or a lean-to), eave heights: N/A keeps its place
+        const tok = (ls[i].text.match(new RegExp(DIM + '|N\\/A', 'g')) || []).map(t => (t === 'N/A' ? null : ftin(t)));
+        [out.width, out.length, out.ridge, out.eave] = tok.length >= 3 ? tok : dims;
         out.name = clean(ls[i].items[0].str);
         if (!name || out.name.toUpperCase() === name.toUpperCase()) break;
       }
@@ -2248,14 +2250,17 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     if (pi < 0) return [];
     const ls = lines(pages[pi]);
     const s = findLine(ls, /FRAME INFORMATION/i);
-    const e = findLine(ls, /Base Plate Elevations|6\) ROOF PANEL/i, s + 1);
+    // every building's block, down to the next box (each block ends with its own "Base Plate Elevations" note)
+    const e = findLine(ls, /^\s*6\)\s|6\) ROOF PANEL/i, s + 1);
     let region = ls.slice(s + 1, e < 0 ? ls.length : e);
     // one block per building ("BUILDING NAME: Main", "BUILDING NAME: Lean-To Canopy"): keep the mezzanine's
     const heads = region.map((l, i) => { const m = l.text.match(/BUILDING NAME:\s*(.+?)(?:\s{2,}|$)/i); return m ? { i, name: clean(m[1]) } : null; }).filter(Boolean);
-    if (name && heads.length) {
-      const k = heads.findIndex(h => h.name.toUpperCase() === name.toUpperCase());
-      const h = heads[k >= 0 ? k : 0];
-      region = region.slice(h.i, heads[(k >= 0 ? k : 0) + 1] ? heads[(k >= 0 ? k : 0) + 1].i : region.length);
+    const key = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+    if (heads.length) {
+      // the named building's block; with no name, the first building's (never another building's frames)
+      const k = name ? heads.findIndex(h => key(h.name) === key(name)) : 0;
+      if (k < 0) return [];
+      region = region.slice(heads[k].i, heads[k + 1] ? heads[k + 1].i : region.length);
     }
     const rows = [];
     region.forEach(l => {
@@ -2290,20 +2295,38 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     provided: ['Designed For Load Provisions Only', 'Auxiliary Columns', 'Support Beams', 'Edge Angle / Pour Stop'],
   };
 
+  /* Box 22. A quote can carry it more than once: "22) MEZZANINES - NONE REQUIRED" in the base scope and the
+     alternate's Box 22 pages appended after the drawings ("ALTERNATE #1 MEZZANINE SPECS"). Every block that lists a
+     mezzanine is read; a block runs over the next pages while they continue it, and stops at "23)". The same
+     mezzanine ID read twice keeps the later one. */
+  const isBox22 = t => /22\)\s*MEZZANINES/i.test(t) && !/NONE\s+REQUIRED/i.test(t);
   function mezzanines(pages) {
-    const start = pages.findIndex(p => lines(p).some(l => /22\)\s*MEZZANINES/i.test(l.text)));
-    if (start < 0) return [];
-    // Box 22 may run over several pages; stop at "23)"
-    const blockLines = [];
-    for (let pi = start; pi < pages.length; pi++) {
-      const ls = lines(pages[pi]);
-      let s = pi === start ? findLine(ls, /22\)\s*MEZZANINES/i) + 1 : findLine(ls, /CONTROL #/i) + 1;
-      const e = findLine(ls, /^2[3-9]\)\s|^23\)/, s);
-      ls.slice(s, e < 0 ? ls.length : e).forEach(l => blockLines.push({ ...l, page: pages[pi].num, pageRef: pages[pi] }));
-      if (e >= 0) break;
+    const out = [];
+    for (let start = 0; start < pages.length; start++) {
+      if (!lines(pages[start]).some(l => isBox22(l.text))) continue;
+      const blockLines = [];
+      let pi = start;
+      for (; pi < pages.length; pi++) {
+        const ls = lines(pages[pi]);
+        if (pi > start && !ls.some(l => isBox22(l.text) || /Mezzanine ID:/i.test(l.text))) break;   // not a continuation
+        const s = pi === start ? findLine(ls, /22\)\s*MEZZANINES/i) + 1 : findLine(ls, /CONTROL #/i) + 1;
+        const e = findLine(ls, /^2[3-9]\)\s|^23\)/, s);
+        ls.slice(s, e < 0 ? ls.length : e).forEach(l => blockLines.push({ ...l, page: pages[pi].num, pageRef: pages[pi] }));
+        if (e >= 0) { pi++; break; }
+      }
+      const starts = blockLines.map((l, i) => (/Mezzanine ID:/i.test(l.text) ? i : -1)).filter(i => i >= 0);
+      starts.forEach((s, k) => {
+        const m = parseMezz(blockLines.slice(s, k + 1 < starts.length ? starts[k + 1] : blockLines.length));
+        const label = (lines(pages[start]).find(l => /LABEL:/i.test(l.text)) || {}).text;
+        m.label = label ? clean(label.replace(/^.*LABEL:\s*/i, '')) : null;
+        m.alternate = (pages[start].annots || []).map(a => clean(a.text)).find(t => /ALTERNATE/i.test(t)) || (m.label && /created from/i.test(m.label) ? `quote label ${m.label}` : null);
+        const at = out.findIndex(x => x.id === m.id);
+        if (at >= 0) out.splice(at, 1);
+        out.push(m);
+      });
+      start = Math.max(start, pi - 1);
     }
-    const starts = blockLines.map((l, i) => (/Mezzanine ID:/i.test(l.text) ? i : -1)).filter(i => i >= 0);
-    return starts.map((s, k) => parseMezz(blockLines.slice(s, k + 1 < starts.length ? starts[k + 1] : blockLines.length)));
+    return out;
   }
 
   function parseMezz(ls) {
@@ -2321,7 +2344,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       slab: ftin(grab(txt, new RegExp(String.raw`Slab\/Deck Thickness:\s*(` + DIM + ')'))),
       startLEW: ftin(grab(txt, new RegExp(String.raw`Start Location from LEW\s*(` + DIM + ')'))),
       startFSW: ftin(grab(txt, new RegExp(String.raw`Start Location from FSW\s*(` + DIM + ')'))),
-      deckType: grab(txt, /Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckType: grab(txt, /(?:^|\s)Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckOther: grab(txt, /Other Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
       openings: grab(txt, /Floor Openings[^\n]*\n([^\n]*)/),
       dims: {}, checks: {}, sources: {}, page: ls[0] && ls[0].page,
     };
@@ -2329,6 +2353,13 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     // dimension rows: requested / provided columns + FreeText annotation on the same row
     const pageRef = ls[0] && ls[0].pageRef;
     const annots = pageRef ? (pageRef.annots || []).filter(a => /FreeText/i.test(a.subtype) && clean(a.text)) : [];
+    // a blue note on the Design Loads row ("62.5psf" over "Dead Load: Per Seller") is the engineer's dead load
+    const loadRow = ls.find(l => /Dead Load:/i.test(l.text));
+    if (loadRow) {
+      const xLive = (loadRow.items.find(it => /Live Load/i.test(it.str)) || {}).x ?? Infinity;
+      const note = annots.find(a => loadRow.y >= a.y1 - 4 && loadRow.y <= a.y2 + 6 && a.x1 < xLive && /^\s*\d+(?:\.\d+)?\s*(?:psf|#)?\s*$/i.test(clean(a.text)));
+      if (note) m.deadNote = parseFloat(clean(note.text));
+    }
     const hdr = ls.find(l => /Requested/.test(l.text) && /Provided/.test(l.text));
     const xReq = hdr ? hdr.items.find(i => /Requested/.test(i.str)).x : null;
     const xProv = hdr ? hdr.items.find(i => /Provided/.test(i.str)).x : null;
@@ -2382,10 +2413,11 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------
   function attachments(pages) {
     const text = allLines(pages).map(l => l.text).join(' ').replace(/\s+/g, ' ');
-    const re = /The\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+attaches to the\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+at\b/gi;
+    const re = new RegExp(String.raw`The\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+attaches to the\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+at\b\s*(` + DIM + ')?', 'gi');
     const out = [];
     let m;
-    while ((m = re.exec(text))) out.push({ building: clean(m[2]), wall: m[1].toUpperCase(), to: clean(m[4]), toWall: m[3].toUpperCase() });
+    // "at 0'-0" from the Left Steel Line of the Wall Being Attached to" (left as seen from outside that wall)
+    while ((m = re.exec(text))) out.push({ building: clean(m[2]), wall: m[1].toUpperCase(), to: clean(m[4]), toWall: m[3].toUpperCase(), at: m[5] ? ftin(m[5]) : 0 });
     return out;
   }
 
@@ -2429,7 +2461,11 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       annots = (await page.getAnnotations()).map(a => {
         const text = (a.contentsObj && a.contentsObj.str) || a.contents || (Array.isArray(a.textContent) ? a.textContent.join(' ') : '') || '';
         const [x1, y1, x2, y2] = a.rect || [0, 0, 0, 0];
-        return { subtype: a.subtype, text, x1: Math.min(x1, x2), x2: Math.max(x1, x2), y1: H - Math.max(y1, y2), y2: H - Math.min(y1, y2) };
+        const o = { subtype: a.subtype, text, x1: Math.min(x1, x2), x2: Math.max(x1, x2), y1: H - Math.max(y1, y2), y2: H - Math.min(y1, y2) };
+        // markup drawn over the floor plan: its colour and, for a line, its two ends (top-origin like the rest)
+        if (a.color && a.color.length >= 3) o.color = [a.color[0], a.color[1], a.color[2]];
+        if (a.lineCoordinates && a.lineCoordinates.length === 4) { const L = a.lineCoordinates; o.line = [[L[0], H - L[1]], [L[2], H - L[3]]]; }
+        return o;
       });
     } catch (e) { annots = []; }
     return { width: vp.width, height: H, items, annots };
@@ -2488,6 +2524,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
                        two diagonals), the interior frame columns "designated as Most Economical" in Box 5
      - joist arrows  : "Mez. Jst." — a straight shaft with a half arrowhead (~30°) at each end
      - joist symbols : a short truss drawn along the joists — a chord line with a zigzag of webs beside it
+     - markup        : what the quote engineer marks up over the plan as PDF annotations — an "X" text box on each
+                       mezzanine column, a line labelled "JOISTS" (and lines of its colour) across the joist span
    Circles are drawn either as one polyline or as dozens of 2-point segments; segments are chained first.
    The bubbles register the drawing to the building grid (same scale on both axes, so extra bubbles — a
    lean-to, an offset letter — cannot throw the fit), every side bubble is lettered from the BSW down
@@ -2678,6 +2716,30 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 12 && a.vert === b.vert));
   }
 
+  /* Markup annotations over the plan (top-origin page coords, from extract.js): mezzanine columns are "X" text boxes
+     (or ×, ⊗); joist direction is a long straight line with a "JOIST" note beside it, and every line of that colour
+     and direction (the same markup repeated). Lines of another colour (the beam lines) are only kept as beams. */
+  function readMarkup(annots) {
+    const out = { crosses: [], arrows: [], beams: [] };
+    if (!annots || !annots.length) return out;
+    const ctr = a => ({ x: (a.x1 + a.x2) / 2, y: (a.y1 + a.y2) / 2 });
+    annots.filter(a => /FreeText|Text|Square|Circle/i.test(a.subtype) && /^\s*[Xx×✕✖⊗]\s*$/.test(a.text || '')).forEach(a => out.crosses.push({ ...ctr(a), kind: 'x', markup: true }));
+    const lines = annots.filter(a => a.line).map(a => {
+      const [p, q] = a.line, len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      return { a: p, b: q, len, vert: Math.abs(q[0] - p[0]) < Math.abs(q[1] - p[1]), color: (a.color || []).join(','), x: (p[0] + q[0]) / 2, y: (p[1] + q[1]) / 2 };
+    }).filter(l => l.len >= 25 && (l.vert ? Math.abs(l.b[0] - l.a[0]) : Math.abs(l.b[1] - l.a[1])) < 0.05 * l.len);
+    const notes = annots.filter(a => /FreeText|Text/i.test(a.subtype) && a.text);
+    const near = (l, n) => { const c = ctr(n), along = l.vert ? c.y : c.x, lo = Math.min(l.vert ? l.a[1] : l.a[0], l.vert ? l.b[1] : l.b[0]), hi = Math.max(l.vert ? l.a[1] : l.a[0], l.vert ? l.b[1] : l.b[0]);
+      return along > lo - 10 && along < hi + 10 && Math.abs(l.vert ? c.x - l.x : c.y - l.y) < 30; };
+    const joist = lines.filter(l => notes.some(n => /JOIST/i.test(n.text) && near(l, n)));
+    const keys = new Set(joist.map(l => l.color + '|' + l.vert));
+    lines.forEach(l => {
+      if (keys.has(l.color + '|' + l.vert)) out.arrows.push({ x: l.x, y: l.y, len: l.len, vert: l.vert, a: l.a, b: l.b, kind: 'markup' });
+      else out.beams.push({ a: l.a, b: l.b, vert: l.vert });
+    });
+    return out;
+  }
+
   // Group bubble circles: the most common radius among the larger plain circles
   function bubbles(circles) {
     const big = circles.filter(c => c.r >= 5 && c.r <= 16);
@@ -2714,8 +2776,11 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   /* grid: { xs:[frame line x, ft], colY:[column line y from FSW, ft], lewY?, rewY?, width?, letterLines? (column lines + ridge) }
      returns { ok, reason, columns:[{x,y,kind}] (mezzanine ⊗ 'x' / circled-I 'i'), frameCols:[{x,y,kind}] (bare I 'I' /
      ✱ 'star'), arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
-  function registerAndRead(paths, grid) {
-    const { crosses, frameCols, circles, arrows } = readSymbols(paths);
+  function registerAndRead(paths, grid, annots) {
+    const sym = readSymbols(paths), mk = readMarkup(annots);
+    // marked-up columns win over drawn ⊗ at the same spot (the markup is the quote engineer's)
+    const crosses = mk.crosses.concat(sym.crosses.filter(c => !mk.crosses.some(m => Math.hypot(m.x - c.x, m.y - c.y) < 6)));
+    const { frameCols, circles } = sym, arrows = sym.arrows.concat(mk.arrows);
     const bub = bubbles(circles);
     const out = { ok: false, crosses: crosses.length, bubbles: bub.length, columns: [], arrows: [], letters: [] };
     if (bub.length < 4) { out.reason = 'grid bubbles not found'; return out; }
@@ -2724,13 +2789,27 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const ys = cluster(bub.map(b => b.y), r), xs = cluster(bub.map(b => b.x), r);
     const rowY = ys.map(y => ({ y, n: bub.filter(b => Math.abs(b.y - y) <= r).length })).sort((a, b) => b.n - a.n);
     const colX = xs.map(x => ({ x, n: bub.filter(b => Math.abs(b.x - x) <= r).length })).sort((a, b) => b.n - a.n);
-    const topRow = rowY.filter(q => q.n === rowY[0].n).sort((a, b) => a.y - b.y)[0];
-    const numX = bub.filter(b => Math.abs(b.y - topRow.y) <= r).map(b => b.x).sort((a, b) => a - b);
     const gx = grid.xs.slice().sort((a, b) => a - b);
-    if (numX.length !== gx.length) { out.reason = `${numX.length} frame-line bubbles on the drawing, ${gx.length} frame lines from the bays`; return out; }
-    const fx = fit(numX, gx);
-    const spanX = gx[gx.length - 1] - gx[0] || 1;
-    if (fx.res > spanX * 0.02 + 0.5) { out.reason = 'frame-line bubble spacing does not match the bays'; return out; }
+    const spanX = gx[gx.length - 1] - gx[0] || 1, tolX = spanX * 0.02 + 0.5;
+    // frame-line bubbles: a row whose spacing matches the bays. A row can carry an extra bubble (a lean-to's end line
+    // 1'-4" off the endwall, drawn overlapping), so the first / last frame line may sit on the first or second bubble
+    // from either end; every frame line must find a bubble, extra bubbles are left over
+    let fx = null, bestRes = Infinity, rowN = 0, numberOffset = 0;
+    rowY.filter(q => q.n >= Math.max(3, gx.length - 2)).forEach(q => {
+      const row = bub.filter(b => Math.abs(b.y - q.y) <= r).map(b => b.x).sort((a, b) => a - b);
+      rowN = Math.max(rowN, row.length);
+      for (let i = 0; i < Math.min(3, row.length); i++) for (let j = row.length - 1; j > i && j >= row.length - 3; j--) {
+        const f0 = fit([row[i], row[j]], [gx[0], gx[gx.length - 1]]);
+        if (!(f0.a > 0)) continue;
+        const pick = gx.map(g => row.map(x => ({ x, d: Math.abs(f0.a * x + f0.b - g) })).sort((p, s) => p.d - s.d)[0]);
+        if (pick.some(o => o.d > tolX) || new Set(pick.map(o => o.x)).size !== gx.length) continue;
+        const f1 = fit(pick.map(o => o.x), gx);
+        // bubbles before the first frame line: the drawing numbers its frame lines from 1 + that many
+        if (f1.res < bestRes) { bestRes = f1.res; fx = f1; numberOffset = row.filter(x => x < pick[0].x - Math.max(0.8, r * 0.3)).length; }
+      }
+    });
+    if (!fx) { out.reason = `${rowN} frame-line bubbles in a row on the drawing do not line up with the ${gx.length} frame lines from the bays`; return out; }
+    if (fx.res > tolX) { out.reason = 'frame-line bubble spacing does not match the bays'; return out; }
     // letter bubbles: the outermost bubble columns left and right (not in a numbers row)
     const rowsN = rowY.filter(q => q.n >= Math.max(3, gx.length - 1)).map(q => q.y);
     const side = bub.filter(b => !rowsN.some(y => Math.abs(b.y - y) <= r));
@@ -2762,14 +2841,17 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const ly = cluster([...[...left, ...right].map(q => fy.a * q.y + fy.b), ...(grid.letterLines || [])], 1).sort((p, q) => q - p);
     const L = gridLetters(ly.length);
     out.letters = ly.map((y, i) => ({ y, letter: L[i] }));
-    out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind }));
+    out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind, markup: !!c.markup }));
     // frame columns inside the building outline (a lean-to or the title block cannot pass for one)
     const xEnd = gx[gx.length - 1];
     out.frameCols = frameCols.map(c => ({ ...toB(c.x, c.y), kind: c.kind })).filter(c => c.x > gx[0] - 3 && c.x < xEnd + 3 && c.y > -3 && c.y < W + 3);
     // joist symbols inside the building and off the wall lines (wall-liner marks and hatch ends are not joists)
     const offWalls = q => q.x > gx[0] + 1.5 && q.x < gx[gx.length - 1] - 1.5 && q.y > 1.5 && q.y < W - 1.5;
-    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a), kind: ar.kind || 'arrow' }))
+    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a), kind: ar.kind || 'arrow', ends: ar.kind === 'markup' && ar.a && ar.b ? [toB(ar.a[0], ar.a[1]), toB(ar.b[0], ar.b[1])] : null }))
       .filter(q => q.kind !== 'truss' || (offWalls(q) && q.len >= 5 && q.len <= 60));
+    out.beams = mk.beams.map(l => ({ a: toB(l.a[0], l.a[1]), b: toB(l.b[0], l.b[1]), dir: l.vert ? 'y' : 'x' }));
+    out.markup = { columns: mk.crosses.length, joists: mk.arrows.length, beams: mk.beams.length };
+    out.numberOffset = numberOffset; out.frameLines = gx.length;
     out.ok = true;
     if (!crosses.length) out.reason = 'no mezzanine column symbols found';
     out.map = { fx, fy };
@@ -2788,7 +2870,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
+  const api = { readMarkup, subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -3386,7 +3468,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   };
   function deckKey(text) {
     const t = String(text || '').toUpperCase().replace(/\s+/g, '');
-    const m = t.match(/(0?\.?\d(?:\.\d)?)(C|VLI|VL|B|W)/);
+    // "1.5VL", "1.0C" …, or written out: "22ga B deck 1.5\"" (kind before the depth)
+    const m = t.match(/(0?\.?\d(?:\.\d)?)(C|VLI|VL|B|W)/) || ((q => q && [q[0], q[2], q[1]])(t.match(/(VLI|VL|B|C|W)-?DECK(\d(?:\.\d+)?)/)));
     if (!m) return null;
     const depth = parseFloat(m[1]), kind = m[2];
     if (kind === 'C') return depth <= 1.1 ? '1.0C' : depth <= 1.4 ? '1.3C' : '1.5C';
@@ -3570,16 +3653,63 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 
   /* Floor-plan reading → PCS: grid letters as drawn, and each mezzanine's joist direction from the "Mez. Jst."
      arrows inside its footprint. reg is PLAN.registerAndRead(...) for the building the drawing shows. */
+  /* A building attached to another along a sidewall (Box 2 "Building Attachment"): where its points sit in the other
+     building's coordinates. Seen from outside the wall attached to, its left steel line is the LEW end of an FSW and the
+     REW end of a BSW; "at" runs from there. Back to back (BSW to BSW, FSW to FSW) the attached building is turned 180°.
+     att: { wall, toWall, at }; host / own: { width, length }. Returns { toHost(x, y), fromHost(x, y), rot180 } or null. */
+  const bkeyName = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+  function attachMap(att, host, own) {
+    if (!att || !/^(FSW|BSW)$/.test(att.wall) || !/^(FSW|BSW)$/.test(att.toWall) || !(host.width > 0) || !(host.length > 0) || !(own.width > 0) || !(own.length > 0)) return null;
+    const Wh = host.width, Lh = host.length, Wa = own.width, La = own.length, at = att.at || 0;
+    const sh = att.toWall === 'BSW' ? 1 : -1, yWall = att.toWall === 'BSW' ? Wh : 0, rot180 = att.wall === att.toWall;
+    const start = att.toWall === 'BSW' ? Lh - at - La : at;
+    const d = y => (att.wall === 'BSW' ? Wa - y : y);
+    return {
+      rot180, host: att.to,
+      toHost: (x, y) => ({ x: rot180 ? start + La - x : start + x, y: yWall + sh * d(y) }),
+      fromHost: (x, y) => { const dd = (y - yWall) * sh; return { x: rot180 ? start + La - x : x - start, y: att.wall === 'BSW' ? Wa - dd : dd }; },
+    };
+  }
+  // the building the floor plan was registered to, and how a mezzanine's building sits in it (identity, attached, none)
+  function planMap(pcs, m) {
+    const hostName = pcs.planBuilding != null ? pcs.planBuilding : ((pcs.mezzanines[0] || {}).building || '');
+    if (bkeyName(m.building || '') === bkeyName(hostName)) return { toHost: (x, y) => ({ x, y }), fromHost: (x, y) => ({ x, y }), rot180: false, identity: true };
+    const att = (pcs.attachments || []).find(a => bkeyName(a.building) === bkeyName(m.building) && bkeyName(a.to) === bkeyName(hostName));
+    const own = pcs.buildings && pcs.buildings[m.building || ''], host = pcs.buildings && pcs.buildings[hostName];
+    return att && own && host ? attachMap(att, host.building || {}, own.building || {}) : null;
+  }
+  // the plan's letters and column symbols in this mezzanine's building coordinates
+  function planFor(pcs, mi) {
+    const m = pcs.mezzanines[mi], map = pcs.plan && m ? planMap(pcs, m) : null;
+    if (!map) return { yLetters: undefined, planCols: undefined };
+    const pt = c => ({ ...c, ...map.fromHost(c.x, c.y) });
+    return { yLetters: pcs.plan.letters.map(l => ({ ...l, y: map.fromHost(0, l.y).y })), planCols: pcs.plan.columns.concat(pcs.plan.frameCols || []).map(pt) };
+  }
+
   function applyPlan(pcs, reg) {
     if (!pcs) return;
-    pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns, frameCols: reg.frameCols || [] } : null;
+    pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns, frameCols: reg.frameCols || [], numberOffset: reg.numberOffset || 0, markup: reg.markup || null } : null;
+    if (pcs.planBuilding == null) pcs.planBuilding = (pcs.mezzanines[0] || {}).building || '';
     pcs.mezzanines.forEach(m => {
-      m.planJoists = null; m.planArrows = 0;
+      m.planJoists = null; m.planArrows = 0; m.planJoistsFrom = null;
       if (!pcs.plan || m.width == null || m.length == null) return;
+      // joist markup / arrows inside the mezzanine, in the plan building's coordinates (an attached building mapped there)
+      const map = planMap(pcs, m);
+      if (!map) return;
       const x0 = m.startLEW || 0, y0 = m.startFSW || 0;
-      const inside = pcs.plan.arrows.filter(a => a.x > x0 - 0.5 && a.x < x0 + m.length + 0.5 && a.y > y0 - 0.5 && a.y < y0 + m.width + 0.5);
+      const cs = [[x0, y0], [x0 + m.length, y0 + m.width]].map(([x, y]) => map.toHost(x, y));
+      const bx = [Math.min(cs[0].x, cs[1].x), Math.max(cs[0].x, cs[1].x)], by = [Math.min(cs[0].y, cs[1].y), Math.max(cs[0].y, cs[1].y)];
+      // an arrow centred in the mezzanine, or a marked-up joist line running at least 5'-0" across it
+      const crosses = a => {
+        if (!a.ends) return false;
+        const [p, q] = a.ends, along = a.dir === 'y' ? [Math.min(p.y, q.y), Math.max(p.y, q.y), by] : [Math.min(p.x, q.x), Math.max(p.x, q.x), bx];
+        const at = a.dir === 'y' ? (p.x + q.x) / 2 : (p.y + q.y) / 2, span = a.dir === 'y' ? bx : by;
+        return at > span[0] - 0.5 && at < span[1] + 0.5 && Math.min(along[1], along[2][1]) - Math.max(along[0], along[2][0]) >= Math.min(5, (along[2][1] - along[2][0]) / 2);
+      };
+      const inside = pcs.plan.arrows.filter(a => (a.x > bx[0] - 0.5 && a.x < bx[1] + 0.5 && a.y > by[0] - 0.5 && a.y < by[1] + 0.5) || crosses(a));
       const nx = inside.filter(a => a.dir === 'x').length, ny = inside.filter(a => a.dir === 'y').length;
       m.planArrows = inside.length;
+      m.planJoistsFrom = inside.some(a => a.kind === 'markup') ? 'markup' : inside.some(a => a.kind === 'truss') ? 'truss' : inside.length ? 'arrows' : null;
       m.planJoists = nx > ny ? 'x' : ny > nx ? 'y' : null;
     });
   }
@@ -3595,8 +3725,14 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const material = Object.keys(matChecks).find(k => matChecks[k]) || null;
     const slabIn = m.slab != null ? m.slab * 12 : null;
     const concrete = /light/i.test(material || '') ? 'LW' : 'NW';
-    const deck = DESIGN.deckKey(m.deckType) || '1.0C';
-    const dl = typeof m.dead === 'number' ? v(m.dead, 'pcs') : (() => {
+    // deck: the Deck Type box, or the "Other Deck Type" written out ("22ga B deck 1.5\"")
+    const deckText = m.deckOther ? `${m.deckType || 'Other'}: ${m.deckOther}` : m.deckType;
+    const deck = DESIGN.deckKey(m.deckType) || DESIGN.deckKey(m.deckOther) || '1.0C';
+    // dead load: the PCS number; "Per Seller" with a blue note over it → the note; else the deck guide
+    const dl = typeof m.dead === 'number' ? v(m.dead, 'pcs') : m.deadNote > 0 ? (() => {
+      const d = DESIGN.deadLoadFor(slabIn, concrete, deck);
+      return v(m.deadNote, 'annotation', `PCS "Per Seller"; blue note ${m.deadNote} psf${d.psf != null ? ` (the deck guide gives ${d.psf.toFixed(1)} psf for ${slabIn}" ${concrete} on ${deck})` : ''}`);
+    })() : (() => {
       const d = DESIGN.deadLoadFor(slabIn, concrete, deck);
       return { ...v(d.psf, d.estimate ? 'estimate' : 'deckGuide', d.note), auto: true };   // follows slab / deck / concrete edits
     })();
@@ -3609,7 +3745,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText: m.deckType, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -3625,9 +3761,10 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       building: {
         width: b.width, length: b.length, ridge: b.ridge, bays: b.bays || [], lewCols: b.lewCols || [], rewCols: b.rewCols || [],
         fswSoldier: b.fswSoldier || [], bswSoldier: b.bswSoldier || [], frames,
-        yLetters: pcs.plan && (!own || own.building === pcs.building) ? pcs.plan.letters : undefined,
+        yLetters: planFor(pcs, mi).yLetters,
         // column symbols on the floor plan: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column
-        planCols: pcs.plan && (!own || own.building === pcs.building) ? pcs.plan.columns.concat(pcs.plan.frameCols || []) : undefined,
+        planCols: planFor(pcs, mi).planCols,
+        attach: (pcs.attachments || []).find(a => bkeyName(a.building) === bkeyName(m.building)) || null,
       },
     };
   }
@@ -3734,9 +3871,9 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
     const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines });
     if (fromPlan) {
-      lay.why = 'joist arrows on the PCS floor plan';
+      lay.why = ({ markup: 'the JOISTS markup on the PCS floor plan', truss: 'the joist symbol on the PCS floor plan' })[inp.mezz.planJoistsFrom] || 'joist arrows on the PCS floor plan';
       const alt = lay.alt, n = o => o.beams.length;
-      if (alt && (alt.beamSpan < lay.beamSpan - 1e-6 || n(alt) < n(lay))) warn.push({ level: 'key', text: `Joist direction follows the "Mez. Jst." arrows on the PCS floor plan (${lay.joists === 'y' ? 'across the width' : 'along the length'}). The other direction would use ${n(alt)} beams spanning ${PCS.fmtFtIn(alt.beamSpan)} — switch it on the Plan page if that is what will be quoted.` });
+      if (alt && (alt.beamSpan < lay.beamSpan - 1e-6 || n(alt) < n(lay))) warn.push({ level: 'key', text: `Joist direction follows ${lay.why} (${lay.joists === 'y' ? 'across the width' : 'along the length'}). The other direction would use ${n(alt)} beams spanning ${PCS.fmtFtIn(alt.beamSpan)} — switch it on the Plan page if that is what will be quoted.` });
     }
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
@@ -3803,7 +3940,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
      the beam sheet (uniform load only) stays conservative. */
   function equivTrib(L, base, extras) {
     const parts = [[0, L, base], ...extras.map(x => [Math.max(0, x.s), Math.min(L, x.e), x.trib])].filter(([a, b, w]) => b > a + 1e-9 && w);
-    if (extras.every(x => x.s <= 1e-6 && x.e >= L - 1e-6)) return base + extras.reduce((a, x) => a + x.trib, 0);
+    // spans are kept to 0.001 ft, so a neighbour edge over the whole span may end a hair short of L
+    if (extras.every(x => x.s <= 1e-3 && x.e >= L - 1e-3)) return base + extras.reduce((a, x) => a + x.trib, 0);
     const tot = parts.reduce((a, [p, q, w]) => a + w * (q - p), 0);
     const Rr = parts.reduce((a, [p, q, w]) => a + w * (q - p) * (p + q) / 2, 0) / L, Rl = tot - Rr;
     const M = x => Rl * x - parts.reduce((a, [p, q, w]) => { const e = Math.min(q, x); return e > p ? a + w * (e - p) * (x - (p + e) / 2) : a; }, 0);
@@ -3820,26 +3958,46 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     const merges = [];
     const ov = (a, b) => Math.min(a.to, b.to) - Math.max(a.from, b.from);
     const qD = c => c.beamBase.dead + c.beamBase.coll + c.beamBase.joistWt, qL = c => c.beamBase.live;
+    // a beam as the pair sees it: in its own building, or an attached building's beam in the host's coordinates
+    const ident = b => ({ dir: b.dir, line: b.line, from: b.from, to: b.to, flip: false });
+    const viaSite = map => b => {
+      const p = (u, line) => (b.dir === 'x' ? map.toHost(u, line) : map.toHost(line, u));
+      const a = p(b.from, b.line), z = p(b.to, b.line);
+      return b.dir === 'x' ? { dir: 'x', line: a.y, from: Math.min(a.x, z.x), to: Math.max(a.x, z.x), flip: a.x > z.x } : { dir: 'y', line: a.x, from: Math.min(a.y, z.y), to: Math.max(a.y, z.y), flip: a.y > z.y };
+    };
     for (let i = 0; i < ctxs.length; i++) for (let j = i + 1; j < ctxs.length; j++) {
       const ci = ctxs[i], cj = ctxs[j];
-      if (ci.incomplete || cj.incomplete || ci.bkey !== cj.bkey) continue;
-      const lines = new Set(ci.lay.beams.map(b => b.dir + ':' + b.line.toFixed(2)));
+      if (ci.incomplete || cj.incomplete) continue;
+      let pi = ident, pj = ident, hostOwns = null;
+      if (ci.bkey === cj.bkey) { /* one building */ }
+      else if (cj.site && cj.site.host === ci.bkey) { pj = viaSite(cj.site.map); hostOwns = ci; }
+      else if (ci.site && ci.site.host === cj.bkey) { pi = viaSite(ci.site.map); hostOwns = cj; }
+      else continue;
+      const P = new Map();
+      const pr = (c, b) => { const k = c.index + ':' + b.id; if (!P.has(k)) P.set(k, (c === ci ? pi : pj)(b)); return P.get(k); };
+      const keyOf = q => q.dir + ':' + q.line.toFixed(2);
+      const lines = new Set(ci.lay.beams.map(b => keyOf(pr(ci, b))));
       lines.forEach(key => {
-        const on = c => c.lay.beams.filter(b => !b.absorbed && b.dir + ':' + b.line.toFixed(2) === key);
+        const on = c => c.lay.beams.filter(b => !b.absorbed && keyOf(pr(c, b)) === key);
         const bi = on(ci), bj = on(cj);
-        if (!bj.length || !bi.some(a => bj.some(b => ov(a, b) > 0.25))) return;
+        if (!bj.length || !bi.some(a => bj.some(b => ov(pr(ci, a), pr(cj, b)) > 0.25))) return;
         const ext = bs => bs.reduce((a, b) => a + b.span, 0);
-        const [own, oc, sub, sc] = ext(bi) >= ext(bj) - 1e-6 ? [bi, ci, bj, cj] : [bj, cj, bi, ci];
+        // across attached buildings the host keeps the line (its columns carry it); in one building, the longer side
+        const [own, oc, sub, sc] = hostOwns ? (hostOwns === ci ? [bi, ci, bj, cj] : [bj, cj, bi, ci]) : ext(bi) >= ext(bj) - 1e-6 ? [bi, ci, bj, cj] : [bj, cj, bi, ci];
         sub.forEach(b => {
-          const cover = own.filter(o => ov(o, b) > 1e-6);
-          if (cover.reduce((a, o) => a + ov(o, b), 0) < b.span - 0.05) {
+          const qb = pr(sc, b), cover = own.filter(o => ov(pr(oc, o), qb) > 1e-6);
+          if (cover.reduce((a, o) => a + ov(pr(oc, o), qb), 0) < b.span - 0.05) {
             if (cover.length) [oc, sc].forEach(c => c.warn.push({ level: 'warn', text: `Beams of ${oc.id} and ${sc.id} overlap on the line at ${PCS.fmtFtIn(b.line)} with different supports — frame that line by hand.` }));
             return;
           }
           const ratio = Math.max(qD(oc) ? qD(sc) / qD(oc) : 1, qL(oc) ? qL(sc) / qL(oc) : 1);
           b.absorbed = { mi: oc.index, mezz: oc.id, into: cover.map(o => o.id) };
-          cover.forEach(o => { (o.extra = o.extra || []).push({ mi: sc.index, mezz: sc.id, beam: b.id, tribOwn: b.tribOwn, trib: b.tribOwn * ratio, ratio, s: Math.max(o.from, b.from) - o.from, e: Math.min(o.to, b.to) - o.from }); });
-          merges.push({ line: b.line, dir: b.dir, from: b.from, to: b.to, owner: oc.index, ownerId: oc.id, sub: sc.index, subId: sc.id, trib: b.tribOwn, ratio, into: cover.map(o => o.id) });
+          cover.forEach(o => {
+            const qo = pr(oc, o), lo = Math.max(qo.from, qb.from), hi = Math.min(qo.to, qb.to);
+            const s0 = qo.flip ? qo.to - hi : lo - qo.from, e0 = qo.flip ? qo.to - lo : hi - qo.from;   // along the owner beam, its own way
+            (o.extra = o.extra || []).push({ mi: sc.index, mezz: sc.id, beam: b.id, tribOwn: b.tribOwn, trib: b.tribOwn * ratio, ratio, s: s0, e: e0 });
+          });
+          merges.push({ line: b.line, dir: b.dir, from: b.from, to: b.to, owner: oc.index, ownerId: oc.id, sub: sc.index, subId: sc.id, trib: b.tribOwn, ratio, into: cover.map(o => o.id), across: !!hostOwns });
         });
       });
     }
@@ -3982,7 +4140,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       if (c.incomplete) return;
       c.lay.supports.forEach(sp => {
         const key = c.bkey + '|' + sp.x.toFixed(2) + ',' + sp.y.toFixed(2);
-        const e = at.get(key) || { key, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
+        const e = at.get(key) || { key, bkey: c.bkey, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
         e.seenIn.push(c.index);
         ['L', 'R'].forEach(side => {
           const id = sp.beams[side];
@@ -4003,7 +4161,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
         const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
-        frame.push({ label: e.label, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
@@ -4107,7 +4265,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     live.forEach(c => {
       const L = c.lay, alt = L.alt, sp = c.beamBase.Lb, shorter = !alt || alt.beamSpan >= L.beamSpan - 1e-6;
       add('15.1.1.3', 'Layout', 'Beams on the shorter span, joists the longer', shorter ? 'ok' : 'info',
-        `${tag(c)}beams span ${F(L.beamSpan)}, joists ${F(L.joistSpan)}${/arrows/.test(L.why || '') ? ', as the "Mez. Jst." arrows on the PCS show' : ''}${shorter ? '.' : ` — the other direction would put the beams on ${F(alt.beamSpan)}; the drawing governs, confirm it was intended.`}`, c.index);
+        `${tag(c)}beams span ${F(L.beamSpan)}, joists ${F(L.joistSpan)}${/PCS floor plan/.test(L.why || '') ? `, as ${L.why} shows` : ''}${shorter ? '.' : ` — the other direction would put the beams on ${F(alt.beamSpan)}; the drawing governs, confirm it was intended.`}`, c.index);
       add('15.1.1.3', 'Layout', 'Joists no more than 5\'-0" on center', sp <= 5 + 1e-9 ? 'ok' : 'stop', `${tag(c)}joists @ ${F(sp)} O.C.${sp <= 5 + 1e-9 ? '' : ' — NBG will not space joists more than 5\'-0" apart.'}`, c.index);
     });
     if (shared.length) {
@@ -4329,7 +4487,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       const W = g.width, members = [0, ...(g.interior[fi] || []).filter(y => y > 0.05 && y < W - 0.05), W].sort((a, b) => a - b);
       const mi = members.findIndex(y => near(y, q.y));
       const wall = fi === 0 || fi === g.xs.length - 1;
-      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of this end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
+      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall && /post|bearing/i.test(((c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || {}).type || '') ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of the post-and-beam end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
       // top of the mezzanine beam bearing there (the higher one when two mezzanines frame in)
       const elev = Math.max(...q.parts.map(p => { const k = ctxs[p.mi]; return k.A - (k.slabIn + k.seatIn) / 12; }));
       const A = Math.max(...q.parts.map(p => ctxs[p.mi].A));
@@ -4344,6 +4502,14 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
   function runJob(items) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
+    // a mezzanine in a building attached to another mezzanine's building: where its beams sit in that building
+    ctxs.forEach(c => {
+      const att = !c.incomplete && c.inp.building && c.inp.building.attach;
+      if (!att) return;
+      const host = ctxs.find(h => h !== c && !h.incomplete && bkeyName(h.inp.mezz.building) === bkeyName(att.to));
+      const map = host ? attachMap(att, host.inp.building, c.inp.building) : null;
+      if (map) c.site = { host: host.bkey, hostId: host.id, map };
+    });
     const merges = ctxs.length > 1 ? mergeBeams(ctxs) : [];
     const marks = jobMarks(ctxs).map(designMark);
     ctxs.forEach(c => { if (!c.incomplete) attachMarks(c, marks); });
@@ -4361,7 +4527,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       if (sets.size) { const env = DESIGN.designColumn([...sets.values()], { L: c0.colLen, includeW818: c0.s.includeW818, edition: c0.ed.colEd }, WF); jobName = env.name; }
     }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
-    mezz.forEach(r => { if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
+    mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName} passes every column case of every mezzanine.` }); });
     // the design manual items, and the Excel cells to type
     const dm = dmChecklist(ctxs, mezz, marks, cols);
@@ -4460,7 +4626,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { REQUIRED, inputsFromPCS, applyPlan, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -4496,6 +4662,9 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
   const mkName = mk => (mk ? mk.mark + (mk.kind ? ' · ' + mk.kind : '') : '');
   const mkOf = (r, id) => (r && r.marks ? r.marks.find(mk => mk.beams.includes(id)) : null);
   const manyMezz = () => !!(state.all && state.all.length > 1);
+  // loads to the frame of the building on screen (a job can hold mezzanines in two buildings, each in its own coordinates)
+  const sameBldg = q => !q || !q.bkey || !state.res || !state.res.bkey || q.bkey === state.res.bkey;
+  const bldgFrameLoads = () => ((state.job && state.job.frameLoads) || []).filter(sameBldg);
   // where a job mark's beams are: "BSW 2 · LEW 2"
   const mkWhere = mk => {
     const ms = state.job ? state.job.mezz : [];
@@ -4576,9 +4745,9 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
         `<div class="tip-f">${m.colFinal ? `<b>${esc(m.colFinal.quoteAs)}</b> · ${ft(m.colLen)} · CSR ${chk ? f(chk.max, 3) : '—'}` : 'not sized yet'} · trib ${f(c.tribArea, 0)} ft²${c.shared ? ' · shared by ' + esc(c.mezzes.map(i => job.mezz[i].id).join(' + ')) : ''}</div>`;
     }
     if (kind === 'bcol') {
-      const pt = { x: +a, y: +b }, fl = (job.frameLoads || []).find(q => atPt(q, pt)), g = r.grid;
+      const pt = { x: +a, y: +b }, fl = bldgFrameLoads().find(q => atPt(q, pt)), g = r.grid;
       const lab = fl ? fl.label : `${g.xLabel(pt.x) || ft(pt.x)}/${g.yLabel(pt.y) || ft(pt.y)}`;
-      const fe = (job.frameEntries || []).flatMap(f => f.entries.map(e => ({ ...e, frame: f.frame }))).find(e => atPt(e, pt));
+      const fe = (job.frameEntries || []).filter(sameBldg).flatMap(f => f.entries.map(e => ({ ...e, frame: f.frame }))).find(e => atPt(e, pt));
       const sym = symAt(pt), drawn = sym ? `<div class="tip-f">On the PCS floor plan: ${sym === 'star' ? '✱ — interior frame column "designated as Most Economical" (pipe, tube or I-shape, set at final design)' : 'I — frame / endwall column'}.</div>` : '';
       if (!fl) return head(esc(lab), 'building column') + drawn + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
       return head(esc(lab), 'building column · load to the frame') + `<div class="tip-k">Mezzanine beam reactions · unfactored (kips)</div><div class="tip-lr one">${pair('Total', fl.D, fl.L)}</div>` +
@@ -4682,13 +4851,13 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       for (const p of pages.slice().reverse()) {          // floor plan: no text, thousands of vector paths
         if (p.items.length > 40) continue;
         const paths = PLAN.subpaths(await p._page.getOperatorList(), window.pdfjsLib.OPS, p.height);
-        if (paths.length > 2000) { state.planPaths = paths; state.planPage = p.num; break; }
+        if (paths.length > 2000) { state.planPaths = paths; state.planAnnots = p.annots || []; state.planPage = p.num; break; }
       }
       prog(0.85);
       const pcs = PCS.parse(pages);
       if (!pcs.mezzanines.length) throw new Error('No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
       state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null;
-      readPlan(pcs.building || {}, pcs.frames);                // grid letters + joist arrows off the drawing
+      readPlan();                                           // grid letters + joist arrows off the drawing
       const keep = keepSettings();
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
       state.inputs = state.all[0].inputs; state.settings = state.all[0].settings;
@@ -4750,25 +4919,30 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 
   // ---------- floor plan ----------
   // Register the drawing to the building grid once per grid: letters as drawn, ⊗ / circled-I columns, joist arrows
-  function readPlan(b, frames) {
-    if (!state.planPaths || !b || !(b.width > 0)) return;
-    const g = LAYOUT.buildingGrid({ width: b.width, length: b.length, bays: b.bays, lewCols: b.lewCols, rewCols: b.rewCols, ridge: b.ridge, frames: frames || b.frames || [] });
+  // The drawing is registered to one building (the first mezzanine's); a mezzanine in a building attached to it gets the
+  // letters, symbols and joist markup mapped through the attachment, any other building none
+  function readPlan() {
+    const pcs = state.pcs;
+    if (!state.planPaths || !pcs) return;
+    if (pcs.planBuilding == null) pcs.planBuilding = (pcs.mezzanines[0] || {}).building || '';
+    const host = (state.all || []).find(a => (a.inputs.mezz.building || '') === pcs.planBuilding);
+    const b = host ? host.inputs.building : { ...(pcs.building || {}), frames: pcs.frames };
+    if (!b || !(b.width > 0)) return;
+    const g = LAYOUT.buildingGrid({ width: b.width, length: b.length, bays: b.bays, lewCols: b.lewCols, rewCols: b.rewCols, ridge: b.ridge, frames: b.frames || [] });
     const colY = [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => +v.toFixed(3)))];
     const key = g.xs.join(',') + '|' + colY.join(',');
     if (state.planKey === key) return;
     state.planKey = key;
-    state.planReg = PLAN.registerAndRead(state.planPaths, { xs: g.xs, colY, lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
-    if (state.pcs) RUN.applyPlan(state.pcs, state.planReg);
-    const letters = state.planReg.ok ? state.planReg.letters : undefined;
-    // and the column symbols: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column (they settle frame vs mezzanine)
-    const cols = state.planReg.ok ? state.planReg.columns.concat(state.planReg.frameCols || []) : undefined;
-    (state.all || []).forEach(a => { a.inputs.building.yLetters = letters; a.inputs.building.planCols = cols; });
+    state.planReg = PLAN.registerAndRead(state.planPaths, { xs: g.xs, colY, lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY }, state.planAnnots);
+    RUN.applyPlan(pcs, state.planReg);
+    // letters and column symbols (⊗ / circled I / marked X = mezzanine column, bare I / ✱ = frame column) per mezzanine
+    (state.all || []).forEach((a, i) => { const pf = RUN.planFor(pcs, i); a.inputs.building.yLetters = pf.yLetters; a.inputs.building.planCols = pf.planCols; a.inputs.mezz.planJoists = pcs.mezzanines[i].planJoists || null; a.inputs.mezz.planJoistsFrom = pcs.mezzanines[i].planJoistsFrom || null; });
   }
 
   // ---------- compute ----------
   function recompute() {
     if (!state.inputs) return;
-    if (state.all) { state.all[state.mi] = { inputs: state.inputs, settings: state.settings }; readPlan(state.inputs.building); }
+    if (state.all) { state.all[state.mi] = { inputs: state.inputs, settings: state.settings }; readPlan(); }
     const items = (state.all || [{ inputs: state.inputs, settings: state.settings }]).map(a => ({ inp: a.inputs, settings: a.settings }));
     try { state.job = RUN.runJob(items); state.res = state.job.mezz[state.all ? state.mi : 0]; } catch (err) { console.error(err); status('Design error: ' + err.message, 'bad'); return; }
     planCheck();
@@ -4796,16 +4970,23 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       r.warn.push({ level: 'info', text: `Floor plan (page ${state.planPage}): the mezzanine columns could not be read automatically (${r.planCheck.reason}) — confirm the layout against the drawing.` });
       return;
     }
-    const g = r.grid;
+    // labels in the drawing's building (the plan was registered to it)
+    const hostRes = state.job.mezz.find(m => !m.incomplete && ((state.pcs.mezzanines[m.index] || {}).building || '') === state.pcs.planBuilding) || r;
+    const g = hostRes.grid;
     const lab = c => { const nx = nearest(g.xs, c.x), ly = (g.allY || []).concat((reg.letters || []).map(l => l.y)), ny = nearest(ly, c.y);
       return (Math.abs(nx - c.x) < 0.6 ? g.xLabel(nx) : ft(c.x)) + '/' + (Math.abs(ny - c.y) < 0.6 && g.yLabel(ny) ? g.yLabel(ny) : ft(c.y)); };
-    const jobCols = state.job.columns;
+    // every mezzanine column the drawing can show, in the drawing's (plan building's) coordinates
+    const maps = state.job.mezz.map(m => RUN.planMap(state.pcs, state.pcs.mezzanines[m.index] || {}));
+    const jobCols = state.job.columns.filter(q => maps[q.owner]).map(q => ({ ...q, ...maps[q.owner].toHost(q.x, q.y) }));
     const cmp = PLAN.compare(reg.columns, jobCols);
     const labels = cmp.matched.concat(cmp.extra.map(lab)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    r.planCheck = { ok: true, cols: reg.columns, labels, ...cmp };
+    const mine = maps[r.index], gb = r.grid;
+    const seen = mine ? reg.columns.map(c => ({ ...c, ...mine.fromHost(c.x, c.y) })).filter(c => c.x > -1 && c.x < gb.length + 1 && c.y > -1 && c.y < gb.width + 1) : [];
+    r.planCheck = { ok: true, cols: seen, labels, ...cmp };
     const many = state.job.mezz.length > 1;
     const per = many ? ' (' + state.job.mezz.filter(m => !m.incomplete).map(m => `${m.id} ${m.columns.length}`).join(', ') + ')' : '';
-    const sym = reg.columns.some(c => c.kind === 'i') ? 'circled-I' : '⊗';
+    const sym = reg.columns.some(c => c.markup) ? 'marked-up X' : reg.columns.some(c => c.kind === 'i') ? 'circled-I' : '⊗';
+    if (reg.numberOffset > 0) r.warn.push({ level: 'info', text: `The floor plan numbers the ${state.pcs.planBuilding || 'building'} frame lines from ${1 + reg.numberOffset} (${reg.numberOffset === 1 ? 'one extra line' : reg.numberOffset + ' extra lines'} drawn ahead of its LEW, such as an attached building's end); this design keeps the PCS frame lines 1–${reg.frameLines} (Box 5, the NBG Frame files).` });
     if (!reg.columns.length) r.warn.push({ level: 'info', text: `Floor plan (page ${state.planPage}): no mezzanine column symbols found on the drawing — confirm the columns by eye.` });
     else if (cmp.agree) r.warn.unshift({ level: 'ok', text: `Floor plan check: the drawing shows ${labels.length} ${sym} mezzanine column${labels.length === 1 ? '' : 's'} at ${labels.join(', ')} — matches ${many ? 'the mezzanines\u2019' : 'this'} layout${per}.` });
     else {
@@ -4814,7 +4995,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       r.warn.unshift({ level: 'stop', text: `Floor plan check: the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` +
         (alt && alt.agree ? ' The other joist direction matches the drawing — switch it on the Plan page.' : ' Adjust the beam / support lines on the Plan page to match the drawing.') });
     }
-    if (r.layout.why && /arrows/.test(r.layout.why)) r.warn.unshift({ level: 'ok', text: `Joists span ${r.layout.joists === 'y' ? 'across the width' : 'along the length'}, read from the "Mez. Jst." arrows on the PCS floor plan.` });
+    if (r.layout.why && /PCS floor plan/.test(r.layout.why)) r.warn.unshift({ level: 'ok', text: `Joists span ${r.layout.joists === 'y' ? 'across the width' : 'along the length'}, read from ${r.layout.why.replace(/^joist arrows/, 'the "Mez. Jst." arrows')}.` });
   }
 
   // one mezzanine's figures: its own beams (each at its member length) and the columns it owns
@@ -4908,7 +5089,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       if (!key) return;
       const rec = {
         key, quote: state.pcs.job.quote || '', saved: new Date().toISOString().slice(0, 16), code: (state.pcs.code || {}).text || '', edition: state.res.edition.ed,
-        mezz: state.job.mezz.map((m, i) => ({ id: m.id, entered: entered(state.all[i].inputs), joists: m.layout.joists, joistsFrom: /arrows/.test(m.layout.why || '') ? 'drawing' : (state.all[i].settings.joists || 'auto'),
+        mezz: state.job.mezz.map((m, i) => ({ id: m.id, entered: entered(state.all[i].inputs), joists: m.layout.joists, joistsFrom: /PCS floor plan/.test(m.layout.why || '') ? 'drawing' : (state.all[i].settings.joists || 'auto'),
           option: m.marks.map(mk => mk.optionKey), beams: m.marks.map(mk => `${mk.desc} × ${mk.qty}`), columns: m.colFinal ? `${m.colFinal.quoteAs} × ${m.columns.length}` : '' })),
         settings: { marks: state.settings.marks, optionDefault: state.settings.optionDefault },
       };
@@ -5335,7 +5516,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${m.index}:${b.id}" data-tip="beam|${m.index}|${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkHex(mk)}"/>`);
     }));
     ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends, mk = mkOf(m, b.id); o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">${k > 1.2 && mk ? mk.mark + ' ' : ''}B${b.id + 1}</text>`); }));
-    const fls = (state.job && state.job.frameLoads) || [];
+    const fls = bldgFrameLoads();
     bldgCols().forEach(sp => { const ld = fls.some(q => atPt(q, sp)); o.push(`<g class="mp-bc ${ld ? 'ld' : ''}" data-tip="bcol|${sp.x}|${sp.y}"><circle class="mp-hit" cx="${X(sp.x)}" cy="${Y(sp.y)}" r="${6 * k}"/><rect x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"/></g>`); });
     const xm = (cx, cy, R) => { const d = R * 0.68; return `<circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/>`; };
     const lbl = (cx, cy, t, t2) => `<text class="mp-cl" x="${cx}" y="${cy + 13 * k}" text-anchor="middle">${t}${t2 ? `<tspan class="mp-cl2" x="${cx}" dy="${9 * k}">${t2}</tspan>` : ''}</text>`;
@@ -5425,7 +5606,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
         <div><dt>Height</dt><dd>${ft(o.colLen)}</dd></div><div><dt>Max CSR</dt><dd>${chk ? f(chk.max, 3) : '—'}</dd></div></dl>
         <div class="foot">Unfactored beam reactions (MB H6 / H10) · e = d/2 · three load combinations · column self-weight included, as on the Column sheet.</div>`;
     } else if (ref.type === 'bcol') {
-      const fl = (state.job.frameLoads || []).find(q => atPt(q, ref.sp));
+      const fl = bldgFrameLoads().find(q => atPt(q, ref.sp));
       card.innerHTML = `<div class="eyebrow">${eb}</div><h4>${esc(ref.sp.label)}</h4><div class="kind">Building column · load to the frame</div>
         <div class="sec nocase">${fl ? `D ${f(fl.D, 2)} · L ${f(fl.L, 2)} k` : '—'}</div>
         ${fl ? `<dl>${fl.parts.map(p => `<div><dt>${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}</dt><dd>${lr(p.D, p.L)}</dd></div>`).join('')}</dl>` : ''}
@@ -5572,7 +5753,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
       });
     });
     // building columns (the ones mezzanine beams frame into carry a load to the frame — hover for it)
-    const fls = (job && job.frameLoads) || [], bcols = [];
+    const fls = bldgFrameLoads(), bcols = [];
     g.xs.filter(inX).forEach(x => { bcols.push([x, 0], [x, W]); const fi = g.xs.indexOf(x); (g.interior[fi] || []).forEach(y => bcols.push([x, y])); });
     if (inX(0)) g.lewY.forEach(y => bcols.push([0, y]));
     if (inX(L)) g.rewY.forEach(y => bcols.push([L, y]));
@@ -5645,19 +5826,20 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
     renderNbg();
     if (!fr.length) { el.innerHTML = '<div class="empty">No mezzanine beam frames into a building column.</div>'; return; }
     const many = manyMezz(), F2 = v => f(v, 2);
-    const rows = fr.map(fl => {
+    const bldgs = [...new Set(fr.map(x => x.building || ''))], twoB = bldgs.length > 1;
+    const rows = fr.map((fl, fi) => {
       const typ = fl.type ? `${esc(fl.type.type.replace(/\s*-\s*$/, ''))}${fl.type.intType ? ' · interior columns ' + esc(fl.type.intType) + ' (✱)' : ''}` : '';
       const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
-      return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
-          <button class="btn-soft" data-fl="${esc(fl.frame)}"><svg><use href="#i-copy"/></svg>Copy</button></div>
+      return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>${twoB ? esc(fl.building) + ' · ' : ''}Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
+          <button class="btn-soft" data-fl="${fi}"><svg><use href="#i-copy"/></svg>Copy</button></div>
         <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (T/beam)</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(e.elev)}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td></td></tr></tfoot></table></div>`;
     }).join('');
     el.innerHTML = `<div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
-    const tsv = fl => ['Frame line\tColumn\tMember\tWhere\tAt T/beam (ft)\tFloor dead (k)\tFloor live (k)\tFrom'].concat(fl.entries.map(e => [fl.frame, e.label, e.member || '', e.where, (+e.elev.toFixed(3)), (+e.D.toFixed(3)), (+e.L.toFixed(3)), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].join('\t'))).join('\n');
-    $$('#frameLoads [data-fl]').forEach(b => { b.onclick = () => copyText(tsv(fr.find(x => x.frame === b.dataset.fl)), `Frame line ${b.dataset.fl} loads copied`); });
+    const tsv = fl => [(twoB ? 'Building\t' : '') + 'Frame line\tColumn\tMember\tWhere\tAt T/beam (ft)\tFloor dead (k)\tFloor live (k)\tFrom'].concat(fl.entries.map(e => [...(twoB ? [fl.building] : []), fl.frame, e.label, e.member || '', e.where, (+e.elev.toFixed(3)), (+e.D.toFixed(3)), (+e.L.toFixed(3)), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].join('\t'))).join('\n');
+    $$('#frameLoads [data-fl]').forEach(b => { const fl = fr[+b.dataset.fl]; b.onclick = () => copyText(tsv(fl), `${twoB ? fl.building + ' ' : ''}Frame line ${fl.frame} loads copied`); });
     $('#flCsv').onclick = () => {
-      const csv = ['Frame line,Column,Member,Where,At T/beam (ft),Floor dead (k),Floor live (k),From'].concat(fr.flatMap(fl => fl.entries.map(e => [fl.frame, e.label, e.member || '', e.where, +e.elev.toFixed(3), +e.D.toFixed(3), +e.L.toFixed(3), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')))).join('\r\n');
+      const csv = [(twoB ? 'Building,' : '') + 'Frame line,Column,Member,Where,At T/beam (ft),Floor dead (k),Floor live (k),From'].concat(fr.flatMap(fl => fl.entries.map(e => [...(twoB ? [fl.building] : []), fl.frame, e.label, e.member || '', e.where, +e.elev.toFixed(3), +e.D.toFixed(3), +e.L.toFixed(3), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')))).join('\r\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
       a.download = `${(state.pcs && state.pcs.job.quote) || 'mezzanine'}-frame-loads.csv`;

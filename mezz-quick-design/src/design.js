@@ -46,7 +46,8 @@
   };
   function deckKey(text) {
     const t = String(text || '').toUpperCase().replace(/\s+/g, '');
-    const m = t.match(/(0?\.?\d(?:\.\d)?)(C|VLI|VL|B|W)/);
+    // "1.5VL", "1.0C" …, or written out: "22ga B deck 1.5\"" (kind before the depth)
+    const m = t.match(/(0?\.?\d(?:\.\d)?)(C|VLI|VL|B|W)/) || ((q => q && [q[0], q[2], q[1]])(t.match(/(VLI|VL|B|C|W)-?DECK(\d(?:\.\d+)?)/)));
     if (!m) return null;
     const depth = parseFloat(m[1]), kind = m[2];
     if (kind === 'C') return depth <= 1.1 ? '1.0C' : depth <= 1.4 ? '1.3C' : '1.5C';

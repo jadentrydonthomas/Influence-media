@@ -7,8 +7,14 @@ const { readPcs, loadPdfjs } = require(M + '/test/pdf-node.js');
 async function loadJob(pdf, settings = {}) {
   const pages = await readPcs(pdf), pcs = PCS.parse(pages);
   const g = LAYOUT.buildingGrid({ ...pcs.building, frames: pcs.frames });
-  const p = pages[pages.length - 1];
-  const reg = PLAN.registerAndRead(PLAN.subpaths(await p._page.getOperatorList(), loadPdfjs().OPS, p.height), { xs: g.xs, colY: [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()])], lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
+  // the floor plan as the app finds it: from the back, the first page with no text and thousands of vector paths
+  let paths = null, annots = [];
+  for (const p of pages.slice().reverse()) {
+    if (p.items.length > 40) continue;
+    const ps = PLAN.subpaths(await p._page.getOperatorList(), loadPdfjs().OPS, p.height);
+    if (ps.length > 2000) { paths = ps; annots = p.annots || []; break; }
+  }
+  const reg = paths ? PLAN.registerAndRead(paths, { xs: g.xs, colY: [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()])], lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY }, annots) : { ok: false, reason: 'no floor plan page' };
   RUN.applyPlan(pcs, reg);
   const inps = pcs.mezzanines.map((m, i) => RUN.inputsFromPCS(pcs, i));
   const miss = n => !n || n.value == null || n.source === 'missing';

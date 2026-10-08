@@ -17,7 +17,11 @@
       annots = (await page.getAnnotations()).map(a => {
         const text = (a.contentsObj && a.contentsObj.str) || a.contents || (Array.isArray(a.textContent) ? a.textContent.join(' ') : '') || '';
         const [x1, y1, x2, y2] = a.rect || [0, 0, 0, 0];
-        return { subtype: a.subtype, text, x1: Math.min(x1, x2), x2: Math.max(x1, x2), y1: H - Math.max(y1, y2), y2: H - Math.min(y1, y2) };
+        const o = { subtype: a.subtype, text, x1: Math.min(x1, x2), x2: Math.max(x1, x2), y1: H - Math.max(y1, y2), y2: H - Math.min(y1, y2) };
+        // markup drawn over the floor plan: its colour and, for a line, its two ends (top-origin like the rest)
+        if (a.color && a.color.length >= 3) o.color = [a.color[0], a.color[1], a.color[2]];
+        if (a.lineCoordinates && a.lineCoordinates.length === 4) { const L = a.lineCoordinates; o.line = [[L[0], H - L[1]], [L[2], H - L[3]]]; }
+        return o;
       });
     } catch (e) { annots = []; }
     return { width: vp.width, height: H, items, annots };

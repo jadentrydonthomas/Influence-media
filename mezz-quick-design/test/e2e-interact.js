@@ -124,7 +124,7 @@ if (pdfArgs.length > 1) {
     const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
     const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
-    if (!two || two[1].join('|') !== 'FDL 2 COL02 -12.127 10.75 WebCenterline Global|FLL 2 COL02 -25.000 10.75 WebCenterline Global|FDL 3 COL03 -19.929 10.75 WebCenterline Global|FLL 3 COL03 -42.000 10.75 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
+    if (!two || two[1].join('|') !== 'FDL 2 COL02 -11.527 10.75 WebCenterline Global|FLL 2 COL02 -25.000 10.75 WebCenterline Global|FDL 3 COL03 -18.921 10.75 WebCenterline Global|FLL 3 COL03 -42.000 10.75 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
     if (!one || one[2].join() !== '1/C,1/B' || one[1].some(r => /COL01/.test(r))) fail('frame 1: 1/E and 1/A on the frame, 1/B and 1/C listed apart, nothing on the FSW column');
     if (!/Every frame line/.test(await page.$eval('#nbgList .nbg-cover', e => e.textContent))) fail('all frame lines with load should be covered');
     // nothing is made with an unconfirmed Ecc. Loc. code: the check file first, then the row that reads WebCenterline
@@ -236,13 +236,19 @@ if (pdfArgs.length > 1) {
   if (c0) await fillIn('geom.C', c0);
   await fillIn('loads.live', '125');
   const d0 = await dead();
+  // the deck and concrete as read off the PCS, to come back to; a dead load given on the PCS (a number or a blue note)
+  // stays put, only the deck-guide value follows deck and concrete
+  const deck0 = await page.$eval('#inputsGrid select[data-mezz="deck"]', e => e.value), conc0 = await page.$eval('#inputsGrid select[data-mezz="concrete"]', e => e.value);
+  const deadSrc = await page.$eval('#inputsGrid input[data-path="loads.dead"]', e => { const b = e.closest('.field-row') && e.closest('.field-row').querySelector('.src'); return b ? b.className : ''; });
+  const guide = /deckGuide|estimate/.test(deadSrc);
   await page.selectOption('#inputsGrid select[data-mezz="concrete"]', 'LW'); await page.waitForTimeout(150);
   const dLW = await dead(); await log(`LW concrete (DL ${dLW})`);
   await page.selectOption('#inputsGrid select[data-mezz="deck"]', '2VL'); await page.waitForTimeout(150);
   const dLW2 = await dead(); await log(`LW on 2VL (DL ${dLW2})`);
-  await page.selectOption('#inputsGrid select[data-mezz="concrete"]', 'NW'); await page.selectOption('#inputsGrid select[data-mezz="deck"]', '1.0C'); await page.waitForTimeout(150);
-  console.log('dead load NW / LW / LW 2VL'.padEnd(30), d0, dLW, dLW2);
-  if (!(+dLW < +d0)) fail('lightweight concrete should lower the dead load');
+  await page.selectOption('#inputsGrid select[data-mezz="concrete"]', conc0); await page.selectOption('#inputsGrid select[data-mezz="deck"]', deck0); await page.waitForTimeout(150);
+  console.log('dead load NW / LW / LW 2VL'.padEnd(30), d0, dLW, dLW2, guide ? '(deck guide)' : `(given: ${deadSrc.replace('src ', '')})`);
+  if (guide && !(+dLW < +d0)) fail('lightweight concrete should lower the deck-guide dead load');
+  if (!guide && (dLW !== d0 || dLW2 !== d0)) fail('a dead load given on the PCS should not follow the deck / concrete');
   if (await dead() !== d0) fail('dead load did not return to the deck guide value');
   if (await quote() !== base) fail('inputs round-trip did not return to the default answer');
 

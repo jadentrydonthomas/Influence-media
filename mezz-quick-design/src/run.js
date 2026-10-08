@@ -27,16 +27,63 @@
 
   /* Floor-plan reading → PCS: grid letters as drawn, and each mezzanine's joist direction from the "Mez. Jst."
      arrows inside its footprint. reg is PLAN.registerAndRead(...) for the building the drawing shows. */
+  /* A building attached to another along a sidewall (Box 2 "Building Attachment"): where its points sit in the other
+     building's coordinates. Seen from outside the wall attached to, its left steel line is the LEW end of an FSW and the
+     REW end of a BSW; "at" runs from there. Back to back (BSW to BSW, FSW to FSW) the attached building is turned 180°.
+     att: { wall, toWall, at }; host / own: { width, length }. Returns { toHost(x, y), fromHost(x, y), rot180 } or null. */
+  const bkeyName = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+  function attachMap(att, host, own) {
+    if (!att || !/^(FSW|BSW)$/.test(att.wall) || !/^(FSW|BSW)$/.test(att.toWall) || !(host.width > 0) || !(host.length > 0) || !(own.width > 0) || !(own.length > 0)) return null;
+    const Wh = host.width, Lh = host.length, Wa = own.width, La = own.length, at = att.at || 0;
+    const sh = att.toWall === 'BSW' ? 1 : -1, yWall = att.toWall === 'BSW' ? Wh : 0, rot180 = att.wall === att.toWall;
+    const start = att.toWall === 'BSW' ? Lh - at - La : at;
+    const d = y => (att.wall === 'BSW' ? Wa - y : y);
+    return {
+      rot180, host: att.to,
+      toHost: (x, y) => ({ x: rot180 ? start + La - x : start + x, y: yWall + sh * d(y) }),
+      fromHost: (x, y) => { const dd = (y - yWall) * sh; return { x: rot180 ? start + La - x : x - start, y: att.wall === 'BSW' ? Wa - dd : dd }; },
+    };
+  }
+  // the building the floor plan was registered to, and how a mezzanine's building sits in it (identity, attached, none)
+  function planMap(pcs, m) {
+    const hostName = pcs.planBuilding != null ? pcs.planBuilding : ((pcs.mezzanines[0] || {}).building || '');
+    if (bkeyName(m.building || '') === bkeyName(hostName)) return { toHost: (x, y) => ({ x, y }), fromHost: (x, y) => ({ x, y }), rot180: false, identity: true };
+    const att = (pcs.attachments || []).find(a => bkeyName(a.building) === bkeyName(m.building) && bkeyName(a.to) === bkeyName(hostName));
+    const own = pcs.buildings && pcs.buildings[m.building || ''], host = pcs.buildings && pcs.buildings[hostName];
+    return att && own && host ? attachMap(att, host.building || {}, own.building || {}) : null;
+  }
+  // the plan's letters and column symbols in this mezzanine's building coordinates
+  function planFor(pcs, mi) {
+    const m = pcs.mezzanines[mi], map = pcs.plan && m ? planMap(pcs, m) : null;
+    if (!map) return { yLetters: undefined, planCols: undefined };
+    const pt = c => ({ ...c, ...map.fromHost(c.x, c.y) });
+    return { yLetters: pcs.plan.letters.map(l => ({ ...l, y: map.fromHost(0, l.y).y })), planCols: pcs.plan.columns.concat(pcs.plan.frameCols || []).map(pt) };
+  }
+
   function applyPlan(pcs, reg) {
     if (!pcs) return;
-    pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns, frameCols: reg.frameCols || [] } : null;
+    pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns, frameCols: reg.frameCols || [], numberOffset: reg.numberOffset || 0, markup: reg.markup || null } : null;
+    if (pcs.planBuilding == null) pcs.planBuilding = (pcs.mezzanines[0] || {}).building || '';
     pcs.mezzanines.forEach(m => {
-      m.planJoists = null; m.planArrows = 0;
+      m.planJoists = null; m.planArrows = 0; m.planJoistsFrom = null;
       if (!pcs.plan || m.width == null || m.length == null) return;
+      // joist markup / arrows inside the mezzanine, in the plan building's coordinates (an attached building mapped there)
+      const map = planMap(pcs, m);
+      if (!map) return;
       const x0 = m.startLEW || 0, y0 = m.startFSW || 0;
-      const inside = pcs.plan.arrows.filter(a => a.x > x0 - 0.5 && a.x < x0 + m.length + 0.5 && a.y > y0 - 0.5 && a.y < y0 + m.width + 0.5);
+      const cs = [[x0, y0], [x0 + m.length, y0 + m.width]].map(([x, y]) => map.toHost(x, y));
+      const bx = [Math.min(cs[0].x, cs[1].x), Math.max(cs[0].x, cs[1].x)], by = [Math.min(cs[0].y, cs[1].y), Math.max(cs[0].y, cs[1].y)];
+      // an arrow centred in the mezzanine, or a marked-up joist line running at least 5'-0" across it
+      const crosses = a => {
+        if (!a.ends) return false;
+        const [p, q] = a.ends, along = a.dir === 'y' ? [Math.min(p.y, q.y), Math.max(p.y, q.y), by] : [Math.min(p.x, q.x), Math.max(p.x, q.x), bx];
+        const at = a.dir === 'y' ? (p.x + q.x) / 2 : (p.y + q.y) / 2, span = a.dir === 'y' ? bx : by;
+        return at > span[0] - 0.5 && at < span[1] + 0.5 && Math.min(along[1], along[2][1]) - Math.max(along[0], along[2][0]) >= Math.min(5, (along[2][1] - along[2][0]) / 2);
+      };
+      const inside = pcs.plan.arrows.filter(a => (a.x > bx[0] - 0.5 && a.x < bx[1] + 0.5 && a.y > by[0] - 0.5 && a.y < by[1] + 0.5) || crosses(a));
       const nx = inside.filter(a => a.dir === 'x').length, ny = inside.filter(a => a.dir === 'y').length;
       m.planArrows = inside.length;
+      m.planJoistsFrom = inside.some(a => a.kind === 'markup') ? 'markup' : inside.some(a => a.kind === 'truss') ? 'truss' : inside.length ? 'arrows' : null;
       m.planJoists = nx > ny ? 'x' : ny > nx ? 'y' : null;
     });
   }
@@ -52,8 +99,14 @@
     const material = Object.keys(matChecks).find(k => matChecks[k]) || null;
     const slabIn = m.slab != null ? m.slab * 12 : null;
     const concrete = /light/i.test(material || '') ? 'LW' : 'NW';
-    const deck = DESIGN.deckKey(m.deckType) || '1.0C';
-    const dl = typeof m.dead === 'number' ? v(m.dead, 'pcs') : (() => {
+    // deck: the Deck Type box, or the "Other Deck Type" written out ("22ga B deck 1.5\"")
+    const deckText = m.deckOther ? `${m.deckType || 'Other'}: ${m.deckOther}` : m.deckType;
+    const deck = DESIGN.deckKey(m.deckType) || DESIGN.deckKey(m.deckOther) || '1.0C';
+    // dead load: the PCS number; "Per Seller" with a blue note over it → the note; else the deck guide
+    const dl = typeof m.dead === 'number' ? v(m.dead, 'pcs') : m.deadNote > 0 ? (() => {
+      const d = DESIGN.deadLoadFor(slabIn, concrete, deck);
+      return v(m.deadNote, 'annotation', `PCS "Per Seller"; blue note ${m.deadNote} psf${d.psf != null ? ` (the deck guide gives ${d.psf.toFixed(1)} psf for ${slabIn}" ${concrete} on ${deck})` : ''}`);
+    })() : (() => {
       const d = DESIGN.deadLoadFor(slabIn, concrete, deck);
       return { ...v(d.psf, d.estimate ? 'estimate' : 'deckGuide', d.note), auto: true };   // follows slab / deck / concrete edits
     })();
@@ -66,7 +119,7 @@
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText: m.deckType, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, provided, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -82,9 +135,10 @@
       building: {
         width: b.width, length: b.length, ridge: b.ridge, bays: b.bays || [], lewCols: b.lewCols || [], rewCols: b.rewCols || [],
         fswSoldier: b.fswSoldier || [], bswSoldier: b.bswSoldier || [], frames,
-        yLetters: pcs.plan && (!own || own.building === pcs.building) ? pcs.plan.letters : undefined,
+        yLetters: planFor(pcs, mi).yLetters,
         // column symbols on the floor plan: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column
-        planCols: pcs.plan && (!own || own.building === pcs.building) ? pcs.plan.columns.concat(pcs.plan.frameCols || []) : undefined,
+        planCols: planFor(pcs, mi).planCols,
+        attach: (pcs.attachments || []).find(a => bkeyName(a.building) === bkeyName(m.building)) || null,
       },
     };
   }
@@ -191,9 +245,9 @@
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
     const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines });
     if (fromPlan) {
-      lay.why = 'joist arrows on the PCS floor plan';
+      lay.why = ({ markup: 'the JOISTS markup on the PCS floor plan', truss: 'the joist symbol on the PCS floor plan' })[inp.mezz.planJoistsFrom] || 'joist arrows on the PCS floor plan';
       const alt = lay.alt, n = o => o.beams.length;
-      if (alt && (alt.beamSpan < lay.beamSpan - 1e-6 || n(alt) < n(lay))) warn.push({ level: 'key', text: `Joist direction follows the "Mez. Jst." arrows on the PCS floor plan (${lay.joists === 'y' ? 'across the width' : 'along the length'}). The other direction would use ${n(alt)} beams spanning ${PCS.fmtFtIn(alt.beamSpan)} — switch it on the Plan page if that is what will be quoted.` });
+      if (alt && (alt.beamSpan < lay.beamSpan - 1e-6 || n(alt) < n(lay))) warn.push({ level: 'key', text: `Joist direction follows ${lay.why} (${lay.joists === 'y' ? 'across the width' : 'along the length'}). The other direction would use ${n(alt)} beams spanning ${PCS.fmtFtIn(alt.beamSpan)} — switch it on the Plan page if that is what will be quoted.` });
     }
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
@@ -260,7 +314,8 @@
      the beam sheet (uniform load only) stays conservative. */
   function equivTrib(L, base, extras) {
     const parts = [[0, L, base], ...extras.map(x => [Math.max(0, x.s), Math.min(L, x.e), x.trib])].filter(([a, b, w]) => b > a + 1e-9 && w);
-    if (extras.every(x => x.s <= 1e-6 && x.e >= L - 1e-6)) return base + extras.reduce((a, x) => a + x.trib, 0);
+    // spans are kept to 0.001 ft, so a neighbour edge over the whole span may end a hair short of L
+    if (extras.every(x => x.s <= 1e-3 && x.e >= L - 1e-3)) return base + extras.reduce((a, x) => a + x.trib, 0);
     const tot = parts.reduce((a, [p, q, w]) => a + w * (q - p), 0);
     const Rr = parts.reduce((a, [p, q, w]) => a + w * (q - p) * (p + q) / 2, 0) / L, Rl = tot - Rr;
     const M = x => Rl * x - parts.reduce((a, [p, q, w]) => { const e = Math.min(q, x); return e > p ? a + w * (e - p) * (x - (p + e) / 2) : a; }, 0);
@@ -277,26 +332,46 @@
     const merges = [];
     const ov = (a, b) => Math.min(a.to, b.to) - Math.max(a.from, b.from);
     const qD = c => c.beamBase.dead + c.beamBase.coll + c.beamBase.joistWt, qL = c => c.beamBase.live;
+    // a beam as the pair sees it: in its own building, or an attached building's beam in the host's coordinates
+    const ident = b => ({ dir: b.dir, line: b.line, from: b.from, to: b.to, flip: false });
+    const viaSite = map => b => {
+      const p = (u, line) => (b.dir === 'x' ? map.toHost(u, line) : map.toHost(line, u));
+      const a = p(b.from, b.line), z = p(b.to, b.line);
+      return b.dir === 'x' ? { dir: 'x', line: a.y, from: Math.min(a.x, z.x), to: Math.max(a.x, z.x), flip: a.x > z.x } : { dir: 'y', line: a.x, from: Math.min(a.y, z.y), to: Math.max(a.y, z.y), flip: a.y > z.y };
+    };
     for (let i = 0; i < ctxs.length; i++) for (let j = i + 1; j < ctxs.length; j++) {
       const ci = ctxs[i], cj = ctxs[j];
-      if (ci.incomplete || cj.incomplete || ci.bkey !== cj.bkey) continue;
-      const lines = new Set(ci.lay.beams.map(b => b.dir + ':' + b.line.toFixed(2)));
+      if (ci.incomplete || cj.incomplete) continue;
+      let pi = ident, pj = ident, hostOwns = null;
+      if (ci.bkey === cj.bkey) { /* one building */ }
+      else if (cj.site && cj.site.host === ci.bkey) { pj = viaSite(cj.site.map); hostOwns = ci; }
+      else if (ci.site && ci.site.host === cj.bkey) { pi = viaSite(ci.site.map); hostOwns = cj; }
+      else continue;
+      const P = new Map();
+      const pr = (c, b) => { const k = c.index + ':' + b.id; if (!P.has(k)) P.set(k, (c === ci ? pi : pj)(b)); return P.get(k); };
+      const keyOf = q => q.dir + ':' + q.line.toFixed(2);
+      const lines = new Set(ci.lay.beams.map(b => keyOf(pr(ci, b))));
       lines.forEach(key => {
-        const on = c => c.lay.beams.filter(b => !b.absorbed && b.dir + ':' + b.line.toFixed(2) === key);
+        const on = c => c.lay.beams.filter(b => !b.absorbed && keyOf(pr(c, b)) === key);
         const bi = on(ci), bj = on(cj);
-        if (!bj.length || !bi.some(a => bj.some(b => ov(a, b) > 0.25))) return;
+        if (!bj.length || !bi.some(a => bj.some(b => ov(pr(ci, a), pr(cj, b)) > 0.25))) return;
         const ext = bs => bs.reduce((a, b) => a + b.span, 0);
-        const [own, oc, sub, sc] = ext(bi) >= ext(bj) - 1e-6 ? [bi, ci, bj, cj] : [bj, cj, bi, ci];
+        // across attached buildings the host keeps the line (its columns carry it); in one building, the longer side
+        const [own, oc, sub, sc] = hostOwns ? (hostOwns === ci ? [bi, ci, bj, cj] : [bj, cj, bi, ci]) : ext(bi) >= ext(bj) - 1e-6 ? [bi, ci, bj, cj] : [bj, cj, bi, ci];
         sub.forEach(b => {
-          const cover = own.filter(o => ov(o, b) > 1e-6);
-          if (cover.reduce((a, o) => a + ov(o, b), 0) < b.span - 0.05) {
+          const qb = pr(sc, b), cover = own.filter(o => ov(pr(oc, o), qb) > 1e-6);
+          if (cover.reduce((a, o) => a + ov(pr(oc, o), qb), 0) < b.span - 0.05) {
             if (cover.length) [oc, sc].forEach(c => c.warn.push({ level: 'warn', text: `Beams of ${oc.id} and ${sc.id} overlap on the line at ${PCS.fmtFtIn(b.line)} with different supports — frame that line by hand.` }));
             return;
           }
           const ratio = Math.max(qD(oc) ? qD(sc) / qD(oc) : 1, qL(oc) ? qL(sc) / qL(oc) : 1);
           b.absorbed = { mi: oc.index, mezz: oc.id, into: cover.map(o => o.id) };
-          cover.forEach(o => { (o.extra = o.extra || []).push({ mi: sc.index, mezz: sc.id, beam: b.id, tribOwn: b.tribOwn, trib: b.tribOwn * ratio, ratio, s: Math.max(o.from, b.from) - o.from, e: Math.min(o.to, b.to) - o.from }); });
-          merges.push({ line: b.line, dir: b.dir, from: b.from, to: b.to, owner: oc.index, ownerId: oc.id, sub: sc.index, subId: sc.id, trib: b.tribOwn, ratio, into: cover.map(o => o.id) });
+          cover.forEach(o => {
+            const qo = pr(oc, o), lo = Math.max(qo.from, qb.from), hi = Math.min(qo.to, qb.to);
+            const s0 = qo.flip ? qo.to - hi : lo - qo.from, e0 = qo.flip ? qo.to - lo : hi - qo.from;   // along the owner beam, its own way
+            (o.extra = o.extra || []).push({ mi: sc.index, mezz: sc.id, beam: b.id, tribOwn: b.tribOwn, trib: b.tribOwn * ratio, ratio, s: s0, e: e0 });
+          });
+          merges.push({ line: b.line, dir: b.dir, from: b.from, to: b.to, owner: oc.index, ownerId: oc.id, sub: sc.index, subId: sc.id, trib: b.tribOwn, ratio, into: cover.map(o => o.id), across: !!hostOwns });
         });
       });
     }
@@ -439,7 +514,7 @@
       if (c.incomplete) return;
       c.lay.supports.forEach(sp => {
         const key = c.bkey + '|' + sp.x.toFixed(2) + ',' + sp.y.toFixed(2);
-        const e = at.get(key) || { key, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
+        const e = at.get(key) || { key, bkey: c.bkey, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
         e.seenIn.push(c.index);
         ['L', 'R'].forEach(side => {
           const id = sp.beams[side];
@@ -460,7 +535,7 @@
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
         const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
-        frame.push({ label: e.label, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
@@ -564,7 +639,7 @@
     live.forEach(c => {
       const L = c.lay, alt = L.alt, sp = c.beamBase.Lb, shorter = !alt || alt.beamSpan >= L.beamSpan - 1e-6;
       add('15.1.1.3', 'Layout', 'Beams on the shorter span, joists the longer', shorter ? 'ok' : 'info',
-        `${tag(c)}beams span ${F(L.beamSpan)}, joists ${F(L.joistSpan)}${/arrows/.test(L.why || '') ? ', as the "Mez. Jst." arrows on the PCS show' : ''}${shorter ? '.' : ` — the other direction would put the beams on ${F(alt.beamSpan)}; the drawing governs, confirm it was intended.`}`, c.index);
+        `${tag(c)}beams span ${F(L.beamSpan)}, joists ${F(L.joistSpan)}${/PCS floor plan/.test(L.why || '') ? `, as ${L.why} shows` : ''}${shorter ? '.' : ` — the other direction would put the beams on ${F(alt.beamSpan)}; the drawing governs, confirm it was intended.`}`, c.index);
       add('15.1.1.3', 'Layout', 'Joists no more than 5\'-0" on center', sp <= 5 + 1e-9 ? 'ok' : 'stop', `${tag(c)}joists @ ${F(sp)} O.C.${sp <= 5 + 1e-9 ? '' : ' — NBG will not space joists more than 5\'-0" apart.'}`, c.index);
     });
     if (shared.length) {
@@ -786,7 +861,7 @@
       const W = g.width, members = [0, ...(g.interior[fi] || []).filter(y => y > 0.05 && y < W - 0.05), W].sort((a, b) => a - b);
       const mi = members.findIndex(y => near(y, q.y));
       const wall = fi === 0 || fi === g.xs.length - 1;
-      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of this end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
+      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall && /post|bearing/i.test(((c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || {}).type || '') ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of the post-and-beam end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
       // top of the mezzanine beam bearing there (the higher one when two mezzanines frame in)
       const elev = Math.max(...q.parts.map(p => { const k = ctxs[p.mi]; return k.A - (k.slabIn + k.seatIn) / 12; }));
       const A = Math.max(...q.parts.map(p => ctxs[p.mi].A));
@@ -801,6 +876,14 @@
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
   function runJob(items) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
+    // a mezzanine in a building attached to another mezzanine's building: where its beams sit in that building
+    ctxs.forEach(c => {
+      const att = !c.incomplete && c.inp.building && c.inp.building.attach;
+      if (!att) return;
+      const host = ctxs.find(h => h !== c && !h.incomplete && bkeyName(h.inp.mezz.building) === bkeyName(att.to));
+      const map = host ? attachMap(att, host.inp.building, c.inp.building) : null;
+      if (map) c.site = { host: host.bkey, hostId: host.id, map };
+    });
     const merges = ctxs.length > 1 ? mergeBeams(ctxs) : [];
     const marks = jobMarks(ctxs).map(designMark);
     ctxs.forEach(c => { if (!c.incomplete) attachMarks(c, marks); });
@@ -818,7 +901,7 @@
       if (sets.size) { const env = DESIGN.designColumn([...sets.values()], { L: c0.colLen, includeW818: c0.s.includeW818, edition: c0.ed.colEd }, WF); jobName = env.name; }
     }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
-    mezz.forEach(r => { if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
+    mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName} passes every column case of every mezzanine.` }); });
     // the design manual items, and the Excel cells to type
     const dm = dmChecklist(ctxs, mezz, marks, cols);
@@ -917,6 +1000,6 @@
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { REQUIRED, inputsFromPCS, applyPlan, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);

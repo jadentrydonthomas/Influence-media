@@ -130,12 +130,12 @@ const lines = [
   const { loadJob } = require('../oracle/job_load.js');
   const { pcs, job } = await loadJob(pdf);
   const leanTo = (pcs.attachments || []).find(a => a.to === 'Bldg 1' && /^(FSW|BSW)$/.test(a.toWall));
-  assert.deepStrictEqual(leanTo, { building: 'Bldg 2', wall: 'BSW', to: 'Bldg 1', toWall: 'FSW' });
+  assert.deepStrictEqual(leanTo, { building: 'Bldg 2', wall: 'BSW', to: 'Bldg 1', toWall: 'FSW', at: 0 });
   const want = {
-    '1': { rows: [['FDL 2', 'COL02', 8.27], ['FLL 2', 'COL02', 17.5], ['FDL 3', 'COL03', 9.92], ['FLL 3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
-    '2': { rows: [['FDL 2', 'COL02', 12.13], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 19.93], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '3-5': { rows: [['FDL 3', 'COL03', 19.93], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '6': { rows: [['FDL 3', 'COL03', 9.92], ['FLL 3', 'COL03', 21]], unplaced: ['6/B'] },
+    '1': { rows: [['FDL 2', 'COL02', 7.84], ['FLL 2', 'COL02', 17.5], ['FDL 3', 'COL03', 9.41], ['FLL 3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
+    '2': { rows: [['FDL 2', 'COL02', 11.53], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 18.92], ['FLL 3', 'COL03', 42]], unplaced: [] },
+    '3-5': { rows: [['FDL 3', 'COL03', 18.92], ['FLL 3', 'COL03', 42]], unplaced: [] },
+    '6': { rows: [['FDL 3', 'COL03', 9.41], ['FLL 3', 'COL03', 21]], unplaced: ['6/B'] },
   };
   const outDir = process.env.MZ_FRAME_OUT;
   for (const name of fs.readdirSync(dir).filter(n => /^Frame_\d+_Bldg_1_[\d-]+\.frame$/.test(n)).sort()) {

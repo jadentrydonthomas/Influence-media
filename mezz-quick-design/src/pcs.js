@@ -175,7 +175,9 @@
       if (/ROOF SECONDARY|SIDEWALL AND ENDWALL/i.test(ls[i].text)) break;
       const dims = (ls[i].text.match(reDimAll) || []).map(ftin).filter(v => v != null);
       if (dims.length >= 3 && (!name || ls[i].text.toUpperCase().includes(name.toUpperCase()) || !out.width)) {
-        [out.width, out.length, out.ridge, out.eave] = dims;
+        // width, length, distance to ridge (N/A on a single slope or a lean-to), eave heights: N/A keeps its place
+        const tok = (ls[i].text.match(new RegExp(DIM + '|N\\/A', 'g')) || []).map(t => (t === 'N/A' ? null : ftin(t)));
+        [out.width, out.length, out.ridge, out.eave] = tok.length >= 3 ? tok : dims;
         out.name = clean(ls[i].items[0].str);
         if (!name || out.name.toUpperCase() === name.toUpperCase()) break;
       }
@@ -217,14 +219,17 @@
     if (pi < 0) return [];
     const ls = lines(pages[pi]);
     const s = findLine(ls, /FRAME INFORMATION/i);
-    const e = findLine(ls, /Base Plate Elevations|6\) ROOF PANEL/i, s + 1);
+    // every building's block, down to the next box (each block ends with its own "Base Plate Elevations" note)
+    const e = findLine(ls, /^\s*6\)\s|6\) ROOF PANEL/i, s + 1);
     let region = ls.slice(s + 1, e < 0 ? ls.length : e);
     // one block per building ("BUILDING NAME: Main", "BUILDING NAME: Lean-To Canopy"): keep the mezzanine's
     const heads = region.map((l, i) => { const m = l.text.match(/BUILDING NAME:\s*(.+?)(?:\s{2,}|$)/i); return m ? { i, name: clean(m[1]) } : null; }).filter(Boolean);
-    if (name && heads.length) {
-      const k = heads.findIndex(h => h.name.toUpperCase() === name.toUpperCase());
-      const h = heads[k >= 0 ? k : 0];
-      region = region.slice(h.i, heads[(k >= 0 ? k : 0) + 1] ? heads[(k >= 0 ? k : 0) + 1].i : region.length);
+    const key = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+    if (heads.length) {
+      // the named building's block; with no name, the first building's (never another building's frames)
+      const k = name ? heads.findIndex(h => key(h.name) === key(name)) : 0;
+      if (k < 0) return [];
+      region = region.slice(heads[k].i, heads[k + 1] ? heads[k + 1].i : region.length);
     }
     const rows = [];
     region.forEach(l => {
@@ -259,20 +264,38 @@
     provided: ['Designed For Load Provisions Only', 'Auxiliary Columns', 'Support Beams', 'Edge Angle / Pour Stop'],
   };
 
+  /* Box 22. A quote can carry it more than once: "22) MEZZANINES - NONE REQUIRED" in the base scope and the
+     alternate's Box 22 pages appended after the drawings ("ALTERNATE #1 MEZZANINE SPECS"). Every block that lists a
+     mezzanine is read; a block runs over the next pages while they continue it, and stops at "23)". The same
+     mezzanine ID read twice keeps the later one. */
+  const isBox22 = t => /22\)\s*MEZZANINES/i.test(t) && !/NONE\s+REQUIRED/i.test(t);
   function mezzanines(pages) {
-    const start = pages.findIndex(p => lines(p).some(l => /22\)\s*MEZZANINES/i.test(l.text)));
-    if (start < 0) return [];
-    // Box 22 may run over several pages; stop at "23)"
-    const blockLines = [];
-    for (let pi = start; pi < pages.length; pi++) {
-      const ls = lines(pages[pi]);
-      let s = pi === start ? findLine(ls, /22\)\s*MEZZANINES/i) + 1 : findLine(ls, /CONTROL #/i) + 1;
-      const e = findLine(ls, /^2[3-9]\)\s|^23\)/, s);
-      ls.slice(s, e < 0 ? ls.length : e).forEach(l => blockLines.push({ ...l, page: pages[pi].num, pageRef: pages[pi] }));
-      if (e >= 0) break;
+    const out = [];
+    for (let start = 0; start < pages.length; start++) {
+      if (!lines(pages[start]).some(l => isBox22(l.text))) continue;
+      const blockLines = [];
+      let pi = start;
+      for (; pi < pages.length; pi++) {
+        const ls = lines(pages[pi]);
+        if (pi > start && !ls.some(l => isBox22(l.text) || /Mezzanine ID:/i.test(l.text))) break;   // not a continuation
+        const s = pi === start ? findLine(ls, /22\)\s*MEZZANINES/i) + 1 : findLine(ls, /CONTROL #/i) + 1;
+        const e = findLine(ls, /^2[3-9]\)\s|^23\)/, s);
+        ls.slice(s, e < 0 ? ls.length : e).forEach(l => blockLines.push({ ...l, page: pages[pi].num, pageRef: pages[pi] }));
+        if (e >= 0) { pi++; break; }
+      }
+      const starts = blockLines.map((l, i) => (/Mezzanine ID:/i.test(l.text) ? i : -1)).filter(i => i >= 0);
+      starts.forEach((s, k) => {
+        const m = parseMezz(blockLines.slice(s, k + 1 < starts.length ? starts[k + 1] : blockLines.length));
+        const label = (lines(pages[start]).find(l => /LABEL:/i.test(l.text)) || {}).text;
+        m.label = label ? clean(label.replace(/^.*LABEL:\s*/i, '')) : null;
+        m.alternate = (pages[start].annots || []).map(a => clean(a.text)).find(t => /ALTERNATE/i.test(t)) || (m.label && /created from/i.test(m.label) ? `quote label ${m.label}` : null);
+        const at = out.findIndex(x => x.id === m.id);
+        if (at >= 0) out.splice(at, 1);
+        out.push(m);
+      });
+      start = Math.max(start, pi - 1);
     }
-    const starts = blockLines.map((l, i) => (/Mezzanine ID:/i.test(l.text) ? i : -1)).filter(i => i >= 0);
-    return starts.map((s, k) => parseMezz(blockLines.slice(s, k + 1 < starts.length ? starts[k + 1] : blockLines.length)));
+    return out;
   }
 
   function parseMezz(ls) {
@@ -290,7 +313,8 @@
       slab: ftin(grab(txt, new RegExp(String.raw`Slab\/Deck Thickness:\s*(` + DIM + ')'))),
       startLEW: ftin(grab(txt, new RegExp(String.raw`Start Location from LEW\s*(` + DIM + ')'))),
       startFSW: ftin(grab(txt, new RegExp(String.raw`Start Location from FSW\s*(` + DIM + ')'))),
-      deckType: grab(txt, /Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckType: grab(txt, /(?:^|\s)Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
+      deckOther: grab(txt, /Other Deck Type:\s*(.+?)(?:\s{2,}|\n|$)/),
       openings: grab(txt, /Floor Openings[^\n]*\n([^\n]*)/),
       dims: {}, checks: {}, sources: {}, page: ls[0] && ls[0].page,
     };
@@ -298,6 +322,13 @@
     // dimension rows: requested / provided columns + FreeText annotation on the same row
     const pageRef = ls[0] && ls[0].pageRef;
     const annots = pageRef ? (pageRef.annots || []).filter(a => /FreeText/i.test(a.subtype) && clean(a.text)) : [];
+    // a blue note on the Design Loads row ("62.5psf" over "Dead Load: Per Seller") is the engineer's dead load
+    const loadRow = ls.find(l => /Dead Load:/i.test(l.text));
+    if (loadRow) {
+      const xLive = (loadRow.items.find(it => /Live Load/i.test(it.str)) || {}).x ?? Infinity;
+      const note = annots.find(a => loadRow.y >= a.y1 - 4 && loadRow.y <= a.y2 + 6 && a.x1 < xLive && /^\s*\d+(?:\.\d+)?\s*(?:psf|#)?\s*$/i.test(clean(a.text)));
+      if (note) m.deadNote = parseFloat(clean(note.text));
+    }
     const hdr = ls.find(l => /Requested/.test(l.text) && /Provided/.test(l.text));
     const xReq = hdr ? hdr.items.find(i => /Requested/.test(i.str)).x : null;
     const xProv = hdr ? hdr.items.find(i => /Provided/.test(i.str)).x : null;
@@ -351,10 +382,11 @@
   // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------
   function attachments(pages) {
     const text = allLines(pages).map(l => l.text).join(' ').replace(/\s+/g, ' ');
-    const re = /The\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+attaches to the\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+at\b/gi;
+    const re = new RegExp(String.raw`The\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+attaches to the\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+at\b\s*(` + DIM + ')?', 'gi');
     const out = [];
     let m;
-    while ((m = re.exec(text))) out.push({ building: clean(m[2]), wall: m[1].toUpperCase(), to: clean(m[4]), toWall: m[3].toUpperCase() });
+    // "at 0'-0" from the Left Steel Line of the Wall Being Attached to" (left as seen from outside that wall)
+    while ((m = re.exec(text))) out.push({ building: clean(m[2]), wall: m[1].toUpperCase(), to: clean(m[4]), toWall: m[3].toUpperCase(), at: m[5] ? ftin(m[5]) : 0 });
     return out;
   }
 

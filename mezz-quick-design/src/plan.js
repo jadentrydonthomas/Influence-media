@@ -8,6 +8,8 @@
                        two diagonals), the interior frame columns "designated as Most Economical" in Box 5
      - joist arrows  : "Mez. Jst." — a straight shaft with a half arrowhead (~30°) at each end
      - joist symbols : a short truss drawn along the joists — a chord line with a zigzag of webs beside it
+     - markup        : what the quote engineer marks up over the plan as PDF annotations — an "X" text box on each
+                       mezzanine column, a line labelled "JOISTS" (and lines of its colour) across the joist span
    Circles are drawn either as one polyline or as dozens of 2-point segments; segments are chained first.
    The bubbles register the drawing to the building grid (same scale on both axes, so extra bubbles — a
    lean-to, an offset letter — cannot throw the fit), every side bubble is lettered from the BSW down
@@ -198,6 +200,30 @@
     return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 12 && a.vert === b.vert));
   }
 
+  /* Markup annotations over the plan (top-origin page coords, from extract.js): mezzanine columns are "X" text boxes
+     (or ×, ⊗); joist direction is a long straight line with a "JOIST" note beside it, and every line of that colour
+     and direction (the same markup repeated). Lines of another colour (the beam lines) are only kept as beams. */
+  function readMarkup(annots) {
+    const out = { crosses: [], arrows: [], beams: [] };
+    if (!annots || !annots.length) return out;
+    const ctr = a => ({ x: (a.x1 + a.x2) / 2, y: (a.y1 + a.y2) / 2 });
+    annots.filter(a => /FreeText|Text|Square|Circle/i.test(a.subtype) && /^\s*[Xx×✕✖⊗]\s*$/.test(a.text || '')).forEach(a => out.crosses.push({ ...ctr(a), kind: 'x', markup: true }));
+    const lines = annots.filter(a => a.line).map(a => {
+      const [p, q] = a.line, len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      return { a: p, b: q, len, vert: Math.abs(q[0] - p[0]) < Math.abs(q[1] - p[1]), color: (a.color || []).join(','), x: (p[0] + q[0]) / 2, y: (p[1] + q[1]) / 2 };
+    }).filter(l => l.len >= 25 && (l.vert ? Math.abs(l.b[0] - l.a[0]) : Math.abs(l.b[1] - l.a[1])) < 0.05 * l.len);
+    const notes = annots.filter(a => /FreeText|Text/i.test(a.subtype) && a.text);
+    const near = (l, n) => { const c = ctr(n), along = l.vert ? c.y : c.x, lo = Math.min(l.vert ? l.a[1] : l.a[0], l.vert ? l.b[1] : l.b[0]), hi = Math.max(l.vert ? l.a[1] : l.a[0], l.vert ? l.b[1] : l.b[0]);
+      return along > lo - 10 && along < hi + 10 && Math.abs(l.vert ? c.x - l.x : c.y - l.y) < 30; };
+    const joist = lines.filter(l => notes.some(n => /JOIST/i.test(n.text) && near(l, n)));
+    const keys = new Set(joist.map(l => l.color + '|' + l.vert));
+    lines.forEach(l => {
+      if (keys.has(l.color + '|' + l.vert)) out.arrows.push({ x: l.x, y: l.y, len: l.len, vert: l.vert, a: l.a, b: l.b, kind: 'markup' });
+      else out.beams.push({ a: l.a, b: l.b, vert: l.vert });
+    });
+    return out;
+  }
+
   // Group bubble circles: the most common radius among the larger plain circles
   function bubbles(circles) {
     const big = circles.filter(c => c.r >= 5 && c.r <= 16);
@@ -234,8 +260,11 @@
   /* grid: { xs:[frame line x, ft], colY:[column line y from FSW, ft], lewY?, rewY?, width?, letterLines? (column lines + ridge) }
      returns { ok, reason, columns:[{x,y,kind}] (mezzanine ⊗ 'x' / circled-I 'i'), frameCols:[{x,y,kind}] (bare I 'I' /
      ✱ 'star'), arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
-  function registerAndRead(paths, grid) {
-    const { crosses, frameCols, circles, arrows } = readSymbols(paths);
+  function registerAndRead(paths, grid, annots) {
+    const sym = readSymbols(paths), mk = readMarkup(annots);
+    // marked-up columns win over drawn ⊗ at the same spot (the markup is the quote engineer's)
+    const crosses = mk.crosses.concat(sym.crosses.filter(c => !mk.crosses.some(m => Math.hypot(m.x - c.x, m.y - c.y) < 6)));
+    const { frameCols, circles } = sym, arrows = sym.arrows.concat(mk.arrows);
     const bub = bubbles(circles);
     const out = { ok: false, crosses: crosses.length, bubbles: bub.length, columns: [], arrows: [], letters: [] };
     if (bub.length < 4) { out.reason = 'grid bubbles not found'; return out; }
@@ -244,13 +273,27 @@
     const ys = cluster(bub.map(b => b.y), r), xs = cluster(bub.map(b => b.x), r);
     const rowY = ys.map(y => ({ y, n: bub.filter(b => Math.abs(b.y - y) <= r).length })).sort((a, b) => b.n - a.n);
     const colX = xs.map(x => ({ x, n: bub.filter(b => Math.abs(b.x - x) <= r).length })).sort((a, b) => b.n - a.n);
-    const topRow = rowY.filter(q => q.n === rowY[0].n).sort((a, b) => a.y - b.y)[0];
-    const numX = bub.filter(b => Math.abs(b.y - topRow.y) <= r).map(b => b.x).sort((a, b) => a - b);
     const gx = grid.xs.slice().sort((a, b) => a - b);
-    if (numX.length !== gx.length) { out.reason = `${numX.length} frame-line bubbles on the drawing, ${gx.length} frame lines from the bays`; return out; }
-    const fx = fit(numX, gx);
-    const spanX = gx[gx.length - 1] - gx[0] || 1;
-    if (fx.res > spanX * 0.02 + 0.5) { out.reason = 'frame-line bubble spacing does not match the bays'; return out; }
+    const spanX = gx[gx.length - 1] - gx[0] || 1, tolX = spanX * 0.02 + 0.5;
+    // frame-line bubbles: a row whose spacing matches the bays. A row can carry an extra bubble (a lean-to's end line
+    // 1'-4" off the endwall, drawn overlapping), so the first / last frame line may sit on the first or second bubble
+    // from either end; every frame line must find a bubble, extra bubbles are left over
+    let fx = null, bestRes = Infinity, rowN = 0, numberOffset = 0;
+    rowY.filter(q => q.n >= Math.max(3, gx.length - 2)).forEach(q => {
+      const row = bub.filter(b => Math.abs(b.y - q.y) <= r).map(b => b.x).sort((a, b) => a - b);
+      rowN = Math.max(rowN, row.length);
+      for (let i = 0; i < Math.min(3, row.length); i++) for (let j = row.length - 1; j > i && j >= row.length - 3; j--) {
+        const f0 = fit([row[i], row[j]], [gx[0], gx[gx.length - 1]]);
+        if (!(f0.a > 0)) continue;
+        const pick = gx.map(g => row.map(x => ({ x, d: Math.abs(f0.a * x + f0.b - g) })).sort((p, s) => p.d - s.d)[0]);
+        if (pick.some(o => o.d > tolX) || new Set(pick.map(o => o.x)).size !== gx.length) continue;
+        const f1 = fit(pick.map(o => o.x), gx);
+        // bubbles before the first frame line: the drawing numbers its frame lines from 1 + that many
+        if (f1.res < bestRes) { bestRes = f1.res; fx = f1; numberOffset = row.filter(x => x < pick[0].x - Math.max(0.8, r * 0.3)).length; }
+      }
+    });
+    if (!fx) { out.reason = `${rowN} frame-line bubbles in a row on the drawing do not line up with the ${gx.length} frame lines from the bays`; return out; }
+    if (fx.res > tolX) { out.reason = 'frame-line bubble spacing does not match the bays'; return out; }
     // letter bubbles: the outermost bubble columns left and right (not in a numbers row)
     const rowsN = rowY.filter(q => q.n >= Math.max(3, gx.length - 1)).map(q => q.y);
     const side = bub.filter(b => !rowsN.some(y => Math.abs(b.y - y) <= r));
@@ -282,14 +325,17 @@
     const ly = cluster([...[...left, ...right].map(q => fy.a * q.y + fy.b), ...(grid.letterLines || [])], 1).sort((p, q) => q - p);
     const L = gridLetters(ly.length);
     out.letters = ly.map((y, i) => ({ y, letter: L[i] }));
-    out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind }));
+    out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind, markup: !!c.markup }));
     // frame columns inside the building outline (a lean-to or the title block cannot pass for one)
     const xEnd = gx[gx.length - 1];
     out.frameCols = frameCols.map(c => ({ ...toB(c.x, c.y), kind: c.kind })).filter(c => c.x > gx[0] - 3 && c.x < xEnd + 3 && c.y > -3 && c.y < W + 3);
     // joist symbols inside the building and off the wall lines (wall-liner marks and hatch ends are not joists)
     const offWalls = q => q.x > gx[0] + 1.5 && q.x < gx[gx.length - 1] - 1.5 && q.y > 1.5 && q.y < W - 1.5;
-    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a), kind: ar.kind || 'arrow' }))
+    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a), kind: ar.kind || 'arrow', ends: ar.kind === 'markup' && ar.a && ar.b ? [toB(ar.a[0], ar.a[1]), toB(ar.b[0], ar.b[1])] : null }))
       .filter(q => q.kind !== 'truss' || (offWalls(q) && q.len >= 5 && q.len <= 60));
+    out.beams = mk.beams.map(l => ({ a: toB(l.a[0], l.a[1]), b: toB(l.b[0], l.b[1]), dir: l.vert ? 'y' : 'x' }));
+    out.markup = { columns: mk.crosses.length, joists: mk.arrows.length, beams: mk.beams.length };
+    out.numberOffset = numberOffset; out.frameLines = gx.length;
     out.ok = true;
     if (!crosses.length) out.reason = 'no mezzanine column symbols found';
     out.map = { fx, fy };
@@ -308,6 +354,6 @@
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
+  const api = { readMarkup, subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
 })(typeof self !== 'undefined' ? self : this);

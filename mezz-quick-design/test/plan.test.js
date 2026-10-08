@@ -80,4 +80,17 @@ const mezzCols = j => j.columns.map(c => c.label).sort();
   const j = job(rigid, onDrawing.concat([sym(40.2, 118.2, 'I')]));
   assert.deepStrictEqual(mezzCols(j), DRAWN.slice().sort());
 }
-console.log('plan tests passed (symbols: lopsided ⊗, I, circled I, ✱, joist truss; frame vs mezzanine settled by the drawing)');
+// markup over the plan (PDF annotations): "X" text boxes are mezzanine columns; a line labelled JOISTS, and every line
+// of its colour and direction, gives the joist direction; lines of another colour are beam lines
+{
+  const fx = (x, y) => ({ subtype: 'FreeText', text: 'X', x1: x - 7, x2: x + 7, y1: y - 9, y2: y + 9 });
+  const ln = (a, b, color) => ({ subtype: 'Line', text: '', color, line: [a, b], x1: Math.min(a[0], b[0]), x2: Math.max(a[0], b[0]), y1: Math.min(a[1], b[1]), y2: Math.max(a[1], b[1]) });
+  const mk = PLAN.readMarkup([fx(345, 334), fx(420, 334), ln([319, 155], [320, 640], [0, 0, 255]), { subtype: 'FreeText', text: 'JOISTS', x1: 303, x2: 321, y1: 354, y2: 398 },
+    ln([801, 160], [802, 645], [0, 0, 255]), ln([263, 155], [875, 155], [255, 0, 0]), { subtype: 'FreeText', text: 'MEZZ BEAMS & COLUMNS TYP.', x1: 482, x2: 640, y1: 319, y2: 337 }]);
+  assert.deepStrictEqual(mk.crosses.map(c => [c.x, c.y, c.kind, c.markup]), [[345, 334, 'x', true], [420, 334, 'x', true]]);
+  assert.deepStrictEqual(mk.arrows.map(a => [Math.round(a.x), a.vert, a.kind]), [[320, true, 'markup'], [802, true, 'markup']], 'both blue lines are joist lines');
+  assert.strictEqual(mk.beams.length, 1, 'the red line is a beam line');
+  assert.deepStrictEqual(PLAN.readMarkup([ln([10, 10], [10, 300], [0, 0, 255])]).arrows, [], 'a line without a JOISTS note says nothing');
+  assert.deepStrictEqual(PLAN.readMarkup(null), { crosses: [], arrows: [], beams: [] });
+}
+console.log('plan tests passed (symbols: lopsided ⊗, I, circled I, ✱, joist truss, marked-up X and JOISTS lines; frame vs mezzanine settled by the drawing)');
