@@ -269,6 +269,14 @@ The mezzanine's seismic load, worked the way NBG's **IBC Seismic workbook** (rev
   - The mezzanine row is the frame's concentrated seismic load at the mezzanine level. It goes on the frame columns that mezzanine's beams frame into (DM 15.1.3: a side on a rigid frame is held by the frame), shared by the dead load each takes (or equally) → the EQR / EQL rows.
   - The roof and walls go into NBG Frame as its roof seismic dead load with Cs (the workbook's "alt. roof weight"). With a mezzanine low in the building the vertical distribution puts more of the shear at the roof than NBG Frame's single-level roof seismic does — on W1S-26062 frame 2 the roof's share is about 1.8 × Cs × its weight.
   - A frame line with mezzanine area but no frame column the mezzanine frames into is flagged: that share needs independent bracing or another frame.
+- **Editing the EQ loads.** Whatever is shown is what the frame files get.
+  - *All EQ loads ×* multiplies every calculated load (e.g. 1.1).
+  - A value typed on one column of the Seismic page (frame line × column × level) is used as typed; ↺ goes back to the calculated load.
+  - A value typed in a frame-file card's EQR X Force sets that column for every frame line the file designs (e.g. 3, 4 and 5 for a 3-5 file).
+  - Typing 0 leaves the EQ rows off that column.
+  - The calculated value stays beside every edited one (Seismic page, Frame loads, the card's *From* column, hover).
+  - *Back to the calculated loads* clears every edit.
+  - Edits are kept on this computer with the job's other Seismic-page values (by quote number). A typed value whose column or level no longer exists after a layout change is flagged and not used.
 - **Bracing (longitudinal).** The whole building: the roof psf and Cs for the bracing software (which otherwise fixes the roof at 8 psf), the sidewall loads at the eave, each mezzanine's force at its level. Then what each line has to hold: the floor spans across the building between its edges as a flexible diaphragm (lever rule, cut along the length wherever the floor changes width). A sidewall line is the building's bracing, tiered at the mezzanine level; any other line is independent X-bracing, designed for the larger of the seismic and the DM's 1 % (FDL + FLL) stability force.
 - **Checked** against the IBC Seismic workbook in LibreOffice (`oracle/seismic_oracle.py`, `oracle/seismic_check.js`): 15 cases covering ASCE 7-05 / 7-10 / 7-16, site classes B–D, risk categories I–IV, SDC A–D, the 12.8.1.3 caps, the 7-16 11.4.8 exception, snow over 30 psf, partitions, concentrated loads, k = 0 and k > 1, gable / unequal gable / single slope, end and interior frames, the building-limit warning and a rigid mezzanine diaphragm — **1,386 of 1,386 values tie**. A user's own longitudinal table for W1S-26062 (V 44.92 k, mezzanines 13.95 + 5.98 k) is reproduced row for row.
 

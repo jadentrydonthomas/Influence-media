@@ -904,3 +904,17 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
 .explain-body .eq { font-family: var(--mono); font-size: 12px; background: var(--surface-soft); padding: 1px 5px; border-radius: 4px; }
 .name-key { flex-basis: 100%; margin: 6px 0 10px; padding: 7px 11px; border-radius: 8px; background: var(--surface-soft); font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
 .name-key b { color: var(--ink); } .name-key .mono { color: var(--ink); font-weight: 600; }
+/* EQ load edits: the job-wide multiplier, and a value typed per column (Seismic page and the frame-file cards) */
+.eq-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; background: var(--surface-soft); font-size: 12.5px; color: var(--ink-muted); }
+.eq-bar label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.eq-bar span { flex: 1 1 260px; }
+.eq-bar input, .eq-in { font: 600 12.5px var(--mono); width: 72px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-align: right; }
+.eq-td { min-width: 240px; }
+.eq-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 2px 0; }
+.eq-edit small.sub-n { display: inline; }
+.eq-edit.is-typed .eq-in, .eq-in.is-typed { border-color: var(--amber); background: var(--amber-soft); }
+.eq-edit.is-scaled .eq-in, .eq-in.is-scaled { border-style: dashed; border-color: var(--amber); }
+.eq-x { border: 0; background: none; color: var(--amber); cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; }
+.eq-x:hover { color: var(--ink); }
+table.nbg-t td .card-eq { width: 78px; }
+.eq-tag { display: block; color: var(--amber) !important; }

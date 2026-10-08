@@ -932,6 +932,8 @@
        types: [FSW, BSW], buildings: { [bkey]: { SW, RSW, RDL, CDL, Pf, walls: {fsw, bsw, lew, rew}, story } },
        mezz: { [mezzanine id]: { FDL, framing: false, storage } } } — anything left out comes from the PCS / defaults. */
   const SEIS_DEFAULTS = { SW: 2, RSW: 1, wall: 3, split: 'dead', types: ['X-Bracing', 'X-Bracing'] };
+  // one EQ value: building | frame line | column (grid point) | elevation
+  const eqKey = (bk, frame, label, at) => `${bk}|${frame}|${label}|${(+at).toFixed(2)}`;
   const secWt = sec => (!sec ? 0 : sec.type === 'WF' ? (WF[sec.name] || {}).W || 0 : (sec.bof * sec.tof + sec.bif * sec.tif + (sec.d - sec.tof - sec.tif) * sec.tw) * 490 / 144);
   function seismicJob(ctxs, mezz, frames, cfg = {}) {
     const live = ctxs.filter(c => !c.incomplete);
@@ -1032,6 +1034,20 @@
           if (off.length) notes.push({ level: 'info', text: `Frame ${grid.xLabel(x)}: ${ml.id} also bears on ${off.map(o => o.e.label).join(', ')} — endwall columns, not part of the frame's lateral system. Its seismic on this line goes to ${members.map(o => `${o.e.member} (${o.e.label})`).join(', ')}.` });
         });
         loose.forEach(l => notes.push({ level: 'stop', text: `Frame ${grid.xLabel(x)} (${name}): ${l.id}'s seismic share ${l.F.toFixed(2)} k at ${F(l.at)} (${Math.round(l.area)} sq ft in this frame's strip) has no frame to go to — ${l.why}. Brace the mezzanine on this line (independent X-bracing, DM 15.1.3) or carry it to the next frames.` }));
+        // the engineer's edits: every computed load × the job's scale, and a value typed for one column (frame line ×
+        // column × elevation) used as typed. What is shown is what goes into the frame file.
+        const scale = cfg.eqScale > 0 ? +cfg.eqScale : 1, ovr = cfg.eqOverride || {};
+        (fe ? fe.entries : []).filter(e => e.eq && e.eq.length).forEach(e => {
+          const byH = new Map();
+          e.eq.forEach(q => { const h = (+q.at).toFixed(3); byH.set(h, (byH.get(h) || []).concat(q)); });
+          e.eq = [...byH].flatMap(([h, qs]) => {
+            const key = eqKey(bk, grid.xLabel(x), e.label, +h), calc = qs.reduce((a, q) => a + q.F, 0), typed = ovr[key];
+            if (typed != null && typed !== '' && isFinite(+typed)) return [{ mezz: qs.map(q => q.mezz).join(' + '), F: +typed, at: +h, share: 1, frameF: qs[0].frameF, calc, edited: 'typed', key }];
+            return qs.map(q => ({ ...q, calc: q.F, F: q.F * scale, edited: scale !== 1 ? 'scaled' : null, key }));
+          });
+        });
+        eqs.length = 0;
+        (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
         const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose };
         if (fe) fe.seismic = { roofPsf: lat.altRoof, roofPsfSplit: lat.roofOverride, Cs: lat.cs.Cs, R: lat.R, V: lat.frameV, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
@@ -1221,6 +1237,6 @@
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, seismicJob, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { SEIS_DEFAULTS, seismicJob, eqKey, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);

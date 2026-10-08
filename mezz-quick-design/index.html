@@ -913,6 +913,20 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
 .explain-body .eq { font-family: var(--mono); font-size: 12px; background: var(--surface-soft); padding: 1px 5px; border-radius: 4px; }
 .name-key { flex-basis: 100%; margin: 6px 0 10px; padding: 7px 11px; border-radius: 8px; background: var(--surface-soft); font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
 .name-key b { color: var(--ink); } .name-key .mono { color: var(--ink); font-weight: 600; }
+/* EQ load edits: the job-wide multiplier, and a value typed per column (Seismic page and the frame-file cards) */
+.eq-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; padding: 10px 13px; border-radius: 10px; background: var(--surface-soft); font-size: 12.5px; color: var(--ink-muted); }
+.eq-bar label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.eq-bar span { flex: 1 1 260px; }
+.eq-bar input, .eq-in { font: 600 12.5px var(--mono); width: 72px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-align: right; }
+.eq-td { min-width: 240px; }
+.eq-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 2px 0; }
+.eq-edit small.sub-n { display: inline; }
+.eq-edit.is-typed .eq-in, .eq-in.is-typed { border-color: var(--amber); background: var(--amber-soft); }
+.eq-edit.is-scaled .eq-in, .eq-in.is-scaled { border-style: dashed; border-color: var(--amber); }
+.eq-x { border: 0; background: none; color: var(--amber); cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; }
+.eq-x:hover { color: var(--ink); }
+table.nbg-t td .card-eq { width: 78px; }
+.eq-tag { display: block; color: var(--amber) !important; }
 
 </style>
 </head>
@@ -5064,6 +5078,8 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
        types: [FSW, BSW], buildings: { [bkey]: { SW, RSW, RDL, CDL, Pf, walls: {fsw, bsw, lew, rew}, story } },
        mezz: { [mezzanine id]: { FDL, framing: false, storage } } } — anything left out comes from the PCS / defaults. */
   const SEIS_DEFAULTS = { SW: 2, RSW: 1, wall: 3, split: 'dead', types: ['X-Bracing', 'X-Bracing'] };
+  // one EQ value: building | frame line | column (grid point) | elevation
+  const eqKey = (bk, frame, label, at) => `${bk}|${frame}|${label}|${(+at).toFixed(2)}`;
   const secWt = sec => (!sec ? 0 : sec.type === 'WF' ? (WF[sec.name] || {}).W || 0 : (sec.bof * sec.tof + sec.bif * sec.tif + (sec.d - sec.tof - sec.tif) * sec.tw) * 490 / 144);
   function seismicJob(ctxs, mezz, frames, cfg = {}) {
     const live = ctxs.filter(c => !c.incomplete);
@@ -5164,6 +5180,20 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
           if (off.length) notes.push({ level: 'info', text: `Frame ${grid.xLabel(x)}: ${ml.id} also bears on ${off.map(o => o.e.label).join(', ')} — endwall columns, not part of the frame's lateral system. Its seismic on this line goes to ${members.map(o => `${o.e.member} (${o.e.label})`).join(', ')}.` });
         });
         loose.forEach(l => notes.push({ level: 'stop', text: `Frame ${grid.xLabel(x)} (${name}): ${l.id}'s seismic share ${l.F.toFixed(2)} k at ${F(l.at)} (${Math.round(l.area)} sq ft in this frame's strip) has no frame to go to — ${l.why}. Brace the mezzanine on this line (independent X-bracing, DM 15.1.3) or carry it to the next frames.` }));
+        // the engineer's edits: every computed load × the job's scale, and a value typed for one column (frame line ×
+        // column × elevation) used as typed. What is shown is what goes into the frame file.
+        const scale = cfg.eqScale > 0 ? +cfg.eqScale : 1, ovr = cfg.eqOverride || {};
+        (fe ? fe.entries : []).filter(e => e.eq && e.eq.length).forEach(e => {
+          const byH = new Map();
+          e.eq.forEach(q => { const h = (+q.at).toFixed(3); byH.set(h, (byH.get(h) || []).concat(q)); });
+          e.eq = [...byH].flatMap(([h, qs]) => {
+            const key = eqKey(bk, grid.xLabel(x), e.label, +h), calc = qs.reduce((a, q) => a + q.F, 0), typed = ovr[key];
+            if (typed != null && typed !== '' && isFinite(+typed)) return [{ mezz: qs.map(q => q.mezz).join(' + '), F: +typed, at: +h, share: 1, frameF: qs[0].frameF, calc, edited: 'typed', key }];
+            return qs.map(q => ({ ...q, calc: q.F, F: q.F * scale, edited: scale !== 1 ? 'scaled' : null, key }));
+          });
+        });
+        eqs.length = 0;
+        (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
         const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose };
         if (fe) fe.seismic = { roofPsf: lat.altRoof, roofPsfSplit: lat.roofOverride, Cs: lat.cs.Cs, R: lat.R, V: lat.frameV, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
@@ -5353,7 +5383,7 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, seismicJob, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { SEIS_DEFAULTS, seismicJob, eqKey, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -5479,7 +5509,7 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
       if (!fl) return head(esc(lab), 'building column') + drawn + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
       return head(esc(lab), 'building column · load to the frame') + `<div class="tip-k">Mezzanine beam reactions · unfactored (kips)</div><div class="tip-lr one">${pair('Total', fl.D, fl.L)}</div>` +
         tbl(fl.parts.map(p => partRow(p)).join('')) + drawn +
-        (fe && fe.eq && fe.eq.length ? `<div class="tip-k">Seismic to the frame · EQR + / EQL − (kips)</div><div class="tip-lr one">${fe.eq.map(q => `<div><span>${esc(q.mezz)}</span><b class="e">±${f(q.F, 2)}</b><small>${Math.round(q.share * 100)} % of ${f(q.frameF, 2)} k · at ${ft(q.at)}</small></div>`).join('')}</div>` : '') +
+        (fe && fe.eq && fe.eq.length ? `<div class="tip-k">Seismic to the frame · EQR + / EQL − (kips)</div><div class="tip-lr one">${fe.eq.map(q => `<div><span>${esc(q.mezz)}</span><b class="e">±${f(q.F, 2)}</b><small>${q.edited === 'typed' ? `typed · calc. ${f(q.calc, 2)} k` : q.edited === 'scaled' ? `${f(q.calc, 2)} k × ${f(q.F / q.calc, 3)}` : `${Math.round(q.share * 100)} % of ${f(q.frameF, 2)} k`} · at ${ft(q.at)}</small></div>`).join('')}</div>` : '') +
         `<div class="tip-f">${fe ? `NBG Frame: frame line ${esc(fe.frame)}, ${fe.member ? `<b>${esc(fe.member)}</b> (${esc(fe.where)})` : esc(fe.where)}, at ${state.nbg.height === 'beam' ? `${ft(fe.elev)} (T/beam)` : `${ft(fe.A)} (floor level A)`}.` : 'Goes to the frame / endwall design, not the mezzanine Column sheet.'}</div>`;
     }
     if (kind === 'beam' || kind === 'carried') {
@@ -5584,7 +5614,7 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
       prog(0.85);
       const pcs = PCS.parse(pages);
       if (!pcs.mezzanines.length) throw new Error('No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
-      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.seis = {};
+      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.seis = {}; state.seis = seisLoad();
       readPlan();                                           // grid letters + joist arrows off the drawing
       const keep = keepSettings();
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
@@ -6604,12 +6634,20 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
     // frames
     const distT = (rows, k) => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight W (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">W·hx^k</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-k)</th></tr></thead><tbody>${rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.D)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.M)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(rows.reduce((a, r) => a + r.W, 0))}</td><td></td><td class="num mono">${lb(rows.reduce((a, r) => a + r.D, 0))}</td><td class="num mono"><b>${F2(rows.reduce((a, r) => a + r.Fx, 0))}</b></td><td class="num mono">${F2(rows.reduce((a, r) => a + r.M, 0))}</td></tr></tfoot></table>`;
     const fileNow = (b, fr) => { const it = state.nbg.files.find(x => x.ff && (!x.ff.info.building || sameName(x.ff.info.building, b.name) || sj.buildings.length === 1) && parseLines(x.lines).map(String).includes(String(fr.label))); return it ? it.ff.info.seismic : null; };
-    $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => !b.frames.length ? '' : `${sj.buildings.length > 1 ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
+    const nEdit = Object.keys(cfg.eqOverride || {}).length, scale = cfg.eqScale > 0 ? +cfg.eqScale : 1;
+    // typed values whose frame line × column × level is no longer in the job (the layout or the elevation changed): not used
+    const usedKeys = new Set(live ? sj.buildings.flatMap(b => b.frames.flatMap(fr => fr.eqs.map(e => e.key))) : []);
+    const stale = Object.keys(cfg.eqOverride || {}).filter(k => !usedKeys.has(k)).length;
+    const eqBar = !live ? '' : `<div class="eq-bar"><label>All EQ loads × <input class="seis-in" data-seis="eqScale" value="${scale}" inputmode="decimal"></label>
+        <span>Every computed EQR / EQL load is multiplied by this; a value typed on a column below (or on a frame file's card) is used as typed — what shows here is what the frame files get.${nEdit - stale ? ` <b>${nEdit - stale} typed value${nEdit - stale > 1 ? 's' : ''}.</b>` : ''}${stale ? ` <b class="bad">${stale} typed value${stale > 1 ? 's' : ''} no longer match${stale > 1 ? '' : 'es'} a column (the layout or the mezzanine level changed) — not used.</b>` : ''}</span>
+        <button class="btn-ghost" id="eqResetAll" ${nEdit || scale !== 1 ? '' : 'disabled'}>Back to the calculated loads</button></div>`;
+    const eqCell = e => `<div class="eq-edit ${e.edited ? 'is-' + e.edited : ''}"><span class="mono"><b>${esc(e.member)}</b> (${esc(e.label)})</span> ± <input class="seis-in eq-in" data-eqkey="${esc(e.key)}" value="${f(e.F, 3)}" inputmode="decimal" title="kips — EQR +, EQL −"> k${e.edited ? `${e.edited === 'typed' ? `<button class="eq-x" data-eqclear="${esc(e.key)}" title="back to the calculated load">↺</button>` : ''} <small class="sub-n">${e.edited === 'typed' ? 'typed' : '× ' + scale} · calc. ${f(e.calc, 2)}</small>` : ` <small class="sub-n">${Math.round(e.share * 100)} %</small>`}</div>`;
+    $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : eqBar + sj.buildings.map(b => !b.frames.length ? '' : `${sj.buildings.length > 1 ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
       <div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frame</th><th class="num">Strip</th><th class="num">Cs · R</th><th class="num">Frame V (k)</th><th>Mezzanine Fx at its level</th><th>EQR / EQL on</th><th class="num">Roof seismic DL (psf)</th><th>NBG Frame file now</th></tr></thead><tbody>${b.frames.map(fr => { const L = fr.lat, now = fileNow(b, fr); return `<tr class="seis-fr" data-fr="${esc(b.bkey + '|' + fr.label)}">
         <td><b class="mono">${esc(fr.label)}</b><small class="sub-n">${esc(fr.type)} · ${fr.at === 'interior' ? 'interior' : fr.at === 'lew' ? 'left endwall' : 'right endwall'}</small></td><td class="num mono">${ft(fr.bay)}</td>
         <td class="num mono">${f(L.cs.Cs, 4)}<small class="sub-n">R ${f(L.R, 2)} · k ${f(L.k, 2)}</small></td><td class="num mono">${F2(L.frameV)}</td>
         <td>${L.mezzLoads.map(m => `<div><b class="mono">${F2(m.F)} k</b> ${esc(m.id)} at ${ft(m.at)}</div>`).join('')}${fr.loose.map(l => `<div class="bad">${esc(l.id)} ${F2(l.F)} k — no frame column</div>`).join('')}</td>
-        <td>${fr.eqs.map(e => `<div class="mono"><b>${esc(e.member)}</b> (${esc(e.label)}) ±${F2(e.F)} k <small class="sub-n">${Math.round(e.share * 100)} %</small></div>`).join('') || '—'}</td>
+        <td class="eq-td">${fr.eqs.map(eqCell).join('') || '—'}</td>
         <td class="num mono"><b>${F2(L.altRoof)}</b><small class="sub-n">with Cs ${f(L.cs.Cs, 4)}</small></td>
         <td>${now ? `<small>${F2(now.roofSeismicDeadLoad)} psf · ${f(now.roofSeismicFactor, 3)} (R ${f(now.R, 1)})</small>` : '<small class="sub-n">drop it on the Plan page</small>'}</td></tr>
         <tr class="seis-dist-row" hidden><td colspan="8"><div class="seis-dist-wrap">${distT(L.rows)}
@@ -6619,7 +6657,11 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
             <li>Ta = ${f(L.sys.Ct, 3)} × ${F2(L.hn)}^${L.sys.x} = ${f(L.Ta, 3)} s → k = ${f(L.k, 2)}; Cs ${f(L.cs.Cs, 4)} by ${esc(L.cs.governs)}${L.cs.note ? ' · ' + esc(L.cs.note) : ''}; ${esc(L.sys.name)} (R ${f(L.R, 2)}, Ω ${f(L.sys.Omega, 1)}, Cd ${f(L.sys.Cd, 1)})</li>
           </ul></div></div></td></tr>`; }).join('')}</tbody></table></div>`).join('');
     if (live && infos.length) $('#seisFrames').insertAdjacentHTML('beforeend', `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>`);
-    $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = () => { const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
+    $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('.eq-edit')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
+    $$('#seisFrames [data-eqkey]').forEach(el => { el.onchange = () => setEq([el.dataset.eqkey], el.value); });
+    $$('#seisFrames [data-eqclear]').forEach(el => { el.onclick = ev => { ev.stopPropagation(); setEq([el.dataset.eqclear], ''); }; });
+    const ra = $('#eqResetAll');
+    if (ra) ra.onclick = () => { delete state.seis.eqOverride; delete state.seis.eqScale; seisSave(); recompute(); toast('EQ loads back to the calculated values'); };
     // bracing
     $('#seisBracing').innerHTML = !live ? '' : sj.buildings.map(b => { const G = b.long; if (!G) return ''; return `${sj.buildings.length > 1 ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
       <div class="seis-sum"><span>${esc(G.sys.name)} · R ${f(G.sys.R, 2)}</span><span>Ta ${f(G.Ta, 3)} s · k ${f(G.k, 2)}</span><span>Cs <b>${f(G.cs.Cs, 4)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span></div>
@@ -6656,11 +6698,33 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
         else if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); const path = rest.slice(bk.length + 1); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], path, typeof v === 'boolean' ? v : v === '' ? '' : +v); }
         else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); const path = k.slice(2 + id.length + 1); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; c.mezz[id][path] = typeof v === 'boolean' ? v : v === '' ? undefined : +v; if (c.mezz[id][path] === undefined) delete c.mezz[id][path]; }
         else if (k === 'ed' || k === 'siteClass' || k === 'risk') c[k] = v;
+        else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
         else c[k] = v === '' ? undefined : +v;
-        recompute();
+        seisSave(); recompute();
       };
     });
   }
+  // a typed EQ load (kips) for one or more frame line × column × elevation keys; '' goes back to the calculated load
+  function setEq(keys, val) {
+    const o = state.seis.eqOverride = state.seis.eqOverride || {};
+    const v = String(val).trim().replace(/^[-−±+]/, '');
+    keys.forEach(k => { if (v === '' || !isFinite(+v)) delete o[k]; else o[k] = Math.abs(+v); });
+    if (!Object.keys(o).length) delete state.seis.eqOverride;
+    seisSave(); recompute();
+    toast(v === '' ? 'Back to the calculated EQ load' : `EQ load ${(+v).toFixed(2)} k — in the frame file as EQR +${(+v).toFixed(2)} / EQL −${(+v).toFixed(2)}`);
+  }
+  // the seismic page's values for this job kept on this computer (not the frame-file data, read again from the files)
+  const seisKey = () => (state.pcs && state.pcs.job && state.pcs.job.quote ? 'mzd.seis.' + state.pcs.job.quote : null);
+  function seisSave() {
+    const k = seisKey();
+    if (!k) return;
+    try {
+      const keep = JSON.parse(JSON.stringify(state.seis || {}));
+      Object.values(keep.buildings || {}).forEach(b => { delete b.frameFile; });
+      localStorage.setItem(k, JSON.stringify(keep));
+    } catch (e) { /* private window: kept for this session */ }
+  }
+  function seisLoad() { const k = seisKey(); try { return (k && JSON.parse(localStorage.getItem(k) || 'null')) || {}; } catch (e) { return {}; } }
 
   // ---------- frame loads for NBG Frame: by frame line, on the frame's own members ----------
   function renderFrameLoads() {
@@ -6676,8 +6740,8 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
       const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
       return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>${twoB ? esc(fl.building) + ' · ' : ''}Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
           <button class="btn-soft" data-fl="${fi}"><svg><use href="#i-copy"/></svg>Copy</button></div>
-        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num">Seismic EQR/EQL (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) : sj && sj.ok ? '—' : '<small class="sub-n">Seismic page</small>'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
-        <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td class="num mono e">${fl.seismic ? '±' + F2(fl.seismic.mezzLoads.reduce((a, m) => a + m.F, 0)) : ''}</td><td>${fl.seismic ? `<small class="sub-n">roof seismic DL ${F2(fl.seismic.roofPsf)} psf · Cs ${f(fl.seismic.Cs, 4)}</small>` : ''}</td></tr></tfoot></table></div>`;
+        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num">Seismic EQR/EQL (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : sj && sj.ok ? '—' : '<small class="sub-n">Seismic page</small>'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td class="num mono e">${fl.seismic ? (() => { const qs = fl.entries.filter(e => e.member).flatMap(e => e.eq || []), F = qs.reduce((a, q) => a + q.F, 0), calc = qs.reduce((a, q) => a + q.calc, 0); return '±' + F2(F) + (qs.some(q => q.edited) ? `<small class="sub-n eq-tag">edited · calc. ${F2(calc)}</small>` : ''); })() : ''}</td><td>${fl.seismic ? `<small class="sub-n">roof seismic DL ${F2(fl.seismic.roofPsf)} psf · Cs ${f(fl.seismic.Cs, 4)}</small>` : ''}</td></tr></tfoot></table></div>`;
     }).join('');
     el.innerHTML = `<div class="name-key"><b>Column names</b> · <span class="mono">2/A</span> the grid point, frame line 2 × column line A · <span class="mono">COL03</span> the member in that frame's NBG Frame file: COL01 at the FSW, then each interior column, the BSW column last · mezzanine columns (C1, C2 … on the plan) are not frame members and are not listed here.</div><div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic page), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
     const eqOf = e => (e.eq && e.eq.length ? +e.eq.reduce((a, q) => a + q.F, 0).toFixed(3) : '');
@@ -6802,9 +6866,13 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
   function seisFrom(m, x) {
     if (!m) return '';
     const at = +(+x.location).toFixed(3);
-    const parts = m.from.flatMap(fr => (fr.eq || []).filter(q => Math.abs(q.at - at) < 1e-3).map(q => `${fr.label}: ${q.mezz} ${f(q.F, 2)} k (${Math.round(q.share * 100)} % of ${f(q.frameF, 2)} k)`));
+    const parts = m.from.flatMap(fr => (fr.eq || []).filter(q => Math.abs(q.at - at) < 1e-3).map(q => `${fr.label}: ${q.mezz} ${f(q.F, 2)} k (${q.edited === 'typed' ? `typed · calc. ${f(q.calc, 2)} k` : q.edited === 'scaled' ? `${f(q.calc, 2)} k × ${f(q.F / q.calc, 3)}` : `${Math.round(q.share * 100)} % of ${f(q.frameF, 2)} k`})`));
     return parts.join(' · ') + (new Set(m.from.map(z => z.frame)).size > 1 ? ' · the largest of the lines' : '');
   }
+  // the EQ loads of one file member at one level: their keys (frame line × column × level) and whether any was edited
+  const eqAt = (m, loc) => (m ? m.from.flatMap(fr => (fr.eq || []).filter(q => Math.abs(q.at - +loc) < 1e-3)) : []);
+  const eqState = (m, loc) => { const qs = eqAt(m, loc); return qs.some(q => q.edited === 'typed') ? 'typed' : qs.some(q => q.edited === 'scaled') ? 'scaled' : ''; };
+  const eqKeys = (m, loc) => [...new Set(eqAt(m, loc).map(q => q.key).filter(Boolean))];
   // the frame's roof seismic override for a file's lines (the largest roof weight of them), and what the file has now
   function seisFor(p, info) {
     const sj = state.job && state.job.seismic;
@@ -6814,7 +6882,8 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
     const top = fr.slice().sort((a, b) => b.seismic.roofPsf - a.seismic.roofPsf)[0].seismic, now = info.seismic || {};
     const mezz = [...new Set(fr.flatMap(x => x.seismic.mezzLoads.map(m => `${m.id} ${f(m.F, 2)} k at ${ft(m.at)}`)))].join(', ');
     const set = now.roofSeismicDeadLoad != null && Math.abs(now.roofSeismicDeadLoad - top.roofPsf) <= 0.01 * top.roofPsf && Math.abs((now.roofSeismicFactor || 0) - top.Cs) <= 0.001;
-    return { roofPsf: top.roofPsf, Cs: top.Cs, R: top.R, V: Math.max(...fr.map(x => x.seismic.V)), mezz, many: fr.length > 1, now: { dead: now.roofSeismicDeadLoad, factor: now.roofSeismicFactor, R: now.R }, set };
+    const edited = fr.some(x => x.entries.some(e => (e.eq || []).some(q => q.edited)));
+    return { roofPsf: top.roofPsf, Cs: top.Cs, R: top.R, V: Math.max(...fr.map(x => x.seismic.V)), mezz, edited, many: fr.length > 1, now: { dead: now.roofSeismicDeadLoad, factor: now.roofSeismicFactor, R: now.R }, set };
   }
   // EQR rows: Top/Left until the Bottom/Right code is known (an X force with no offset takes no moment from it)
   function brPanel(firstOk) {
@@ -6847,11 +6916,11 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
       const checks = `<div class="nbg-checks">${p.checks.map(([k, t]) => `<span class="chip ${k === 'ok' ? 'ok' : k === 'bad' ? 'bad' : 'warn'}">${esc(t)}</span>`).join('')}</div>`;
       const from = m => { const fs = [...new Set(m.from.map(x => x.frame))]; return m.from.map(x => x.label).join(', ') + (fs.length > 1 ? ' · the largest of the lines' : ''); };
       const eccName = code => (String(code) === '1' ? 'Top/Left' : String(code) === String(webCode().code) ? 'WebCenterline' : String(code) === String(brCode().code) ? 'Bottom/Right' : 'code ' + code);
-      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); const eq = /^EQ/.test(x.caseId); const code = x.toFlange != null ? x.toFlange : webCode().code; return `<tr class="${eq ? 'eq-row' : ''}"><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono ${eq ? 'e' : ''}">${f(x.x || 0, 3)}</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : x.caseId === 'FLL' ? 'l' : ''}">${f(x.y || 0, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>${eccName(code)} <small class="sub-n">${esc(code)}${!eq && webCode().how === 'guess' ? '?' : ''}</small></td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${eq ? esc(seisFrom(m, x)) : esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
+      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); const eq = /^EQ/.test(x.caseId); const code = x.toFlange != null ? x.toFlange : webCode().code; return `<tr class="${eq ? 'eq-row' : ''}"><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono ${eq ? 'e' : ''}">${x.caseId === 'EQR' ? `<input class="seis-in eq-in card-eq ${eqState(m, x.location) ? 'is-' + eqState(m, x.location) : ''}" data-cardeq="${i}|${esc(x.member)}|${x.location}" value="${f(x.x, 3)}" inputmode="decimal" title="kips — EQR + / EQL − (typed here: every frame line of this file at this column, this level)">${eqState(m, x.location) === 'typed' ? `<button class="eq-x" data-cardeqclear="${i}|${esc(x.member)}|${x.location}" title="back to the calculated load">↺</button>` : ''}` : f(x.x || 0, 3)}</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : x.caseId === 'FLL' ? 'l' : ''}">${f(x.y || 0, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>${eccName(code)} <small class="sub-n">${esc(code)}${!eq && webCode().how === 'guess' ? '?' : ''}</small></td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${eq ? esc(seisFrom(m, x)) : esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
       // the roof seismic weight and factor NBG Frame needs for these lines (the workbook's override), against the file's own
       const sz = seisFor(p, info), sj = state.job && state.job.seismic;
       const seisT = !sz ? (sj && !sj.ok && p.r.rows.length ? `<div class="nbg-seis warn"><b>Seismic not added yet</b> — the Seismic page needs: ${esc(sj.need.join('; '))}.</div>` : '')
-        : `<div class="nbg-seis ${sz.set ? 'ok' : 'warn'}"><div><b>Seismic for line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))}</b> — EQR / EQL rows above carry the mezzanine (${sz.mezz}). In NBG Frame's Frame Loads also set the roof seismic, which it works out without the walls and the mezzanine:</div>
+        : `<div class="nbg-seis ${sz.set ? 'ok' : 'warn'}"><div><b>Seismic for line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))}</b> — EQR / EQL rows above carry the mezzanine (${sz.mezz}${sz.edited ? ' as calculated; the rows carry your edited values' : ''}). In NBG Frame's Frame Loads also set the roof seismic, which it works out without the walls and the mezzanine:</div>
           <div class="nbg-seis-v"><span>Roof Seismic Dead Load <b class="mono">${f(sz.roofPsf, 2)} psf</b><small>file: ${f(sz.now.dead, 2)}</small></span><span>Roof Seismic Factor <b class="mono">${f(sz.Cs, 4)}</b><small>file: ${f(sz.now.factor, 3)} (R ${f(sz.now.R, 1)})</small></span><span>Frame base shear <b class="mono">${f(sz.V, 2)} k</b><small>roof + walls + mezzanine, Cs ${f(sz.Cs, 4)} (R ${f(sz.R, 2)})</small></span></div>
           <small>${sz.set ? 'The file already carries these values.' : 'Not written by the tool: NBG Frame works these out again on Get Applied Loads — type them after it, then run. They are the workbook\'s "alt. roof weight" (roof, endwall and sidewalls lumped at the roof) and Cs.'}${sz.many ? ' Several frame lines in this file: the largest roof weight of them.' : ''}</small></div>`;
       const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns (endwall columns are designed with the endwall), so their loads are not put on it:${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
@@ -6898,6 +6967,10 @@ details.panel.fold:not([open]) > summary { border-bottom: 0; }
     if (clr) clr.onclick = () => { state.nbg.files = []; renderNbg(); };
     const brr = $('#nbgBrReset');
     if (brr) brr.onclick = () => { setBrCode({ code: null, how: 'unknown' }); renderNbg(); };
+    // an EQ load typed on a card: every frame line this file designs, at that column and level (EQR + / EQL − as typed)
+    const cardEq = (v, el) => { const [fi, member, loc] = v.split('|'), p = plans[+fi], m = p && p.r.members.find(q => q.member === member); const keys = eqKeys(m, loc); if (keys.length) setEq(keys, el ? el.value : ''); };
+    $$('#nbgList [data-cardeq]').forEach(el => { el.onchange = () => cardEq(el.dataset.cardeq, el); });
+    $$('#nbgList [data-cardeqclear]').forEach(el => { el.onclick = () => cardEq(el.dataset.cardeqclear, null); });
     $$('#nbgList [data-br]').forEach(b => { b.onclick = () => { setBrCode({ code: b.dataset.br, how: 'confirmed' }); renderNbg(); toast(`Ecc. Loc. Bottom/Right = code ${b.dataset.br} — EQR rows use it now`); }; });
     const eccFile = async what => {
       const it = files.find(x => x.ff), name = outName(it, parseLines(it.lines), 'ECC');

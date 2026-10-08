@@ -123,7 +123,8 @@ if (pdfArgs.length > 1) {
   else if (frames.length) {
     await page.setInputFiles('#nbgFile', frames);
     await page.waitForSelector('#nbgList .nbg-file', { timeout: 20000 }); await page.waitForTimeout(300);
-    const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 3, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
+    const cardRows = () => page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 3, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : i === 3 && tr.cells[i].querySelector('input') ? tr.cells[i].querySelector('input').value : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
+    const got = await cardRows();
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
     const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
     // floor dead / live at the floor level A (11'-6"), web centreline
@@ -156,6 +157,32 @@ if (pdfArgs.length > 1) {
     }
     await page.click('#nbgList [data-ecc="3"]'); await page.waitForTimeout(200);
     if (!/code 3/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('picking the row should confirm the code');
+    // the engineer's EQ edits: × 1.1 on every load (Seismic page), 5 k typed on frame 2 COL02 (Seismic page), 2.75 k typed
+    // on the 3-5 file's COL03 (its card: all three lines) — the cards, the Seismic page and the downloaded rows agree
+    const setVal = (sel, v) => page.$eval(sel, (e, x) => { e.value = x; e.dispatchEvent(new Event('change')); }, v).then(() => page.waitForTimeout(250));
+    const eqOf = rows => Object.fromEntries(rows.filter(r => /^EQ/.test(r)).map(r => r.split(' ')).map(r => [r[0] + ' ' + r[1], +r[3]]));
+    const calc2 = eqOf(two[1]), calc35 = eqOf((got.find(g => /_1_3-5\.frame$/.test(g[0])) || [0, []])[1]);
+    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
+    await setVal('#seisFrames [data-seis="eqScale"]', '1.1');
+    const k2 = await page.$$eval('#seisFrames tr.seis-fr[data-fr$="|2"] .eq-edit', xs => xs.find(x => /COL02/.test(x.textContent)).querySelector('input').dataset.eqkey);
+    await setVal(`#seisFrames [data-eqkey="${k2}"]`, '5');
+    const seisEq = await page.$$eval('#seisFrames tr.seis-fr', trs => trs.map(tr => tr.dataset.fr.split('|').pop() + ': ' + [...tr.querySelectorAll('.eq-edit')].map(x => x.querySelector('b').textContent + ' ' + x.querySelector('input').value + (x.classList.contains('is-typed') ? ' typed' : x.classList.contains('is-scaled') ? ' scaled' : '')).join(', ')));
+    console.log('EQ edits, Seismic page'.padEnd(30), seisEq.join(' | '));
+    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+    const card35 = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.findIndex(f => /_1_3-5\.frame$/.test(f.querySelector('.nbg-fh b').textContent)));
+    // a card's data-cardeq starts with its file index (the order of the .nbg-file cards)
+    await setVal(`#nbgList [data-cardeq^="${card35}|"][data-cardeq*="|COL03|"]`, '2.75');
+    const ed = await cardRows();
+    const e2 = eqOf(ed.find(g => /_1_2\.frame$/.test(g[0]))[1]), e35 = eqOf(ed.find(g => /_1_3-5\.frame$/.test(g[0]))[1]);
+    console.log('EQ edits, cards'.padEnd(30), 'frame 2', JSON.stringify(e2), '· 3-5', JSON.stringify(e35));
+    const near3 = (a, b) => Math.abs(a - b) <= 0.0015;
+    if (!near3(e2['EQR 2'], 5) || !near3(e2['EQL 2'], -5) || !near3(e2['EQR 3'], calc2['EQR 3'] * 1.1) || !near3(e2['EQL 3'], -e2['EQR 3'])) fail('frame 2: COL02 typed 5 k, COL03 the calculated load × 1.1');
+    if (!near3(e35['EQR 3'], 2.75) || !near3(e35['EQL 3'], -2.75)) fail('frames 3-5: 2.75 k typed on the card');
+    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
+    const seis35 = await page.$$eval('#seisFrames tr.seis-fr', trs => trs.filter(tr => /\|[345]$/.test(tr.dataset.fr)).map(tr => +tr.querySelector('.eq-edit input').value));
+    console.log('EQ edits, frames 3-5'.padEnd(30), seis35.join(' '));
+    if (seis35.join() !== '2.75,2.75,2.75') fail('a value typed on the 3-5 card should go to frames 3, 4 and 5');
+    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#nbgAll')]);
     const zp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(zp);
     console.log('NBG download'.padEnd(30), dl.suggestedFilename(), fs.statSync(zp).size, 'bytes');
@@ -170,7 +197,18 @@ if (pdfArgs.length > 1) {
       const cl = FFz.cloadsOf(new TextDecoder().decode(zz.inflateRawSync(inner.data))).map(c => c.fields);
       const codes = [...new Set(cl.filter(FFz.isGravity).map(c => c.toFlange))];
       if (codes.join() !== '3') fail('the frame files should carry the confirmed code');
-      if (cl.filter(FFz.isSeismic).length !== 4 || cl.filter(c => /lean/i.test(c.name)).length < 2) fail('the frame file should carry the 4 EQ rows and keep NBG\'s lean-to rows'); }
+      if (cl.filter(FFz.isSeismic).length !== 4 || cl.filter(c => /lean/i.test(c.name)).length < 2) fail('the frame file should carry the 4 EQ rows and keep NBG\'s lean-to rows');
+      // the downloaded EQ rows are the edited values, exactly as on the cards
+      const xm = (file, n) => { const z = zipped.find(e => new RegExp(`^\\d+-B1-${file}_mz\\.frame$`).test(e.name)), c = FFz.cloadsOf(new TextDecoder().decode(zz.inflateRawSync(FFz.unzip(z.data).find(e => e.name === '.nfrx').data))).map(q => q.fields).find(q => q.name === n); return c ? +c.xMag : NaN; };
+      const got2 = ['EQR 2', 'EQL 2', 'EQR 3', 'EQL 3'].map(n => xm('2', n)), got35 = ['EQR 3', 'EQL 3'].map(n => xm('3-5', n));
+      console.log('EQ edits, downloaded xMag'.padEnd(30), 'frame 2', got2.join(' '), '· 3-5', got35.join(' '));
+      if (!near3(got2[0], 5) || !near3(got2[1], -5) || !near3(got2[2], e2['EQR 3']) || !near3(got2[3], -e2['EQR 3']) || !near3(got35[0], 2.75) || !near3(got35[1], -2.75)) fail('the downloaded EQR / EQL rows should be the edited values'); }
+    // back to the calculated loads
+    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
+    await page.click('#eqResetAll'); await page.waitForTimeout(250);
+    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+    const reset = await cardRows(), b2 = eqOf(reset.find(g => /_1_2\.frame$/.test(g[0]))[1]), b35 = eqOf(reset.find(g => /_1_3-5\.frame$/.test(g[0]))[1]);
+    if (JSON.stringify(b2) !== JSON.stringify(calc2) || JSON.stringify(b35) !== JSON.stringify(calc35)) fail('"Back to the calculated loads" should restore every EQ load');
     await page.click('#nbgEccReset'); await page.waitForTimeout(150);
     if (!/One-time setup/.test(await page.$eval('#nbgList .nbg-ecc', e => e.textContent))) fail('Reset should ask for the code again');
     // a frame saved from NBG Frame with the rows set to WebCenterline by hand (stand-in code 3): the code is learned and used

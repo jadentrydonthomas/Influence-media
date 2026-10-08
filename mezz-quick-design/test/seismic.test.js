@@ -79,12 +79,36 @@ if (!ok) { console.log('seismic tests passed (engine vs the workbook; W1S-26062 
   const b = sj.buildings[0];
   assert.deepStrictEqual(b.mezz.map(m => +m.psf.toFixed(2)), [99.25, 99.25], '55 + 5 + 8 + 25 % of 125');
   assert.deepStrictEqual(b.frames.map(f => [f.label, f.at, f.bay, f.eqs.map(e => `${e.member} ${e.F.toFixed(2)}`).join(' ')]), [
-    ['1', 'lew', 14, 'COL03 1.55 COL02 2.33'], ['2', 'interior', 28, 'COL03 3.07 COL02 4.27'], ['3', 'interior', 28, 'COL03 2.58'],
+    ['1', 'lew', 14, 'COL02 2.33 COL03 1.55'], ['2', 'interior', 28, 'COL02 4.27 COL03 3.07'], ['3', 'interior', 28, 'COL03 2.58'],
     ['4', 'interior', 28, 'COL03 2.58'], ['5', 'interior', 28, 'COL03 2.58'], ['6', 'rew', 14, 'COL03 1.34']]);
   assert.ok(b.frames.every(f => !f.loose.length));
   assert.ok(near(b.long.mezzLoads[0].F, 13.951009312956385, 1e-4) && near(b.long.mezzLoads[1].F, 5.98, 2e-3));
   const lines = b.braceLines.map(l => [l.edge.replace(/,.*$/, ''), l.segs.map(s => s.join('-')).join(' '), +l.F.toFixed(2), l.independent]);
   assert.deepStrictEqual(lines, [['line E', '0-40', 4.98, true], ['line B', '40-140', 4.98, true], ['BSW sidewall', '0-140', 9.97, false]]);
   assert.ok(near(b.braceLines.reduce((a, l) => a + l.F, 0), b.long.mezzLoads.reduce((a, m) => a + m.F, 0), 1e-9), 'the lines hold all of it');
-  console.log('seismic tests passed (ASCE 7-05 / 7-10 / 7-16 against the IBC Seismic workbook; W1S-26062: 99.25 psf, frames 1–6 EQ on COL02 / COL03, bracing 13.95 + 5.98 k to line E, line B and the BSW)');
+  // the engineer's edits: × 1.2 on every computed load, 5 k typed on frame 2 COL02 (Mezz 1 + Mezz 2 at that column, one
+  // value), and the frame-file rows carry exactly what is shown — EQR +, EQL −
+  const FF = require('../src/framefile.js');
+  const base = { buildings: { [bk]: { RDL: 4.66 } }, mezz: { 'Mezz 1': { FDL: 55, framing: false, storage: true }, 'Mezz 2': { FDL: 55, framing: false, storage: true } } };
+  const f2 = b.frames.find(f => f.label === '2'), c2 = f2.eqs.find(e => e.member === 'COL02');
+  assert.strictEqual(c2.key, RUN.eqKey(bk, '2', c2.label, c2.at));
+  const ed = RUN.runJob(items, { seis: { ...base, eqScale: 1.2, eqOverride: { [c2.key]: 5 } } });
+  const eb = ed.seismic.buildings[0];
+  assert.deepStrictEqual(eb.frames.map(f => [f.label, f.eqs.map(e => `${e.member} ${e.F.toFixed(2)} ${e.edited}`).join(' ')]), [
+    ['1', 'COL02 2.80 scaled COL03 1.87 scaled'], ['2', 'COL02 5.00 typed COL03 3.68 scaled'], ['3', 'COL03 3.10 scaled'],
+    ['4', 'COL03 3.10 scaled'], ['5', 'COL03 3.10 scaled'], ['6', 'COL03 1.60 scaled']]);
+  assert.ok(near(eb.frames[1].eqs.find(e => e.member === 'COL02').calc, 4.2706441502385895, 1e-4), 'the calculated value is kept beside the typed one');
+  const rowsOf = (job, lines) => {
+    const fe = job.frameEntries.filter(x => lines.includes(x.frame)), cols = [...new Map(fe.flatMap(x => x.entries.filter(e => e.member)).map(e => [e.member, { id: e.member, x: e.y }])).values()];
+    return FF.rowsFor({ lines, columns: cols, width: b.geo ? b.geo.width : 120 }, job.frameEntries, { lines }).rows.filter(x => /^EQ/.test(x.caseId)).map(x => `${x.name} ${x.member} ${x.x.toFixed(2)}`);
+  };
+  assert.deepStrictEqual(rowsOf(ed, ['2']), ['EQR 2 COL02 5.00', 'EQL 2 COL02 -5.00', 'EQR 3 COL03 3.68', 'EQL 3 COL03 -3.68']);
+  // a file for lines 3-5: one typed value for every line at that column (what the card does) is what goes in
+  const keys = ['3', '4', '5'].map(l => eb.frames.find(f => f.label === l).eqs[0].key);
+  const ed2 = RUN.runJob(items, { seis: { ...base, eqOverride: Object.fromEntries(keys.map(k => [k, 2.75])) } });
+  assert.deepStrictEqual(rowsOf(ed2, ['3', '4', '5']), ['EQR 3 COL03 2.75', 'EQL 3 COL03 -2.75']);
+  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: base }), ['3', '4', '5']), ['EQR 3 COL03 2.58', 'EQL 3 COL03 -2.58'], 'no edits: the calculated loads');
+  // 0 typed: no EQ rows for that column
+  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: { ...base, eqOverride: { [c2.key]: 0 } } }), ['2']), ['EQR 3 COL03 3.07', 'EQL 3 COL03 -3.07']);
+  console.log('seismic tests passed (ASCE 7-05 / 7-10 / 7-16 against the IBC Seismic workbook; W1S-26062: 99.25 psf, frames 1–6 EQ on COL02 / COL03, bracing 13.95 + 5.98 k to line E, line B and the BSW; EQ edits × scale / typed per column into the frame-file rows)');
 })().catch(e => { console.error(e); process.exit(1); });
