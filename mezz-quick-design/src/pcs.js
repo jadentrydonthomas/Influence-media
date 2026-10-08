@@ -239,7 +239,13 @@
       rows.forEach(r => { if (it.y >= r.y - 3) row = r; });
       if (row) row.tokens.push(it.str);
     }));
-    return rows.map(r => ({ from: r.from, to: r.to, wall: r.wall, type: r.type, interior: spacingList(r.tokens.join(' ')), clearSpan: spacingList(r.tokens.join(' ')).length <= 1 }));
+    // interior column type ("Most Economical" = the ✱ columns on the floor plan): the row's text, down to the next row
+    rows.forEach((r, i) => {
+      const band = region.filter(l => l.y >= r.y - 3 && (!rows[i + 1] || l.y < rows[i + 1].y - 3)).map(l => l.text).join(' ');
+      // "Most" sits on the row, "Economical" wraps to the line under it
+      r.intType = /\bMost\b/i.test(band) && /Economical/i.test(band) ? 'Most Economical' : ((band.match(/\b(Pipe|Tube|I-Shape|W-Shape|HSS)\b/i) || [])[1] || null);
+    });
+    return rows.map(r => ({ from: r.from, to: r.to, wall: r.wall, type: r.type, interior: spacingList(r.tokens.join(' ')), intType: r.intType, clearSpan: spacingList(r.tokens.join(' ')).length <= 1 }));
   }
 
   // ---------- Box 22: mezzanines ----------
@@ -342,6 +348,16 @@
     return out;
   }
 
+  // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------
+  function attachments(pages) {
+    const text = allLines(pages).map(l => l.text).join(' ').replace(/\s+/g, ' ');
+    const re = /The\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+attaches to the\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+at\b/gi;
+    const out = [];
+    let m;
+    while ((m = re.exec(text))) out.push({ building: clean(m[2]), wall: m[1].toUpperCase(), to: clean(m[4]), toWall: m[3].toUpperCase() });
+    return out;
+  }
+
   function parse(pages) {
     const job = jobFacts(pages);
     const code = buildingCode(pages);
@@ -353,9 +369,9 @@
     // Ecospan (Vulcraft composite joist floor, DM 15.1.5): named anywhere in the text or the blue notes
     const words = allLines(pages).map(l => l.text).concat(pages.flatMap(p => (p.annots || []).map(a => a.text || ''))).join('\n');
     const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null };
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages) };
   }
 
-  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts };
+  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);

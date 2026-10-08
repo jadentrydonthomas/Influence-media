@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mezzanine Design</title>
-<meta name="generator" content="mezz-quick-design build 2026-10-05; pdf.js 3.11.174">
+<meta name="generator" content="mezz-quick-design build 2026-10-08; pdf.js 3.11.174">
 <meta name="description" content="Upload a PCS and get the NBG mezzanine beam and column sections, spans, tribs and quantities.">
 <style>
 /* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
@@ -756,6 +756,65 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
 .xl-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; color: var(--ink-faint); font-size: 12px; }
 @media (max-width: 640px) { table.xl td.cell { white-space: normal; word-break: break-all; } }
 
+/* ---------- frame loads for NBG Frame ---------- */
+.fl-frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 14px; }
+.fl-frame { padding: 14px 16px 8px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.fl-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.fl-head > div { flex: 1; }
+.fl-head b { display: block; font-size: 14px; }
+.fl-head small { color: var(--ink-faint); font-size: 11.5px; }
+.fl-no { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink-muted); font: 700 13px var(--body); }
+table.fl-t { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.fl-t th { padding: 6px 6px; color: var(--ink-faint); font: 600 10.5px var(--mono); text-align: left; border-bottom: 1px solid var(--line-strong); }
+table.fl-t td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+table.fl-t .num { text-align: right; }
+table.fl-t .d { color: var(--steel); } table.fl-t .l { color: var(--green); }
+table.fl-t tr.not-member td { opacity: .72; }
+table.fl-t tfoot td { padding-top: 8px; color: var(--ink-muted); font-weight: 600; border-bottom: 0; }
+table.fl-t .star { color: var(--amber); font-weight: 700; }
+
+/* NBG Frame files */
+.nbg { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.nbg-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; margin-bottom: 12px; }
+.nbg-head > div:first-child { flex: 1 1 420px; display: grid; gap: 3px; }
+.nbg-head b { font-size: 15px; }
+.nbg-head small { color: var(--ink-faint); font-size: 12px; line-height: 1.5; max-width: 80ch; }
+.nbg-drop { position: relative; display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1.5px dashed var(--line-strong); border-radius: 14px; background: var(--surface-soft); cursor: pointer; transition: border-color .2s, background .2s; }
+.nbg-drop:hover, .nbg-drop.is-over { border-color: var(--green); background: var(--green-soft); }
+.nbg-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.nbg-drop svg { flex: none; width: 26px; height: 26px; fill: none; stroke: var(--green); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.nbg-drop strong { font-size: 14px; }
+.nbg-drop small { display: block; color: var(--ink-faint); font: 11.5px var(--mono); }
+.nbg-drop strong + small { margin-left: auto; }
+.nbg-cover { margin-top: 12px; padding: 9px 13px; border-radius: 10px; font-size: 12.5px; }
+.nbg-cover.ok { background: var(--green-soft); } .nbg-cover.warn { background: var(--amber-soft); }
+.nbg-file { margin-top: 12px; padding: 12px 14px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.nbg-file.off { opacity: .55; }
+.nbg-file.bad { border-color: var(--red); }
+.nbg-fh { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.nbg-fh > div { flex: 1 1 260px; min-width: 0; display: grid; gap: 2px; }
+.nbg-fh b { font: 600 13.5px var(--mono); overflow-wrap: anywhere; }
+.nbg-fh small { color: var(--ink-faint); font-size: 11.5px; }
+.nbg-fh > svg { width: 20px; height: 20px; fill: none; stroke: var(--red); stroke-width: 1.6; }
+.nbg-inc input { width: 18px; height: 18px; accent-color: var(--green); }
+.nbg-lines { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-faint); font-size: 11.5px; }
+.nbg-lines input { width: 74px; min-height: 32px; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface-soft); color: var(--ink); font: 600 13px var(--mono); }
+.nbg-checks { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
+.nbg-checks .chip { font: 11.5px var(--body); }
+.chip.warn { color: var(--amber); background: var(--amber-soft); box-shadow: none; }
+table.nbg-t td, table.nbg-t th { white-space: nowrap; }
+table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
+.nbg-left { margin-top: 10px; padding: 9px 12px; border-left: 3px solid var(--amber); border-radius: 0 10px 10px 0; background: var(--amber-soft); font-size: 12.5px; line-height: 1.55; }
+.nbg-left > div { margin-top: 4px; }
+.nbg-left small { display: block; color: var(--ink-faint); font-size: 11px; }
+.nbg-left .d { color: var(--steel); } .nbg-left .l { color: var(--green); }
+.nbg-notes { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; color: var(--ink-faint); font-size: 11.5px; }
+.nbg-steps { flex: 1 1 420px; font-size: 12px; }
+.nbg-steps ol { margin: 4px 0 0; padding-left: 18px; }
+.nbg-steps li { margin: 2px 0; }
+.nbg-all { display: flex; gap: 8px; align-items: center; }
+@media (max-width: 640px) { .nbg-drop strong + small { margin-left: 0; } .nbg-drop { flex-wrap: wrap; } }
+
 </style>
 </head>
 <body>
@@ -903,6 +962,17 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
           <div style="margin-top:12px"><button class="btn-ghost" id="gridReset">Reset to building grid</button></div>
           <div class="table-wrap" style="margin-top:14px"><table id="beamTable"></table></div>
           <div class="table-wrap" style="margin-top:14px"><table id="supTable"></table></div>
+        </div>
+      </div>
+      <div class="panel" id="frameLoadsPanel">
+        <div class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">mezzanine dead and live on each frame's own columns, by frame line — mezzanine columns are not frame members and are left out</span></div>
+        <div class="panel-body"><div id="frameLoads"></div>
+          <div class="nbg" id="nbgFrame">
+            <div class="nbg-head"><div><span class="eyebrow">NBG Frame files</span><b>Put these loads into the job's frame files</b><small>Drop the .frame files NBG made for this building. The FDL / FLL concentrated loads go in on each frame's own columns, the way they are typed under Tools → Concentrated (Panel) Loads, and the file is handed back ready to process. Nothing leaves this computer.</small></div>
+              <div class="seg" id="nbgHeight" role="group" aria-label="Load height"><button data-h="beam" class="is-active">At T/beam</button><button data-h="A">At top of floor</button></div></div>
+            <label class="nbg-drop" id="nbgDrop"><input type="file" id="nbgFile" accept=".frame" multiple><svg><use href="#i-file"/></svg><strong>Drop .frame files here or click to browse</strong><small id="nbgDropSub">one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame</small></label>
+            <div id="nbgList"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -1830,11 +1900,15 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
    * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override) }
    *   joists 'y' => joists span across the width (y), beams run along x.
    */
+  const SNAP_EDGE = 1;   // ft: a frame line this close outside a mezzanine edge still frames that edge
   function layout(g, m, opt = {}) {
     const x0 = m.startLEW || 0, x1 = x0 + m.length, y0 = m.startFSW || 0, y1 = y0 + m.width;
     const inside = (v, a, b) => v > a + EPS && v < b - EPS;
     const nearerEW = (x0 + x1) / 2 <= g.length / 2 ? g.lewY : g.rewY;
-    const yCand = uniq([...nearerEW, ...g.interior.flat()]);
+    // column lines across the width: the nearer endwall's, and the interior columns of the frames this mezzanine
+    // actually spans — not every frame's (a far endwall column 2' off this one's would make a 2' bay and extra columns)
+    const onFrames = g.xs.map((x, i) => (x >= x0 - SNAP_EDGE && x <= x1 + SNAP_EDGE ? g.interior[i] : [])).flat();
+    const yCand = uniq([...nearerEW, ...onFrames]);
     // an edge within SNAP of a grid line sits on that line (95'-8" → 96'-0"): the slab overhangs, or stops
     // short of, the line by the difference instead of creating a second line a few inches away
     const SNAP = opt.snap ?? 1;
@@ -2169,7 +2243,13 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
       rows.forEach(r => { if (it.y >= r.y - 3) row = r; });
       if (row) row.tokens.push(it.str);
     }));
-    return rows.map(r => ({ from: r.from, to: r.to, wall: r.wall, type: r.type, interior: spacingList(r.tokens.join(' ')), clearSpan: spacingList(r.tokens.join(' ')).length <= 1 }));
+    // interior column type ("Most Economical" = the ✱ columns on the floor plan): the row's text, down to the next row
+    rows.forEach((r, i) => {
+      const band = region.filter(l => l.y >= r.y - 3 && (!rows[i + 1] || l.y < rows[i + 1].y - 3)).map(l => l.text).join(' ');
+      // "Most" sits on the row, "Economical" wraps to the line under it
+      r.intType = /\bMost\b/i.test(band) && /Economical/i.test(band) ? 'Most Economical' : ((band.match(/\b(Pipe|Tube|I-Shape|W-Shape|HSS)\b/i) || [])[1] || null);
+    });
+    return rows.map(r => ({ from: r.from, to: r.to, wall: r.wall, type: r.type, interior: spacingList(r.tokens.join(' ')), intType: r.intType, clearSpan: spacingList(r.tokens.join(' ')).length <= 1 }));
   }
 
   // ---------- Box 22: mezzanines ----------
@@ -2272,6 +2352,16 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     return out;
   }
 
+  // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------
+  function attachments(pages) {
+    const text = allLines(pages).map(l => l.text).join(' ').replace(/\s+/g, ' ');
+    const re = /The\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+attaches to the\s+(?:Front|Back|Left|Right)\s+(?:Sidewall|Endwall)\s*\((FSW|BSW|LEW|REW)\)\s+of the building\s+(.+?)\s+at\b/gi;
+    const out = [];
+    let m;
+    while ((m = re.exec(text))) out.push({ building: clean(m[2]), wall: m[1].toUpperCase(), to: clean(m[4]), toWall: m[3].toUpperCase() });
+    return out;
+  }
+
   function parse(pages) {
     const job = jobFacts(pages);
     const code = buildingCode(pages);
@@ -2283,10 +2373,10 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     // Ecospan (Vulcraft composite joist floor, DM 15.1.5): named anywhere in the text or the blue notes
     const words = allLines(pages).map(l => l.text).concat(pages.flatMap(p => (p.annots || []).map(a => a.text || ''))).join('\n');
     const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null };
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages) };
   }
 
-  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts };
+  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -2366,7 +2456,11 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
      - grid bubbles  : circles r ≈ 6–14 pt (numbers along the top/bottom, letters along the sides)
      - mezz columns  : a small circle r ≈ 2.5–7 pt with either two diagonals (⊗) or an I-shape (web + flange
                        strokes) at its centre — both conventions appear on eQuote drawings
+     - frame columns : a bare I (web stroke with a flange stroke across each end, no circle) — sidewall, endwall
+                       and interior frame columns; and ✱ (four strokes through one point: horizontal, vertical,
+                       two diagonals), the interior frame columns "designated as Most Economical" in Box 5
      - joist arrows  : "Mez. Jst." — a straight shaft with a half arrowhead (~30°) at each end
+     - joist symbols : a short truss drawn along the joists — a chord line with a zigzag of webs beside it
    Circles are drawn either as one polyline or as dozens of 2-point segments; segments are chained first.
    The bubbles register the drawing to the building grid (same scale on both axes, so extra bubbles — a
    lean-to, an offset letter — cannot throw the fit), every side bubble is lettered from the BSW down
@@ -2416,14 +2510,16 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
 
   function circleOf(pts) {
     if (pts.length < 10) return null;
-    let cx = 0, cy = 0;
-    pts.forEach(p => { cx += p[0]; cy += p[1]; }); cx /= pts.length; cy /= pts.length;
-    const d = pts.map(p => Math.hypot(p[0] - cx, p[1] - cy));
-    const r = d.reduce((a, b) => a + b, 0) / d.length;
-    if (r < 1.5 || r > 30) return null;
-    const dev = Math.max(...d.map(x => Math.abs(x - r)));
-    const closedish = Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]) < r * 0.6;
-    return dev / r < 0.15 && closedish ? { x: cx, y: cy, r } : null;
+    // centre: the vertex average, or the bounding-box centre when the vertices are bunched on one side
+    // (a hand-traced or unevenly stroked circle) — whichever makes it rounder
+    let ax = 0, ay = 0;
+    pts.forEach(p => { ax += p[0]; ay += p[1]; }); ax /= pts.length; ay /= pts.length;
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const fitAt = (cx, cy) => { const d = pts.map(p => Math.hypot(p[0] - cx, p[1] - cy)), r = d.reduce((a, b) => a + b, 0) / d.length; return { x: cx, y: cy, r, dev: Math.max(...d.map(x => Math.abs(x - r))) / r }; };
+    const c = [fitAt(ax, ay), fitAt((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2)].sort((p, q) => p.dev - q.dev)[0];
+    if (c.r < 1.5 || c.r > 30) return null;
+    const closedish = Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]) < c.r * 0.6;
+    return c.dev < 0.15 && closedish ? { x: c.x, y: c.y, r: c.r } : null;
   }
 
   // Join consecutive short 2-point segments that continue one another (circles stroked as segments)
@@ -2474,7 +2570,29 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
       else if (hasI) crosses.push({ ...c, kind: 'i' });
       else plain.push(c);
     });
-    return { crosses, circles: plain, arrows: readArrows(segs.concat(paths.filter(p => p.length === 2).map(p => ({ a: p[0], b: p[1], len: Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) })).filter(s => s.len >= 25))) };
+    const inCircle = p => uniq.some(c => c.r <= 8 && Math.hypot(c.x - p.x, c.y - p.y) < c.r * 1.05);
+    // frame columns, bare I: a web with a flange stroke across each end (either orientation), not inside a circle
+    const frameCols = [];
+    const ax = segs.filter(sg => axial(sg) && sg.len >= 0.8 && sg.len <= 12);
+    ax.forEach(w => {
+      if (w.len < 2.5 || w.len > 10) return;
+      const o = axial(w), tol = Math.max(0.35, w.len * 0.12);
+      const flange = end => ax.some(f => f !== w && axial(f) !== o && f.len >= w.len * 0.25 && f.len <= w.len * 1.4 && Math.hypot(f.mx - end[0], f.my - end[1]) < tol);
+      const c = { x: w.mx, y: w.my };
+      if (!flange(w.a) || !flange(w.b) || inCircle(c) || frameCols.some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1)) return;
+      frameCols.push({ ...c, kind: 'I' });
+    });
+    // ✱: three or more strokes crossing at their common midpoint in three or more directions, one diagonal
+    const ang = sg => Math.round(((Math.atan2(sg.b[1] - sg.a[1], sg.b[0] - sg.a[0]) * 180 / Math.PI) % 180 + 180) % 180 / 15) % 12;
+    const mid = segs.filter(sg => sg.len >= 2.5 && sg.len <= 10);
+    mid.forEach(sg => {
+      const c = { x: sg.mx, y: sg.my };
+      if (frameCols.some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1)) return;
+      const thru = mid.filter(t => Math.hypot(t.mx - c.x, t.my - c.y) < Math.max(0.35, sg.len * 0.1));
+      if (thru.length >= 3 && new Set(thru.map(ang)).size >= 3 && thru.some(t => !axial(t)) && !inCircle(c)) frameCols.push({ ...c, kind: 'star' });
+    });
+    const longSegs = paths.filter(p => p.length === 2).map(p => ({ a: p[0], b: p[1], len: Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) })).filter(sg => sg.len >= 25);
+    return { crosses, frameCols, circles: plain, arrows: readArrows(segs.concat(longSegs)).concat(readJoistSymbols(paths)) };
   }
 
   /* "Mez. Jst." joist-span arrows: an axis-aligned shaft with a short stroke leaving each end at ~30° to it
@@ -2498,6 +2616,39 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     });
     // the same shaft may be stroked twice
     return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 1 && a.vert === b.vert));
+  }
+
+  /* Joist symbol (a joist in elevation, drawn along the joists): an axis-aligned chord with a zigzag of short webs
+     alternating left / right beside it — at least four webs. The chord's direction is the joist direction.
+     Zigzags may be one polyline or separate strokes. */
+  function readJoistSymbols(paths) {
+    const seg = [];
+    paths.forEach(p => { if (p.length >= 2 && p.length <= 60 && !p.closed) for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (len > 0.3) seg.push({ a, b, len }); } });
+    const out = [];
+    seg.filter(c => c.len >= 18 && c.len <= 320).forEach(c => {
+      const horiz = Math.abs(c.b[1] - c.a[1]) < 0.02 * c.len, vert = Math.abs(c.b[0] - c.a[0]) < 0.02 * c.len;
+      if (!horiz && !vert) return;
+      const u = p => (horiz ? p[0] : p[1]), w = p => (horiz ? p[1] : p[0]);   // along / across the chord
+      const lo = Math.min(u(c.a), u(c.b)), hi = Math.max(u(c.a), u(c.b)), off = w(c.a);
+      for (const sideSign of [1, -1]) {
+        const webs = seg.filter(q => {
+          if (q === c || q.len < 1.5 || q.len > 12) return false;
+          const da = (w(q.a) - off) * sideSign, db = (w(q.b) - off) * sideSign, along = Math.abs(u(q.b) - u(q.a)), across = Math.abs(w(q.b) - w(q.a));
+          return Math.min(da, db) > -0.4 && Math.max(da, db) < 9 && across > 1 && along > 0.4 && along < 3 * across && u(q.a) > lo - 1 && u(q.a) < hi + 1 && u(q.b) > lo - 1 && u(q.b) < hi + 1;
+        }).sort((p, q) => (u(p.a) + u(p.b)) - (u(q.a) + u(q.b)));
+        // one connected zigzag, slopes alternating / \ / \, webs of about one length
+        const touch = (p, q) => [p.a, p.b].some(e => [q.a, q.b].some(f => Math.hypot(e[0] - f[0], e[1] - f[1]) < 0.4));
+        const sl = q => Math.sign((u(q.b) - u(q.a)) * (w(q.b) - w(q.a)));
+        let best = 0, run = 0;
+        webs.forEach((q, i) => {
+          const p = webs[i - 1];
+          run = p && touch(p, q) && sl(p) && sl(q) && sl(p) !== sl(q) && Math.abs(q.len - p.len) < 0.4 * Math.max(q.len, p.len) ? run + 1 : 1;
+          best = Math.max(best, run);
+        });
+        if (best >= 4) { out.push({ x: (c.a[0] + c.b[0]) / 2, y: (c.a[1] + c.b[1]) / 2, len: c.len, vert, kind: 'truss' }); break; }
+      }
+    });
+    return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 12 && a.vert === b.vert));
   }
 
   // Group bubble circles: the most common radius among the larger plain circles
@@ -2534,9 +2685,10 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
   }
 
   /* grid: { xs:[frame line x, ft], colY:[column line y from FSW, ft], lewY?, rewY?, width?, letterLines? (column lines + ridge) }
-     returns { ok, reason, columns:[{x,y,kind}], arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
+     returns { ok, reason, columns:[{x,y,kind}] (mezzanine ⊗ 'x' / circled-I 'i'), frameCols:[{x,y,kind}] (bare I 'I' /
+     ✱ 'star'), arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
   function registerAndRead(paths, grid) {
-    const { crosses, circles, arrows } = readSymbols(paths);
+    const { crosses, frameCols, circles, arrows } = readSymbols(paths);
     const bub = bubbles(circles);
     const out = { ok: false, crosses: crosses.length, bubbles: bub.length, columns: [], arrows: [], letters: [] };
     if (bub.length < 4) { out.reason = 'grid bubbles not found'; return out; }
@@ -2584,7 +2736,13 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     const L = gridLetters(ly.length);
     out.letters = ly.map((y, i) => ({ y, letter: L[i] }));
     out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind }));
-    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a) }));
+    // frame columns inside the building outline (a lean-to or the title block cannot pass for one)
+    const xEnd = gx[gx.length - 1];
+    out.frameCols = frameCols.map(c => ({ ...toB(c.x, c.y), kind: c.kind })).filter(c => c.x > gx[0] - 3 && c.x < xEnd + 3 && c.y > -3 && c.y < W + 3);
+    // joist symbols inside the building and off the wall lines (wall-liner marks and hatch ends are not joists)
+    const offWalls = q => q.x > gx[0] + 1.5 && q.x < gx[gx.length - 1] - 1.5 && q.y > 1.5 && q.y < W - 1.5;
+    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a), kind: ar.kind || 'arrow' }))
+      .filter(q => q.kind !== 'truss' || (offWalls(q) && q.len >= 5 && q.len <= 60));
     out.ok = true;
     if (!crosses.length) out.reason = 'no mezzanine column symbols found';
     out.map = { fx, fy };
@@ -2603,8 +2761,279 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { subpaths, readSymbols, readArrows, chains, registerAndRead, compare, gridLetters };
+  const api = { subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+/* ---- framefile.js ---- */
+/* NBG Frame files (.frame): a zip holding .nfrx (the frame model, XML), .connections.xml and .detailing.xml.
+
+   The mezzanine floor loads go in the way the quote engineer enters them by hand, under Tools → Concentrated (Panel)
+   Loads: one row per column and case — description "FDL 1" / "FLL 1" (the number is the column's), load case FDL /
+   FLL, member COL0n, Y force in kips (down is negative), location = the height on the column in feet (Loc. Sys.
+   Global: above the finished floor), Ecc. Loc. WebCenterline with no offset. Those rows are the
+   <SpecialLoads><CLoads> list of the model. Floor dead / floor live are set to 1 psf when they are 0, as done by hand
+   so that NBG Frame makes the FDL / FLL cases (Process → Get Applied Loads). Everything else in the file is left
+   byte for byte: the other two zip entries are copied as they are, and the model text only gains the new rows and
+   the two 1-psf values. The analysis results stored in the file are re-run when the frame is processed.
+   inflate / deflate: (Uint8Array) → Promise<Uint8Array> of raw DEFLATE data (Node zlib or the browser's streams). */
+(function (root) {
+  'use strict';
+
+  // ---------- zip ----------
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  const utf8 = s => new TextEncoder().encode(s), unutf8 = u => new TextDecoder('utf-8').decode(u);
+
+  function unzip(u8) {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let e = u8.length - 22;
+    while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error('not an NBG Frame file (no zip directory)');
+    const n = dv.getUint16(e + 10, true), out = [];
+    let p = dv.getUint32(e + 16, true);
+    for (let i = 0; i < n; i++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('damaged zip directory');
+      const ent = {
+        verMade: dv.getUint16(p + 4, true), verNeed: dv.getUint16(p + 6, true), flags: dv.getUint16(p + 8, true), method: dv.getUint16(p + 10, true),
+        time: dv.getUint16(p + 12, true), date: dv.getUint16(p + 14, true), crc: dv.getUint32(p + 16, true), csize: dv.getUint32(p + 20, true), usize: dv.getUint32(p + 24, true),
+        intAttr: dv.getUint16(p + 36, true), extAttr: dv.getUint32(p + 38, true),
+      };
+      const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true);
+      ent.nameBytes = u8.slice(p + 46, p + 46 + nl);
+      ent.name = unutf8(ent.nameBytes);
+      if (dv.getUint32(lho, true) !== 0x04034b50) throw new Error('damaged zip entry ' + ent.name);
+      const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+      ent.data = u8.slice(start, start + ent.csize);
+      out.push(ent);
+      p += 46 + nl + xl + cl;
+    }
+    return out;
+  }
+  function zip(entries) {
+    const parts = [], cd = [];
+    let off = 0;
+    entries.forEach(en => {
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, en.verNeed, true); h.setUint16(6, en.flags & ~8, true); h.setUint16(8, en.method, true);
+      h.setUint16(10, en.time, true); h.setUint16(12, en.date, true); h.setUint32(14, en.crc, true); h.setUint32(18, en.data.length, true); h.setUint32(22, en.usize, true);
+      h.setUint16(26, en.nameBytes.length, true); h.setUint16(28, 0, true);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, en.verMade, true); c.setUint16(6, en.verNeed, true); c.setUint16(8, en.flags & ~8, true); c.setUint16(10, en.method, true);
+      c.setUint16(12, en.time, true); c.setUint16(14, en.date, true); c.setUint32(16, en.crc, true); c.setUint32(20, en.data.length, true); c.setUint32(24, en.usize, true);
+      c.setUint16(28, en.nameBytes.length, true); c.setUint16(30, 0, true); c.setUint16(32, 0, true); c.setUint16(34, 0, true); c.setUint16(36, en.intAttr, true); c.setUint32(38, en.extAttr, true); c.setUint32(42, off, true);
+      parts.push(new Uint8Array(h.buffer), en.nameBytes, en.data);
+      cd.push(new Uint8Array(c.buffer), en.nameBytes);
+      off += 30 + en.nameBytes.length + en.data.length;
+    });
+    const cdLen = cd.reduce((a, u) => a + u.length, 0), end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true); end.setUint32(12, cdLen, true); end.setUint32(16, off, true);
+    const all = parts.concat(cd, [new Uint8Array(end.buffer)]), out = new Uint8Array(all.reduce((a, u) => a + u.length, 0));
+    let k = 0;
+    all.forEach(u => { out.set(u, k); k += u.length; });
+    return out;
+  }
+
+  // ---------- the model ----------
+  const MODEL = '.nfrx';
+  const tag = (xml, t, from = 0) => { const m = new RegExp(`<${t}>([^<]*)</${t}>`).exec(xml.slice(from)); return m ? m[1] : null; };
+  const num = v => (v == null ? null : +v);
+  // which frame lines a file designs: from its name (…_Bldg_1_3-5.frame → 3, 4, 5), else its title (…-Bldg 1-2)
+  function frameLinesOf(fileName, title) {
+    const base = String(fileName || '').replace(/(?:\s*\(\d+\))+(?=\.frame$)/i, '').replace(/[-_ ]mezz(?=\.frame$)/i, '');
+    const m = /_([0-9]+(?:\s*-\s*[0-9]+)?)\.frame$/i.exec(base) || /-\s*([0-9]+(?:\s*-\s*[0-9]+)?)\s*$/.exec(title || '');
+    if (!m) return [];
+    const [a, b] = m[1].split('-').map(s => +s.trim());
+    const out = [];
+    for (let k = a; k <= (b || a); k++) out.push(k);
+    return out;
+  }
+  // the building a file belongs to: title "<job>-Bldg 1-2" → "Bldg 1"
+  function buildingOf(title, job) {
+    let t = String(title || '').trim();
+    if (job && t.toUpperCase().startsWith(String(job).toUpperCase() + '-')) t = t.slice(String(job).length + 1);
+    const m = /^(.+?)\s*-\s*\d+(?:\s*-\s*\d+)?\s*$/.exec(t);
+    return m ? m[1].trim() : '';
+  }
+
+  async function read(bytes, io, fileName) {
+    const entries = unzip(bytes), model = entries.find(e => e.name === MODEL);
+    if (!model) throw new Error('no frame model (.nfrx) in this file');
+    const raw = model.method === 0 ? model.data : await io.inflate(model.data);
+    if (crc32(raw) !== model.crc) throw new Error('the frame model does not match its checksum');
+    const xml = unutf8(raw), bom = raw[0] === 0xEF && raw[1] === 0xBB && raw[2] === 0xBF;   // the decoder drops a BOM: put it back on write
+    const sl = xml.indexOf('<SpecialLoads>'), colsAt = xml.indexOf('<Columns>');
+    const columns = [];
+    const colRe = /<Column>[\s\S]*?<\/Column>(?=\s*(?:<Column>|<\/Columns>))/g;
+    colRe.lastIndex = colsAt;
+    let m;
+    const colsEnd = xml.indexOf('</Columns>', colsAt);
+    while ((m = colRe.exec(xml)) && m.index < colsEnd) {
+      const block = m[0];
+      columns.push({ id: tag(block, 'ID'), x: num(tag(block, 'GlobalX')), top: num(tag(block, 'TopElevation')), type: tag(block, 'ColumnType') });
+    }
+    const title = tag(xml, 'FrameTitle'), job = tag(xml, 'NBGJobNumber'), loadsAt = xml.indexOf('<Loads>');
+    const info = {
+      fileName: fileName || '', title, job, building: buildingOf(title, job), lines: frameLinesOf(fileName, title),
+      width: num(tag(xml, 'WidthInFeet')), length: num(tag(xml, 'LengthInFeet')), eave: num(tag(xml, 'LeftEaveHeight')), bayWidth: num(tag(xml, 'BayWidth')),
+      type: tag(xml, 'Type', xml.indexOf('<Geometry>')), columns: columns.filter(c => c.id),
+      floorDead: num(tag(xml, 'FloorDead', loadsAt)), floorLive: num(tag(xml, 'FloorLive', loadsAt)),
+      cloads: cloadsOf(xml).map(c => c.fields), hasSpecialLoads: sl >= 0,
+    };
+    return { entries, model, xml, bom, info };
+  }
+  // the <CLoad> rows of <SpecialLoads>, with their text spans
+  function cloadsOf(xml) {
+    const s = xml.indexOf('<SpecialLoads>'), e = xml.indexOf('</SpecialLoads>', s);
+    if (s < 0 || e < 0) return [];
+    const out = [], re = /([ \t]*)<CLoad>[\s\S]*?<\/CLoad>(\r?\n)?/g;
+    re.lastIndex = s;
+    let m;
+    while ((m = re.exec(xml)) && m.index < e) {
+      const fields = {};
+      m[0].replace(/<([A-Za-z]+)>([^<]*)<\/\1>/g, (_, k, v) => { fields[k] = v; return _; });
+      out.push({ start: m.index, end: m.index + m[0].length, fields });
+    }
+    return out;
+  }
+  // rows this tool writes (and the same rows typed by hand): case FDL / FLL, description "FDL 1", "FLL1", "FDL" …
+  const isOurs = f => (f.loadCaseID === 'FDL' || f.loadCaseID === 'FLL') && /^F[DL]L\s*\d*$/i.test(String(f.name || '').trim());
+  const fmt = v => String(+(+v).toFixed(4));
+
+  /* rows: [{ name, caseId, member, y (kips, down −), location (ft) }]; opt: { toFlange, eccentricity } (defaults: web
+     centre, 0 — or what FDL / FLL rows already in the file use). Earlier FDL<n> / FLL<n> rows are replaced, so a
+     second export of the same file gives the same result. Returns the new model text and what changed. */
+  function addLoads(xml, rows, opt = {}) {
+    const nl = xml.includes('\r\n') ? '\r\n' : '\n';
+    const s = xml.indexOf('<SpecialLoads>'), e = xml.indexOf('</SpecialLoads>', s);
+    if (s < 0 || e < 0) throw new Error('no <SpecialLoads> in the frame model');
+    const existing = cloadsOf(xml), ours = existing.filter(c => isOurs(c.fields)), theirs = existing.filter(c => !isOurs(c.fields));
+    // conventions: a hand-entered FDL / FLL row in the file wins, then the options, then web centre with no eccentricity
+    const like = (ours[0] || {}).fields || {}, other = (theirs[0] || {}).fields || {};
+    const conv = {
+      loadGroup: like.loadGroup ?? other.loadGroup ?? '0', status: like.status ?? other.status ?? 'Global', locSys: like.locSys ?? other.locSys ?? '1',
+      toFlange: opt.toFlange ?? like.toFlange ?? '0', eccentricity: opt.eccentricity ?? like.eccentricity ?? '0',
+    };
+    // drop earlier mezzanine rows (back to front so the spans stay valid)
+    let out = xml;
+    ours.slice().sort((a, b) => b.start - a.start).forEach(c => { out = out.slice(0, c.start) + out.slice(c.end); });
+    // indentation from the <CLoads> line
+    const s2 = out.indexOf('<SpecialLoads>'), e2 = out.indexOf('</SpecialLoads>', s2);
+    let open = out.indexOf('<CLoads', s2);
+    if (open < 0 || open > e2) {
+      // no list yet: an empty one goes after <PLoads> (the order NBG Frame writes), else first in <SpecialLoads>
+      const pl = out.indexOf('<PLoads', s2), plEnd = pl >= 0 && pl < e2 ? (out.startsWith('<PLoads />', pl) ? pl + 10 : out.indexOf('</PLoads>', pl) + 9) : s2 + '<SpecialLoads>'.length;
+      const at = out.indexOf('\n', plEnd) + 1, lineStart0 = out.lastIndexOf('\n', pl >= 0 && pl < e2 ? pl : s2) + 1;
+      const ind0 = out.slice(lineStart0, pl >= 0 && pl < e2 ? pl : s2) + (pl >= 0 && pl < e2 ? '' : '  ');
+      out = out.slice(0, at) + `${ind0}<CLoads />${nl}` + out.slice(at);
+      open = at + ind0.length;
+    }
+    const lineStart = out.lastIndexOf('\n', open) + 1, ind = out.slice(lineStart, open);
+    const i1 = ind + '  ', i2 = ind + '    ';
+    const block = rows.map(r => [
+      `${i1}<CLoad>`,
+      `${i2}<loadGroup>${conv.loadGroup}</loadGroup>`, `${i2}<status>${conv.status}</status>`, `${i2}<xMag>0</xMag>`, `${i2}<yMag>${fmt(r.y)}</yMag>`, `${i2}<moment>0</moment>`,
+      `${i2}<location>${fmt(r.location)}</location>`, `${i2}<eccentricity>${conv.eccentricity}</eccentricity>`, `${i2}<memberID>${r.member}</memberID>`,
+      `${i2}<loadCaseID>${r.caseId}</loadCaseID>`, `${i2}<locSys>${conv.locSys}</locSys>`, `${i2}<toFlange>${conv.toFlange}</toFlange>`, `${i2}<name>${r.name}</name>`,
+      `${i1}</CLoad>`,
+    ].join(nl) + nl).join('');
+    if (out.startsWith('<CLoads />', open)) out = out.slice(0, open) + `<CLoads>${nl}${block}${ind}</CLoads>` + out.slice(open + '<CLoads />'.length);
+    else {
+      const close = out.indexOf('</CLoads>', open), closeLine = out.lastIndexOf('\n', close) + 1;
+      out = out.slice(0, closeLine) + block + out.slice(closeLine);
+    }
+    // floor dead / live 1 psf when 0, so NBG Frame makes the FDL / FLL cases
+    const floors = {};
+    const loadsAt = out.indexOf('<Loads>');
+    ['FloorDead', 'FloorLive'].forEach(k => {
+      const at = out.indexOf(`<${k}>`, loadsAt), endAt = out.indexOf(`</${k}>`, at);
+      if (at < 0 || endAt < 0) return;
+      const v = +out.slice(at + k.length + 2, endAt);
+      floors[k] = { was: v, now: v > 0 ? v : 1 };
+      if (!(v > 0)) out = out.slice(0, at + k.length + 2) + '1' + out.slice(endAt);
+    });
+    const others = theirs.filter(c => c.fields.loadCaseID === 'FDL' || c.fields.loadCaseID === 'FLL').map(c => c.fields);
+    return { xml: out, added: rows.length, replaced: ours.length, others, conv, floors };
+  }
+
+  async function write(file, xml, io) {
+    const body = utf8(xml), raw = file.bom && !xml.startsWith('\uFEFF') ? new Uint8Array([0xEF, 0xBB, 0xBF, ...body]) : body, data = await io.deflate(raw);
+    const entries = file.entries.map(en => (en.name === MODEL ? { ...en, method: 8, crc: crc32(raw), usize: raw.length, data } : en));
+    return zip(entries);
+  }
+
+  /* Which end of the frame file is the front sidewall. NBG Frame numbers the columns from the left of the frame,
+     and GlobalX runs from there; on the files seen so far COL01 is the FSW column. The file itself says so when
+     (1) its interior columns are not symmetric about the middle — Box 5 gives them from the FSW — or (2) it carries
+     lean-to loads (rows named "Lean-To") and the PCS says which sidewall the lean-to attaches to. With neither, the
+     FSW is taken on the COL01 side and said so. ref: { interior: [ft from FSW], leanToWall: 'FSW' | 'BSW' | null } */
+  function orient(info, ref = {}) {
+    const cols = info.columns.slice().sort((a, b) => a.x - b.x), W = info.width || (cols.length ? cols[cols.length - 1].x : 0);
+    const inner = cols.slice(1, -1).map(c => c.x), want = (ref.interior || []).filter(y => y > 0.05 && y < W - 0.05).sort((a, b) => a - b);
+    if (W && inner.length && inner.length === want.length) {
+      const direct = inner.reduce((a, x, i) => a + Math.abs(x - want[i]), 0);
+      const mir = want.map(y => W - y).sort((a, b) => a - b), mirrored = inner.reduce((a, x, i) => a + Math.abs(x - mir[i]), 0);
+      if (Math.abs(direct - mirrored) > 1 && Math.min(direct, mirrored) < 2 * inner.length)
+        return { mirrored: mirrored < direct, how: 'interior', text: `interior columns at ${inner.map(x => +x.toFixed(2)).join(', ')}' match Box 5 measured from the ${mirrored < direct ? 'BSW' : 'FSW'}` };
+    }
+    const lean = new Set((info.cloads || []).filter(c => /lean/i.test(c.name || '')).map(c => c.memberID));
+    if (lean.size && /^(FSW|BSW)$/.test(ref.leanToWall || '') && cols.length > 1) {
+      const first = lean.has(cols[0].id), last = lean.has(cols[cols.length - 1].id);
+      if (first !== last) {
+        const mirrored = (ref.leanToWall === 'FSW') !== first;
+        return { mirrored, how: 'lean-to', text: `the lean-to loads in the file are on ${first ? cols[0].id : cols[cols.length - 1].id} and the PCS attaches the lean-to to the ${ref.leanToWall}` };
+      }
+    }
+    return { mirrored: false, how: 'assumed', text: `${cols[0] ? cols[0].id : 'COL01'} taken as the FSW column (NBG Frame's usual order); the file has nothing that tells the sides apart` };
+  }
+
+  /* The loads one frame file takes. frameLines: the job's frame lines ([{ frame, building, entries: [{ label, y, D, L,
+     elev, A, member, where, parts }] }], y from the FSW). A file that designs several lines (3-5) takes, for each of
+     its columns, the largest dead and the largest live of those lines. Columns are matched by position across the
+     frame (within 2'-0": the column line sits a girt depth inside the steel line), so the file's own member IDs are
+     used. A load at a column that is not in the file (an endwall column beside a rigid end frame) is listed apart,
+     never put on another member. opt: { lines, mirrored, height: 'beam' | 'A', building } */
+  // "Building 1", "BLDG-1", "Bldg 1" are one building
+  const bldgKey = b => String(b || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+  function rowsFor(info, frameLines, opt = {}) {
+    const lines = (opt.lines && opt.lines.length ? opt.lines : info.lines).map(String);
+    const sameBldg = f => !opt.building || !f.building || bldgKey(f.building) === bldgKey(opt.building);
+    const use = frameLines.filter(f => lines.includes(String(f.frame)) && sameBldg(f));
+    const byMember = new Map(), unplaced = [];
+    const W = info.width || Math.max(...info.columns.map(c => c.x));
+    use.forEach(f => f.entries.forEach(e => {
+      const gx = opt.mirrored ? W - e.y : e.y;
+      const col = info.columns.map(c => ({ c, d: Math.abs(c.x - gx) })).filter(o => o.d <= 2).sort((a, b) => a.d - b.d)[0];
+      if (!col) { unplaced.push({ ...e, frame: f.frame, gx }); return; }
+      const k = col.c.id, cur = byMember.get(k) || { member: k, x: col.c.x, D: 0, L: 0, elev: 0, from: [] };
+      cur.D = Math.max(cur.D, e.D); cur.L = Math.max(cur.L, e.L);
+      cur.elev = Math.max(cur.elev, opt.height === 'A' && e.A != null ? e.A : e.elev);
+      cur.from.push({ frame: f.frame, label: e.label, D: e.D, L: e.L, elev: e.elev, parts: e.parts });
+      byMember.set(k, cur);
+    }));
+    const members = [...byMember.values()].sort((a, b) => a.x - b.x);
+    const rows = [];
+    members.forEach(m => {
+      const n = +(/(\d+)\s*$/.exec(m.member) || [0, 0])[1];
+      if (m.D > 0) rows.push({ name: `FDL ${n}`, caseId: 'FDL', member: m.member, y: -m.D, location: m.elev });
+      if (m.L > 0) rows.push({ name: `FLL ${n}`, caseId: 'FLL', member: m.member, y: -m.L, location: m.elev });
+    });
+    return { lines, used: use.map(f => f.frame), members, rows, unplaced, width: W };
+  }
+
+  // several finished files in one download: a zip of the .frame files, stored as they are
+  const dosDate = d => ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), dosTime = d => (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  function bundle(files, now = new Date()) {
+    return zip(files.map(f => ({
+      verMade: 20, verNeed: 20, flags: 0, method: 0, time: dosTime(now), date: dosDate(now), crc: crc32(f.bytes), usize: f.bytes.length,
+      intAttr: 0, extAttr: 0, nameBytes: utf8(f.name), data: f.bytes,
+    })));
+  }
+
+  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, frameLinesOf, buildingOf, bldgKey };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);
 
 </script>
@@ -3085,7 +3514,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
      arrows inside its footprint. reg is PLAN.registerAndRead(...) for the building the drawing shows. */
   function applyPlan(pcs, reg) {
     if (!pcs) return;
-    pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns } : null;
+    pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns, frameCols: reg.frameCols || [] } : null;
     pcs.mezzanines.forEach(m => {
       m.planJoists = null; m.planArrows = 0;
       if (!pcs.plan || m.width == null || m.length == null) return;
@@ -3139,6 +3568,8 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
         width: b.width, length: b.length, ridge: b.ridge, bays: b.bays || [], lewCols: b.lewCols || [], rewCols: b.rewCols || [],
         fswSoldier: b.fswSoldier || [], bswSoldier: b.bswSoldier || [], frames,
         yLetters: pcs.plan && (!own || own.building === pcs.building) ? pcs.plan.letters : undefined,
+        // column symbols on the floor plan: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column
+        planCols: pcs.plan && (!own || own.building === pcs.building) ? pcs.plan.columns.concat(pcs.plan.frameCols || []) : undefined,
       },
     };
   }
@@ -3232,6 +3663,8 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     const mat = inp.mezz.material;
     if (mat && !/Concrete/i.test(mat)) warn.push({ level: 'stop', text: `Mezzanine material is "${mat}" — per the training guide the quote engineer runs anything other than deck + concrete. Enter the dead load manually.` });
     if (inp.loads.dead.source === 'estimate') warn.push({ level: 'warn', text: `Dead load ${val(inp.loads.dead)} psf: ${inp.loads.dead.note}` });
+    // a deck the deck guide does not know ("Other", "Per Seller", blank): the dead load is for the deck on the Inputs page
+    if (inp.mezz.deckText && !DESIGN.deckKey(inp.mezz.deckText) && inp.loads.dead.auto) warn.push({ level: 'warn', text: `Deck type on the PCS reads "${inp.mezz.deckText}" — the dead load ${val(inp.loads.dead)} psf is taken for ${inp.mezz.deck} form deck. Confirm the deck on the Inputs page.` });
     if (part > 0) warn.push({ level: 'info', text: `Partition load ${part} psf added to the ${s.partitionTo} load.` });
     ['joistSpacing', 'seat'].forEach(k => { if (inp.geom[k].source === 'default') warn.push({ level: 'warn', text: inp.geom[k].note }); });
     if (inp.mezz.openings) warn.push({ level: 'warn', text: `Floor openings listed: ${inp.mezz.openings} — frame openings by hand. An opening wider than one joist spacing needs a joist header; its size and exact location must be on the order documents, and the header locations go to the joist manufacturer (DM 15.1.2).` });
@@ -3248,6 +3681,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
       if (alt && (alt.beamSpan < lay.beamSpan - 1e-6 || n(alt) < n(lay))) warn.push({ level: 'key', text: `Joist direction follows the "Mez. Jst." arrows on the PCS floor plan (${lay.joists === 'y' ? 'across the width' : 'along the length'}). The other direction would use ${n(alt)} beams spanning ${PCS.fmtFtIn(alt.beamSpan)} — switch it on the Plan page if that is what will be quoted.` });
     }
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
+    readColumnSymbols(lay, bl.planCols, grid, warn);
     lay.snaps.forEach(sn => warn.push({ level: 'key', text: `Mezzanine edge at ${sn.axis === 'y' ? 'FSW' : 'LEW'} ${PCS.fmtFtIn(sn.edge)} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
     // grid lines that only some frames share (interior frame columns off the endwall grid) can put beam lines close together
     const tight = lay.beamLines.slice(1).map((v, i) => [lay.beamLines[i], v]).filter(([a, b]) => b - a < 12 - 1e-6);
@@ -3257,6 +3691,38 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
     return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+  }
+
+  /* The floor plan decides frame vs mezzanine column where it disagrees with the building data (Box 2 / Box 5):
+     ⊗ or a circled I is a mezzanine column; a bare I, or ✱ ("Most Economical" interior frame column), is a building
+     column whose beam reactions go to the frame design. Every support also keeps the symbol drawn at it. */
+  const MEZZ_SYM = { x: '⊗', i: 'circled I' };
+  function readColumnSymbols(lay, planCols, grid, warn) {
+    if (!planCols || !planCols.length) return;
+    // a wall column's I is drawn about 1'-9" inside the steel line: it stands on the wall line
+    const W = grid.width, Lg = grid.length, wall = (v, ends) => { const e = ends.find(u => Math.abs(v - u) < 2.6); return e == null ? v : e; };
+    const syms = planCols.map(c => (c.kind === 'I' ? { ...c, x: wall(c.x, [0, Lg]), y: wall(c.y, [0, W]) } : c));
+    const symAt = sp => syms.map(c => ({ c, d: Math.hypot(c.x - sp.x, c.y - sp.y) })).filter(o => o.d <= 1.25).sort((a, b) => a.d - b.d)[0];
+    const flips = [];
+    [lay, lay.alt].filter(Boolean).forEach((L, li) => {
+      L.supports.forEach(sp => {
+        const o = symAt(sp);
+        if (!o) return;
+        sp.planKind = o.c.kind;
+        const mezzSym = !!MEZZ_SYM[o.c.kind];
+        if (mezzSym !== sp.building) return;   // the drawing agrees with the building data
+        // along a wall the building data is firm, and opening marks there can pass for an I: only ⊗ / ✱, or an I
+        // standing inside the building, can change a support's class
+        const onWall = Math.abs(sp.y) < 0.01 || Math.abs(sp.y - W) < 0.01 || Math.abs(sp.x) < 0.01 || Math.abs(sp.x - Lg) < 0.01;
+        if (o.c.kind === 'I' && onWall) return;
+        sp.building = !mezzSym; sp.fromPlan = o.c.kind;
+        if (li === 0) flips.push(sp);
+      });
+      L.mezzCols = L.supports.filter(sp => !sp.building);
+    });
+    flips.forEach(sp => warn.push({ level: 'warn', text: sp.building
+      ? `${sp.label}: the PCS floor plan shows a frame column there (${sp.planKind === 'star' ? '✱ — "Most Economical" interior frame column' : 'I'}), not a mezzanine column — taken as a building column; its beam reactions go to the frame design. Box 2 / Box 5 did not list it: confirm the frame data.`
+      : `${sp.label}: the PCS floor plan shows a mezzanine column there (${MEZZ_SYM[sp.planKind]}), where the building data (Box 2 / Box 5) has a frame column — designed as a mezzanine column. Confirm the frame data.` }));
   }
 
   /* Uniform trib that gives a beam the same maximum moment and the same largest end shear as its own trib
@@ -3434,7 +3900,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
       if (c.incomplete) return;
       c.lay.supports.forEach(sp => {
         const key = c.bkey + '|' + sp.x.toFixed(2) + ',' + sp.y.toFixed(2);
-        const e = at.get(key) || { key, x: sp.x, y: sp.y, building: sp.building, label: sp.label, ends: [], seenIn: [] };
+        const e = at.get(key) || { key, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
         e.seenIn.push(c.index);
         ['L', 'R'].forEach(side => {
           const id = sp.beams[side];
@@ -3455,7 +3921,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
         const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
-        frame.push({ label: e.label, x: e.x, y: e.y, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        frame.push({ label: e.label, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
@@ -3767,6 +4233,32 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     return { beam, column };
   }
 
+  /* ---------- loads to the frame, as NBG Frame takes them: by frame line, on the frame's own columns ----------
+     A frame's members are its sidewall columns and the interior columns Box 5 lists for that frame line, numbered as
+     NBG Frame does: COL01 at the FSW, then each interior column from the FSW, the BSW column last. An endwall column
+     that is not one of the frame's members (a wind column beside a rigid end frame) is listed apart. Mezzanine columns
+     never appear here — they are on the Column sheet. Each load acts at the mezzanine's top of beam (A − slab − seat). */
+  function frameEntries(ctxs, frame) {
+    const out = [];
+    frame.forEach(q => {
+      const c = ctxs[q.parts[0].mi], g = c.grid, near = (a, b) => Math.abs(a - b) < 0.05;
+      const fi = g.xs.findIndex(x => near(x, q.x));
+      if (fi < 0) return;   // a soldier column between frames: listed with the loads to the frame, not in a frame file
+      const W = g.width, members = [0, ...(g.interior[fi] || []).filter(y => y > 0.05 && y < W - 0.05), W].sort((a, b) => a - b);
+      const mi = members.findIndex(y => near(y, q.y));
+      const wall = fi === 0 || fi === g.xs.length - 1;
+      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? `interior column at ${PCS.fmtFtIn(q.y)} from the FSW` : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
+      // top of the mezzanine beam bearing there (the higher one when two mezzanines frame in)
+      const elev = Math.max(...q.parts.map(p => { const k = ctxs[p.mi]; return k.A - (k.slabIn + k.seatIn) / 12; }));
+      const A = Math.max(...q.parts.map(p => ctxs[p.mi].A));
+      let f = out.find(e => e.x === g.xs[fi] && e.bkey === c.bkey);
+      if (!f) out.push(f = { frame: g.xLabel(g.xs[fi]), x: g.xs[fi], bkey: c.bkey, building: c.inp.mezz.building || '', type: (c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || null, width: W, interior: members.slice(1, -1), entries: [] });
+      f.entries.push({ label: q.label, x: q.x, y: q.y, member: mi >= 0 ? 'COL' + String(mi + 1).padStart(2, '0') : null, where, elev, A, D: q.D, L: q.L, parts: q.parts, planKind: q.planKind || null });
+    });
+    out.forEach(f => { f.entries.sort((a, b) => a.y - b.y); f.type = f.type ? { type: f.type.type || '', intType: f.type.intType || null } : null; });
+    return out.sort((a, b) => a.x - b.x);
+  }
+
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
   function runJob(items) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
@@ -3797,7 +4289,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
       r.dm.filter(it => (it.status === 'stop' || it.status === 'check') && it.mirror !== false).forEach(it => r.warn.push({ level: it.status === 'stop' ? 'stop' : 'warn', text: `${it.title} (DM ${it.ref}): ${it.text}` }));
     });
     const excel = excelSteps(ctxs, mezz, marks);
-    return { mezz, merges, columns: cols, frameLoads: cols.frame, marks: marks.map(({ group, ...m }) => m), dm, excel };
+    return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: frameEntries(ctxs, cols.frame), marks: marks.map(({ group, ...m }) => m), dm, excel };
   }
 
   function run(inp, settings = {}) { return runJob([{ inp, settings }]).mezz[0]; }
@@ -3894,7 +4386,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
 /* Mezzanine Quick-Design — browser UI (Astra skin). */
 (function () {
   'use strict';
-  const PCS = window.MZ_PCS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
+  const PCS = window.MZ_PCS, FF = window.MZ_FRAMEFILE, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -3910,7 +4402,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
   let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
-  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null };
+  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'beam' } };
 
   // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
   // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
@@ -3963,6 +4455,14 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     go('column'); renderColumn(); renderMiniPlan();
   }
 
+  // the column symbol the PCS floor plan shows at a point (a wall column's I is drawn just inside the steel line)
+  function symAt(pt) {
+    const pc = state.inputs && state.inputs.building && state.inputs.building.planCols, g = state.res && state.res.grid;
+    if (!pc || !g) return null;
+    const wall = (v, ends) => { const e = ends.find(u => Math.abs(v - u) < 2.6); return e == null ? v : e; };
+    const hit = pc.map(c => (c.kind === 'I' ? { ...c, x: wall(c.x, [0, g.length]), y: wall(c.y, [0, g.width]) } : c)).filter(c => Math.hypot(c.x - pt.x, c.y - pt.y) <= 1.25).sort((p, q) => Math.hypot(p.x - pt.x, p.y - pt.y) - Math.hypot(q.x - pt.x, q.y - pt.y))[0];
+    return hit ? hit.kind : null;
+  }
   // ---------- hover cards: what every column takes (Column-sheet D / L, or the load to the frame), each beam's end shears ----------
   const sideTxt = sd => (sd === 'left' ? 'Left' : sd === 'right' ? 'Right' : '');
   function partRow(p, side) {
@@ -3988,9 +4488,12 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     if (kind === 'bcol') {
       const pt = { x: +a, y: +b }, fl = (job.frameLoads || []).find(q => atPt(q, pt)), g = r.grid;
       const lab = fl ? fl.label : `${g.xLabel(pt.x) || ft(pt.x)}/${g.yLabel(pt.y) || ft(pt.y)}`;
-      if (!fl) return head(esc(lab), 'building column') + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
+      const fe = (job.frameEntries || []).flatMap(f => f.entries.map(e => ({ ...e, frame: f.frame }))).find(e => atPt(e, pt));
+      const sym = symAt(pt), drawn = sym ? `<div class="tip-f">On the PCS floor plan: ${sym === 'star' ? '✱ — interior frame column "designated as Most Economical" (pipe, tube or I-shape, set at final design)' : 'I — frame / endwall column'}.</div>` : '';
+      if (!fl) return head(esc(lab), 'building column') + drawn + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
       return head(esc(lab), 'building column · load to the frame') + `<div class="tip-k">Mezzanine beam reactions · unfactored (kips)</div><div class="tip-lr one">${pair('Total', fl.D, fl.L)}</div>` +
-        tbl(fl.parts.map(p => partRow(p)).join('')) + '<div class="tip-f">Goes to the frame / endwall design, not the mezzanine Column sheet.</div>';
+        tbl(fl.parts.map(p => partRow(p)).join('')) + drawn +
+        `<div class="tip-f">${fe ? `NBG Frame: frame line ${esc(fe.frame)}, ${fe.member ? `<b>${esc(fe.member)}</b> (${esc(fe.where)})` : esc(fe.where)}, at ${ft(fe.elev)} (T/beam).` : 'Goes to the frame / endwall design, not the mezzanine Column sheet.'}</div>`;
     }
     if (kind === 'beam' || kind === 'carried') {
       const m = job.mezz[+a], id = +b, bm = m.layout.beams[id];
@@ -4068,6 +4571,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
 
   async function loadFile(file) {
     $('#dropTitle').textContent = file.name; state.fileName = file.name;
+    state.nbg.files = [];
     $('#dropSub').textContent = 'Reading…';
     status('Reading PCS', 'warn');
     prog(0.1);
@@ -4166,7 +4670,9 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     state.planReg = PLAN.registerAndRead(state.planPaths, { xs: g.xs, colY, lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
     if (state.pcs) RUN.applyPlan(state.pcs, state.planReg);
     const letters = state.planReg.ok ? state.planReg.letters : undefined;
-    (state.all || []).forEach(a => { a.inputs.building.yLetters = letters; });
+    // and the column symbols: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column (they settle frame vs mezzanine)
+    const cols = state.planReg.ok ? state.planReg.columns.concat(state.planReg.frameCols || []) : undefined;
+    (state.all || []).forEach(a => { a.inputs.building.yLetters = letters; a.inputs.building.planCols = cols; });
   }
 
   // ---------- compute ----------
@@ -4245,7 +4751,7 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); }
+  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -5040,6 +5546,142 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
     $('#supTable').innerHTML = `<thead><tr><th>Column</th><th>Type · beams framing in</th><th class="num">Trib area</th><th class="num">Left D / L (k)</th><th class="num">Right D / L (k)</th></tr></thead><tbody>` +
       jcols.map(c => `<tr><td class="mono"><b>C${cno.get(c.label)}</b> · ${c.label}</td><td><b style="color:var(--red)">Mezzanine column ⊗</b>${many ? ' · ' + esc(c.ownerId) : ''}${c.shared ? ' · shared' : ''}<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' · ')}</small></td><td class="num">${f(c.tribArea, 0)} ft²</td><td class="num">${f(c.DL_L, 2)} / ${f(c.LL_L, 2)}</td><td class="num">${f(c.DL_R, 2)} / ${f(c.LL_R, 2)}</td></tr>`).join('') +
       fls.filter(q => ms.some(m => q.seenIn.includes(m.index))).map(q => `<tr class="frame-row"><td class="mono">${q.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${q.parts.map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(q.D, 2)} · L ${f(q.L, 2)} k</b></td></tr>`).join('') + '</tbody>';
+  }
+
+  // ---------- frame loads for NBG Frame: by frame line, on the frame's own members ----------
+  function renderFrameLoads() {
+    const el = $('#frameLoads'), fr = (state.job && state.job.frameEntries) || [];
+    $('#frameLoadsPanel').hidden = !(state.res && !state.res.incomplete);
+    renderNbg();
+    if (!fr.length) { el.innerHTML = '<div class="empty">No mezzanine beam frames into a building column.</div>'; return; }
+    const many = manyMezz(), F2 = v => f(v, 2);
+    const rows = fr.map(fl => {
+      const typ = fl.type ? `${esc(fl.type.type.replace(/\s*-\s*$/, ''))}${fl.type.intType ? ' · interior columns ' + esc(fl.type.intType) + ' (✱)' : ''}` : '';
+      const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
+      return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
+          <button class="btn-soft" data-fl="${esc(fl.frame)}"><svg><use href="#i-copy"/></svg>Copy</button></div>
+        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (T/beam)</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(e.elev)}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td></td></tr></tfoot></table></div>`;
+    }).join('');
+    el.innerHTML = `<div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
+    const tsv = fl => ['Frame line\tColumn\tMember\tWhere\tAt T/beam (ft)\tFloor dead (k)\tFloor live (k)\tFrom'].concat(fl.entries.map(e => [fl.frame, e.label, e.member || '', e.where, (+e.elev.toFixed(3)), (+e.D.toFixed(3)), (+e.L.toFixed(3)), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].join('\t'))).join('\n');
+    $$('#frameLoads [data-fl]').forEach(b => { b.onclick = () => copyText(tsv(fr.find(x => x.frame === b.dataset.fl)), `Frame line ${b.dataset.fl} loads copied`); });
+    $('#flCsv').onclick = () => {
+      const csv = ['Frame line,Column,Member,Where,At T/beam (ft),Floor dead (k),Floor live (k),From'].concat(fr.flatMap(fl => fl.entries.map(e => [fl.frame, e.label, e.member || '', e.where, +e.elev.toFixed(3), +e.D.toFixed(3), +e.L.toFixed(3), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')))).join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = `${(state.pcs && state.pcs.job.quote) || 'mezzanine'}-frame-loads.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Frame loads CSV downloaded');
+    };
+  }
+
+  // ---------- NBG Frame files: the FDL / FLL concentrated loads written into the job's own .frame files ----------
+  // raw DEFLATE through the browser's streams (Chrome / Edge 103+, Firefox 113+, Safari 16.4+)
+  const zipIO = {
+    ok: typeof DecompressionStream !== 'undefined' && (() => { try { new DecompressionStream('deflate-raw'); return true; } catch (e) { return false; } })(),
+    inflate: u => new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(b => new Uint8Array(b)),
+    deflate: u => new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(b => new Uint8Array(b)),
+  };
+  const linesText = ls => { const a = ls.map(Number).sort((x, y) => x - y); return a.length > 2 && a.every((v, i) => !i || v === a[i - 1] + 1) ? `${a[0]}-${a[a.length - 1]}` : a.join(', '); };
+  const parseLines = t => String(t || '').split(/[,\s]+/).filter(Boolean).flatMap(p => { const m = /^(\d+)(?:-(\d+))?$/.exec(p); if (!m) return []; const out = []; for (let k = +m[1]; k <= +(m[2] || m[1]); k++) out.push(k); return out; });
+  const sameName = (a, b) => FF.bldgKey(a) === FF.bldgKey(b);
+  async function addFrameFiles(list) {
+    if (!zipIO.ok) { toast('This browser cannot open .frame files (no deflate-raw streams) — use a current Chrome or Edge'); return; }
+    for (const file of list) {
+      const item = { name: file.name, include: true, err: null, ff: null, lines: '' };
+      try {
+        item.bytes = new Uint8Array(await file.arrayBuffer());
+        item.ff = await FF.read(item.bytes, zipIO, file.name);
+        item.lines = linesText(item.ff.info.lines);
+      } catch (e) { item.err = e.message || String(e); }
+      // the same file dropped again replaces the first
+      const at = state.nbg.files.findIndex(x => x.name === item.name);
+      if (at >= 0) state.nbg.files[at] = item; else state.nbg.files.push(item);
+    }
+    state.nbg.files.sort((a, b) => ((a.ff && a.ff.info.lines[0]) || 99) - ((b.ff && b.ff.info.lines[0]) || 99));
+    renderNbg();
+  }
+  // what one file gets: its frame lines, the side COL01 is on, the rows, what is left out, the checks
+  function nbgPlan(item) {
+    const fr = (state.job && state.job.frameEntries) || [], info = item.ff.info, pcs = state.pcs || {};
+    const lines = parseLines(item.lines);
+    const grid = state.res && state.res.grid;
+    const fe = fr.find(x => lines.map(String).includes(String(x.frame)));
+    const interior = fe ? fe.interior : grid && lines[0] && grid.interior[lines[0] - 1] ? grid.interior[lines[0] - 1] : [];
+    const att = (pcs.attachments || []).find(a => /^(FSW|BSW)$/.test(a.toWall) && (sameName(a.to, info.building) || (pcs.attachments || []).length === 1));
+    const o = FF.orient(info, { interior, leanToWall: att ? att.toWall : null });
+    const bldgs = [...new Set(fr.map(x => x.building).filter(Boolean))];
+    const building = bldgs.length && info.building ? info.building : null;   // a file for another building takes none of these loads
+    const r = FF.rowsFor(info, fr, { lines, mirrored: o.mirrored, height: state.nbg.height, building });
+    const add = FF.addLoads(item.ff.xml, r.rows);
+    const checks = [];
+    const quote = pcs.job && pcs.job.quote;
+    if (quote && info.job && !sameName(quote, info.job)) checks.push(['bad', `job ${info.job} in the file, ${quote} on the PCS`]);
+    else if (info.job) checks.push(['ok', `job ${info.job}`]);
+    if (bldgs.length && info.building && !bldgs.some(b => sameName(b, info.building))) checks.push(['bad', `file is for ${info.building}; the mezzanines are in ${bldgs.join(', ')}`]);
+    else if (info.building) checks.push(['ok', info.building]);
+    if (grid && info.width && Math.abs(info.width - grid.width) > 0.05) checks.push(['bad', `width ${ft(info.width)} in the file, ${ft(grid.width)} on the PCS`]);
+    if (!lines.length) checks.push(['bad', 'frame lines not in the file name — type them']);
+    checks.push([o.how === 'assumed' ? 'warn' : 'ok', `${o.mirrored ? 'COL01 is the BSW column' : 'COL01 is the FSW column'} — ${o.text}`]);
+    return { lines, o, r, add, checks };
+  }
+  function renderNbg() {
+    const box = $('#nbgFrame');
+    if (!box) return;
+    const fr = (state.job && state.job.frameEntries) || [];
+    box.hidden = !fr.length;
+    $$('#nbgHeight button').forEach(b => { b.classList.toggle('is-active', b.dataset.h === state.nbg.height); b.onclick = () => { state.nbg.height = b.dataset.h; renderNbg(); }; });
+    $('#nbgDropSub').textContent = zipIO.ok ? 'one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame' : 'this browser cannot open .frame files — use a current Chrome or Edge';
+    const files = state.nbg.files, F2 = v => f(v, 2), many = manyMezz();
+    const plans = files.map(it => (it.ff ? nbgPlan(it) : null));
+    // frame lines with mezzanine loads on frame members, and which of them have a file
+    const loaded = new Set(plans.filter(Boolean).flatMap(p => p.lines.map(String)));
+    const needLines = fr.filter(x => x.entries.some(e => e.member)).map(x => String(x.frame));
+    const missing = needLines.filter(l => !loaded.has(l));
+    const cover = files.length ? `<div class="nbg-cover ${missing.length ? 'warn' : 'ok'}">${missing.length ? `<b>No file yet for frame line${missing.length > 1 ? 's' : ''} ${esc(missing.join(', '))}</b> — the loads there are in the cards above.` : `<b>Every frame line with mezzanine load has its file</b> (${esc(needLines.join(', '))}).`}</div>` : '';
+    const card = (it, i) => {
+      if (!it.ff) return `<div class="nbg-file bad"><div class="nbg-fh"><svg><use href="#i-file"/></svg><div><b>${esc(it.name)}</b><small>${esc(it.err || 'could not be read')}</small></div><button class="btn-ghost" data-nbg-rm="${i}">Remove</button></div></div>`;
+      const p = plans[i], info = it.ff.info, a = p.add;
+      const head = `<div class="nbg-fh"><label class="nbg-inc"><input type="checkbox" data-nbg-inc="${i}" ${it.include ? 'checked' : ''}></label><div><b>${esc(it.name)}</b><small>${esc(info.title || '')} · ${esc(info.type || '')} · bay ${ft(info.bayWidth)} · ${info.columns.map(c => `${esc(c.id)} at ${ft(c.x)}`).join(', ')}</small></div>
+        <label class="nbg-lines">Frame lines<input data-nbg-lines="${i}" value="${esc(it.lines)}" inputmode="numeric" spellcheck="false"></label>
+        <button class="btn-soft" data-nbg-dl="${i}" ${p.r.rows.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download</button><button class="btn-ghost" data-nbg-rm="${i}" aria-label="Remove">✕</button></div>`;
+      const checks = `<div class="nbg-checks">${p.checks.map(([k, t]) => `<span class="chip ${k === 'ok' ? 'ok' : k === 'bad' ? 'bad' : 'warn'}">${esc(t)}</span>`).join('')}</div>`;
+      const from = m => { const fs = [...new Set(m.from.map(x => x.frame))]; return m.from.map(x => x.label).join(', ') + (fs.length > 1 ? ' · the largest of the lines' : ''); };
+      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline</td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
+      const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns (endwall columns are designed with the endwall), so their loads are not put on it:${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
+      const fl = a.floors, flTxt = ['FloorDead', 'FloorLive'].filter(k => fl[k]).map(k => `${k === 'FloorDead' ? 'Floor Dead' : 'Floor Live'} ${fl[k].was > 0 ? `${f(fl[k].was, 3)} psf (left as it is)` : '0 → 1.000 psf'}`).join(' · ');
+      const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+o.yMag).toFixed(2)}`).join(', ')}) — check they are not the same loads` : ''].filter(Boolean);
+      return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
+    };
+    const anyRows = plans.some((p, i) => p && files[i].include && p.r.rows.length);
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table, then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
+    $('#nbgList').innerHTML = cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
+    // events
+    const input = $('#nbgFile'), drop = $('#nbgDrop');
+    input.onchange = () => { addFrameFiles(Array.from(input.files || [])); input.value = ''; };
+    if (!drop.dataset.wired) {
+      drop.dataset.wired = '1';
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-over'); }));
+      drop.addEventListener('drop', e => addFrameFiles(Array.from(e.dataTransfer.files || []).filter(x => /\.frame$/i.test(x.name))));
+    }
+    $$('[data-nbg-rm]').forEach(b => { b.onclick = () => { files.splice(+b.dataset.nbgRm, 1); renderNbg(); }; });
+    $$('[data-nbg-inc]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgInc].include = b.checked; renderNbg(); }; });
+    $$('[data-nbg-lines]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgLines].lines = b.value; renderNbg(); }; });
+    const outName = n => n.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_mezz.frame';
+    const build = async i => { const it = files[i], p = plans[i]; return { name: outName(it.name), bytes: await FF.write(it.ff, p.add.xml, zipIO) }; };
+    const save = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+    $$('[data-nbg-dl]').forEach(b => { b.onclick = async () => { const o = await build(+b.dataset.nbgDl); save(o.bytes, o.name, 'application/octet-stream'); toast(`${o.name} — ${plans[+b.dataset.nbgDl].r.rows.length} rows`); }; });
+    const all = $('#nbgAll');
+    if (all) all.onclick = async () => {
+      const out = [];
+      for (let i = 0; i < files.length; i++) if (plans[i] && files[i].include && plans[i].r.rows.length) out.push(await build(i));
+      save(FF.bundle(out), `${(state.pcs && state.pcs.job.quote) || 'mezzanine'}-frames-mezz.zip`, 'application/zip');
+      toast(`${out.length} frame file${out.length > 1 ? 's' : ''} with the mezzanine loads`);
+    };
+    const clr = $('#nbgClear');
+    if (clr) clr.onclick = () => { state.nbg.files = []; renderNbg(); };
   }
 
   // ---------- beam calc (MB sheet mirror) ----------

@@ -70,11 +70,15 @@
    * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override) }
    *   joists 'y' => joists span across the width (y), beams run along x.
    */
+  const SNAP_EDGE = 1;   // ft: a frame line this close outside a mezzanine edge still frames that edge
   function layout(g, m, opt = {}) {
     const x0 = m.startLEW || 0, x1 = x0 + m.length, y0 = m.startFSW || 0, y1 = y0 + m.width;
     const inside = (v, a, b) => v > a + EPS && v < b - EPS;
     const nearerEW = (x0 + x1) / 2 <= g.length / 2 ? g.lewY : g.rewY;
-    const yCand = uniq([...nearerEW, ...g.interior.flat()]);
+    // column lines across the width: the nearer endwall's, and the interior columns of the frames this mezzanine
+    // actually spans — not every frame's (a far endwall column 2' off this one's would make a 2' bay and extra columns)
+    const onFrames = g.xs.map((x, i) => (x >= x0 - SNAP_EDGE && x <= x1 + SNAP_EDGE ? g.interior[i] : [])).flat();
+    const yCand = uniq([...nearerEW, ...onFrames]);
     // an edge within SNAP of a grid line sits on that line (95'-8" → 96'-0"): the slab overhangs, or stops
     // short of, the line by the difference instead of creating a second line a few inches away
     const SNAP = opt.snap ?? 1;

@@ -5,12 +5,25 @@ const fs = require('fs');
 let pw;
 try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright'); }
 
+// several PDFs (npm run e2e passes the glob): one run each, in turn
+const pdfArgs = process.argv.slice(2).filter(a => /\.pdf$/i.test(a));
+if (pdfArgs.length > 1) {
+  const rest = process.argv.slice(2).filter(a => !/\.pdf$/i.test(a));
+  let code = 0;
+  for (const p of pdfArgs) {
+    console.log(`\n=== ${path.basename(p)}`);
+    const r = require('child_process').spawnSync(process.execPath, [__filename, p, ...rest], { stdio: 'inherit' });
+    code = code || r.status || 0;
+  }
+  process.exit(code);
+}
+
 (async () => {
   const pdf = path.resolve(process.argv[2]);
   const shots = path.resolve(process.argv[3] || path.join(__dirname, '..', 'oracle', 'out', 'shots'));
   fs.mkdirSync(shots, { recursive: true });
   const browser = await pw.chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
   const page = await ctx.newPage();
   const errors = [], fail = msg => errors.push('assert: ' + msg);
@@ -99,6 +112,28 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   console.log('Excel steps, column'.padEnd(30), xlC.join(' '));
   if (!xlC.some(x => /Column!C27=/.test(x)) || !xlC.some(x => /Fy/.test(x) || /K8/.test(x))) fail('the Column page should list the Column-sheet cells to type');
 
+  // NBG Frame files: drop the job's .frame files on the Plan page; the FDL / FLL rows go on the frame's own columns
+  await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+  const frDir = path.join(__dirname, '..', 'private', 'frame');
+  const mast = await page.$eval('#mastContext', e => e.textContent);
+  const frames = /W1S-26062/.test(mast) && fs.existsSync(frDir) ? fs.readdirSync(frDir).filter(n => /^Frame_\d+_Bldg_1_[\d-]+\.frame$/.test(n)).map(n => path.join(frDir, n)) : [];
+  if (!(await page.$('#nbgFrame'))) fail('the Plan page should have the NBG Frame files block');
+  else if (frames.length) {
+    await page.setInputFiles('#nbgFile', frames);
+    await page.waitForSelector('#nbgList .nbg-file', { timeout: 20000 }); await page.waitForTimeout(300);
+    const got = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 4, 6, 7, 9].map(i => tr.cells[i].textContent).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
+    got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
+    const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
+    if (!two || two[1].join('|') !== 'FDL 2 COL02 -12.127 10.75 WebCenterline Global|FLL 2 COL02 -25.000 10.75 WebCenterline Global|FDL 3 COL03 -19.929 10.75 WebCenterline Global|FLL 3 COL03 -42.000 10.75 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
+    if (!one || one[2].join() !== '1/C,1/B' || one[1].some(r => /COL01/.test(r))) fail('frame 1: 1/E and 1/A on the frame, 1/B and 1/C listed apart, nothing on the FSW column');
+    if (!/Every frame line/.test(await page.$eval('#nbgList .nbg-cover', e => e.textContent))) fail('all frame lines with load should be covered');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#nbgAll')]);
+    const zp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(zp);
+    console.log('NBG download'.padEnd(30), dl.suggestedFilename(), fs.statSync(zp).size, 'bytes');
+    if (!/frames-mezz\.zip$/.test(dl.suggestedFilename()) || fs.statSync(zp).size < 100000) fail('Download checked should give the zip of frame files');
+    await page.click('#nbgClear');
+  } else console.log('NBG Frame files'.padEnd(30), 'block present (no frame files for this job)');
+
   // beam options on the results page
   await page.click('#nav button[data-view="results"]');
   const opts = await page.$$eval('#options .option', os => os.length);
@@ -116,7 +151,9 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   const depths = await page.$$eval('#altTable tr.pick', trs => trs.map(t => t.dataset.d));
   await page.click(`#altTable tr.pick[data-d="${depths[Math.floor(depths.length / 2)]}"]`); await log(`picked ${depths[Math.floor(depths.length / 2)]}" row`);
   await page.click('#nav button[data-view="results"]');
-  await page.click('#options [data-opt="lightest"]'); await page.waitForTimeout(150);
+  // back to lightest (no button when the picked row is the lightest section already: it is "In the quote")
+  const lightest = await page.$('#options [data-opt="lightest"]');
+  if (lightest) { await lightest.click(); await page.waitForTimeout(150); }
 
   // column override
   await page.click('#nav button[data-view="column"]');
@@ -127,14 +164,16 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await page.click('#nav button[data-view="inputs"]');
   const fillIn = async (p, v) => { await page.fill(`#inputsGrid input[data-path="${p}"]`, v); await page.press(`#inputsGrid input[data-path="${p}"]`, 'Tab'); await page.waitForTimeout(150); };
   const dead = () => page.$eval('#inputsGrid input[data-path="loads.dead"]', e => e.value);
+  const c0 = await page.$eval('#inputsGrid input[data-path="geom.C"]', e => e.value);   // the PCS value, or empty for "no requirement"
   await fillIn('loads.live', '150'); await log('live 150 psf');
   await fillIn('geom.C', `10'-6"`); await log('C = 10\'-6" requested');
   await fillIn('geom.C', '');
-  // clearing C makes it an open value again: the Design page asks, and "No requirement" restores the start
+  // clearing C makes it an open value again: the Design page asks; "No requirement", or the PCS value typed back, restores the start
   await page.click('#nav button[data-view="results"]');
   if (!(await page.$('#needCard .chip[data-need="geom.C"][data-v="none"]'))) fail('clearing C should ask for it again');
   else { await page.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await page.waitForTimeout(200); }
   await page.click('#nav button[data-view="inputs"]');
+  if (c0) await fillIn('geom.C', c0);
   await fillIn('loads.live', '125');
   const d0 = await dead();
   await page.selectOption('#inputsGrid select[data-mezz="concrete"]', 'LW'); await page.waitForTimeout(150);
@@ -152,6 +191,8 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
   await page.click('#m3Pause'); await page.click('#m3Reset');
   for (const t of ['slab', 'joists', 'building']) { await page.click(`#modelToggles button[data-t="${t}"]`); await page.click(`#modelToggles button[data-t="${t}"]`); }
   await page.click('#m3In'); await page.click('#m3Out');
+  // the slab and the joists bearing on the beams hide the beams' top faces: off while aiming
+  for (const t of ['slab', 'joists']) await page.click(`#modelToggles button[data-t="${t}"]`);
   await page.$eval('#model3d', c => c.scrollIntoView({ block: 'center' }));
   const box = await page.$eval('#model3d', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   let hit = null;
@@ -177,6 +218,7 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
     console.log('3D click'.padEnd(30), card.slice(0, 120));
     if (!/Selected member/.test(card) || !/BU\d+x\d+/.test(card)) fail('clicking a 3D beam did not select it');
   }
+  for (const t of ['slab', 'joists']) await page.click(`#modelToggles button[data-t="${t}"]`);
   await page.screenshot({ path: path.join(shots, 'model-selected.png'), fullPage: false });
 
   // copy buttons: rail copies all three tables as TSV

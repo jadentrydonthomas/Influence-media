@@ -66,7 +66,12 @@ Every mezzanine in Box 22 (including "22) MEZZANINES (CONTINUED)" pages) is read
 The plan has no text layer, so its geometry is read:
 
 - **Joist direction** from the "Mez. Jst." arrows inside each mezzanine. This sets where the beams go; the auto rule (beams on the shorter span) is only used when no arrow is found, and the other direction is offered on the Plan page.
+- **Joist direction from the joist symbol** (the zigzag truss drawn across a bay) when a job has no "Mez. Jst." arrows.
 - **Mezzanine columns:** both symbol styles, ⊗ and circled-I, are checked against the layout of every mezzanine.
+- **Frame columns are not mezzanine columns.** A bare I is a building (frame) column, and so is a ✱, the column the contract notes as designed "Most Economical" (Box 5 *Int. Column Type*). Where the drawing and the building data disagree, the drawing wins and the Design page says so:
+  - a ⊗ or circled-I where Box 2 / Box 5 has a frame column → designed as a mezzanine column;
+  - a ✱ or an interior I where the layout had a mezzanine column → taken as a building column (its load goes to the frame).
+  - An I on a sidewall or endwall line never changes a support (wall openings are drawn with I-like marks).
 - **Grid letters as drawn.** Bubbles on both endwalls, column lines and the ridge are lettered from the BSW, skipping I and O, so "2/C" in the notes is the drawing's 2/C.
 
 Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line). B = 9'-0", seat 5", joists @ 4'-0", no C requirement:
@@ -171,6 +176,39 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
   - The 16th-edition Column workbook opens at Fy 55 ksi, and its Lby (C10) is hard-coded to 120 in. The steps set Fy to 50 and type L × 12.
 - **Copy cells** copies the list as text.
 
+### Frame loads and NBG Frame files (Plan page)
+
+**Frame loads.** Each frame line lists the mezzanine dead and live that reach the frame's own columns: the unfactored beam end shears (MB `H6` / `H10`) summed at each column, at T/beam. Columns are numbered the way NBG Frame numbers them: COL01 at the FSW, then each Box 5 interior column, the BSW column last. Mezzanine columns are never in this list. An endwall column beside a rigid end frame is shown, dimmed, as *not a member of this frame*, because its load goes to the endwall design. Copy a frame line, or download the whole table as CSV.
+
+**NBG Frame files.** Drop the job's `.frame` files (one per frame line or group, e.g. `…_Bldg_1_3-5.frame`) on the Plan page. Each file comes back as `…_mezz.frame` with the loads typed in, the same rows you would add under *Tools → Concentrated (Panel) Loads*:
+
+| Description | Load Case | Member | X Force | Y Force (kip) | Moment | Location (ft) | Ecc. Loc. | Ecc. Offset | Loc. Sys. |
+|---|---|---|---|---|---|---|---|---|---|
+| FDL 2 | FDL | COL02 | 0 | −dead | 0 | T/beam | WebCenterline | 0 | Global |
+| FLL 2 | FLL | COL02 | 0 | −live | 0 | T/beam | WebCenterline | 0 | Global |
+
+- **Frame lines** come from the file name (`_3-5` → 3, 4, 5) and can be retyped on the card. A file that designs several lines gets, for each column, the largest dead and the largest live of those lines.
+- **Columns are matched by position** across the frame (GlobalX, within 2'-0"), so the file's own member IDs are used. A load at a column the file does not have, such as an endwall column of a rigid end frame, is listed under *Not in this file* with its values. It is never moved onto another member.
+- **Which side is the FSW.** Taken from the file itself when it can tell:
+  1. interior columns that are not symmetric, compared with Box 5 (given from the FSW);
+  2. otherwise, the file's *Lean-To* loads against the wall the PCS says the lean-to attaches to.
+
+  With neither, COL01 is taken as the FSW column, and the card says so.
+- **Checks on every card:** job number, building and width against the PCS. A file for another building takes none of this building's loads.
+- **Floor Dead / Floor Live** are set to 1 psf when they are 0 (as done by hand), so that NBG Frame creates the FDL and FLL cases. Values already set are left alone.
+- **Re-export** replaces the earlier FDL / FLL rows (including hand-typed "FDL1" rows) and doesn't add a second set. Other FDL / FLL rows already in the file are kept and flagged.
+- **Nothing else in the file changes.**
+  - The connections and detailing entries are copied byte for byte.
+  - The model text only gains the new rows and the two 1-psf values: CRLF line endings and indentation as NBG writes them.
+  - Results stored in the file are recomputed when the frame is processed.
+- **In NBG Frame:**
+  1. Open the file.
+  2. Process → Get Applied Loads → final pass.
+  3. Tools → Concentrated (Panel) Loads: check the rows, then *Save and Gen Loads*.
+  4. Run.
+- *Location* is the height of the load above the finished floor (Loc. Sys. Global): T/beam by default, or the top of the floor (A) with the switch.
+- *Ecc. Loc. WebCenterline* is written as `toFlange 0` (the Lean-To rows NBG writes use `1` = Top/Left). Confirm it reads *WebCenterline* in the dialog the first time.
+
 ### Jobs remembered
 
 When a job is fully designed it is saved in the browser on that computer: the values you typed for open fields, the option you picked, the joist direction and the sections. Next time:
@@ -261,8 +299,10 @@ Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the li
 ```bash
 npm install            # pdfjs-dist 3.11.174 (inlined into the build)
 npm run build          # -> index.html
-npm test               # guide examples, layout cases, parser; full example job + variant loop if private/pcs/ has the PDF
-npm run e2e            # drive index.html in Chromium: load, every control, 3D pick, copy, manual entry
+npm test               # guide examples, layout cases, parser, plan symbols, frame-file writer; the example jobs,
+                       # variant loop and real frame files when private/pcs/ and private/frame/ have them
+npm run e2e            # drive index.html in Chromium for every PDF in private/pcs/: load, every control, 3D pick,
+                       # copy, manual entry, NBG Frame files
 MZ_DUMP=oracle/out node test/variants.test.js   # also write the picked sections as oracle cases
 ```
 
@@ -285,7 +325,7 @@ python3 oracle/steps_oracle.py oracle/out/steps.json oracle/out/steps_res.json
 node oracle/steps_check.js oracle/out/steps
 ```
 
-`private/` is gitignored. The NBG workbooks, design manuals and customer PCS files never go in this public repo.
+`private/` is gitignored. The NBG workbooks, design manuals, customer PCS files and NBG Frame files (`private/frame/`) never go in this public repo. `MZ_FRAME_OUT=dir node test/framefile.test.js` also writes the finished frame files, to check them in NBG Frame or with any zip / XML tool.
 
 ## Notes and limits
 

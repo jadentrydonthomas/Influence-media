@@ -156,6 +156,17 @@
           <div class="table-wrap" style="margin-top:14px"><table id="supTable"></table></div>
         </div>
       </div>
+      <div class="panel" id="frameLoadsPanel">
+        <div class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">mezzanine dead and live on each frame's own columns, by frame line — mezzanine columns are not frame members and are left out</span></div>
+        <div class="panel-body"><div id="frameLoads"></div>
+          <div class="nbg" id="nbgFrame">
+            <div class="nbg-head"><div><span class="eyebrow">NBG Frame files</span><b>Put these loads into the job's frame files</b><small>Drop the .frame files NBG made for this building. The FDL / FLL concentrated loads go in on each frame's own columns, the way they are typed under Tools → Concentrated (Panel) Loads, and the file is handed back ready to process. Nothing leaves this computer.</small></div>
+              <div class="seg" id="nbgHeight" role="group" aria-label="Load height"><button data-h="beam" class="is-active">At T/beam</button><button data-h="A">At top of floor</button></div></div>
+            <label class="nbg-drop" id="nbgDrop"><input type="file" id="nbgFile" accept=".frame" multiple><svg><use href="#i-file"/></svg><strong>Drop .frame files here or click to browse</strong><small id="nbgDropSub">one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame</small></label>
+            <div id="nbgList"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- BEAM CALC -->
@@ -225,6 +236,7 @@
 <script>/*@INLINE_JS pcs.js*/</script>
 <script>/*@INLINE_JS extract.js*/</script>
 <script>/*@INLINE_JS plan.js*/</script>
+<script>/*@INLINE_JS framefile.js*/</script>
 <script>/*@INLINE_JS model3d.js*/</script>
 <script>/*@INLINE_JS design.js*/</script>
 <script>/*@INLINE_JS run.js*/</script>

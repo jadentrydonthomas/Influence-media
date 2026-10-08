@@ -5,6 +5,19 @@ const fs = require('fs');
 let pw;
 try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright'); }
 
+// several PDFs (npm run e2e passes the glob): one run each, in turn
+const pdfArgs = process.argv.slice(2).filter(a => /\.pdf$/i.test(a));
+if (pdfArgs.length > 1) {
+  const rest = process.argv.slice(2).filter(a => !/\.pdf$/i.test(a));
+  let code = 0;
+  for (const p of pdfArgs) {
+    console.log(`\n=== ${path.basename(p)}`);
+    const r = require('child_process').spawnSync(process.execPath, [__filename, p, ...rest], { stdio: 'inherit' });
+    code = code || r.status || 0;
+  }
+  process.exit(code);
+}
+
 // the three quote-sheet tables, row by row
 const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [...t.querySelectorAll('tbody tr')].map(tr => [...tr.cells].map(c => c.textContent.trim()).join(' | '))));
 

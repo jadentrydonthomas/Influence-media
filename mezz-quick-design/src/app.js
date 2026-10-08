@@ -1,7 +1,7 @@
 /* Mezzanine Quick-Design — browser UI (Astra skin). */
 (function () {
   'use strict';
-  const PCS = window.MZ_PCS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
+  const PCS = window.MZ_PCS, FF = window.MZ_FRAMEFILE, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -17,7 +17,7 @@
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
   let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
-  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null };
+  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'beam' } };
 
   // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
   // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
@@ -70,6 +70,14 @@
     go('column'); renderColumn(); renderMiniPlan();
   }
 
+  // the column symbol the PCS floor plan shows at a point (a wall column's I is drawn just inside the steel line)
+  function symAt(pt) {
+    const pc = state.inputs && state.inputs.building && state.inputs.building.planCols, g = state.res && state.res.grid;
+    if (!pc || !g) return null;
+    const wall = (v, ends) => { const e = ends.find(u => Math.abs(v - u) < 2.6); return e == null ? v : e; };
+    const hit = pc.map(c => (c.kind === 'I' ? { ...c, x: wall(c.x, [0, g.length]), y: wall(c.y, [0, g.width]) } : c)).filter(c => Math.hypot(c.x - pt.x, c.y - pt.y) <= 1.25).sort((p, q) => Math.hypot(p.x - pt.x, p.y - pt.y) - Math.hypot(q.x - pt.x, q.y - pt.y))[0];
+    return hit ? hit.kind : null;
+  }
   // ---------- hover cards: what every column takes (Column-sheet D / L, or the load to the frame), each beam's end shears ----------
   const sideTxt = sd => (sd === 'left' ? 'Left' : sd === 'right' ? 'Right' : '');
   function partRow(p, side) {
@@ -95,9 +103,12 @@
     if (kind === 'bcol') {
       const pt = { x: +a, y: +b }, fl = (job.frameLoads || []).find(q => atPt(q, pt)), g = r.grid;
       const lab = fl ? fl.label : `${g.xLabel(pt.x) || ft(pt.x)}/${g.yLabel(pt.y) || ft(pt.y)}`;
-      if (!fl) return head(esc(lab), 'building column') + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
+      const fe = (job.frameEntries || []).flatMap(f => f.entries.map(e => ({ ...e, frame: f.frame }))).find(e => atPt(e, pt));
+      const sym = symAt(pt), drawn = sym ? `<div class="tip-f">On the PCS floor plan: ${sym === 'star' ? '✱ — interior frame column "designated as Most Economical" (pipe, tube or I-shape, set at final design)' : 'I — frame / endwall column'}.</div>` : '';
+      if (!fl) return head(esc(lab), 'building column') + drawn + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
       return head(esc(lab), 'building column · load to the frame') + `<div class="tip-k">Mezzanine beam reactions · unfactored (kips)</div><div class="tip-lr one">${pair('Total', fl.D, fl.L)}</div>` +
-        tbl(fl.parts.map(p => partRow(p)).join('')) + '<div class="tip-f">Goes to the frame / endwall design, not the mezzanine Column sheet.</div>';
+        tbl(fl.parts.map(p => partRow(p)).join('')) + drawn +
+        `<div class="tip-f">${fe ? `NBG Frame: frame line ${esc(fe.frame)}, ${fe.member ? `<b>${esc(fe.member)}</b> (${esc(fe.where)})` : esc(fe.where)}, at ${ft(fe.elev)} (T/beam).` : 'Goes to the frame / endwall design, not the mezzanine Column sheet.'}</div>`;
     }
     if (kind === 'beam' || kind === 'carried') {
       const m = job.mezz[+a], id = +b, bm = m.layout.beams[id];
@@ -175,6 +186,7 @@
 
   async function loadFile(file) {
     $('#dropTitle').textContent = file.name; state.fileName = file.name;
+    state.nbg.files = [];
     $('#dropSub').textContent = 'Reading…';
     status('Reading PCS', 'warn');
     prog(0.1);
@@ -273,7 +285,9 @@
     state.planReg = PLAN.registerAndRead(state.planPaths, { xs: g.xs, colY, lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
     if (state.pcs) RUN.applyPlan(state.pcs, state.planReg);
     const letters = state.planReg.ok ? state.planReg.letters : undefined;
-    (state.all || []).forEach(a => { a.inputs.building.yLetters = letters; });
+    // and the column symbols: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column (they settle frame vs mezzanine)
+    const cols = state.planReg.ok ? state.planReg.columns.concat(state.planReg.frameCols || []) : undefined;
+    (state.all || []).forEach(a => { a.inputs.building.yLetters = letters; a.inputs.building.planCols = cols; });
   }
 
   // ---------- compute ----------
@@ -352,7 +366,7 @@
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); }
+  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -1147,6 +1161,142 @@
     $('#supTable').innerHTML = `<thead><tr><th>Column</th><th>Type · beams framing in</th><th class="num">Trib area</th><th class="num">Left D / L (k)</th><th class="num">Right D / L (k)</th></tr></thead><tbody>` +
       jcols.map(c => `<tr><td class="mono"><b>C${cno.get(c.label)}</b> · ${c.label}</td><td><b style="color:var(--red)">Mezzanine column ⊗</b>${many ? ' · ' + esc(c.ownerId) : ''}${c.shared ? ' · shared' : ''}<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' · ')}</small></td><td class="num">${f(c.tribArea, 0)} ft²</td><td class="num">${f(c.DL_L, 2)} / ${f(c.LL_L, 2)}</td><td class="num">${f(c.DL_R, 2)} / ${f(c.LL_R, 2)}</td></tr>`).join('') +
       fls.filter(q => ms.some(m => q.seenIn.includes(m.index))).map(q => `<tr class="frame-row"><td class="mono">${q.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${q.parts.map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(q.D, 2)} · L ${f(q.L, 2)} k</b></td></tr>`).join('') + '</tbody>';
+  }
+
+  // ---------- frame loads for NBG Frame: by frame line, on the frame's own members ----------
+  function renderFrameLoads() {
+    const el = $('#frameLoads'), fr = (state.job && state.job.frameEntries) || [];
+    $('#frameLoadsPanel').hidden = !(state.res && !state.res.incomplete);
+    renderNbg();
+    if (!fr.length) { el.innerHTML = '<div class="empty">No mezzanine beam frames into a building column.</div>'; return; }
+    const many = manyMezz(), F2 = v => f(v, 2);
+    const rows = fr.map(fl => {
+      const typ = fl.type ? `${esc(fl.type.type.replace(/\s*-\s*$/, ''))}${fl.type.intType ? ' · interior columns ' + esc(fl.type.intType) + ' (✱)' : ''}` : '';
+      const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
+      return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
+          <button class="btn-soft" data-fl="${esc(fl.frame)}"><svg><use href="#i-copy"/></svg>Copy</button></div>
+        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (T/beam)</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(e.elev)}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td></td></tr></tfoot></table></div>`;
+    }).join('');
+    el.innerHTML = `<div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
+    const tsv = fl => ['Frame line\tColumn\tMember\tWhere\tAt T/beam (ft)\tFloor dead (k)\tFloor live (k)\tFrom'].concat(fl.entries.map(e => [fl.frame, e.label, e.member || '', e.where, (+e.elev.toFixed(3)), (+e.D.toFixed(3)), (+e.L.toFixed(3)), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].join('\t'))).join('\n');
+    $$('#frameLoads [data-fl]').forEach(b => { b.onclick = () => copyText(tsv(fr.find(x => x.frame === b.dataset.fl)), `Frame line ${b.dataset.fl} loads copied`); });
+    $('#flCsv').onclick = () => {
+      const csv = ['Frame line,Column,Member,Where,At T/beam (ft),Floor dead (k),Floor live (k),From'].concat(fr.flatMap(fl => fl.entries.map(e => [fl.frame, e.label, e.member || '', e.where, +e.elev.toFixed(3), +e.D.toFixed(3), +e.L.toFixed(3), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')))).join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = `${(state.pcs && state.pcs.job.quote) || 'mezzanine'}-frame-loads.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Frame loads CSV downloaded');
+    };
+  }
+
+  // ---------- NBG Frame files: the FDL / FLL concentrated loads written into the job's own .frame files ----------
+  // raw DEFLATE through the browser's streams (Chrome / Edge 103+, Firefox 113+, Safari 16.4+)
+  const zipIO = {
+    ok: typeof DecompressionStream !== 'undefined' && (() => { try { new DecompressionStream('deflate-raw'); return true; } catch (e) { return false; } })(),
+    inflate: u => new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(b => new Uint8Array(b)),
+    deflate: u => new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(b => new Uint8Array(b)),
+  };
+  const linesText = ls => { const a = ls.map(Number).sort((x, y) => x - y); return a.length > 2 && a.every((v, i) => !i || v === a[i - 1] + 1) ? `${a[0]}-${a[a.length - 1]}` : a.join(', '); };
+  const parseLines = t => String(t || '').split(/[,\s]+/).filter(Boolean).flatMap(p => { const m = /^(\d+)(?:-(\d+))?$/.exec(p); if (!m) return []; const out = []; for (let k = +m[1]; k <= +(m[2] || m[1]); k++) out.push(k); return out; });
+  const sameName = (a, b) => FF.bldgKey(a) === FF.bldgKey(b);
+  async function addFrameFiles(list) {
+    if (!zipIO.ok) { toast('This browser cannot open .frame files (no deflate-raw streams) — use a current Chrome or Edge'); return; }
+    for (const file of list) {
+      const item = { name: file.name, include: true, err: null, ff: null, lines: '' };
+      try {
+        item.bytes = new Uint8Array(await file.arrayBuffer());
+        item.ff = await FF.read(item.bytes, zipIO, file.name);
+        item.lines = linesText(item.ff.info.lines);
+      } catch (e) { item.err = e.message || String(e); }
+      // the same file dropped again replaces the first
+      const at = state.nbg.files.findIndex(x => x.name === item.name);
+      if (at >= 0) state.nbg.files[at] = item; else state.nbg.files.push(item);
+    }
+    state.nbg.files.sort((a, b) => ((a.ff && a.ff.info.lines[0]) || 99) - ((b.ff && b.ff.info.lines[0]) || 99));
+    renderNbg();
+  }
+  // what one file gets: its frame lines, the side COL01 is on, the rows, what is left out, the checks
+  function nbgPlan(item) {
+    const fr = (state.job && state.job.frameEntries) || [], info = item.ff.info, pcs = state.pcs || {};
+    const lines = parseLines(item.lines);
+    const grid = state.res && state.res.grid;
+    const fe = fr.find(x => lines.map(String).includes(String(x.frame)));
+    const interior = fe ? fe.interior : grid && lines[0] && grid.interior[lines[0] - 1] ? grid.interior[lines[0] - 1] : [];
+    const att = (pcs.attachments || []).find(a => /^(FSW|BSW)$/.test(a.toWall) && (sameName(a.to, info.building) || (pcs.attachments || []).length === 1));
+    const o = FF.orient(info, { interior, leanToWall: att ? att.toWall : null });
+    const bldgs = [...new Set(fr.map(x => x.building).filter(Boolean))];
+    const building = bldgs.length && info.building ? info.building : null;   // a file for another building takes none of these loads
+    const r = FF.rowsFor(info, fr, { lines, mirrored: o.mirrored, height: state.nbg.height, building });
+    const add = FF.addLoads(item.ff.xml, r.rows);
+    const checks = [];
+    const quote = pcs.job && pcs.job.quote;
+    if (quote && info.job && !sameName(quote, info.job)) checks.push(['bad', `job ${info.job} in the file, ${quote} on the PCS`]);
+    else if (info.job) checks.push(['ok', `job ${info.job}`]);
+    if (bldgs.length && info.building && !bldgs.some(b => sameName(b, info.building))) checks.push(['bad', `file is for ${info.building}; the mezzanines are in ${bldgs.join(', ')}`]);
+    else if (info.building) checks.push(['ok', info.building]);
+    if (grid && info.width && Math.abs(info.width - grid.width) > 0.05) checks.push(['bad', `width ${ft(info.width)} in the file, ${ft(grid.width)} on the PCS`]);
+    if (!lines.length) checks.push(['bad', 'frame lines not in the file name — type them']);
+    checks.push([o.how === 'assumed' ? 'warn' : 'ok', `${o.mirrored ? 'COL01 is the BSW column' : 'COL01 is the FSW column'} — ${o.text}`]);
+    return { lines, o, r, add, checks };
+  }
+  function renderNbg() {
+    const box = $('#nbgFrame');
+    if (!box) return;
+    const fr = (state.job && state.job.frameEntries) || [];
+    box.hidden = !fr.length;
+    $$('#nbgHeight button').forEach(b => { b.classList.toggle('is-active', b.dataset.h === state.nbg.height); b.onclick = () => { state.nbg.height = b.dataset.h; renderNbg(); }; });
+    $('#nbgDropSub').textContent = zipIO.ok ? 'one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame' : 'this browser cannot open .frame files — use a current Chrome or Edge';
+    const files = state.nbg.files, F2 = v => f(v, 2), many = manyMezz();
+    const plans = files.map(it => (it.ff ? nbgPlan(it) : null));
+    // frame lines with mezzanine loads on frame members, and which of them have a file
+    const loaded = new Set(plans.filter(Boolean).flatMap(p => p.lines.map(String)));
+    const needLines = fr.filter(x => x.entries.some(e => e.member)).map(x => String(x.frame));
+    const missing = needLines.filter(l => !loaded.has(l));
+    const cover = files.length ? `<div class="nbg-cover ${missing.length ? 'warn' : 'ok'}">${missing.length ? `<b>No file yet for frame line${missing.length > 1 ? 's' : ''} ${esc(missing.join(', '))}</b> — the loads there are in the cards above.` : `<b>Every frame line with mezzanine load has its file</b> (${esc(needLines.join(', '))}).`}</div>` : '';
+    const card = (it, i) => {
+      if (!it.ff) return `<div class="nbg-file bad"><div class="nbg-fh"><svg><use href="#i-file"/></svg><div><b>${esc(it.name)}</b><small>${esc(it.err || 'could not be read')}</small></div><button class="btn-ghost" data-nbg-rm="${i}">Remove</button></div></div>`;
+      const p = plans[i], info = it.ff.info, a = p.add;
+      const head = `<div class="nbg-fh"><label class="nbg-inc"><input type="checkbox" data-nbg-inc="${i}" ${it.include ? 'checked' : ''}></label><div><b>${esc(it.name)}</b><small>${esc(info.title || '')} · ${esc(info.type || '')} · bay ${ft(info.bayWidth)} · ${info.columns.map(c => `${esc(c.id)} at ${ft(c.x)}`).join(', ')}</small></div>
+        <label class="nbg-lines">Frame lines<input data-nbg-lines="${i}" value="${esc(it.lines)}" inputmode="numeric" spellcheck="false"></label>
+        <button class="btn-soft" data-nbg-dl="${i}" ${p.r.rows.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download</button><button class="btn-ghost" data-nbg-rm="${i}" aria-label="Remove">✕</button></div>`;
+      const checks = `<div class="nbg-checks">${p.checks.map(([k, t]) => `<span class="chip ${k === 'ok' ? 'ok' : k === 'bad' ? 'bad' : 'warn'}">${esc(t)}</span>`).join('')}</div>`;
+      const from = m => { const fs = [...new Set(m.from.map(x => x.frame))]; return m.from.map(x => x.label).join(', ') + (fs.length > 1 ? ' · the largest of the lines' : ''); };
+      const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); return `<tr><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono">0.000</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : 'l'}">${f(x.y, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>WebCenterline</td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
+      const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns (endwall columns are designed with the endwall), so their loads are not put on it:${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
+      const fl = a.floors, flTxt = ['FloorDead', 'FloorLive'].filter(k => fl[k]).map(k => `${k === 'FloorDead' ? 'Floor Dead' : 'Floor Live'} ${fl[k].was > 0 ? `${f(fl[k].was, 3)} psf (left as it is)` : '0 → 1.000 psf'}`).join(' · ');
+      const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+o.yMag).toFixed(2)}`).join(', ')}) — check they are not the same loads` : ''].filter(Boolean);
+      return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
+    };
+    const anyRows = plans.some((p, i) => p && files[i].include && p.r.rows.length);
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table, then Save and Gen Loads.</li><li>Run the frame as usual.</li></ol></div>` : '';
+    $('#nbgList').innerHTML = cover + files.map(card).join('') + (files.length ? `<div class="xl-foot">${steps}<div class="nbg-all"><button class="btn-soft" id="nbgAll" ${anyRows ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download checked (.zip)</button><button class="btn-ghost" id="nbgClear">Clear files</button></div></div>` : '');
+    // events
+    const input = $('#nbgFile'), drop = $('#nbgDrop');
+    input.onchange = () => { addFrameFiles(Array.from(input.files || [])); input.value = ''; };
+    if (!drop.dataset.wired) {
+      drop.dataset.wired = '1';
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-over'); }));
+      drop.addEventListener('drop', e => addFrameFiles(Array.from(e.dataTransfer.files || []).filter(x => /\.frame$/i.test(x.name))));
+    }
+    $$('[data-nbg-rm]').forEach(b => { b.onclick = () => { files.splice(+b.dataset.nbgRm, 1); renderNbg(); }; });
+    $$('[data-nbg-inc]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgInc].include = b.checked; renderNbg(); }; });
+    $$('[data-nbg-lines]').forEach(b => { b.onchange = () => { files[+b.dataset.nbgLines].lines = b.value; renderNbg(); }; });
+    const outName = n => n.replace(/(?:\s*\(\d+\))*\.frame$/i, '') + '_mezz.frame';
+    const build = async i => { const it = files[i], p = plans[i]; return { name: outName(it.name), bytes: await FF.write(it.ff, p.add.xml, zipIO) }; };
+    const save = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+    $$('[data-nbg-dl]').forEach(b => { b.onclick = async () => { const o = await build(+b.dataset.nbgDl); save(o.bytes, o.name, 'application/octet-stream'); toast(`${o.name} — ${plans[+b.dataset.nbgDl].r.rows.length} rows`); }; });
+    const all = $('#nbgAll');
+    if (all) all.onclick = async () => {
+      const out = [];
+      for (let i = 0; i < files.length; i++) if (plans[i] && files[i].include && plans[i].r.rows.length) out.push(await build(i));
+      save(FF.bundle(out), `${(state.pcs && state.pcs.job.quote) || 'mezzanine'}-frames-mezz.zip`, 'application/zip');
+      toast(`${out.length} frame file${out.length > 1 ? 's' : ''} with the mezzanine loads`);
+    };
+    const clr = $('#nbgClear');
+    if (clr) clr.onclick = () => { state.nbg.files = []; renderNbg(); };
   }
 
   // ---------- beam calc (MB sheet mirror) ----------

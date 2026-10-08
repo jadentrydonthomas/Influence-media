@@ -3,7 +3,11 @@
      - grid bubbles  : circles r ≈ 6–14 pt (numbers along the top/bottom, letters along the sides)
      - mezz columns  : a small circle r ≈ 2.5–7 pt with either two diagonals (⊗) or an I-shape (web + flange
                        strokes) at its centre — both conventions appear on eQuote drawings
+     - frame columns : a bare I (web stroke with a flange stroke across each end, no circle) — sidewall, endwall
+                       and interior frame columns; and ✱ (four strokes through one point: horizontal, vertical,
+                       two diagonals), the interior frame columns "designated as Most Economical" in Box 5
      - joist arrows  : "Mez. Jst." — a straight shaft with a half arrowhead (~30°) at each end
+     - joist symbols : a short truss drawn along the joists — a chord line with a zigzag of webs beside it
    Circles are drawn either as one polyline or as dozens of 2-point segments; segments are chained first.
    The bubbles register the drawing to the building grid (same scale on both axes, so extra bubbles — a
    lean-to, an offset letter — cannot throw the fit), every side bubble is lettered from the BSW down
@@ -53,14 +57,16 @@
 
   function circleOf(pts) {
     if (pts.length < 10) return null;
-    let cx = 0, cy = 0;
-    pts.forEach(p => { cx += p[0]; cy += p[1]; }); cx /= pts.length; cy /= pts.length;
-    const d = pts.map(p => Math.hypot(p[0] - cx, p[1] - cy));
-    const r = d.reduce((a, b) => a + b, 0) / d.length;
-    if (r < 1.5 || r > 30) return null;
-    const dev = Math.max(...d.map(x => Math.abs(x - r)));
-    const closedish = Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]) < r * 0.6;
-    return dev / r < 0.15 && closedish ? { x: cx, y: cy, r } : null;
+    // centre: the vertex average, or the bounding-box centre when the vertices are bunched on one side
+    // (a hand-traced or unevenly stroked circle) — whichever makes it rounder
+    let ax = 0, ay = 0;
+    pts.forEach(p => { ax += p[0]; ay += p[1]; }); ax /= pts.length; ay /= pts.length;
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const fitAt = (cx, cy) => { const d = pts.map(p => Math.hypot(p[0] - cx, p[1] - cy)), r = d.reduce((a, b) => a + b, 0) / d.length; return { x: cx, y: cy, r, dev: Math.max(...d.map(x => Math.abs(x - r))) / r }; };
+    const c = [fitAt(ax, ay), fitAt((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2)].sort((p, q) => p.dev - q.dev)[0];
+    if (c.r < 1.5 || c.r > 30) return null;
+    const closedish = Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]) < c.r * 0.6;
+    return c.dev < 0.15 && closedish ? { x: c.x, y: c.y, r: c.r } : null;
   }
 
   // Join consecutive short 2-point segments that continue one another (circles stroked as segments)
@@ -111,7 +117,29 @@
       else if (hasI) crosses.push({ ...c, kind: 'i' });
       else plain.push(c);
     });
-    return { crosses, circles: plain, arrows: readArrows(segs.concat(paths.filter(p => p.length === 2).map(p => ({ a: p[0], b: p[1], len: Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) })).filter(s => s.len >= 25))) };
+    const inCircle = p => uniq.some(c => c.r <= 8 && Math.hypot(c.x - p.x, c.y - p.y) < c.r * 1.05);
+    // frame columns, bare I: a web with a flange stroke across each end (either orientation), not inside a circle
+    const frameCols = [];
+    const ax = segs.filter(sg => axial(sg) && sg.len >= 0.8 && sg.len <= 12);
+    ax.forEach(w => {
+      if (w.len < 2.5 || w.len > 10) return;
+      const o = axial(w), tol = Math.max(0.35, w.len * 0.12);
+      const flange = end => ax.some(f => f !== w && axial(f) !== o && f.len >= w.len * 0.25 && f.len <= w.len * 1.4 && Math.hypot(f.mx - end[0], f.my - end[1]) < tol);
+      const c = { x: w.mx, y: w.my };
+      if (!flange(w.a) || !flange(w.b) || inCircle(c) || frameCols.some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1)) return;
+      frameCols.push({ ...c, kind: 'I' });
+    });
+    // ✱: three or more strokes crossing at their common midpoint in three or more directions, one diagonal
+    const ang = sg => Math.round(((Math.atan2(sg.b[1] - sg.a[1], sg.b[0] - sg.a[0]) * 180 / Math.PI) % 180 + 180) % 180 / 15) % 12;
+    const mid = segs.filter(sg => sg.len >= 2.5 && sg.len <= 10);
+    mid.forEach(sg => {
+      const c = { x: sg.mx, y: sg.my };
+      if (frameCols.some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1)) return;
+      const thru = mid.filter(t => Math.hypot(t.mx - c.x, t.my - c.y) < Math.max(0.35, sg.len * 0.1));
+      if (thru.length >= 3 && new Set(thru.map(ang)).size >= 3 && thru.some(t => !axial(t)) && !inCircle(c)) frameCols.push({ ...c, kind: 'star' });
+    });
+    const longSegs = paths.filter(p => p.length === 2).map(p => ({ a: p[0], b: p[1], len: Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) })).filter(sg => sg.len >= 25);
+    return { crosses, frameCols, circles: plain, arrows: readArrows(segs.concat(longSegs)).concat(readJoistSymbols(paths)) };
   }
 
   /* "Mez. Jst." joist-span arrows: an axis-aligned shaft with a short stroke leaving each end at ~30° to it
@@ -135,6 +163,39 @@
     });
     // the same shaft may be stroked twice
     return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 1 && a.vert === b.vert));
+  }
+
+  /* Joist symbol (a joist in elevation, drawn along the joists): an axis-aligned chord with a zigzag of short webs
+     alternating left / right beside it — at least four webs. The chord's direction is the joist direction.
+     Zigzags may be one polyline or separate strokes. */
+  function readJoistSymbols(paths) {
+    const seg = [];
+    paths.forEach(p => { if (p.length >= 2 && p.length <= 60 && !p.closed) for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (len > 0.3) seg.push({ a, b, len }); } });
+    const out = [];
+    seg.filter(c => c.len >= 18 && c.len <= 320).forEach(c => {
+      const horiz = Math.abs(c.b[1] - c.a[1]) < 0.02 * c.len, vert = Math.abs(c.b[0] - c.a[0]) < 0.02 * c.len;
+      if (!horiz && !vert) return;
+      const u = p => (horiz ? p[0] : p[1]), w = p => (horiz ? p[1] : p[0]);   // along / across the chord
+      const lo = Math.min(u(c.a), u(c.b)), hi = Math.max(u(c.a), u(c.b)), off = w(c.a);
+      for (const sideSign of [1, -1]) {
+        const webs = seg.filter(q => {
+          if (q === c || q.len < 1.5 || q.len > 12) return false;
+          const da = (w(q.a) - off) * sideSign, db = (w(q.b) - off) * sideSign, along = Math.abs(u(q.b) - u(q.a)), across = Math.abs(w(q.b) - w(q.a));
+          return Math.min(da, db) > -0.4 && Math.max(da, db) < 9 && across > 1 && along > 0.4 && along < 3 * across && u(q.a) > lo - 1 && u(q.a) < hi + 1 && u(q.b) > lo - 1 && u(q.b) < hi + 1;
+        }).sort((p, q) => (u(p.a) + u(p.b)) - (u(q.a) + u(q.b)));
+        // one connected zigzag, slopes alternating / \ / \, webs of about one length
+        const touch = (p, q) => [p.a, p.b].some(e => [q.a, q.b].some(f => Math.hypot(e[0] - f[0], e[1] - f[1]) < 0.4));
+        const sl = q => Math.sign((u(q.b) - u(q.a)) * (w(q.b) - w(q.a)));
+        let best = 0, run = 0;
+        webs.forEach((q, i) => {
+          const p = webs[i - 1];
+          run = p && touch(p, q) && sl(p) && sl(q) && sl(p) !== sl(q) && Math.abs(q.len - p.len) < 0.4 * Math.max(q.len, p.len) ? run + 1 : 1;
+          best = Math.max(best, run);
+        });
+        if (best >= 4) { out.push({ x: (c.a[0] + c.b[0]) / 2, y: (c.a[1] + c.b[1]) / 2, len: c.len, vert, kind: 'truss' }); break; }
+      }
+    });
+    return out.filter((a, i) => !out.slice(0, i).some(b => Math.hypot(a.x - b.x, a.y - b.y) < 12 && a.vert === b.vert));
   }
 
   // Group bubble circles: the most common radius among the larger plain circles
@@ -171,9 +232,10 @@
   }
 
   /* grid: { xs:[frame line x, ft], colY:[column line y from FSW, ft], lewY?, rewY?, width?, letterLines? (column lines + ridge) }
-     returns { ok, reason, columns:[{x,y,kind}], arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
+     returns { ok, reason, columns:[{x,y,kind}] (mezzanine ⊗ 'x' / circled-I 'i'), frameCols:[{x,y,kind}] (bare I 'I' /
+     ✱ 'star'), arrows:[{x,y,dir,len}], letters:[{y,letter}], map } in building ft */
   function registerAndRead(paths, grid) {
-    const { crosses, circles, arrows } = readSymbols(paths);
+    const { crosses, frameCols, circles, arrows } = readSymbols(paths);
     const bub = bubbles(circles);
     const out = { ok: false, crosses: crosses.length, bubbles: bub.length, columns: [], arrows: [], letters: [] };
     if (bub.length < 4) { out.reason = 'grid bubbles not found'; return out; }
@@ -221,7 +283,13 @@
     const L = gridLetters(ly.length);
     out.letters = ly.map((y, i) => ({ y, letter: L[i] }));
     out.columns = crosses.map(c => ({ ...toB(c.x, c.y), kind: c.kind }));
-    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a) }));
+    // frame columns inside the building outline (a lean-to or the title block cannot pass for one)
+    const xEnd = gx[gx.length - 1];
+    out.frameCols = frameCols.map(c => ({ ...toB(c.x, c.y), kind: c.kind })).filter(c => c.x > gx[0] - 3 && c.x < xEnd + 3 && c.y > -3 && c.y < W + 3);
+    // joist symbols inside the building and off the wall lines (wall-liner marks and hatch ends are not joists)
+    const offWalls = q => q.x > gx[0] + 1.5 && q.x < gx[gx.length - 1] - 1.5 && q.y > 1.5 && q.y < W - 1.5;
+    out.arrows = arrows.map(ar => ({ ...toB(ar.x, ar.y), dir: ar.vert ? 'y' : 'x', len: ar.len * Math.abs(fx.a), kind: ar.kind || 'arrow' }))
+      .filter(q => q.kind !== 'truss' || (offWalls(q) && q.len >= 5 && q.len <= 60));
     out.ok = true;
     if (!crosses.length) out.reason = 'no mezzanine column symbols found';
     out.map = { fx, fy };
@@ -240,6 +308,6 @@
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { subpaths, readSymbols, readArrows, chains, registerAndRead, compare, gridLetters };
+  const api = { subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
 })(typeof self !== 'undefined' ? self : this);
