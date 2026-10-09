@@ -18,6 +18,7 @@
   <symbol id="i-seismic" viewBox="0 0 24 24"><path d="M2 12h3l2-6 3 12 3-9 2 5 2-2h5"/></symbol>
   <symbol id="i-column" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M10 3v18M14 3v18"/></symbol>
   <symbol id="i-inputs" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 5.5l4 4M4 20l4.5-1 10-10-3.5-3.5-10 10z"/><path d="M13 7l4 4"/></symbol>
   <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
@@ -45,6 +46,7 @@
       <button data-view="seismic" disabled><svg><use href="#i-seismic"/></svg>Seismic</button>
       <button data-view="beam" disabled><svg><use href="#i-beam"/></svg>Beam calc</button>
       <button data-view="column" disabled><svg><use href="#i-column"/></svg>Column calc</button>
+      <button data-view="designer"><svg><use href="#i-tool"/></svg>Design your own</button>
       <button data-view="settings"><svg><use href="#i-settings"/></svg>Settings</button>
     </nav>
     <div class="rail-bottom">
@@ -122,14 +124,14 @@
       <section class="field" id="field"></section>
       <div class="section-title" id="optHead"><h3>Beam options</h3><p id="optSub"></p></div>
       <div id="options"></div>
+      <div class="section-title" id="notesHead"><h3>Checks &amp; decisions</h3><p>What to check before quoting; what was confirmed and the calls the design made are folded below it</p></div>
+      <div class="notes" id="warnings"></div>
+      <details class="dm-fold" id="dmFold"><summary><span class="dm-fold-t">Design manual · DM 15.1</span><span id="dmSum"></span><small>every item of NBG DM 15.1 this job touches — open the list</small></summary>
+        <div class="dm" id="dmList"></div></details>
       <div class="section-title" id="qsHead"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
       <div class="qs" id="quoteSheet"></div>
       <div class="section-title" id="wbHead"><h3>Check it in the NBG workbooks</h3><p>The real Mezzanine Beam Design, Mezzanine Column and IBC Seismic workbooks with this job typed in — open them in Excel and walk through them</p></div>
       <div class="panel wb-panel" id="wbPanel"></div>
-      <div class="section-title" id="notesHead"><h3>Checks &amp; decisions</h3><p>What to check before quoting first; what was confirmed and the calls the design made are folded below it</p></div>
-      <div class="notes" id="warnings"></div>
-      <details class="dm-fold" id="dmFold"><summary><span class="dm-fold-t">Design manual · DM 15.1</span><span id="dmSum"></span><small>every item of NBG DM 15.1 this job touches — open the list</small></summary>
-        <div class="dm" id="dmList"></div></details>
       <section class="readout" id="readout" hidden></section>
     </section>
 
@@ -253,6 +255,16 @@
     </section>
 
     <!-- SETTINGS -->
+    <!-- DESIGN YOUR OWN -->
+    <section class="screen" id="v-designer">
+      <div class="screen-heading">
+        <div><div class="eyebrow">MB sheet · Column sheet</div><h2>Design your <em>own</em></h2></div>
+        <p class="lede">Any section, any loads — checked by the same sheets as the design, with the shop rules, stock and flange economy. Use it for a mark when it works.</p>
+      </div>
+      <div class="seg dz-tabs" id="dzTabs"><button data-t="beam">Beam · MB sheet</button><button data-t="col">Column · Column sheet</button></div>
+      <div class="dz" id="dzBody"></div>
+    </section>
+
     <section class="screen" id="v-settings">
       <div class="screen-heading">
         <div><div class="eyebrow">Rules</div><h2>Settings</h2></div>

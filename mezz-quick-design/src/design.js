@@ -64,9 +64,31 @@
     if (wtPlf && lenFt && wtPlf * lenFt > (lenFt < 35 ? P.wt[0] : P.wt[1]) + 1e-6) return { rule: 'weight', text: `part weight ≤ ${(lenFt < 35 ? P.wt[0] : P.wt[1]).toLocaleString('en-US')} lb` };
     return null;
   }
+  /* every production rule for a built-up section, each with its result — for the engineer's own section, where the whole
+     list is shown (prodRule stops at the first one broken) */
+  function prodChecks(sec, div, lenFt = 0, wtPlf = 0) {
+    const P = prodOf(div), tf = Math.min(sec.tof, sec.tif), tfx = Math.max(sec.tof, sec.tif), bfn = Math.min(sec.bof, sec.bif), bfx = Math.max(sec.bof, sec.bif);
+    const n = v => +(+v).toFixed(4), out = [];
+    const add = (rule, text, ok, val) => out.push({ rule, text, ok: !!ok, val });
+    add('depth', `Part depth ${P.d[0]}"–${P.d[1]}"`, sec.d >= P.d[0] - 1e-9 && sec.d <= P.d[1] + 1e-9, `${n(sec.d)}"`);
+    add('width', `Flange width ${P.bf[0]}"–${P.bf[1]}"`, bfn >= P.bf[0] - 1e-9 && bfx <= P.bf[1] + 1e-9, bfn === bfx ? `${n(bfn)}"` : `${n(bfn)}" / ${n(bfx)}"`);
+    add('tfmax', `Flange thickness ≤ ${P.tfMax}"`, tfx <= P.tfMax + 1e-9, `${n(tfx)}"`);
+    if (P.tfPlus) add('tw<=tf', `tf > tw + ${sec.d < 30 ? '1/16' : '1/8'}" (NBG-UT)`, tf > sec.tw + (sec.d < 30 ? 0.0625 : 0.125) - 1e-9, `tw ${n(sec.tw)}" · tf ${n(tf)}"`);
+    else add('tw<=tf', 'Web no thicker than the flange, tw ≤ tf (DG 25)', sec.tw <= tf + 1e-9, `tw ${n(sec.tw)}" · tf ${n(tf)}"`);
+    add('tw/tf', 'Web / flange thickness ≥ 0.30', sec.tw / tfx >= 0.30 - 1e-9, (sec.tw / tfx).toFixed(2));
+    if (P.thin && sec.tw <= P.thin.tw + 1e-9) add('thin', `Flange ≤ ${P.thin.tf}" on a ${P.thin.tw}" web`, tfx <= P.thin.tf + 1e-9, `tf ${n(tfx)}"`);
+    add('bf<=d', 'Flange width ≤ depth', !(bfx > sec.d + 1e-9 || (sec.d <= 8 + 1e-9 && bfx > P.d8bf + 1e-9)), `${n(bfx)}" ≤ ${n(sec.d)}"`);
+    add('d/bf', 'Depth / flange width ≤ 7', sec.d / bfn <= 7 + 1e-9, (sec.d / bfn).toFixed(2));
+    add('tf ratio', 'Thickest / thinnest flange ≤ 2.0', tfx / tf <= 2 + 1e-9, (tfx / tf).toFixed(2));
+    if (lenFt > 40 + 1e-9) add('handling', 'Over 40 ft: a 6 × 3/8 or 8 × 1/4 flange at least', (bfn >= 8 - 1e-9 && tf >= 0.25 - 1e-9) || (bfn >= 6 - 1e-9 && tf >= 0.375 - 1e-9), `${n(bfn)} × ${n(tf)}`);
+    if (lenFt) add('length', `Part length ≤ ${P.L} ft`, lenFt <= P.L + 1e-9, `${n(lenFt)} ft`);
+    if (wtPlf && lenFt) { const lim = lenFt < 35 ? P.wt[0] : P.wt[1]; add('weight', `Part weight ≤ ${lim.toLocaleString('en-US')} lb`, wtPlf * lenFt <= lim + 1e-6, `${Math.round(wtPlf * lenFt).toLocaleString('en-US')} lb`); }
+    return out;
+  }
   const inStock = (tbl, key, div) => { const s = tbl[key]; const i = DIVISIONS.indexOf(div); return !!s && s[i < 0 ? 2 : i] === 'Y'; };
   const flangeName = (b, t) => 'F' + b + ({ 0.1875: '.19', 0.25: '.25', 0.3125: '.31', 0.375: '.38', 0.5: '.50', 0.625: '.63', 0.75: '.75', 1: '×1' })[t];
   const tierOf = (b, t) => (ECON[b] && ECON[b][t] != null ? ECON[b][t] : 2);
+  const inChart = (b, t) => !!(ECON[b] && ECON[b][t] != null);
 
   // Dead load from the deck guide (slab + deck weight; excludes joists and beams).
   // Confirmed anchors: 4" standard-weight concrete on 1.0C = 43 psf (NBS practice), 3.5" = 37 psf (training guide).
@@ -194,7 +216,7 @@
     const sym = (d, tw, [b, t]) => ({ type: 'BU', d, tw, bof: b, tof: t, bif: b, tif: t });
     const flName = ([b, t]) => flangeName(b, t), webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
     const opts = [];
-    opts.push({ key: 'lightest', label: 'Lightest', why: `The least weight of every stocked web and flange that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (the clearance C caps the depth)' : ''}.`, pick: light });
+    opts.push({ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked section that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (C caps the depth)' : ''}.`, pick: light });
 
     // ---- best fit, step by step ----
     const ladder = LADDER.filter(([b, t]) => inStock(FLANGE_STOCK, b + 'x' + t, div) && tierOf(b, t) === 0);
@@ -247,36 +269,48 @@
         }
       }
     }
+    // ---- best fit: the method's answer; when that is the lightest (or the lightest beats it), the method's own next
+    //      move — "try an alternate solution with the lesser depth": the lightest economical section an inch shallower ----
+    const lesser = d0 => { for (let d = d0 - o.dStep; d >= o.dMin - 1e-9; d -= o.dStep) { const e = all.filter(x => Math.abs(x.d - d) < 1e-9 && x.tier === 0).sort((a, b) => a.wt - b.wt)[0]; if (e) return e; } return null; };
     if (fit) {
-      // the step-by-step method can stop where the exhaustive search has a lighter and shallower section: say so
-      const dom = light.wt < fit.wt - 1e-9 && light.d <= fit.d && !same(light.sec, fit.sec);
-      opts.push({ key: 'fit', label: 'Best fit', why: `Worked the quote engineer's way: deepest allowed, web for shear, F8.31 and up the economical flanges, then less depth until the next inch fails${fit.d < search.dTop ? ` (${search.dTop - fit.d}" less than the deepest)` : ''}; combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}, live L/${Math.round(fit.rLL)}.${dom ? ` The lightest (${light.desc}) is lighter and no deeper — the step-by-step method stops at ${fit.d}" because one inch less needs a heavier 8" plate; the full search also tries 6" plates at every depth.` : ''}`, pick: fit, steps, dominated: dom });
+      const dom = !same(light.sec, fit.sec) && light.wt < fit.wt - 1e-9 && light.d <= fit.d;
+      if (same(light.sec, fit.sec) || dom) {
+        const alt = lesser(light.d);
+        steps.push({ step: 'alternate', text: alt ? `${dom ? `The lightest (${light.desc}) is lighter and no deeper than ${fit.desc}` : 'The method lands on the lightest'} — so its next step, a lesser depth: at ${alt.d}" ${alt.r.desc} works (combined ${alt.r.res.CSR.toFixed(3)}, shear ${alt.r.res.SRvx.toFixed(3)}, L/${Math.round(alt.r.defl.rLL)}).` : `${dom ? `The lightest (${light.desc}) beats ${fit.desc}` : 'The method lands on the lightest'}, and nothing shallower passes.` });
+        fit = alt ? summarize(alt) : dom ? fit : null;
+      }
     }
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
-    // ---- most economical: green plate, 5"–8" first, then 10", then 12" (yellow only when no green works) ----
+    // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
+    //      (typically more expensive); yellow only when no green plate works ----
     let econ = null, econWhy = '';
     for (const t of [0, 1]) {
       for (const wc of [0, 1, 2]) {
         const e = all.filter(x => x.tier === t && widthClass(Math.max(x.sec.bof, x.sec.bif)) === wc).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
-        if (e) { econ = summarize(e); econWhy = `${t === 0 ? 'Economical (green) flange plate' : 'No green plate works — somewhat economical (yellow)'}, ${['5"–8" wide, as the guide starts', '10" — no 8" plate works', '12" — no 8" or 10" plate works (typically more expensive)'][wc]}: the lightest of those is ${econ.flange} on ${econ.web}.`; break; }
+        if (e) { econ = summarize(e); econWhy = `${t === 0 ? 'Economical' : 'Somewhat economical'} ${econ.flange} flanges${wc ? ` (${wc === 1 ? '10"' : '12"'} — no narrower plate works)` : ''}, lightest of those.`; break; }
       }
       if (econ) break;
     }
     if (econ) opts.push({ key: 'econ', label: 'Most economical', why: econWhy, pick: econ, tier: econ.tier });
 
-    // ---- alternates, when fewer than three different designs came out ----
-    const distinct = () => opts.reduce((a, x) => (a.some(y => same(y.pick.sec, x.pick.sec)) ? a : a.concat(x)), []);
+    // ---- at least three different designs where the search has them: another flange width, a shallower section, or
+    //      (when the clearance leaves one depth) a deeper one that needs C lowered ----
+    const distinct = () => opts.reduce((acc, x) => (acc.some(y => same(y.pick.sec, x.pick.sec)) ? acc : acc.concat(x)), []);
+    const shownW = () => new Set(opts.map(x => x.pick.sec.bof));
     if (distinct().length < 3) {
-      const shown = () => opts.map(x => x.pick.sec);
-      const minD = Math.min(...shown().map(q => q.d));
-      const sh = all.filter(e => e.tier === 0 && e.d < minD && e.wt <= light.wt * 1.15).sort((a, b) => a.d - b.d || a.wt - b.wt)[0];
-      if (sh) opts.push({ key: 'shallow', label: 'Shallower', why: `${minD - sh.d}" less depth than the others for ${(((sh.wt - light.wt) / light.wt) * 100).toFixed(1)} % more steel (the shallowest green-plate section within 15 % of the lightest) — more clearance under the beam.`, pick: summarize(sh) });
+      const ow = all.filter(e => e.tier === 0 && !shownW().has(e.sec.bof)).sort((a, b) => a.wt - b.wt)[0];
+      if (ow) opts.push({ key: 'width', label: `${ow.sec.bof}" flanges`, why: `The lightest on ${ow.sec.bof}" economical flanges (${flangeName(ow.sec.bof, ow.sec.tof)}).`, pick: summarize(ow) });
     }
     if (distinct().length < 3) {
-      const widths = new Set(opts.map(x => x.pick.sec.bof));
-      const ow = all.filter(e => e.tier === 0 && !widths.has(e.sec.bof)).sort((a, b) => a.wt - b.wt)[0];
-      if (ow) opts.push({ key: 'width', label: `${ow.sec.bof}" flanges`, why: `The lightest with ${ow.sec.bof}" economical flanges (the others use ${[...widths].join('" / ')}") — ${flangeName(ow.sec.bof, ow.sec.tof)} on ${'W' + String(Math.round(ow.sec.tw * 1000)).padStart(3, '0')}.`, pick: summarize(ow) });
+      const minD = Math.min(...opts.map(x => x.pick.sec.d));
+      const sh = all.filter(e => e.tier === 0 && e.d < minD).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
+      if (sh) opts.push({ key: 'shallow', label: 'Shallower', why: `${minD - sh.d}" less depth than the others — more clearance under the beam.`, pick: summarize(sh) });
     }
+    (ctx.deeper || []).filter(z => z.sec).forEach((z, i) => {
+      if (distinct().length >= 3) return;
+      opts.push({ key: 'deeper' + (i + 1), label: `${z.d}" deep`, why: `Less steel than the ${search.dTop}" design, but the beam bottom drops below the clearance C asked for.`, pick: z, needC: z.needC });
+    });
     return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
 
@@ -315,6 +349,6 @@
     return { name: null, quoteAs: null, common: false, check: null, tried };
   }
 
-  const api = { PROD, prodRule, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, flangeName, COMMON_COLUMNS, inStock };
+  const api = { PROD, prodRule, prodChecks, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);

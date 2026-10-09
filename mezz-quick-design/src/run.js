@@ -449,14 +449,15 @@
     m.design = { span: dSpan, trib: dTrib, cut, set: dSpan !== m.span || dTrib !== m.trib };
     const p = { ...c0.beamBase, L: dSpan, trib: dTrib };
     const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
-    const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: dSpan }) : [];
-    // the clearance leaves one design: what more depth would give (each needs C lowered to suit)
+    // the clearance caps the depth: what more depth would give (each needs C lowered to suit) — shown when the capped
+    // search leaves fewer than three different designs
     let deeper = null;
-    if (dz && dz.best && maxDepth != null && maxDepth < s.dMax && new Set(options.map(o => ['d', 'tw', 'bof', 'tof'].map(k => o.pick.sec[k]).join())).size === 1) {
+    if (dz && dz.best && maxDepth != null && maxDepth < s.dMax) {
       const up = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: maxDepth + 1, dMax: Math.min(s.dMax, maxDepth + 6), symmetric: s.symmetric, requireConc: s.requireConc, production: s.production !== false });
       const A = Math.min(...members.map(c => c.A)), lose = Math.max(...members.map(c => (c.slabIn + c.seatIn) / 12));
-      deeper = up.byDepth.filter(z => !z.none).map(z => ({ d: z.d, desc: z.desc, wt: z.wt, flange: z.flange, web: z.web, CSR: z.CSR, rLL: z.rLL, needC: A - lose - z.d / 12 }));
+      deeper = up.byDepth.filter(z => !z.none && z.wt < dz.best.wt - 1e-9).map(z => ({ ...z, needC: A - lose - z.d / 12 }));
     }
+    const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: dSpan, deeper }) : [];
     // a pick is stored as intent — an option key or a depth — so every input change re-runs the search:
     //   { key: 'fit' } → that option for the current loads; { d: 20 } → lightest passing section at 20";
     //   { sec } → that exact section (checked, flagged if it fails)

@@ -17,33 +17,36 @@ if (!ok) { console.log('options tests passed (flange matrix; sample jobs not pre
 const { loadJob } = require('../oracle/job_load.js');
 const pick = (m, k) => (m.options.find(o => o.key === k) || {}).pick;
 (async () => {
-  // W2H-26018 (the quoted job: MB1 BU24x30): lightest = most economical; the step-by-step best fit lands deeper
+  // W2H-26018 (the quoted job: MB1 BU24x30): lightest = most economical; the step-by-step method stops at 26" (BU26x31),
+  // which the lightest beats, so best fit takes the method's next step — a lesser depth: 23" BU23x32
   {
     const { job } = await loadJob(path.join(dir, 'Project_Confirmation_Summary_W2H-26018.pdf'));
     const mb1 = job.marks.find(m => m.mark === 'MB1');
     assert.strictEqual(pick(mb1, 'lightest').desc, 'BU24x30');
     assert.strictEqual(pick(mb1, 'econ').desc, 'BU24x30');
     const fit = mb1.options.find(o => o.key === 'fit');
-    assert.deepStrictEqual(fit.steps.map(s => s.step), ['depth', 'web', 'flange', 'reduce', 'cut']);
+    assert.deepStrictEqual(fit.steps.map(s => s.step), ['depth', 'web', 'flange', 'reduce', 'cut', 'alternate']);
     assert.ok(/F8\.31 is the first that passes at 30"/.test(fit.steps[2].text), fit.steps[2].text);
     assert.ok(/still passes at 26"/.test(fit.steps[3].text) && /at 25" it does not/.test(fit.steps[3].text), fit.steps[3].text);
-    assert.strictEqual(fit.pick.desc, 'BU26x31');
-    assert.ok(fit.dominated && /lighter and no deeper/.test(fit.why), 'the method stopping deeper and heavier than the lightest is said');
-    // three different designs on the cards: an alternate fills in
+    assert.ok(/BU26x31/.test(fit.steps[5].text) && /at 23"/.test(fit.steps[5].text), fit.steps[5].text);
+    assert.strictEqual(fit.pick.desc, 'BU23x32');
+    // three different designs on the cards, every one passing
     assert.strictEqual(new Set(mb1.options.map(o => o.pick.desc)).size, 3);
     assert.ok(mb1.options.every(o => o.pick.CSR <= 0.99 && o.pick.SRv <= 0.99 && o.pick.rLL >= 360 && o.pick.rTL >= 240));
   }
-  // W1S-26062: the clearance leaves 15" — one design per mark, and what 16"–21" would give with C lowered
+  // W1S-26062: the clearance leaves 15" — one design there; the other two cards are 16" and 17", each with the C it needs
   {
     const { job } = await loadJob(path.join(dir, 'PCS_job3.pdf'));
     const mb1 = job.marks.find(m => m.mark === 'MB1');
-    assert.deepStrictEqual([...new Set(mb1.options.map(o => o.pick.desc))], ['BU15x95']);
-    assert.ok(mb1.options.every(o => o.sameAs.length === 2), 'lightest = best fit = most economical');
+    assert.strictEqual(pick(mb1, 'lightest').desc, 'BU15x95');
+    assert.strictEqual(pick(mb1, 'econ').desc, 'BU15x95');
+    assert.ok(!mb1.options.some(o => o.key === 'fit'), 'nothing shallower passes: no best fit');
+    const deep = mb1.options.filter(o => /^deeper/.test(o.key));
+    assert.deepStrictEqual(deep.map(o => o.pick.desc), ['BU16x77', 'BU17x71']);
+    assert.ok(Math.abs(deep[0].needC - (11.5 - (4 + 5) / 12 - 16 / 12)) < 1e-9, 'C = A − slab − seat − d');
     assert.deepStrictEqual(mb1.deeper.map(z => z.d), [16, 17, 18, 19, 20, 21]);
-    assert.ok(mb1.deeper.every(z => z.wt < pick(mb1, 'lightest').wt && z.needC < 9.5));
-    assert.ok(Math.abs(mb1.deeper[0].needC - (11.5 - (4 + 5) / 12 - 16 / 12)) < 1e-9, 'C = A − slab − seat − d');
-    const fl = mb1.options.find(o => o.key === 'fit').steps.find(s => s.step === 'flange');
-    assert.ok(/F12×1 is the first that passes at 15", on W313 \(production/.test(fl.text), fl.text);
+    const mb2 = job.marks.find(m => m.mark === 'MB2');
+    assert.strictEqual(new Set(mb2.options.map(o => o.pick.desc)).size, 3);
   }
   // W0S-26160 MB2: the lightest uses a somewhat-economical (yellow) flange; the most economical is green
   {
@@ -53,5 +56,5 @@ const pick = (m, k) => (m.options.find(o => o.key === k) || {}).pick;
     assert.strictEqual(pick(mb2, 'econ').tier, 'G');
     assert.ok(pick(mb2, 'econ').wt > pick(mb2, 'lightest').wt);
   }
-  console.log('options tests passed (W2H-26018 lightest = economical BU24x30, best fit by the step-by-step method BU26x31 (said to stop deeper); W1S-26062 one design at 15" with 16"–21" listed for a lower C; W0S-26160 MB2 green over yellow)');
+  console.log('options tests passed (three different designs a mark: W2H-26018 lightest = economical BU24x30, best fit 23" BU23x32 by the method\'s lesser-depth step; W1S-26062 BU15x95 at the 15" cap with 16" / 17" options and the C each needs; W0S-26160 MB2 green over yellow)');
 })().catch(e => { console.error(e); process.exit(1); });

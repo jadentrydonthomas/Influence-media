@@ -388,7 +388,7 @@
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); }
+  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -830,7 +830,8 @@
         const under = A != null ? A - (slabIn + seatIn + p.sec.d) / 12 : null;
         const dLbs = o.dWt * len;
         return `<article class="option ${chosen ? 'is-chosen' : ''} ${g.roles.length > 1 ? 'is-merged' : ''}">
-          <div class="option-top"><span class="option-tags">${g.roles.map(x => `<span class="option-tag">${esc(x.label)}</span>`).join('')}</span><span class="option-delta ${o.dWt ? '' : 'zero'}">${o.dWt ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : 'least weight'}</span></div>
+          <div class="option-top"><span class="option-tags">${g.roles.map(x => `<span class="option-tag">${esc(x.label)}</span>`).join('')}</span><span class="option-delta ${o.dWt > 0 ? '' : 'zero'}">${o.dWt > 1e-9 ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : o.dWt < -1e-9 ? `${f(o.dPct * 100, 1)}% · ${n0(dLbs)} lb` : 'least weight'}</span></div>
+          ${o.needC != null ? `<div class="option-flag">Needs clearance C ≤ ${ft(o.needC)} — the PCS asks ${ft(inp.geom.C.value)}</div>` : ''}
           <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · flange ${TIERW[p.tier] || p.tier}</div>
           <div class="option-grid">
             <div><span>Weight</span><b>${f(p.wt, 1)} plf</b></div><div><span>Depth</span><b>${p.sec.d}"</b></div><div><span>Under beam</span><b>${under != null ? ft(under) : '—'}</b></div>
@@ -843,7 +844,7 @@
       // why only one: the lighter plates that fail at that depth (from the step-by-step tries)
       const fitO = mk.options.find(o => o.key === 'fit'), flStep = fitO && fitO.steps && fitO.steps.find(x => x.step === 'flange');
       const lastFail = flStep && flStep.tries ? flStep.tries.filter(t => !t.ok && t.why && !/production|no web/.test(t.why)).pop() : null;
-      const oneTxt = one ? `<div class="option-one"><b>One design for these inputs.</b> ${capped ? `The clearance C leaves ${sr.dTop}" for the beam (A − C − slab − seat)${lastFail ? `; at ${sr.dTop}" the next lighter plate fails (${esc(lastFail.sec)}: ${esc(lastFail.why)})` : ''}, so ` : ''}every way of building it — the lightest, the step-by-step method, the economical flanges — lands on the same section.${mk.deeper && mk.deeper.length ? ` More depth would take less steel, but needs the clearance under the beams lowered:` : ''}</div>
+      const oneTxt = one && !(mk.options || []).some(o => o.needC != null) ? `<div class="option-one"><b>One design for these inputs.</b> ${capped ? `The clearance C leaves ${sr.dTop}" for the beam (A − C − slab − seat)${lastFail ? `; at ${sr.dTop}" the next lighter plate fails (${esc(lastFail.sec)}: ${esc(lastFail.why)})` : ''}, so ` : ''}every way of building it — the lightest, the step-by-step method, the economical flanges — lands on the same section.${mk.deeper && mk.deeper.length ? ` More depth would take less steel, but needs the clearance under the beams lowered:` : ''}</div>
         ${mk.deeper && mk.deeper.length ? `<table class="fl-t deeper"><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">Saves</th><th class="num">Combined</th><th class="num">Live</th><th class="num">C would be at most</th></tr></thead><tbody>${mk.deeper.map(z => `<tr><td class="num mono">${z.d}"</td><td class="mono">${esc(z.desc)} <small class="sub-n">${esc(z.flange)} · ${esc(z.web)}</small></td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(groups[0].pick.wt - z.wt, 1)} plf (${f((1 - z.wt / groups[0].pick.wt) * 100, 0)} %)</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td class="num mono">${ft(z.needC)}</td></tr>`).join('')}</tbody></table>` : ''}` : '';
       return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options ${one ? 'is-one' : ''}">${groups.map(card).join('')}</div>${oneTxt}</div>`;
     }).join('');
@@ -1763,7 +1764,7 @@
     const dz = mkDz(mk), cur = (state.settings.markInput || {})[mk.mark] || {};
     const runs = (mk.spanRuns || []).slice(1);
     $('#beamInputs').innerHTML = `<div class="bi-head"><div><span class="eyebrow">Beam inputs · ${mk.mark}</span><small>MB sheet only — the plan, the columns and the loads to the frame keep the layout (${ft(mk.span)} × ${ft(mk.trib)})</small></div>
-        <button class="btn-ghost" id="biReset" ${dz.set ? '' : 'disabled'}>Back to the layout</button></div>
+        <span class="bi-btns"><button class="btn-soft" id="biTry">Try another section</button><button class="btn-ghost" id="biReset" ${dz.set ? '' : 'disabled'}>Back to the layout</button></span></div>
       <div class="bi-row">
         <label class="bi-f ${cur.span ? 'is-set' : ''}"><span>Design span <small>member length</small></span><input data-bi="span" value="${esc(ft(dz.span))}" spellcheck="false" autocomplete="off"><small>${dz.cut ? `${dz.cut > 0 ? '−' : '+'}${ft(Math.abs(dz.cut))} from ${ft(mk.span)}${runs.length ? ', also on the ' + runs.map(q => ft(q.span) + ' → ' + ft(runL(q))).join(', ') + ' run' + (runs.length > 1 ? 's' : '') : ''}` : `layout ${ft(mk.span)}`}</small></label>
         <label class="bi-f ${cur.trib ? 'is-set' : ''}"><span>Design trib <small>tributary width</small></span><input data-bi="trib" value="${esc(ft(dz.trib))}" spellcheck="false" autocomplete="off"><small>layout ${ft(mk.trib)}</small></label>
@@ -1785,6 +1786,7 @@
       inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
     });
     $('#biReset').onclick = () => { setMarkInput(mk.mark, null); recompute(); toast(`${mk.mark} back to the layout ${ft(mk.span)} × ${ft(mk.trib)}`); };
+    $('#biTry').onclick = () => dzOpen('beam', mk.mark);
   }
   // ---------- how a beam / a column was arrived at: the steps, with this job's numbers (folded under the tabs) ----------
   const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
@@ -1855,14 +1857,29 @@
       const lv = dz.set ? layoutV(mk, run) : null;
       $('#mbSheet').innerHTML = beamViz(mk, r, run) + (lv
         ? `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame and columns · ${mk.mark} at the layout ${ft(run.span)} × ${ft(mk.trib)}</span><b>Dead ${f(lv.D, 3)} k</b><b>Live ${f(lv.L, 3)} k</b><small>per beam end, ${esc(mk.desc)} — the MB sheet below is at the design ${ft(runL(run))} × ${ft(dz.trib)} (shear D ${f(c.V.D, 3)} / L ${f(c.V.L, 3)} k, highlighted)</small></div>`
-        : `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div>`) + `<div class="sheet">
-        <div><h4>INPUT sheet</h4>${kv([
+        : `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div>`) + mbSheetBody(c, p, mk.sec, [
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
           ['Total Joist Depth, (in.)', r.joistDepthIn != null ? f(r.joistDepthIn, 2) : '—'], ['Beam Depth, (in.)', mk.sec.d],
           clr('A', 'A - Finish floor to top of mezz'), clr('B', 'B - Clearance under joist'), clr('C', 'C - Clearance under support beams'),
-        ])}
-        <h4 style="margin-top:16px">Loading and geometric input</h4>${kv([
+        ]);
+    }
+    renderXlBeam(mk, run);
+    const sr = mk.search;
+    if (!sr || !sr.best) { $('#altTable').innerHTML = ''; return; }
+    $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(dz.span)} span × ${ft(dz.trib)} trib${dz.set ? ' (design inputs)' : ''} · click a row to use it`;
+    const optAt = sec => (mk.options.find(o => sameSec(o.pick.sec, sec)) || {}).label;
+    $('#altTable').innerHTML = `<thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">Wt plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">LL L/</th><th class="num">TL L/</th><th class="num">Bearing</th></tr></thead><tbody>` +
+      sr.byDepth.map(a => a.none ? `<tr class="none"><td class="num">${a.d}"</td><td colspan="10">nothing stocked passes at this depth</td></tr>` :
+        `<tr class="pick ${sameSec(a.sec, sr.best.sec) ? 'is-best' : ''} ${mk.sec && sameSec(a.sec, mk.sec) ? 'is-chosen' : ''}" data-d="${a.d}"><td class="num">${a.d}"</td><td class="mono"><b>${a.desc}</b>${optAt(a.sec) ? ` <span class="src pcs">${optAt(a.sec)}</span>` : ''}</td><td class="mono">${a.web} (${a.sec.tw})</td><td class="mono">${a.flange}</td><td>${a.tier}</td><td class="num">${f(a.wt, 2)}</td><td class="num">${f(a.CSR, 3)}</td><td class="num">${f(a.SRv, 3)}</td><td class="num">${f(a.rLL, 0)}</td><td class="num">${f(a.rTL, 0)}</td><td class="num">${f(a.conc, 2)}</td></tr>`).join('') + '</tbody>';
+    $$('#altTable tr.pick').forEach(tr => { tr.onclick = () => pickDepth(mk.mark, tr.dataset.d); });
+  }
+
+  // the MB sheet's results for a check c of section sec under params p (inputRows: the INPUT sheet rows, when there is a job)
+  function mbSheetBody(c, p, sec, inputRows) {
+    const x = c.res;
+    return `<div class="sheet">
+        <div>${inputRows ? `<h4>INPUT sheet</h4>${kv(inputRows)}<h4 style="margin-top:16px">Loading and geometric input</h4>` : '<h4>Loading and geometric input</h4>'}${kv([
           ['Member Length, ft. =', f(p.L, 3)], ['Unbraced Length, ft. =', f(p.Lb, 3)], ['Tributary Width, ft. =', f(p.trib, 3)],
           ['Floor Dead + Col. Load, psf =', f(p.dead + p.coll, 3)], ['Floor Live Load, psf =', f(p.live, 3)], ['Dead + Col. + Live Load, psf =', f(p.dead + p.coll + p.live, 2)],
           ['Estimated Joist Weight, psf =', f(p.joistWt, 3)], ['Moment of Inertia (I), in.^4 =', f(x.Ix, 3)],
@@ -1874,9 +1891,9 @@
           <h4 style="margin-top:14px">Strength results</h4><span class="status-line ${/NG/.test(c.combinedText) ? 'ng' : 'ok'}">${esc(c.combinedText)}</span><span class="status-line ${/NG/.test(c.shearText) ? 'ng' : 'ok'}">${esc(c.shearText)}</span>
           ${kv([['Main Report (MAX SR &gt; 1 = NG)', x.maxSR > 1 ? 'NG' : 'OK', x.maxSR > 1 ? 'ng' : 'okc']])}</div>
         <div><h4>Section geometry</h4>${kv([
-          ['Wide-flange/Built-up Sect.:', 'BU'], ['Section Description:', `<b>${esc(c.desc)}</b>`], ['Total Depth, in. =', f(mk.sec.d, 3)], ['Web Thickness, in. =', f(mk.sec.tw, 3)],
-          ['O. Flange Width, in. =', f(mk.sec.bof, 3)], ['O. Flange Thickness, in. =', f(mk.sec.tof, 3)], ['I. Flange Width, in. =', f(mk.sec.bif, 3)], ['I. Flange Thickness, in. =', f(mk.sec.tif, 3)],
-          ['Material Strength Fy, ksi =', '55'], ['Ultimate Strength Fu, ksi =', '70'],
+          ...(sec.type === 'WF' ? [['Wide-flange/Built-up Sect.:', 'WF'], ['Section Description:', `<b>${esc(c.desc)}</b>`], ['Total Depth, in. =', f(c.res.d, 3)], ['Weight, plf =', f(c.res.Wt, 2)]] : [['Wide-flange/Built-up Sect.:', 'BU'], ['Section Description:', `<b>${esc(c.desc)}</b>`], ['Total Depth, in. =', f(sec.d, 3)], ['Web Thickness, in. =', f(sec.tw, 3)],
+          ['O. Flange Width, in. =', f(sec.bof, 3)], ['O. Flange Thickness, in. =', f(sec.tof, 3)], ['I. Flange Width, in. =', f(sec.bif, 3)], ['I. Flange Thickness, in. =', f(sec.tif, 3)]]),
+          ['Material Strength Fy, ksi =', sec.type === 'WF' ? '50' : '55'], ['Ultimate Strength Fu, ksi =', sec.type === 'WF' ? '65' : '70'],
         ])}
           <h4 style="margin-top:14px">Main Report detail</h4>${kv([
             ['Tension flange / class', `${x.TfCode} · ${x.flexClass}`], ['h/tw · kc', `${f(x.htw, 1)} · ${f(x.kc, 3)}`], ['Mn (k-in) · Mn/Ω (k-ft)', `${f(x.Mn, 0)} · ${f(x.McxASD / 12, 1)}`],
@@ -1886,16 +1903,6 @@
             ['Ru = (D+coll+joist+L)·spacing·trib', f(c.conc.Ru, 2) + ' k'], ['Web local yielding SR', f(c.conc.WLY, 3)], ['Web crippling SR', f(c.conc.WC, 3)],
             ['Web sidesway SR', c.conc.WSB == null ? '--' : f(c.conc.WSB, 3)], ['Result', c.conc.ok ? 'OK' : 'NG — L7 warning', c.conc.ok ? 'okc' : 'ng'],
           ]) : '<div class="faint">not on the 13th-edition sheet</div>'}</div></div>`;
-    }
-    renderXlBeam(mk, run);
-    const sr = mk.search;
-    if (!sr || !sr.best) { $('#altTable').innerHTML = ''; return; }
-    $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(dz.span)} span × ${ft(dz.trib)} trib${dz.set ? ' (design inputs)' : ''} · click a row to use it`;
-    const optAt = sec => (mk.options.find(o => sameSec(o.pick.sec, sec)) || {}).label;
-    $('#altTable').innerHTML = `<thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">Wt plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">LL L/</th><th class="num">TL L/</th><th class="num">Bearing</th></tr></thead><tbody>` +
-      sr.byDepth.map(a => a.none ? `<tr class="none"><td class="num">${a.d}"</td><td colspan="10">nothing stocked passes at this depth</td></tr>` :
-        `<tr class="pick ${sameSec(a.sec, sr.best.sec) ? 'is-best' : ''} ${mk.sec && sameSec(a.sec, mk.sec) ? 'is-chosen' : ''}" data-d="${a.d}"><td class="num">${a.d}"</td><td class="mono"><b>${a.desc}</b>${optAt(a.sec) ? ` <span class="src pcs">${optAt(a.sec)}</span>` : ''}</td><td class="mono">${a.web} (${a.sec.tw})</td><td class="mono">${a.flange}</td><td>${a.tier}</td><td class="num">${f(a.wt, 2)}</td><td class="num">${f(a.CSR, 3)}</td><td class="num">${f(a.SRv, 3)}</td><td class="num">${f(a.rLL, 0)}</td><td class="num">${f(a.rTL, 0)}</td><td class="num">${f(a.conc, 2)}</td></tr>`).join('') + '</tbody>';
-    $$('#altTable tr.pick').forEach(tr => { tr.onclick = () => pickDepth(mk.mark, tr.dataset.d); });
   }
 
   // ---------- column calc (Column sheet mirror) ----------
@@ -2035,6 +2042,8 @@
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
     $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C3</span> the mezzanine column's number on the plan · <span class="mono">2/B</span> the grid point, frame line 2 × column line B · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
+    $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
+    $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); }; });
     const g = r.colGroups[state.colGroup];
     if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
@@ -2072,6 +2081,209 @@
     const setCol = n => { (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = n; }); recompute(); };
     $$('#colTried tr.pick').forEach(tr => { tr.onclick = () => setCol(tr.dataset.n === (g.design && g.design.name) ? undefined : tr.dataset.n); });
     $('#colPick').onchange = e => setCol(e.target.value || undefined);
+  }
+
+  // ---------- design your own: any section and loads through the same MB / Column sheets ----------
+  const ENG = window.MZ;
+  const DZ_KEY = 'mzd.designer';
+  const dzDefault = () => ({
+    tab: 'beam',
+    beam: { ed: '15', div: 'NBS-IN', dead: 43, coll: 5, live: 125, joistWt: 8, L: 20, Lb: 4, trib: 20, type: 'BU', d: 24, tw: 0.1875, bof: 6, tof: 0.375, sym: true, bif: 6, tif: 0.375, wf: 'W12X26', from: '' },
+    col: { ed: '15', L: 11.5, wf: 'W8X24', DL_L: 10, LL_L: 20, DL_R: 10, LL_R: 20, from: '' },
+    near: null,
+  });
+  state.dz = (() => { try { const v = JSON.parse(localStorage.getItem(DZ_KEY) || 'null'); if (v && v.beam && v.col) return { ...dzDefault(), ...v, near: null }; } catch (e) { /* storage off */ } return dzDefault(); })();
+  const dzSave = () => { try { const { near, ...keep } = state.dz; localStorage.setItem(DZ_KEY, JSON.stringify(keep)); } catch (e) { /* storage off */ } };
+  const PLATE = [0.1875, 0.25, 0.3125, 0.375, 0.5, 0.625, 0.75, 1];
+  const WEB = [0.125, 0.135, 0.15, 0.1644, 0.1875, 0.22, 0.25, 0.275, 0.3125, 0.375, 0.5];
+  const TIER_WORD = ['economical', 'somewhat economical', 'non-economical'];
+  const dzBeamSec = b => (b.type === 'WF' ? { type: 'WF', name: b.wf } : { type: 'BU', d: +b.d, tw: +b.tw, bof: +b.bof, tof: +b.tof, bif: b.sym ? +b.bof : +b.bif, tif: b.sym ? +b.tof : +b.tif });
+  const dzBeamP = b => ({ dead: +b.dead, coll: +b.coll, live: +b.live, joistWt: +b.joistWt, L: +b.L, Lb: +b.Lb, trib: +b.trib, edition: b.ed });
+  // where the job's numbers can come from: each mark (at its design span / trib) and each column case
+  const dzBeamSources = () => (state.job ? jobMarks().filter(m => m.sec && m.params).map(m => ({ key: m.mark, label: `${mkName(m)} · ${m.desc} · ${ft(m.params.L)} × ${ft(m.params.trib)}`, m })) : []);
+  const dzColSources = () => {
+    if (!state.job) return [];
+    const cno = colNos();
+    return (state.job.mezz || []).flatMap(r => (r.colGroups || []).map((g, gi) => ({ key: `${r.index}|${gi}`, label: `${g.cols.map(c => `C${cno.get(c.label) || '?'} ${c.label}`).join(', ')}${manyMezz() ? ' · ' + r.id : ''}`, r, g })));
+  };
+  function dzLoadBeam(key) {
+    const src = dzBeamSources().find(x => x.key === key);
+    if (!src) return;
+    const m = src.m, p = m.params, sec = m.sec, b = state.dz.beam;
+    Object.assign(b, { from: key, ed: p.edition || b.ed, div: (state.res && state.res.division) || b.div, dead: p.dead, coll: p.coll, live: p.live, joistWt: p.joistWt, L: +(+p.L).toFixed(4), Lb: p.Lb, trib: +(+p.trib).toFixed(4) });
+    if (sec.type === 'WF') Object.assign(b, { type: 'WF', wf: sec.name });
+    else Object.assign(b, { type: 'BU', d: sec.d, tw: sec.tw, bof: sec.bof, tof: sec.tof, bif: sec.bif, tif: sec.tif, sym: sec.bof === sec.bif && sec.tof === sec.tif });
+    state.dz.near = null;
+  }
+  function dzLoadCol(key) {
+    const src = dzColSources().find(x => x.key === key);
+    if (!src) return;
+    const c = state.dz.col, ld = src.g.loads, cf = src.r.colFinal;
+    Object.assign(c, { from: key, ed: (src.r.edition && src.r.edition.colEd) || c.ed, L: +(+src.r.colLen).toFixed(4), wf: cf ? cf.name : c.wf, DL_L: +ld.DL_L.toFixed(3), LL_L: +ld.LL_L.toFixed(3), DL_R: +ld.DL_R.toFixed(3), LL_R: +ld.LL_R.toFixed(3) });
+  }
+  // open the designer on a mark or a column case of the job (the Beam / Column pages' "Try another section")
+  function dzOpen(tab, key) { state.dz.tab = tab; if (tab === 'beam') dzLoadBeam(key); else dzLoadCol(key); dzSave(); go('designer'); renderDesigner(); }
+
+  function renderDesigner() {
+    const el = $('#dzBody');
+    if (!el) return;
+    const dz = state.dz;
+    $$('#dzTabs button').forEach(b => { b.classList.toggle('is-active', b.dataset.t === dz.tab); b.onclick = () => { dz.tab = b.dataset.t; dzSave(); renderDesigner(); }; });
+    el.innerHTML = dz.tab === 'beam' ? dzBeamHTML() : dzColHTML();
+    // inputs: every field writes its value and re-checks
+    $$('#dzBody [data-dz]').forEach(inp => {
+      const ev = inp.tagName === 'SELECT' || inp.type === 'checkbox' ? 'change' : 'input';
+      inp.addEventListener(ev, () => {
+        const [grp, k] = inp.dataset.dz.split('.'), o = dz[grp];
+        o[k] = inp.type === 'checkbox' ? inp.checked : inp.dataset.num != null ? (inp.value === '' ? '' : +inp.value) : inp.value;
+        if (k !== 'from') o.from = '';
+        dz.near = null; dzSave();
+        if (inp.tagName === 'SELECT' || inp.type === 'checkbox') renderDesigner(); else dzResults();
+      });
+    });
+    const ld = $('#dzFrom');
+    if (ld) ld.onchange = () => { if (dz.tab === 'beam') dzLoadBeam(ld.value); else dzLoadCol(ld.value); dzSave(); renderDesigner(); };
+    const rs = $('#dzReset');
+    if (rs) rs.onclick = () => { const d0 = dzDefault(); dz[dz.tab] = d0[dz.tab]; dz.near = null; dzSave(); renderDesigner(); };
+    dzResults();
+  }
+  const dzNum = (key, val, unit, step = 'any', extra = '') => `<label class="dz-f"><span>${unit}</span><input data-dz="${key}" data-num value="${val === '' || val == null ? '' : +(+val).toFixed(4)}" inputmode="decimal" step="${step}" ${extra}></label>`;
+  const dzSel = (key, val, opts) => `<select data-dz="${key}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+  function dzBeamHTML() {
+    const b = state.dz.beam, srcs = dzBeamSources();
+    const plates = PLATE.map(t => [t, `${frac(t)}"`]), widths = [5, 6, 8, 10, 12, 14, 16].map(w => [w, `${w}"`]);
+    const wfs = Object.keys(WF).filter(k => /^W(8|10|12|14|16|18|21|24)X/.test(k)).sort((a, c) => WF[a].d - WF[c].d || WF[a].W - WF[c].W);
+    const flange = (pb, pt, label) => `<div class="dz-row"><span class="dz-lab">${label}</span>${dzSel('beam.' + pb, b[pb], widths)}<span class="dz-x">×</span>${dzSel('beam.' + pt, b[pt], plates)}</div>`;
+    return `<div class="dz-grid">
+      <form class="dz-in panel" onsubmit="return false">
+        <div class="dz-head"><h3>Inputs</h3>${srcs.length ? `<select id="dzFrom"><option value="">Start from this job…</option>${srcs.map(x => `<option value="${esc(x.key)}" ${b.from === x.key ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>` : ''}<button class="btn-ghost" id="dzReset" type="button">Clear</button></div>
+        <div class="dz-group"><h5>Sheet</h5><div class="dz-row">${dzSel('beam.ed', b.ed, [['13', '13th · IBC ≤ 2015'], ['15', '15th · IBC 2018/21'], ['16', '16th · IBC 2024']])}${dzSel('beam.div', b.div, DESIGN.DIVISIONS.map(d => [d, d === 'West' ? 'West (NBG-UT)' : d]))}</div></div>
+        <div class="dz-group"><h5>Loads (psf) <small>INPUT D14–D17</small></h5><div class="dz-cells">${dzNum('beam.dead', b.dead, 'Dead')}${dzNum('beam.coll', b.coll, 'Collateral')}${dzNum('beam.live', b.live, 'Live')}${dzNum('beam.joistWt', b.joistWt, 'Joist wt.')}</div></div>
+        <div class="dz-group"><h5>Geometry (ft) <small>MB D7–D9</small></h5><div class="dz-cells three">${dzNum('beam.L', b.L, 'Member length')}${dzNum('beam.Lb', b.Lb, 'Unbraced (joists @)')}${dzNum('beam.trib', b.trib, 'Trib width')}</div></div>
+        <div class="dz-group"><h5>Section <small>MB K19, M22–M27</small></h5>
+          <div class="seg dz-type"><button type="button" data-type="BU" class="${b.type === 'BU' ? 'is-active' : ''}">Built-up</button><button type="button" data-type="WF" class="${b.type === 'WF' ? 'is-active' : ''}">Wide flange</button></div>
+          ${b.type === 'WF' ? `<div class="dz-row">${dzSel('beam.wf', b.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</div>` : `
+          <div class="dz-cells two">${dzNum('beam.d', b.d, 'Depth d (in)', '1')}<label class="dz-f"><span>Web tw (in)</span>${dzSel('beam.tw', b.tw, WEB.map(t => [t, `${t}" · W${String(Math.round(t * 1000)).padStart(3, '0')}`]))}</label></div>
+          ${flange('bof', 'tof', b.sym ? 'Flanges (top = bottom)' : 'Top flange')}
+          ${b.sym ? '' : flange('bif', 'tif', 'Bottom flange')}
+          <label class="dz-chk"><input type="checkbox" data-dz="beam.sym" ${b.sym ? 'checked' : ''}> Same plate top and bottom</label>`}
+        </div>
+      </form>
+      <div class="dz-out" id="dzOut"></div></div>`;
+  }
+  function dzColHTML() {
+    const c = state.dz.col, srcs = dzColSources();
+    const wfs = Object.keys(WF).filter(k => /^W(6|8|10|12|14)X/.test(k)).sort((a, b) => WF[a].W - WF[b].W);
+    return `<div class="dz-grid">
+      <form class="dz-in panel" onsubmit="return false">
+        <div class="dz-head"><h3>Inputs</h3>${srcs.length ? `<select id="dzFrom"><option value="">Start from this job…</option>${srcs.map(x => `<option value="${esc(x.key)}" ${c.from === x.key ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>` : ''}<button class="btn-ghost" id="dzReset" type="button">Clear</button></div>
+        <div class="dz-group"><h5>Sheet</h5><div class="dz-row">${dzSel('col.ed', c.ed, [['15', '15th · IBC 2018/21'], ['16', '16th · IBC 2024']])}</div></div>
+        <div class="dz-group"><h5>Column <small>Column C8, C16</small></h5><div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label></div></div>
+        <div class="dz-group"><h5>Beam reactions (kip) <small>Column C27–D28 · MB H6 / H10</small></h5><div class="dz-cells">${dzNum('col.DL_L', c.DL_L, 'Left dead')}${dzNum('col.LL_L', c.LL_L, 'Left live')}${dzNum('col.DL_R', c.DL_R, 'Right dead')}${dzNum('col.LL_R', c.LL_R, 'Right live')}</div></div>
+      </form>
+      <div class="dz-out" id="dzOut"></div></div>`;
+  }
+  // the beam: the MB sheet's answer, the shop rules, stock and flange economy, and lighter sections near it
+  function dzResults() {
+    const out = $('#dzOut'), dz = state.dz;
+    if (!out) return;
+    $$('#dzBody .dz-type button').forEach(btn => { btn.onclick = () => { dz.beam.type = btn.dataset.type; dz.beam.from = ''; dz.near = null; dzSave(); renderDesigner(); }; });
+    if (dz.tab === 'col') return dzColResults(out);
+    const b = dz.beam, sec = dzBeamSec(b), p = dzBeamP(b);
+    const bad = ['dead', 'live', 'L', 'Lb', 'trib'].filter(k => !(+b[k] > 0)).concat(sec.type === 'BU' && !(sec.d > sec.tof + sec.tif) ? ['d'] : []);
+    if (bad.length) { out.innerHTML = `<div class="panel dz-empty">Enter ${bad.join(', ')}.</div>`; return; }
+    let c;
+    try { c = ENG.beamCheck({ ...p, sec }, WF); } catch (e) { out.innerHTML = `<div class="panel dz-empty">That section cannot be analysed: ${esc(e.message || e)}.</div>`; return; }
+    const tgt = state.settings.target, x = c.res;
+    const okC = isFinite(x.CSR) && x.CSR <= tgt, okV = isFinite(x.SRvx) && x.SRvx <= tgt, okBear = !c.conc || c.conc.ok;
+    const pass = okC && okV && c.llOK && c.tlOK && okBear;
+    const gov = [['combined', x.CSR, okC], ['shear', x.SRvx, okV], ['live deflection', 360 / c.defl.rLL, c.llOK], ['total deflection', 240 / c.defl.rTL, c.tlOK], ['joist bearing', c.conc ? c.conc.max : 0, okBear]].filter(g => isFinite(g[1])).sort((a1, a2) => a2[1] - a1[1])[0];
+    const tile = (lab, val, ok, sub) => `<div class="dz-tile ${ok === false ? 'ng' : ok ? 'ok' : ''}"><span>${lab}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    // the shop: production rules, stock, economical flange plate
+    let shop = '';
+    if (sec.type === 'BU') {
+      const pr = DESIGN.prodChecks(sec, b.div, p.L, x.Wt);
+      const plate = (bw, t) => `${bw} × ${frac(t)}`;
+      const flanges = [[sec.bof, sec.tof, 'Top flange']].concat(sec.bof !== sec.bif || sec.tof !== sec.tif ? [[sec.bif, sec.tif, 'Bottom flange']] : []);
+      const stock = flanges.map(([bw, t, lab]) => ({ lab: `${lab} ${plate(bw, t)}`, ok: DESIGN.inStock(DESIGN.FLANGE_STOCK, bw + 'x' + t, b.div) })).concat([{ lab: `Web ${frac(sec.tw)}" (W${String(Math.round(sec.tw * 1000)).padStart(3, '0')})`, ok: DESIGN.inStock(DESIGN.WEB_STOCK, sec.tw, b.div) }]);
+      const econ = flanges.map(([bw, t, lab]) => ({ lab: `${lab} ${DESIGN.flangeName(bw, t) || plate(bw, t)}`, tier: DESIGN.inChart(bw, t) ? DESIGN.tierOf(bw, t) : null }));
+      shop = `<div class="dz-checks">
+        <div><h5>NBG Production Guidelines · ${esc(b.div)}</h5><ul>${pr.map(r => `<li class="${r.ok ? 'ok' : 'ng'}"><i>${r.ok ? '✓' : '✕'}</i>${esc(r.text)}<em>${esc(r.val)}</em></li>`).join('')}</ul></div>
+        <div><h5>DM 5.1 stock · ${esc(b.div)}</h5><ul>${stock.map(r => `<li class="${r.ok ? 'ok' : 'ng'}"><i>${r.ok ? '✓' : '✕'}</i>${esc(r.lab)}<em>${r.ok ? 'stocked' : 'not stocked'}</em></li>`).join('')}</ul>
+          <h5>Economical Flange Sections</h5><ul>${econ.map(r => `<li class="${r.tier === 0 ? 'ok' : r.tier === 1 ? 'warn' : 'ng'}"><i>${r.tier === 0 ? '✓' : '!'}</i>${esc(r.lab)}<em>${r.tier == null ? 'not flange material' : TIER_WORD[r.tier]}</em></li>`).join('')}</ul></div></div>`;
+    } else {
+      shop = `<div class="dz-checks"><div><h5>DM 5.1 stock · ${esc(b.div)}</h5><ul><li class="${DESIGN.inStock(DESIGN.WF_STOCK, sec.name, b.div) ? 'ok' : 'warn'}"><i>${DESIGN.inStock(DESIGN.WF_STOCK, sec.name, b.div) ? '✓' : '!'}</i>${esc(sec.name)}<em>${DESIGN.inStock(DESIGN.WF_STOCK, sec.name, b.div) ? 'stocked' : 'not a stocked W'}</em></li></ul></div></div>`;
+    }
+    const marks = state.job ? jobMarks().filter(m => m.sec) : [];
+    const near = dz.near;
+    out.innerHTML = `<div class="panel dz-res">
+      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf${sec.type === 'BU' ? ` · ${secParts(sec)}` : ''}</small></h3></div>
+        <span class="dz-pill ${pass ? 'ok' : 'ng'}">${pass ? 'Passes' : 'Does not pass'}${gov ? ` · ${gov[0]} ${gov[0].includes('deflection') ? `L/${f(gov[0] === 'live deflection' ? c.defl.rLL : c.defl.rTL, 0)}` : f(gov[1], 3)}` : ''}</span></div>
+      <div class="dz-tiles">
+        ${tile('Floor dead · each end', `${f(c.V.D, 3)} k`, null, 'MB H6 · to the column / frame')}
+        ${tile('Floor live · each end', `${f(c.V.L, 3)} k`, null, 'MB H10')}
+        ${tile('Combined SR', f(x.CSR, 3), okC, `≤ ${tgt}`)}
+        ${tile('Shear SR', f(x.SRvx, 3), okV, `≤ ${tgt}`)}
+        ${tile('Live deflection', `L/${f(c.defl.rLL, 0)}`, c.llOK, '≥ L/360')}
+        ${tile('Total deflection', `L/${f(c.defl.rTL, 0)}`, c.tlOK, '≥ L/240')}
+        ${tile('Joist bearing', c.conc ? f(c.conc.max, 3) : '—', c.conc ? okBear : null, c.conc ? 'MB L7' : '13th sheet: none')}
+        ${tile('Moment', `${f(c.M.T, 1)} ft-k`, null, `D ${f(c.M.D, 1)} + L ${f(c.M.L, 1)}`)}
+      </div>
+      ${shop}
+      <div class="dz-actions">
+        ${marks.length ? `<label class="dz-use">Use for ${dzSel('beam.useMark', b.useMark || (marks.find(m => m.mark === b.from) || marks[0]).mark, marks.map(m => [m.mark, `${m.mark}${m.kind ? ' · ' + m.kind : ''} (now ${m.desc})`]))}</label><button class="btn-soft" id="dzUse" type="button" ${pass ? '' : 'title="It does not pass — it can still be used, flagged on the Design page"'}>Use this section</button>` : '<span class="sub-n">Load a PCS to use this section for a beam mark.</span>'}
+        ${sec.type === 'BU' ? `<button class="btn-ghost" id="dzNear" type="button">Lighter sections that pass, ${Math.max(state.settings.dMin, sec.d - 3)}"–${Math.min(state.settings.dMax, sec.d + 3)}"</button>` : ''}
+      </div>
+      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b></td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
+      <details class="dz-sheet"><summary>The full MB sheet</summary>${mbSheetBody(c, p, sec, null)}</details>
+    </div>`;
+    const use = $('#dzUse');
+    if (use) use.onclick = () => {
+      const mark = $('#dzBody [data-dz="beam.useMark"]').value;
+      setOverride(mark, { sec });
+      recompute(); toast(`${mark} → ${c.desc}${pass ? '' : ' (does not pass — flagged)'}`);
+    };
+    const nb = $('#dzNear');
+    if (nb) nb.onclick = () => {
+      const z = DESIGN.designBeam(p, { division: b.div, target: tgt, dMin: Math.max(state.settings.dMin, sec.d - 3), dMax: Math.min(state.settings.dMax, sec.d + 3), symmetric: state.settings.symmetric, requireConc: state.settings.requireConc, production: state.settings.production !== false });
+      dz.near = (z.all || []).filter(e => e.pass).sort((a1, a2) => a1.wt - a2.wt || a1.d - a2.d).slice(0, 8).map(e => ({ ...e, desc: e.r.desc, web: 'W' + String(Math.round(e.sec.tw * 1000)).padStart(3, '0'), flange: DESIGN.flangeName(e.sec.bof, e.sec.tof), tier: DESIGN.TIER[e.tier], CSR: e.r.res.CSR, SRv: e.r.res.SRvx, rLL: e.r.defl.rLL }));
+      dzResults();
+    };
+    $$('#dzBody .dz-take').forEach(btn => { btn.onclick = () => { const z = dz.near[+btn.dataset.i].sec; Object.assign(dz.beam, { type: 'BU', d: z.d, tw: z.tw, bof: z.bof, tof: z.tof, bif: z.bif, tif: z.tif, sym: z.bof === z.bif && z.tof === z.tif, from: '' }); dzSave(); renderDesigner(); }; });
+    const um = $('#dzBody [data-dz="beam.useMark"]');
+    if (um) um.onchange = () => { dz.beam.useMark = um.value; dzSave(); };
+  }
+  // the column: the Column sheet's three combinations, and the common sizes beside it
+  function dzColResults(out) {
+    const cc = state.dz.col;
+    const bad = ['L', 'DL_L', 'DL_R'].filter(k => !(+cc[k] >= 0) || cc[k] === '').concat(+cc.L > 0 ? [] : ['L']);
+    if (bad.length) { out.innerHTML = `<div class="panel dz-empty">Enter ${[...new Set(bad)].join(', ')}.</div>`; return; }
+    const run = name => ENG.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: +cc.L, Lby: +cc.L * 12, DL_L: +cc.DL_L, LL_L: +cc.LL_L || 0, DL_R: +cc.DL_R, LL_R: +cc.LL_R || 0, edition: cc.ed }, WF);
+    const k = run(cc.wf), w = WF[cc.wf];
+    const names = ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'];
+    const common = [...new Set(['W8X18', ...DESIGN.COMMON_COLUMNS, cc.wf])].sort((a, c2) => WF[a].W - WF[c2].W).map(n => ({ n, c: run(n) }));
+    const can = state.job && (state.job.mezz || []).some(r => r.colFinal);
+    out.innerHTML = `<div class="panel dz-res">
+      <div class="dz-res-head"><div><div class="eyebrow">Column sheet · ${esc(cc.ed)}th</div><h3 class="nocase">${esc(cc.wf)} <small>${w.W} plf · d ${f(w.d, 2)}" · bf ${f(w.bf, 2)}" · L ${ft(+cc.L)}</small></h3></div>
+        <span class="dz-pill ${k.ok ? 'ok' : 'ng'}">${k.ok ? 'Passes' : 'Does not pass'} · max CSR ${f(k.max, 3)}</span></div>
+      <div class="table-wrap"><table class="fl-t dz-combos"><thead><tr><th></th>${names.map(n => `<th class="num">${n}</th>`).join('')}</tr></thead><tbody>
+        <tr><td>Mx (ft-kip)</td>${k.combos.map(q => `<td class="num mono">${f(q.Mx, 2)}</td>`).join('')}</tr>
+        <tr><td>Axial (kip)</td>${k.combos.map(q => `<td class="num mono">${f(q.P, 2)}</td>`).join('')}</tr>
+        <tr><td>Maximum CSR</td>${k.combos.map(q => `<td class="num mono"><b>${f(q.csr, 3)}</b></td>`).join('')}</tr>
+        <tr><td>Design result</td>${k.combos.map(q => `<td class="num"><span class="status-text ${q.ok ? 'ok' : 'ng'}">${q.okText}</span></td>`).join('')}</tr></tbody></table></div>
+      <div class="dz-tiles four">
+        <div class="dz-tile"><span>Eccentricity e = d/2</span><b>${f(k.ex, 2)} in</b></div>
+        <div class="dz-tile"><span>Self-weight</span><b>${f(k.wt, 3)} k</b></div>
+        <div class="dz-tile"><span>Unbraced Lbx = Lby</span><b>${f(+cc.L * 12, 1)} in</b></div>
+        <div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, (state.res && state.res.division) || 'NBS-IN') ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, (state.res && state.res.division) || 'NBS-IN') ? 'stocked' : 'not stocked'}</b></div>
+      </div>
+      <h5 class="dz-h">The common sizes with these loads</h5>
+      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Section</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th><th></th></tr></thead><tbody>${common.map(q => `<tr class="${q.n === cc.wf ? 'is-chosen' : ''}"><td class="mono"><b>${q.n}</b></td><td class="num mono">${WF[q.n].W}</td><td class="num mono">${f(q.c.max, 3)}</td><td><span class="status-text ${q.c.ok ? 'ok' : 'ng'}">${q.c.ok ? 'OK' : 'NG'}</span></td><td>${q.n === cc.wf ? '' : `<button class="btn-ghost dz-pick" data-n="${q.n}" type="button">Load</button>`}</td></tr>`).join('')}</tbody></table></div>
+      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(cc.wf)} for the job's mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}</div>
+    </div>`;
+    $$('#dzBody .dz-pick').forEach(btn => { btn.onclick = () => { state.dz.col.wf = btn.dataset.n; dzSave(); renderDesigner(); }; });
+    const u = $('#dzUseCol');
+    if (u) u.onclick = () => { (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = cc.wf; }); recompute(); toast(`Mezzanine columns → ${cc.wf}${k.ok ? '' : ' (does not pass — flagged)'}`); };
   }
 
   // ---------- inputs ----------
@@ -2219,5 +2431,6 @@
     });
   }
   renderSettings();
+  renderDesigner();
   wbLoadAll().then(() => renderWorkbooks());
 })();
