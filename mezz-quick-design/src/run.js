@@ -252,7 +252,7 @@
     const grid = LAYOUT.buildingGrid({ width: bl.width, length: bl.length, bays: bl.bays, lewCols: bl.lewCols, rewCols: bl.rewCols, ridge: bl.ridge, frames: bl.frames, fswSoldier: bl.fswSoldier, bswSoldier: bl.bswSoldier, yLetters: bl.yLetters });
     const mz = { length: val(inp.geom.length), width: val(inp.geom.width), startLEW: val(inp.geom.startLEW) || 0, startFSW: val(inp.geom.startFSW) || 0 };
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
-    const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines });
+    const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop });
     if (fromPlan) {
       lay.why = ({ markup: 'the JOISTS markup on the PCS floor plan', truss: 'the joist symbol on the PCS floor plan' })[inp.mezz.planJoistsFrom] || 'joist arrows on the PCS floor plan';
       const alt = lay.alt, n = o => o.beams.length;
@@ -260,6 +260,7 @@
     }
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
+    userColumns(lay, s.colKind, grid, warn);
     lay.snaps.forEach(sn => warn.push({ level: 'key', text: `Mezzanine edge at ${sn.axis === 'y' ? 'FSW' : 'LEW'} ${PCS.fmtFtIn(sn.edge)} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
     // an edge just past the 1'-0" snap of a line of building columns: the layout frames it with new mezzanine columns, and
     // the beams there stop loading the frame (a footprint cut to a beam's clear length does this). Say so.
@@ -284,6 +285,30 @@
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
     return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+  }
+
+  /* The engineer's layout edits on the Plan page, after the drawing: a column made a frame column (its beam reactions go
+     to the frame design) or a mezzanine column (designed on the Column sheet), and columns taken out (the beam spans
+     through). kinds: { 'x,y': 'frame' | 'mezz' } */
+  function userColumns(lay, kinds, grid, warn) {
+    const F = PCS.fmtFtIn, k = sp => `${(+sp.x).toFixed(2)},${(+sp.y).toFixed(2)}`;
+    [lay, lay.alt].filter(Boolean).forEach((L, li) => {
+      if (kinds) L.supports.forEach(sp => {
+        const want = kinds[k(sp)];
+        if (!want || sp.building === (want === 'frame')) return;
+        sp.building = want === 'frame'; sp.userKind = want;
+        if (li) return;
+        const fi = grid.xs.findIndex(x => Math.abs(x - sp.x) < 0.05), member = LAYOUT.isBuildingColumn(grid, sp.x, sp.y);
+        warn.push({ level: 'key', text: sp.building
+          ? `${sp.label}: made a frame column on the Plan page — its beam reactions go to the frame design${member ? '' : fi >= 0 ? `; frame line ${grid.xLabel(sp.x)} has no column at ${F(sp.y)}: add it in NBG Frame` : ' — it is not on a frame line: the load goes to whatever carries it there'}.`
+          : `${sp.label}: made a mezzanine column on the Plan page — designed on the Column sheet; the frame takes no mezzanine load there.` });
+      });
+      L.mezzCols = L.supports.filter(sp => !sp.building);
+    });
+    (lay.dropped || []).forEach(d => {
+      const b = lay.beams.find(x => Math.abs(x.line - d.line) < 1e-6 && x.from < (lay.joists === 'y' ? d.x : d.y) && x.to > (lay.joists === 'y' ? d.x : d.y));
+      warn.push({ level: 'key', text: `${d.label}: column taken out on the Plan page — the beam spans through${b ? `, ${F(b.span)}` : ''}.` });
+    });
   }
 
   /* The floor plan decides frame vs mezzanine column where it disagrees with the building data (Box 2 / Box 5):
@@ -531,7 +556,7 @@
       if (c.incomplete) return;
       c.lay.supports.forEach(sp => {
         const key = c.bkey + '|' + sp.x.toFixed(2) + ',' + sp.y.toFixed(2);
-        const e = at.get(key) || { key, bkey: c.bkey, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
+        const e = at.get(key) || { key, bkey: c.bkey, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, userKind: sp.userKind || null, ends: [], seenIn: [] };
         e.seenIn.push(c.index);
         ['L', 'R'].forEach(side => {
           const id = sp.beams[side];
@@ -552,7 +577,7 @@
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
         const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
-        frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, userKind: e.userKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
@@ -909,13 +934,13 @@
       const W = g.width, members = [0, ...(g.interior[fi] || []).filter(y => y > 0.05 && y < W - 0.05), W].sort((a, b) => a - b);
       const mi = members.findIndex(y => near(y, q.y));
       const wall = fi === 0 || fi === g.xs.length - 1;
-      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall && /post|bearing/i.test(((c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || {}).type || '') ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of the post-and-beam end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
+      const where = q.userKind === 'frame' && mi < 0 ? `column at ${PCS.fmtFtIn(q.y)} — made a frame column on the Plan page: add it in NBG Frame` : near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall && /post|bearing/i.test(((c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || {}).type || '') ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of the post-and-beam end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
       // top of the mezzanine beam bearing there (the higher one when two mezzanines frame in)
       const elev = Math.max(...q.parts.map(p => { const k = ctxs[p.mi]; return k.A - (k.slabIn + k.seatIn) / 12; }));
       const A = Math.max(...q.parts.map(p => ctxs[p.mi].A));
       let f = out.find(e => e.x === g.xs[fi] && e.bkey === c.bkey);
       if (!f) out.push(f = { frame: g.xLabel(g.xs[fi]), x: g.xs[fi], bkey: c.bkey, building: c.inp.mezz.building || '', type: (c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || null, width: W, interior: members.slice(1, -1), entries: [] });
-      f.entries.push({ label: q.label, x: q.x, y: q.y, member: mi >= 0 ? 'COL' + String(mi + 1).padStart(2, '0') : null, where, elev, A, D: q.D, L: q.L, parts: q.parts, planKind: q.planKind || null });
+      f.entries.push({ label: q.label, x: q.x, y: q.y, member: mi >= 0 ? 'COL' + String(mi + 1).padStart(2, '0') : null, where, elev, A, D: q.D, L: q.L, parts: q.parts, planKind: q.planKind || null, userKind: q.userKind || null });
     });
     out.forEach(f => { f.entries.sort((a, b) => a.y - b.y); f.type = f.type ? { type: f.type.type || '', intType: f.type.intType || null } : null; });
     return out.sort((a, b) => a.x - b.x);

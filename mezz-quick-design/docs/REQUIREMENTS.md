@@ -28,8 +28,8 @@ checked. The review loop works through this list; a requirement is only marked m
 | D4 | NBG Production Guidelines / DPM limits and DM 5.1 stock are hard limits | `design.js prodRule`, stock tables | `test/engine` |
 | D5 | Interior / exterior marks by trib; shorter spans get their own MB run; one holistic job | `run.js jobMarks` | `test/multi`, `job3` |
 | D6 | Beam calc inputs (design span / trib) change the MB sheet only — the plan and the loads to the frame stay | `run.js designMark` | `test/job3`, e2e |
-| D7 | Design your own beam and column (MB / Column sheet inputs → results, DL and LL); use it for a mark | Design your own page | e2e |
-| D8 | Edit the layout: place / remove beam and column lines, remove a column, make a mezzanine column a frame column | Plan page edit mode | `test/layout`, e2e |
+| D7 | Design your own beam and column (MB / Column sheet inputs → results, DL and LL); use it for a mark | Design your own page | e2e (start from a mark, new depth, sections that pass, use for the mark, column tab) |
+| D8 | Edit the layout: place / remove beam and column lines, remove a column, make a mezzanine column a frame column | Plan page → *Edit layout* (`layout.js` drop, `run.js userColumns`) | `test/layout`, `test/job3`, e2e |
 | D9 | Explanations of every decision, folded (beam and column), not spread over the page | Beam / Column pages | e2e |
 
 ## Frame and seismic
@@ -52,7 +52,7 @@ checked. The review loop works through this list; a requirement is only marked m
 | P3 | Sidebar 3D, centred, click for a labelled floor plan | sidebar | e2e |
 | P4 | Proper beam and column drawings with loads | Beam / Column pages | review |
 | P5 | Column names clear (C-number and grid point) | everywhere | review |
-| P6 | Calc package at the bottom of the calcs: the inputs, the sources (which spreadsheet, shop limits, metrics), exportable | Beam / Column pages | `test/xlsx`, e2e |
+| P6 | Calc package at the bottom of the calcs: the inputs, the sources (which spreadsheet, shop limits, metrics), exportable | Beam / Column pages (`xlsx.js`, `calcpack.js`) | `test/xlsx` (all sample jobs, seismic sheet), e2e (both downloads) |
 | P7 | Easy to navigate, simple to use | nav, page structure | review loop |
 | P8 | Remembers jobs (learns usual values) | Settings | e2e |
 | P9 | Everything stays on the computer (single HTML, no uploads) | — | review |

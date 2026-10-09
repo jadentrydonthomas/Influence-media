@@ -67,7 +67,8 @@
 
   /**
    * m: { length (along x), width (along y), startLEW, startFSW }
-   * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override) }
+   * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override),
+   *        drop?: ['x,y'] — columns taken out: the beam on that line spans through (never a line's first or last) }
    *   joists 'y' => joists span across the width (y), beams run along x.
    */
   const SNAP_EDGE = 1;   // ft: a frame line this close outside a mezzanine edge still frames that edge
@@ -96,18 +97,27 @@
     // slab beyond (+) or short of (−) the first / last line along each axis, added to the edge beam's trib
     const over = { x: [xLines[0] - x0, x1 - xLines[xLines.length - 1]], y: [yLines[0] - y0, y1 - yLines[yLines.length - 1]] };
 
+    const dropKey = (x, y) => `${(+x).toFixed(2)},${(+y).toFixed(2)}`;
+    const drop = new Set(opt.drop || []);
     const build = joists => {
       // joists 'y': beams along x on each y line, spanning between consecutive x lines
       const beamLines = joists === 'y' ? yLines : xLines;
       const supportLines = joists === 'y' ? xLines : yLines;
-      const beams = [], supports = new Map();
+      const beams = [], supports = new Map(), dropped = [];
       beamLines.forEach((c, i) => {
         const prev = i > 0 ? c - beamLines[i - 1] : 0, next = i < beamLines.length - 1 ? beamLines[i + 1] - c : 0;
         const ov = over[joists === 'y' ? 'y' : 'x'];
         const trib = r3(prev / 2 + next / 2 + (i === 0 ? ov[0] : 0) + (i === beamLines.length - 1 ? ov[1] : 0));
-        for (let k = 0; k < supportLines.length - 1; k++) {
-          const a = supportLines[k], b = supportLines[k + 1];
-          const P = s => (joists === 'y' ? { x: s, y: c } : { x: c, y: s });
+        const P = s => (joists === 'y' ? { x: s, y: c } : { x: c, y: s });
+        // a column taken out: the beam spans on to the next support line
+        const stops = supportLines.filter((v, k) => {
+          if (k === 0 || k === supportLines.length - 1) return true;
+          const p = P(v), out = drop.has(dropKey(p.x, p.y));
+          if (out) dropped.push({ x: r3(p.x), y: r3(p.y), line: c, label: (g.xLabel(p.x) || ftin(p.x)) + '/' + (g.yLabel(p.y) || ftin(p.y)) });
+          return !out;
+        });
+        for (let k = 0; k < stops.length - 1; k++) {
+          const a = stops[k], b = stops[k + 1];
           const beam = { id: beams.length, line: c, from: a, to: b, span: r3(b - a), trib, dir: joists === 'y' ? 'x' : 'y', edge: prev === 0 || next === 0, ends: [P(a), P(b)] };
           beams.push(beam);
           [[P(a), 'R'], [P(b), 'L']].forEach(([p, side]) => {
@@ -124,7 +134,7 @@
       }));
       const joistSpan = Math.max(...beamLines.slice(1).map((v, i) => v - beamLines[i]));
       const beamSpan = Math.max(...supportLines.slice(1).map((v, i) => v - supportLines[i]));
-      return { joists, beamLines, supportLines, beams, supports: sup, mezzCols: sup.filter(s => !s.building), joistSpan, beamSpan };
+      return { joists, beamLines, supportLines, beams, supports: sup, mezzCols: sup.filter(s => !s.building), joistSpan, beamSpan: Math.max(beamSpan, ...beams.map(b => b.span)), dropped };
     };
     const A = build('y'), B = build('x');
     let pick = opt.joists === 'x' ? B : opt.joists === 'y' ? A : null, why = 'manual';

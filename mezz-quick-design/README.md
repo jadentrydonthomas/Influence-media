@@ -113,10 +113,10 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
 
 1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame**. That is the MB sheet's *Floor dead load (unfactored)* and *Floor live load (unfactored)* shear at left / right, in kips, per beam mark. The same two rows are highlighted on the Beam calc sheet. The Plan page lists the summed D / L that lands on each building column (the load into the frame).
 2. **3D framing model**, then the **framing summary** (beams → governing ratio → columns, floor-plan check).
-3. **Beam options** to pick from.
-4. **Quote sheet** rows for every mezzanine.
-5. **Check it in the NBG workbooks** — every beam sheet set, column case and frame line as a filled copy of the real workbook (below).
-6. **Checks & decisions**: what to check before quoting; what was confirmed against the PCS, the design decisions and how it was read are folded under it. The **DM 15.1** list is folded too, with its counts on the bar.
+3. **Beam options** to pick from: up to three different designs a mark — the lightest, the best fit (the quote engineer's step-by-step method) and the most economical by NBG Economical Flange Sections. Options that land on one section share a card ("Lightest · Best fit"); when they all land on one, another flange width, a shallower section or — where the clearance C leaves one depth — the deeper sections with the C each needs fill the other cards.
+4. **Checks & decisions**: what to check before quoting; what was confirmed against the PCS, the design decisions and how it was read are folded under it. The **DM 15.1** list is folded too, with its counts on the bar.
+5. **Quote sheet** rows for every mezzanine.
+6. **Calc package** — the NBG workbooks (every beam sheet set, column case and frame line as a filled copy of the real workbook) and the design-basis Excel file (below).
 
 **One drawing for the whole job.** The 3D model, the Plan & layout page and the sidebar plan show every mezzanine together, not one at a time:
 
@@ -127,7 +127,7 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
   - Each run of beams is labelled along its line ("MB1 · INTERIOR · BU28x50").
 - **3D model:** each beam carries a tag ("MB1 INT"), which you can switch off.
 - **Columns:** numbered once over the job (C1 … C7), with the grid label beside the number.
-- **Editing:** the joist direction and the beam / support lines still edit the mezzanine picked at the top.
+- **Editing:** the joist direction, the beam / support lines and *Edit layout* (below) edit the mezzanine picked at the top.
 - **Tables:** the beam and support tables list the whole job, with each beam's end shear.
 
 **Hover any column for its loads.**
@@ -206,6 +206,40 @@ The spreadsheets are the foundation: everything the tool designs is an input put
 - **Download a filled copy** of any of them: a beam workbook per sheet set (INPUT + MB1–MB4), a Column workbook per column case, an IBC Seismic workbook per frame line (Input Data, Lateral Calcs. (1) for that frame, Longitudinal Calcs.). The buttons are on the Design page, under *In the workbook · cell by cell* on the Beam and Column pages, and on each frame row of the Seismic page.
 - **What the copy is:** your own workbook with this job's values typed into its input cells (the cells listed below) — numbers, text from the drop-downs, the check boxes as TRUE / FALSE — and nothing else changed: every other part of the file, the VBA project included, is byte for byte the original. Excel recalculates the whole workbook when it opens the copy (and asks to save on closing), so every result is the workbook's own.
 - **Checked:** `oracle/fill_dump.js` fills every workbook for the four sample jobs and `oracle/fill_check.py` opens each copy: xlrd reads all 2,206 typed cells back, and LibreOffice recalculates and reads 571 results — beam end shears, deflections, combined / shear, the column combinations, Cs, each frame's mezzanine load and base shear, the bracing loads — all equal to the tool's.
+
+### Calc package (bottom of the Beam calc and Column calc pages)
+
+A bar at the bottom of the calcs exports what an engineer needs to check the design:
+
+- **Design basis (.xlsx)** — one Excel workbook:
+  - *Summary*: the job, the sheets used (beam / column edition, specification, division), the stress-ratio and deflection limits, every beam mark and member length with its section, plates, flange economy, ratios and end shears, the columns, and what to check before quoting.
+  - *Inputs*: every value read or typed, its source (PCS, typed, deck guide, standard value) and the workbook cell it goes into; the design settings.
+  - *MB sheets* and *Columns*: each cell typed into the Mezzanine Beam Design / Mezzanine Column workbook and what the sheet shows.
+  - *Beam options*: how each section was found — the options, the best-fit steps, the sections the production limits left out (in words), the lightest section at each depth, and the deeper ones with the C each needs.
+  - *Shop rules*: the NBG Production Guidelines by division and the chosen sections checked against them, the Economical Flange Sections chart, the DM 5.1 stock.
+  - *Frame loads* and *Seismic* (when the Seismic page is complete): the FDL / FLL and EQR / EQL on each frame's columns, and the IBC Seismic cells typed per frame line.
+  - *Sources*: each workbook and guide, what it gives and how it is checked.
+- **Everything (.zip)** — the design-basis workbook plus a filled copy of every NBG workbook for the job (beam, column, seismic), for the workbooks added to this browser.
+
+An engineer can change an input in a filled workbook and see the answer there, or use *Design your own* (below) to try another section.
+
+### Design your own (beam and column)
+
+The *Design your own* page is the MB sheet and the Column sheet without the search: type the loads (dead, collateral, live, joist weight), member length, unbraced length and trib, and a section (BU plates or a W), and it answers like the sheet — end shears (floor dead and live to the column / frame), combined and shear ratios, deflections, joist bearing — with the production rules, the stock and the flange economy beside it.
+
+- **Start from this job** loads any mark's or column case's inputs.
+- **Sections that pass** lists the lightest sections that pass within 3" of the depth (flagged when deeper than the mark's clearance allows); *Load* puts one in.
+- **Use this section** puts it on a mark of the job (flagged if it does not pass); the Design page's *Lightest* option puts the search's answer back. The column tab can set the job's mezzanine columns to the W tried.
+
+### Edit the layout (Plan page)
+
+*Edit layout* on the framing plan, then click:
+
+- **a column** — *Make it a frame column* (its beam reactions go to the frame design as FDL / FLL; if the frame has no column there, the frame loads say to add it in NBG Frame), *Make it a mezzanine column* (designed on the Column sheet; the frame takes no mezzanine load there), *Take the column out* (the beam on that line spans through; never a beam's end) or *Remove the line of columns*.
+- **a beam** — *Remove the beam line* (the joists span past it; edge beams stay).
+- **the floor** — *Add a beam line* or *Add a column line* at the point clicked, or at a typed distance.
+
+Every edit re-designs the whole job — beams, columns, the frame loads, the seismic, the quote — and is listed on the Design page. *Undo* steps back, *Reset layout* returns to the building grid and the PCS drawing.
 
 ### Excel, step by step
 
@@ -375,11 +409,13 @@ Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the li
 ```bash
 npm install            # pdfjs-dist 3.11.174 (inlined into the build)
 npm run build          # -> index.html
-npm test               # guide examples, layout cases, parser, plan symbols, frame-file writer, beam options, the
-                       # workbook writer; the example jobs, variant loop, real frame files and workbooks when
-                       # private/pcs/, private/frame/ and private/workbooks/ have them
+npm test               # guide examples, layout cases (layout edits too), parser, plan symbols, frame-file writer,
+                       # beam options, the workbook writer, the .xlsx writer and calc package; the example jobs,
+                       # variant loop, real frame files and workbooks when private/pcs/, private/frame/ and
+                       # private/workbooks/ have them
 npm run e2e            # drive index.html in Chromium for every PDF in private/pcs/: load, every control, 3D pick,
-                       # copy, manual entry, NBG Frame files, seismic edits, filled-workbook downloads
+                       # copy, manual entry, NBG Frame files, seismic edits, filled-workbook downloads, the calc
+                       # package, Design your own, layout edits
 MZ_DUMP=oracle/out node test/variants.test.js   # also write the picked sections as oracle cases
 ```
 

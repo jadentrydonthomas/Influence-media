@@ -448,7 +448,24 @@ tr.none td { color: var(--ink-faint); }
 .pstat.beams strong { color: var(--green); }
 .pstat.cols strong { color: var(--red); }
 .pstat em { display: block; margin-top: 6px; color: var(--ink-faint); font: normal 12px var(--mono); }
-.plan-wrap { padding: 14px 18px 8px; background: var(--plan-bg); }
+.plan-wrap { position: relative; padding: 14px 18px 8px; background: var(--plan-bg); }
+.plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#layEdit[aria-pressed="true"], #layDone { background: var(--green); color: var(--surface); border-color: var(--green); }
+.lay-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--green-soft); color: var(--ink); font-size: 13px; font-weight: 600; }
+.lay-acts { display: inline-flex; gap: 8px; }
+.plan.is-editing .plan-wrap { outline: 2px solid var(--green); outline-offset: -2px; }
+.plan.is-editing svg { cursor: crosshair; }
+.plan.is-editing .beam:hover, .plan.is-editing .bcol-g:hover .bcol, .plan.is-editing .mcol:hover circle { stroke: var(--green-bright); }
+.plan .mcol.dropped circle { fill: none; stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+.plan .mcol.dropped path { stroke: var(--ink-faint); opacity: .5; }
+.plan .edit-ring { fill: none; stroke: var(--green); stroke-width: 2; stroke-dasharray: 4 3; pointer-events: none; }
+.lay-pop { position: absolute; z-index: 20; min-width: 250px; max-width: 320px; padding: 6px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); box-shadow: var(--lift-3); }
+.lay-pop h6 { margin: 4px 8px 6px; color: var(--ink-muted); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+.lay-pop button { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.lay-pop button:hover, .lay-pop button:focus-visible { background: var(--green-soft); outline: none; }
+.lay-pop button small { display: block; color: var(--ink-muted); font-size: 12px; }
+.lay-pop .lay-at { display: flex; gap: 6px; align-items: center; padding: 4px 10px 8px; font-size: 12.5px; color: var(--ink-muted); }
+.lay-pop .lay-at input { width: 96px; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface-soft); color: var(--ink); font: 13px var(--mono); }
 .plan-wrap svg { display: block; width: 100%; height: auto; }
 .plan .grid-line { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 10 4 2 4; }
 .plan .bldg { fill: none; stroke: var(--ink-muted); stroke-width: 2; }
@@ -862,6 +879,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 .seis-group h4 small { font-weight: 400; margin-left: 6px; }
 .seis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 16px; margin-bottom: 10px; }
 .seis-grid > label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-muted); }
+.seis-grid > label.seis-chk { flex-direction: row; align-items: flex-start; gap: 8px; color: var(--ink); line-height: 1.45; }
+.seis-grid > label.seis-chk input { flex: 0 0 auto; margin-top: 2px; padding: 0; }
 .seis-grid input, .seis-grid select, .seis-mz input { font: 600 13px var(--mono); padding: 6px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0; }
 .seis-in.need { border-color: var(--red); background: var(--red-soft); }
 .seis-walls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
@@ -942,9 +961,11 @@ table.nbg-t td .card-eq { width: 78px; }
 .wb-chip.miss { border-style: dashed; color: var(--ink-muted); }
 .wb-x { border: 0; background: none; color: var(--ink-faint); cursor: pointer; padding: 0 2px; }
 .wb-add { cursor: pointer; }
-.wb-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 10px; }
-.wb-group h5 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
-.wb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.wb-groups { display: grid; gap: 16px; margin-bottom: 12px; }
+.wb-group h5 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
+.wb-group h5 small { margin-left: 6px; color: var(--ink-faint); font-weight: 500; text-transform: none; letter-spacing: 0; }
+.wb-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; }
+.wb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .wb-row b { display: block; font-size: 13px; } .wb-row small { display: block; color: var(--ink-faint); font-size: 11.5px; }
 .wb-btn { white-space: nowrap; }
 
@@ -1003,6 +1024,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .dz-in input, .dz-in select, #dzFrom { font: 600 13px var(--mono); padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); min-width: 0; width: 100%; }
 .dz-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .dz-row select { flex: 1; }
+.dz-row select:first-child:not(:only-child) { flex: 1.6; }
 .dz-lab { flex: 0 0 120px; font-size: 12px; color: var(--ink-muted); }
 .dz-x { color: var(--ink-faint); }
 .dz-chk { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 12.5px; color: var(--ink); }
@@ -1015,6 +1037,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .dz-pill { padding: 7px 14px; border-radius: 999px; font-weight: 700; font-size: 13px; }
 .dz-pill.ok { background: var(--green-soft); color: var(--green-dark); }
 .dz-pill.ng { background: var(--red-soft); color: var(--red-deep); }
+.dz-flag { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 600; line-height: 1.3; color: var(--amber); }
 .dz-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
 .dz-tile { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-soft); }
 .dz-tile span { display: block; font-size: 11.5px; color: var(--ink-muted); }
@@ -1037,6 +1060,14 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .bi-btns { display: inline-flex; gap: 8px; }
 .col-try { margin-left: auto; }
 @media (max-width: 1000px) { .dz-grid { grid-template-columns: 1fr; } .dz-in { position: static; } .dz-tiles, .dz-tiles.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dz-checks { grid-template-columns: 1fr; } }
+
+/* calc package */
+.calcpack { margin-top: 18px; }
+.cp-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--glass); }
+.cp-t b { display: block; font-size: 14px; } .cp-t small { display: block; margin-top: 2px; max-width: 640px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
+.cp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.cp-lead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.cp-lead small { flex: 1 1 320px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
 
 </style>
 </head>
@@ -1161,7 +1192,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         <div class="dm" id="dmList"></div></details>
       <div class="section-title" id="qsHead"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
       <div class="qs" id="quoteSheet"></div>
-      <div class="section-title" id="wbHead"><h3>Check it in the NBG workbooks</h3><p>The real Mezzanine Beam Design, Mezzanine Column and IBC Seismic workbooks with this job typed in — open them in Excel and walk through them</p></div>
+      <div class="section-title" id="wbHead"><h3>Calc package</h3><p>The design basis for the engineer checking it, and the real NBG workbooks with this job typed in</p></div>
       <div class="panel wb-panel" id="wbPanel"></div>
       <section class="readout" id="readout" hidden></section>
     </section>
@@ -1176,9 +1207,11 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       <div class="panel plan">
         <div class="panel-head">
           <h3 id="planTitle">Framing plan</h3>
-          <div class="seg" id="joistSeg"><button data-j="auto">Auto</button><button data-j="y">Joists span width</button><button data-j="x">Joists span length</button></div>
+          <div class="plan-tools"><div class="seg" id="joistSeg"><button data-j="auto">Auto</button><button data-j="y">Joists span width</button><button data-j="x">Joists span length</button></div>
+          <button class="btn-soft" id="layEdit" type="button" aria-pressed="false"><svg><use href="#i-tool"/></svg>Edit layout</button></div>
         </div>
-        <div class="plan-wrap"><svg id="planSvg" role="img" aria-label="Mezzanine framing plan"></svg></div>
+        <div class="lay-bar" id="layBar" hidden><span id="layHint">Click a column to make it a frame or mezzanine column or take it out · a beam to remove its line · the floor to add a beam or column line.</span><span class="lay-acts"><button class="btn-ghost" id="layUndo" type="button" disabled>Undo</button><button class="btn-ghost" id="layReset" type="button">Reset layout</button><button class="btn-soft" id="layDone" type="button">Done</button></span></div>
+        <div class="plan-wrap"><svg id="planSvg" role="img" aria-label="Mezzanine framing plan"></svg><div class="lay-pop" id="layPop" hidden></div></div>
         <div class="legend" id="planLegend"></div>
       </div>
       <details class="panel fold">
@@ -1255,6 +1288,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         <summary class="panel-head"><h3>Lightest section at each depth</h3><span class="sub" id="altSub"></span></summary>
         <div style="overflow-x:auto"><table id="altTable"></table></div>
       </details>
+      <div class="calcpack" data-cp="beam"></div>
     </section>
 
     <!-- COLUMN CALC -->
@@ -1274,6 +1308,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         <summary class="panel-head"><h3>Columns tried</h3><span class="sub">W10X22 → W8X24 → W12X26 (by weight), then heavier W (quoted as BU)</span></summary>
         <div style="overflow-x:auto"><table id="colTried"></table></div>
       </details>
+      <div class="calcpack" data-cp="col"></div>
     </section>
 
     <!-- INPUTS -->
@@ -2169,7 +2204,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 
   /**
    * m: { length (along x), width (along y), startLEW, startFSW }
-   * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override) }
+   * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override),
+   *        drop?: ['x,y'] — columns taken out: the beam on that line spans through (never a line's first or last) }
    *   joists 'y' => joists span across the width (y), beams run along x.
    */
   const SNAP_EDGE = 1;   // ft: a frame line this close outside a mezzanine edge still frames that edge
@@ -2198,18 +2234,27 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     // slab beyond (+) or short of (−) the first / last line along each axis, added to the edge beam's trib
     const over = { x: [xLines[0] - x0, x1 - xLines[xLines.length - 1]], y: [yLines[0] - y0, y1 - yLines[yLines.length - 1]] };
 
+    const dropKey = (x, y) => `${(+x).toFixed(2)},${(+y).toFixed(2)}`;
+    const drop = new Set(opt.drop || []);
     const build = joists => {
       // joists 'y': beams along x on each y line, spanning between consecutive x lines
       const beamLines = joists === 'y' ? yLines : xLines;
       const supportLines = joists === 'y' ? xLines : yLines;
-      const beams = [], supports = new Map();
+      const beams = [], supports = new Map(), dropped = [];
       beamLines.forEach((c, i) => {
         const prev = i > 0 ? c - beamLines[i - 1] : 0, next = i < beamLines.length - 1 ? beamLines[i + 1] - c : 0;
         const ov = over[joists === 'y' ? 'y' : 'x'];
         const trib = r3(prev / 2 + next / 2 + (i === 0 ? ov[0] : 0) + (i === beamLines.length - 1 ? ov[1] : 0));
-        for (let k = 0; k < supportLines.length - 1; k++) {
-          const a = supportLines[k], b = supportLines[k + 1];
-          const P = s => (joists === 'y' ? { x: s, y: c } : { x: c, y: s });
+        const P = s => (joists === 'y' ? { x: s, y: c } : { x: c, y: s });
+        // a column taken out: the beam spans on to the next support line
+        const stops = supportLines.filter((v, k) => {
+          if (k === 0 || k === supportLines.length - 1) return true;
+          const p = P(v), out = drop.has(dropKey(p.x, p.y));
+          if (out) dropped.push({ x: r3(p.x), y: r3(p.y), line: c, label: (g.xLabel(p.x) || ftin(p.x)) + '/' + (g.yLabel(p.y) || ftin(p.y)) });
+          return !out;
+        });
+        for (let k = 0; k < stops.length - 1; k++) {
+          const a = stops[k], b = stops[k + 1];
           const beam = { id: beams.length, line: c, from: a, to: b, span: r3(b - a), trib, dir: joists === 'y' ? 'x' : 'y', edge: prev === 0 || next === 0, ends: [P(a), P(b)] };
           beams.push(beam);
           [[P(a), 'R'], [P(b), 'L']].forEach(([p, side]) => {
@@ -2226,7 +2271,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       }));
       const joistSpan = Math.max(...beamLines.slice(1).map((v, i) => v - beamLines[i]));
       const beamSpan = Math.max(...supportLines.slice(1).map((v, i) => v - supportLines[i]));
-      return { joists, beamLines, supportLines, beams, supports: sup, mezzCols: sup.filter(s => !s.building), joistSpan, beamSpan };
+      return { joists, beamLines, supportLines, beams, supports: sup, mezzCols: sup.filter(s => !s.building), joistSpan, beamSpan: Math.max(beamSpan, ...beams.map(b => b.span)), dropped };
     };
     const A = build('y'), B = build('x');
     let pick = opt.joists === 'x' ? B : opt.joists === 'y' ? A : null, why = 'manual';
@@ -3911,6 +3956,143 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 
 </script>
 <script>
+/* ---- xlsx.js ---- */
+/* A small Excel (.xlsx, Office Open XML) writer for the calc package: sheets of rows, a handful of cell styles,
+   column widths, a frozen header. Strings are inline, the package is stored (not compressed) — every reader takes it,
+   and it needs nothing outside this file. */
+(function (root) {
+  'use strict';
+  const enc = s => new TextEncoder().encode(s);
+  const xmlEsc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const colName = i => { let s = ''; for (i += 1; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + ((i - 1) % 26)) + s; return s; };
+
+  // ---- CRC-32 and a stored zip ----
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zip(files) {
+    const parts = [], central = [];
+    let off = 0;
+    const now = new Date(), dt = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate(), tm = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    files.forEach(f => {
+      // f.packed: the raw-deflated bytes of f.data (method 8); else stored
+      const name = enc(f.name), crc = crc32(f.data), data = f.packed || f.data, method = f.packed ? 8 : 0;
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, method, true);
+      h.setUint16(10, tm, true); h.setUint16(12, dt, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, f.data.length, true);
+      h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), name, data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, method, true);
+      c.setUint16(12, tm, true); c.setUint16(14, dt, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, f.data.length, true);
+      c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name);
+      off += 30 + name.length + data.length;
+    });
+    const cdSize = central.reduce((a, p) => a + p.length, 0);
+    const e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
+    const all = parts.concat(central, [new Uint8Array(e.buffer)]), out = new Uint8Array(all.reduce((a, p) => a + p.length, 0));
+    let o = 0; all.forEach(p => { out.set(p, o); o += p.length; });
+    return out;
+  }
+
+  // ---- styles: a fixed set, by name ----
+  // fonts: 0 normal, 1 bold, 2 title, 3 note (italic grey), 4 pass (green bold), 5 fail (red bold), 6 section (bold white)
+  // fills: 0 none, 1 gray125 (required), 2 header, 3 section band, 4 input cell
+  const STYLE = { '': 0, h: 1, b: 2, t: 3, note: 4, ok: 5, ng: 6, n0: 7, n1: 8, n2: 9, n3: 10, sec: 11, inp: 12, inp3: 13, warn: 14, n4: 15, n2l: 16, w: 17, inpG: 18, r: 19, c: 20 };
+  const stylesXml = () => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="5"><numFmt numFmtId="164" formatCode="0.000"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="0.0"/><numFmt numFmtId="167" formatCode="#,##0"/><numFmt numFmtId="168" formatCode="0.0000"/></numFmts>
+<fonts count="8"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><color rgb="FF0B3D2E"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF5F7488"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FF00764F"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFB4441B"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FF8A5A00"/><name val="Arial"/></font></fonts>
+<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDFF5EC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B3D2E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF6D6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="thin"><color rgb="FFB4C7DA"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"><alignment vertical="top"/></xf></cellStyleXfs>
+<cellXfs count="21">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="167" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="6" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="164" fontId="1" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="7" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="168" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left" vertical="top"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+
+  /* a cell: a value (string, number, boolean, null) or { v, s } with s a style name from STYLE; a row (an array) may
+     carry .ht, its height in points */
+  function sheetXml(sh) {
+    const rows = sh.rows || [], cols = sh.cols || [];
+    const out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">', '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'];
+    if (sh.freeze) out.push(`<sheetViews><sheetView workbookViewId="0"><pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`);
+    else out.push('<sheetViews><sheetView workbookViewId="0"/></sheetViews>');
+    out.push('<sheetFormatPr defaultRowHeight="13.2"/>');
+    if (cols.length) out.push('<cols>' + cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>');
+    out.push('<sheetData>');
+    rows.forEach((row, ri) => {
+      if (!row || !row.length) { out.push(`<row r="${ri + 1}"/>`); return; }
+      const ht = row.ht ? ` ht="${row.ht}" customHeight="1"` : '';
+      const cells = row.map((cell, ci) => {
+        const c = cell != null && typeof cell === 'object' && !Array.isArray(cell) ? cell : { v: cell };
+        const ref = colName(ci) + (ri + 1), s = STYLE[c.s || ''] || 0, sa = s ? ` s="${s}"` : '';
+        if (c.v == null || c.v === '') return s ? `<c r="${ref}"${sa}/>` : '';
+        if (typeof c.v === 'number') return isFinite(c.v) ? `<c r="${ref}"${sa}><v>${+c.v.toPrecision(15)}</v></c>` : `<c r="${ref}"${sa} t="inlineStr"><is><t>${xmlEsc(String(c.v))}</t></is></c>`;
+        if (typeof c.v === 'boolean') return `<c r="${ref}"${sa} t="b"><v>${c.v ? 1 : 0}</v></c>`;
+        return `<c r="${ref}"${sa} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(c.v)}</t></is></c>`;
+      }).join('');
+      out.push(`<row r="${ri + 1}"${ht}>${cells}</row>`);
+    });
+    out.push('</sheetData>');
+    if (sh.merges && sh.merges.length) out.push(`<mergeCells count="${sh.merges.length}">${sh.merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`);
+    out.push('<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>');
+    out.push('<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>');
+    out.push('</worksheet>');
+    return out.join('');
+  }
+
+  /* sheets: [{ name, rows, cols: [widths], freeze: header rows }] ; meta: { title, author } → .xlsx bytes */
+  function book(sheets, meta = {}) {
+    const names = [];
+    sheets.forEach(sh => { let n = String(sh.name).replace(/[\\/?*[\]:]+/g, ' ').replace(/\s+/g, ' ').slice(0, 31).trim() || 'Sheet'; let k = 2; const base = n; while (names.includes(n)) n = `${base.slice(0, 28)} ${k++}`; names.push(n); });
+    const files = [];
+    files.push({ name: '[Content_Types].xml', data: enc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`) });
+    files.push({ name: '_rels/.rels', data: enc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`) });
+    const iso = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    files.push({ name: 'docProps/core.xml', data: enc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xmlEsc(meta.title || 'Calc package')}</dc:title><dc:creator>${xmlEsc(meta.author || 'Mezzanine design')}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${iso}</dcterms:created></cp:coreProperties>`) });
+    files.push({ name: 'docProps/app.xml', data: enc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Mezzanine design</Application></Properties>`) });
+    files.push({ name: 'xl/workbook.xml', data: enc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>${names.map((n, i) => `<sheet name="${xmlEsc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`) });
+    files.push({ name: 'xl/_rels/workbook.xml.rels', data: enc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`) });
+    files.push({ name: 'xl/styles.xml', data: enc(stylesXml()) });
+    sheets.forEach((sh, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc(sheetXml(sh)) }));
+    return zip(files);
+  }
+
+  const api = { book, zip, crc32, colName, STYLE };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_XLSX = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
 /* ---- model3d.js ---- */
 /* 3D framing model — a small canvas renderer (no libraries).
    Members are boxes (I-shapes = 3 boxes) and polylines in building feet (x along length from LEW,
@@ -4432,10 +4614,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       if (same(light.sec, fit.sec) || dom) {
         const alt = lesser(light.d);
         steps.push({ step: 'alternate', text: alt ? `${dom ? `The lightest (${light.desc}) is lighter and no deeper than ${fit.desc}` : 'The method lands on the lightest'} — so its next step, a lesser depth: at ${alt.d}" ${alt.r.desc} works (combined ${alt.r.res.CSR.toFixed(3)}, shear ${alt.r.res.SRvx.toFixed(3)}, L/${Math.round(alt.r.defl.rLL)}).` : `${dom ? `The lightest (${light.desc}) beats ${fit.desc}` : 'The method lands on the lightest'}, and nothing shallower passes.` });
-        fit = alt ? summarize(alt) : dom ? fit : null;
+        if (alt) fit = summarize(alt);   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----
@@ -4504,8 +4686,271 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     return { name: null, quoteAs: null, common: false, check: null, tried };
   }
 
-  const api = { PROD, prodRule, prodChecks, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  // the production rule each left-out section broke, in words
+  const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
+
+  const api = { PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+/* ---- calcpack.js ---- */
+/* The calc package: one Excel workbook an engineer can check the design from. Every number is an input to, or a
+   result of, NBG's own workbooks (the MB sheet, the Column sheet, IBC Seismic), and every rule the design follows is
+   listed with its source — the shop's production limits, the economical flange chart, the stocked plates.
+
+   sheets(job, ctx) → [{ name, rows, cols, freeze }] for src/xlsx.js
+   ctx: { inputs: [the inputs of each mezzanine], settings, quote (RUN.quoteJob), codeText, generated (date text) } */
+(function (root) {
+  'use strict';
+  const DESIGN = root.MZ_DESIGN || (typeof require !== 'undefined' ? require('./design.js') : null);
+  const PCS = root.MZ_PCS || (typeof require !== 'undefined' ? require('./pcs.js') : null);
+  const ft = v => (v == null || !isFinite(v) ? '—' : PCS.fmtFtIn(v));
+  const num = (v, s = 'n3') => (v == null || v === '' || (typeof v === 'number' && !isFinite(v)) ? '—' : typeof v === 'number' ? { v, s } : v);
+  const H = list => list.map(v => ({ v, s: 'h' }));
+  const band = (text, n = 3) => [{ v: text, s: 'sec' }, ...Array.from({ length: n - 1 }, () => ({ v: '', s: 'sec' }))];
+  // a number as the workbook would hold it: whole numbers plain, else to three places
+  const auto = v => (typeof v === 'number' && isFinite(v) ? { v, s: Math.abs(v - Math.round(v)) < 1e-9 ? '' : 'n3' } : v == null ? '—' : v);
+  const typed = v => (v == null ? '(blank)' : { v, s: typeof v === 'number' ? 'inpG' : 'inp' });
+  // a long note across the sheet: merged, wrapped, tall enough for its lines
+  const longRow = (sheet, cells, from, text, chars) => { const r = cells.concat([{ v: text, s: 'w' }]); r.ht = 13.2 * Math.max(1, Math.ceil(String(text).length / chars)); sheet.wrap.push([sheet.rows.length, from]); sheet.rows.push(r); };
+  const mergesFor = (sheet, last) => sheet.wrap.map(([ri, c]) => `${XC(c)}${ri + 1}:${XC(last)}${ri + 1}`);
+  const XC = i => { let t = ''; for (i += 1; i > 0; i = Math.floor((i - 1) / 26)) t = String.fromCharCode(65 + ((i - 1) % 26)) + t; return t; };
+  const note = text => [{ v: text, s: 'note' }];
+  const okc = ok => ({ v: ok ? 'OK' : 'NG', s: ok ? 'ok' : 'ng' });
+  const webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
+  const frac = v => { const n = Math.round(v * 16); if (Math.abs(v * 16 - n) > 0.02) return String(+(+v).toFixed(4)); const w = Math.floor(n / 16), r = n % 16, g = (a, b) => (b ? g(b, a % b) : a), q = g(r, 16); return r ? `${w ? w + ' ' : ''}${r / q}/${16 / q}` : String(w); };
+  const secText = s => (!s ? '—' : s.type === 'WF' ? s.name : `d ${s.d}" · web ${frac(s.tw)}" · ${s.bof} × ${frac(s.tof)}${s.bif !== s.bof || s.tif !== s.tof ? ` / ${s.bif} × ${frac(s.tif)}` : ''}`);
+  const flName = s => (!s || s.type === 'WF' ? '—' : DESIGN.flangeName(s.bof, s.tof) + (s.bif !== s.bof || s.tif !== s.tof ? ' / ' + DESIGN.flangeName(s.bif, s.tif) : ''));
+  const tierWord = t => ({ G: 'economical', Y: 'somewhat economical', R: 'non-economical' })[t] || t || '—';
+  const SRC = { pcs: 'PCS', annotation: 'PCS note', deckGuide: 'deck guide', default: 'standard value', estimate: 'estimate (deck guide)', missing: 'missing', manual: 'typed', none: 'no requirement', design: 'design', typed: 'typed', PCS: 'PCS', 'frame file': 'NBG Frame file' };
+  const BOOKS = { 13: 'Mezzanine Beam Design (AISC 13th)', 15: 'Mezzanine Beam Design (AISC 15th)', 16: 'Mezzanine Beam Design (AISC 16th)' };
+  const COLBOOKS = { 15: 'Mezzanine Column (AISC 15th)', 16: 'Mezzanine Column (AISC 16th)' };
+
+  function sheets(job, ctx = {}) {
+    const out = [], s = ctx.settings || {}, live = (job.mezz || []).filter(r => r && !r.incomplete), r0 = live[0] || {};
+    const div = r0.division || 'NBS-IN', ed = r0.edition || {}, marks = job.marks || [];
+    const inputs = ctx.inputs || [], q = inputs[0] ? inputs[0].job || {} : {};
+    const target = s.target ?? 0.99;
+
+    // ---------------- Summary ----------------
+    {
+      const cols = [40, 12, 14, 34, 22, 8, 12, 10, 7, 11, 9, 8, 8, 12, 12, 24], B = t => band(t, cols.length);
+      const rows = [[{ v: 'Mezzanine design — calc package', s: 't' }],
+        note(`${q.quote || ''}${q.project ? ' · ' + q.project : ''} · generated ${ctx.generated || new Date().toISOString().slice(0, 10)}. Every number here is an input to, or a result of, NBG's own workbooks — the sheet "Sources" says which. Filled copies of those workbooks come with this package when they are added to the tool.`), [],
+        B('Job'),
+        ['Quote', q.quote || '—'], ['Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'],
+        ['Beam sheet', BOOKS[ed.beamEd] || '—'], ['Column sheet', COLBOOKS[ed.colEd] || '—'], ['Specification', ed.spec || '—'],
+        ['Division (stock and production limits)', div], ['Stress ratio limit (combined and shear)', num(target, 'n2l')], ['Deflection limits', 'L/360 live, L/240 total (MB sheet)'],
+        ['Mezzanines', live.map(r => r.id).join(', ')], [],
+        B('Beams'),
+        H(['Mark', 'Type', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Beams', 'Combined SR', 'Shear SR', 'Live L/', 'Total L/', 'Dead each end (k)', 'Live each end (k)', 'Chosen as']),
+      ];
+      marks.forEach(m => (m.spanRuns && m.spanRuns.length ? m.spanRuns : []).forEach((run, i) => {
+        const c = run.check; if (!c) return;
+        const opt = (m.options || []).find(o => o.key === m.optionKey);
+        rows.push([i ? `${m.mark} · ${ft(run.L != null ? run.L : run.span)} span` : m.mark, m.kind || '', c.desc, secText(m.sec), m.sec && m.sec.type !== 'WF' ? `${flName(m.sec)} ${tierWord(DESIGN.TIER[Math.max(DESIGN.tierOf(m.sec.bof, m.sec.tof), DESIGN.tierOf(m.sec.bif, m.sec.tif))])}` : '—',
+          num(c.res.Wt, 'n1'), { v: ft(run.L != null ? run.L : run.span), s: 'r' }, { v: ft(run.params ? run.params.trib : m.trib), s: 'r' }, run.qty, num(c.res.CSR), num(c.res.SRvx), num(c.defl.rLL, 'n0'), num(c.defl.rTL, 'n0'), num(c.V.D), num(c.V.L),
+          i ? 'same section, own MB run' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—']);
+      }));
+      rows.push([], B('Columns'), H(['Columns', 'Mezzanine', 'Section', 'Quote as', 'Length', 'Quantity', 'Max CSR', 'Result']));
+      live.forEach(r => { if (!r.colFinal) return; rows.push([r.columns.map(c => c.label).join(', '), r.id, r.colFinal.name, r.colFinal.quoteAs, { v: ft(r.colLen), s: 'r' }, r.columns.length, num(r.colFinal.max), okc(r.colFinal.ok)]); });
+      const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
+      const sh = { name: 'Summary', cols, rows, wrap: [] };
+      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2], 185)); }
+      sh.merges = mergesFor(sh, cols.length - 1); delete sh.wrap;
+      out.push(sh);
+    }
+
+    // ---------------- Inputs ----------------
+    {
+      const rows = [[{ v: 'Inputs — what was read, where it came from, where it goes', s: 't' }], note('Source: PCS = read off the Project Confirmation Summary; typed = entered on the page; standard value = the training guide default; deck guide = NBG deck guide. "Goes into" is the cell in the workbook.'), [],
+        H(['Mezzanine', 'Group', 'Input', 'Value', 'Unit', 'Source', 'Goes into', 'Note'])];
+      const GEOM = [['A', 'A — finish floor to top of mezzanine', 'ft', 'INPUT D22'], ['B', 'B — clearance under joists', 'ft', 'INPUT F37'], ['C', 'C — clearance under support beams', 'ft', 'INPUT F38'], ['slab', 'Slab and deck thickness', 'in', 'INPUT D23'], ['seat', 'Joist seat depth', 'in', 'INPUT D24'], ['joistSpacing', 'Joist spacing (= unbraced length Lb)', 'ft', 'MB D8'], ['width', 'Mezzanine width', 'ft', 'layout'], ['length', 'Mezzanine length', 'ft', 'layout'], ['startLEW', 'From the left endwall', 'ft', 'layout'], ['startFSW', 'From the front sidewall', 'ft', 'layout'], ['D', 'D — clearance under the frame', 'ft', 'frame design'], ['F', 'F — clearance under the frame', 'ft', 'frame design']];
+      const LOADS = [['dead', 'Dead (slab and deck)', 'psf', 'INPUT D14'], ['coll', 'Collateral', 'psf', 'INPUT D15'], ['live', 'Live', 'psf', 'INPUT D16'], ['partition', 'Partition', 'psf', `added to ${s.partitionTo || 'live'}`], ['joistWt', 'Estimated joist weight', 'psf', 'INPUT D17']];
+      inputs.forEach((inp, i) => {
+        const r = (job.mezz || [])[i], id = (r && r.id) || inp.mezz.id || `Mezzanine ${i + 1}`;
+        const row = (grp, [k, lab, unit, cell], node) => {
+          const v = node && typeof node === 'object' && 'value' in node ? node.value : node, src = node && node.source;
+          const shown = v == null ? '—' : unit === 'ft' && typeof v === 'number' ? ft(v) : unit === 'in' && (k === 'slab' || k === 'seat') ? auto(+(v * 12).toFixed(4)) : typeof v === 'number' ? auto(v) : String(v);
+          rows.push([id, grp, lab, shown, unit === 'ft' ? '' : unit, SRC[src] || src || '', cell, (node && node.note) || '']);
+        };
+        GEOM.forEach(g => row('Geometry', g, inp.geom[g[0]]));
+        LOADS.forEach(g => row('Loads', g, inp.loads[g[0]]));
+        rows.push([id, 'Floor', 'Deck', inp.mezz.deck || '—', '', inp.mezz.deckText ? `PCS: ${inp.mezz.deckText}` : 'per seller', 'dead load', ''], [id, 'Floor', 'Concrete', inp.mezz.concrete || '—', '', 'PCS', 'dead load', ''], [id, 'Floor', 'Use', inp.mezz.use || '—', '', 'PCS Box 22', 'live load / seismic', '']);
+      });
+      const set = (lab, v, note = '') => ['', '', lab, v, '', '', '', note];
+      rows.push([], band('Design settings', 8), H(['', '', 'Setting', 'Value', '', '', '', 'Note']),
+        set('Stress ratio limit', num(target, 'n2l'), 'combined and shear, as the MB sheet reads OK below 1.00'),
+        set('Depth range searched', `${s.dMin ?? 10}"–${s.dMax ?? 30}"`, 'capped by the clearance C'),
+        set('Flanges', s.symmetric === false ? 'top and bottom may differ' : 'same plate top and bottom'),
+        set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),
+        set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
+        set('Column length', s.colLength === 'clear' ? 'clear below the beams' : 'finish floor to top of mezzanine (A)'), set('Column section', s.colPerJob === false ? 'per mezzanine' : 'one W for the whole job'));
+      out.push({ name: 'Inputs', cols: [14, 12, 40, 14, 7, 22, 16, 60], rows, freeze: 4 });
+    }
+
+    // ---------------- MB sheets: the cells typed, and what the sheet shows ----------------
+    {
+      const rows = [[{ v: 'MB sheets — the cells typed into the Mezzanine Beam Design workbook, and what it shows', s: 't' }], note('Typed into the real workbook and read back (LibreOffice, recalculated): every "shows" value equals what Excel shows.'), []];
+      (job.excel && job.excel.beam || []).forEach(b => {
+        rows.push(band(`${BOOKS[b.edition] || b.file} — copy ${b.copy}: ${b.sheets.map(x => `${x.sheet} = ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ''}`).join(', ')}`, 3));
+        const inp = b.inputs[0];
+        rows.push([{ v: `INPUT sheet${b.inputs.length > 1 ? ` (${inp.mezz}'s heights)` : ''}`, s: 'b' }], H(['Cell', 'Field', 'Value typed']));
+        inp.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}`, st.label, typed(st.value)]));
+        rows.push(H(['Cell', 'The sheet shows', 'Value']));
+        inp.read.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));
+        b.sheets.forEach(sh => {
+          const m = marks.find(x => x.mark === sh.mark), run = m && (m.spanRuns || []).find(z => Math.abs(z.span - sh.span) < 1e-3), c = run && run.check;
+          rows.push([], [{ v: `Sheet ${sh.sheet} · ${sh.mark}${sh.kind ? ' ' + sh.kind : ''}: ${sh.desc}, ${ft(sh.L)} × ${ft(sh.trib)} trib, ${sh.qty} beam${sh.qty > 1 ? 's' : ''}`, s: 'b' }], H(['Cell', 'Field', 'Value typed']));
+          sh.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}${st.where ? ' (' + st.where + ')' : ''}`, st.label, typed(st.value)]));
+          rows.push(H(['Cell', 'The sheet shows', 'Value']));
+          sh.read.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));
+          if (c) {
+            rows.push(['', 'Uniform loads w: joist / beam / floor dead / floor live / total (klf)', `${c.w.joist.toFixed(3)} / ${c.w.beam.toFixed(3)} / ${c.w.FDL.toFixed(3)} / ${c.w.FLL.toFixed(3)} / ${c.w.total.toFixed(3)}`],
+              ['', 'Moment, dead / live / total (ft-kip)', `${c.M.D.toFixed(2)} / ${c.M.L.toFixed(2)} / ${c.M.T.toFixed(2)}`],
+              ['', 'Deflection, dead / live / total (in)', `${c.defl.DL.toFixed(3)} / ${c.defl.LL.toFixed(3)} / ${c.defl.TL.toFixed(3)}`],
+              ['', 'Moment of inertia Ix (in⁴) · weight (plf)', `${c.res.Ix.toFixed(2)} · ${c.res.Wt.toFixed(2)}`],
+              ['', 'Combined SR · shear SR · max SR (Main Report)', `${c.res.CSR.toFixed(3)} · ${c.res.SRvx.toFixed(3)} · ${c.res.maxSR.toFixed(3)}`]);
+            if (c.conc) rows.push(['', 'Joist bearing (L7): Ru (k) · web local yielding · crippling · sidesway', `${c.conc.Ru.toFixed(2)} · ${c.conc.WLY.toFixed(3)} · ${c.conc.WC.toFixed(3)} · ${c.conc.WSB == null ? '--' : c.conc.WSB.toFixed(3)}`]);
+          }
+        });
+        rows.push([]);
+      });
+      out.push({ name: 'MB sheets', cols: [26, 62, 30], rows });
+    }
+
+    // ---------------- Beam options ----------------
+    {
+      const rows = [[{ v: 'Beam options — how each section was found', s: 't' }], note('Every stocked web and flange for the division, through the MB sheet, inside the production limits; the options are the lightest, the step-by-step "best fit", and the most economical by the flange chart.'), []];
+      marks.forEach(m => {
+        const sr = m.search; if (!sr) return;
+        rows.push(band(`${m.mark}${m.kind ? ' ' + m.kind : ''} — designed ${ft(m.params ? m.params.L : m.span)} × ${ft(m.params ? m.params.trib : m.trib)} trib · ${sr.evaluated.toLocaleString('en-US')} combinations run · depth ${sr.options.dMin}"–${sr.dTop}"${sr.dTop < sr.options.dMax ? ' (clearance C)' : ''}`, 14));
+        rows.push(H(['Option', 'Section', 'Depth', 'Web', 'Flanges', 'Economy', 'plf', 'vs lightest', 'Combined', 'Shear', 'Live L/', 'Total L/', 'On the quote', 'Why']));
+        // one row a section: options that land on the same section share it ("Lightest · Best fit")
+        const groups = [];
+        (m.options || []).forEach(o => { const g = groups.find(x => x.some(y => ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => y.pick.sec[k] === o.pick.sec[k]))); if (g) g.push(o); else groups.push([o]); });
+        groups.map(g => ({ ...g[0], label: g.map(x => x.label).join(' · '), why: g.map(x => (g.length > 1 ? `${x.label}: ` : '') + x.why).join(' '), key: (g.find(x => x.key === m.optionKey) || g[0]).key })).forEach(o => { const p = o.pick; rows.push([o.label, p.desc, `${p.sec.d}"`, p.web, p.flange, tierWord(p.tier), num(p.wt, 'n1'), { v: o.dWt ? `${o.dWt > 0 ? '+' : ''}${(o.dPct * 100).toFixed(1)} %` : 'lightest', s: 'r' }, num(p.CSR), num(p.SRv), num(p.rLL, 'n0'), num(p.rTL, 'n0'), { v: m.optionKey === o.key ? 'yes' : '', s: 'c' }, o.why + (o.needC != null ? ` Needs C ≤ ${ft(o.needC)}.` : '')]); });
+        const fit = (m.options || []).find(o => o.key === 'fit') || (m.options || []).find(o => o.steps);
+        const steps = fit && fit.steps ? fit.steps : null;
+        if (steps) { rows.push([{ v: 'Best fit, step by step', s: 'b' }]); steps.forEach((st, i) => rows.push([`${i + 1}`, st.text])); }
+        const removed = Object.entries(sr.removed || {});
+        if (removed.length) { rows.push([{ v: 'Left out by the production limits', s: 'b' }]); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push([n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k])); }
+        rows.push([{ v: 'Lightest section at each depth', s: 'b' }], H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
+        sr.byDepth.forEach(z => rows.push(z.none ? [`${z.d}"`, 'nothing stocked passes'] : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
+        if (m.deeper && m.deeper.length) { rows.push([{ v: 'Deeper than the clearance allows (each needs C lowered)', s: 'b' }], H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
+        rows.push([]);
+      });
+      out.push({ name: 'Beam options', cols: [30, 14, 8, 8, 10, 18, 8, 11, 10, 9, 8, 8, 12, 90], rows });
+    }
+
+    // ---------------- Shop rules ----------------
+    {
+      const rows = [[{ v: 'Shop rules — the limits every section is held to', s: 't' }], []];
+      const W = 8;
+      rows.push(band('NBG Production Guidelines (rev. 2026.01.15) — Primary & Secondary Steel, built-up members, by division', W),
+        H(['Division', 'Part depth (in)', 'Flange width (in)', 'Flange thickness max (in)', 'Thinnest web → flange max', 'Part length max (ft)', 'Part weight max (lb) < 35 ft / ≥ 35 ft', 'Web / flange']));
+      DESIGN.DIVISIONS.forEach(dv => { const P = DESIGN.PROD[dv]; rows.push([{ v: dv === 'West' ? 'West (NBG-UT)' : dv, s: dv === div ? 'b' : '' }, `${P.d[0]}–${P.d[1]}`, `${P.bf[0]}–${P.bf[1]}`, `${P.tfMax}"`, P.thin ? `${P.thin.tw}" → ${P.thin.tf}"` : '—', `${P.L}`, `${P.wt[0].toLocaleString('en-US')} / ${P.wt[1].toLocaleString('en-US')}`, P.tfPlus ? 'tf > tw + 1/16" (d < 30") / 1/8"' : 'tw ≤ tf (DG 25)']); });
+      rows.push(note('Every division: web / flange thickness ≥ 0.30; flange width ≤ depth (8" deep: ≤ 6"–7" by division); depth / flange width ≤ 7; thickest / thinnest flange ≤ 2.0; handling over 40 ft: a 6 × 3/8 or 8 × 1/4 flange at least.'), []);
+      const seen = new Set();
+      marks.forEach(m => {
+        if (!m.sec || m.sec.type === 'WF' || seen.has(m.desc)) return; seen.add(m.desc);
+        const L = Math.max(...(m.spanRuns || [{ L: m.span }]).map(z => z.L || z.span)), wt = m.check ? m.check.res.Wt : 0;
+        rows.push(band(`${m.desc} (${m.mark}) against the ${div} limits — part ${ft(L)}, ${Math.round(wt * L).toLocaleString('en-US')} lb`, W), H(['Rule', 'Value', 'Result']));
+        DESIGN.prodChecks(m.sec, div, L, wt).forEach(c => rows.push([c.text, c.val, okc(c.ok)]));
+        rows.push([]);
+      });
+      rows.push(band('NBG Economical Flange Sections — G economical · Y somewhat economical · R non-economical · — not flange material', W + 1));
+      const TH = [0.1875, 0.25, 0.3125, 0.375, 0.5, 0.625, 0.75, 1];
+      rows.push(H(['Width \\ thickness', ...TH.map(t => `${frac(t)}"`)]));
+      [5, 6, 8, 10, 12].forEach(w => rows.push([`${w}"`, ...TH.map(t => { if (!DESIGN.inChart(w, t)) return '—'; const g = DESIGN.TIER[DESIGN.tierOf(w, t)]; return { v: g, s: g === 'G' ? 'ok' : g === 'Y' ? 'warn' : 'ng' }; })]));
+      rows.push(note('Start considering 10" flanges when F8.50 (IF) and F8.38 (OF) start failing. 12" flanges are good sections but typically more expensive.'), []);
+      rows.push(band(`DM 5.1 stock inventory — ${div}`, W), H(['Plate', 'Sizes stocked']));
+      rows.push(['Webs', Object.keys(DESIGN.WEB_STOCK).map(Number).sort((a, b) => a - b).filter(t => DESIGN.inStock(DESIGN.WEB_STOCK, t, div)).map(t => `${t}" (${webName(t)})`).join(', ')]);
+      [6, 8, 10, 12].forEach(w => rows.push([`Flanges ${w}" wide`, Object.keys(DESIGN.FLANGE_STOCK).map(k => k.split('x').map(Number)).filter(([b, t]) => b === w && DESIGN.inStock(DESIGN.FLANGE_STOCK, b + 'x' + t, div)).map(([, t]) => `${frac(t)}"`).join(', ') || 'none']));
+      rows.push(['Wide flange', Object.keys(DESIGN.WF_STOCK).filter(k => DESIGN.inStock(DESIGN.WF_STOCK, k, div)).join(', ')]);
+      out.push({ name: 'Shop rules', cols: [44, 26, 16, 18, 22, 16, 30, 30, 8], rows });
+    }
+
+    // ---------------- Columns ----------------
+    {
+      const rows = [[{ v: 'Columns — the Column sheet, case by case', s: 't' }], note('Loads: the unfactored MB-sheet end shears (H6 dead, H10 live) of the beams framing in, summed per side. Three combinations (DM 15.1.1.4.2); each must read OK.'), []];
+      (job.excel && job.excel.column || []).forEach(b => b.cases.forEach(cs => {
+        const r = (job.mezz || [])[cs.mi], g = r && r.colGroups[cs.group], chk = r && r.colFinal && r.colFinal.checks[cs.group];
+        rows.push(band(`${COLBOOKS[b.edition] || b.file} — ${cs.labels.join(', ')} (${cs.mezz})${r && r.colFinal ? ' · ' + r.colFinal.name : ''}`, 5), H(['Cell', 'Field', 'Value typed']));
+        cs.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}${st.where ? ' (' + st.where + ')' : ''}`, st.label, typed(st.value)]));
+        rows.push(H(['Cell', 'The sheet shows', 'Value']));
+        cs.read.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));
+        if (chk) {
+          rows.push(H(['Combination', 'Mx (ft-kip)', 'Axial (kip)', 'Max CSR', 'Result']));
+          ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'].forEach((n, i) => { const k = chk.combos[i]; rows.push([n, num(k.Mx, 'n2'), num(k.P, 'n2'), num(k.csr), okc(k.ok)]); });
+          rows.push(['Eccentricity e = d/2 (in) · self-weight (k)', `${chk.ex.toFixed(2)} · ${chk.wt.toFixed(3)}`]);
+        }
+        if (g && g.design && g.design.tried) { rows.push([{ v: 'Sizes tried, lightest first', s: 'b' }], H(['Section', 'Max CSR', 'Result'])); g.design.tried.forEach(t => rows.push([t.name, num(t.max), okc(t.ok)])); }
+        rows.push([]);
+      }));
+      out.push({ name: 'Columns', cols: [34, 52, 22, 12, 10], rows });
+    }
+
+    // ---------------- Frame loads ----------------
+    {
+      const rows = [[{ v: 'Loads to the frame — by frame line, on the frame\'s own columns', s: 't' }], note('Unfactored mezzanine beam end shears (MB H6 / H10) summed at each building column; in NBG Frame as FDL / FLL concentrated loads (WebCenterline) and the seismic as EQR + / EQL − at the mezzanine level.'), [],
+        H(['Building', 'Frame line', 'Column', 'NBG Frame member', 'Where', 'At A (ft)', 'Floor dead (k)', 'Floor live (k)', 'Seismic applied (k)', 'Seismic calculated (k)', 'From'])];
+      (job.frameEntries || []).forEach(fl => fl.entries.forEach(e => {
+        const eq = (e.eq || []).reduce((a, x) => a + x.F, 0), calc = (e.eq || []).reduce((a, x) => a + (x.calc ?? x.F), 0);
+        rows.push([fl.building || '', fl.frame, e.label, e.member || '—', e.where, num(e.A != null ? e.A : e.elev, 'n2'), num(e.D), num(e.L), e.eq && e.eq.length ? num(eq) : '', e.eq && e.eq.length ? num(calc) : '', e.parts.map(p => `${p.mezz} ${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + ')]);
+      }));
+      out.push({ name: 'Frame loads', cols: [10, 10, 9, 14, 62, 9, 12, 12, 14, 16, 40], rows, freeze: 4 });
+    }
+
+    // ---------------- Seismic ----------------
+    const sj = job.seismic;
+    if (sj && sj.ok) {
+      const rows = [[{ v: 'Seismic — the IBC Seismic workbook, frame line by frame line', s: 't' }], note('The workbook (rev. 2021.01.20) with these cells typed gives these results (checked: every frame of the sample jobs recalculated in the workbook equals the tool). Values are QE — NBG Frame applies ρ and the ASD 0.7.'), []];
+      sj.buildings.forEach(b => {
+        const w = b.workbook; if (!w) return;
+        rows.push(band(`${b.name} — Input Data (the building and the mezzanines)`, 7), H(['Cell', 'Field', 'Value typed']));
+        w.input.forEach(st => rows.push([`${st.sheet}!${st.cell}`, st.label, st.show]));
+        rows.push([], band(`${b.name} — Longitudinal Calcs. (the bracing)`, 7), H(['Cell', 'Field', 'Value typed']));
+        w.long.forEach(st => rows.push([`${st.sheet}!${st.cell}`, st.label, st.show]));
+        rows.push(H(['Cell', 'The workbook shows', 'Value']));
+        w.longRead.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));
+        w.frames.forEach(fr => {
+          rows.push([], band(`${b.name} — frame line ${fr.label} on Lateral Calcs. (1)`, 7), H(['Cell', 'Field', 'Value typed']));
+          fr.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}`, st.label, st.show]));
+          rows.push(H(['Cell', 'The workbook shows', 'Value']));
+          fr.read.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));
+        });
+        rows.push([], band(`${b.name} — applied to NBG Frame (EQR = +, EQL = −, at the mezzanine level)`, 7), H(['Frame line', 'Column', 'Member', 'At (ft)', 'Calculated (k)', 'Applied (k)', 'Edited']));
+        b.frames.forEach(fr => fr.eqs.forEach(e => rows.push([fr.label, e.label, e.member, num(e.at, 'n2'), num(e.calc ?? e.F), num(e.F), e.edited || ''])));
+        if (b.long) { rows.push([], band(`${b.name} — bracing`, 7), H(['Mezzanine', 'Seismic force for the bracing (k)'])); b.long.mezzLoads.forEach(m => rows.push([m.id, num(m.F)])); }
+        rows.push([]);
+      });
+      out.push({ name: 'Seismic', cols: [30, 56, 22, 10, 14, 12, 10], rows });
+    }
+
+    // ---------------- Sources ----------------
+    out.push({ name: 'Sources', cols: [44, 22, 60, 50], freeze: 3, rows: [
+      [{ v: 'Sources — where each number comes from', s: 't' }], [],
+      H(['Document / workbook', 'Revision / file', 'Gives', 'Checked by']),
+      [BOOKS[ed.beamEd] || 'Mezzanine Beam Design', ed.beamEd ? `Mezzanine_Beam_Design_${ed.beamEd}th.xls` : '', 'INPUT sheet (loads, heights, clearances); MB1–MB4 (member length, Lb, trib, section → end shears H6 / H10, deflections, combined / shear, joist bearing L7)', 'cell-for-cell port; the real workbook run on every option and every job (oracle) — the filled copy reads the same'],
+      [COLBOOKS[ed.colEd] || 'Mezzanine Column', ed.colEd ? `Mezzanine_Column_${ed.colEd}th_S16-*.xls` : '', 'Column sheet (L, section, left / right reactions → three combinations, CSR)', 'the real workbook on every column case'],
+      ['IBC Seismic', 'rev. 2021.01.20 (IBC_Seismic.xls)', 'Input Data, Lateral Calcs. (1) per frame line, Longitudinal Calcs. → mezzanine seismic force per frame and for the bracing', '1,386 of 1,386 values over 15 cases; every frame of the sample jobs recalculated in the workbook'],
+      ['NBG Production Guidelines', 'rev. 2026.01.15 (Primary & Secondary Steel, built-up)', 'part depth / width / thickness / length / weight by division; web / flange rules (sheet Shop rules)', 'every section searched is held to them'],
+      ['DPM — Production Limitations', '', 'shop limitations behind the guidelines', ''],
+      ['NBG Economical Flange Sections', '', 'G / Y / R flange plates; 8" then 10" then 12" (sheet Shop rules)', 'the "most economical" option and the economy column'],
+      ['DM 5.1 — Stock Inventory', '', 'webs, flanges and W shapes stocked by division (sheet Shop rules)', 'only stocked plates are searched'],
+      ['DM 15.1 — Mezzanine Systems', '', 'beams on the short span, joist spacing, deflection, connections, bracing (DM checklist on the Design page)', ''],
+      ['Mezzanine Training Guide', '', 'the input sequence; joist weight 8 psf; common columns W10X22 / W8X24 / W12X26, larger W quoted as BU', ''],
+      ['NBG deck guide', '', 'slab + deck dead load (4" NW on 1.0C = 43 psf)', ''],
+      ['Project Confirmation Summary (PCS)', q.quote || '', 'Box 2 / 5 building and frames; Box 3 seismic; Box 4 roof loads; Box 22 mezzanines; the floor plan (⊗ mezzanine columns, I frame columns, ✱ most-economical frame columns)', 'every value read is listed on sheet Inputs with its source'],
+    ] });
+    return out;
+  }
+
+  const api = { sheets };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_CALCPACK = api;
 })(typeof self !== 'undefined' ? self : this);
 
 </script>
@@ -5050,7 +5495,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const grid = LAYOUT.buildingGrid({ width: bl.width, length: bl.length, bays: bl.bays, lewCols: bl.lewCols, rewCols: bl.rewCols, ridge: bl.ridge, frames: bl.frames, fswSoldier: bl.fswSoldier, bswSoldier: bl.bswSoldier, yLetters: bl.yLetters });
     const mz = { length: val(inp.geom.length), width: val(inp.geom.width), startLEW: val(inp.geom.startLEW) || 0, startFSW: val(inp.geom.startFSW) || 0 };
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
-    const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines });
+    const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop });
     if (fromPlan) {
       lay.why = ({ markup: 'the JOISTS markup on the PCS floor plan', truss: 'the joist symbol on the PCS floor plan' })[inp.mezz.planJoistsFrom] || 'joist arrows on the PCS floor plan';
       const alt = lay.alt, n = o => o.beams.length;
@@ -5058,6 +5503,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     }
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
+    userColumns(lay, s.colKind, grid, warn);
     lay.snaps.forEach(sn => warn.push({ level: 'key', text: `Mezzanine edge at ${sn.axis === 'y' ? 'FSW' : 'LEW'} ${PCS.fmtFtIn(sn.edge)} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
     // an edge just past the 1'-0" snap of a line of building columns: the layout frames it with new mezzanine columns, and
     // the beams there stop loading the frame (a footprint cut to a beam's clear length does this). Say so.
@@ -5082,6 +5528,30 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
     return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+  }
+
+  /* The engineer's layout edits on the Plan page, after the drawing: a column made a frame column (its beam reactions go
+     to the frame design) or a mezzanine column (designed on the Column sheet), and columns taken out (the beam spans
+     through). kinds: { 'x,y': 'frame' | 'mezz' } */
+  function userColumns(lay, kinds, grid, warn) {
+    const F = PCS.fmtFtIn, k = sp => `${(+sp.x).toFixed(2)},${(+sp.y).toFixed(2)}`;
+    [lay, lay.alt].filter(Boolean).forEach((L, li) => {
+      if (kinds) L.supports.forEach(sp => {
+        const want = kinds[k(sp)];
+        if (!want || sp.building === (want === 'frame')) return;
+        sp.building = want === 'frame'; sp.userKind = want;
+        if (li) return;
+        const fi = grid.xs.findIndex(x => Math.abs(x - sp.x) < 0.05), member = LAYOUT.isBuildingColumn(grid, sp.x, sp.y);
+        warn.push({ level: 'key', text: sp.building
+          ? `${sp.label}: made a frame column on the Plan page — its beam reactions go to the frame design${member ? '' : fi >= 0 ? `; frame line ${grid.xLabel(sp.x)} has no column at ${F(sp.y)}: add it in NBG Frame` : ' — it is not on a frame line: the load goes to whatever carries it there'}.`
+          : `${sp.label}: made a mezzanine column on the Plan page — designed on the Column sheet; the frame takes no mezzanine load there.` });
+      });
+      L.mezzCols = L.supports.filter(sp => !sp.building);
+    });
+    (lay.dropped || []).forEach(d => {
+      const b = lay.beams.find(x => Math.abs(x.line - d.line) < 1e-6 && x.from < (lay.joists === 'y' ? d.x : d.y) && x.to > (lay.joists === 'y' ? d.x : d.y));
+      warn.push({ level: 'key', text: `${d.label}: column taken out on the Plan page — the beam spans through${b ? `, ${F(b.span)}` : ''}.` });
+    });
   }
 
   /* The floor plan decides frame vs mezzanine column where it disagrees with the building data (Box 2 / Box 5):
@@ -5329,7 +5799,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       if (c.incomplete) return;
       c.lay.supports.forEach(sp => {
         const key = c.bkey + '|' + sp.x.toFixed(2) + ',' + sp.y.toFixed(2);
-        const e = at.get(key) || { key, bkey: c.bkey, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, ends: [], seenIn: [] };
+        const e = at.get(key) || { key, bkey: c.bkey, x: sp.x, y: sp.y, building: sp.building, label: sp.label, planKind: sp.planKind || null, userKind: sp.userKind || null, ends: [], seenIn: [] };
         e.seenIn.push(c.index);
         ['L', 'R'].forEach(side => {
           const id = sp.beams[side];
@@ -5350,7 +5820,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
         const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
-        frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, userKind: e.userKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
@@ -5707,13 +6177,13 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const W = g.width, members = [0, ...(g.interior[fi] || []).filter(y => y > 0.05 && y < W - 0.05), W].sort((a, b) => a - b);
       const mi = members.findIndex(y => near(y, q.y));
       const wall = fi === 0 || fi === g.xs.length - 1;
-      const where = near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall && /post|bearing/i.test(((c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || {}).type || '') ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of the post-and-beam end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
+      const where = q.userKind === 'frame' && mi < 0 ? `column at ${PCS.fmtFtIn(q.y)} — made a frame column on the Plan page: add it in NBG Frame` : near(q.y, 0) ? 'FSW column' : near(q.y, W) ? 'BSW column' : mi >= 0 ? (wall && /post|bearing/i.test(((c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || {}).type || '') ? `endwall column at ${PCS.fmtFtIn(q.y)} — a member of the post-and-beam end frame` : `interior column at ${PCS.fmtFtIn(q.y)} from the FSW`) : wall ? `endwall column at ${PCS.fmtFtIn(q.y)} — not a member of this frame (endwall design)` : `column at ${PCS.fmtFtIn(q.y)}`;
       // top of the mezzanine beam bearing there (the higher one when two mezzanines frame in)
       const elev = Math.max(...q.parts.map(p => { const k = ctxs[p.mi]; return k.A - (k.slabIn + k.seatIn) / 12; }));
       const A = Math.max(...q.parts.map(p => ctxs[p.mi].A));
       let f = out.find(e => e.x === g.xs[fi] && e.bkey === c.bkey);
       if (!f) out.push(f = { frame: g.xLabel(g.xs[fi]), x: g.xs[fi], bkey: c.bkey, building: c.inp.mezz.building || '', type: (c.inp.building.frames || []).find(fr => fi + 1 >= fr.from && fi + 1 <= fr.to) || null, width: W, interior: members.slice(1, -1), entries: [] });
-      f.entries.push({ label: q.label, x: q.x, y: q.y, member: mi >= 0 ? 'COL' + String(mi + 1).padStart(2, '0') : null, where, elev, A, D: q.D, L: q.L, parts: q.parts, planKind: q.planKind || null });
+      f.entries.push({ label: q.label, x: q.x, y: q.y, member: mi >= 0 ? 'COL' + String(mi + 1).padStart(2, '0') : null, where, elev, A, D: q.D, L: q.L, parts: q.parts, planKind: q.planKind || null, userKind: q.userKind || null });
     });
     out.forEach(f => { f.entries.sort((a, b) => a.y - b.y); f.type = f.type ? { type: f.type.type || '', intType: f.type.intType || null } : null; });
     return out.sort((a, b) => a.x - b.x);
@@ -6258,7 +6728,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   tipEl.className = 'hover-tip'; tipEl.hidden = true; document.body.appendChild(tipEl);
   let tipKey = null;
   document.addEventListener('mousemove', e => {
-    const t = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+    // no hover card while the plan is being edited, or over the edit menu
+    const t = e.target && e.target.closest && !(state.planEdit && e.target.closest('#planSvg, #layPop')) ? e.target.closest('[data-tip]') : null;
     if (!t) { if (tipKey) { tipKey = null; tipEl.hidden = true; } return; }
     if (t.dataset.tip !== tipKey) { tipKey = t.dataset.tip; const h = tipHtml(tipKey); tipEl.innerHTML = h; tipEl.hidden = !h; }
     if (tipEl.hidden) return;
@@ -6507,7 +6978,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); }
+  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -6794,17 +7265,17 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const out = [], q = (state.pcs && state.pcs.job.quote) || 'mezzanine', ex = (state.job && state.job.excel) || { beam: [], column: [] }, cno = colNos();
     ex.beam.forEach(b => {
       const inp = b.inputs[0], steps = inp.steps.concat(b.sheets.flatMap(sh => sh.steps));
-      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: `Beams · ${b.sheets.map(x => `sheet ${x.sheet}: ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ' ' + ft(x.span)}`).join(' · ')}`,
-        note: b.inputs.length > 1 ? `INPUT sheet with ${inp.mezz}'s heights (the MB results do not use them)` : '', name: `${q}-MB${b.copy > 1 ? '-' + b.copy : ''}.xls`, steps, read: b.sheets.flatMap(sh => sh.read).concat(inp.read) });
+      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: b.sheets.map(x => `${x.mark} ${ft(x.span)}`).join(' · '), sub: b.sheets.map(x => x.sheet).join(', '),
+        note: b.inputs.length > 1 ? `INPUT with ${inp.mezz}'s heights` : '', name: `${q}-MB${b.copy > 1 ? '-' + b.copy : ''}.xls`, steps, read: b.sheets.flatMap(sh => sh.read).concat(inp.read) });
     });
     ex.column.forEach(b => b.cases.forEach(c => {
       const r = (state.job.mezz || [])[c.mi], g = r && r.colGroups[c.group];
       const lab = g ? g.cols.map(x => `C${cno.get(x.label) || '?'}`).join(', ') : c.labels.join(', ');
-      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `Column ${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, note: '', name: `${q}-Column-${lab.replace(/[^A-Za-z0-9]+/g, '')}.xls`, steps: c.steps, read: c.read });
+      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, sub: c.labels.join(', '), note: '', name: `${q}-Column-${lab.replace(/[^A-Za-z0-9]+/g, '')}.xls`, steps: c.steps, read: c.read });
     }));
     const sj = state.job && state.job.seismic;
     (sj && sj.ok ? sj.buildings : []).forEach(b => (b.workbook ? b.workbook.frames : []).forEach(fr => out.push({
-      key: `seismic|${b.bkey}|${fr.label}`, kind: 'seismic', ed: null, title: `Seismic · ${sj.buildings.length > 1 ? b.name + ' · ' : ''}frame line ${fr.label}`, note: b.workbook.notes.join(' '),
+      key: `seismic|${b.bkey}|${fr.label}`, kind: 'seismic', ed: null, title: `${sj.buildings.length > 1 ? b.name + ' · ' : ''}Frame line ${fr.label}`, sub: 'Lateral Calcs. (1)', note: b.workbook.notes.join(' '),
       name: `${q}-Seismic-${sj.buildings.length > 1 ? b.name.replace(/[^A-Za-z0-9]+/g, '') + '-' : ''}F${fr.label}.xls`, steps: b.workbook.input.concat(b.workbook.long, fr.steps), read: fr.read.concat(b.workbook.longRead) })));
     return out;
   }
@@ -6837,12 +7308,45 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const kinds = [['beam', '13'], ['beam', '15'], ['beam', '16'], ['column', '15'], ['column', '16'], ['seismic', null]];
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
     const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
-    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t}</h5>${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(WB_NAME[k](j.ed))} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download filled workbook')}</div>`).join('')}</div>` : ''; }).join('');
-    el.innerHTML = `<div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
+    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
+    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all">Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
+      <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
     const inp = $('#wbFile'); if (inp) inp.onchange = () => { wbAdd(Array.from(inp.files || [])); inp.value = ''; };
     $$('#wbPanel [data-wbdel]').forEach(b => { b.onclick = async () => { await wbDel(b.dataset.wbdel); books.list = books.list.filter(x => x.id !== b.dataset.wbdel); renderAll(); }; });
+  }
+
+  /* ---------- the calc package: a design-basis workbook (inputs and their sources, the MB / Column sheet cells and
+     results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads) and
+     the filled NBG workbooks — at the bottom of the Beam and Column pages, and on the Design page ---------- */
+  const cpName = () => ((state.pcs && state.pcs.job.quote) || 'mezzanine').replace(/[^A-Za-z0-9-]+/g, '');
+  function cpXlsx() {
+    const sheets = window.MZ_CALCPACK.sheets(state.job, { inputs: state.all ? state.all.map(a => a.inputs) : [state.inputs], settings: state.settings, codeText: state.inputs && state.inputs.job && state.inputs.job.code ? state.inputs.job.code.text : '', generated: new Date().toISOString().slice(0, 10) });
+    return window.MZ_XLSX.book(sheets, { title: `${cpName()} calc package` });
+  }
+  const cpSave = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  async function cpDownload(what) {
+    if (!state.job) { toast('Load a PCS first'); return; }
+    try {
+      const xlsx = cpXlsx(), name = `${cpName()}-calc-package`;
+      if (what === 'xlsx') { cpSave(xlsx, name + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); toast(`${name}.xlsx — inputs, sources, MB / Column sheets, options, shop rules`); return; }
+      // everything: the package and every filled workbook this computer has
+      const files = [{ name: name + '.xlsx', data: xlsx }], missing = new Set();
+      wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value }))).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
+      if (zipIO.ok) for (const f of files) f.packed = await zipIO.deflate(f.data);   // compressed where the browser can
+      cpSave(window.MZ_XLSX.zip(files), name + '.zip', 'application/zip');
+      toast(`${name}.zip — the package and ${files.length - 1} filled workbook${files.length === 2 ? '' : 's'}${missing.size ? ` · add ${[...missing].join(', ')} to include ${missing.size > 1 ? 'them' : 'it'}` : ''}`);
+    } catch (e) { toast('Calc package: ' + (e.message || e)); }
+  }
+  document.addEventListener('click', ev => { const b = ev.target.closest('[data-cpdl]'); if (b) { ev.preventDefault(); cpDownload(b.dataset.cpdl); } });
+  function renderCalcPack() {
+    const ready = !!(state.job && state.job.marks && state.job.marks.length);
+    const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
+    $$('.calcpack').forEach(el => {
+      el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" title="${nWb}/${nAll} workbooks added">Everything (.zip)</button></div></div>`;
+    });
   }
 
   function renderResults() {
@@ -7242,7 +7746,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 
   // ---------- plan ----------
   $$('#joistSeg button').forEach(b => { b.onclick = () => { state.settings.joists = b.dataset.j; delete state.settings.xLines; delete state.settings.yLines; recompute(); }; });
-  $('#gridReset').onclick = () => { delete state.settings.xLines; delete state.settings.yLines; recompute(); };
+  $('#gridReset').onclick = () => { ['xLines', 'yLines', 'drop', 'colKind'].forEach(k => delete state.settings[k]); recompute(); };
   const listIn = str => str.split(/[,;\s]+/).map(t => PCS.ftin(t) ?? parseFloat(t)).filter(v => isFinite(v));
   function onGridEdit() {
     const lay = state.res.layout, bl = listIn($('#beamLinesIn').value), sl = listIn($('#supLinesIn').value);
@@ -7289,6 +7793,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     if ((uy1 - uy0) / W < 0.75) { ya = Math.max(0, ...lineY.filter(y => y <= uy0 - 6)); yb = Math.min(W, ...lineY.filter(y => y >= uy1 + 6)); }
     const VW = 1100, M = 64, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
     const X = x => M + (x - xa) * s, Y = y => M + 12 + (yb - y) * s;
+    state.planXf = { xa, yb, s, M };   // the edit mode maps a click back to feet
     const inX = x => x >= xa - 0.01 && x <= xb + 0.01, inY = y => y >= ya - 0.01 && y <= yb + 0.01;
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
@@ -7373,6 +7878,9 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       o.push(`<g class="mcol" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/></g>`);
       o.push(`<g class="tag c" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}"><rect x="${cx + 11}" y="${cy + 7}" width="26" height="16" rx="8"/><text x="${cx + 24}" y="${cy + 15.5}">${lab}</text></g><text class="lbl" x="${cx + 41}" y="${cy + 19}">${c.label}</text>`);
     }));
+    // columns taken out on the Plan page: a ghost, click it (edit mode) to put it back
+    ms.forEach(m => (m.layout.dropped || []).forEach(d => { const cx = X(d.x), cy = Y(d.y), dd = 5.6;
+      o.push(`<g class="mcol dropped" data-dropped="${m.index}|${d.x}|${d.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="8"/><path d="M${cx - dd},${cy - dd} L${cx + dd},${cy + dd} M${cx - dd},${cy + dd} L${cx + dd},${cy - dd}"/><title>${esc(d.label)} taken out — the beam spans through</title></g>`); }));
     if (r.planCheck && r.planCheck.ok) r.planCheck.cols.forEach(c => o.push(`<circle class="seen" cx="${X(c.x)}" cy="${Y(c.y)}" r="14"><title>Mezzanine column on the PCS floor plan</title></circle>`));
     // joist direction, and the mezzanine's name in its first joist bay (click it to edit that mezzanine)
     ms.forEach(m => {
@@ -7397,10 +7905,11 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const tb = $$(`#planSvg .trib[data-band="${el.dataset.beam}"]`);   // its own floor, and a neighbour's edge it carries
       el.addEventListener('mouseenter', () => tb.forEach(x => x.classList.add('on')));
       el.addEventListener('mouseleave', () => tb.forEach(x => x.classList.remove('on')));
-      el.addEventListener('click', () => { const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(job.mezz[mi], id); });
+      el.addEventListener('click', () => { if (state.planEdit) return; const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(job.mezz[mi], id); });
     });
-    $$('#planSvg [data-col]').forEach(el => { el.addEventListener('click', () => { const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }); });
-    $$('#planSvg [data-mezz]').forEach(el => { el.addEventListener('click', () => switchMezz(+el.dataset.mezz)); });
+    $$('#planSvg [data-col]').forEach(el => { el.addEventListener('click', () => { if (state.planEdit) return; const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }); });
+    $$('#planSvg [data-mezz]').forEach(el => { el.addEventListener('click', () => { if (!state.planEdit) switchMezz(+el.dataset.mezz); }); });
+    layBarSync();
     $('#planLegend').innerHTML = marks.map(mk => `<span class="lg-mk"><svg width="26" height="12"><rect width="26" height="12" rx="2" fill="${mkVar(mk)}" opacity=".22"/><line x1="0" y1="6" x2="26" y2="6" stroke="${mkVar(mk)}" stroke-width="5"/></svg><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} · ${mk.qtyAll} beam${mk.qtyAll === 1 ? '' : 's'} · ${ft(mkDz(mk).span)} × ${ft(mkDz(mk).trib)}${mkDz(mk).set ? ' design' : ''}${mkShort(mk) ? ' (' + mkShort(mk) + ')' : ''}</span>`).join('') +
       `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${t.nC}</span>` +
       (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
@@ -7418,6 +7927,104 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       jcols.map(c => `<tr><td class="mono"><b>C${cno.get(c.label)}</b> · ${c.label}</td><td><b style="color:var(--red)">Mezzanine column ⊗</b>${many ? ' · ' + esc(c.ownerId) : ''}${c.shared ? ' · shared' : ''}<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' · ')}</small></td><td class="num">${f(c.tribArea, 0)} ft²</td><td class="num">${f(c.DL_L, 2)} / ${f(c.LL_L, 2)}</td><td class="num">${f(c.DL_R, 2)} / ${f(c.LL_R, 2)}</td></tr>`).join('') +
       fls.filter(q => ms.some(m => q.seenIn.includes(m.index))).map(q => `<tr class="frame-row"><td class="mono">${q.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${q.parts.map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(q.D, 2)} · L ${f(q.L, 2)} k</b></td></tr>`).join('') + '</tbody>';
   }
+
+  // ---------- layout edits on the plan: a column made a frame / mezzanine column or taken out, beam and column lines
+  //            added or removed. Each is a setting of that mezzanine (lines, drop, colKind), undoable, and the whole job
+  //            re-designs from it: beams, columns, frame loads, seismic, the quote ----------
+  const LAY_KEYS = ['xLines', 'yLines', 'drop', 'colKind', 'joists'], layUndo = [];
+  const ptKey = (x, y) => `${(+x).toFixed(2)},${(+y).toFixed(2)}`;
+  const laySnap = () => allSettings().map(st => JSON.stringify(Object.fromEntries(LAY_KEYS.filter(k => st[k] !== undefined).map(k => [k, st[k]]))));
+  const layRestore = snap => allSettings().forEach((st, i) => { LAY_KEYS.forEach(k => delete st[k]); Object.assign(st, JSON.parse(snap[i] || '{}')); });
+  function layDo(msg, fn) {
+    layUndo.push(laySnap()); if (layUndo.length > 60) layUndo.shift();
+    fn(); hideLayPop(); recompute(); toast(msg);
+  }
+  // the lines as they are now, kept: an added or removed line edits that list
+  const layFreeze = (st, ly) => { st.joists = ly.joists; st[ly.joists === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.slice(); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.slice(); };
+  const layLine = (m, axis, v) => ((axis === 'y' ? m.grid.yLabel(v) : m.grid.xLabel(v)) ? `line ${axis === 'y' ? m.grid.yLabel(v) : m.grid.xLabel(v)}` : `${ft(v)} from the ${axis === 'y' ? 'FSW' : 'LEW'}`);
+  const hideLayPop = () => { const p = $('#layPop'); if (p) { p.hidden = true; p.innerHTML = ''; } $$('#planSvg .edit-ring').forEach(e => e.remove()); };
+  function layBarSync() {
+    const on = !!state.planEdit;
+    $('#layEdit').setAttribute('aria-pressed', on); $('#layBar').hidden = !on;
+    $('#v-plan .panel.plan').classList.toggle('is-editing', on);
+    $('#layUndo').disabled = !layUndo.length;
+  }
+  $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); };
+  $('#layDone').onclick = () => { state.planEdit = false; hideLayPop(); layBarSync(); };
+  $('#layUndo').onclick = () => { const snap = layUndo.pop(); if (!snap) return; layRestore(snap); hideLayPop(); recompute(); toast('Undone'); };
+  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])));
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideLayPop(); });
+  document.addEventListener('click', ev => { const p = $('#layPop'); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest('#planSvg')) hideLayPop(); });
+
+  function layMenu(ev) {
+    if (!state.planEdit || !state.job || !state.planXf) return;
+    const svg = $('#planSvg'), q = svg.createSVGPoint(); q.x = ev.clientX; q.y = ev.clientY;
+    const v = q.matrixTransform(svg.getScreenCTM().inverse()), xf = state.planXf;
+    const wx = xf.xa + (v.x - xf.M) / xf.s, wy = xf.yb - (v.y - xf.M - 12) / xf.s;
+    const ms = jobView(), sets = allSettings(), items = [];
+    const ring = (cx, cy) => { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('class', 'edit-ring'); c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 17); svg.appendChild(c); };
+    let head = '';
+    const tgt = ev.target.closest('[data-dropped],[data-col],[data-tip^="bcol"],[data-beam]');
+    hideLayPop();
+    if (tgt && tgt.dataset.dropped) {
+      const [mi, x, y] = tgt.dataset.dropped.split('|').map(Number), m = state.job.mezz[mi], d = (m.layout.dropped || []).find(z => atPt(z, { x, y }));
+      head = `${esc(d ? d.label : '')} · taken out`;
+      items.push({ t: 'Put the column back', sub: 'the beam stops here again', go: () => layDo(`${d.label}: column back`, () => { const st = sets[mi]; st.drop = (st.drop || []).filter(k => k !== ptKey(x, y)); if (!st.drop.length) delete st.drop; }) });
+    } else if (tgt && (tgt.dataset.col || /^bcol/.test(tgt.dataset.tip || ''))) {
+      const [x, y] = (tgt.dataset.col || tgt.dataset.tip.replace(/^bcol\|/, '')).split('|').map(Number), p = { x, y };
+      const owners = ms.filter(m => m.layout.supports.some(sp => atPt(sp, p)));
+      if (!owners.length) { head = 'Building column'; items.push({ t: 'No mezzanine beam frames in here', sub: 'nothing to change at this column', off: true }); }
+      else {
+        const m0 = owners[0], sp = m0.layout.supports.find(z => atPt(z, p)), ly = m0.layout, k = ptKey(x, y);
+        const along = ly.joists === 'y' ? sp.x : sp.y, si = ly.supportLines.findIndex(u => Math.abs(u - along) < 1e-6), inner = si > 0 && si < ly.supportLines.length - 1;
+        const cn = colNos().get(sp.label);
+        head = `${sp.building ? 'Frame column' : 'Mezzanine column'}${cn && !sp.building ? ' C' + cn : ''} · ${esc(sp.label)}`;
+        const user = owners.some(m => (m.layout.supports.find(z => atPt(z, p)) || {}).userKind);
+        items.push(sp.building
+          ? { t: user ? 'Back to a mezzanine column' : 'Make it a mezzanine column ⊗', sub: 'designed on the Column sheet; the frame takes no mezzanine load here', go: () => layDo(`${sp.label}: mezzanine column`, () => owners.forEach(m => { const st = sets[m.index], cur = (m.layout.supports.find(z => atPt(z, p)) || {}); st.colKind = { ...(st.colKind || {}) }; if (cur.userKind) delete st.colKind[k]; else st.colKind[k] = 'mezz'; if (!Object.keys(st.colKind).length) delete st.colKind; })) }
+          : { t: user ? 'Back to a frame column' : 'Make it a frame column', sub: 'its beam reactions go to the frame design (FDL / FLL) — add the column in NBG Frame if the frame has none here', go: () => layDo(`${sp.label}: frame column`, () => owners.forEach(m => { const st = sets[m.index], cur = (m.layout.supports.find(z => atPt(z, p)) || {}); st.colKind = { ...(st.colKind || {}) }; if (cur.userKind) delete st.colKind[k]; else st.colKind[k] = 'frame'; if (!Object.keys(st.colKind).length) delete st.colKind; })) });
+        if (inner) {
+          const bs = ly.beams.filter(b => Math.abs(b.line - (ly.joists === 'y' ? sp.y : sp.x)) < 1e-6 && (Math.abs(b.from - along) < 1e-6 || Math.abs(b.to - along) < 1e-6));
+          const span = bs.reduce((a, b) => a + b.span, 0);
+          items.push({ t: 'Take the column out', sub: `the beam spans through${span ? `: ${ft(span)}` : ''} — one beam instead of two`, go: () => layDo(`${sp.label}: column taken out`, () => owners.forEach(m => { const st = sets[m.index]; st.drop = [...new Set([...(st.drop || []), k])]; })) });
+          items.push({ t: `Remove ${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)} of columns`, sub: 'every beam spans through this line', go: () => layDo(`${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)}: columns removed`, () => { const st = sets[m0.index]; layFreeze(st, ly); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.filter((u, i) => i !== si); }) });
+        } else items.push({ t: 'A beam ends here', sub: 'an end support stays (no cantilever) — make it a frame or a mezzanine column', off: true });
+      }
+      ring(v.x, v.y);
+    } else if (tgt && tgt.dataset.beam) {
+      const [mi, id] = tgt.dataset.beam.split(':').map(Number), m = state.job.mezz[mi], ly = m.layout, b = ly.beams[id];
+      const bi = ly.beamLines.findIndex(u => Math.abs(u - b.line) < 1e-6), inner = bi > 0 && bi < ly.beamLines.length - 1, ax = ly.joists === 'y' ? 'y' : 'x';
+      const mk = mkOf(m, id);
+      head = `B${id + 1}${mk ? ' · ' + esc(mk.mark) : ''} · ${esc(layLine(m, ax, b.line))}`;
+      if (inner) items.push({ t: `Remove the beam line`, sub: `joists span ${ft(ly.beamLines[bi + 1] - ly.beamLines[bi - 1])} across it — the beams either side carry more`, go: () => layDo(`${layLine(m, ax, b.line)}: beam line removed`, () => { const st = sets[mi]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.filter((u, i) => i !== bi); }) });
+      else items.push({ t: 'An edge beam stays', sub: 'it carries the slab edge', off: true });
+      items.push({ t: 'Open its calc', sub: 'the MB sheet for this mark', go: () => { hideLayPop(); openBeam(m, id); } });
+    } else {
+      const m = ms.find(z => { const f2 = z.layout.footprint; return wx >= f2.x0 - 0.01 && wx <= f2.x1 + 0.01 && wy >= f2.y0 - 0.01 && wy <= f2.y1 + 0.01; });
+      if (!m) return;
+      const ly = m.layout, bAx = ly.joists === 'y' ? 'y' : 'x', sAx = bAx === 'y' ? 'x' : 'y', snap = val => Math.round(val * 2) / 2;
+      const bAt = snap(bAx === 'y' ? wy : wx), sAt = snap(sAx === 'y' ? wy : wx);
+      head = `${esc(m.id)} · floor`;
+      const add = (kind, inputId) => {
+        const lines = kind === 'beam' ? ly.beamLines : ly.supportLines, ax = kind === 'beam' ? bAx : sAx, raw = $('#' + inputId).value.trim();
+        const at = PCS.ftin(raw) ?? parseFloat(raw);
+        if (!isFinite(at) || at <= lines[0] + 1 || at >= lines[lines.length - 1] - 1) { toast(`Put it inside the mezzanine, more than 1'-0" in from its edges`); return; }
+        if (lines.some(u => Math.abs(u - at) < 1)) { toast(`There is a line within 1'-0" of ${ft(at)} already`); return; }
+        layDo(`${kind === 'beam' ? 'Beam' : 'Column'} line added at ${ft(at)} from the ${ax === 'y' ? 'FSW' : 'LEW'}`, () => { const st = sets[m.index]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = [...lines, at].sort((a, c) => a - c); });
+      };
+      items.push({ t: 'Add a beam line', sub: 'joists span shorter; new beams, and columns at their ends', at: { id: 'layAtB', v: ft(bAt), from: bAx === 'y' ? 'FSW' : 'LEW' }, go: () => add('beam', 'layAtB') });
+      items.push({ t: 'Add a column line', sub: 'the beams span shorter; new columns along it', at: { id: 'layAtS', v: ft(sAt), from: sAx === 'y' ? 'FSW' : 'LEW' }, go: () => add('support', 'layAtS') });
+      ring(v.x, v.y);
+    }
+    const pop = $('#layPop'), wrap = pop.parentElement, wr = wrap.getBoundingClientRect();
+    pop.innerHTML = `<h6>${head}</h6>` + items.map((it, i) => `<button type="button" data-i="${i}" ${it.off ? 'disabled' : ''}>${esc(it.t)}<small>${esc(it.sub || '')}</small></button>${it.at ? `<div class="lay-at"><span>at</span><input id="${it.at.id}" value="${esc(it.at.v)}" aria-label="${esc(it.t)} at"><span>from the ${it.at.from}</span></div>` : ''}`).join('');
+    pop.hidden = false;
+    const left = Math.min(ev.clientX - wr.left + 10, wr.width - pop.offsetWidth - 8), top = Math.min(ev.clientY - wr.top + 10, wr.height - pop.offsetHeight - 8);
+    pop.style.left = Math.max(8, left) + 'px'; pop.style.top = Math.max(8, top) + 'px';
+    $$('#layPop button[data-i]').forEach(bt => { bt.onclick = e2 => { e2.stopPropagation(); const it = items[+bt.dataset.i]; if (it.go) it.go(); }; });
+    $$('#layPop input').forEach(inp => inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { const it = items.find(z => z.at && z.at.id === inp.id); if (it) it.go(); } }));
+  }
+  $('#planSvg').addEventListener('click', layMenu);
 
   // ---------- seismic: the mezzanine on the frames (EQR / EQL) and the bracing, as the IBC Seismic workbook ----------
   const SEIS_TYPE = t => (window.MZ_SEISMIC && window.MZ_SEISMIC.frameType(t)) || 'Rigid Frame';
@@ -7908,7 +8515,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     $('#biTry').onclick = () => dzOpen('beam', mk.mark);
   }
   // ---------- how a beam / a column was arrived at: the steps, with this job's numbers (folded under the tabs) ----------
-  const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
+  const RULE_TXT = DESIGN.RULE_TXT;
   function renderBeamHow(mk, r, inp) {
     const el = $('#beamHow');
     if (!el) return;
@@ -7952,7 +8559,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   function renderBeam() {
     const marks = jobMarks();
     $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
-    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); }; });
+    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); renderCalcPack(); }; });
     const mk = marks[state.mark];
     if (!mk) { $('#beamInputs').innerHTML = ''; $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; $('#xlBeam').innerHTML = ''; $('#xlBeamSub').textContent = ''; return; }
     // every member length of the mark: the governing run (longest span, largest trib) and the shorter beams — same section, own MB sheet
@@ -8163,7 +8770,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C3</span> the mezzanine column's number on the plan · <span class="mono">2/B</span> the grid point, frame line 2 × column line B · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
     $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
-    $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); }; });
+    $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); renderCalcPack(); }; });
     const g = r.colGroups[state.colGroup];
     if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
     else {
@@ -8335,8 +8942,12 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     }
     const marks = state.job ? jobMarks().filter(m => m.sec) : [];
     const near = dz.near;
+    // the clearance C of the mark it would be used for caps the depth: say so on anything deeper
+    const um0 = marks.find(m => m.mark === (b.useMark || b.from)) || marks[0], sr0 = um0 && um0.search;
+    const cap = sr0 && sr0.dTop < sr0.options.dMax ? sr0.dTop : null;
+    const overC = d => (cap != null && d > cap ? `<small class="dz-flag">deeper than ${esc(um0.mark)}'s clearance allows (${cap}")</small>` : '');
     out.innerHTML = `<div class="panel dz-res">
-      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf${sec.type === 'BU' ? ` · ${secParts(sec)}` : ''}</small></h3></div>
+      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf${sec.type === 'BU' ? ` · ${secParts(sec)}` : ''}</small></h3>${sec.type === 'BU' ? overC(sec.d) : ''}</div>
         <span class="dz-pill ${pass ? 'ok' : 'ng'}">${pass ? 'Passes' : 'Does not pass'}${gov ? ` · ${gov[0]} ${gov[0].includes('deflection') ? `L/${f(gov[0] === 'live deflection' ? c.defl.rLL : c.defl.rTL, 0)}` : f(gov[1], 3)}` : ''}</span></div>
       <div class="dz-tiles">
         ${tile('Floor dead · each end', `${f(c.V.D, 3)} k`, null, 'MB H6 · to the column / frame')}
@@ -8351,9 +8962,9 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       ${shop}
       <div class="dz-actions">
         ${marks.length ? `<label class="dz-use">Use for ${dzSel('beam.useMark', b.useMark || (marks.find(m => m.mark === b.from) || marks[0]).mark, marks.map(m => [m.mark, `${m.mark}${m.kind ? ' · ' + m.kind : ''} (now ${m.desc})`]))}</label><button class="btn-soft" id="dzUse" type="button" ${pass ? '' : 'title="It does not pass — it can still be used, flagged on the Design page"'}>Use this section</button>` : '<span class="sub-n">Load a PCS to use this section for a beam mark.</span>'}
-        ${sec.type === 'BU' ? `<button class="btn-ghost" id="dzNear" type="button">Lighter sections that pass, ${Math.max(state.settings.dMin, sec.d - 3)}"–${Math.min(state.settings.dMax, sec.d + 3)}"</button>` : ''}
+        ${sec.type === 'BU' ? `<button class="btn-ghost" id="dzNear" type="button">Sections that pass, ${Math.max(state.settings.dMin, sec.d - 3)}"–${Math.min(state.settings.dMax, sec.d + 3)}", lightest first</button>` : ''}
       </div>
-      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b></td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
+      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b>${overC(z.d)}</td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
       <details class="dz-sheet"><summary>The full MB sheet</summary>${mbSheetBody(c, p, sec, null)}</details>
     </div>`;
     const use = $('#dzUse');

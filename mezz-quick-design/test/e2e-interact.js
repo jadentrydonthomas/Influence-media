@@ -267,6 +267,28 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     }
   } else console.log('NBG workbooks'.padEnd(30), 'not present — download test skipped');
 
+  // the calc package at the bottom of the Beam and Column pages: the design-basis workbook; with the NBG workbooks added,
+  // a zip of it and every filled copy
+  {
+    const zlib = require('zlib');
+    const unzip = u => { const out = {}; let o = 0; while (u.readUInt32LE(o) === 0x04034b50) { const m = u.readUInt16LE(o + 8), cs = u.readUInt32LE(o + 18), nl = u.readUInt16LE(o + 26), xl = u.readUInt16LE(o + 28), name = u.toString('utf8', o + 30, o + 30 + nl), raw = u.subarray(o + 30 + nl + xl, o + 30 + nl + xl + cs); out[name] = m === 8 ? zlib.inflateRawSync(raw) : raw; o += 30 + nl + xl + cs; } return out; };
+    await page.click('#nav button[data-view="beam"]'); await page.waitForTimeout(150);
+    const [cx] = await Promise.all([page.waitForEvent('download'), page.click('.calcpack[data-cp="beam"] [data-cpdl="xlsx"]')]);
+    const cxp = path.join(shots, cx.suggestedFilename()); await cx.saveAs(cxp);
+    const parts = unzip(fs.readFileSync(cxp)), names = [...String(parts['xl/workbook.xml'] || '').matchAll(/<sheet name="([^"]+)"/g)].map(m => m[1]);
+    console.log('calc package'.padEnd(30), cx.suggestedFilename(), '·', names.join(', '));
+    if (!['Summary', 'Inputs', 'MB sheets', 'Beam options', 'Shop rules', 'Columns', 'Frame loads', 'Sources'].every(n => names.includes(n))) fail('the calc package should carry every sheet');
+    if (/NaN|undefined/.test(Object.values(parts).map(String).join(''))) fail('the calc package has NaN / undefined in it');
+    await page.click('#nav button[data-view="column"]'); await page.waitForTimeout(150);
+    const [cz] = await Promise.all([page.waitForEvent('download'), page.click('.calcpack[data-cp="col"] [data-cpdl="all"]')]);
+    const czp = path.join(shots, cz.suggestedFilename()); await cz.saveAs(czp);
+    const zn = Object.keys(unzip(fs.readFileSync(czp)));
+    console.log('calc package zip'.padEnd(30), cz.suggestedFilename(), '·', zn.length, 'files ·', zn.filter(n => n.startsWith('workbooks/')).length, 'filled workbooks');
+    if (!zn.some(n => /\.xlsx$/.test(n))) fail('the zip should carry the calc package');
+    if (fs.existsSync(path.join(wbDir, 'IBC_Seismic.xls')) && !zn.some(n => /^workbooks\/.+\.xls$/.test(n))) fail('the zip should carry the filled workbooks');
+  }
+
+  const allLightest = async () => { for (let k = 0; k < 8; k++) { const b = await page.$('#options [data-opt="lightest"]'); if (!b) break; await b.click(); await page.waitForTimeout(180); } };
   // beam options on the results page
   await page.click('#nav button[data-view="results"]');
   const opts = await page.$$eval('#options .option', os => os.length);
@@ -276,9 +298,8 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     if (!b) continue;
     await b.click(); await page.waitForTimeout(150); await log('option ' + k);
   }
-  // (no button when the option on screen is the lightest section already — every card reads "In the quote")
-  const lt = await page.$('#options [data-opt="lightest"]');
-  if (lt) { await lt.click(); await page.waitForTimeout(150); }
+  // back to the lightest on every mark (the cards list each mark's options; no button where the lightest is on the quote)
+  await allLightest();
   if (await quote() !== base) fail('back to lightest did not restore the quote');
 
   // pick a depth from the beam calc table, then return
@@ -292,8 +313,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   await page.click(`#altTable tr.pick[data-d="${depths[Math.floor(depths.length / 2)]}"]`); await log(`picked ${depths[Math.floor(depths.length / 2)]}" row`);
   await page.click('#nav button[data-view="results"]');
   // back to lightest (no button when the picked row is the lightest section already: it is "In the quote")
-  const lightest = await page.$('#options [data-opt="lightest"]');
-  if (lightest) { await lightest.click(); await page.waitForTimeout(150); }
+  await allLightest();
 
   // Beam calc inputs: a design span 1'-0" under the layout goes on the MB sheet and the quote; the plan's columns and the
   // frame loads stay where they are; "Back to the layout" restores the answer
@@ -387,6 +407,94 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   }
   for (const t of ['slab', 'joists']) await page.click(`#modelToggles button[data-t="${t}"]`);
   await page.screenshot({ path: path.join(shots, 'model-selected.png'), fullPage: false });
+
+  // layout edits on the Plan page: a mezzanine column made a frame column, a column line added on the floor, undo, reset
+  {
+    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(200);
+    const nCols = () => page.$eval('#planStats .pstat.cols strong', e => parseInt(e.textContent, 10));
+    const nBeams = () => page.$eval('#planStats .pstat.beams strong', e => parseInt(e.textContent, 10));
+    const c0 = await nCols(), b0 = await nBeams(), q0 = await quote();
+    await page.click('#layEdit'); await page.waitForTimeout(150);
+    const col = await page.$('#planSvg .mcol[data-col]');
+    if (col) {
+      await col.click({ force: true }); await page.waitForTimeout(150);
+      const menu = await page.$eval('#layPop', e => e.innerText.replace(/\n+/g, ' | '));
+      if (!/Make it a frame column/.test(menu)) fail('a mezzanine column should offer "Make it a frame column"');
+      await page.click('#layPop button[data-i="0"]'); await page.waitForTimeout(400);
+      const c1 = await nCols();
+      console.log('layout: frame column'.padEnd(30), `${c0} → ${c1} mezzanine columns`);
+      if (c1 !== c0 - 1) fail('making a column a frame column should drop one mezzanine column');
+      await page.click('#layUndo'); await page.waitForTimeout(400);
+      if (await nCols() !== c0) fail('undo should bring the mezzanine column back');
+    }
+    // a point on the floor of the first mezzanine, between its first two beam lines (clear of the beams and their tags)
+    // and off the column lines
+    const fp = await page.evaluate(() => {
+      const f = document.querySelector('#planSvg rect.foot').getBoundingClientRect(), mid = (a, b) => (a + b) / 2;
+      const rs = [...document.querySelectorAll('#planSvg line.beam[data-beam]')].map(l => l.getBoundingClientRect()).filter(r => r.left >= f.left - 3 && r.right <= f.right + 3 && r.top >= f.top - 3 && r.bottom <= f.bottom + 3);
+      const vx = [...new Set(rs.filter(r => r.width < 12).map(r => Math.round(mid(r.left, r.right))))].sort((a, b) => a - b);
+      const hy = [...new Set(rs.filter(r => r.height < 12).map(r => Math.round(mid(r.top, r.bottom))))].sort((a, b) => a - b);
+      // across the beams, a quarter of the way in: clear of a column line in the middle of the floor
+      return { x: vx.length > 1 ? mid(vx[0], vx[1]) : f.left + f.width * 0.27, y: hy.length > 1 ? mid(hy[0], hy[1]) : f.top + f.height * 0.27 };
+    });
+    await page.mouse.click(fp.x, fp.y); await page.waitForTimeout(200);
+    const fm = await page.$eval('#layPop', e => (e.hidden ? '' : e.innerText));
+    if (!/Add a column line/.test(fm)) fail('a click on the floor should open the add menu: ' + fm.replace(/\n+/g, ' | '));
+    else {
+      await page.click('#layPop button[data-i="1"]'); await page.waitForTimeout(500);
+      const b1 = await nBeams();
+      console.log('layout: column line added'.padEnd(30), `${b0} → ${b1} beams`);
+      if (!(b1 > b0)) fail('a new column line should split the beams');
+    }
+    await page.click('#layReset'); await page.waitForTimeout(500);
+    await page.click('#layDone');
+    if (await nCols() !== c0 || await nBeams() !== b0 || await quote() !== q0) fail('"Reset layout" should restore the layout and the quote');
+  }
+
+  // design your own: start from a mark and the MB sheet answers; a new depth re-runs it; a section from "lighter sections
+  // that pass" loads and goes on the quote for a mark; the Design page's lightest option brings the answer back
+  await page.click('#nav button[data-view="designer"]'); await page.waitForTimeout(150);
+  await page.click('#dzTabs button[data-t="beam"]'); await page.waitForTimeout(100);
+  const dzHead = () => page.$eval('#dzOut .dz-res-head', e => e.innerText.replace(/\s+/g, ' ')).catch(() => '');
+  const srcOpts = await page.$$eval('#dzFrom option', os => os.map(o => o.value).filter(Boolean));
+  if (!srcOpts.length) fail('the designer should offer the job\'s marks to start from');
+  else {
+    await page.selectOption('#dzFrom', srcOpts[0]); await page.waitForTimeout(200);
+    const h1 = await dzHead();
+    console.log('designer: from the job'.padEnd(30), h1);
+    if (!/Passes/.test(h1)) fail('the job\'s own section should pass in the designer');
+    const d0 = +(await page.$eval('#dzBody [data-dz="beam.d"]', e => e.value).catch(() => 0));
+    if (d0) {
+      await page.fill('#dzBody [data-dz="beam.d"]', String(d0 - 2)); await page.waitForTimeout(200);
+      const h2 = await dzHead();
+      console.log(`designer: ${d0 - 2}" deep`.padEnd(30), h2);
+      if (!h2.includes(`BU${d0 - 2}x`)) fail('a new depth should re-run the MB sheet');
+      await page.click('#dzNear'); await page.waitForTimeout(500);
+      const near = await page.$$eval('#dzOut .dz-near tbody tr', trs => trs.filter(t => t.cells.length > 2).map(t => t.cells[1].textContent.trim()));
+      console.log('designer: lighter, passing'.padEnd(30), near.join(', ') || 'none');
+      if (near.length) {
+        const i = near.length - 1;
+        await page.click(`#dzOut .dz-take[data-i="${i}"]`); await page.waitForTimeout(200);
+        const h3 = await dzHead();
+        if (!h3.includes(near[i]) || !/Passes/.test(h3)) fail('a loaded section should show, passing');
+        const mark = await page.$eval('#dzBody [data-dz="beam.useMark"]', e => e.value);
+        await page.click('#dzUse'); await page.waitForTimeout(300);
+        const q = await log(`designer: ${mark} → ${near[i]}`);
+        if (!q.includes(near[i])) fail('"Use this section" should put it on the quote');
+        await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
+        await allLightest();
+        if (await quote() !== base) fail('the lightest option after the designer should restore the quote');
+      }
+    }
+  }
+  await page.click('#nav button[data-view="designer"]'); await page.click('#dzTabs button[data-t="col"]'); await page.waitForTimeout(150);
+  const colSrc = await page.$$eval('#dzFrom option', os => os.map(o => o.value).filter(Boolean));
+  if (colSrc.length) { await page.selectOption('#dzFrom', colSrc[0]); await page.waitForTimeout(200); }
+  const colHead = await dzHead();
+  console.log('designer: column'.padEnd(30), colHead);
+  if (!/max CSR \d/.test(colHead)) fail('the column designer should show the Column sheet answer');
+  await page.click('#dzTabs button[data-t="beam"]');
+  await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
 
   // copy buttons: rail copies all three tables as TSV
   await page.click('#copyQuote'); await page.waitForTimeout(150);

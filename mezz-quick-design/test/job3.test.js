@@ -55,5 +55,20 @@ const PLAN = require('../src/plan.js');
   assert.ok(!cj.frameEntries.some(f => f.frame === '3'), 'no load on frame 3 once the edge leaves line A');
   assert.ok(cj.mezz[0].warn.some(w => w.level === 'warn' && /BSW-side edge is at 118'-4", 1'-8" short of the building column line A/.test(w.text)), 'the guard names it');
   assert.ok(!job.mezz.some(r => r.warn.some(w => /short of the building column line/.test(w.text))), 'no guard on the job as quoted');
+  // the Plan page edits: 3/B made a frame column (no column there in the frame: added, named so, no member), 1/A made a
+  // mezzanine column (designed on the Column sheet, gone from frame 1), and a new column line at 108'-0" across Mezz 1
+  {
+    const kinds = { '56.00,96.00': 'frame', '0.00,120.00': 'mezz' };
+    const ej = RUN.runJob(inps.map((inp, i) => ({ inp, settings: i === 0 ? { colKind: kinds } : {} })));
+    const m1 = ej.mezz[0], cols = m1.layout.mezzCols.map(c => c.label);
+    assert.ok(!cols.includes('3/B') && cols.includes('1/A'), cols.join(' '));
+    const f3 = ej.frameEntries.find(f => f.frame === '3').entries.find(e => e.label === '3/B');
+    assert.ok(f3 && f3.member === null && /made a frame column on the Plan page: add it in NBG Frame/.test(f3.where), JSON.stringify(f3 && f3.where));
+    assert.ok(!ej.frameEntries.find(f => f.frame === '1').entries.some(e => e.label === '1/A'), '1/A no longer loads frame 1');
+    assert.ok(m1.warn.some(w => /3\/B: made a frame column on the Plan page/.test(w.text)) && m1.warn.some(w => /1\/A: made a mezzanine column/.test(w.text)));
+    const lj = RUN.runJob(inps.map((inp, i) => ({ inp, settings: i === 0 ? { joists: 'x', xLines: job.mezz[0].layout.beamLines, yLines: [96, 108, 120] } : {} })));
+    assert.deepStrictEqual([...new Set(lj.mezz[0].layout.beams.map(b => b.span))], [12]);
+    assert.strictEqual(lj.mezz[0].layout.mezzCols.filter(c => c.y === 108).length, 6, 'a column on every beam line at 108\'-0"');
+  }
   console.log('job3 tests passed (W1S-26062: 8/8 ⊗, ✱ 3/E–6/E, I 2/E, joists along the length from the truss symbols, frame loads on members; MB1 design span 22\'-4" keeps line A on the frame; footprint cut flagged)');
 })().catch(e => { console.error(e); process.exit(1); });

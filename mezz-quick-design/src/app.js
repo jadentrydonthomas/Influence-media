@@ -139,7 +139,8 @@
   tipEl.className = 'hover-tip'; tipEl.hidden = true; document.body.appendChild(tipEl);
   let tipKey = null;
   document.addEventListener('mousemove', e => {
-    const t = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+    // no hover card while the plan is being edited, or over the edit menu
+    const t = e.target && e.target.closest && !(state.planEdit && e.target.closest('#planSvg, #layPop')) ? e.target.closest('[data-tip]') : null;
     if (!t) { if (tipKey) { tipKey = null; tipEl.hidden = true; } return; }
     if (t.dataset.tip !== tipKey) { tipKey = t.dataset.tip; const h = tipHtml(tipKey); tipEl.innerHTML = h; tipEl.hidden = !h; }
     if (tipEl.hidden) return;
@@ -388,7 +389,7 @@
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); }
+  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -675,17 +676,17 @@
     const out = [], q = (state.pcs && state.pcs.job.quote) || 'mezzanine', ex = (state.job && state.job.excel) || { beam: [], column: [] }, cno = colNos();
     ex.beam.forEach(b => {
       const inp = b.inputs[0], steps = inp.steps.concat(b.sheets.flatMap(sh => sh.steps));
-      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: `Beams · ${b.sheets.map(x => `sheet ${x.sheet}: ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ' ' + ft(x.span)}`).join(' · ')}`,
-        note: b.inputs.length > 1 ? `INPUT sheet with ${inp.mezz}'s heights (the MB results do not use them)` : '', name: `${q}-MB${b.copy > 1 ? '-' + b.copy : ''}.xls`, steps, read: b.sheets.flatMap(sh => sh.read).concat(inp.read) });
+      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: b.sheets.map(x => `${x.mark} ${ft(x.span)}`).join(' · '), sub: b.sheets.map(x => x.sheet).join(', '),
+        note: b.inputs.length > 1 ? `INPUT with ${inp.mezz}'s heights` : '', name: `${q}-MB${b.copy > 1 ? '-' + b.copy : ''}.xls`, steps, read: b.sheets.flatMap(sh => sh.read).concat(inp.read) });
     });
     ex.column.forEach(b => b.cases.forEach(c => {
       const r = (state.job.mezz || [])[c.mi], g = r && r.colGroups[c.group];
       const lab = g ? g.cols.map(x => `C${cno.get(x.label) || '?'}`).join(', ') : c.labels.join(', ');
-      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `Column ${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, note: '', name: `${q}-Column-${lab.replace(/[^A-Za-z0-9]+/g, '')}.xls`, steps: c.steps, read: c.read });
+      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, sub: c.labels.join(', '), note: '', name: `${q}-Column-${lab.replace(/[^A-Za-z0-9]+/g, '')}.xls`, steps: c.steps, read: c.read });
     }));
     const sj = state.job && state.job.seismic;
     (sj && sj.ok ? sj.buildings : []).forEach(b => (b.workbook ? b.workbook.frames : []).forEach(fr => out.push({
-      key: `seismic|${b.bkey}|${fr.label}`, kind: 'seismic', ed: null, title: `Seismic · ${sj.buildings.length > 1 ? b.name + ' · ' : ''}frame line ${fr.label}`, note: b.workbook.notes.join(' '),
+      key: `seismic|${b.bkey}|${fr.label}`, kind: 'seismic', ed: null, title: `${sj.buildings.length > 1 ? b.name + ' · ' : ''}Frame line ${fr.label}`, sub: 'Lateral Calcs. (1)', note: b.workbook.notes.join(' '),
       name: `${q}-Seismic-${sj.buildings.length > 1 ? b.name.replace(/[^A-Za-z0-9]+/g, '') + '-' : ''}F${fr.label}.xls`, steps: b.workbook.input.concat(b.workbook.long, fr.steps), read: fr.read.concat(b.workbook.longRead) })));
     return out;
   }
@@ -718,12 +719,45 @@
     const kinds = [['beam', '13'], ['beam', '15'], ['beam', '16'], ['column', '15'], ['column', '16'], ['seismic', null]];
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
     const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
-    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t}</h5>${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(WB_NAME[k](j.ed))} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download filled workbook')}</div>`).join('')}</div>` : ''; }).join('');
-    el.innerHTML = `<div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
+    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
+    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all">Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
+      <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
     const inp = $('#wbFile'); if (inp) inp.onchange = () => { wbAdd(Array.from(inp.files || [])); inp.value = ''; };
     $$('#wbPanel [data-wbdel]').forEach(b => { b.onclick = async () => { await wbDel(b.dataset.wbdel); books.list = books.list.filter(x => x.id !== b.dataset.wbdel); renderAll(); }; });
+  }
+
+  /* ---------- the calc package: a design-basis workbook (inputs and their sources, the MB / Column sheet cells and
+     results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads) and
+     the filled NBG workbooks — at the bottom of the Beam and Column pages, and on the Design page ---------- */
+  const cpName = () => ((state.pcs && state.pcs.job.quote) || 'mezzanine').replace(/[^A-Za-z0-9-]+/g, '');
+  function cpXlsx() {
+    const sheets = window.MZ_CALCPACK.sheets(state.job, { inputs: state.all ? state.all.map(a => a.inputs) : [state.inputs], settings: state.settings, codeText: state.inputs && state.inputs.job && state.inputs.job.code ? state.inputs.job.code.text : '', generated: new Date().toISOString().slice(0, 10) });
+    return window.MZ_XLSX.book(sheets, { title: `${cpName()} calc package` });
+  }
+  const cpSave = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  async function cpDownload(what) {
+    if (!state.job) { toast('Load a PCS first'); return; }
+    try {
+      const xlsx = cpXlsx(), name = `${cpName()}-calc-package`;
+      if (what === 'xlsx') { cpSave(xlsx, name + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); toast(`${name}.xlsx — inputs, sources, MB / Column sheets, options, shop rules`); return; }
+      // everything: the package and every filled workbook this computer has
+      const files = [{ name: name + '.xlsx', data: xlsx }], missing = new Set();
+      wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value }))).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
+      if (zipIO.ok) for (const f of files) f.packed = await zipIO.deflate(f.data);   // compressed where the browser can
+      cpSave(window.MZ_XLSX.zip(files), name + '.zip', 'application/zip');
+      toast(`${name}.zip — the package and ${files.length - 1} filled workbook${files.length === 2 ? '' : 's'}${missing.size ? ` · add ${[...missing].join(', ')} to include ${missing.size > 1 ? 'them' : 'it'}` : ''}`);
+    } catch (e) { toast('Calc package: ' + (e.message || e)); }
+  }
+  document.addEventListener('click', ev => { const b = ev.target.closest('[data-cpdl]'); if (b) { ev.preventDefault(); cpDownload(b.dataset.cpdl); } });
+  function renderCalcPack() {
+    const ready = !!(state.job && state.job.marks && state.job.marks.length);
+    const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
+    $$('.calcpack').forEach(el => {
+      el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" title="${nWb}/${nAll} workbooks added">Everything (.zip)</button></div></div>`;
+    });
   }
 
   function renderResults() {
@@ -1123,7 +1157,7 @@
 
   // ---------- plan ----------
   $$('#joistSeg button').forEach(b => { b.onclick = () => { state.settings.joists = b.dataset.j; delete state.settings.xLines; delete state.settings.yLines; recompute(); }; });
-  $('#gridReset').onclick = () => { delete state.settings.xLines; delete state.settings.yLines; recompute(); };
+  $('#gridReset').onclick = () => { ['xLines', 'yLines', 'drop', 'colKind'].forEach(k => delete state.settings[k]); recompute(); };
   const listIn = str => str.split(/[,;\s]+/).map(t => PCS.ftin(t) ?? parseFloat(t)).filter(v => isFinite(v));
   function onGridEdit() {
     const lay = state.res.layout, bl = listIn($('#beamLinesIn').value), sl = listIn($('#supLinesIn').value);
@@ -1170,6 +1204,7 @@
     if ((uy1 - uy0) / W < 0.75) { ya = Math.max(0, ...lineY.filter(y => y <= uy0 - 6)); yb = Math.min(W, ...lineY.filter(y => y >= uy1 + 6)); }
     const VW = 1100, M = 64, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
     const X = x => M + (x - xa) * s, Y = y => M + 12 + (yb - y) * s;
+    state.planXf = { xa, yb, s, M };   // the edit mode maps a click back to feet
     const inX = x => x >= xa - 0.01 && x <= xb + 0.01, inY = y => y >= ya - 0.01 && y <= yb + 0.01;
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
@@ -1254,6 +1289,9 @@
       o.push(`<g class="mcol" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/></g>`);
       o.push(`<g class="tag c" data-col="${c.x}|${c.y}" data-tip="col|${c.x}|${c.y}"><rect x="${cx + 11}" y="${cy + 7}" width="26" height="16" rx="8"/><text x="${cx + 24}" y="${cy + 15.5}">${lab}</text></g><text class="lbl" x="${cx + 41}" y="${cy + 19}">${c.label}</text>`);
     }));
+    // columns taken out on the Plan page: a ghost, click it (edit mode) to put it back
+    ms.forEach(m => (m.layout.dropped || []).forEach(d => { const cx = X(d.x), cy = Y(d.y), dd = 5.6;
+      o.push(`<g class="mcol dropped" data-dropped="${m.index}|${d.x}|${d.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="8"/><path d="M${cx - dd},${cy - dd} L${cx + dd},${cy + dd} M${cx - dd},${cy + dd} L${cx + dd},${cy - dd}"/><title>${esc(d.label)} taken out — the beam spans through</title></g>`); }));
     if (r.planCheck && r.planCheck.ok) r.planCheck.cols.forEach(c => o.push(`<circle class="seen" cx="${X(c.x)}" cy="${Y(c.y)}" r="14"><title>Mezzanine column on the PCS floor plan</title></circle>`));
     // joist direction, and the mezzanine's name in its first joist bay (click it to edit that mezzanine)
     ms.forEach(m => {
@@ -1278,10 +1316,11 @@
       const tb = $$(`#planSvg .trib[data-band="${el.dataset.beam}"]`);   // its own floor, and a neighbour's edge it carries
       el.addEventListener('mouseenter', () => tb.forEach(x => x.classList.add('on')));
       el.addEventListener('mouseleave', () => tb.forEach(x => x.classList.remove('on')));
-      el.addEventListener('click', () => { const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(job.mezz[mi], id); });
+      el.addEventListener('click', () => { if (state.planEdit) return; const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(job.mezz[mi], id); });
     });
-    $$('#planSvg [data-col]').forEach(el => { el.addEventListener('click', () => { const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }); });
-    $$('#planSvg [data-mezz]').forEach(el => { el.addEventListener('click', () => switchMezz(+el.dataset.mezz)); });
+    $$('#planSvg [data-col]').forEach(el => { el.addEventListener('click', () => { if (state.planEdit) return; const [x, y] = el.dataset.col.split('|').map(Number); openCol({ x, y }); }); });
+    $$('#planSvg [data-mezz]').forEach(el => { el.addEventListener('click', () => { if (!state.planEdit) switchMezz(+el.dataset.mezz); }); });
+    layBarSync();
     $('#planLegend').innerHTML = marks.map(mk => `<span class="lg-mk"><svg width="26" height="12"><rect width="26" height="12" rx="2" fill="${mkVar(mk)}" opacity=".22"/><line x1="0" y1="6" x2="26" y2="6" stroke="${mkVar(mk)}" stroke-width="5"/></svg><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} · ${mk.qtyAll} beam${mk.qtyAll === 1 ? '' : 's'} · ${ft(mkDz(mk).span)} × ${ft(mkDz(mk).trib)}${mkDz(mk).set ? ' design' : ''}${mkShort(mk) ? ' (' + mkShort(mk) + ')' : ''}</span>`).join('') +
       `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${t.nC}</span>` +
       (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
@@ -1299,6 +1338,104 @@
       jcols.map(c => `<tr><td class="mono"><b>C${cno.get(c.label)}</b> · ${c.label}</td><td><b style="color:var(--red)">Mezzanine column ⊗</b>${many ? ' · ' + esc(c.ownerId) : ''}${c.shared ? ' · shared' : ''}<br><small class="sub-n">${c.parts.map(p => `${p.sheetSide}: ${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' · ')}</small></td><td class="num">${f(c.tribArea, 0)} ft²</td><td class="num">${f(c.DL_L, 2)} / ${f(c.LL_L, 2)}</td><td class="num">${f(c.DL_R, 2)} / ${f(c.LL_R, 2)}</td></tr>`).join('') +
       fls.filter(q => ms.some(m => q.seenIn.includes(m.index))).map(q => `<tr class="frame-row"><td class="mono">${q.label}</td><td>Building column · <b>load to the frame</b><br><small class="sub-n">${q.parts.map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ')}</small></td><td class="num"></td><td class="num" colspan="2"><b>D ${f(q.D, 2)} · L ${f(q.L, 2)} k</b></td></tr>`).join('') + '</tbody>';
   }
+
+  // ---------- layout edits on the plan: a column made a frame / mezzanine column or taken out, beam and column lines
+  //            added or removed. Each is a setting of that mezzanine (lines, drop, colKind), undoable, and the whole job
+  //            re-designs from it: beams, columns, frame loads, seismic, the quote ----------
+  const LAY_KEYS = ['xLines', 'yLines', 'drop', 'colKind', 'joists'], layUndo = [];
+  const ptKey = (x, y) => `${(+x).toFixed(2)},${(+y).toFixed(2)}`;
+  const laySnap = () => allSettings().map(st => JSON.stringify(Object.fromEntries(LAY_KEYS.filter(k => st[k] !== undefined).map(k => [k, st[k]]))));
+  const layRestore = snap => allSettings().forEach((st, i) => { LAY_KEYS.forEach(k => delete st[k]); Object.assign(st, JSON.parse(snap[i] || '{}')); });
+  function layDo(msg, fn) {
+    layUndo.push(laySnap()); if (layUndo.length > 60) layUndo.shift();
+    fn(); hideLayPop(); recompute(); toast(msg);
+  }
+  // the lines as they are now, kept: an added or removed line edits that list
+  const layFreeze = (st, ly) => { st.joists = ly.joists; st[ly.joists === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.slice(); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.slice(); };
+  const layLine = (m, axis, v) => ((axis === 'y' ? m.grid.yLabel(v) : m.grid.xLabel(v)) ? `line ${axis === 'y' ? m.grid.yLabel(v) : m.grid.xLabel(v)}` : `${ft(v)} from the ${axis === 'y' ? 'FSW' : 'LEW'}`);
+  const hideLayPop = () => { const p = $('#layPop'); if (p) { p.hidden = true; p.innerHTML = ''; } $$('#planSvg .edit-ring').forEach(e => e.remove()); };
+  function layBarSync() {
+    const on = !!state.planEdit;
+    $('#layEdit').setAttribute('aria-pressed', on); $('#layBar').hidden = !on;
+    $('#v-plan .panel.plan').classList.toggle('is-editing', on);
+    $('#layUndo').disabled = !layUndo.length;
+  }
+  $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); };
+  $('#layDone').onclick = () => { state.planEdit = false; hideLayPop(); layBarSync(); };
+  $('#layUndo').onclick = () => { const snap = layUndo.pop(); if (!snap) return; layRestore(snap); hideLayPop(); recompute(); toast('Undone'); };
+  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])));
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideLayPop(); });
+  document.addEventListener('click', ev => { const p = $('#layPop'); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest('#planSvg')) hideLayPop(); });
+
+  function layMenu(ev) {
+    if (!state.planEdit || !state.job || !state.planXf) return;
+    const svg = $('#planSvg'), q = svg.createSVGPoint(); q.x = ev.clientX; q.y = ev.clientY;
+    const v = q.matrixTransform(svg.getScreenCTM().inverse()), xf = state.planXf;
+    const wx = xf.xa + (v.x - xf.M) / xf.s, wy = xf.yb - (v.y - xf.M - 12) / xf.s;
+    const ms = jobView(), sets = allSettings(), items = [];
+    const ring = (cx, cy) => { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('class', 'edit-ring'); c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 17); svg.appendChild(c); };
+    let head = '';
+    const tgt = ev.target.closest('[data-dropped],[data-col],[data-tip^="bcol"],[data-beam]');
+    hideLayPop();
+    if (tgt && tgt.dataset.dropped) {
+      const [mi, x, y] = tgt.dataset.dropped.split('|').map(Number), m = state.job.mezz[mi], d = (m.layout.dropped || []).find(z => atPt(z, { x, y }));
+      head = `${esc(d ? d.label : '')} · taken out`;
+      items.push({ t: 'Put the column back', sub: 'the beam stops here again', go: () => layDo(`${d.label}: column back`, () => { const st = sets[mi]; st.drop = (st.drop || []).filter(k => k !== ptKey(x, y)); if (!st.drop.length) delete st.drop; }) });
+    } else if (tgt && (tgt.dataset.col || /^bcol/.test(tgt.dataset.tip || ''))) {
+      const [x, y] = (tgt.dataset.col || tgt.dataset.tip.replace(/^bcol\|/, '')).split('|').map(Number), p = { x, y };
+      const owners = ms.filter(m => m.layout.supports.some(sp => atPt(sp, p)));
+      if (!owners.length) { head = 'Building column'; items.push({ t: 'No mezzanine beam frames in here', sub: 'nothing to change at this column', off: true }); }
+      else {
+        const m0 = owners[0], sp = m0.layout.supports.find(z => atPt(z, p)), ly = m0.layout, k = ptKey(x, y);
+        const along = ly.joists === 'y' ? sp.x : sp.y, si = ly.supportLines.findIndex(u => Math.abs(u - along) < 1e-6), inner = si > 0 && si < ly.supportLines.length - 1;
+        const cn = colNos().get(sp.label);
+        head = `${sp.building ? 'Frame column' : 'Mezzanine column'}${cn && !sp.building ? ' C' + cn : ''} · ${esc(sp.label)}`;
+        const user = owners.some(m => (m.layout.supports.find(z => atPt(z, p)) || {}).userKind);
+        items.push(sp.building
+          ? { t: user ? 'Back to a mezzanine column' : 'Make it a mezzanine column ⊗', sub: 'designed on the Column sheet; the frame takes no mezzanine load here', go: () => layDo(`${sp.label}: mezzanine column`, () => owners.forEach(m => { const st = sets[m.index], cur = (m.layout.supports.find(z => atPt(z, p)) || {}); st.colKind = { ...(st.colKind || {}) }; if (cur.userKind) delete st.colKind[k]; else st.colKind[k] = 'mezz'; if (!Object.keys(st.colKind).length) delete st.colKind; })) }
+          : { t: user ? 'Back to a frame column' : 'Make it a frame column', sub: 'its beam reactions go to the frame design (FDL / FLL) — add the column in NBG Frame if the frame has none here', go: () => layDo(`${sp.label}: frame column`, () => owners.forEach(m => { const st = sets[m.index], cur = (m.layout.supports.find(z => atPt(z, p)) || {}); st.colKind = { ...(st.colKind || {}) }; if (cur.userKind) delete st.colKind[k]; else st.colKind[k] = 'frame'; if (!Object.keys(st.colKind).length) delete st.colKind; })) });
+        if (inner) {
+          const bs = ly.beams.filter(b => Math.abs(b.line - (ly.joists === 'y' ? sp.y : sp.x)) < 1e-6 && (Math.abs(b.from - along) < 1e-6 || Math.abs(b.to - along) < 1e-6));
+          const span = bs.reduce((a, b) => a + b.span, 0);
+          items.push({ t: 'Take the column out', sub: `the beam spans through${span ? `: ${ft(span)}` : ''} — one beam instead of two`, go: () => layDo(`${sp.label}: column taken out`, () => owners.forEach(m => { const st = sets[m.index]; st.drop = [...new Set([...(st.drop || []), k])]; })) });
+          items.push({ t: `Remove ${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)} of columns`, sub: 'every beam spans through this line', go: () => layDo(`${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)}: columns removed`, () => { const st = sets[m0.index]; layFreeze(st, ly); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.filter((u, i) => i !== si); }) });
+        } else items.push({ t: 'A beam ends here', sub: 'an end support stays (no cantilever) — make it a frame or a mezzanine column', off: true });
+      }
+      ring(v.x, v.y);
+    } else if (tgt && tgt.dataset.beam) {
+      const [mi, id] = tgt.dataset.beam.split(':').map(Number), m = state.job.mezz[mi], ly = m.layout, b = ly.beams[id];
+      const bi = ly.beamLines.findIndex(u => Math.abs(u - b.line) < 1e-6), inner = bi > 0 && bi < ly.beamLines.length - 1, ax = ly.joists === 'y' ? 'y' : 'x';
+      const mk = mkOf(m, id);
+      head = `B${id + 1}${mk ? ' · ' + esc(mk.mark) : ''} · ${esc(layLine(m, ax, b.line))}`;
+      if (inner) items.push({ t: `Remove the beam line`, sub: `joists span ${ft(ly.beamLines[bi + 1] - ly.beamLines[bi - 1])} across it — the beams either side carry more`, go: () => layDo(`${layLine(m, ax, b.line)}: beam line removed`, () => { const st = sets[mi]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.filter((u, i) => i !== bi); }) });
+      else items.push({ t: 'An edge beam stays', sub: 'it carries the slab edge', off: true });
+      items.push({ t: 'Open its calc', sub: 'the MB sheet for this mark', go: () => { hideLayPop(); openBeam(m, id); } });
+    } else {
+      const m = ms.find(z => { const f2 = z.layout.footprint; return wx >= f2.x0 - 0.01 && wx <= f2.x1 + 0.01 && wy >= f2.y0 - 0.01 && wy <= f2.y1 + 0.01; });
+      if (!m) return;
+      const ly = m.layout, bAx = ly.joists === 'y' ? 'y' : 'x', sAx = bAx === 'y' ? 'x' : 'y', snap = val => Math.round(val * 2) / 2;
+      const bAt = snap(bAx === 'y' ? wy : wx), sAt = snap(sAx === 'y' ? wy : wx);
+      head = `${esc(m.id)} · floor`;
+      const add = (kind, inputId) => {
+        const lines = kind === 'beam' ? ly.beamLines : ly.supportLines, ax = kind === 'beam' ? bAx : sAx, raw = $('#' + inputId).value.trim();
+        const at = PCS.ftin(raw) ?? parseFloat(raw);
+        if (!isFinite(at) || at <= lines[0] + 1 || at >= lines[lines.length - 1] - 1) { toast(`Put it inside the mezzanine, more than 1'-0" in from its edges`); return; }
+        if (lines.some(u => Math.abs(u - at) < 1)) { toast(`There is a line within 1'-0" of ${ft(at)} already`); return; }
+        layDo(`${kind === 'beam' ? 'Beam' : 'Column'} line added at ${ft(at)} from the ${ax === 'y' ? 'FSW' : 'LEW'}`, () => { const st = sets[m.index]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = [...lines, at].sort((a, c) => a - c); });
+      };
+      items.push({ t: 'Add a beam line', sub: 'joists span shorter; new beams, and columns at their ends', at: { id: 'layAtB', v: ft(bAt), from: bAx === 'y' ? 'FSW' : 'LEW' }, go: () => add('beam', 'layAtB') });
+      items.push({ t: 'Add a column line', sub: 'the beams span shorter; new columns along it', at: { id: 'layAtS', v: ft(sAt), from: sAx === 'y' ? 'FSW' : 'LEW' }, go: () => add('support', 'layAtS') });
+      ring(v.x, v.y);
+    }
+    const pop = $('#layPop'), wrap = pop.parentElement, wr = wrap.getBoundingClientRect();
+    pop.innerHTML = `<h6>${head}</h6>` + items.map((it, i) => `<button type="button" data-i="${i}" ${it.off ? 'disabled' : ''}>${esc(it.t)}<small>${esc(it.sub || '')}</small></button>${it.at ? `<div class="lay-at"><span>at</span><input id="${it.at.id}" value="${esc(it.at.v)}" aria-label="${esc(it.t)} at"><span>from the ${it.at.from}</span></div>` : ''}`).join('');
+    pop.hidden = false;
+    const left = Math.min(ev.clientX - wr.left + 10, wr.width - pop.offsetWidth - 8), top = Math.min(ev.clientY - wr.top + 10, wr.height - pop.offsetHeight - 8);
+    pop.style.left = Math.max(8, left) + 'px'; pop.style.top = Math.max(8, top) + 'px';
+    $$('#layPop button[data-i]').forEach(bt => { bt.onclick = e2 => { e2.stopPropagation(); const it = items[+bt.dataset.i]; if (it.go) it.go(); }; });
+    $$('#layPop input').forEach(inp => inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { const it = items.find(z => z.at && z.at.id === inp.id); if (it) it.go(); } }));
+  }
+  $('#planSvg').addEventListener('click', layMenu);
 
   // ---------- seismic: the mezzanine on the frames (EQR / EQL) and the bracing, as the IBC Seismic workbook ----------
   const SEIS_TYPE = t => (window.MZ_SEISMIC && window.MZ_SEISMIC.frameType(t)) || 'Rigid Frame';
@@ -1789,7 +1926,7 @@
     $('#biTry').onclick = () => dzOpen('beam', mk.mark);
   }
   // ---------- how a beam / a column was arrived at: the steps, with this job's numbers (folded under the tabs) ----------
-  const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
+  const RULE_TXT = DESIGN.RULE_TXT;
   function renderBeamHow(mk, r, inp) {
     const el = $('#beamHow');
     if (!el) return;
@@ -1833,7 +1970,7 @@
   function renderBeam() {
     const marks = jobMarks();
     $('#markTabs').innerHTML = marks.map((m, i) => `<button class="tab ${i === state.mark ? 'is-active' : ''}" data-i="${i}"><i class="mk-dot" style="background:${mkHex(m)}"></i>${mkName(m)} · ${esc(m.desc || 'none')} · ${m.qtyAll} beam${m.qtyAll === 1 ? '' : 's'}</button>`).join('');
-    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); }; });
+    $$('#markTabs .tab').forEach(t => { t.onclick = () => { state.mark = +t.dataset.i; state.markSpan = 0; renderBeam(); renderMiniPlan(); renderCalcPack(); }; });
     const mk = marks[state.mark];
     if (!mk) { $('#beamInputs').innerHTML = ''; $('#spanRuns').innerHTML = ''; $('#mbSheet').innerHTML = '<div class="empty">No beams.</div>'; $('#altTable').innerHTML = ''; $('#xlBeam').innerHTML = ''; $('#xlBeamSub').textContent = ''; return; }
     // every member length of the mark: the governing run (longest span, largest trib) and the shorter beams — same section, own MB sheet
@@ -2044,7 +2181,7 @@
     $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C3</span> the mezzanine column's number on the plan · <span class="mono">2/B</span> the grid point, frame line 2 × column line B · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
     $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
-    $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); }; });
+    $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); renderCalcPack(); }; });
     const g = r.colGroups[state.colGroup];
     if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
     else {
@@ -2216,8 +2353,12 @@
     }
     const marks = state.job ? jobMarks().filter(m => m.sec) : [];
     const near = dz.near;
+    // the clearance C of the mark it would be used for caps the depth: say so on anything deeper
+    const um0 = marks.find(m => m.mark === (b.useMark || b.from)) || marks[0], sr0 = um0 && um0.search;
+    const cap = sr0 && sr0.dTop < sr0.options.dMax ? sr0.dTop : null;
+    const overC = d => (cap != null && d > cap ? `<small class="dz-flag">deeper than ${esc(um0.mark)}'s clearance allows (${cap}")</small>` : '');
     out.innerHTML = `<div class="panel dz-res">
-      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf${sec.type === 'BU' ? ` · ${secParts(sec)}` : ''}</small></h3></div>
+      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf${sec.type === 'BU' ? ` · ${secParts(sec)}` : ''}</small></h3>${sec.type === 'BU' ? overC(sec.d) : ''}</div>
         <span class="dz-pill ${pass ? 'ok' : 'ng'}">${pass ? 'Passes' : 'Does not pass'}${gov ? ` · ${gov[0]} ${gov[0].includes('deflection') ? `L/${f(gov[0] === 'live deflection' ? c.defl.rLL : c.defl.rTL, 0)}` : f(gov[1], 3)}` : ''}</span></div>
       <div class="dz-tiles">
         ${tile('Floor dead · each end', `${f(c.V.D, 3)} k`, null, 'MB H6 · to the column / frame')}
@@ -2232,9 +2373,9 @@
       ${shop}
       <div class="dz-actions">
         ${marks.length ? `<label class="dz-use">Use for ${dzSel('beam.useMark', b.useMark || (marks.find(m => m.mark === b.from) || marks[0]).mark, marks.map(m => [m.mark, `${m.mark}${m.kind ? ' · ' + m.kind : ''} (now ${m.desc})`]))}</label><button class="btn-soft" id="dzUse" type="button" ${pass ? '' : 'title="It does not pass — it can still be used, flagged on the Design page"'}>Use this section</button>` : '<span class="sub-n">Load a PCS to use this section for a beam mark.</span>'}
-        ${sec.type === 'BU' ? `<button class="btn-ghost" id="dzNear" type="button">Lighter sections that pass, ${Math.max(state.settings.dMin, sec.d - 3)}"–${Math.min(state.settings.dMax, sec.d + 3)}"</button>` : ''}
+        ${sec.type === 'BU' ? `<button class="btn-ghost" id="dzNear" type="button">Sections that pass, ${Math.max(state.settings.dMin, sec.d - 3)}"–${Math.min(state.settings.dMax, sec.d + 3)}", lightest first</button>` : ''}
       </div>
-      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b></td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
+      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b>${overC(z.d)}</td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
       <details class="dz-sheet"><summary>The full MB sheet</summary>${mbSheetBody(c, p, sec, null)}</details>
     </div>`;
     const use = $('#dzUse');

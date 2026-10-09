@@ -439,7 +439,24 @@ tr.none td { color: var(--ink-faint); }
 .pstat.beams strong { color: var(--green); }
 .pstat.cols strong { color: var(--red); }
 .pstat em { display: block; margin-top: 6px; color: var(--ink-faint); font: normal 12px var(--mono); }
-.plan-wrap { padding: 14px 18px 8px; background: var(--plan-bg); }
+.plan-wrap { position: relative; padding: 14px 18px 8px; background: var(--plan-bg); }
+.plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#layEdit[aria-pressed="true"], #layDone { background: var(--green); color: var(--surface); border-color: var(--green); }
+.lay-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--green-soft); color: var(--ink); font-size: 13px; font-weight: 600; }
+.lay-acts { display: inline-flex; gap: 8px; }
+.plan.is-editing .plan-wrap { outline: 2px solid var(--green); outline-offset: -2px; }
+.plan.is-editing svg { cursor: crosshair; }
+.plan.is-editing .beam:hover, .plan.is-editing .bcol-g:hover .bcol, .plan.is-editing .mcol:hover circle { stroke: var(--green-bright); }
+.plan .mcol.dropped circle { fill: none; stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+.plan .mcol.dropped path { stroke: var(--ink-faint); opacity: .5; }
+.plan .edit-ring { fill: none; stroke: var(--green); stroke-width: 2; stroke-dasharray: 4 3; pointer-events: none; }
+.lay-pop { position: absolute; z-index: 20; min-width: 250px; max-width: 320px; padding: 6px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); box-shadow: var(--lift-3); }
+.lay-pop h6 { margin: 4px 8px 6px; color: var(--ink-muted); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+.lay-pop button { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.lay-pop button:hover, .lay-pop button:focus-visible { background: var(--green-soft); outline: none; }
+.lay-pop button small { display: block; color: var(--ink-muted); font-size: 12px; }
+.lay-pop .lay-at { display: flex; gap: 6px; align-items: center; padding: 4px 10px 8px; font-size: 12.5px; color: var(--ink-muted); }
+.lay-pop .lay-at input { width: 96px; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface-soft); color: var(--ink); font: 13px var(--mono); }
 .plan-wrap svg { display: block; width: 100%; height: auto; }
 .plan .grid-line { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 10 4 2 4; }
 .plan .bldg { fill: none; stroke: var(--ink-muted); stroke-width: 2; }
@@ -853,6 +870,8 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 .seis-group h4 small { font-weight: 400; margin-left: 6px; }
 .seis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 16px; margin-bottom: 10px; }
 .seis-grid > label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-muted); }
+.seis-grid > label.seis-chk { flex-direction: row; align-items: flex-start; gap: 8px; color: var(--ink); line-height: 1.45; }
+.seis-grid > label.seis-chk input { flex: 0 0 auto; margin-top: 2px; padding: 0; }
 .seis-grid input, .seis-grid select, .seis-mz input { font: 600 13px var(--mono); padding: 6px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0; }
 .seis-in.need { border-color: var(--red); background: var(--red-soft); }
 .seis-walls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
@@ -933,9 +952,11 @@ table.nbg-t td .card-eq { width: 78px; }
 .wb-chip.miss { border-style: dashed; color: var(--ink-muted); }
 .wb-x { border: 0; background: none; color: var(--ink-faint); cursor: pointer; padding: 0 2px; }
 .wb-add { cursor: pointer; }
-.wb-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 10px; }
-.wb-group h5 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
-.wb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.wb-groups { display: grid; gap: 16px; margin-bottom: 12px; }
+.wb-group h5 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
+.wb-group h5 small { margin-left: 6px; color: var(--ink-faint); font-weight: 500; text-transform: none; letter-spacing: 0; }
+.wb-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; }
+.wb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .wb-row b { display: block; font-size: 13px; } .wb-row small { display: block; color: var(--ink-faint); font-size: 11.5px; }
 .wb-btn { white-space: nowrap; }
 
@@ -994,6 +1015,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .dz-in input, .dz-in select, #dzFrom { font: 600 13px var(--mono); padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); min-width: 0; width: 100%; }
 .dz-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
 .dz-row select { flex: 1; }
+.dz-row select:first-child:not(:only-child) { flex: 1.6; }
 .dz-lab { flex: 0 0 120px; font-size: 12px; color: var(--ink-muted); }
 .dz-x { color: var(--ink-faint); }
 .dz-chk { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 12.5px; color: var(--ink); }
@@ -1006,6 +1028,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .dz-pill { padding: 7px 14px; border-radius: 999px; font-weight: 700; font-size: 13px; }
 .dz-pill.ok { background: var(--green-soft); color: var(--green-dark); }
 .dz-pill.ng { background: var(--red-soft); color: var(--red-deep); }
+.dz-flag { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 600; line-height: 1.3; color: var(--amber); }
 .dz-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
 .dz-tile { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-soft); }
 .dz-tile span { display: block; font-size: 11.5px; color: var(--ink-muted); }
@@ -1028,3 +1051,11 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .bi-btns { display: inline-flex; gap: 8px; }
 .col-try { margin-left: auto; }
 @media (max-width: 1000px) { .dz-grid { grid-template-columns: 1fr; } .dz-in { position: static; } .dz-tiles, .dz-tiles.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dz-checks { grid-template-columns: 1fr; } }
+
+/* calc package */
+.calcpack { margin-top: 18px; }
+.cp-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--glass); }
+.cp-t b { display: block; font-size: 14px; } .cp-t small { display: block; margin-top: 2px; max-width: 640px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
+.cp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.cp-lead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.cp-lead small { flex: 1 1 320px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }

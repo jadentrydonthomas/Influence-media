@@ -40,7 +40,10 @@ const pick = (m, k) => (m.options.find(o => o.key === k) || {}).pick;
     const mb1 = job.marks.find(m => m.mark === 'MB1');
     assert.strictEqual(pick(mb1, 'lightest').desc, 'BU15x95');
     assert.strictEqual(pick(mb1, 'econ').desc, 'BU15x95');
-    assert.ok(!mb1.options.some(o => o.key === 'fit'), 'nothing shallower passes: no best fit');
+    // the method lands on the lightest and nothing shallower passes: best fit is that section (one card, two roles)
+    const fit1 = mb1.options.find(o => o.key === 'fit');
+    assert.strictEqual(fit1.pick.desc, 'BU15x95');
+    assert.ok(fit1.sameAs.includes('lightest') && /nothing shallower passes/.test(fit1.steps[fit1.steps.length - 1].text));
     const deep = mb1.options.filter(o => /^deeper/.test(o.key));
     assert.deepStrictEqual(deep.map(o => o.pick.desc), ['BU16x77', 'BU17x71']);
     assert.ok(Math.abs(deep[0].needC - (11.5 - (4 + 5) / 12 - 16 / 12)) < 1e-9, 'C = A − slab − seat − d');

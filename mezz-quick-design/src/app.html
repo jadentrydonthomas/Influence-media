@@ -130,7 +130,7 @@
         <div class="dm" id="dmList"></div></details>
       <div class="section-title" id="qsHead"><h3>Quote sheet</h3><p>Rows in the order of the workbook's mezzanine tables · copy and paste into Excel</p></div>
       <div class="qs" id="quoteSheet"></div>
-      <div class="section-title" id="wbHead"><h3>Check it in the NBG workbooks</h3><p>The real Mezzanine Beam Design, Mezzanine Column and IBC Seismic workbooks with this job typed in — open them in Excel and walk through them</p></div>
+      <div class="section-title" id="wbHead"><h3>Calc package</h3><p>The design basis for the engineer checking it, and the real NBG workbooks with this job typed in</p></div>
       <div class="panel wb-panel" id="wbPanel"></div>
       <section class="readout" id="readout" hidden></section>
     </section>
@@ -145,9 +145,11 @@
       <div class="panel plan">
         <div class="panel-head">
           <h3 id="planTitle">Framing plan</h3>
-          <div class="seg" id="joistSeg"><button data-j="auto">Auto</button><button data-j="y">Joists span width</button><button data-j="x">Joists span length</button></div>
+          <div class="plan-tools"><div class="seg" id="joistSeg"><button data-j="auto">Auto</button><button data-j="y">Joists span width</button><button data-j="x">Joists span length</button></div>
+          <button class="btn-soft" id="layEdit" type="button" aria-pressed="false"><svg><use href="#i-tool"/></svg>Edit layout</button></div>
         </div>
-        <div class="plan-wrap"><svg id="planSvg" role="img" aria-label="Mezzanine framing plan"></svg></div>
+        <div class="lay-bar" id="layBar" hidden><span id="layHint">Click a column to make it a frame or mezzanine column or take it out · a beam to remove its line · the floor to add a beam or column line.</span><span class="lay-acts"><button class="btn-ghost" id="layUndo" type="button" disabled>Undo</button><button class="btn-ghost" id="layReset" type="button">Reset layout</button><button class="btn-soft" id="layDone" type="button">Done</button></span></div>
+        <div class="plan-wrap"><svg id="planSvg" role="img" aria-label="Mezzanine framing plan"></svg><div class="lay-pop" id="layPop" hidden></div></div>
         <div class="legend" id="planLegend"></div>
       </div>
       <details class="panel fold">
@@ -224,6 +226,7 @@
         <summary class="panel-head"><h3>Lightest section at each depth</h3><span class="sub" id="altSub"></span></summary>
         <div style="overflow-x:auto"><table id="altTable"></table></div>
       </details>
+      <div class="calcpack" data-cp="beam"></div>
     </section>
 
     <!-- COLUMN CALC -->
@@ -243,6 +246,7 @@
         <summary class="panel-head"><h3>Columns tried</h3><span class="sub">W10X22 → W8X24 → W12X26 (by weight), then heavier W (quoted as BU)</span></summary>
         <div style="overflow-x:auto"><table id="colTried"></table></div>
       </details>
+      <div class="calcpack" data-cp="col"></div>
     </section>
 
     <!-- INPUTS -->
@@ -287,8 +291,10 @@
 <script>/*@INLINE_JS plan.js*/</script>
 <script>/*@INLINE_JS framefile.js*/</script>
 <script>/*@INLINE_JS xls.js*/</script>
+<script>/*@INLINE_JS xlsx.js*/</script>
 <script>/*@INLINE_JS model3d.js*/</script>
 <script>/*@INLINE_JS design.js*/</script>
+<script>/*@INLINE_JS calcpack.js*/</script>
 <script>/*@INLINE_JS seismic.js*/</script>
 <script>/*@INLINE_JS run.js*/</script>
 <script>/*@INLINE_JS app.js*/</script>

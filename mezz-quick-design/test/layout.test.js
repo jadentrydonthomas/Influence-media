@@ -41,4 +41,17 @@ assert.deepStrictEqual([60, 40, 30, 20, 0].map(g.yLabel), ['A', 'B', 'C', 'D', '
   const edge = L.supports.filter(s => s.x === 30);
   assert.ok(edge.length === 4 && edge.every(s => !s.building));
 }
+// the engineer's edits on the Plan page: a column taken out — the beam on that line spans through; a line's first or
+// last support is never taken out (no cantilever)
+{
+  const base = LAY.layout(g, { length: 40, width: 60, startLEW: 0, startFSW: 0 }, { joists: 'y' });
+  const L = LAY.layout(g, { length: 40, width: 60, startLEW: 0, startFSW: 0 }, { joists: 'y', drop: ['20.00,20.00', '0.00,40.00'] });
+  assert.deepStrictEqual(L.dropped.map(d => d.label), ['2/D']);
+  assert.strictEqual(L.beams.length, base.beams.length - 1);
+  const through = L.beams.filter(b => b.line === 20);
+  assert.deepStrictEqual(through.map(b => [b.from, b.to, b.span]), [[0, 40, 40]]);
+  assert.ok(!L.supports.some(s => s.x === 20 && s.y === 20) && L.supports.some(s => s.x === 0 && s.y === 40));
+  assert.deepStrictEqual(L.mezzCols.map(c => c.label).sort(), ['2/B', '3/B', '3/D']);
+  assert.strictEqual(L.beamSpan, 40);
+}
 console.log('layout tests passed');

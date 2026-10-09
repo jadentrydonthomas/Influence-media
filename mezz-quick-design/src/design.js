@@ -277,10 +277,10 @@
       if (same(light.sec, fit.sec) || dom) {
         const alt = lesser(light.d);
         steps.push({ step: 'alternate', text: alt ? `${dom ? `The lightest (${light.desc}) is lighter and no deeper than ${fit.desc}` : 'The method lands on the lightest'} — so its next step, a lesser depth: at ${alt.d}" ${alt.r.desc} works (combined ${alt.r.res.CSR.toFixed(3)}, shear ${alt.r.res.SRvx.toFixed(3)}, L/${Math.round(alt.r.defl.rLL)}).` : `${dom ? `The lightest (${light.desc}) beats ${fit.desc}` : 'The method lands on the lightest'}, and nothing shallower passes.` });
-        fit = alt ? summarize(alt) : dom ? fit : null;
+        if (alt) fit = summarize(alt);   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----
@@ -349,6 +349,9 @@
     return { name: null, quoteAs: null, common: false, check: null, tried };
   }
 
-  const api = { PROD, prodRule, prodChecks, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  // the production rule each left-out section broke, in words
+  const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
+
+  const api = { PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);
