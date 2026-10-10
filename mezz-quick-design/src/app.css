@@ -1095,3 +1095,6 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .cp-lead small { flex: 1 1 320px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
 
 #resTitle em.ng { color: var(--red); -webkit-text-fill-color: var(--red); background: none; }
+
+#colTabs .tab-group { align-self: center; margin: 0 2px 0 8px; color: var(--ink-muted); font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+#colTabs .tab-group:first-child { margin-left: 0; }

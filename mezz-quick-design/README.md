@@ -58,6 +58,7 @@ A mezzanine can sit in a building attached to another one, such as a lean-to. Bo
 - **Plan reading.** It takes the plan's letters, symbols and joist markup through that placement.
 - **Shared wall line.** If both buildings have a beam on the wall they share, it is one member. The host building keeps it, because its columns carry it, and adds the attached floor's edge trib. On W1G-26097, line B carries 9'-8 ¾" + 14'-1" = 23'-9 ¾", and its loads go to the Sanctuary's BSW frame columns.
 - **Frame loads.** They are listed per building.
+- **One drawing.** The Plan page, the sidebar and large plans and the 3D model draw both buildings together, in the coordinates of the building picked at the top — the attached building's walls, lettered lines and loaded columns included. Hovering any column gives its own building's loads. In *Edit layout*, clicking the other building's mezzanine switches to it first, so its lines are edited in its own building. The floor-load card and the Column calc tabs cover every mezzanine of the job.
 
 ### Beam marks: interior and exterior
 
