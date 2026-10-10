@@ -7,6 +7,8 @@
   'use strict';
   const MZ = root.MZ || (typeof require !== 'undefined' ? require('./engine.js') : null);
   const LAYOUT = root.MZ_LAYOUT || (typeof require !== 'undefined' ? require('./layout.js') : null);
+  // the W shape table: a wide-flange section (picked by hand) needs it for its properties
+  const WFT = root.MZ_WF || (typeof require !== 'undefined' ? require('./wf-db.js') : null);
 
   const DIVISIONS = ['ABC-IL', 'KBS-TN', 'NBS-IN', 'NBG-SC', 'NBG-TX', 'West'];
   // DM 5.1.1.2 flange stock (Y per division, in DIVISIONS order). Fy 55 unless noted.
@@ -320,7 +322,7 @@
 
   // Beam reactions for a given section (MB!H6 dead, MB!H10 live)
   function reactions(p, sec) {
-    const r = MZ.beamCheck({ ...p, sec }, null);
+    const r = MZ.beamCheck({ ...p, sec }, sec && sec.type === 'WF' ? WFT : null);
     return { D: r.V.D, L: r.V.L, check: r };
   }
 

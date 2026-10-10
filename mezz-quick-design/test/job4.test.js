@@ -74,10 +74,22 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   const cells = Object.fromEntries(jb.excel.column[0].cases[0].steps.map(st => [st.cell, st.value]));
   assert.deepStrictEqual([cells.C16, cells.C17, cells.C18, cells.C19, cells.C20, cells.K8], ['Built-Up', 9, 8, 0.3125, 0.1644, '55']);
   assert.ok(!jb.colAlt, 'no offer once a column is picked');
+  // a wide-flange beam picked by hand (Design your own): the whole job still runs — reactions, columns, frame loads, quote
+  const jf = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { override: { MB2: { sec: { type: 'WF', name: 'W16X26' } } } } })));
+  const wf = jf.marks.find(m => m.mark === 'MB2');
+  assert.ok(wf.desc === 'W16X26' && wf.check && wf.check.res.CSR > 1 && jf.mezz[0].colFinal && jf.frameEntries.length, 'a W beam pick designs through');
+  assert.ok(RUN.quoteJob(jf.mezz, inps).beams.some(b => b.SECTION === 'W16X26' && /FAILS/.test(b.NOTES)), 'a failing W pick is FAILS on the quote');
   // a W picked by hand: quoted BU (not a common size), and the job-wide note says the pick is on the quote
   const jw = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { colOverride: 'W10X33' } }))), sw = jw.mezz[0];
   assert.ok(sw.colFinal.picked && sw.colFinal.quoteAs === 'BU10x33' && sw.colFinal.auto && sw.colFinal.auto.quoteAs === 'BU8x31');
   assert.ok(sw.warn.some(w => /W10X33 picked by hand, quoted BU10x33/.test(w.text)));
   assert.ok(sw.warn.some(w => /the guide's would be W8X31 \(quoted BU8x31\); BU10x33, picked by hand, is on the quote/.test(w.text)) && !sw.warn.some(w => /W8X31 \(quoted BU8x31\) passes every column case/.test(w.text)));
+  // a beam mark with no section (marks split, a column taken out): its columns are NOT SIZED, the rest are sized — not "every case"
+  const jp = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: i === 0 ? { marks: 'split', drop: ['40.31,21.18'] } : {} }))), sp = jp.mezz[0];
+  assert.deepStrictEqual(sp.colFinal.unsized, ['2/F', '4/F']);
+  assert.ok(sp.colFinal.ok && sp.colWhy && /2 of 27 columns \(2\/F, 4\/F\) not sized/.test(sp.colWhy.text), JSON.stringify(sp.colWhy));
+  assert.ok(sp.warn.some(w => /passes the column cases that are sized; 2 columns are not sized yet/.test(w.text)) && !sp.warn.some(w => /passes every column case/.test(w.text)));
+  const qp = RUN.quoteJob(jp.mezz, inps).columns.filter(c => c.MEZZ === 'Sanctuary').map(c => `${c.SECTION} x${c.QTY}`);
+  assert.deepStrictEqual(qp, ['NOT SIZED x2', 'BU8x31 x25']);
   console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange, BU9x22 offered and typed on the Built-Up input)');
 })().catch(e => { console.error(e); process.exit(1); });

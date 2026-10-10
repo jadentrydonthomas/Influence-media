@@ -566,6 +566,13 @@ tr.none td { color: var(--ink-faint); }
   /* the framing summary and the drawings are styled for the dark panel: dark ink on paper */
   .field, .field * { color: var(--ink) !important; background: transparent !important; border-color: var(--line) !important; }
   .field .eyebrow, .field .step, .ffacts b.qty, .disc-inner strong, .disc-inner span { color: var(--green-dark) !important; }
+  /* the dial flat on paper: a ring and the number, red when NG */
+  .disc { transform: none !important; box-shadow: none !important; background: none !important; border: 3px solid var(--green-dark); }
+  .disc::before, .orbit { display: none !important; }
+  .disc.ng { border-color: var(--red); }
+  .disc.ng .disc-inner strong, .disc.ng .disc-inner b, .disc.ng .disc-inner span { color: var(--red) !important; }
+  .disc-inner b { background: none !important; color: var(--ink) !important; }
+  .tallies, .tally { break-inside: avoid; }
   .disc, .disc-wrap, .disc-inner { background: #fff !important; }
   svg text { fill: var(--ink) !important; opacity: 1 !important; }
   /* the quote tables fit the page: notes wrap, the type is smaller */
@@ -1161,3 +1168,5 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 /* drawing annotations never take a click meant for the column or beam under them */
 #planSvg .arrow, #planSvg .arrow-t, #planSvg .run-lab, #planSvg .dim, #planSvg .lbl { pointer-events: none; }
+.tally.ng::before { background: #ff8f7a !important; }
+.cp-note { flex-basis: 100%; color: var(--amber); font-size: 12px; }

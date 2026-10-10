@@ -259,7 +259,8 @@
     if (s.xLines || s.yLines) {
       const base = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists });
       [['xLines', 'LEW'], ['yLines', 'FSW']].forEach(([k, from]) => { if (!s[k]) return; const ls = lay[k].slice().sort((a, b) => a - b), own = v => base[k].some(u => Math.abs(u - v) < 0.01);
-        ls.slice(1).forEach((v, i) => { const gap = v - ls[i]; if (gap > 0.05 && gap < 6 && !(own(v) && own(ls[i]))) warn.push({ level: 'warn', text: `Lines at ${PCS.fmtFtIn(ls[i])} and ${PCS.fmtFtIn(v)} from the ${from} are only ${PCS.fmtFtIn(gap)} apart (a line added on the Plan page) — ${PCS.fmtFtIn(gap)} beams or extra columns there; confirm it is intended.` }); }); });
+        ls.slice(1).forEach((v, i) => { const gap = v - ls[i]; if (gap > 0.05 && gap < 6 && !(own(v) && own(ls[i]))) { const beamLine = (k === 'yLines') === (lay.joists === 'y');
+          warn.push({ level: 'warn', text: `${beamLine ? 'Beam' : 'Column'} lines at ${PCS.fmtFtIn(ls[i])} and ${PCS.fmtFtIn(v)} from the ${from} are only ${PCS.fmtFtIn(gap)} apart (a line added on the Plan page) — ${beamLine ? `joists spanning ${PCS.fmtFtIn(gap)} between them` : `${PCS.fmtFtIn(gap)} beams and extra columns there`}; confirm it is intended.` }); } }); });
     }
     if (fromPlan) {
       lay.why = ({ markup: 'the JOISTS markup on the PCS floor plan', truss: 'the joist symbol on the PCS floor plan' })[inp.mezz.planJoistsFrom] || 'joist arrows on the PCS floor plan';
@@ -515,6 +516,10 @@
       if (!okB) say('stop', `${m.mark}: ${check.desc}, the section picked by hand, does not pass for these loads (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick another or go back to an option.`);
     }
     if (!chosen) {
+      // the mark fails at its longest beam: when its other beams are shorter, giving the long one(s) its own mark
+      // (Settings → Beam marks → split by trib / span) keeps the rest sized — say so
+      const lens = m.beamsAll.map(x => x.span), longest = Math.max(...lens), nLong = lens.filter(v => v > longest - 1e-3).length;
+      if (s.marks !== 'split' && nLong < lens.length) say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter. Split the marks by span (Settings → Beam marks, or the button on Beam calc) to size them, and the columns they carry, on their own.`);
       const cap = maxDepth != null && maxDepth < s.dMax;
       say('stop', cap && maxDepth < s.dMin
         ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. Check the clearance or the minimum depth in Settings.`
@@ -634,26 +639,30 @@
     const key = q => [q.DL_L, q.LL_L, q.DL_R, q.LL_R].map(x => x.toFixed(2)).join('|');
     const groups = [];
     cols.forEach(q => { const g = groups.find(g2 => g2.key === key(q)); g ? g.cols.push(q) : groups.push({ key: key(q), cols: [q], loads: { DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R } }); });
-    const noBeam = cols.some(q => ![q.DL_L, q.LL_L, q.DL_R, q.LL_R].every(isFinite));   // a beam framing in has no section yet
-    groups.forEach(g => { g.design = ed.colEd && colLen && !noBeam ? DESIGN.designColumn(g.loads, { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null; });
-    // one section for every mezzanine column on the quote: the lightest W (same try order) that passes every group
-    const allOK = groups.length && groups.every(g => g.design && g.design.name);
-    const env = allOK && groups.length > 1 ? DESIGN.designColumn(groups.map(g => g.loads), { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null;
-    const govCol = allOK ? (env ? (env.name ? { design: env } : null) : groups[0]) : null;
+    // a column under a beam with no section yet has unknown loads: it is not sized; every other case still is
+    const known = l => [l.DL_L, l.LL_L, l.DL_R, l.LL_R].every(isFinite);
+    const noBeam = cols.some(q => !known(q));
+    groups.forEach(g => { g.known = known(g.loads); g.design = ed.colEd && colLen && g.known ? DESIGN.designColumn(g.loads, { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null; });
+    const kg = groups.filter(g => g.known);
+    // one section for every mezzanine column on the quote: the lightest W (same try order) that passes every sized group
+    const allOK = kg.length && kg.every(g => g.design && g.design.name);
+    const env = allOK && kg.length > 1 ? DESIGN.designColumn(kg.map(g => g.loads), { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null;
+    const govCol = allOK ? (env ? (env.name ? { design: env } : null) : kg[0]) : null;
     let colFinal = null;
     // the engineer's pick (a W name, or a built-up column from Design your own / the Column page) over the automatic W
     const ov = s.colOverride, ovBU = !!(ov && typeof ov === 'object' && ov.type === 'BU');
-    if (govCol || (ov && groups.length && !noBeam && colLen && ed.colEd)) {
+    if (govCol || (ov && kg.length && colLen && ed.colEd)) {
       const sec = ovBU ? { type: 'BU', d: +ov.d, tw: +ov.tw, bof: +ov.bf, tof: +ov.tf, bif: +ov.bf, tif: +ov.tf } : { type: 'WF', name: ov || jobName || govCol.design.name };
       const Fy = ovBU ? 55 : 50, Fu = ovBU ? 70 : 65;
-      const checks = groups.map(g => MZ.columnCheck({ sec, Fy, Fu, L: colLen, Lby: colLen * 12, ...g.loads, edition: ed.colEd }, WF));
+      const checks = groups.map(g => (g.known ? MZ.columnCheck({ sec, Fy, Fu, L: colLen, Lby: colLen * 12, ...g.loads, edition: ed.colEd }, WF) : null)), done = checks.filter(Boolean);
       let name, quoteAs, props;
-      if (ovBU) { name = quoteAs = DESIGN.buColName(sec, checks[0].Wt); props = { d: sec.d, bf: sec.bof, tf: sec.tof, tw: sec.tw, W: checks[0].Wt }; }
+      if (ovBU) { name = quoteAs = DESIGN.buColName(sec, done[0].Wt); props = { d: sec.d, bf: sec.bof, tf: sec.tof, tw: sec.tw, W: done[0].Wt }; }
       else { name = sec.name; const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/); quoteAs = DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt; props = WF[name]; }
       // the guide's own answer, kept beside a pick so the page can say what was replaced and put it back
       const autoName = jobName || (govCol && govCol.design.name) || null;
       const auto = autoName ? { name: autoName, quoteAs: DESIGN.COMMON_COLUMNS.includes(autoName) || autoName === 'W8X18' ? autoName : autoName.replace(/^W(\d+)X/, 'BU$1x') } : null;
-      colFinal = { name, quoteAs, sec, props, Fy, picked: !!ov, auto, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
+      const unsized = groups.filter(g => !g.known).flatMap(g => g.cols.map(q => q.label));
+      colFinal = { name, quoteAs, sec, props, Fy, picked: !!ov, auto, checks, unsized, max: Math.max(...done.map(q => q.max)), ok: done.every(q => q.ok) };
       if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${ov ? ' — the column picked by hand overrides the automatic W' : ''}.` });
       // a W on the quote has to be stocked; a larger one quoted as BU is built from plates
       if (sec.type === 'WF' && colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
@@ -664,7 +673,7 @@
     const noSec = [...new Set(cols.flatMap(q => q.parts.filter(p => !isFinite(p.D) || !isFinite(p.L)).map(p => `${p.mezz} ${p.mark || p.beam}`)))];
     let why = null;
     if (cols.length && !colLen) why = { kind: 'length', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' };
-    else if (cols.length && noBeam) why = { kind: 'beam', marks: noSec, text: `Columns not sized — ${noSec.join(', ')} ${noSec.length > 1 ? 'have' : 'has'} no section yet, so the reactions are unknown.` };
+    else if (cols.length && noBeam) { const nU = cols.filter(q => !known(q)); why = { kind: 'beam', marks: noSec, text: `${nU.length === cols.length ? 'Columns' : `${nU.length} of ${cols.length} columns (${colOrder(nU).map(q => q.label).join(', ')})`} not sized — ${noSec.join(', ')} ${noSec.length > 1 ? 'have' : 'has'} no section yet, so the reactions are unknown${nU.length < cols.length ? '; the others are sized' : ''}.` }; }
     else if (cols.length && !colFinal) why = { kind: 'pass', text: 'No W8–W14 column passes — check the loads or design a built-up column (Design your own).' };
     if (why) warn.push({ level: 'stop', text: why.text });
     return { colLen, groups, colFinal, why };
@@ -946,6 +955,7 @@
       let book = column.find(b => b.edition === ed);
       if (!book) column.push(book = { file: XL.colBook[ed] || XL.colBook[15], edition: ed, cases: [] });
       r.colGroups.forEach((gp, gi) => {
+        if (!r.colFinal.checks[gi]) return;   // not sized yet (a beam framing in has no section): nothing to type
         const ck = r.colFinal.checks[gi], ld = gp.loads, bsec = r.colFinal.sec.type === 'BU' ? r.colFinal.sec : null, n4 = v => +(+v).toFixed(4);   // plate sizes exact (0.3125, 0.1644)
         // the section: a W by name, or the sheet's Built-Up input (one flange size, both flanges)
         const secSteps = bsec ? [
@@ -1295,21 +1305,24 @@
     mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     // a column picked by hand replaces the guide's job-wide column: say which is on the quote
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) { const q = DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`, pk = r.colFinal && r.colFinal.picked ? r.colFinal.quoteAs : null;
-      r.warn.push({ level: 'key', text: pk ? `One column section for the whole job: the guide's would be ${jobName}${q}; ${pk}, picked by hand, is on the quote.` : `One column section for the whole job: ${jobName}${q} passes every column case of every mezzanine.` }); } });
+      const nUn = mezz.reduce((a, z) => a + (!z || z.incomplete ? 0 : z.colFinal ? (z.colFinal.unsized || []).length : z.columns.length), 0);
+      const scope = nUn ? `passes the column cases that are sized; ${nUn} column${nUn > 1 ? 's are' : ' is'} not sized yet, and the section may change once ${nUn > 1 ? 'they are' : 'it is'}` : 'passes every column case of every mezzanine';
+      r.warn.push({ level: 'key', text: pk ? `One column section for the whole job: the guide's would be ${jobName}${q}; ${pk}, picked by hand, is on the quote.` : `One column section for the whole job: ${jobName}${q} ${scope}.` }); } });
     // a column quoted BU anyway (no common W passes): the lightest built-up column on the Column sheet's own Built-Up input,
     // offered beside the guide's answer (the next heavier W, quoted as BU) — not put on the quote unless picked
     let colAlt = null;
     const buQuoted = mezz.filter(r => r && !r.incomplete && r.colFinal && !r.colFinal.picked && r.colFinal.sec.type === 'WF' && r.colFinal.quoteAs !== r.colFinal.name);
     if (buQuoted.length) {
       const c1 = ctxs[buQuoted[0].index], sets = [];
-      buQuoted.forEach(r => r.colGroups.forEach(g => sets.push({ ...g.loads, L: r.colLen })));
+      buQuoted.forEach(r => r.colGroups.forEach(g => { if (g.known !== false) sets.push({ ...g.loads, L: r.colLen }); }));
       try { colAlt = DESIGN.designBUColumn(sets, { L: buQuoted[0].colLen, edition: c1.ed.colEd, division: c1.division, target: c1.s.target }); } catch (e) { colAlt = null; }
       if (colAlt) {
-        const saves = buQuoted.reduce((a, r) => a + (r.colFinal.props.W - colAlt.W) * r.colLen * r.columns.length, 0);
+        const nUnAlt = buQuoted.reduce((a, r) => a + (r.colFinal.unsized || []).length, 0);
+        const saves = buQuoted.reduce((a, r) => a + (r.colFinal.props.W - colAlt.W) * r.colLen * (r.columns.length - (r.colFinal.unsized || []).length), 0);
         if (saves > 1) {
           const now = [...new Set(buQuoted.map(r => `${r.colFinal.quoteAs} (sized as ${r.colFinal.name})`))].join(', ');
-          colAlt = { ...colAlt, saves, over: buQuoted.map(r => r.index) };
-          buQuoted.forEach(r => r.warn.push({ level: 'key', text: `Lighter built-up column: ${colAlt.name} — ${colAlt.sec.d}" deep, ${colAlt.sec.bof}" × ${colAlt.sec.tof}" flanges, ${colAlt.sec.tw}" web, Fy 55 — passes every column case at CSR ${colAlt.max.toFixed(3)} on the Column sheet's Built-Up input, about ${Math.round(saves).toLocaleString('en-US')} lb less than ${now}. The quote keeps the guide's method; use it on the Column page.` }));
+          colAlt = { ...colAlt, saves, over: buQuoted.map(r => r.index), unsized: nUnAlt };
+          buQuoted.forEach(r => r.warn.push({ level: 'key', text: `Lighter built-up column: ${colAlt.name} — ${colAlt.sec.d}" deep, ${colAlt.sec.bof}" × ${colAlt.sec.tof}" flanges, ${colAlt.sec.tw}" web, Fy 55 — passes ${nUnAlt ? 'the sized column cases' : 'every column case'} at CSR ${colAlt.max.toFixed(3)} on the Column sheet's Built-Up input, about ${Math.round(saves).toLocaleString('en-US')} lb less than ${now}. The quote keeps the guide's method; use it on the Column page.` }));
         } else colAlt = null;
       }
     }
@@ -1331,12 +1344,14 @@
       // a column made a frame column on the Plan page: a new member in its frame's NBG Frame file
       off.filter(q => q.userKind === 'frame').forEach(q => {
         const fr = fEntries.find(f => f.bkey === q.bkey && f.entries.some(e => e.label === q.label));
-        say(q.parts[0].mi, fr ? `${q.label} made a frame column on the Plan page: add a column at ${PCS.fmtFtIn(q.y)} from the FSW in the frame line ${fr.frame} NBG Frame file, then load it D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k.`
-          : `${q.label} made a frame column on the Plan page, but it is not on a frame line — design it as a building column (endwall / sidewall) for D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k.`);
+        // its load is known once every beam framing in has a section
+        const unk = q.parts.filter(p => !isFinite(p.D)).map(p => p.mark || p.beam), ld = unk.length ? `the load once ${[...new Set(unk)].join(', ')} ${unk.length > 1 ? 'are' : 'is'} sized` : `D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`;
+        say(q.parts[0].mi, fr ? `${q.label} made a frame column on the Plan page: add a column at ${PCS.fmtFtIn(q.y)} from the FSW in the frame line ${fr.frame} NBG Frame file, then load it with ${ld}.`
+          : `${q.label} made a frame column on the Plan page, but it is not on a frame line — design it as a building column (endwall / sidewall) for ${ld}.`);
       });
       const byMi = new Map();
       off.filter(q => q.userKind !== 'frame').forEach(q => { const mi = q.parts[0].mi; byMi.set(mi, (byMi.get(mi) || []).concat(q)); });
-      byMi.forEach((qs, mi) => say(mi, `Mezzanine load on building columns that are in no NBG Frame file — give it to the endwall / sidewall design: ${qs.map(q => `${q.label} D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`).join(' · ')}.`));
+      byMi.forEach((qs, mi) => say(mi, `Mezzanine load on building columns that are in no NBG Frame file — give it to the endwall / sidewall design: ${qs.map(q => `${q.label} ${isFinite(q.D) ? `D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k` : 'load not known yet (a beam framing in has no section)'}`).join(' · ')}.`));
     }
     let seismic = null;
     try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
@@ -1411,7 +1426,7 @@
         const carried = bs.some(x => { const b = results[x.mi].layout.beams[x.id]; return b && b.extra; });
         const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
         const notes = [fails(run), clearC ? `C ${PCS.fmtFtIn(clearC.prov)} provided < ${PCS.fmtFtIn(clearC.req)} asked` : '', `${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
-          run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
+          !mk.sec ? `no section at ${PCS.fmtFtIn(mk.span)} — see the Design page` : run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
           carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey === 'custom' ? 'section picked by the engineer' : mk.optionKey && mk.optionKey !== 'lightest' && mk.options && mk.options.find(o => o.key === mk.optionKey) ? mk.options.find(o => o.key === mk.optionKey).label + ' option' : ''].filter(Boolean).join('; ');
         beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || 'NO SECTION', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
@@ -1422,24 +1437,28 @@
     done.forEach(i => {
       const r = results[i];
       if (!r.columns.length) return;
-      if (!r.colFinal) {
-        // columns the design could not size yet (a beam framing in has no section): on the quote, marked
+      // columns the design could not size yet (a beam framing in has no section): on the quote, marked — all of them,
+      // or the ones under that beam while the rest are sized
+      const un = r.colFinal ? r.columns.filter(c => (r.colFinal.unsized || []).includes(c.label)) : r.columns;
+      if (un.length) {
         const k = 'NOT SIZED|' + round(r.colLen || 0, 3), row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen || 0, 3), AREA: 0, SECTION: 'NOT SIZED', ENDWT: END_WT_COL, QTY: 0, notes: ['NOT SIZED — see the Design page'], runAs: '' };
-        row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea || 0));
-        row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(r.columns).map(c => c.label).join(', ')}`);
+        row.MEZZ.push(r.id); row.QTY += un.length; row.AREA = Math.max(row.AREA, ...un.map(c => c.tribArea || 0));
+        row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(un).map(c => c.label).join(', ')}`);
         colRows.set(k, row);
-        return;
       }
+      if (!r.colFinal) return;
+      const sz = r.columns.filter(c => !un.includes(c));
+      if (!sz.length) return;
       const k = r.colFinal.quoteAs + '|' + round(r.colLen, 3);
       const row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen, 3), AREA: 0, SECTION: r.colFinal.quoteAs, ENDWT: END_WT_COL, QTY: 0, notes: [], runAs: r.colFinal.quoteAs !== r.colFinal.name ? r.colFinal.name : '' };
-      row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea));
+      row.MEZZ.push(r.id); row.QTY += sz.length; row.AREA = Math.max(row.AREA, ...sz.map(c => c.tribArea));
       if (!r.colFinal.ok) row.notes.unshift(`FAILS — max CSR ${r.colFinal.max.toFixed(2)}`);
       // a built-up column's name (depth x weight) can fit two plate sets: the plates go with it
       const bs = r.colFinal.sec.type === 'BU' ? r.colFinal.sec : null;
       if (bs && !row.notes.some(n => /^built up/.test(n))) { const n = Math.round(bs.tof * 16), g = (a, b) => (b ? g(b, a % b) : a), w = Math.floor(n / 16), q = n % 16, t = Math.abs(bs.tof * 16 - n) > 0.02 ? String(bs.tof) : q ? `${w ? w + ' ' : ''}${q / g(q, 16)}/${16 / g(q, 16)}` : String(w);
         row.notes.unshift(`built up: ${bs.d}" deep, ${bs.bof}" x ${t}" flanges, ${bs.tw}" web, Fy 55`); }
-      row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(r.columns).map(c => c.label).join(', ')}`);
-      r.columns.filter(c => c.shared).forEach(c => row.notes.push(`${c.label} shared with ${[...new Set(c.parts.map(p => p.mezz).filter(m => m !== r.id))].join(', ')}`));
+      row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(sz).map(c => c.label).join(', ')}`);
+      sz.filter(c => c.shared).forEach(c => row.notes.push(`${c.label} shared with ${[...new Set(c.parts.map(p => p.mezz).filter(m => m !== r.id))].join(', ')}`));
       colRows.set(k, row);
     });
     const columns = [...colRows.values()].map(row => ({ MEZZ: row.MEZZ.join(' / '), HEIGHT: row.HEIGHT, AREA: round(row.AREA, 1), SECTION: row.SECTION, ENDWT: row.ENDWT, QTY: row.QTY, NOTES: [...row.notes, row.runAs ? `run as ${row.runAs}` : ''].filter(Boolean).join('; ') }));

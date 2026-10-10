@@ -53,6 +53,9 @@
         B('Beams'));
       rows.push(
         H(['Mark', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Qty', 'Comb. SR', 'Shear SR', 'Live L/', 'Total L/', 'MB end shear D (k)', 'MB end shear L (k)', 'Chosen as']));
+      // a mark with no passing section stays on the Summary, in red, with its beams and their lengths
+      marks.filter(m => !m.check).forEach(m => { const lens = [...new Set((m.beamsAll || []).map(x => +x.span.toFixed(3)))].sort((a, b) => b - a);
+        rows.push([`${m.mark}${m.kind ? ' ' + m.kind : ''}`, { v: 'NO SECTION', s: 'ng' }, 'nothing stocked passes', '', '', { v: lens.map(ft).join(' / '), s: 'r' }, { v: ft(m.trib), s: 'r' }, m.qtyAll || (m.beamsAll || []).length, '', '', '', '', '', '', 'see Beam options']); });
       marks.forEach(m => (m.spanRuns && m.spanRuns.length ? m.spanRuns : []).forEach((run, i) => {
         const c = run.check; if (!c) return;
         const opt = (m.options || []).find(o => o.key === m.optionKey);
@@ -62,9 +65,23 @@
       }));
       rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result', '', '', '', '', 'Chosen as']));
       const colWhy = cf => (cf.picked ? `picked by the engineer${cf.sec.type === 'BU' ? ' (Built-Up input, Fy 55)' : ''}${cf.auto ? `; the guide's answer ${cf.auto.quoteAs}` : ''}` : cf.quoteAs === cf.name ? 'the guide: lightest common column that passes' : 'the guide: next W that passes, quoted BU');
-      live.forEach(r => { if (!r.colFinal) { if (r.columns.length) rows.push([r.id, { v: 'NOT SIZED', s: 'ng' }, r.columns.map(c => c.label).join(', '), '', '', { v: ft(r.colLen || 0), s: 'r' }, r.columns.length, '', '', '', '', '', '', '', (r.colWhy && r.colWhy.text) || '']); return; }
-        rows.push([r.id, r.colFinal.name, r.columns.map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, r.columns.length, '', num(r.colFinal.max), okc(r.colFinal.ok), '', '', '', '', colWhy(r.colFinal)]); });
-      if (job.colAlt) rows.push(spanRow(1, ['', { v: `Offered, not on the quote: ${job.colAlt.name} — ${job.colAlt.sec.d}" deep, ${job.colAlt.sec.bof}" × ${job.colAlt.sec.tof}" flanges, ${job.colAlt.sec.tw}" web, Fy 55, max CSR ${job.colAlt.max.toFixed(3)} on the Built-Up input, about ${Math.round(job.colAlt.saves).toLocaleString('en-US')} lb less.`, s: 'note' }]));
+      // the sized columns on the section's row; the ones under a beam with no section on a NOT SIZED row
+      const ordered = cs => cs.slice().sort((a, b) => a.x - b.x || b.y - a.y);
+      live.forEach(r => { if (!r.columns.length) return;
+        const un = r.colFinal ? r.columns.filter(c => (r.colFinal.unsized || []).includes(c.label)) : r.columns, sz = r.columns.filter(c => !un.includes(c));
+        if (r.colFinal && sz.length) rows.push([r.id, r.colFinal.name, ordered(sz).map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, sz.length, '', num(r.colFinal.max), okc(r.colFinal.ok), '', '', '', '', colWhy(r.colFinal)]);
+        if (un.length) rows.push([r.id, { v: 'NOT SIZED', s: 'ng' }, ordered(un).map(c => c.label).join(', '), '', '', { v: ft(r.colLen || 0), s: 'r' }, un.length, '', '', '', '', '', '', '', (r.colWhy && r.colWhy.text) || '']); });
+      // the steel take-off, as the Design page shows it: what is not sized is named, not counted
+      { const sum = { beams: 0, cols: 0, plates: 0 }, missing = [];
+        live.forEach(r => { (r.layout.beams || []).filter(b => !b.absorbed).forEach(b => { const mk = (r.marks || []).find(q => q.beams.includes(b.id)); if (mk && mk.check) sum.beams += b.span * mk.check.res.Wt; });
+          sum.plates += (r.marks || []).reduce((a, mk) => a + (mk.check ? mk.qty : 0), 0) * 40;
+          const nCs = r.colFinal ? r.columns.length - (r.colFinal.unsized || []).length : 0; sum.cols += r.colFinal ? nCs * r.colLen * r.colFinal.props.W : 0; sum.plates += nCs * 46; });
+        marks.filter(m => !m.check).forEach(m => missing.push(m.mark));
+        const nUn = live.reduce((a, r) => a + (!r.columns.length ? 0 : r.colFinal ? (r.colFinal.unsized || []).length : r.columns.length), 0); if (nUn) missing.push(`${nUn} column${nUn > 1 ? 's' : ''}`);
+        const tot = sum.beams + sum.cols + sum.plates, lb = v => Math.round(v).toLocaleString('en-US') + ' lb';
+        rows.push([], B('Steel take-off'), kv('Beams (each at its member length)', lb(sum.beams)), kv('Columns', lb(sum.cols)), kv('End plates (40 lb a beam, 46 lb a column)', lb(sum.plates)),
+          kv(missing.length ? 'Total — at least' : 'Total', { v: lb(tot), s: 'b' }), ...(missing.length ? [kv('Not in the total (not sized)', { v: missing.join(', '), s: 'ng' })] : [])); }
+      if (job.colAlt) rows.push(spanRow(1, ['', { v: `Offered, not on the quote: ${job.colAlt.name} — ${job.colAlt.sec.d}" deep, ${job.colAlt.sec.bof}" × ${job.colAlt.sec.tof}" flanges, ${job.colAlt.sec.tw}" web, Fy 55, max CSR ${job.colAlt.max.toFixed(3)} on the Built-Up input${job.colAlt.unsized ? ' (sized columns only)' : ''}, about ${Math.round(job.colAlt.saves).toLocaleString('en-US')} lb less.`, s: 'note' }]));
       const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
       // a note several mezzanines share is listed once, with every mezzanine it is for
       const once = list => { const m = new Map(); list.forEach(([id, ...rest]) => { const k = rest[rest.length - 1], e = m.get(k); if (e) { if (!e[0].includes(id)) e[0].push(id); } else m.set(k, [[id], ...rest]); }); return [...m.values()].map(([ids, ...rest]) => [ids.join(', '), ...rest]); };
