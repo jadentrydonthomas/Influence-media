@@ -60,10 +60,16 @@
           num(c.res.Wt, 'n1'), { v: ft(run.L != null ? run.L : run.span), s: 'r' }, { v: ft(run.params ? run.params.trib : m.trib), s: 'r' }, run.qty, num(c.res.CSR), num(c.res.SRvx), num(c.defl.rLL, 'n0'), num(c.defl.rTL, 'n0'), num(c.V.D), num(c.V.L),
           { v: i ? 'same section, own MB run' : m.optionKey === 'custom' ? 'picked by the engineer' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—', s: 'pad' }]);
       }));
-      rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result']));
-      live.forEach(r => { if (!r.colFinal) return; rows.push([r.id, r.colFinal.name, r.columns.map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, r.columns.length, '', num(r.colFinal.max), okc(r.colFinal.ok)]); });
+      rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result', '', '', '', '', 'Chosen as']));
+      const colWhy = cf => (cf.picked ? `picked by the engineer${cf.sec.type === 'BU' ? ' (Built-Up input, Fy 55)' : ''}${cf.auto ? `; the guide's answer ${cf.auto.quoteAs}` : ''}` : cf.quoteAs === cf.name ? 'the guide: lightest common column that passes' : 'the guide: next W that passes, quoted BU');
+      live.forEach(r => { if (!r.colFinal) { if (r.columns.length) rows.push([r.id, { v: 'NOT SIZED', s: 'ng' }, r.columns.map(c => c.label).join(', '), '', '', { v: ft(r.colLen || 0), s: 'r' }, r.columns.length, '', '', '', '', '', '', '', (r.colWhy && r.colWhy.text) || '']); return; }
+        rows.push([r.id, r.colFinal.name, r.columns.map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, r.columns.length, '', num(r.colFinal.max), okc(r.colFinal.ok), '', '', '', '', colWhy(r.colFinal)]); });
+      if (job.colAlt) rows.push(spanRow(1, ['', { v: `Offered, not on the quote: ${job.colAlt.name} — ${job.colAlt.sec.d}" deep, ${job.colAlt.sec.bof}" × ${job.colAlt.sec.tof}" flanges, ${job.colAlt.sec.tw}" web, Fy 55, max CSR ${job.colAlt.max.toFixed(3)} on the Built-Up input, about ${Math.round(job.colAlt.saves).toLocaleString('en-US')} lb less.`, s: 'note' }]));
       const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
       if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2])); }
+      // the design decisions the tool made (the Design page's list): what an engineer checking it needs to know
+      const keys = live.flatMap(r => (r.warn || []).filter(w => w.level === 'key').map(w => [r.id, w.text]));
+      if (keys.length) { rows.push([], B('Design decisions'), H(['Mezzanine', '', 'Decision'])); [...new Map(keys.map(n => [n[1], n])).values()].forEach(n => longRow(sh, [n[0], ''], 2, n[1])); }
       delete sh.long;
       out.push(sh);
     }
@@ -92,7 +98,8 @@
         set('Flanges', s.symmetric === false ? 'top and bottom may differ' : 'same plate top and bottom'),
         set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),
         set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
-        set('Column length', s.colLength === 'clear' ? 'clear below the beams' : 'finish floor to top of mezzanine (A)'), set('Column section', s.colPerJob === false ? 'per mezzanine' : 'one W for the whole job'));
+        set('Column length', s.colLength === 'clear' ? 'clear below the beams' : 'finish floor to top of mezzanine (A)'), set('Column section', s.colPerJob === false ? 'per mezzanine' : 'one section for the whole job'),
+        ...(s.colOverride ? [set('Column picked', typeof s.colOverride === 'object' ? `built-up d ${s.colOverride.d}" · ${s.colOverride.bf}" × ${s.colOverride.tf}" flanges · ${s.colOverride.tw}" web` : String(s.colOverride), 'picked by the engineer over the guide\'s column')] : []));
       out.push({ name: 'Inputs', cols: [12, 10, 34, 13, 6, 18, 13, 40], wrap: [5, 7], rows, freeze: 4 });
     }
 
@@ -192,7 +199,10 @@
           ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'].forEach((n, i) => { const k = chk.combos[i]; rows.push([n, num(k.Mx, 'n2'), num(k.P, 'n2'), num(k.csr), okc(k.ok)]); });
           rows.push(['Eccentricity e = d/2 (in) · self-weight (k)', `${chk.ex.toFixed(2)} · ${chk.wt.toFixed(3)}`]);
         }
-        if (g && g.design && g.design.tried) { rows.push([{ v: 'Sizes tried, lightest first', s: 'b' }], H(['Section', 'Max CSR', 'Result'])); g.design.tried.forEach(t => rows.push([t.name, num(t.max), okc(t.ok)])); }
+        if (g && g.design && g.design.tried) {
+          rows.push([{ v: 'Sizes tried, lightest first (the guide\'s method)', s: 'b' }], H(['Section', 'Max CSR', 'Result'])); g.design.tried.forEach(t => rows.push([t.name, num(t.max), okc(t.ok)]));
+          if (r.colFinal && r.colFinal.picked && chk) rows.push([`${r.colFinal.name} — picked by the engineer (on the quote)`, num(chk.max), okc(chk.ok)]);
+        }
         rows.push([]);
       }));
       out.push({ name: 'Columns', cols: [30, 46, 18, 12, 10], wrap: [1], rows });

@@ -263,7 +263,7 @@
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
     userColumns(lay, s.colKind, grid, warn);
-    lay.snaps.forEach(sn => warn.push({ level: 'key', text: `Mezzanine edge at ${sn.axis === 'y' ? 'FSW' : 'LEW'} ${PCS.fmtFtIn(sn.edge)} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
+    lay.snaps.forEach(sn => warn.push({ level: 'key', text: `The mezzanine edge ${PCS.fmtFtIn(sn.edge)} from the ${sn.axis === 'y' ? 'FSW' : 'LEW'} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
     // an edge just past the 1'-0" snap of a line of building columns: the layout frames it with new mezzanine columns, and
     // the beams there stop loading the frame (a footprint cut to a beam's clear length does this). Say so.
     {
@@ -644,7 +644,10 @@
       let name, quoteAs, props;
       if (ovBU) { name = quoteAs = DESIGN.buColName(sec, checks[0].Wt); props = { d: sec.d, bf: sec.bof, tf: sec.tof, tw: sec.tw, W: checks[0].Wt }; }
       else { name = sec.name; const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/); quoteAs = DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt; props = WF[name]; }
-      colFinal = { name, quoteAs, sec, props, Fy, picked: !!ov, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
+      // the guide's own answer, kept beside a pick so the page can say what was replaced and put it back
+      const autoName = jobName || (govCol && govCol.design.name) || null;
+      const auto = autoName ? { name: autoName, quoteAs: DESIGN.COMMON_COLUMNS.includes(autoName) || autoName === 'W8X18' ? autoName : autoName.replace(/^W(\d+)X/, 'BU$1x') } : null;
+      colFinal = { name, quoteAs, sec, props, Fy, picked: !!ov, auto, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
       if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${ov ? ' — the column picked by hand overrides the automatic W' : ''}.` });
       // a W on the quote has to be stocked; a larger one quoted as BU is built from plates
       if (sec.type === 'WF' && colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
@@ -700,6 +703,17 @@
       [[fa.y1, fb.y0], [fa.y0, fb.y1]].forEach(([u, v2]) => { const [s0, s1] = ov(fa.x0, fa.x1, fb.x0, fb.x1); if (Math.abs(u - v2) < 0.6 && s1 - s0 > 1) shared.push({ a: a.index, b: b.index, axis: 'y', at: u, from: s0, to: s1 }); });
       [[fa.x1, fb.x0], [fa.x0, fb.x1]].forEach(([u, v2]) => { const [s0, s1] = ov(fa.y0, fa.y1, fb.y0, fb.y1); if (Math.abs(u - v2) < 0.6 && s1 - s0 > 1) shared.push({ a: a.index, b: b.index, axis: 'x', at: u, from: s0, to: s1 }); });
     }));
+
+    // and across an attachment (a lean-to's edge beams carried by the other building's beams on the same line): from the
+    // merges, each side in its own building's coordinates (own: whose coordinates the entry is in)
+    const seenB = new Set();
+    [...new Map(mezz.filter(r => r && !r.incomplete).flatMap(r => r.merges || []).map(m => [`${m.owner}|${m.sub}|${m.line}|${m.from}`, m])).values()].forEach(m => {
+      const oc = ctxs[m.owner], sc = ctxs[m.sub];
+      if (!oc || !sc || oc.bkey === sc.bkey) return;
+      shared.push({ a: sc.index, b: oc.index, own: sc.index, axis: m.dir === 'x' ? 'y' : 'x', at: m.line, from: m.from, to: m.to });
+      m.into.forEach(id => { const bm = oc.lay.beams[id], k = oc.index + '|' + id; if (!bm || seenB.has(k)) return; seenB.add(k);
+        shared.push({ a: oc.index, b: sc.index, own: oc.index, axis: bm.dir === 'x' ? 'y' : 'x', at: bm.line, from: bm.from, to: bm.to }); });
+    });
 
     // ---- layout (15.1.1.3, 15.1.1.4)
     live.forEach(c => {
@@ -818,22 +832,21 @@
       const frames = (g.xs || []).filter(x => x > 0.5 && x < L - 0.5);
       const lab = (axis, at) => (axis === 'y' ? g.yLabel(at) : g.xLabel(at)) || F(at);
       const sides = [['y', fp.y0, fp.x0, fp.x1], ['y', fp.y1, fp.x0, fp.x1], ['x', fp.x0, fp.y0, fp.y1], ['x', fp.x1, fp.y0, fp.y1]];
-      const by = { side: [], end: [], rigid: [], free: [], one: [] }, joins = [];
+      const by = { side: [], end: [], rigid: [], free: [] }, joins = [];
+      const KIND = { side: 'sidewall bracing tiered at the mezzanine level', end: 'endwall bracing tiered at the mezzanine level, or a rigid end frame', rigid: 'rigid frame', free: 'free — independent X-bracing' };
       sides.forEach(([axis, at, s0, s1]) => {
-        const sh = shared.filter(e => (e.a === c.index || e.b === c.index) && e.axis === axis && Math.abs(e.at - at) < 0.6);
-        const shLen = sh.reduce((a, e) => a + (e.to - e.from), 0), rest = s1 - s0 - shLen, nm = lab(axis, at);
-        if (sh.length) joins.push(`line ${nm}: one floor with ${sh.map(e => idOf(e.a === c.index ? e.b : e.a)).join(', ')}${rest < 1 ? '' : ' for ' + F(shLen)}`);
-        if (rest < 1) { by.one.push(nm); return; }
-        if (axis === 'y' && (Math.abs(at) < 0.6 || Math.abs(at - W) < 0.6)) by.side.push(nm);
-        else if (axis === 'x' && (Math.abs(at) < 0.6 || Math.abs(at - L) < 0.6)) by.end.push(nm);
-        else if (axis === 'x' && frames.some(x => Math.abs(x - at) < 0.6)) by.rigid.push(nm);
-        else by.free.push(nm);
+        const sh = shared.filter(e => (e.own == null ? e.a === c.index || e.b === c.index : e.own === c.index) && e.axis === axis && Math.abs(e.at - at) < 0.6);
+        const shLen = Math.min(s1 - s0, sh.reduce((a, e) => a + (e.to - e.from), 0)), rest = s1 - s0 - shLen, nm = lab(axis, at);
+        const kind = axis === 'y' && (Math.abs(at) < 0.6 || Math.abs(at - W) < 0.6) ? 'side' : axis === 'x' && (Math.abs(at) < 0.6 || Math.abs(at - L) < 0.6) ? 'end' : axis === 'x' && frames.some(x => Math.abs(x - at) < 0.6) ? 'rigid' : 'free';
+        // a line shared with another floor: one clause — what it shares, and what the rest of the line needs
+        if (sh.length) { joins.push(`line ${nm}: one floor with ${[...new Set(sh.map(e => idOf(e.a === c.index ? e.b : e.a)))].join(', ')}${rest < 1 ? '' : ` for ${F(shLen)}; the other ${F(rest)} ${KIND[kind]}`}`); if (rest >= 1) by[kind + 'Part'] = true; return; }
+        by[kind].push(nm);
       });
       const ln = a => (a.length > 1 ? 'lines ' : 'line ') + a.join(', ');
-      const desc = [by.side.length && `${ln(by.side)}: sidewall bracing tiered at the mezzanine level`, by.end.length && `${ln(by.end)}: endwall bracing tiered at the mezzanine level, or a rigid end frame`,
-        by.rigid.length && `${ln(by.rigid)}: rigid frame`, by.free.length && `${ln(by.free)}: free — independent X-bracing, mezzanine level to the floor, for 1% of FDL + FLL = ${H.toFixed(2)} k (${Math.round(area).toLocaleString('en-US')} ft² × ${n3(fdl + fll)} psf)`,
-        joins.length && joins.join(', ')].filter(Boolean);
-      const needs = by.side.length || by.end.length || by.free.length;
+      const anyFree = by.free.length || by.freePart;
+      const desc = [by.side.length && `${ln(by.side)}: ${KIND.side}`, by.end.length && `${ln(by.end)}: ${KIND.end}`, by.rigid.length && `${ln(by.rigid)}: ${KIND.rigid}`, by.free.length && `${ln(by.free)}: ${KIND.free}, mezzanine level to the floor`, ...joins,
+        anyFree && `X-bracing for 1% of FDL + FLL = ${H.toFixed(2)} k (${Math.round(area).toLocaleString('en-US')} ft² × ${n3(fdl + fll)} psf)`].filter(Boolean);
+      const needs = by.side.length || by.end.length || by.free.length || by.sidePart || by.endPart || by.freePart;
       add('15.1.3', 'Bracing', 'Mezzanine braced on all four sides', needs ? 'check' : 'ok', `${tag(c)}${desc.join(' · ')}.`, c.index);
     });
 
@@ -1199,7 +1212,7 @@
       S(I, 'B11', 'Distance to Ridge, from BSW (ft)', n3(q.g.dtr)), S(I, 'B12', 'Roof Slope, s:12', n3(q.g.slope)),
       S(I, 'B13', 'Low Eave Height, FSW (ft)', n3(q.g.leh)), S(I, 'B14', 'High Eave Height, BSW (ft)', n3(q.g.heh)),
       S(I, 'B18', 'Roof Level Diaphragm', 'Flexible'),
-      S(I, 'B19', 'Mezzanine Level Diaphragm', q.rigid ? 'Rigid' : 'None'),
+      S(I, 'B19', 'Mezzanine Level Diaphragm (None and Flexible give the same results)', q.rigid ? 'Rigid' : 'None'),
       S(I, 'B21', 'Vertical Distribution Required', q.j.vertical !== false),
       S(I, 'B22', 'Seismic Irregularities Exist', false),
       S(I, 'F16', 'Ignore "Steel Systems Not Detailed for Seismic"', !!q.j.ignoreNDFS),
@@ -1272,7 +1285,7 @@
     }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
     mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
-    if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName} passes every column case of every mezzanine.` }); });
+    if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName}${DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`} passes every column case of every mezzanine.` }); });
     // a column quoted BU anyway (no common W passes): the lightest built-up column on the Column sheet's own Built-Up input,
     // offered beside the guide's answer (the next heavier W, quoted as BU) — not put on the quote unless picked
     let colAlt = null;
@@ -1411,6 +1424,10 @@
       const row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen, 3), AREA: 0, SECTION: r.colFinal.quoteAs, ENDWT: END_WT_COL, QTY: 0, notes: [], runAs: r.colFinal.quoteAs !== r.colFinal.name ? r.colFinal.name : '' };
       row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea));
       if (!r.colFinal.ok) row.notes.unshift(`FAILS — max CSR ${r.colFinal.max.toFixed(2)}`);
+      // a built-up column's name (depth x weight) can fit two plate sets: the plates go with it
+      const bs = r.colFinal.sec.type === 'BU' ? r.colFinal.sec : null;
+      if (bs && !row.notes.some(n => /^built up/.test(n))) { const n = Math.round(bs.tof * 16), g = (a, b) => (b ? g(b, a % b) : a), w = Math.floor(n / 16), q = n % 16, t = Math.abs(bs.tof * 16 - n) > 0.02 ? String(bs.tof) : q ? `${w ? w + ' ' : ''}${q / g(q, 16)}/${16 / g(q, 16)}` : String(w);
+        row.notes.unshift(`built up: ${bs.d}" deep, ${bs.bof}" x ${t}" flanges, ${bs.tw}" web, Fy 55`); }
       row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(r.columns).map(c => c.label).join(', ')}`);
       r.columns.filter(c => c.shared).forEach(c => row.notes.push(`${c.label} shared with ${[...new Set(c.parts.map(p => p.mezz).filter(m => m !== r.id))].join(', ')}`));
       colRows.set(k, row);

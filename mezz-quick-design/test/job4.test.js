@@ -58,6 +58,10 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   const s3 = fe('Sanctuary', 3).entries.map(e => [e.label, e.member, +e.D.toFixed(2), +e.L.toFixed(2)]);
   assert.deepStrictEqual(s3, [['3/G', 'COL01', 16.54, 25.81], ['3/B', 'COL02', 36.8, 58.05]]);
   assert.deepStrictEqual(fe('Lean To', 3).entries.map(e => e.label), ['3/A']);
+  // bracing: line B is one floor across the attachment (the Lean To's edge beams are the Sanctuary's), not two sidewalls
+  const br = n => job.dm.find(i => i.ref === '15.1.3' && i.mi === n);
+  assert.ok(/line B: one floor with Lean To/.test(br(0).text) && !/lines G, B/.test(br(0).text), br(0).text);
+  assert.ok(/line B: one floor with Sanctuary/.test(br(1).text) && /lines 1, 9/.test(br(1).text), br(1).text);
   // the column quoted BU anyway: a lighter built-up column on the Column sheet's own Built-Up input is offered (not applied)
   const alt = job.colAlt;
   assert.ok(alt && alt.name === 'BU9x22' && alt.sec.bof === 8 && alt.sec.tof === 0.3125 && alt.max <= 0.99 && alt.saves > 4000, JSON.stringify(alt && { name: alt.name, sec: alt.sec, max: alt.max, saves: alt.saves }));

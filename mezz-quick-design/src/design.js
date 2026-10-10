@@ -260,14 +260,14 @@
           }
           const kept = { ...sec, d };
           const rk = run(kept);
-          steps.push({ step: 'reduce', text: d < sec.d ? `Take depth out with the same plates: it still passes at ${d}" (combined ${rk.r.res.CSR.toFixed(3)}, shear ${rk.r.res.SRvx.toFixed(3)}, L/${Math.round(rk.r.defl.rLL)})${dTries.some(x => !x.ok) ? `; at ${d - o.dStep}" it does not (${dTries.find(x => !x.ok).why})` : ''}.` : `Taking depth out with the same plates fails at once (${(dTries[0] || {}).why || 'the bottom of the range'}) — ${d}" it is.`, tries: dTries });
+          steps.push({ step: 'reduce', text: d < sec.d ? `Take depth out with the same plates: it still passes at ${d}" (combined ${rk.r.res.CSR.toFixed(3)}, shear ${rk.r.res.SRvx.toFixed(3)}, L/${Math.round(rk.r.defl.rLL)})${dTries.some(x => !x.ok) ? `; at ${d - o.dStep}" it does not (${dTries.find(x => !x.ok).why})` : ''}.` : `Taking depth out with the same plates fails at once (${(dTries[0] || {}).why || 'the bottom of the range'}) — the plates stay at ${d}".`, tries: dTries });
           // a lighter plate at that depth (same or narrower flange, economical)
           const lighter = all.filter(e => e.d === d && e.tier === 0 && e.sec.bof <= kept.bof && e.wt < rk.r.res.Wt - 1e-9).sort((a, b) => a.wt - b.wt)[0];
           if (lighter) {
             steps.push({ step: 'cut', text: `At ${d}" a lighter plate still works: ${lighter.r.desc} (${flangeName(lighter.sec.bof, lighter.sec.tof)}, ${webName(lighter.sec.tw)}), ${lighter.wt.toFixed(1)} plf against ${rk.r.res.Wt.toFixed(1)}.` });
             fit = summarize(lighter);
           } else {
-            steps.push({ step: 'cut', text: `No lighter economical plate passes at ${d}" — ${rk.r.desc} it is.` });
+            steps.push({ step: 'cut', text: `No lighter economical plate passes at ${d}" — ${rk.r.desc} so far.` });
             fit = asPick(kept, rk.r);
           }
         }

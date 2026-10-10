@@ -431,6 +431,22 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
       if (c1 !== c0 - 1) fail('making a column a frame column should drop one mezzanine column');
       await page.click('#layUndo'); await page.waitForTimeout(400);
       if (await nCols() !== c0) fail('undo should bring the mezzanine column back');
+      // a column with a beam on both sides can be taken out: the beam spans through (one beam instead of two)
+      const keys = await page.$$eval('#planSvg .mcol[data-col]', es => es.map(e => e.dataset.col));
+      let taken = false;
+      for (const k of keys.slice(0, 16)) {
+        await page.click(`#planSvg .mcol[data-col="${k}"]`, { force: true }); await page.waitForTimeout(120);
+        const items = await page.$$eval('#layPop button[data-i]', bs => bs.map(b => b.innerText));
+        const i = items.findIndex(t => /Take the column out/.test(t));
+        if (i < 0) { await page.keyboard.press('Escape'); await page.waitForTimeout(80); continue; }
+        await page.click(`#layPop button[data-i="${i}"]`); await page.waitForTimeout(400);
+        const c2 = await nCols(), b2 = await nBeams();
+        console.log('layout: column taken out'.padEnd(30), `${c0} → ${c2} columns, ${b0} → ${b2} beams`);
+        if (c2 !== c0 - 1 || b2 !== b0 - 1) fail('taking a column out should leave one column and one beam fewer');
+        await page.click('#layUndo'); await page.waitForTimeout(400);
+        taken = true; break;
+      }
+      if (!taken && c0 >= 4) fail('no mezzanine column offers "Take the column out"');
     }
     // a point on the floor of the first mezzanine, between its first two beam lines (clear of the beams and their tags)
     // and off the column lines
