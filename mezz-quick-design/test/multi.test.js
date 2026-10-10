@@ -230,5 +230,10 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.strictEqual(job.excel.beam[0].sheets[2].steps.find(st => st.cell === 'D5').value, `MB1 12'-4"`);
   const x2c = job.excel.column[0].cases.find(c => c.labels.includes('2/C'));
   assert.deepStrictEqual(['C27', 'D27', 'C28', 'D28'].map(c => x2c.steps.find(st => st.cell === c).value), [19.743, 36.4, 17.522, 32.154]);
+  // a W picked by hand that fails: A992 Fy 50 (the workbook at M31-M33 = 50 / 50 / 65 reads SR 1.19), and the FAILS note
+  // names the checks that fail — the total deflection, not the live one that passes
+  const jw = RUN.runJob(inps.map(inp => ({ inp, settings: { override: { MB1: { sec: { type: 'WF', name: 'W24X55' } } } } })));
+  const fw = RUN.quoteJob(jw.mezz, inps).beams.map(b => b.NOTES).find(n => /FAILS/.test(n));
+  assert.ok(fw && /FAILS — combined 1\.19, total L\/237 < L\/240/.test(fw) && !/live L/.test(fw), fw);
   console.log('multi tests passed (W0S-26160: MB1 interior BU28x50 ×4 (3 @ 28\' + 1 @ 12\'-4"), MB2 exterior BU26x36 ×10 (9 + 1), W8X24 ×7, 7/7 columns on the drawing)');
 })().catch(e => { console.error(e); process.exit(1); });

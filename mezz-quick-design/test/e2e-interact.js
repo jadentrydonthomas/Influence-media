@@ -422,9 +422,11 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     await page.click('#layEdit'); await page.waitForTimeout(150);
     const col = await page.$('#planSvg .mcol[data-col]');
     if (col) {
-      await col.click({ force: true }); await page.waitForTimeout(150);
+      await col.click({ force: true });
+      // the menu is drawn on the click: wait for it (a fixed pause raced the render on a busy machine)
+      await page.waitForSelector('#layPop:not([hidden]) button[data-i]', { timeout: 5000 }).catch(() => {});
       const menu = await page.$eval('#layPop', e => e.innerText.replace(/\n+/g, ' | '));
-      if (!/Make it a frame column/.test(menu)) fail('a mezzanine column should offer "Make it a frame column"');
+      if (!/Make it a frame column/.test(menu)) fail('a mezzanine column should offer "Make it a frame column" — menu: ' + menu.slice(0, 200));
       await page.click('#layPop button[data-i="0"]'); await page.waitForTimeout(400);
       const c1 = await nCols();
       console.log('layout: frame column'.padEnd(30), `${c0} → ${c1} mezzanine columns`);

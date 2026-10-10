@@ -113,6 +113,7 @@
       const set = (lab, v, note = '') => ['', '', lab, v, '', '', '', note];
       rows.push([], band('Design settings', 8), H(['', '', 'Setting', 'Value', '', '', '', 'Note']),
         set('Stress ratio limit', num(target, 'n2l'), 'combined and shear, as the MB sheet reads OK below 1.00'),
+        set('Steel', 'built-up plate Fy 55 / Fu 70 ksi; W shapes A992 Fy 50 / Fu 65', 'MB sheet M30–M33 (Q11 = 3 plate, 2 for a W); Column sheet Fy 50 for a W, 55 on its Built-Up input'),
         set('Depth range searched', `${s.dMin ?? 10}"–${s.dMax ?? 30}"`, 'capped by the clearance C'),
         set('Flanges', s.symmetric === false ? 'top and bottom may differ' : 'same plate top and bottom'),
         set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),

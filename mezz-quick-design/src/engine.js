@@ -348,9 +348,10 @@
   }
 
   /* ---------------- MB sheet: one mezzanine beam ---------------- */
-  // p: {dead, coll, live, joistWt (psf), L, Lb, trib (ft), sec (BU dims), Fy (55), Fu (70)}
+  // p: {dead, coll, live, joistWt (psf), L, Lb, trib (ft), sec (BU dims or a W by name), Fy, Fu}: built-up plate
+  // Fy 55 / Fu 70 (the sheet's default, Q11 = 3); a W shape is A992, Fy 50 / Fu 65 (Q11 = 2, M31 = M32 = 50, M33 = 65)
   function beamCheck(p, WFDB) {
-    const Fy = p.Fy ?? 55, Fu = p.Fu ?? 70, E = 29000;
+    const wf = p.sec && p.sec.type === 'WF', Fy = p.Fy ?? (wf ? 50 : 55), Fu = p.Fu ?? (wf ? 65 : 70), E = 29000;
     const D11 = p.dead + p.coll, D12 = p.live, D14 = p.joistWt;
     const ed = p.edition || '15';
     const probe = analyze(p.sec, { Fy, Fyf: Fy, Fyw: Fy, Fu, E }, { Lbx: p.L, Lby: p.Lb, edition: ed }, {}, WFDB);
@@ -367,7 +368,7 @@
     const defl = { DL: dDL, LL: dLL, TL: dTL, rDL: L * 12 / dDL, rLL: L * 12 / dLL, rTL: L * 12 / dTL };
     const desc = p.sec.type === 'WF' ? p.sec.name : 'BU' + Math.round(p.sec.d) + 'x' + String(Math.round(res.Wt)).padStart(2, '0');
     return {
-      desc, res, conc, defl,
+      desc, res, conc, defl, Fy, Fu,
       w: { joist: D19, beam: D20, FDL: D21, FLL: D22, total: D23 },
       V: { D: H6, L: H10, T: H14 }, M: { D: H8, L: H12, T: H16 },
       llOK: defl.rLL >= 360, tlOK: defl.rTL >= 240, // MB sheet flags (<360, <240 warn)

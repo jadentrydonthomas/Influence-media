@@ -473,13 +473,17 @@
       // a long beam given its own mark (Beam calc → "Give the … beam its own mark"): only those beams leave their mark,
       // every other mark stays as it was
       const own = (g.ctxs[0].s.ownSpan || []).map(Number).filter(v => v > 0);
-      if (own.length) sets = sets.flatMap(([xs, kind, , merged]) => {
+      // the marks keep the names they had before (numbered by the whole set's span × trib); the own mark takes the next
+      // free number — so a section picked by hand on a mark stays on that mark
+      const keyOf = xs => Math.max(...xs.map(x => x.span)) * Math.max(...xs.map(x => x.trib));
+      sets = sets.map(([xs, kind, , merged]) => [xs, kind, false, merged, keyOf(xs)]);
+      if (own.length) sets = sets.flatMap(([xs, kind, , merged, k0]) => {
         const isOwn = x => own.some(v => Math.abs(x.span - v) < 1e-3), rest = xs.filter(x => !isOwn(x));
-        return rest.length && rest.length < xs.length ? [[xs.filter(isOwn), kind, true], [rest, kind, false, merged]] : [[xs, kind, false, merged]];
+        return rest.length && rest.length < xs.length ? [[rest, kind, false, merged, k0], [xs.filter(isOwn), kind, true, null, k0]] : [[xs, kind, false, merged, k0]];
       });
-      sets.forEach(([xs, kind, ownMark, merged]) => marks.push({ group: g, groupKey: g.key, kind, own: !!ownMark, merged: merged && merged.length ? merged : null, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
+      sets.forEach(([xs, kind, ownMark, merged, k0]) => marks.push({ group: g, groupKey: g.key, kind, own: !!ownMark, sortKey: k0, merged: merged && merged.length ? merged : null, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
     });
-    marks.sort((a, b) => b.span * b.trib - a.span * a.trib || (a.kind === 'interior' ? -1 : 1));
+    marks.sort((a, b) => (a.own ? 1 : 0) - (b.own ? 1 : 0) || b.sortKey - a.sortKey || (a.kind === 'interior' ? -1 : 1));
     marks.forEach((m, i) => { m.mark = 'MB' + (i + 1); m.index = i; m.qtyAll = m.beamsAll.length; m.mezzIds = [...new Set(m.beamsAll.map(x => x.mi))]; });
     return marks;
   }
@@ -524,12 +528,12 @@
     if (m.merged && check) m.merged.forEach(q => {
       const dzq = DESIGN.designBeam({ ...c0.beamBase, L: q.span - cut, trib: q.trib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
       const n = q.beams.length, len = q.beams.reduce((a, x) => a + x.span, 0), own = dzq && dzq.best, dW = own ? (check.res.Wt - own.wt) * len : 0;
-      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of ${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on the next heavier mark${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
+      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of up to ${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on the next heavier mark${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
     });
     if (m.own) say('key', `${m.mark}: the ${Fi(m.span)} beam${m.beamsAll.length > 1 ? 's' : ''} given ${m.beamsAll.length > 1 ? 'their' : 'its'} own mark on Beam calc — the shorter ${m.kind ? m.kind + ' ' : ''}beams keep their mark.`);
     if (check && ov && ov.sec) {
       const okB = check.res.CSR <= s.target && check.res.SRvx <= s.target && check.llOK && check.tlOK && (!check.conc || check.conc.ok);
-      if (!okB) say('stop', `${m.mark}: ${check.desc}, the section picked by hand, does not pass for these loads (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick another or go back to an option.`);
+      if (!okB) say('stop', `${m.mark}: ${check.desc}, the section picked by hand, does not pass for these loads (${[!(check.res.CSR <= s.target) ? `combined ${check.res.CSR.toFixed(3)}` : '', !(check.res.SRvx <= s.target) ? `shear ${check.res.SRvx.toFixed(3)}` : '', !check.llOK ? `live deflection L/${Math.round(check.defl.rLL)} < L/360` : '', !check.tlOK ? `total deflection L/${Math.round(check.defl.rTL)} < L/240` : '', check.conc && !check.conc.ok ? 'joist bearing' : ''].filter(Boolean).join(', ')}) — pick another or go back to an option.`);
     }
     if (!chosen) {
       // the mark fails at its longest beam: when its other beams are shorter, giving the long one(s) its own mark
@@ -660,9 +664,14 @@
     cols.filter(q => q.shared).forEach(q => warn.push({ level: 'key', text: `Column ${q.label} is shared: ${q.parts.map(p => `${p.mezz} ${p.beam} (${p.sheetSide})`).join(' + ')} frame into it. Its Column-sheet input uses both reactions, and it is counted once, here.` }));
     cols.filter(q => q.mixed).forEach(q => warn.push({ level: 'warn', text: `Column ${q.label} has beams from both directions — the cross beams' reactions are put on the heavier side for the sheet's e = d/2 moment. Check biaxial bending by hand.` }));
     if (cols.some(q => q.mezzes.some(mi => mi !== c.index) && q.len !== c.colLen)) warn.push({ level: 'warn', text: `Shared columns run to the higher of the two mezzanines (${PCS.fmtFtIn(colLen)}).` });
-    const key = q => [q.DL_L, q.LL_L, q.DL_R, q.LL_R].map(x => x.toFixed(2)).join('|');
+    // one Column-sheet case for columns whose four reactions agree within 0.01 k (not split on a rounding edge); the case
+    // carries the largest of each, so it covers every column in it
+    const LK = ['DL_L', 'LL_L', 'DL_R', 'LL_R'], key = q => LK.map(k => q[k].toFixed(2)).join('|');
+    const close = (g, q) => LK.every(k => (isFinite(g.loads[k]) && isFinite(q[k]) ? Math.abs(g.first[k] - q[k]) <= 0.01 + 1e-9 : !isFinite(g.loads[k]) && !isFinite(q[k])));
     const groups = [];
-    cols.forEach(q => { const g = groups.find(g2 => g2.key === key(q)); g ? g.cols.push(q) : groups.push({ key: key(q), cols: [q], loads: { DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R } }); });
+    cols.forEach(q => { const g = groups.find(g2 => close(g2, q));
+      if (g) { g.cols.push(q); LK.forEach(k => { if (isFinite(q[k])) g.loads[k] = Math.max(g.loads[k], q[k]); }); g.key = key(g.loads); }
+      else groups.push({ key: key(q), cols: [q], first: { DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R }, loads: { DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R } }); });
     // a column under a beam with no section yet has unknown loads: it is not sized; every other case still is
     const known = l => [l.DL_L, l.LL_L, l.DL_R, l.LL_R].every(isFinite);
     const noBeam = cols.some(q => !known(q));
@@ -955,6 +964,11 @@
             // a W picked by hand: the sheet's own WF input (M19 = "WF" when Q4 = 3; M20 shows the name typed in M21)
             { sheet, cell: 'Q4', where: 'K19 drop-down', label: 'Wide-flange/Built-up Sect.', value: 3, show: 'WF' },
             { sheet, cell: 'M21', label: 'Enter WF-Section', value: sec.name, show: sec.name },
+            // a W is A992: the sheet's material drop-down to 50 ksi (M30 = 50 when Q11 = 2) and the strengths typed below it
+            { sheet, cell: 'Q11', where: 'M30 drop-down', label: 'Material Strength Fy, ksi', value: 2, show: '50' },
+            { sheet, cell: 'M31', label: 'Flange Yield Strength Fyf, ksi', value: 50, show: '50' },
+            { sheet, cell: 'M32', label: 'Web Yield Strength Fyw, ksi', value: 50, show: '50' },
+            { sheet, cell: 'M33', label: 'Ultimate Strength Fu, ksi', value: 65, show: '65' },
           ] : [
             { sheet, cell: 'Q4', where: 'K19 drop-down', label: 'Wide-flange/Built-up Sect.', value: 2, show: 'BU' },
           ]).concat([
@@ -1124,13 +1138,15 @@
         // framing self weight from the design: every beam of this mezzanine, and half its columns
         const bw = c.lay.beams.filter(bm => !bm.absorbed).reduce((a, bm) => { const mk = c.markOf(bm.id); return a + (mk && mk.sec ? secWt(mk.sec) * bm.span : 0); }, 0);
         const cw = r && r.colFinal && r.colLen ? (r.colFinal.props || {}).W * r.colLen * r.columns.length / 2 : 0;
-        const framing = mo.framing === false ? 0 : (bw + cw) / area;
+        // a mark with no section or a column not sized: the framing weight is not known — not the half that is
+        const unk = r && ((r.marks || []).filter(mk => !mk.check).map(mk => mk.mark));
+        const framing = mo.framing === false ? 0 : unk && unk.length ? null : (bw + cw) / area;
         const FDL = src(mo.FDL, val(c.inp.loads.dead), null, 'design');
         const storage = mo.storage != null ? !!mo.storage : c.inp.mezz.use === 'Storage';
         const m = { id: c.id, index: c.index, elev: c.A, FDL: FDL.value, FDLsrc: FDL.source, FLC: val(c.inp.loads.coll) || 0, FLJ: val(c.inp.loads.joistWt) ?? DEFAULTS.joistWt,
-          FLL: val(c.inp.loads.live) || 0, storage, FLP: val(c.inp.loads.partition) || 0, framing, framingLb: bw + cw, area,
+          FLL: val(c.inp.loads.live) || 0, storage, FLP: val(c.inp.loads.partition) || 0, framing, framingLb: framing == null ? null : bw + cw, framingWaits: framing == null ? unk : null, area,
           x0: c.mz.startLEW, x1: c.mz.startLEW + c.mz.length, y0: c.mz.startFSW, y1: c.mz.startFSW + c.mz.width, useText: c.inp.mezz.use || null };
-        m.psf = m.FDL + m.FLC + m.FLJ + (storage ? 0.25 * m.FLL : 0) + m.FLP + m.framing;
+        m.psf = m.framing == null ? null : m.FDL + m.FLC + m.FLJ + (storage ? 0.25 * m.FLL : 0) + m.FLP + m.framing;
         return m;
       });
       const story = bo.story != null ? !!bo.story : mz.reduce((a, m) => a + m.area, 0) > (W * Lg) / 3;
@@ -1386,7 +1402,7 @@
       off.filter(q => q.userKind === 'frame').forEach(q => {
         const fr = fEntries.find(f => f.bkey === q.bkey && f.entries.some(e => e.label === q.label));
         // its load is known once every beam framing in has a section
-        const unk = q.parts.filter(p => !isFinite(p.D)).map(p => p.mark || p.beam), ld = unk.length ? `the load once ${[...new Set(unk)].join(', ')} ${unk.length > 1 ? 'are' : 'is'} sized` : `D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`;
+        const unk = [...new Set(q.parts.filter(p => !isFinite(p.D)).map(p => p.mark || p.beam))], ld = unk.length ? `the load once ${unk.join(', ')} ${unk.length > 1 ? 'are' : 'is'} sized` : `D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`;
         say(q.parts[0].mi, fr ? `${q.label} made a frame column on the Plan page: add a column at ${PCS.fmtFtIn(q.y)} from the FSW in the frame line ${fr.frame} NBG Frame file, then load it with ${ld}.`
           : `${q.label} made a frame column on the Plan page, but it is not on a frame line — design it as a building column (endwall / sidewall) for ${ld}.`);
       });
@@ -1456,7 +1472,7 @@
       if (!runs.length) runs.push({ span: mk.span, qty: mk.qtyAll || mk.qty });
       const tgt = r0.settings.target;
       // a section that does not pass, or breaks the clearance C, says so on the row that gets pasted
-      const fails = run => { const c = run.check || mk.check; if (!c) return 'NO PASSING SECTION — see the Design page'; const bad = []; if (!(c.res.CSR <= tgt)) bad.push(`combined ${c.res.CSR.toFixed(2)}`); if (!(c.res.SRvx <= tgt)) bad.push(`shear ${c.res.SRvx.toFixed(2)}`); if (!c.llOK || !c.tlOK) bad.push(`L/${Math.round(c.defl.rLL)}`); if (c.conc && !c.conc.ok) bad.push('joist bearing'); return bad.length ? `FAILS — ${bad.join(', ')}` : ''; };
+      const fails = run => { const c = run.check || mk.check; if (!c) return 'NO PASSING SECTION — see the Design page'; const bad = []; if (!(c.res.CSR <= tgt)) bad.push(`combined ${c.res.CSR.toFixed(2)}`); if (!(c.res.SRvx <= tgt)) bad.push(`shear ${c.res.SRvx.toFixed(2)}`); if (!c.llOK) bad.push(`live L/${Math.round(c.defl.rLL)} < L/360`); if (!c.tlOK) bad.push(`total L/${Math.round(c.defl.rTL)} < L/240`); if (c.conc && !c.conc.ok) bad.push('joist bearing'); return bad.length ? `FAILS — ${bad.join(', ')}` : ''; };
       const clearC = [...new Set((mk.beamsAll || []).map(x => x.mi))].map(mi => results[mi] && results[mi].clear && results[mi].clear.C).find(q => q && q.ok === false);
       runs.forEach(run => {
         const bs = (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3);
@@ -1467,7 +1483,7 @@
         const carried = bs.some(x => { const b = results[x.mi].layout.beams[x.id]; return b && b.extra; });
         const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
         const notes = [fails(run), clearC ? `C ${PCS.fmtFtIn(clearC.prov)} provided < ${PCS.fmtFtIn(clearC.req)} asked` : '', `${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
-          !mk.sec ? `no section at ${PCS.fmtFtIn(mk.span)} — see the Design page` : run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
+          !mk.sec ? `nothing passes at ${PCS.fmtFtIn(mk.span)}` : run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
           carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey === 'custom' ? 'section picked by the engineer' : mk.optionKey && mk.optionKey !== 'lightest' && mk.options && mk.options.find(o => o.key === mk.optionKey) ? mk.options.find(o => o.key === mk.optionKey).label + ' option' : ''].filter(Boolean).join('; ');
         beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || 'NO SECTION', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });

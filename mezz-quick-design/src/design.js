@@ -278,15 +278,16 @@
     // ---- best fit: the method's answer; when that is the lightest (or the lightest beats it), the method's own next
     //      move — "try an alternate solution with the lesser depth": the lightest economical section an inch shallower ----
     const lesser = d0 => { for (let d = d0 - o.dStep; d >= o.dMin - 1e-9; d -= o.dStep) { const e = all.filter(x => Math.abs(x.d - d) < 1e-9 && x.tier === 0).sort((a, b) => a.wt - b.wt)[0]; if (e) return e; } return null; };
+    let usedLesser = false;
     if (fit) {
       const dom = !same(light.sec, fit.sec) && light.wt < fit.wt - 1e-9 && light.d <= fit.d;
       if (same(light.sec, fit.sec) || dom) {
         const alt = lesser(light.d);
         steps.push({ step: 'alternate', text: alt ? `${dom ? `The lightest (${light.desc}) is lighter and no deeper than ${fit.desc}` : 'The method lands on the lightest'} — so its next step, a lesser depth: at ${alt.d}" ${alt.r.desc} works (combined ${alt.r.res.CSR.toFixed(3)}, shear ${alt.r.res.SRvx.toFixed(3)}, L/${Math.round(alt.r.defl.rLL)}).` : `${dom ? `The lightest (${light.desc}) beats ${fit.desc}` : 'The method lands on the lightest'}, and nothing shallower passes.` });
-        if (alt) fit = summarize(alt);   // else the method's own answer stands (on the lightest, it merges with that card)
+        if (alt) { fit = summarize(alt); usedLesser = true; }   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: usedLesser ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the step-by-step method's own answer: deepest allowed, F8.31 and up, depth out until the next inch fails (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----

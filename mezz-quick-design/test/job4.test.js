@@ -98,16 +98,24 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   // the long beam alone fails, the rest would pass: offered its own mark — and only it leaves MB1, no other mark changes
   assert.ok(mb1.splitHelps && mb1.splitHelps.span === 39 && mb1.splitHelps.n === 1 && mb1.splitHelps.restDesc === 'BU20x41', JSON.stringify(mb1.splitHelps));
   const jo = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { ...(i === 0 ? { drop: ['40.31,21.18'] } : {}), ownSpan: [39] } })));
-  assert.deepStrictEqual(jo.marks.map(m => [m.mark, m.kind, !!m.own, m.desc || 'NO SECTION', m.qtyAll]), [['MB1', 'interior', true, 'NO SECTION', 1], ['MB2', 'interior', false, 'BU20x41', 38], ['MB3', 'exterior', false, 'BU20x28', 16]]);
+  assert.deepStrictEqual(jo.marks.map(m => [m.mark, m.kind, !!m.own, m.desc || 'NO SECTION', m.qtyAll]), [['MB1', 'interior', false, 'BU20x41', 38], ['MB2', 'exterior', false, 'BU20x28', 16], ['MB3', 'interior', true, 'NO SECTION', 1]]);
+  // a section picked by hand stays on its mark when the long beam leaves (marks keep their names; the own mark is the next number)
+  const jp2 = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { ...(i === 0 ? { drop: ['40.31,21.18'] } : {}), ownSpan: [39], override: { MB2: { sec: { type: 'WF', name: 'W18X35' } } } } })));
+  assert.ok(jp2.marks.find(m => m.mark === 'MB2').kind === 'exterior' && jp2.marks.find(m => m.mark === 'MB2').desc === 'W18X35' && jp2.marks.find(m => m.mark === 'MB1').desc === 'BU20x41');
   // split by trib / span keeps four marks: the group carried by MB4 is said, with what its own section would save
   const js = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { marks: 'split' } })));
   assert.ok(js.marks.length === 4 && js.mezz[0].warn.some(w => w.level === 'key' && /MB4 also carries 8 beams .* on their own they would be BU19x23, about 723 lb lighter/.test(w.text)));
   // a W picked by hand: its plate dimensions from the W table — depth, clearance C, the DM checks and the MB workbook's WF input
   const wv = jf.marks.find(m => m.mark === 'MB2');
+  assert.ok(wv.check.Fy === 50 && wv.check.Fu === 65, 'a W beam is A992: Fy 50 / Fu 65');
   assert.ok(wv.sec.d === 15.7 && wv.sec.bof === 5.5 && wv.sec.tof === 0.345 && wv.sec.tw === 0.25);
   assert.ok(jf.mezz.every(r => r.incomplete || !r.clear || !r.clear.C || r.clear.C.prov == null || isFinite(r.clear.C.prov)));
   assert.ok(!jf.dm.some(i => /NaN/.test(i.text)), jf.dm.filter(i => /NaN/.test(i.text)).map(i => i.text).join(' | '));
   const wst = Object.fromEntries(jf.excel.beam.flatMap(b => b.sheets).find(sh => sh.mark === 'MB2').steps.map(st => [st.cell, st.value]));
   assert.deepStrictEqual([wst.Q4, wst.M21, wst.M22, wst.M23, wst.M24, wst.M25], [3, 'W16X26', 15.7, 0.25, 5.5, 0.345]);
+  assert.deepStrictEqual([wst.Q11, wst.M31, wst.M32, wst.M33], [2, 50, 50, 65]);
+  // Best fit says how it was found: MB1 by the method's lesser-depth step, MB2 the method's own answer (no lesser-depth step)
+  const fitWhy = mk => job.marks.find(m => m.mark === mk).options.find(o => o.key === 'fit').why;
+  assert.ok(/the method's lesser-depth step/.test(fitWhy('MB1')) && /the step-by-step method's own answer/.test(fitWhy('MB2')), fitWhy('MB2'));
   console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange, BU9x22 offered and typed on the Built-Up input)');
 })().catch(e => { console.error(e); process.exit(1); });
