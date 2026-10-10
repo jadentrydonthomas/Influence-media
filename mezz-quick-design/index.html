@@ -1136,6 +1136,9 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .col-alt b { color: var(--green-dark); font-size: 14px; }
 .col-alt span { color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
 .col-alt-btns { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+/* settings: the label above its control, so neither is squeezed into a narrow column */
+#settingsGrid .field-row:not(.full) { grid-template-columns: 1fr; grid-template-rows: 1fr auto; align-items: start; align-self: stretch; gap: 6px; }
+#settingsGrid .field-row:not(.full) input { max-width: 160px; }
 
 </style>
 </head>
@@ -7999,7 +8002,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const mk = mkOf(m, b.id), on = jm ? isOn(m, b) : null;
       o.push(`<line class="mp-beam ${on === true ? 'hi' : on === false || grp ? 'dim' : ''}" data-beam="${m.index}:${b.id}" data-tip="beam|${m.index}|${b.id}" x1="${X(p.x)}" y1="${Y(p.y)}" x2="${X(q.x)}" y2="${Y(q.y)}" stroke="${mkHex(mk)}"/>`);
     }));
-    ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends, mk = mkOf(m, b.id); o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">${k > 1.2 && mk ? mk.mark + ' ' : ''}B${b.id + 1}</text>`); }));
+    ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => { const [p, q] = b.ends, mk = mkOf(m, b.id); o.push(`<text class="mp-bl" x="${(X(p.x) + X(q.x)) / 2}" y="${(Y(p.y) + Y(q.y)) / 2}">B${b.id + 1}</text>`); }));
     const fls = bldgFrameLoads();
     bldgCols().forEach(sp => { const ld = !!bcolLoad(sp); o.push(`<g class="mp-bc ${ld ? 'ld' : ''}" data-tip="${bcolTip(sp)}"><circle class="mp-hit" cx="${X(sp.x)}" cy="${Y(sp.y)}" r="${6 * k}"/><rect x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"/></g>`); });
     const xm = (cx, cy, R) => { const d = R * 0.68; return `<circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/>`; };
@@ -8008,7 +8011,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const cd = `${c.ox ?? c.x}|${c.oy ?? c.y}|${m.index}`;
       o.push(`<g class="mp-col ${on === true ? 'hi' : on === false || jm ? 'dim' : ''}" data-col="${cd}" data-tip="col|${cd}">${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, 'C' + cno.get(c.label), k > 1.2 ? c.label : '')}`); }));
     if (many) ms.forEach(m => { const fp = m.layout.footprint, bl = m.layout.beamLines, alongX = m.layout.joists === 'y';
-      const mid = bl.length > 1 ? (bl[0] + bl[1]) / 2 : null, cx = alongX ? (fp.x0 + fp.x1) / 2 : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : (fp.y0 + fp.y1) / 2;
+      // between two beam lines one way, mid-bay between support lines the other, so it sits on no column or beam
+      const sl = m.layout.supportLines || [], c0 = alongX ? (fp.x0 + fp.x1) / 2 : (fp.y0 + fp.y1) / 2, i0 = sl.findIndex((v, i) => i < sl.length - 1 && v <= c0 && sl[i + 1] >= c0);
+      const midS = i0 >= 0 ? sl[i0] + (sl[i0 + 1] - sl[i0]) * (alongX ? 0.72 : 0.28) : c0;
+      const mid = bl.length > 1 ? (bl[0] + bl[1]) / 2 : null, cx = alongX ? midS : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : midS;
       o.push(`<text class="mp-mz" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}</text>`); });
     const cap = grp ? ' · reviewing ' + grp.map(l => 'C' + cno.get(l)).join(', ') : jm ? ' · reviewing ' + jm.mark + (run ? ' at ' + ft(run.span) : '') : '';
     o.push(`<text class="mp-cap" x="${Vw / 2}" y="${Vh - 6 * k}">${many ? esc(ms.map(m => m.id).join(' + ')) : esc(state.inputs.mezz.id || 'Mezzanine')}${k > 1.2 && jobMarks().some(mk => mk.kind) ? ' · ' + jobMarks().filter(mk => mk.kind).map(mk => mk.mark + ' ' + mk.kind).join(' / ') : ''}${cap}</text>`);
@@ -8138,6 +8144,15 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   }
   $('#beamLinesIn').onchange = onGridEdit; $('#supLinesIn').onchange = onGridEdit;
 
+  // a long column list in a line: C1–C28 on the grid lines they stand on (the full list on hover)
+  function colListShort(cols, cno) {
+    if (!cols.length) return 'none';
+    if (cols.length <= 8) return esc(cols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · '));
+    const nos = cols.map(c => cno.get(c.label)).filter(Boolean).sort((a, b) => a - b), parts = cols.map(c => String(c.label).split('/'));
+    const uniq = k => [...new Set(parts.map(p => p[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const run = nos.length && nos[nos.length - 1] - nos[0] + 1 === nos.length ? `C${nos[0]}–C${nos[nos.length - 1]}` : `${nos.length} columns`;
+    return esc(`${run} · lines ${uniq(0).join(', ')} × ${uniq(1).join(', ')}`);
+  }
   function renderPlan() {
     const r = state.res, g = r.grid, lay = r.layout, inp = state.inputs;
     if (r.incomplete) {
@@ -8156,7 +8171,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const uniq = a2 => [...new Set(a2)].join(' / ');
     $('#planStats').innerHTML = `
       <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.filter(m => viewQty(m)).map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${viewQty(m)}`).join(' · ')}</em></div>
-      <div class="pstat cols"><span>Mezzanine columns ⊗${many ? ' · whole job' : ''}</span><strong>${t.nC}<small>columns</small></strong><em>${allCols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · ') || 'none'}</em></div>
+      <div class="pstat cols"><span>Mezzanine columns ⊗${many ? ' · whole job' : ''}</span><strong>${t.nC}<small>columns</small></strong><em title="${esc(allCols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · '))}">${colListShort(allCols, cno)}</em></div>
       <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
       <div class="pstat"><span>Joists</span><strong>${uniq(ms.map(m => ft(m.layout.joistSpan)))}</strong><em>span · @ ${uniq(ms.map(m => ft(m.beamBase.Lb)))} · ${uniq(ms.map(m => (m.layout.joists === 'y' ? 'across the width' : 'along the length')))}</em></div>`;
     $$('#joistSeg button').forEach(b => b.classList.toggle('is-active', b.dataset.j === (state.settings.joists || 'auto')));
@@ -8233,7 +8248,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         if (q.lab) [X(xs0) - 38, X(xs1) + 38].forEach(cx => o.push(`<g class="bubble att"><circle cx="${cx}" cy="${Y(q.y)}" r="11"/><text x="${cx}" y="${Y(q.y)}">${esc(q.lab)}</text></g>`));
       });
       const nm = ((state.pcs.mezzanines[m.index] || {}).building || '').trim();
-      if (nm) o.push(`<text class="dim att-name" x="${X(xs0) + 6}" y="${Y(bd.y0 < 0 ? bd.y0 : bd.y1) + (bd.y0 < 0 ? -6 : 14)}" text-anchor="start">${esc(nm)}</text>`);
+      if (nm && !(attSide.top === m || attSide.bot === m)) o.push(`<text class="dim att-name" x="${X(xs0) + 6}" y="${Y(bd.y0 < 0 ? bd.y0 : bd.y1) + (bd.y0 < 0 ? -6 : 14)}" text-anchor="start">${esc(nm)}</text>`);
     });
     if (xa > 0) o.push(`<text class="dim" x="${X(xa) - 6}" y="${Y(yb) - 8}" text-anchor="start">⟵ ${ft(xa)} more to LEW</text>`);
     if (xb < L) o.push(`<text class="dim" x="${X(xb) + 6}" y="${Y(yb) - 8}" text-anchor="end">${ft(L - xb)} more to REW ⟶</text>`);
@@ -8317,17 +8332,23 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     // joist direction, and the mezzanine's name in its first joist bay (click it to edit that mezzanine)
     ms.forEach(m => {
       const ly = m.layout, fp = ly.footprint, sp = m.beamBase.Lb, bl = ly.beamLines;
+      // in the last bay: the mark labels start at the first one
+      const sl = ly.supportLines || [];
       if (ly.joists === 'y') {
-        const x = (fp.x0 + Math.min(fp.x1, ly.supportLines[1] ?? fp.x1)) / 2 + sp / 2, y0 = bl[0], y1 = bl[1] ?? fp.y1;
-        o.push(`<line class="arrow" x1="${X(x)}" y1="${Y(y0) - 12}" x2="${X(x)}" y2="${Y(y1) + 12}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${X(x) + 7}" y="${(Y(y0) + Y(y1)) / 2}">JOISTS @ ${ft(sp)}</text>`);
+        const x = (Math.max(fp.x0, sl[sl.length - 2] ?? fp.x0) + fp.x1) / 2 + sp / 2, y0 = bl[0], y1 = bl[1] ?? fp.y1;
+        o.push(`<line class="arrow" x1="${X(x)}" y1="${Y(y0) - 12}" x2="${X(x)}" y2="${Y(y1) + 12}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${X(x) - 7}" y="${(Y(y0) + Y(y1)) / 2}" text-anchor="end">JOISTS @ ${ft(sp)}</text>`);
       } else {
-        const y = (fp.y0 + Math.min(fp.y1, ly.supportLines[1] ?? fp.y1)) / 2 + sp / 2, x0 = bl[0], x1 = bl[1] ?? fp.x1;
+        const y = (Math.max(fp.y0, sl[sl.length - 2] ?? fp.y0) + fp.y1) / 2 + sp / 2, x0 = bl[0], x1 = bl[1] ?? fp.x1;
         o.push(`<line class="arrow" x1="${X(x0) + 12}" y1="${Y(y)}" x2="${X(x1) - 12}" y2="${Y(y)}" marker-start="url(#ah)" marker-end="url(#ah)"/><text class="arrow-t" x="${(X(x0) + X(x1)) / 2}" y="${Y(y) - 7}" text-anchor="middle">JOISTS @ ${ft(sp)}</text>`);
       }
       if (many) {
         // in the second joist bay when there is one (the first has the joist arrow), else toward the far end of the bay
         const bi = bl.length > 2 ? 1 : 0, mid = bl.length > 1 ? (bl[bi] + bl[bi + 1]) / 2 : null, alongX = ly.joists === 'y';
-        const along = bi ? 0.5 : 0.7, cx = alongX ? fp.x0 + (fp.x1 - fp.x0) * along : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : fp.y0 + (fp.y1 - fp.y0) * along;
+        // along the beams: in the middle of a bay between support lines, clear of the columns and their tags
+        const along = bi ? 0.5 : 0.7, c0 = alongX ? fp.x0 + (fp.x1 - fp.x0) * along : fp.y0 + (fp.y1 - fp.y0) * along;
+        // (not mid-bay: the beam tags are there; toward the far end, away from the column tags)
+        const k0 = sl.findIndex((v, i) => i < sl.length - 1 && v <= c0 && sl[i + 1] >= c0), midS = k0 >= 0 ? sl[k0] + (sl[k0 + 1] - sl[k0]) * (alongX ? 0.72 : 0.25) : c0;
+        const cx = alongX ? midS : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : midS;
         o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r && state.planEdit ? ' · editing' : ''}</text>`);
       }
     });

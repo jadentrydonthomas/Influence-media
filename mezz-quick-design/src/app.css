@@ -1127,3 +1127,6 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .col-alt b { color: var(--green-dark); font-size: 14px; }
 .col-alt span { color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
 .col-alt-btns { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+/* settings: the label above its control, so neither is squeezed into a narrow column */
+#settingsGrid .field-row:not(.full) { grid-template-columns: 1fr; grid-template-rows: 1fr auto; align-items: start; align-self: stretch; gap: 6px; }
+#settingsGrid .field-row:not(.full) input { max-width: 160px; }
