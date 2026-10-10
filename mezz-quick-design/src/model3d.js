@@ -133,13 +133,18 @@
       // labels (grid bubbles, elevations)
       ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (const l of scene.labels || []) {
+      // grid bubbles and text first, the mark tags last: a tag that would cover a bubble or another tag steps up clear of it
+      const all = scene.labels || [], bubbles = all.filter(l => l.kind === 'bubble').map(l => project(l.p)), placed = [];
+      const hits = (x0, y0, x1, y1) => bubbles.some(b => b[0] + 11 > x0 && b[0] - 11 < x1 && b[1] + 11 > y0 && b[1] - 11 < y1) || placed.some(r => r[0] < x1 && r[2] > x0 && r[1] < y1 && r[3] > y0);
+      for (const l of all.filter(q => q.kind !== 'tag').concat(all.filter(q => q.kind === 'tag'))) {
         const p = project(l.p);
         if (l.kind === 'tag') {
           // a mark tag on a beam (MB1 INT): outlined pill in the mark's colour
           if (!view.toggles.tags) continue;
           ctx.font = '700 10px "Cascadia Code", Consolas, monospace';
-          const tw = ctx.measureText(l.text).width + 12, y = p[1] - 9 + (l.dy || 0);
+          const tw = ctx.measureText(l.text).width + 12;
+          const y0 = p[1] - 9 + (l.dy || 0), dy = [0, -20, 20, -38, 38].find(d => !hits(p[0] - tw / 2, y0 + d, p[0] + tw / 2, y0 + d + 17)), y = y0 + (dy || 0);
+          placed.push([p[0] - tw / 2, y, p[0] + tw / 2, y + 17]);
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(p[0] - tw / 2, y, tw, 17, 8.5); else ctx.rect(p[0] - tw / 2, y, tw, 17);
           ctx.fillStyle = 'rgba(8,18,30,.86)'; ctx.fill(); ctx.strokeStyle = l.color; ctx.lineWidth = 1.2; ctx.stroke();
@@ -154,6 +159,7 @@
         } else {
           ctx.font = '11px "Cascadia Code", Consolas, monospace';
           ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, p[0] + 8, p[1] + (l.dy || 0));
+          placed.push([p[0] + 8, p[1] + (l.dy || 0) - 7, p[0] + 8 + ctx.measureText(l.text).width, p[1] + (l.dy || 0) + 7]);   // the tags keep clear of it
           ctx.textAlign = 'center'; ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
         }
       }

@@ -455,8 +455,9 @@
       const mode = g.ctxs[0].s.marks;
       let sets;
       if (mode === 'intext') {
-        const ext = bs.filter(x => x.edgeOnly), extMax = ext.length ? Math.max(...ext.map(x => x.trib)) : -Infinity;
-        sets = [[bs.filter(x => x.trib > extMax + 1e-6), 'interior'], [bs.filter(x => x.trib <= extMax + 1e-6), 'exterior']].filter(([xs]) => xs.length);
+        // by where the beam is: on the floor's edge with joists one side (exterior), or joists both sides (interior) —
+        // an interior line added near the edge keeps its name even when its trib is the smaller
+        sets = [[bs.filter(x => !x.edgeOnly), 'interior'], [bs.filter(x => x.edgeOnly), 'exterior']].filter(([xs]) => xs.length);
         if (sets.length === 1) sets[0][1] = '';
       } else if (mode === 'split') {
         sets = LAYOUT.beamMarks(bs.map((x, i) => ({ id: i, span: x.span, trib: x.trib })), 'split').map(m => [m.beams.map(u => bs[u]), '']);

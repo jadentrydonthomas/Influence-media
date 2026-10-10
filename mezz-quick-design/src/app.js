@@ -2122,7 +2122,9 @@
     const xs = (mk.beamsAll || []).filter(x => span == null || Math.abs(x.span - span) < 1e-3), by = new Map();
     xs.forEach(x => { if (!by.has(x.mi)) by.set(x.mi, []); by.get(x.mi).push(x); });
     return [...by].map(([mi, bs]) => { const m = ms[mi], lines = [...new Set(bs.map(x => { const b = m.layout.beams[x.id]; return (m.layout.joists === 'y' ? m.grid.yLabel(b.line) : m.grid.xLabel(b.line)) || ft(b.line); }))];
-      return `${many ? esc(m.id) + ' ' : ''}${bs.map(x => 'B' + (x.id + 1)).join(', ')} (line ${lines.join(', ')})`; }).join(' · ');
+      // many beams: how many and on which lines (each beam's number is on the plan)
+      const ids = bs.length > 6 ? `${bs.length} beams` : bs.map(x => 'B' + (x.id + 1)).join(', ');
+      return `${many ? esc(m.id) + ' ' : ''}${ids} (line${lines.length > 1 ? 's' : ''} ${lines.join(', ')})`; }).join(' · ');
   }
   // Beam inputs: the span and trib on the MB sheet for a mark (e.g. the member length between column faces). They change
   // the beam design only — the plan, the columns and the loads to the frame keep the layout. One member over the job.

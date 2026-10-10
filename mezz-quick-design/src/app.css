@@ -739,10 +739,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .span-runs:empty { display: none; }
 .sr-head { flex: 0 1 300px; display: flex; flex-direction: column; justify-content: center; min-width: 180px; padding: 4px 8px 4px 2px; }
 .sr-head small { margin-top: 3px; color: var(--ink-faint); font-size: 12px; }
-.sr { flex: 0 0 auto; position: relative; display: grid; grid-template-columns: auto auto; gap: 2px 12px; min-width: 180px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; }
+.sr { flex: 0 1 auto; max-width: 100%; position: relative; display: grid; grid-template-columns: auto auto; gap: 2px 12px; min-width: 180px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; }
 .sr b { font: 600 18px var(--mono); letter-spacing: -.03em; }
 .sr span { align-self: center; color: var(--ink-muted); font-size: 12px; }
-.sr small { grid-column: 1 / -1; color: var(--ink-faint); font: 11px var(--mono); }
+.sr small { grid-column: 1 / -1; color: var(--ink-faint); font: 11px var(--mono); white-space: normal; overflow-wrap: anywhere; }
 .sr em { position: absolute; top: 10px; right: 12px; font: 600 11px var(--mono); font-style: normal; }
 .sr em.ok { color: var(--green); } .sr em.ng { color: var(--red); }
 .sr { padding-right: 52px; }

@@ -69,6 +69,10 @@ const PLAN = require('../src/plan.js');
     const lj = RUN.runJob(inps.map((inp, i) => ({ inp, settings: i === 0 ? { joists: 'x', xLines: job.mezz[0].layout.beamLines, yLines: [96, 108, 120] } : {} })));
     assert.deepStrictEqual([...new Set(lj.mezz[0].layout.beams.map(b => b.span))], [12]);
     assert.strictEqual(lj.mezz[0].layout.mezzCols.filter(c => c.y === 108).length, 6, 'a column on every beam line at 108\'-0"');
+    // a beam line added 2' off line 2: joists both sides, so interior — even with no more trib than the edge beams
+    const aj = RUN.runJob(inps.map((inp, i) => ({ inp, settings: i === 0 ? { xLines: job.mezz[0].layout.beamLines.concat(30) } : {} }))), am = aj.mezz[0];
+    const at30 = am.layout.beams.filter(b => Math.abs(b.line - 30) < 1e-6 && !b.absorbed);
+    assert.ok(at30.length && at30.every(b => (am.marks.find(mk => mk.beams.includes(b.id)) || {}).kind === 'interior'), at30.map(b => b.trib).join(' '));
   }
   // the quote never drops what does not pass: a mark with no passing section stays as NO SECTION rows, every beam
   // counted; columns that could not be sized stay as NOT SIZED; a failing section picked by hand says FAILS
