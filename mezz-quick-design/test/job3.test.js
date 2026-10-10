@@ -70,5 +70,19 @@ const PLAN = require('../src/plan.js');
     assert.deepStrictEqual([...new Set(lj.mezz[0].layout.beams.map(b => b.span))], [12]);
     assert.strictEqual(lj.mezz[0].layout.mezzCols.filter(c => c.y === 108).length, 6, 'a column on every beam line at 108\'-0"');
   }
+  // the quote never drops what does not pass: a mark with no passing section stays as NO SECTION rows, every beam
+  // counted; columns that could not be sized stay as NOT SIZED; a failing section picked by hand says FAILS
+  {
+    const all = job.mezz.reduce((a, r) => a + r.marks.reduce((b, m) => b + m.qty, 0), 0), cols = job.columns.length;
+    const nj = RUN.runJob(inps.map(inp => ({ inp, settings: { dMax: 10 } })));
+    const q = RUN.quoteJob(nj.mezz, inps);
+    assert.strictEqual(q.beams.reduce((a, b) => a + b.QTY, 0), all, 'every beam on the quote');
+    assert.ok(q.beams.every(b => b.SECTION === 'NO SECTION' && /NO PASSING SECTION/.test(b.NOTES)));
+    assert.strictEqual(q.columns.reduce((a, c) => a + c.QTY, 0), cols, 'every column on the quote');
+    assert.ok(q.columns.every(c => c.SECTION === 'NOT SIZED'));
+    const pj = RUN.runJob(inps.map(inp => ({ inp, settings: { override: { MB1: { sec: { type: 'BU', d: 10, tw: 0.25, bof: 6, tof: 0.375, bif: 6, tif: 0.375 } } } } })));
+    const pq = RUN.quoteJob(pj.mezz, inps).beams.filter(b => /^FAILS — combined/.test(b.NOTES));
+    assert.ok(pq.length >= 1 && pq.every(b => /section picked by the engineer/.test(b.NOTES)), 'a failing pick says so on the row');
+  }
   console.log('job3 tests passed (W1S-26062: 8/8 ⊗, ✱ 3/E–6/E, I 2/E, joists along the length from the truss symbols, frame loads on members; MB1 design span 22\'-4" keeps line A on the frame; footprint cut flagged)');
 })().catch(e => { console.error(e); process.exit(1); });

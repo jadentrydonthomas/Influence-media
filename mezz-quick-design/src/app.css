@@ -549,6 +549,14 @@ tr.none td { color: var(--ink-faint); }
   .field .eyebrow, .field .step, .ffacts b.qty, .disc-inner strong, .disc-inner span { color: var(--green-dark) !important; }
   .disc, .disc-wrap, .disc-inner { background: #fff !important; }
   svg text { fill: var(--ink) !important; opacity: 1 !important; }
+  /* the quote tables fit the page: notes wrap, the type is smaller */
+  .qs-wrap { overflow: visible !important; }
+  .qs-wrap table { width: 100% !important; min-width: 0 !important; table-layout: auto; font-size: 9px; }
+  .qs-wrap th, .qs-wrap td { white-space: normal !important; padding: 3px 4px !important; }
+  .qs-wrap td.qnotes { word-break: break-word; }
+  /* drawings at a size that leaves room for their numbers */
+  #v-beam svg, #v-column svg { max-height: 3.4in; max-width: 100%; }
+  .disc-wrap, .field-stage, .mk-list { break-inside: avoid; }
 }
 
 /* design page: checks pill, floor loads, frame strip, column diagram */
@@ -683,9 +691,10 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .fcard .mk-why { margin-top: 12px; line-height: 1.45; font-size: 11px; }
 .mk-dot { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; vertical-align: 0; }
 .mark-label .mk-dot { margin-right: 6px; }
-.fl-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; }
-.fl-row span { white-space: nowrap; text-align: right; }
-.fl-row b { line-height: 1.25; }
+.fl-row { grid-template-columns: 1fr auto; gap: 1px 12px; }
+.fl-row b { grid-column: 1 / -1; line-height: 1.25; }
+.fl-row span { white-space: nowrap; }
+.fl-row i, .metric.floor small i { margin-left: 6px; padding: 0 5px; border-radius: 5px; background: var(--amber-soft); color: var(--amber); font: 600 10px var(--mono); font-style: normal; letter-spacing: .02em; text-transform: none; }
 .fl-row b small { margin-left: 4px; color: var(--ink-faint); font: 500 10.5px var(--mono); letter-spacing: 0; }
 .beam-inputs { margin: 0 0 14px; padding: 12px 16px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .beam-inputs:empty { display: none; }
@@ -1084,3 +1093,5 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .cp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .cp-lead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .cp-lead small { flex: 1 1 320px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; }
+
+#resTitle em.ng { color: var(--red); -webkit-text-fill-color: var(--red); background: none; }

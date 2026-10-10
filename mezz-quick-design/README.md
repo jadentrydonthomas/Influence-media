@@ -357,6 +357,8 @@ Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet cle
 
 **Print calc summary** prints the Design, Beam calc and Column calc pages on white paper, in dark ink, without the controls or the 3D model.
 
+**The quote never hides what does not pass.** A mark with no passing section stays on the quote as *NO SECTION* rows (every beam counted), columns that could not be sized as *NOT SIZED*, and a section that fails (a pick by hand, or one deeper than the clearance C) carries *FAILS — combined …* or *C … provided < … asked* in its notes — the title on the Design page turns red. The Design page's *Check before quoting* lists every mezzanine's notes, each named with its mezzanine, not only the one picked at the top. Building columns that take mezzanine load but are in no NBG Frame file (endwall columns beside a rigid end frame) are listed for the endwall design, and marked *endwall* on the floor-load card.
+
 ### Dead load by deck and concrete
 
 When Box 22 gives a number, that number is used. When it says *Per Seller*, the dead load comes from the deck guide and follows the slab, deck type and concrete:

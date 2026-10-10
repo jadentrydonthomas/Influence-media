@@ -245,7 +245,7 @@
     if (inp.mezz.deckText && !DESIGN.deckKey(inp.mezz.deckText) && inp.loads.dead.auto) warn.push({ level: 'warn', text: `Deck type on the PCS reads "${inp.mezz.deckText}" — the dead load ${val(inp.loads.dead)} psf is taken for ${inp.mezz.deck} form deck. Confirm the deck on the Inputs page.` });
     if (part > 0) warn.push({ level: 'info', text: `Partition load ${part} psf added to the ${s.partitionTo} load.` });
     ['joistSpacing', 'seat'].forEach(k => { if (inp.geom[k].source === 'default') warn.push({ level: 'warn', text: inp.geom[k].note }); });
-    if (inp.mezz.openings) warn.push({ level: 'warn', text: `Floor openings listed: ${inp.mezz.openings} — frame openings by hand. An opening wider than one joist spacing needs a joist header; its size and exact location must be on the order documents, and the header locations go to the joist manufacturer (DM 15.1.2).` });
+    if (inp.mezz.openings) warn.push({ level: 'warn', text: `Floor openings listed: ${inp.mezz.openings} — frame openings by hand. An opening wider than one joist spacing needs a joist header; its size and exact location must be on the order documents, and the header locations go to the joist manufacturer (DM 15.1.2).${/@\s*[\d,]+\s*lb/i.test(inp.mezz.openings) ? ` The ${(inp.mezz.openings.match(/@\s*([\d,]+)\s*lb/i) || [])[1]} lb listed with it is not in this design — the beams and quote rows carry the uniform floor load only: check the beams and joists around the opening for it.` : ''}` });
 
     // layout — joist direction: Plan-page choice, else the "Mez. Jst." arrows on the PCS floor plan, else auto
     const bl = inp.building;
@@ -507,7 +507,7 @@
       const cap = maxDepth != null && maxDepth < s.dMax;
       say('stop', cap && maxDepth < s.dMin
         ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. Check the clearance or the minimum depth in Settings.`
-        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. Widen the depth range.`);
+        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. ${cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`);
     }
     // every member length in the mark: the governing run plus the shorter beams (same section, own MB-sheet run)
     const spans = [];   // distinct member lengths, kept exact (12'-4" = 12.3333 ft, not 12.333)
@@ -1251,6 +1251,15 @@
     });
     const excel = excelSteps(ctxs, mezz, marks);
     const fEntries = frameEntries(ctxs, cols.frame);
+    // building columns that take mezzanine load but are no member of a frame (endwall columns beside a rigid end frame,
+    // soldier columns): no .frame file carries it — the endwall / sidewall design has to
+    {
+      const inFile = new Set(fEntries.flatMap(f => f.entries.filter(e => e.member).map(e => e.label + '|' + f.bkey)));
+      const off = cols.frame.filter(q => !inFile.has(q.label + '|' + q.bkey));
+      const byMi = new Map();
+      off.forEach(q => { const mi = q.parts[0].mi; byMi.set(mi, (byMi.get(mi) || []).concat(q)); });
+      byMi.forEach((qs, mi) => { if (mezz[mi] && mezz[mi].warn) mezz[mi].warn.push({ level: 'warn', text: `Mezzanine load on building columns that are in no NBG Frame file — give it to the endwall / sidewall design: ${qs.map(q => `${q.label} D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`).join(' · ')}.` }); });
+    }
     let seismic = null;
     try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
     return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
@@ -1308,7 +1317,13 @@
       const r0 = results[mi0], inp0 = inputs[mi0], part = val(inp0.loads.partition) || 0;
       const dlT = val(inp0.loads.dead) + (val(inp0.loads.coll) || 0) + (r0.settings.partitionTo === 'dead' ? part : 0);
       const llT = val(inp0.loads.live) + (r0.settings.partitionTo === 'live' ? part : 0);
-      const runs = mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, qty: mk.qtyAll || mk.qty }];
+      // no section: no MB runs either — still one row per member length, so every beam is on the quote
+      const runs = mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [...new Set((mk.beamsAll || []).map(x => +x.span.toFixed(3)))].sort((a, b) => b - a).map(span => ({ span, qty: (mk.beamsAll || []).filter(x => Math.abs(x.span - span) < 1e-3).length }));
+      if (!runs.length) runs.push({ span: mk.span, qty: mk.qtyAll || mk.qty });
+      const tgt = r0.settings.target;
+      // a section that does not pass, or breaks the clearance C, says so on the row that gets pasted
+      const fails = run => { const c = run.check || mk.check; if (!c) return 'NO PASSING SECTION — see the Design page'; const bad = []; if (!(c.res.CSR <= tgt)) bad.push(`combined ${c.res.CSR.toFixed(2)}`); if (!(c.res.SRvx <= tgt)) bad.push(`shear ${c.res.SRvx.toFixed(2)}`); if (!c.llOK || !c.tlOK) bad.push(`L/${Math.round(c.defl.rLL)}`); if (c.conc && !c.conc.ok) bad.push('joist bearing'); return bad.length ? `FAILS — ${bad.join(', ')}` : ''; };
+      const clearC = [...new Set((mk.beamsAll || []).map(x => x.mi))].map(mi => results[mi] && results[mi].clear && results[mi].clear.C).find(q => q && q.ok === false);
       runs.forEach(run => {
         const bs = (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3);
         const byMezz = [...new Set(bs.map(x => x.mi))].map(mi => {
@@ -1317,7 +1332,7 @@
         });
         const carried = bs.some(x => { const b = results[x.mi].layout.beams[x.id]; return b && b.extra; });
         const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
-        const notes = [`${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
+        const notes = [fails(run), clearC ? `C ${PCS.fmtFtIn(clearC.prov)} provided < ${PCS.fmtFtIn(clearC.req)} asked` : '', `${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
           run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
           carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey === 'custom' ? 'section picked by the engineer' : mk.optionKey && mk.optionKey !== 'lightest' && mk.options && mk.options.find(o => o.key === mk.optionKey) ? mk.options.find(o => o.key === mk.optionKey).label + ' option' : ''].filter(Boolean).join('; ');
@@ -1328,10 +1343,19 @@
     const colRows = new Map();
     done.forEach(i => {
       const r = results[i];
-      if (!r.colFinal || !r.columns.length) return;
+      if (!r.columns.length) return;
+      if (!r.colFinal) {
+        // columns the design could not size yet (a beam framing in has no section): on the quote, marked
+        const k = 'NOT SIZED|' + round(r.colLen || 0, 3), row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen || 0, 3), AREA: 0, SECTION: 'NOT SIZED', ENDWT: END_WT_COL, QTY: 0, notes: ['NOT SIZED — see the Design page'], runAs: '' };
+        row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea || 0));
+        row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${r.columns.map(c => c.label).join(', ')}`);
+        colRows.set(k, row);
+        return;
+      }
       const k = r.colFinal.quoteAs + '|' + round(r.colLen, 3);
       const row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen, 3), AREA: 0, SECTION: r.colFinal.quoteAs, ENDWT: END_WT_COL, QTY: 0, notes: [], runAs: r.colFinal.quoteAs !== r.colFinal.name ? r.colFinal.name : '' };
       row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea));
+      if (!r.colFinal.ok) row.notes.unshift(`FAILS — max CSR ${r.colFinal.max.toFixed(2)}`);
       row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${r.columns.map(c => c.label).join(', ')}`);
       r.columns.filter(c => c.shared).forEach(c => row.notes.push(`${c.label} shared with ${[...new Set(c.parts.map(p => p.mezz).filter(m => m !== r.id))].join(', ')}`));
       colRows.set(k, row);

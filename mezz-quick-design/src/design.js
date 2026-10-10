@@ -305,7 +305,7 @@
     if (distinct().length < 3) {
       const minD = Math.min(...opts.map(x => x.pick.sec.d));
       const sh = all.filter(e => e.tier === 0 && e.d < minD).sort((a, b) => a.wt - b.wt || a.d - b.d)[0];
-      if (sh) opts.push({ key: 'shallow', label: 'Shallower', why: `${minD - sh.d}" less depth than the others — more clearance under the beam.`, pick: summarize(sh) });
+      if (sh) opts.push({ key: 'shallow', label: 'Shallower', why: `${light.d - sh.d}" shallower than the lightest${minD < light.d ? ` (${minD - sh.d}" under the shallowest above)` : ''} — more clearance under the beam.`, pick: summarize(sh) });
     }
     (ctx.deeper || []).filter(z => z.sec).forEach((z, i) => {
       if (distinct().length >= 3) return;

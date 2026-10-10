@@ -475,7 +475,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
       console.log(`designer: ${d0 - 2}" deep`.padEnd(30), h2);
       if (!h2.includes(`BU${d0 - 2}x`)) fail('a new depth should re-run the MB sheet');
       await page.click('#dzNear'); await page.waitForTimeout(500);
-      const near = await page.$$eval('#dzOut .dz-near tbody tr', trs => trs.filter(t => t.cells.length > 2).map(t => t.cells[1].textContent.trim()));
+      const near = await page.$$eval('#dzOut .dz-near tbody tr', trs => trs.filter(t => t.cells.length > 2).map(t => (t.cells[1].querySelector('b') || t.cells[1]).textContent.trim()));
       console.log('designer: lighter, passing'.padEnd(30), near.join(', ') || 'none');
       if (near.length) {
         const i = near.length - 1;
