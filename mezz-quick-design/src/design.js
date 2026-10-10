@@ -280,7 +280,7 @@
         if (alt) fit = summarize(alt);   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----
@@ -340,8 +340,10 @@
     const common = list.map(name => ({ name, c: run(name) }));
     const firstOK = common.find(x => x.c.ok);
     if (firstOK) return { name: firstOK.name, quoteAs: firstOK.name, common: true, check: firstOK.c, tried };
-    // Guide: if a larger W is needed (e.g. W14x43) list it as BU on the quote sheet
-    const pool = Object.keys(WFDB).filter(k => /^W(8|10|12|14)X/.test(k) && !list.includes(k)).sort((a, b) => WFDB[a].W - WFDB[b].W || WFDB[a].d - WFDB[b].d);
+    // Guide: if a larger W is needed (e.g. W14x43) list it as BU on the quote sheet. A built-up column with beams on its
+    // flange needs at least an 8" × 1/4" flange (DM 15.1.1.4.2 (2A)), and nothing lighter than the common sizes is tried
+    const minW = Math.min(...list.map(n => WFDB[n].W));
+    const pool = Object.keys(WFDB).filter(k => /^W(8|10|12|14)X/.test(k) && !list.includes(k) && WFDB[k].W >= minW && WFDB[k].bf >= 8 - 1e-9 && WFDB[k].tf >= 0.25).sort((a, b) => WFDB[a].W - WFDB[b].W || WFDB[a].d - WFDB[b].d);
     for (const name of pool) {
       const c = run(name);
       if (c.ok) { const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/); return { name, quoteAs: 'BU' + dn + 'x' + wt, common: false, check: c, tried }; }

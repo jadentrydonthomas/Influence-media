@@ -44,13 +44,18 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   assert.deepStrictEqual(l.grid.allY.map(y => l.grid.yLabel(y)), ['A', 'B'], 'lean-to lines lettered as drawn');
   assert.strictEqual(l.layout.beams.filter(b => b.absorbed).length, 8, 'its BSW edge beams are the Sanctuary\'s');
   // sections and every check passing
-  assert.deepStrictEqual(job.marks.map(m => [m.mark, m.kind, m.desc, m.qtyAll]), [['MB1', 'interior', 'BU20x41', 40], ['MB2', 'exterior', 'BU20x28', 18]]);
+  assert.deepStrictEqual(job.marks.map(m => [m.mark, m.kind, m.desc, m.qtyAll]), [['MB1', 'interior', 'BU20x41', 40], ['MB2', 'exterior', 'BU20x28', 16]]);
+  // the Lean To's Box 2 length is 1'-4" more than its bays: no tenth frame line and no 1'-4" beams — framed on line 9
+  // with the slab overhang on the edge beam, and the mismatch flagged
+  assert.deepStrictEqual(l.grid.xs.length, 9);
+  assert.ok(!l.layout.beams.some(b => b.span < 3));
+  assert.ok(l.warn.some(w => /Box 2 length 159'-11 1\/2", but the bays add to 158'-7 1\/2"/.test(w.text)));
   job.marks.forEach(m => m.spanRuns.forEach(q => assert.ok(q.check.res.CSR <= 0.99 && q.check.res.SRvx <= 0.99 && q.check.llOK && q.check.tlOK, m.mark)));
-  assert.ok(s.colFinal && s.colFinal.ok && s.colFinal.quoteAs === 'BU8x28' && near(s.colLen, 16));
+  assert.ok(s.colFinal && s.colFinal.ok && s.colFinal.quoteAs === 'BU8x31' && near(s.colLen, 16), 'a W quoted as BU has the 8" flange DM 15.1.1.4.2 (2A) asks for');
   // loads to the frame: the BSW frame columns carry both floors through line B; the lean-to's FSW columns its own
   const fe = (b, n) => job.frameEntries.find(f => f.building === b && f.frame === String(n));
   const s3 = fe('Sanctuary', 3).entries.map(e => [e.label, e.member, +e.D.toFixed(2), +e.L.toFixed(2)]);
   assert.deepStrictEqual(s3, [['3/G', 'COL01', 16.54, 25.81], ['3/B', 'COL02', 36.8, 58.05]]);
   assert.deepStrictEqual(fe('Lean To', 3).entries.map(e => e.label), ['3/A']);
-  console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×18, BU8x28 ×28)');
+  console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange)');
 })().catch(e => { console.error(e); process.exit(1); });

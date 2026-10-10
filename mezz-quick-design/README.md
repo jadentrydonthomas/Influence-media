@@ -111,7 +111,7 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
 
 ### The Design page, top to bottom
 
-1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame**. That is the MB sheet's *Floor dead load (unfactored)* and *Floor live load (unfactored)* shear at left / right, in kips, per beam mark. The same two rows are highlighted on the Beam calc sheet. The Plan page lists the summed D / L that lands on each building column (the load into the frame).
+1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame** — the dead and live, in kips, at each building column the mezzanine beams frame into: the MB sheet's unfactored end shears (*Floor dead / live load — shear at left / right*) of each beam, at its own trib, summed at the column. These are the numbers in the frame loads table, the CSV and the NBG Frame files; columns with the same load share a row (2/A–5/A). The Beam calc page shows the MB sheet's end shear for the mark itself (at the mark's design trib) and says when some of its beams carry less.
 2. **3D framing model**, then the **framing summary** (beams → governing ratio → columns, floor-plan check).
 3. **Beam options** to pick from: up to three different designs a mark — the lightest, the best fit (the quote engineer's step-by-step method) and the most economical by NBG Economical Flange Sections. Options that land on one section share a card ("Lightest · Best fit"); when they all land on one, another flange width, a shallower section or — where the clearance C leaves one depth — the deeper sections with the C each needs fill the other cards.
 4. **Checks & decisions**: what to check before quoting; what was confirmed against the PCS, the design decisions and how it was read are folded under it. The **DM 15.1** list is folded too, with its counts on the bar.
@@ -205,7 +205,7 @@ The spreadsheets are the foundation: everything the tool designs is an input put
 - **Add the workbooks once** (Design page → *Check it in the NBG workbooks* → *Add workbooks…*): Mezzanine Beam Design 13th / 15th / 16th, Mezzanine Column 15th / 16th, IBC Seismic. They are recognised by their sheets and kept in this browser (IndexedDB) — nothing is uploaded, and no workbook is part of this tool or this repository.
 - **Download a filled copy** of any of them: a beam workbook per sheet set (INPUT + MB1–MB4), a Column workbook per column case, an IBC Seismic workbook per frame line (Input Data, Lateral Calcs. (1) for that frame, Longitudinal Calcs.). The buttons are on the Design page, under *In the workbook · cell by cell* on the Beam and Column pages, and on each frame row of the Seismic page.
 - **What the copy is:** your own workbook with this job's values typed into its input cells (the cells listed below) — numbers, text from the drop-downs, the check boxes as TRUE / FALSE — and nothing else changed: every other part of the file, the VBA project included, is byte for byte the original. Excel recalculates the whole workbook when it opens the copy (and asks to save on closing), so every result is the workbook's own.
-- **Checked:** `oracle/fill_dump.js` fills every workbook for the four sample jobs and `oracle/fill_check.py` opens each copy: xlrd reads all 2,206 typed cells back, and LibreOffice recalculates and reads 571 results — beam end shears, deflections, combined / shear, the column combinations, Cs, each frame's mezzanine load and base shear, the bracing loads — all equal to the tool's.
+- **Checked:** `oracle/fill_dump.js` fills every workbook for the four sample jobs and `oracle/fill_check.py` opens each copy: xlrd reads all 2,133 typed cells back, and LibreOffice recalculates and reads 552 results — beam end shears, deflections, combined / shear, the column combinations, Cs, each frame's mezzanine load and base shear, the bracing loads — all equal to the tool's.
 
 ### Calc package (bottom of the Beam calc and Column calc pages)
 
@@ -349,7 +349,13 @@ With several mezzanines, a card per mezzanine sits at the top of every page (siz
 
 Notes on the Design page are grouped: **Check before quoting** (flags), **Confirmed against the PCS** (e.g. the floor plan matched, joist arrows read), **Design decisions** (shared beams and columns, snapped edges, joist direction), and a collapsed **How it was read** list.
 
-Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided).
+Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet clearance check (B provided). A joist span over 24 × that depth (the SJI K-series limit) is flagged — e.g. after a beam line is removed on the Plan page.
+
+**Box 2 length vs the bays.** When the bays add up to within 2'-0" of the Box 2 length (the Lean To on W1G-26097: 159'-11 1/2" against 158'-7 1/2"), the frames stay on the bay lines — no extra frame line is made up — the mezzanine edge is framed on the end line with the slab overhang on the edge beam, and the mismatch is flagged to confirm.
+
+**Columns quoted as BU.** When none of the common columns passes, the next W is quoted as BU (Mezzanine Training Guide). Only Ws with at least an 8" × 1/4" flange are taken for that (DM 15.1.1.4.2 (2A), beams on the column flange), and nothing lighter than the common sizes is tried. A W on the quote that is not stocked at the division is flagged under *Check before quoting*.
+
+**Print calc summary** prints the Design, Beam calc and Column calc pages on white paper, in dark ink, without the controls or the 3D model.
 
 ### Dead load by deck and concrete
 

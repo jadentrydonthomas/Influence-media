@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mezzanine Design</title>
-<meta name="generator" content="mezz-quick-design build 2026-10-09; pdf.js 3.11.174">
+<meta name="generator" content="mezz-quick-design build 2026-10-10; pdf.js 3.11.174">
 <meta name="description" content="Upload a PCS and get the NBG mezzanine beam and column sections, spans, tribs and quantities.">
 <style>
 /* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
@@ -38,7 +38,7 @@
 }
 [data-theme="light"] {
   --canvas: #eef3f9; --surface: #ffffff; --surface-soft: #f4f8fc;
-  --ink: #142b43; --ink-muted: #51677e; --ink-faint: #647a90;
+  --ink: #142b43; --ink-muted: #475d73; --ink-faint: #556b80;
   --line: #d6e1ed; --line-strong: #b4c7da;
   --green: #007d60; --green-bright: #13b68c; --green-soft: #dff5ec; --green-dark: #006647;
   --red: #ae6036; --red-deep: #8a4523; --red-soft: #fbe9df;
@@ -142,6 +142,7 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .metric:first-child .metric-copy b { color: var(--green); }
 .ring { --ring: 0; position: relative; z-index: 1; flex: 0 0 44px; width: 44px; height: 44px; margin-left: auto; border-radius: 50%; background: conic-gradient(var(--ring-color, var(--green)) calc(var(--ring) * 1%), color-mix(in srgb, var(--line) 80%, transparent) 0); transition: --ring 1.2s var(--ease-out); }
 .ring::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); }
+.ring span { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; color: var(--ink); font: 600 10.5px var(--mono); letter-spacing: -.02em; }
 
 /* ---------------- hero field (always dark, as in Astra) ---------------- */
 .field { position: relative; margin-bottom: 22px; border: 1px solid #729cc62e; border-radius: 28px; color: #dfeefa; background: radial-gradient(ellipse at 50% 42%, #217b8636, transparent 50%), linear-gradient(120deg, #0f2032, #0b1624 75%); box-shadow: var(--lift-3); overflow: hidden; }
@@ -370,13 +371,14 @@ tr.pick:hover td { background: color-mix(in srgb, var(--surface-soft) 80%, var(-
 tr.none td { color: var(--ink-faint); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
 .table-wrap table tr:last-child td { border-bottom: 0; }
-.inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 28px; }
+.inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 28px; }
 .field-row { display: grid; grid-template-columns: minmax(0, 1fr) 124px; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .field-row label { font-size: 13px; }
 .field-row label small { display: block; color: var(--ink-faint); font-size: 11.5px; line-height: 1.3; }
 .field-row input, .field-row select { width: 100%; min-height: 34px; padding: 5px 9px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface-soft); font-family: var(--mono); font-size: 13px; text-align: right; }
 .field-row select { text-align: left; font-family: var(--body); }
-.field-row.wide { grid-template-columns: minmax(0, 1fr) 210px; }
+.field-row.wide { grid-template-columns: minmax(0, 1fr) minmax(210px, 58%); }
+.field-row:has(select) { grid-template-columns: minmax(0, 1fr) minmax(124px, 54%); }
 .field-row.full { grid-column: 1 / -1; grid-template-columns: 220px minmax(0, 1fr); }
 .field-row.full .checks { padding: 2px 0; }
 .field-row .calc { font: 700 14px var(--mono); text-align: right; color: var(--green); }
@@ -530,11 +532,32 @@ tr.none td { color: var(--ink-faint); }
   .field-row { grid-template-columns: minmax(0, 1fr) 118px; }
   .field-row.full { grid-template-columns: 1fr; }
 }
+/* print: the calc summary on white paper — the Design, Beam calc and Column calc pages only, in the light colours,
+   without the controls, the 3D model and the download bars */
 @media print {
-  .rail, .masthead, .option-actions, .tabs, .seg, .btn-soft, .btn-ghost { display: none !important; }
+  html[data-theme] {
+    --canvas: #fff; --surface: #fff; --surface-soft: #f5f7fa; --ink: #0f2236; --ink-muted: #3d5268; --ink-faint: #4f6378;
+    --line: #c9d5e2; --line-strong: #9fb2c6; --green: #006b52; --green-bright: #007d60; --green-soft: #e3f4ec; --green-dark: #005a44;
+    --red: #9c4a20; --red-deep: #7a3816; --red-soft: #fbeae0; --amber: #7d5410; --amber-soft: #fbf1dc; --steel: #0f5f84; --steel-soft: #e6f1f8;
+    --glass: #fff; --glass-border: #c9d5e2; --edge: none; --lift-1: none; --lift-2: none; --lift-3: none; --shadow: none; --plan-bg: #fff; --hatch: rgba(0,107,82,.06);
+    color-scheme: light;
+  }
+  body, .app, .main { background: #fff !important; color: var(--ink); }
+  * { box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; }
+  .rail, .masthead, #mezzTabs, .option-actions, .tabs, .seg, .btn-soft, .btn-ghost, .btn-mint, .btn-rail, .toast, .hover-tip,
+  #modelSec, #needSlot, .calcpack, #wbHead, #wbPanel, .lay-bar, .lay-pop, [data-copy], .qs-head button { display: none !important; }
   .app { display: block; }
-  .screen { display: block !important; animation: none !important; }
-  body { background: #fff; }
+  .screen { display: none !important; }
+  #v-results, #v-beam, #v-column { display: block !important; }
+  #v-beam, #v-column { break-before: page; }
+  .panel, .metric, .option, .qs-block, .frame-strip, details { break-inside: avoid; background: #fff !important; border-color: var(--line) !important; }
+  details:not([open]) > :not(summary) { display: none; }
+  a { color: inherit; text-decoration: none; }
+  /* the framing summary and the drawings are styled for the dark panel: dark ink on paper */
+  .field, .field * { color: var(--ink) !important; background: transparent !important; border-color: var(--line) !important; }
+  .field .eyebrow, .field .step, .ffacts b.qty, .disc-inner strong, .disc-inner span { color: var(--green-dark) !important; }
+  .disc, .disc-wrap, .disc-inner { background: #fff !important; }
+  svg text { fill: var(--ink) !important; opacity: 1 !important; }
 }
 
 /* design page: checks pill, floor loads, frame strip, column diagram */
@@ -669,7 +692,9 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .fcard .mk-why { margin-top: 12px; line-height: 1.45; font-size: 11px; }
 .mk-dot { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; vertical-align: 0; }
 .mark-label .mk-dot { margin-right: 6px; }
-.fl-row { grid-template-columns: minmax(42px, auto) 1fr 1fr; }
+.fl-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; }
+.fl-row span { white-space: nowrap; text-align: right; }
+.fl-row b { line-height: 1.25; }
 .fl-row b small { margin-left: 4px; color: var(--ink-faint); font: 500 10.5px var(--mono); letter-spacing: 0; }
 .beam-inputs { margin: 0 0 14px; padding: 12px 16px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .beam-inputs:empty { display: none; }
@@ -1135,7 +1160,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen is-active" id="v-upload">
       <div class="screen-heading">
         <div><div class="eyebrow">Source intake</div><h1>Drop the PCS.<br><em>Get the sections.</em></h1></div>
-        <p class="lede">Box 22 loads and clearances, the blue handwritten values, Box 2 bays and endwall columns, Box 3 code and Box 5 frames are read straight from the PDF, then sized with the same math as the NBG sheets.</p>
+        <p class="lede">Read from the PCS, sized with the NBG sheets.</p>
       </div>
       <div class="intake">
         <div class="intake-head">
@@ -1201,7 +1226,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-plan">
       <div class="screen-heading">
         <div><div class="eyebrow">Layout</div><h2>Plan &amp; <em>layout</em></h2></div>
-        <p class="lede">Beam lines, spans, tribs and columns built from the bay and endwall-column spacing, with the ⊗ symbols read off the PCS floor plan overlaid.</p>
+        <p class="lede">Beam and column lines from the building grid, checked against the PCS floor plan. Edit layout to change them.</p>
       </div>
       <div class="plan-stats" id="planStats"></div>
       <div class="panel plan">
@@ -1218,8 +1243,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         <summary class="panel-head"><h3>Beams &amp; supports</h3><span class="sub" id="layWhy"></span></summary>
         <div class="panel-body">
           <div class="inputs-grid">
-            <div class="field-row wide"><label>Beam lines<small>ft from FSW / LEW, comma separated</small></label><input id="beamLinesIn"></div>
-            <div class="field-row wide"><label>Support lines<small>ft, comma separated</small></label><input id="supLinesIn"></div>
+            <div class="field-row full"><label>Beam lines<small>ft from FSW / LEW, comma separated</small></label><input id="beamLinesIn"></div>
+            <div class="field-row full"><label>Support lines<small>ft, comma separated</small></label><input id="supLinesIn"></div>
           </div>
           <div style="margin-top:12px"><button class="btn-ghost" id="gridReset">Reset to building grid</button></div>
           <div class="table-wrap" style="margin-top:14px"><table id="beamTable"></table></div>
@@ -1243,7 +1268,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-seismic">
       <div class="screen-heading">
         <div><div class="eyebrow">NBG IBC Seismic workbook · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
-        <p class="lede">Your procedure, in the workbook's order: the building and the mezzanine loads on <b>Input Data</b>; each frame on <b>Lateral Calcs. (1)</b> — its mezzanine row is the load for that frame; split onto the columns the mezzanine frames into as EQR + / EQL − in NBG Frame; the bracing from <b>Longitudinal Calcs.</b> Every step can be opened in the workbook itself.</p>
+        <p class="lede">In the IBC Seismic workbook's order: Input Data, each frame on Lateral Calcs. (1), EQR / EQL into NBG Frame, the bracing.</p>
       </div>
       <div class="seis-status" id="seisStatus"></div>
       <div class="panel seis-step">
@@ -1273,7 +1298,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-beam">
       <div class="screen-heading">
         <div><div class="eyebrow">Mezzanine beam design</div><h2 id="beamCalcTitle">MB sheet</h2></div>
-        <p class="lede">Laid out like the MB sheet so the same numbers can be typed into Excel to confirm. Click a row in the depth table to use that section.</p>
+        <p class="lede">The MB sheet, cell for cell. Click a depth-table row to use that section.</p>
       </div>
       <div class="tabs" id="markTabs"></div>
       <details class="explain" id="beamExplain"><summary id="beamExplainHead">How this beam was designed</summary><div class="explain-body" id="beamHow"></div></details>
@@ -1295,7 +1320,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-column">
       <div class="screen-heading">
         <div><div class="eyebrow">Independent mezzanine columns</div><h2>Column <em>sheet</em></h2></div>
-        <p class="lede">Left / right beam reactions, e = d/2, the three load combinations and column self-weight, as the Column sheet runs them. Every value must read &lt; 1.00 with OK.</p>
+        <p class="lede">The Column sheet: left / right reactions at e = d/2, three combinations, each &lt; 1.00.</p>
       </div>
       <div class="tabs" id="colTabs"></div>
       <details class="explain" id="colExplain"><summary id="colExplainHead">How the column was chosen</summary><div class="explain-body" id="colHow"></div></details>
@@ -1315,7 +1340,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-inputs">
       <div class="screen-heading">
         <div><div class="eyebrow">What was read</div><h2>Inputs <em>read</em></h2></div>
-        <p class="lede">Every value the design uses and where it came from: <span class="src pcs">PCS</span> text, <span class="src annotation">note</span> blue annotation, <span class="src deckGuide">guide</span> deck guide / standard, <span class="src estimate">est.</span> estimate, <span class="src manual">edit</span> typed here. Edits re-run the design.</p>
+        <p class="lede">Every value and its source: <span class="src pcs">PCS</span> <span class="src annotation">note</span> <span class="src deckGuide">guide</span> <span class="src estimate">est.</span> <span class="src manual">edit</span>. Edits re-run the design.</p>
       </div>
       <div class="panel"><div class="panel-body"><div class="inputs-grid" id="inputsGrid"></div></div></div>
     </section>
@@ -1325,7 +1350,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-designer">
       <div class="screen-heading">
         <div><div class="eyebrow">MB sheet · Column sheet</div><h2>Design your <em>own</em></h2></div>
-        <p class="lede">Any section, any loads — checked by the same sheets as the design, with the shop rules, stock and flange economy. Use it for a mark when it works.</p>
+        <p class="lede">Any section, any loads, through the same sheets — use it for a mark when it works.</p>
       </div>
       <div class="seg dz-tabs" id="dzTabs"><button data-t="beam">Beam · MB sheet</button><button data-t="col">Column · Column sheet</button></div>
       <div class="dz" id="dzBody"></div>
@@ -1334,7 +1359,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     <section class="screen" id="v-settings">
       <div class="screen-heading">
         <div><div class="eyebrow">Rules</div><h2>Settings</h2></div>
-        <p class="lede">Defaults follow the training guide, DM 15.1, DM 5.1 stock for the division and the economical-flange chart.</p>
+        <p class="lede">Defaults follow the training guide, DM 15.1, DM 5.1 stock and the economical-flange chart.</p>
       </div>
       <div class="panel"><div class="panel-body"><div class="inputs-grid" id="settingsGrid"></div></div></div>
     </section>
@@ -2164,7 +2189,13 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
    */
   function buildingGrid(b) {
     const xs = cum(b.bays);
-    if (!near(xs[xs.length - 1], b.length)) xs.push(b.length); // tolerate a short bay list
+    // a short bay list: the length closes the last bay. Within 2'-0" it is a dimension convention (Box 2 measured to a
+    // different line than the bays), not a bay: the frames stay on the bay lines and the gap is reported
+    const gap = b.length - xs[xs.length - 1];
+    let lengthGap = 0;
+    if (!near(gap, 0) && Math.abs(gap) <= 2 + EPS) lengthGap = gap;
+    else if (!near(gap, 0)) xs.push(b.length);
+    const length = lengthGap ? xs[xs.length - 1] : b.length;
     const lewY = b.lewCols && b.lewCols.length ? cum(b.lewCols) : [0, b.width];
     const rewY = b.rewCols && b.rewCols.length ? cum(b.rewCols) : [0, b.width];
     // interior (multi-span) frame columns per frame line
@@ -2186,7 +2217,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     // sidewall soldier columns between frames (spacing from the LEW)
     const fswX = b.fswSoldier && b.fswSoldier.length ? cum(b.fswSoldier) : [];
     const bswX = b.bswSoldier && b.bswSoldier.length ? cum(b.bswSoldier) : [];
-    return { xs, lewY, rewY, interior, allY, yLabel, xLabel, fswX, bswX, width: b.width, length: b.length };
+    return { xs, lewY, rewY, interior, allY, yLabel, xLabel, fswX, bswX, width: b.width, length, boxLength: b.length, lengthGap };
   }
 
   // Is there a building column at (x, y)?
@@ -2227,7 +2258,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       snaps.push({ axis, edge: v, line: c });
       return c;
     };
-    const sx0 = snapTo(x0, g.xs, 'x'), sx1 = snapTo(x1, g.xs, 'x');
+    // an edge past the building's end line (within 2'-0", e.g. a Box 2 length longer than the bays) cannot have columns
+    // outside the building: it is framed on the end line and the slab overhangs it
+    const outside = (v, lo, hi, axis) => { const e = v < lo - EPS ? lo : v > hi + EPS ? hi : null; if (e == null || Math.abs(v - e) > 2 + EPS) return null; snaps.push({ axis, edge: v, line: e, outside: true }); return e; };
+    const sx0 = outside(x0, 0, g.length, 'x') ?? snapTo(x0, g.xs, 'x'), sx1 = outside(x1, 0, g.length, 'x') ?? snapTo(x1, g.xs, 'x');
     const sy0 = snapTo(y0, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y'), sy1 = snapTo(y1, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y');
     const xLines = opt.xLines ? uniq(opt.xLines) : uniq([sx0, sx1, ...g.xs.filter(v => inside(v, sx0, sx1))]);
     const yLines = opt.yLines ? uniq(opt.yLines) : uniq([sy0, sy1, ...yCand.filter(v => inside(v, sy0, sy1))]);
@@ -3999,7 +4033,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   // ---- styles: a fixed set, by name ----
   // fonts: 0 normal, 1 bold, 2 title, 3 note (italic grey), 4 pass (green bold), 5 fail (red bold), 6 section (bold white)
   // fills: 0 none, 1 gray125 (required), 2 header, 3 section band, 4 input cell
-  const STYLE = { '': 0, h: 1, b: 2, t: 3, note: 4, ok: 5, ng: 6, n0: 7, n1: 8, n2: 9, n3: 10, sec: 11, inp: 12, inp3: 13, warn: 14, n4: 15, n2l: 16, w: 17, inpG: 18, r: 19, c: 20 };
+  const STYLE = { '': 0, h: 1, b: 2, t: 3, note: 4, ok: 5, ng: 6, n0: 7, n1: 8, n2: 9, n3: 10, sec: 11, inp: 12, inp3: 13, warn: 14, n4: 15, n2l: 16, w: 17, inpG: 18, r: 19, c: 20, wb: 21, pad: 22, notew: 23, wpad: 24 };
   const stylesXml = () => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <numFmts count="5"><numFmt numFmtId="164" formatCode="0.000"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="0.0"/><numFmt numFmtId="167" formatCode="#,##0"/><numFmt numFmtId="168" formatCode="0.0000"/></numFmts>
@@ -4007,7 +4041,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 <fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDFF5EC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B3D2E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF6D6"/><bgColor indexed="64"/></patternFill></fill></fills>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="thin"><color rgb="FFB4C7DA"/></bottom><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"><alignment vertical="top"/></xf></cellStyleXfs>
-<cellXfs count="21">
+<cellXfs count="25">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top"/></xf>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
@@ -4029,14 +4063,24 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 <xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="top" indent="1"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="top" wrapText="1" indent="1"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
 
   /* a cell: a value (string, number, boolean, null) or { v, s } with s a style name from STYLE; a row (an array) may
-     carry .ht, its height in points */
+     carry .ht, its height in points, and .full (or .fullFrom: a column index): its cell there spans the rest of the
+     sheet's columns, wrapped. sh.wrap: column indexes
+     whose text wraps — the row is made tall enough for it, so the sheet prints at a readable size instead of running
+     off to the right */
+  const WRAP = { '': 'w', b: 'wb', note: 'notew', pad: 'wpad' };
   function sheetXml(sh) {
-    const rows = sh.rows || [], cols = sh.cols || [];
+    const rows = sh.rows || [], cols = sh.cols || [], wrapCols = new Set(sh.wrap || []);
+    const lines = (text, w) => Math.ceil(String(text).length / Math.max(4, w * 1.1));
+    const merges = (sh.merges || []).slice(), total = cols.reduce((a, w) => a + w, 0);
     const out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">', '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'];
     if (sh.freeze) out.push(`<sheetViews><sheetView workbookViewId="0"><pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`);
     else out.push('<sheetViews><sheetView workbookViewId="0"/></sheetViews>');
@@ -4045,10 +4089,23 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     out.push('<sheetData>');
     rows.forEach((row, ri) => {
       if (!row || !row.length) { out.push(`<row r="${ri + 1}"/>`); return; }
-      const ht = row.ht ? ` ht="${row.ht}" customHeight="1"` : '';
+      let h = row.ht || 0;
+      const k = row.full ? 0 : row.fullFrom;
+      if (k != null && cols.length > k + 1) {
+        const c0 = row[k], v = c0 != null && typeof c0 === 'object' ? c0.v : c0;
+        merges.push(`${colName(k)}${ri + 1}:${colName(cols.length - 1)}${ri + 1}`);
+        const n = lines(v || '', total - cols.slice(0, k).reduce((a, w) => a + w, 0)); if (n > 1) h = Math.max(h, 13.2 * n);
+        row = row.slice(0, k).concat([c0 != null && typeof c0 === 'object' ? { ...c0, s: WRAP[c0.s || ''] || c0.s } : { v: c0, s: 'w' }]);
+      }
+      row.forEach((cell, ci) => {
+        const v = cell != null && typeof cell === 'object' && !Array.isArray(cell) ? cell.v : cell;
+        if (ci !== k && wrapCols.has(ci) && typeof v === 'string' && cols[ci]) { const n = lines(v, cols[ci]); if (n > 1) h = Math.max(h, 13.2 * n); }
+      });
+      const ht = h ? ` ht="${+h.toFixed(1)}" customHeight="1"` : '';
       const cells = row.map((cell, ci) => {
         const c = cell != null && typeof cell === 'object' && !Array.isArray(cell) ? cell : { v: cell };
-        const ref = colName(ci) + (ri + 1), s = STYLE[c.s || ''] || 0, sa = s ? ` s="${s}"` : '';
+        const sn = wrapCols.has(ci) && (c.s || '') in WRAP && typeof c.v === 'string' ? WRAP[c.s || ''] : c.s || '';
+        const ref = colName(ci) + (ri + 1), s = STYLE[sn] || 0, sa = s ? ` s="${s}"` : '';
         if (c.v == null || c.v === '') return s ? `<c r="${ref}"${sa}/>` : '';
         if (typeof c.v === 'number') return isFinite(c.v) ? `<c r="${ref}"${sa}><v>${+c.v.toPrecision(15)}</v></c>` : `<c r="${ref}"${sa} t="inlineStr"><is><t>${xmlEsc(String(c.v))}</t></is></c>`;
         if (typeof c.v === 'boolean') return `<c r="${ref}"${sa} t="b"><v>${c.v ? 1 : 0}</v></c>`;
@@ -4057,7 +4114,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       out.push(`<row r="${ri + 1}"${ht}>${cells}</row>`);
     });
     out.push('</sheetData>');
-    if (sh.merges && sh.merges.length) out.push(`<mergeCells count="${sh.merges.length}">${sh.merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`);
+    if (merges.length) out.push(`<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`);
     out.push('<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>');
     out.push('<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>');
     out.push('</worksheet>');
@@ -4617,7 +4674,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         if (alt) fit = summarize(alt);   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest, stressed close to the limit (combined ${fit.CSR.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----
@@ -4677,8 +4734,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const common = list.map(name => ({ name, c: run(name) }));
     const firstOK = common.find(x => x.c.ok);
     if (firstOK) return { name: firstOK.name, quoteAs: firstOK.name, common: true, check: firstOK.c, tried };
-    // Guide: if a larger W is needed (e.g. W14x43) list it as BU on the quote sheet
-    const pool = Object.keys(WFDB).filter(k => /^W(8|10|12|14)X/.test(k) && !list.includes(k)).sort((a, b) => WFDB[a].W - WFDB[b].W || WFDB[a].d - WFDB[b].d);
+    // Guide: if a larger W is needed (e.g. W14x43) list it as BU on the quote sheet. A built-up column with beams on its
+    // flange needs at least an 8" × 1/4" flange (DM 15.1.1.4.2 (2A)), and nothing lighter than the common sizes is tried
+    const minW = Math.min(...list.map(n => WFDB[n].W));
+    const pool = Object.keys(WFDB).filter(k => /^W(8|10|12|14)X/.test(k) && !list.includes(k) && WFDB[k].W >= minW && WFDB[k].bf >= 8 - 1e-9 && WFDB[k].tf >= 0.25).sort((a, b) => WFDB[a].W - WFDB[b].W || WFDB[a].d - WFDB[b].d);
     for (const name of pool) {
       const c = run(name);
       if (c.ok) { const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/); return { name, quoteAs: 'BU' + dn + 'x' + wt, common: false, check: c, tried }; }
@@ -4713,11 +4772,13 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   // a number as the workbook would hold it: whole numbers plain, else to three places
   const auto = v => (typeof v === 'number' && isFinite(v) ? { v, s: Math.abs(v - Math.round(v)) < 1e-9 ? '' : 'n3' } : v == null ? '—' : v);
   const typed = v => (v == null ? '(blank)' : { v, s: typeof v === 'number' ? 'inpG' : 'inp' });
-  // a long note across the sheet: merged, wrapped, tall enough for its lines
-  const longRow = (sheet, cells, from, text, chars) => { const r = cells.concat([{ v: text, s: 'w' }]); r.ht = 13.2 * Math.max(1, Math.ceil(String(text).length / chars)); sheet.wrap.push([sheet.rows.length, from]); sheet.rows.push(r); };
-  const mergesFor = (sheet, last) => sheet.wrap.map(([ri, c]) => `${XC(c)}${ri + 1}:${XC(last)}${ri + 1}`);
-  const XC = i => { let t = ''; for (i += 1; i > 0; i = Math.floor((i - 1) / 26)) t = String.fromCharCode(65 + ((i - 1) % 26)) + t; return t; };
-  const note = text => [{ v: text, s: 'note' }];
+  // a long note across the sheet from the column 'from': merged and wrapped (src/xlsx.js sizes the row)
+  const longRow = (sheet, cells, from, text, style = '') => { const r = cells.concat([{ v: text, s: style }]); r.fullFrom = from; sheet.rows.push(r); };
+  // a note under a heading: one cell across the sheet, wrapped
+  const note = text => { const r = [{ v: text, s: 'note' }]; r.full = true; return r; };
+  // a row whose text from the column k on spans the rest of the sheet, wrapped
+  const spanRow = (k, cells) => { cells.fullFrom = k; return cells; };
+  const head = text => { const r = [{ v: text, s: 'b' }]; r.full = true; return r; };
   const okc = ok => ({ v: ok ? 'OK' : 'NG', s: ok ? 'ok' : 'ng' });
   const webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
   const frac = v => { const n = Math.round(v * 16); if (Math.abs(v * 16 - n) > 0.02) return String(+(+v).toFixed(4)); const w = Math.floor(n / 16), r = n % 16, g = (a, b) => (b ? g(b, a % b) : a), q = g(r, 16); return r ? `${w ? w + ' ' : ''}${r / q}/${16 / q}` : String(w); };
@@ -4736,30 +4797,31 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 
     // ---------------- Summary ----------------
     {
-      const cols = [40, 12, 14, 34, 22, 8, 12, 10, 7, 11, 9, 8, 8, 12, 12, 24], B = t => band(t, cols.length);
-      const rows = [[{ v: 'Mezzanine design — calc package', s: 't' }],
-        note(`${q.quote || ''}${q.project ? ' · ' + q.project : ''} · generated ${ctx.generated || new Date().toISOString().slice(0, 10)}. Every number here is an input to, or a result of, NBG's own workbooks — the sheet "Sources" says which. Filled copies of those workbooks come with this package when they are added to the tool.`), [],
-        B('Job'),
-        ['Quote', q.quote || '—'], ['Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'],
-        ['Beam sheet', BOOKS[ed.beamEd] || '—'], ['Column sheet', COLBOOKS[ed.colEd] || '—'], ['Specification', ed.spec || '—'],
-        ['Division (stock and production limits)', div], ['Stress ratio limit (combined and shear)', num(target, 'n2l')], ['Deflection limits', 'L/360 live, L/240 total (MB sheet)'],
-        ['Mezzanines', live.map(r => r.id).join(', ')], [],
-        B('Beams'),
-        H(['Mark', 'Type', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Beams', 'Combined SR', 'Shear SR', 'Live L/', 'Total L/', 'Dead each end (k)', 'Live each end (k)', 'Chosen as']),
-      ];
+      const cols = [13, 10, 22, 13, 6, 8, 7, 5, 8, 7, 6, 6, 8, 8, 13], B = t => band(t, cols.length);
+      const rows = [[{ v: 'Mezzanine design — calc package', s: 't' }]];
+      const sh = { name: 'Summary', cols, rows, long: [], wrap: [2, 3, 14] };
+      longRow(sh, [], 0, `${q.quote || ''}${q.project ? ' · ' + q.project : ''} · generated ${ctx.generated || new Date().toISOString().slice(0, 10)}. Every number here is an input to, or a result of, NBG's own workbooks — the sheet "Sources" says which. These are values: the live calculation is the NBG workbooks themselves — "Everything (.zip)" carries a filled copy of each, where any input can be changed.`, 'note');
+      const kv = (label, value) => spanRow(3, [label, '', '', value]);
+      rows.push([], B('Job'),
+        kv('Quote', q.quote || '—'), kv('Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'),
+        kv('Beam sheet', BOOKS[ed.beamEd] || '—'), kv('Column sheet', COLBOOKS[ed.colEd] || '—'), kv('Specification', ed.spec || '—'),
+        kv('Division (stock and limits)', div), kv('Stress ratio limit', num(target, 'n2l')), kv('Deflection limits', 'L/360 live, L/240 total (MB sheet)'),
+        kv('Mezzanines', live.map(r => r.id).join(', ')), [],
+        B('Beams'));
+      rows.push(
+        H(['Mark', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Qty', 'Comb. SR', 'Shear SR', 'Live L/', 'Total L/', 'MB end shear D (k)', 'MB end shear L (k)', 'Chosen as']));
       marks.forEach(m => (m.spanRuns && m.spanRuns.length ? m.spanRuns : []).forEach((run, i) => {
         const c = run.check; if (!c) return;
         const opt = (m.options || []).find(o => o.key === m.optionKey);
-        rows.push([i ? `${m.mark} · ${ft(run.L != null ? run.L : run.span)} span` : m.mark, m.kind || '', c.desc, secText(m.sec), m.sec && m.sec.type !== 'WF' ? `${flName(m.sec)} ${tierWord(DESIGN.TIER[Math.max(DESIGN.tierOf(m.sec.bof, m.sec.tof), DESIGN.tierOf(m.sec.bif, m.sec.tif))])}` : '—',
+        rows.push([i ? `${m.mark} · ${ft(run.L != null ? run.L : run.span)}` : `${m.mark}${m.kind ? ' ' + m.kind : ''}`, c.desc, secText(m.sec), m.sec && m.sec.type !== 'WF' ? `${flName(m.sec)} ${tierWord(DESIGN.TIER[Math.max(DESIGN.tierOf(m.sec.bof, m.sec.tof), DESIGN.tierOf(m.sec.bif, m.sec.tif))])}` : '—',
           num(c.res.Wt, 'n1'), { v: ft(run.L != null ? run.L : run.span), s: 'r' }, { v: ft(run.params ? run.params.trib : m.trib), s: 'r' }, run.qty, num(c.res.CSR), num(c.res.SRvx), num(c.defl.rLL, 'n0'), num(c.defl.rTL, 'n0'), num(c.V.D), num(c.V.L),
-          i ? 'same section, own MB run' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—']);
+          { v: i ? 'same section, own MB run' : m.optionKey === 'custom' ? 'picked by the engineer' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—', s: 'pad' }]);
       }));
-      rows.push([], B('Columns'), H(['Columns', 'Mezzanine', 'Section', 'Quote as', 'Length', 'Quantity', 'Max CSR', 'Result']));
-      live.forEach(r => { if (!r.colFinal) return; rows.push([r.columns.map(c => c.label).join(', '), r.id, r.colFinal.name, r.colFinal.quoteAs, { v: ft(r.colLen), s: 'r' }, r.columns.length, num(r.colFinal.max), okc(r.colFinal.ok)]); });
+      rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result']));
+      live.forEach(r => { if (!r.colFinal) return; rows.push([r.id, r.colFinal.name, r.columns.map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, r.columns.length, '', num(r.colFinal.max), okc(r.colFinal.ok)]); });
       const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
-      const sh = { name: 'Summary', cols, rows, wrap: [] };
-      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2], 185)); }
-      sh.merges = mergesFor(sh, cols.length - 1); delete sh.wrap;
+      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2])); }
+      delete sh.long;
       out.push(sh);
     }
 
@@ -4788,7 +4850,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),
         set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
         set('Column length', s.colLength === 'clear' ? 'clear below the beams' : 'finish floor to top of mezzanine (A)'), set('Column section', s.colPerJob === false ? 'per mezzanine' : 'one W for the whole job'));
-      out.push({ name: 'Inputs', cols: [14, 12, 40, 14, 7, 22, 16, 60], rows, freeze: 4 });
+      out.push({ name: 'Inputs', cols: [12, 10, 34, 13, 6, 18, 13, 40], wrap: [5, 7], rows, freeze: 4 });
     }
 
     // ---------------- MB sheets: the cells typed, and what the sheet shows ----------------
@@ -4818,7 +4880,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         });
         rows.push([]);
       });
-      out.push({ name: 'MB sheets', cols: [26, 62, 30], rows });
+      out.push({ name: 'MB sheets', cols: [24, 56, 30], wrap: [1], rows });
     }
 
     // ---------------- Beam options ----------------
@@ -4826,23 +4888,23 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const rows = [[{ v: 'Beam options — how each section was found', s: 't' }], note('Every stocked web and flange for the division, through the MB sheet, inside the production limits; the options are the lightest, the step-by-step "best fit", and the most economical by the flange chart.'), []];
       marks.forEach(m => {
         const sr = m.search; if (!sr) return;
-        rows.push(band(`${m.mark}${m.kind ? ' ' + m.kind : ''} — designed ${ft(m.params ? m.params.L : m.span)} × ${ft(m.params ? m.params.trib : m.trib)} trib · ${sr.evaluated.toLocaleString('en-US')} combinations run · depth ${sr.options.dMin}"–${sr.dTop}"${sr.dTop < sr.options.dMax ? ' (clearance C)' : ''}`, 14));
-        rows.push(H(['Option', 'Section', 'Depth', 'Web', 'Flanges', 'Economy', 'plf', 'vs lightest', 'Combined', 'Shear', 'Live L/', 'Total L/', 'On the quote', 'Why']));
+        rows.push(band(`${m.mark}${m.kind ? ' ' + m.kind : ''} — designed ${ft(m.params ? m.params.L : m.span)} × ${ft(m.params ? m.params.trib : m.trib)} trib · ${sr.evaluated.toLocaleString('en-US')} combinations run · depth ${sr.options.dMin}"–${sr.dTop}"${sr.dTop < sr.options.dMax ? ' (clearance C)' : ''}`, 13));
+        rows.push(H(['Option', 'Section', 'Depth', 'Web', 'Flanges', 'Economy', 'plf', 'vs lightest', 'Combined', 'Shear', 'Live L/', 'Total L/', 'On the quote']));
         // one row a section: options that land on the same section share it ("Lightest · Best fit")
         const groups = [];
         (m.options || []).forEach(o => { const g = groups.find(x => x.some(y => ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => y.pick.sec[k] === o.pick.sec[k]))); if (g) g.push(o); else groups.push([o]); });
-        groups.map(g => ({ ...g[0], label: g.map(x => x.label).join(' · '), why: g.map(x => (g.length > 1 ? `${x.label}: ` : '') + x.why).join(' '), key: (g.find(x => x.key === m.optionKey) || g[0]).key })).forEach(o => { const p = o.pick; rows.push([o.label, p.desc, `${p.sec.d}"`, p.web, p.flange, tierWord(p.tier), num(p.wt, 'n1'), { v: o.dWt ? `${o.dWt > 0 ? '+' : ''}${(o.dPct * 100).toFixed(1)} %` : 'lightest', s: 'r' }, num(p.CSR), num(p.SRv), num(p.rLL, 'n0'), num(p.rTL, 'n0'), { v: m.optionKey === o.key ? 'yes' : '', s: 'c' }, o.why + (o.needC != null ? ` Needs C ≤ ${ft(o.needC)}.` : '')]); });
+        groups.map(g => ({ ...g[0], label: g.map(x => x.label).join(' · '), why: g.map(x => (g.length > 1 ? `${x.label}: ` : '') + x.why).join(' '), key: (g.find(x => x.key === m.optionKey) || g[0]).key })).forEach(o => { const p = o.pick; rows.push([{ v: o.label, s: 'b' }, p.desc, `${p.sec.d}"`, p.web, p.flange, tierWord(p.tier), num(p.wt, 'n1'), { v: o.dWt ? `${o.dWt > 0 ? '+' : ''}${(o.dPct * 100).toFixed(1)} %` : 'lightest', s: 'r' }, num(p.CSR), num(p.SRv), num(p.rLL, 'n0'), num(p.rTL, 'n0'), { v: m.optionKey === o.key ? 'yes' : '', s: 'c' }], spanRow(1, ['', { v: o.why + (o.needC != null ? ` Needs C ≤ ${ft(o.needC)}.` : ''), s: 'note' }])); });
         const fit = (m.options || []).find(o => o.key === 'fit') || (m.options || []).find(o => o.steps);
         const steps = fit && fit.steps ? fit.steps : null;
-        if (steps) { rows.push([{ v: 'Best fit, step by step', s: 'b' }]); steps.forEach((st, i) => rows.push([`${i + 1}`, st.text])); }
+        if (steps) { rows.push(head('Best fit, step by step')); steps.forEach((st, i) => rows.push(spanRow(1, [`${i + 1}`, st.text]))); }
         const removed = Object.entries(sr.removed || {});
-        if (removed.length) { rows.push([{ v: 'Left out by the production limits', s: 'b' }]); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push([n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k])); }
-        rows.push([{ v: 'Lightest section at each depth', s: 'b' }], H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
+        if (removed.length) { rows.push(head('Left out by the production limits')); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push(spanRow(1, [n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k]))); }
+        rows.push(head('Lightest section at each depth'), H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
         sr.byDepth.forEach(z => rows.push(z.none ? [`${z.d}"`, 'nothing stocked passes'] : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
-        if (m.deeper && m.deeper.length) { rows.push([{ v: 'Deeper than the clearance allows (each needs C lowered)', s: 'b' }], H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
+        if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
         rows.push([]);
       });
-      out.push({ name: 'Beam options', cols: [30, 14, 8, 8, 10, 18, 8, 11, 10, 9, 8, 8, 12, 90], rows });
+      out.push({ name: 'Beam options', cols: [24, 11, 7, 7, 9, 12, 7, 9, 9, 7, 7, 7, 9], wrap: [0], rows });
     }
 
     // ---------------- Shop rules ----------------
@@ -4867,10 +4929,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       [5, 6, 8, 10, 12].forEach(w => rows.push([`${w}"`, ...TH.map(t => { if (!DESIGN.inChart(w, t)) return '—'; const g = DESIGN.TIER[DESIGN.tierOf(w, t)]; return { v: g, s: g === 'G' ? 'ok' : g === 'Y' ? 'warn' : 'ng' }; })]));
       rows.push(note('Start considering 10" flanges when F8.50 (IF) and F8.38 (OF) start failing. 12" flanges are good sections but typically more expensive.'), []);
       rows.push(band(`DM 5.1 stock inventory — ${div}`, W), H(['Plate', 'Sizes stocked']));
-      rows.push(['Webs', Object.keys(DESIGN.WEB_STOCK).map(Number).sort((a, b) => a - b).filter(t => DESIGN.inStock(DESIGN.WEB_STOCK, t, div)).map(t => `${t}" (${webName(t)})`).join(', ')]);
-      [6, 8, 10, 12].forEach(w => rows.push([`Flanges ${w}" wide`, Object.keys(DESIGN.FLANGE_STOCK).map(k => k.split('x').map(Number)).filter(([b, t]) => b === w && DESIGN.inStock(DESIGN.FLANGE_STOCK, b + 'x' + t, div)).map(([, t]) => `${frac(t)}"`).join(', ') || 'none']));
-      rows.push(['Wide flange', Object.keys(DESIGN.WF_STOCK).filter(k => DESIGN.inStock(DESIGN.WF_STOCK, k, div)).join(', ')]);
-      out.push({ name: 'Shop rules', cols: [44, 26, 16, 18, 22, 16, 30, 30, 8], rows });
+      rows.push(spanRow(1, ['Webs', Object.keys(DESIGN.WEB_STOCK).map(Number).sort((a, b) => a - b).filter(t => DESIGN.inStock(DESIGN.WEB_STOCK, t, div)).map(t => `${t}" (${webName(t)})`).join(', ')]));
+      [6, 8, 10, 12].forEach(w => rows.push(spanRow(1, [`Flanges ${w}" wide`, Object.keys(DESIGN.FLANGE_STOCK).map(k => k.split('x').map(Number)).filter(([b, t]) => b === w && DESIGN.inStock(DESIGN.FLANGE_STOCK, b + 'x' + t, div)).map(([, t]) => `${frac(t)}"`).join(', ') || 'none'])));
+      rows.push(spanRow(1, ['Wide flange', Object.keys(DESIGN.WF_STOCK).filter(k => DESIGN.inStock(DESIGN.WF_STOCK, k, div)).join(', ')]));
+      out.push({ name: 'Shop rules', cols: [30, 16, 12, 12, 16, 10, 18, 22, 8], wrap: [0, 1, 7], rows });
     }
 
     // ---------------- Columns ----------------
@@ -4890,7 +4952,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         if (g && g.design && g.design.tried) { rows.push([{ v: 'Sizes tried, lightest first', s: 'b' }], H(['Section', 'Max CSR', 'Result'])); g.design.tried.forEach(t => rows.push([t.name, num(t.max), okc(t.ok)])); }
         rows.push([]);
       }));
-      out.push({ name: 'Columns', cols: [34, 52, 22, 12, 10], rows });
+      out.push({ name: 'Columns', cols: [30, 46, 18, 12, 10], wrap: [1], rows });
     }
 
     // ---------------- Frame loads ----------------
@@ -4901,7 +4963,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         const eq = (e.eq || []).reduce((a, x) => a + x.F, 0), calc = (e.eq || []).reduce((a, x) => a + (x.calc ?? x.F), 0);
         rows.push([fl.building || '', fl.frame, e.label, e.member || '—', e.where, num(e.A != null ? e.A : e.elev, 'n2'), num(e.D), num(e.L), e.eq && e.eq.length ? num(eq) : '', e.eq && e.eq.length ? num(calc) : '', e.parts.map(p => `${p.mezz} ${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + ')]);
       }));
-      out.push({ name: 'Frame loads', cols: [10, 10, 9, 14, 62, 9, 12, 12, 14, 16, 40], rows, freeze: 4 });
+      out.push({ name: 'Frame loads', cols: [10, 7, 8, 10, 34, 8, 9, 9, 10, 11, 30], wrap: [4, 10], rows, freeze: 4 });
     }
 
     // ---------------- Seismic ----------------
@@ -4927,11 +4989,11 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         if (b.long) { rows.push([], band(`${b.name} — bracing`, 7), H(['Mezzanine', 'Seismic force for the bracing (k)'])); b.long.mezzLoads.forEach(m => rows.push([m.id, num(m.F)])); }
         rows.push([]);
       });
-      out.push({ name: 'Seismic', cols: [30, 56, 22, 10, 14, 12, 10], rows });
+      out.push({ name: 'Seismic', cols: [26, 50, 20, 10, 12, 11, 10], wrap: [1], rows });
     }
 
     // ---------------- Sources ----------------
-    out.push({ name: 'Sources', cols: [44, 22, 60, 50], freeze: 3, rows: [
+    out.push({ name: 'Sources', cols: [30, 22, 46, 40], wrap: [0, 1, 2, 3], freeze: 3, rows: [
       [{ v: 'Sources — where each number comes from', s: 't' }], [],
       H(['Document / workbook', 'Revision / file', 'Gives', 'Checked by']),
       [BOOKS[ed.beamEd] || 'Mezzanine Beam Design', ed.beamEd ? `Mezzanine_Beam_Design_${ed.beamEd}th.xls` : '', 'INPUT sheet (loads, heights, clearances); MB1–MB4 (member length, Lb, trib, section → end shears H6 / H10, deflections, combined / shear, joist bearing L7)', 'cell-for-cell port; the real workbook run on every option and every job (oracle) — the filled copy reads the same'],
@@ -5494,6 +5556,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const bl = inp.building;
     const grid = LAYOUT.buildingGrid({ width: bl.width, length: bl.length, bays: bl.bays, lewCols: bl.lewCols, rewCols: bl.rewCols, ridge: bl.ridge, frames: bl.frames, fswSoldier: bl.fswSoldier, bswSoldier: bl.bswSoldier, yLetters: bl.yLetters });
     const mz = { length: val(inp.geom.length), width: val(inp.geom.width), startLEW: val(inp.geom.startLEW) || 0, startFSW: val(inp.geom.startFSW) || 0 };
+    if (grid.lengthGap) warn.push({ level: 'warn', text: `${inp.mezz.building || 'The building'}: Box 2 length ${PCS.fmtFtIn(grid.boxLength)}, but the bays add to ${PCS.fmtFtIn(grid.length)} (${PCS.fmtFtIn(Math.abs(grid.lengthGap))} ${grid.lengthGap > 0 ? 'more' : 'less'}) — the frames are taken on the bay lines, no extra frame line. Confirm the PCS dimensions.` });
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
     const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop });
     if (fromPlan) {
@@ -5524,6 +5587,9 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const tight = lay.beamLines.slice(1).map((v, i) => [lay.beamLines[i], v]).filter(([a, b]) => b - a < 12 - 1e-6);
     if (tight.length && !(s.xLines || s.yLines)) warn.push({ level: 'key', text: `Beam lines ${tight.map(([a, b]) => `${PCS.fmtFtIn(a)} / ${PCS.fmtFtIn(b)}`).join(', ')} are under 12'-0" apart — joists span only ${PCS.fmtFtIn(Math.min(...tight.map(([a, b]) => b - a)))} there. Drop a line on the Plan page if the joists should span past it.` });
 
+    // joist span against the total joist depth: SJI limits a K-series joist to 24 × its depth (a removed beam line on the
+    // Plan page, or a wide bay, can go past it)
+    if (joistDepthIn > 0 && lay.joistSpan * 12 / joistDepthIn > 24 + 1e-6) warn.push({ level: 'warn', text: `Joists span ${PCS.fmtFtIn(lay.joistSpan)} on a ${+joistDepthIn.toFixed(2)}" total joist depth — ${(lay.joistSpan * 12 / joistDepthIn).toFixed(1)} × the depth, over the 24 × depth SJI allows for K-series joists. Add a beam line or deepen the joists; confirm with the joist supplier.` });
     const maxDepthByC = Cq != null && A != null ? Math.floor((A - Cq) * 12 - slabIn - seatIn + 1e-6) : null;
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
@@ -5740,7 +5806,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const optionKey = (options.find(o => same(o.pick.sec, chosen)) || {}).key || (chosen ? 'custom' : null);
     if (check && ov && ov.sec) {
       const okB = check.res.CSR <= s.target && check.res.SRvx <= s.target && check.llOK && check.tlOK && (!check.conc || check.conc.ok);
-      if (!okB) say('stop', `${m.mark}: the pinned ${check.desc} no longer passes (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick an option again.`);
+      if (!okB) say('stop', `${m.mark}: ${check.desc}, the section picked by hand, does not pass for these loads (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick another or go back to an option.`);
     }
     if (!chosen) {
       const cap = maxDepth != null && maxDepth < s.dMax;
@@ -5873,7 +5939,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/);
       colFinal = { name, quoteAs: DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
       if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${s.colOverride ? ' — the column pick on the Column page overrides the automatic W' : ''}.` });
-      if (!DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'info', text: `${name} is not a stocked W at ${division}.` });
+      // a W on the quote has to be stocked; a larger one quoted as BU is built from plates
+      if (colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
     }
     if (cols.length && !colLen) warn.push({ level: 'stop', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' });
     else if (cols.length && noBeam) warn.push({ level: 'stop', text: 'Columns not sized — the beams framing into them have no section yet.' });
@@ -6558,8 +6625,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         const notes = [`${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
           run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
-          carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey && mk.optionKey !== 'lightest' && mk.options ? (mk.options.find(o => o.key === mk.optionKey) || {}).label + ' option' : ''].filter(Boolean).join('; ');
-        beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || '', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
+          carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey === 'custom' ? 'section picked by the engineer' : mk.optionKey && mk.optionKey !== 'lightest' && mk.options && mk.options.find(o => o.key === mk.optionKey) ? mk.options.find(o => o.key === mk.optionKey).label + ' option' : ''].filter(Boolean).join('; ');
+        beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || 'NO SECTION', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
       });
     });
     // columns: one row per section and height over the job
@@ -6619,13 +6686,15 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   // loads to the frame of the building on screen (a job can hold mezzanines in two buildings, each in its own coordinates)
   const sameBldg = q => !q || !q.bkey || !state.res || !state.res.bkey || q.bkey === state.res.bkey;
   const bldgFrameLoads = () => ((state.job && state.job.frameLoads) || []).filter(sameBldg);
+  // how many beams of a mark's run (one member length) sit on less trib than the mark is designed for
+  const mkLessTrib = (mk, run) => (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3 && x.trib < mk.trib - 1e-3).length;
   // where a job mark's beams are: "BSW 2 · LEW 2"
   const mkWhere = mk => {
     const ms = state.job ? state.job.mezz : [];
     if (ms.length < 2 || !mk.beamsAll) return '';
     const n = new Map();
     mk.beamsAll.forEach(x => n.set(x.mi, (n.get(x.mi) || 0) + 1));
-    return [...n].map(([mi, k]) => `${ms[mi].id} ${k}`).join(' · ');
+    return [...n].map(([mi, k]) => `${ms[mi].id} × ${k}`).join(" · ");
   };
   // the shorter members of a mark: same section, own MB-sheet run — "+ 1 at 12'-4\""
   const mkShort = mk => (mk.spanRuns || []).filter(q => q.span < mk.span - 1e-3).map(q => `+ ${q.qty} at ${ft(q.span)}`).join(' · ');
@@ -6637,6 +6706,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   // the beam end loads that go to the frame and the columns: the layout span and trib with the mark's section
   const layoutV = (mk, q) => (mk && mk.sec && mk.params ? DESIGN.reactions({ ...mk.params, L: q ? q.span : mk.span, trib: mk.trib }, mk.sec) : null);
   const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
+  // a mezzanine's layout edited on the Plan page (lines, columns taken out, frame / mezzanine columns)
+  const layEdited = st => !!(st && (st.xLines || st.yLines || (st.drop && st.drop.length) || (st.colKind && Object.keys(st.colKind).length)));
 
   // ---------- one holistic drawing: every mezzanine of the job in this building, drawn together ----------
   function jobView() {
@@ -6646,9 +6717,20 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     return ms.length ? ms : [r];
   }
   const inpOf = m => (state.all && state.all[m.index] ? state.all[m.index].inputs : state.inputs);
+  // a job mark's beams on the drawing in view (one building), not counting a neighbour's edge it carries
+  const viewQty = mk => { const ids = new Set(jobView().map(m => m.index)); return (mk.beamsAll || []).filter(x => ids.has(x.mi)).length; };
   const atPt = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
   // C1, C2 … numbered once over the job (plans, 3D, Column page): along the length, then from the BSW
-  const colNos = () => new Map(jobView().flatMap(m => m.layout.mezzCols).sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  const colNosRaw = () => new Map(jobView().flatMap(m => m.layout.mezzCols).sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  // the numbers the job had before the Plan page edits stay with their columns; new columns are numbered after them
+  const colNos = () => {
+    const now = colNosRaw();
+    if (!state.colBase || !allSettings().some(layEdited)) return now;
+    const out = new Map(), next = { n: Math.max(0, ...state.colBase.values()) };
+    [...now.keys()].forEach(l => { if (state.colBase.has(l)) out.set(l, state.colBase.get(l)); });
+    [...now.keys()].forEach(l => { if (!out.has(l)) out.set(l, ++next.n); });
+    return out;
+  };
   // building columns the mezzanine beams frame into, once each over the job
   const bldgCols = () => { const out = []; jobView().forEach(m => m.layout.supports.filter(sp => sp.building).forEach(sp => { if (!out.some(q => atPt(q, sp))) out.push(sp); })); return out; };
   // the mark that colours a beam: its own, or for an edge carried by a neighbour, the carrying beam's
@@ -6812,7 +6894,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       prog(0.85);
       const pcs = PCS.parse(pages);
       if (!pcs.mezzanines.length) throw new Error('No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
-      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.seis = {}; state.seis = seisLoad();
+      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.colBase = null; state.seis = {}; state.seis = seisLoad();
       readPlan();                                           // grid letters + joist arrows off the drawing
       const keep = keepSettings();
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
@@ -6948,7 +7030,9 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     else {
       const others = jobCols.filter(q => q.owner !== r.index);
       const alt = r.layout.alt ? PLAN.compare(reg.columns, others.concat(r.layout.alt.mezzCols)) : null;
-      r.warn.unshift({ level: 'stop', text: `Floor plan check: the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` +
+      // an edit on the Plan page is the engineer's call: say how it differs from the drawing, nothing more
+      if (allSettings().some(layEdited)) r.warn.push({ level: 'info', text: `Floor plan check: the layout was edited on the Plan page — the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout now has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` });
+      else r.warn.unshift({ level: 'stop', text: `Floor plan check: the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` +
         (alt && alt.agree ? ' The other joist direction matches the drawing — switch it on the Plan page.' : ' Adjust the beam / support lines on the Plan page to match the drawing.') });
     }
     if (r.layout.why && /PCS floor plan/.test(r.layout.why)) r.warn.unshift({ level: 'ok', text: `Joists span ${r.layout.joists === 'y' ? 'across the width' : 'along the length'}, read from ${r.layout.why.replace(/^joist arrows/, 'the "Mez. Jst." arrows')}.` });
@@ -7004,15 +7088,21 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const fl = DESIGN.flangeName(sec.bof, sec.tof), fi = DESIGN.flangeName(sec.bif, sec.tif);
     return `${sec.d}" · web ${sec.tw}" · ${fl === fi ? fl + ' (' + sec.bof + ' × ' + sec.tof + ')' : 'OF ' + fl + ' / IF ' + fi}`;
   }
-  // MB sheet: floor dead / live load (unfactored) — shear at left / right, kips: the beam end loads that go to the frame
+  // the floor dead / live that goes to the frame: at each building column, the MB-sheet end shears (H6 / H10) of the
+  // beams framing in — the same numbers as the frame loads table, the CSV and the .frame files. Columns that take the
+  // same load share a row (2/A–5/A).
   function floorCard() {
-    const rows = jobMarks().filter(mk => mk.check).flatMap(mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, check: mk.check }]).map((q, i) =>
-      { const v = mkDz(mk).set ? layoutV(mk, q) : q.check.V; return `<span class="fl-row"><b>${mk.mark}${i ? `<small>${ft(q.span)}</small>` : ''}</b><span>D ${f(v.D, 2)}</span><span>L ${f(v.L, 2)}</span></span>`; })).join('');
+    const fls = bldgFrameLoads().slice().sort((a, b) => a.x - b.x || a.y - b.y), groups = [];
+    fls.forEach(q => { const k = `${q.D.toFixed(2)}|${q.L.toFixed(2)}`, g = groups.find(x => x.k === k); if (g) g.cols.push(q.label); else groups.push({ k, D: q.D, L: q.L, cols: [q.label] }); });
+    const name = cs => { const suf = new Set(cs.map(c => c.split('/')[1])); return cs.length > 2 && suf.size === 1 ? `${cs[0]}–${cs[cs.length - 1]}` : cs.join(', '); };
+    groups.sort((a, b) => b.D - a.D);
+    const shown = groups.slice(0, 6), more = groups.length - shown.length;
+    const rows = shown.map(g => `<span class="fl-row"><b title="${esc(g.cols.join(', '))}">${esc(name(g.cols))}</b><span>D ${f(g.D, 2)}</span><span>L ${f(g.L, 2)}</span></span>`).join('');
     return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
-      <div class="fl-rows">${rows || '—'}</div>
-      <small>kips · unfactored shear at left &amp; right (MB sheet)</small></div></div>`;
+      <div class="fl-rows">${rows || '<span class="sub-n">No mezzanine beam frames into a building column.</span>'}</div>
+      <small>kips at each building column · unfactored MB end shears (H6 / H10)${more ? ` · ${more} more on the Plan page` : ' · as in the frame files'}</small></div></div>`;
   }
-  const ringCard = (label, value, sub, ratio, color) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${ratio == null ? '' : `<div class="ring" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"></div>`}</div>`;
+  const ringCard = (label, value, sub, ratio, color) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${ratio == null ? '' : `<div class="ring" title="governing ratio ${f(ratio, 3)}" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"><span>${f(ratio, 2)}</span></div>`}</div>`;
   // rings sweep in and whole numbers count up, as in the Astra dashboard
   function animateIn() {
     requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-ring]').forEach(el => el.style.setProperty('--ring', el.dataset.ring))));
@@ -7053,6 +7143,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       if (str === lastSaved) return;
       lastSaved = str;
       histSave(histLoad().filter(x => x.key !== key).concat(rec));
+      renderSettings();   // the remembered-jobs list shows it at once
     } catch (e) { /* never let remembering break a design */ }
   }
   // the values you have typed most for a field on other jobs
@@ -7309,7 +7400,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
     const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
     const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
-    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all">Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
+    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
@@ -7345,7 +7436,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" title="${nWb}/${nAll} workbooks added">Everything (.zip)</button></div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button></div></div>`;
     });
   }
 
@@ -7380,10 +7471,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     // metric ring cards
     const foreign = !many && (r.foreignCols || []).length ? ` · + ${r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ')}` : '';
     $('#metrics').innerHTML = [
-      ringCard(many ? 'Beams · whole job' : 'Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qtyAll}`).join(' · ')} · ${spans} span`, t.govBeam ? t.govBeam.v : null),
+      ringCard(many ? 'Beams · whole job' : 'Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qtyAll}`).join(' · ')} · ${spans} span`, t.govBeam ? t.govBeam.v : null, t.govBeam && /deflection/.test(t.govBeam.what) && t.govBeam.v <= 1 + 1e-9 ? 'var(--green)' : null),
       ringCard(many ? 'Columns · whole job' : 'Mezzanine columns', `<span data-count="${t.nC}">${t.nC}</span>`, (cols ? `${esc(cols)} · ${colLens} · CSR ${f(t.colMax, 3)}` : 'every beam end lands on a building column') + foreign, t.colMax),
       floorCard(),
-      ringCard(many ? 'Steel · whole job' : 'Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, t.total ? t.beams / t.total : null, 'var(--steel)'),
+      ringCard(many ? 'Steel · whole job' : 'Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, null),
     ].join('');
     $('#needSlot').innerHTML = card;
     $('#warnings').innerHTML = notesHtml(r.warn, !!card);
@@ -7405,13 +7496,12 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const kinds = marks.some(mk => mk.kind) ? '<div class="sub mk-why">interior: more trib than any edge beam · exterior: edge beams, joists on one side — each designed at its largest trib and longest span</div>' : '';
     const joistTxt = done.map(m => `${many ? esc(m.id) + ': ' : ''}joists @ ${ft(m.beamBase.Lb)} span ${ft(m.layout.joistSpan)} ${m.layout.joists === 'y' ? 'across the width' : 'along the length'} onto ${m.layout.beamLines.length} beam lines`).join(' · ');
     $('#field').innerHTML = `
-      <div class="field-head"><div><div class="eyebrow">Framing summary${many ? ' · whole job' : ''}</div><h3>Floor load → beams → columns</h3></div>
-        <p>The governing ratio across every beam and column check, with the quantities read from the layout and cross-checked against the floor plan.</p></div>
+      <div class="field-head"><div><div class="eyebrow">Framing summary${many ? ' · whole job' : ''}</div><h3>Floor load → beams → columns</h3></div></div>
       <div class="field-stage"><div class="atlas">
         <div class="fcard"><div class="step">01 / Mezzanine beams</div><h4>${t.nB} beam${t.nB === 1 ? '' : 's'} · ${marks.length} mark${marks.length === 1 ? '' : 's'}</h4>
           <div class="mk-list">${mkRows || '<div class="sub">no beams</div>'}</div>${kinds}</div>
         <div class="disc-wrap"><div class="step">Governing ratio</div><div class="orbit"></div>
-          <div class="disc" data-ring="${pct(gv).toFixed(1)}" style="--ring:0;--disc-a:${gv <= s.target ? '#64ffd0' : gv <= 1 ? '#ffd27a' : '#ff9d7a'}"><div class="disc-inner"><span>Max ratio</span><strong data-count="${gv}" data-fmt="sr">${f(gv, 2)}</strong><b>${esc(t.gov ? t.gov.who : '')}</b></div></div>
+          <div class="disc" data-ring="${pct(gv).toFixed(1)}" style="--ring:0;--disc-a:${gv <= (/deflection/i.test(t.gov ? t.gov.who : '') ? 1 : s.target) + 1e-9 ? '#64ffd0' : gv <= 1 ? '#ffd27a' : '#ff9d7a'}"><div class="disc-inner"><span>Max ratio</span><strong data-count="${gv}" data-fmt="sr">${f(gv, 2)}</strong><b>${esc(t.gov ? t.gov.who : '')}</b></div></div>
           <div class="disc-caption">Beams ≤ ${s.target} with L/360 live and L/240 total; columns &lt; 1.00 on all three combinations.</div>
           <div class="disc-proof">${c0 ? `combined <b>${f(c0.res.CSR, 3)}</b> · shear <b>${f(c0.res.SRvx, 3)}</b>` : ''}${t.colMax != null ? ` · column <b>${f(t.colMax, 3)}</b>` : ''}</div></div>
         <div class="tallies">
@@ -7461,7 +7551,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
             <div><span>Combined</span><b class="${p.CSR <= state.settings.target ? 'ok' : 'bad'}">${f(p.CSR, 3)}</b></div><div><span>Shear</span><b class="${p.SRv <= state.settings.target ? 'ok' : 'bad'}">${f(p.SRv, 3)}</b></div><div><span>Live defl.</span><b class="ok">L/${f(p.rLL, 0)}</b></div>
           </div>
           <ul class="option-why">${g.roles.map(x => `<li><b>${esc(x.label)}</b> — ${esc(x.why)}</li>`).join('')}</ul>
-          <div class="option-actions">${chosen ? '<span class="chosen-pill">In the quote</span>' : `<button class="btn-soft" data-opt="${o.key}" data-mark="${mk.mark}">Use this</button>`}<button class="btn-ghost" data-go="beam">Calc</button></div>
+          <div class="option-actions">${chosen ? '<span class="chosen-pill">In the quote</span>' : (o.needC != null ? `<button class="btn-ghost" data-opt="${o.key}" data-mark="${mk.mark}" title="Breaks the clearance C on the PCS — use it only with C lowered to ${esc(ft(o.needC))} or less">Use with C ≤ ${esc(ft(o.needC))}</button>` : `<button class="btn-soft" data-opt="${o.key}" data-mark="${mk.mark}">Use this</button>`)}<button class="btn-ghost" data-go="beam">Calc</button></div>
         </article>`;
       };
       // why only one: the lighter plates that fail at that depth (from the step-by-step tries)
@@ -7774,7 +7864,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const allCols = ms.flatMap(m => m.layout.mezzCols).sort((x, y) => cno.get(x.label) - cno.get(y.label));
     const uniq = a2 => [...new Set(a2)].join(' / ');
     $('#planStats').innerHTML = `
-      <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${m.qtyAll}`).join(' · ')}</em></div>
+      <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.filter(m => viewQty(m)).map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${viewQty(m)}`).join(' · ')}</em></div>
       <div class="pstat cols"><span>Mezzanine columns ⊗${many ? ' · whole job' : ''}</span><strong>${t.nC}<small>columns</small></strong><em>${allCols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · ') || 'none'}</em></div>
       <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
       <div class="pstat"><span>Joists</span><strong>${uniq(ms.map(m => ft(m.layout.joistSpan)))}</strong><em>span · @ ${uniq(ms.map(m => ft(m.beamBase.Lb)))} · ${uniq(ms.map(m => (m.layout.joists === 'y' ? 'across the width' : 'along the length')))}</em></div>`;
@@ -7791,22 +7881,29 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const uy0 = Math.min(...ms.map(m => m.layout.footprint.y0)), uy1 = Math.max(...ms.map(m => m.layout.footprint.y1));
     const lineY = [...new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()])].sort((p2, q2) => p2 - q2);
     if ((uy1 - uy0) / W < 0.75) { ya = Math.max(0, ...lineY.filter(y => y <= uy0 - 6)); yb = Math.min(W, ...lineY.filter(y => y >= uy1 + 6)); }
-    const VW = 1100, M = 64, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
+    const VW = 1100, M = 78, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
     const X = x => M + (x - xa) * s, Y = y => M + 12 + (yb - y) * s;
     state.planXf = { xa, yb, s, M };   // the edit mode maps a click back to feet
     const inX = x => x >= xa - 0.01 && x <= xb + 0.01, inY = y => y >= ya - 0.01 && y <= yb + 0.01;
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
       <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker></defs>`);
+    let lastX = null, steppedX = false;
     g.xs.filter(inX).forEach(x => {
-      o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(yb) - 26}" x2="${X(x)}" y2="${Y(ya) + 26}"/>`);
-      [Y(yb) - 38, Y(ya) + 38].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
+      const close = lastX != null && Math.abs(X(x) - lastX) < 24, off = close && !steppedX ? 26 : 0;
+      steppedX = off > 0; lastX = X(x);
+      o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(yb) - 26 - off}" x2="${X(x)}" y2="${Y(ya) + 26 + off}"/>`);
+      [Y(yb) - 38 - off, Y(ya) + 38 + off].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
     });
     // letters run over every column line (ridge included, as on the drawings); only column lines get a bubble
     const colY = new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => v.toFixed(2)));
-    g.allY.filter(y => colY.has(y.toFixed(2)) && inY(y)).forEach(y => {
-      o.push(`<line class="grid-line" x1="${X(xa) - 26}" y1="${Y(y)}" x2="${X(xb) + 26}" y2="${Y(y)}"/>`);
-      [X(xa) - 38, X(xb) + 38].forEach(cx => o.push(`<g class="bubble"><circle cx="${cx}" cy="${Y(y)}" r="11"/><text x="${cx}" y="${Y(y)}">${g.yLabel(y)}</text></g>`));
+    // bubbles of lines closer than a bubble apart (C and D a foot apart) step outward so both read
+    let lastY = null, stepped = false;
+    g.allY.filter(y => colY.has(y.toFixed(2)) && inY(y)).sort((p2, q2) => q2 - p2).forEach(y => {
+      const close = lastY != null && Math.abs(Y(y) - lastY) < 24, off = close && !stepped ? 26 : 0;
+      stepped = off > 0; lastY = Y(y);
+      o.push(`<line class="grid-line" x1="${X(xa) - 26 - off}" y1="${Y(y)}" x2="${X(xb) + 26 + off}" y2="${Y(y)}"/>`);
+      [X(xa) - 38 - off, X(xb) + 38 + off].forEach(cx => o.push(`<g class="bubble"><circle cx="${cx}" cy="${Y(y)}" r="11"/><text x="${cx}" y="${Y(y)}">${g.yLabel(y)}</text></g>`));
     });
     const xsw = g.xs.filter(inX);
     xsw.slice(1).forEach((x, i) => { const a2 = xsw[i]; o.push(`<text class="dim" x="${(X(a2) + X(x)) / 2}" y="${Y(yb) - 52}">${ft(x - a2)}</text>`); });
@@ -7896,7 +7993,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
         // in the second joist bay when there is one (the first has the joist arrow), else toward the far end of the bay
         const bi = bl.length > 2 ? 1 : 0, mid = bl.length > 1 ? (bl[bi] + bl[bi + 1]) / 2 : null, alongX = ly.joists === 'y';
         const along = bi ? 0.5 : 0.7, cx = alongX ? fp.x0 + (fp.x1 - fp.x0) * along : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : fp.y0 + (fp.y1 - fp.y0) * along;
-        o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r ? ' · editing' : ''}</text>`);
+        o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r && state.planEdit ? ' · editing' : ''}</text>`);
       }
     });
     $('#planSvg').setAttribute('viewBox', `0 0 ${VW} ${VH}`);
@@ -7936,6 +8033,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
   const laySnap = () => allSettings().map(st => JSON.stringify(Object.fromEntries(LAY_KEYS.filter(k => st[k] !== undefined).map(k => [k, st[k]]))));
   const layRestore = snap => allSettings().forEach((st, i) => { LAY_KEYS.forEach(k => delete st[k]); Object.assign(st, JSON.parse(snap[i] || '{}')); });
   function layDo(msg, fn) {
+    if (!state.colBase || !allSettings().some(layEdited)) state.colBase = colNosRaw();
     layUndo.push(laySnap()); if (layUndo.length > 60) layUndo.shift();
     fn(); hideLayPop(); recompute(); toast(msg);
   }
@@ -7949,10 +8047,10 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     $('#v-plan .panel.plan').classList.toggle('is-editing', on);
     $('#layUndo').disabled = !layUndo.length;
   }
-  $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); };
+  $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); if (state.planEdit) $('#layBar').scrollIntoView({ block: 'start', behavior: 'smooth' }); };
   $('#layDone').onclick = () => { state.planEdit = false; hideLayPop(); layBarSync(); };
   $('#layUndo').onclick = () => { const snap = layUndo.pop(); if (!snap) return; layRestore(snap); hideLayPop(); recompute(); toast('Undone'); };
-  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])));
+  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => { allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])); state.colBase = null; });
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideLayPop(); });
   document.addEventListener('click', ev => { const p = $('#layPop'); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest('#planSvg')) hideLayPop(); });
 
@@ -7987,7 +8085,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
           const bs = ly.beams.filter(b => Math.abs(b.line - (ly.joists === 'y' ? sp.y : sp.x)) < 1e-6 && (Math.abs(b.from - along) < 1e-6 || Math.abs(b.to - along) < 1e-6));
           const span = bs.reduce((a, b) => a + b.span, 0);
           items.push({ t: 'Take the column out', sub: `the beam spans through${span ? `: ${ft(span)}` : ''} — one beam instead of two`, go: () => layDo(`${sp.label}: column taken out`, () => owners.forEach(m => { const st = sets[m.index]; st.drop = [...new Set([...(st.drop || []), k])]; })) });
-          items.push({ t: `Remove ${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)} of columns`, sub: 'every beam spans through this line', go: () => layDo(`${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)}: columns removed`, () => { const st = sets[m0.index]; layFreeze(st, ly); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.filter((u, i) => i !== si); }) });
+          items.push({ t: 'Remove the whole column line', sub: `${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)} — every beam spans through it`, go: () => layDo(`Column line removed (${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)})`, () => { const st = sets[m0.index]; layFreeze(st, ly); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.filter((u, i) => i !== si); }) });
         } else items.push({ t: 'A beam ends here', sub: 'an end support stays (no cantilever) — make it a frame or a mezzanine column', off: true });
       }
       ring(v.x, v.y);
@@ -8021,6 +8119,9 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     pop.hidden = false;
     const left = Math.min(ev.clientX - wr.left + 10, wr.width - pop.offsetWidth - 8), top = Math.min(ev.clientY - wr.top + 10, wr.height - pop.offsetHeight - 8);
     pop.style.left = Math.max(8, left) + 'px'; pop.style.top = Math.max(8, top) + 'px';
+    // below the fold: open it above the click instead, and keep it in view
+    if (pop.getBoundingClientRect().bottom > innerHeight - 8) pop.style.top = Math.max(8, ev.clientY - wr.top - pop.offsetHeight - 10) + 'px';
+    pop.scrollIntoView({ block: 'nearest' });
     $$('#layPop button[data-i]').forEach(bt => { bt.onclick = e2 => { e2.stopPropagation(); const it = items[+bt.dataset.i]; if (it.go) it.go(); }; });
     $$('#layPop input').forEach(inp => inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { const it = items.find(z => z.at && z.at.id === inp.id); if (it) it.go(); } }));
   }
@@ -8076,7 +8177,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
           ${chk('vertical', cfg.vertical !== false, `Vertical distribution required ${cell('B21')}`)}
           ${chk('ndfs', cfg.ignoreNDFS !== true, `"Steel systems not detailed for seismic" in SDC A–C — R = 3 (the workbook's default) ${cell('F16')}`)}
           ${chk(k + '.story', b.story, `Mezzanine considered a story ${cell('Lateral B30')} — ${n0(b.mezz.reduce((a, m) => a + m.area, 0))} of ${n0(g.width * g.length)} sq ft is ${b.mezz.reduce((a, m) => a + m.area, 0) > g.width * g.length / 3 ? 'over' : 'under'} ⅓ of the floor`)}
-          <label><span class="lab">Mezzanine level diaphragm ${cell('B19')}</span>${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'None / flexible (the workbook\'s default)'], ['rigid', 'Rigid — accidental torsion on the bracing']])}</label>
+          <label><span class="lab">Mezzanine level diaphragm ${cell('B19')}</span>${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'Flexible (workbook default)'], ['rigid', 'Rigid (torsion on the bracing)']])}</label>
         </div>
         <h4 class="seis-h-mz"><span class="step-no sm">3</span>Mezzanine loads <small class="sub-n">Input Data B89–B95 / F89–F95 · storage check box</small></h4>
         <div class="table-wrap"><table class="fl-t seis-mz"><thead><tr><th>Mezzanine</th><th class="num">Elevation</th><th>Floor dead (psf)</th><th class="num">Collateral</th><th class="num">Joists</th><th>Floor live</th><th class="num">Partition</th><th class="num">Seismic psf</th><th class="num">W (lb)</th></tr></thead><tbody>${mz}</tbody></table></div>
@@ -8404,7 +8505,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const sz = seisFor(p, info), sj = state.job && state.job.seismic;
       const seisT = !sz ? (sj && !sj.ok && p.r.rows.length ? `<div class="nbg-seis warn"><b>Seismic not added yet</b> — the Seismic page needs: ${esc(sj.need.join('; '))}.</div>` : '')
         : `<div class="nbg-seis note"><b>Seismic for line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))}:</b> the EQR / EQL rows above are the mezzanine's load from the workbook (${sz.mezz}${sz.edited ? ' as calculated; the rows carry your edited values' : ''}). The roof seismic stays NBG Frame's own (file: ${f(sz.now.dead, 2)} psf · ${f(sz.now.factor, 3)}).
-          <small>Not in your procedure, for information: the workbook's alternate roof seismic weight for ${p.lines.length > 1 ? 'these lines' : 'this line'} is ${f(sz.roofPsf, 2)} psf with Cs ${f(sz.Cs, 4)} (Lateral G64 — roof, walls and the extra share the mezzanine puts at the roof); frame base shear ${f(sz.V, 2)} k. See the Seismic page.</small></div>`;
+          <small>Workbook alt. roof weight (Lateral G64, info): ${f(sz.roofPsf, 2)} psf · Cs ${f(sz.Cs, 4)} · base shear ${f(sz.V, 2)} k.</small></div>`;
       const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns, so their loads are not put on it (an endwall column goes with the endwall design; a column made a frame column on the Plan page has to be added in NBG Frame first):${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
       const fl = a.floors, flTxt = ['FloorDead', 'FloorLive'].filter(k => fl[k]).map(k => `${k === 'FloorDead' ? 'Floor Dead' : 'Floor Live'} ${fl[k].was > 0 ? `${f(fl[k].was, 3)} psf (left as it is)` : '0 → 1.000 psf'}`).join(' · ');
       const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL / EQ row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+(+o.yMag || +o.xMag)).toFixed(2)}`).join(', ')}) — check they are not the same loads` : '', a.replaced ? '' : ''].filter(Boolean);
@@ -8583,7 +8684,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       const lv = dz.set ? layoutV(mk, run) : null;
       $('#mbSheet').innerHTML = beamViz(mk, r, run) + (lv
         ? `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame and columns · ${mk.mark} at the layout ${ft(run.span)} × ${ft(mk.trib)}</span><b>Dead ${f(lv.D, 3)} k</b><b>Live ${f(lv.L, 3)} k</b><small>per beam end, ${esc(mk.desc)} — the MB sheet below is at the design ${ft(runL(run))} × ${ft(dz.trib)} (shear D ${f(c.V.D, 3)} / L ${f(c.V.L, 3)} k, highlighted)</small></div>`
-        : `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div>`) + mbSheetBody(c, p, mk.sec, [
+        : `<div class="frame-strip"><span class="eyebrow">MB sheet end shear · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''} × ${ft(mk.trib)} trib</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored, per beam end — highlighted below${mkLessTrib(mk, run) ? ` · ${mkLessTrib(mk, run)} of these beams carry less trib and send less to the frame (each beam's own trib is in the frame loads, Plan page)` : ''}</small></div>`) + mbSheetBody(c, p, mk.sec, [
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
           ['Total Joist Depth, (in.)', r.joistDepthIn != null ? f(r.joistDepthIn, 2) : '—'], ['Beam Depth, (in.)', mk.sec.d],
@@ -8767,7 +8868,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const cno = colNos();
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
-    $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C3</span> the mezzanine column's number on the plan · <span class="mono">2/B</span> the grid point, frame line 2 × column line B · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
+    const exCol = ((state.res.colGroups[state.colGroup] || {}).cols || [])[0], exNo = exCol ? colNos().get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
+    $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C${exNo || 1}</span> the mezzanine column's number on the plan · <span class="mono">${esc(exPt.join('/'))}</span> the grid point, frame line ${esc(exPt[0])} × column line ${esc(exPt[1] || '')} · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
     $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); renderCalcPack(); }; });
@@ -8854,6 +8956,15 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
     const el = $('#dzBody');
     if (!el) return;
     const dz = state.dz;
+    // a new job opens the designer on its first mark and column case, not on the last job's numbers
+    const jk = state.pcs ? state.pcs.job.quote || state.pcs.job.project || 'job' : null;
+    if (jk && state.job && state.dzJob !== jk) {
+      state.dzJob = jk;
+      const b0 = dzBeamSources()[0], c0 = dzColSources()[0];
+      if (b0) dzLoadBeam(b0.key);
+      if (c0) dzLoadCol(c0.key);
+      dzSave();
+    }
     $$('#dzTabs button').forEach(b => { b.classList.toggle('is-active', b.dataset.t === dz.tab); b.onclick = () => { dz.tab = b.dataset.t; dzSave(); renderDesigner(); }; });
     el.innerHTML = dz.tab === 'beam' ? dzBeamHTML() : dzColHTML();
     // inputs: every field writes its value and re-checks
@@ -8904,8 +9015,8 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       <form class="dz-in panel" onsubmit="return false">
         <div class="dz-head"><h3>Inputs</h3>${srcs.length ? `<select id="dzFrom"><option value="">Start from this job…</option>${srcs.map(x => `<option value="${esc(x.key)}" ${c.from === x.key ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>` : ''}<button class="btn-ghost" id="dzReset" type="button">Clear</button></div>
         <div class="dz-group"><h5>Sheet</h5><div class="dz-row">${dzSel('col.ed', c.ed, [['15', '15th · IBC 2018/21'], ['16', '16th · IBC 2024']])}</div></div>
-        <div class="dz-group"><h5>Column <small>Column C8, C16</small></h5><div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label></div></div>
-        <div class="dz-group"><h5>Beam reactions (kip) <small>Column C27–D28 · MB H6 / H10</small></h5><div class="dz-cells">${dzNum('col.DL_L', c.DL_L, 'Left dead')}${dzNum('col.LL_L', c.LL_L, 'Left live')}${dzNum('col.DL_R', c.DL_R, 'Right dead')}${dzNum('col.LL_R', c.LL_R, 'Right live')}</div></div>
+        <div class="dz-group"><h5>Column <small>Column sheet cells C8, C16</small></h5><div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label></div></div>
+        <div class="dz-group"><h5>Beam reactions (kip) <small>Column sheet cells C27–D28 · from MB H6 / H10</small></h5><div class="dz-cells">${dzNum('col.DL_L', c.DL_L, 'Left dead')}${dzNum('col.LL_L', c.LL_L, 'Left live')}${dzNum('col.DL_R', c.DL_R, 'Right dead')}${dzNum('col.LL_R', c.LL_R, 'Right live')}</div></div>
       </form>
       <div class="dz-out" id="dzOut"></div></div>`;
   }
@@ -9058,7 +9169,7 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
       '<div class="group-title">Elevations &amp; joists</div>',
       fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under support beams', 'ftin', state.inputs.geom.C && state.inputs.geom.C.source === 'none' ? 'no requirement (entered)' : 'caps the beam depth: A − C − slab − seat'),
       fieldRow('geom.slab', 'Slab & deck thickness, (in.)', 'in'), fieldRow('geom.seat', 'Joist seat depth, (in.)', 'in'), fieldRow('geom.joistSpacing', 'Joist spacing (= beam Lb)', 'ftin'),
-      `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat · also the Headroom option's depth limit</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
+      `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
       '<div class="group-title">Mezzanine footprint</div>',
       fieldRow('geom.width', 'Width (along endwall)', 'ftin'), fieldRow('geom.length', 'Length (along sidewall)', 'ftin'), fieldRow('geom.startLEW', 'Start from LEW', 'ftin'), fieldRow('geom.startFSW', 'Start from FSW', 'ftin'),
       ck ? '<div class="group-title">PCS checkboxes</div>' + ck : '',

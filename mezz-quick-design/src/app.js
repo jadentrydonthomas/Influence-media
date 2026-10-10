@@ -30,13 +30,15 @@
   // loads to the frame of the building on screen (a job can hold mezzanines in two buildings, each in its own coordinates)
   const sameBldg = q => !q || !q.bkey || !state.res || !state.res.bkey || q.bkey === state.res.bkey;
   const bldgFrameLoads = () => ((state.job && state.job.frameLoads) || []).filter(sameBldg);
+  // how many beams of a mark's run (one member length) sit on less trib than the mark is designed for
+  const mkLessTrib = (mk, run) => (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3 && x.trib < mk.trib - 1e-3).length;
   // where a job mark's beams are: "BSW 2 · LEW 2"
   const mkWhere = mk => {
     const ms = state.job ? state.job.mezz : [];
     if (ms.length < 2 || !mk.beamsAll) return '';
     const n = new Map();
     mk.beamsAll.forEach(x => n.set(x.mi, (n.get(x.mi) || 0) + 1));
-    return [...n].map(([mi, k]) => `${ms[mi].id} ${k}`).join(' · ');
+    return [...n].map(([mi, k]) => `${ms[mi].id} × ${k}`).join(" · ");
   };
   // the shorter members of a mark: same section, own MB-sheet run — "+ 1 at 12'-4\""
   const mkShort = mk => (mk.spanRuns || []).filter(q => q.span < mk.span - 1e-3).map(q => `+ ${q.qty} at ${ft(q.span)}`).join(' · ');
@@ -48,6 +50,8 @@
   // the beam end loads that go to the frame and the columns: the layout span and trib with the mark's section
   const layoutV = (mk, q) => (mk && mk.sec && mk.params ? DESIGN.reactions({ ...mk.params, L: q ? q.span : mk.span, trib: mk.trib }, mk.sec) : null);
   const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
+  // a mezzanine's layout edited on the Plan page (lines, columns taken out, frame / mezzanine columns)
+  const layEdited = st => !!(st && (st.xLines || st.yLines || (st.drop && st.drop.length) || (st.colKind && Object.keys(st.colKind).length)));
 
   // ---------- one holistic drawing: every mezzanine of the job in this building, drawn together ----------
   function jobView() {
@@ -57,9 +61,20 @@
     return ms.length ? ms : [r];
   }
   const inpOf = m => (state.all && state.all[m.index] ? state.all[m.index].inputs : state.inputs);
+  // a job mark's beams on the drawing in view (one building), not counting a neighbour's edge it carries
+  const viewQty = mk => { const ids = new Set(jobView().map(m => m.index)); return (mk.beamsAll || []).filter(x => ids.has(x.mi)).length; };
   const atPt = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
   // C1, C2 … numbered once over the job (plans, 3D, Column page): along the length, then from the BSW
-  const colNos = () => new Map(jobView().flatMap(m => m.layout.mezzCols).sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  const colNosRaw = () => new Map(jobView().flatMap(m => m.layout.mezzCols).sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  // the numbers the job had before the Plan page edits stay with their columns; new columns are numbered after them
+  const colNos = () => {
+    const now = colNosRaw();
+    if (!state.colBase || !allSettings().some(layEdited)) return now;
+    const out = new Map(), next = { n: Math.max(0, ...state.colBase.values()) };
+    [...now.keys()].forEach(l => { if (state.colBase.has(l)) out.set(l, state.colBase.get(l)); });
+    [...now.keys()].forEach(l => { if (!out.has(l)) out.set(l, ++next.n); });
+    return out;
+  };
   // building columns the mezzanine beams frame into, once each over the job
   const bldgCols = () => { const out = []; jobView().forEach(m => m.layout.supports.filter(sp => sp.building).forEach(sp => { if (!out.some(q => atPt(q, sp))) out.push(sp); })); return out; };
   // the mark that colours a beam: its own, or for an edge carried by a neighbour, the carrying beam's
@@ -223,7 +238,7 @@
       prog(0.85);
       const pcs = PCS.parse(pages);
       if (!pcs.mezzanines.length) throw new Error('No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
-      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.seis = {}; state.seis = seisLoad();
+      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.colBase = null; state.seis = {}; state.seis = seisLoad();
       readPlan();                                           // grid letters + joist arrows off the drawing
       const keep = keepSettings();
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
@@ -359,7 +374,9 @@
     else {
       const others = jobCols.filter(q => q.owner !== r.index);
       const alt = r.layout.alt ? PLAN.compare(reg.columns, others.concat(r.layout.alt.mezzCols)) : null;
-      r.warn.unshift({ level: 'stop', text: `Floor plan check: the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` +
+      // an edit on the Plan page is the engineer's call: say how it differs from the drawing, nothing more
+      if (allSettings().some(layEdited)) r.warn.push({ level: 'info', text: `Floor plan check: the layout was edited on the Plan page — the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout now has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` });
+      else r.warn.unshift({ level: 'stop', text: `Floor plan check: the drawing shows ${sym} columns at ${labels.join(', ') || 'none'}; the layout has ${jobCols.map(c => c.label).sort().join(', ') || 'none'}.` +
         (alt && alt.agree ? ' The other joist direction matches the drawing — switch it on the Plan page.' : ' Adjust the beam / support lines on the Plan page to match the drawing.') });
     }
     if (r.layout.why && /PCS floor plan/.test(r.layout.why)) r.warn.unshift({ level: 'ok', text: `Joists span ${r.layout.joists === 'y' ? 'across the width' : 'along the length'}, read from ${r.layout.why.replace(/^joist arrows/, 'the "Mez. Jst." arrows')}.` });
@@ -415,15 +432,21 @@
     const fl = DESIGN.flangeName(sec.bof, sec.tof), fi = DESIGN.flangeName(sec.bif, sec.tif);
     return `${sec.d}" · web ${sec.tw}" · ${fl === fi ? fl + ' (' + sec.bof + ' × ' + sec.tof + ')' : 'OF ' + fl + ' / IF ' + fi}`;
   }
-  // MB sheet: floor dead / live load (unfactored) — shear at left / right, kips: the beam end loads that go to the frame
+  // the floor dead / live that goes to the frame: at each building column, the MB-sheet end shears (H6 / H10) of the
+  // beams framing in — the same numbers as the frame loads table, the CSV and the .frame files. Columns that take the
+  // same load share a row (2/A–5/A).
   function floorCard() {
-    const rows = jobMarks().filter(mk => mk.check).flatMap(mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : [{ span: mk.span, check: mk.check }]).map((q, i) =>
-      { const v = mkDz(mk).set ? layoutV(mk, q) : q.check.V; return `<span class="fl-row"><b>${mk.mark}${i ? `<small>${ft(q.span)}</small>` : ''}</b><span>D ${f(v.D, 2)}</span><span>L ${f(v.L, 2)}</span></span>`; })).join('');
+    const fls = bldgFrameLoads().slice().sort((a, b) => a.x - b.x || a.y - b.y), groups = [];
+    fls.forEach(q => { const k = `${q.D.toFixed(2)}|${q.L.toFixed(2)}`, g = groups.find(x => x.k === k); if (g) g.cols.push(q.label); else groups.push({ k, D: q.D, L: q.L, cols: [q.label] }); });
+    const name = cs => { const suf = new Set(cs.map(c => c.split('/')[1])); return cs.length > 2 && suf.size === 1 ? `${cs[0]}–${cs[cs.length - 1]}` : cs.join(', '); };
+    groups.sort((a, b) => b.D - a.D);
+    const shown = groups.slice(0, 6), more = groups.length - shown.length;
+    const rows = shown.map(g => `<span class="fl-row"><b title="${esc(g.cols.join(', '))}">${esc(name(g.cols))}</b><span>D ${f(g.D, 2)}</span><span>L ${f(g.L, 2)}</span></span>`).join('');
     return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
-      <div class="fl-rows">${rows || '—'}</div>
-      <small>kips · unfactored shear at left &amp; right (MB sheet)</small></div></div>`;
+      <div class="fl-rows">${rows || '<span class="sub-n">No mezzanine beam frames into a building column.</span>'}</div>
+      <small>kips at each building column · unfactored MB end shears (H6 / H10)${more ? ` · ${more} more on the Plan page` : ' · as in the frame files'}</small></div></div>`;
   }
-  const ringCard = (label, value, sub, ratio, color) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${ratio == null ? '' : `<div class="ring" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"></div>`}</div>`;
+  const ringCard = (label, value, sub, ratio, color) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${ratio == null ? '' : `<div class="ring" title="governing ratio ${f(ratio, 3)}" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"><span>${f(ratio, 2)}</span></div>`}</div>`;
   // rings sweep in and whole numbers count up, as in the Astra dashboard
   function animateIn() {
     requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-ring]').forEach(el => el.style.setProperty('--ring', el.dataset.ring))));
@@ -464,6 +487,7 @@
       if (str === lastSaved) return;
       lastSaved = str;
       histSave(histLoad().filter(x => x.key !== key).concat(rec));
+      renderSettings();   // the remembered-jobs list shows it at once
     } catch (e) { /* never let remembering break a design */ }
   }
   // the values you have typed most for a field on other jobs
@@ -720,7 +744,7 @@
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
     const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
     const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
-    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all">Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
+    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
@@ -756,7 +780,7 @@
     const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" title="${nWb}/${nAll} workbooks added">Everything (.zip)</button></div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button></div></div>`;
     });
   }
 
@@ -791,10 +815,10 @@
     // metric ring cards
     const foreign = !many && (r.foreignCols || []).length ? ` · + ${r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ')}` : '';
     $('#metrics').innerHTML = [
-      ringCard(many ? 'Beams · whole job' : 'Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qtyAll}`).join(' · ')} · ${spans} span`, t.govBeam ? t.govBeam.v : null),
+      ringCard(many ? 'Beams · whole job' : 'Mezzanine beams', `<span data-count="${t.nB}">${t.nB}</span>`, `${marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qtyAll}`).join(' · ')} · ${spans} span`, t.govBeam ? t.govBeam.v : null, t.govBeam && /deflection/.test(t.govBeam.what) && t.govBeam.v <= 1 + 1e-9 ? 'var(--green)' : null),
       ringCard(many ? 'Columns · whole job' : 'Mezzanine columns', `<span data-count="${t.nC}">${t.nC}</span>`, (cols ? `${esc(cols)} · ${colLens} · CSR ${f(t.colMax, 3)}` : 'every beam end lands on a building column') + foreign, t.colMax),
       floorCard(),
-      ringCard(many ? 'Steel · whole job' : 'Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, t.total ? t.beams / t.total : null, 'var(--steel)'),
+      ringCard(many ? 'Steel · whole job' : 'Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>`, `beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, null),
     ].join('');
     $('#needSlot').innerHTML = card;
     $('#warnings').innerHTML = notesHtml(r.warn, !!card);
@@ -816,13 +840,12 @@
     const kinds = marks.some(mk => mk.kind) ? '<div class="sub mk-why">interior: more trib than any edge beam · exterior: edge beams, joists on one side — each designed at its largest trib and longest span</div>' : '';
     const joistTxt = done.map(m => `${many ? esc(m.id) + ': ' : ''}joists @ ${ft(m.beamBase.Lb)} span ${ft(m.layout.joistSpan)} ${m.layout.joists === 'y' ? 'across the width' : 'along the length'} onto ${m.layout.beamLines.length} beam lines`).join(' · ');
     $('#field').innerHTML = `
-      <div class="field-head"><div><div class="eyebrow">Framing summary${many ? ' · whole job' : ''}</div><h3>Floor load → beams → columns</h3></div>
-        <p>The governing ratio across every beam and column check, with the quantities read from the layout and cross-checked against the floor plan.</p></div>
+      <div class="field-head"><div><div class="eyebrow">Framing summary${many ? ' · whole job' : ''}</div><h3>Floor load → beams → columns</h3></div></div>
       <div class="field-stage"><div class="atlas">
         <div class="fcard"><div class="step">01 / Mezzanine beams</div><h4>${t.nB} beam${t.nB === 1 ? '' : 's'} · ${marks.length} mark${marks.length === 1 ? '' : 's'}</h4>
           <div class="mk-list">${mkRows || '<div class="sub">no beams</div>'}</div>${kinds}</div>
         <div class="disc-wrap"><div class="step">Governing ratio</div><div class="orbit"></div>
-          <div class="disc" data-ring="${pct(gv).toFixed(1)}" style="--ring:0;--disc-a:${gv <= s.target ? '#64ffd0' : gv <= 1 ? '#ffd27a' : '#ff9d7a'}"><div class="disc-inner"><span>Max ratio</span><strong data-count="${gv}" data-fmt="sr">${f(gv, 2)}</strong><b>${esc(t.gov ? t.gov.who : '')}</b></div></div>
+          <div class="disc" data-ring="${pct(gv).toFixed(1)}" style="--ring:0;--disc-a:${gv <= (/deflection/i.test(t.gov ? t.gov.who : '') ? 1 : s.target) + 1e-9 ? '#64ffd0' : gv <= 1 ? '#ffd27a' : '#ff9d7a'}"><div class="disc-inner"><span>Max ratio</span><strong data-count="${gv}" data-fmt="sr">${f(gv, 2)}</strong><b>${esc(t.gov ? t.gov.who : '')}</b></div></div>
           <div class="disc-caption">Beams ≤ ${s.target} with L/360 live and L/240 total; columns &lt; 1.00 on all three combinations.</div>
           <div class="disc-proof">${c0 ? `combined <b>${f(c0.res.CSR, 3)}</b> · shear <b>${f(c0.res.SRvx, 3)}</b>` : ''}${t.colMax != null ? ` · column <b>${f(t.colMax, 3)}</b>` : ''}</div></div>
         <div class="tallies">
@@ -872,7 +895,7 @@
             <div><span>Combined</span><b class="${p.CSR <= state.settings.target ? 'ok' : 'bad'}">${f(p.CSR, 3)}</b></div><div><span>Shear</span><b class="${p.SRv <= state.settings.target ? 'ok' : 'bad'}">${f(p.SRv, 3)}</b></div><div><span>Live defl.</span><b class="ok">L/${f(p.rLL, 0)}</b></div>
           </div>
           <ul class="option-why">${g.roles.map(x => `<li><b>${esc(x.label)}</b> — ${esc(x.why)}</li>`).join('')}</ul>
-          <div class="option-actions">${chosen ? '<span class="chosen-pill">In the quote</span>' : `<button class="btn-soft" data-opt="${o.key}" data-mark="${mk.mark}">Use this</button>`}<button class="btn-ghost" data-go="beam">Calc</button></div>
+          <div class="option-actions">${chosen ? '<span class="chosen-pill">In the quote</span>' : (o.needC != null ? `<button class="btn-ghost" data-opt="${o.key}" data-mark="${mk.mark}" title="Breaks the clearance C on the PCS — use it only with C lowered to ${esc(ft(o.needC))} or less">Use with C ≤ ${esc(ft(o.needC))}</button>` : `<button class="btn-soft" data-opt="${o.key}" data-mark="${mk.mark}">Use this</button>`)}<button class="btn-ghost" data-go="beam">Calc</button></div>
         </article>`;
       };
       // why only one: the lighter plates that fail at that depth (from the step-by-step tries)
@@ -1185,7 +1208,7 @@
     const allCols = ms.flatMap(m => m.layout.mezzCols).sort((x, y) => cno.get(x.label) - cno.get(y.label));
     const uniq = a2 => [...new Set(a2)].join(' / ');
     $('#planStats').innerHTML = `
-      <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${m.qtyAll}`).join(' · ')}</em></div>
+      <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.filter(m => viewQty(m)).map(m => `${mkName(m)} ${esc(m.desc || '—')} × ${viewQty(m)}`).join(' · ')}</em></div>
       <div class="pstat cols"><span>Mezzanine columns ⊗${many ? ' · whole job' : ''}</span><strong>${t.nC}<small>columns</small></strong><em>${allCols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · ') || 'none'}</em></div>
       <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
       <div class="pstat"><span>Joists</span><strong>${uniq(ms.map(m => ft(m.layout.joistSpan)))}</strong><em>span · @ ${uniq(ms.map(m => ft(m.beamBase.Lb)))} · ${uniq(ms.map(m => (m.layout.joists === 'y' ? 'across the width' : 'along the length')))}</em></div>`;
@@ -1202,22 +1225,29 @@
     const uy0 = Math.min(...ms.map(m => m.layout.footprint.y0)), uy1 = Math.max(...ms.map(m => m.layout.footprint.y1));
     const lineY = [...new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()])].sort((p2, q2) => p2 - q2);
     if ((uy1 - uy0) / W < 0.75) { ya = Math.max(0, ...lineY.filter(y => y <= uy0 - 6)); yb = Math.min(W, ...lineY.filter(y => y >= uy1 + 6)); }
-    const VW = 1100, M = 64, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
+    const VW = 1100, M = 78, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
     const X = x => M + (x - xa) * s, Y = y => M + 12 + (yb - y) * s;
     state.planXf = { xa, yb, s, M };   // the edit mode maps a click back to feet
     const inX = x => x >= xa - 0.01 && x <= xb + 0.01, inY = y => y >= ya - 0.01 && y <= yb + 0.01;
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
       <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker></defs>`);
+    let lastX = null, steppedX = false;
     g.xs.filter(inX).forEach(x => {
-      o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(yb) - 26}" x2="${X(x)}" y2="${Y(ya) + 26}"/>`);
-      [Y(yb) - 38, Y(ya) + 38].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
+      const close = lastX != null && Math.abs(X(x) - lastX) < 24, off = close && !steppedX ? 26 : 0;
+      steppedX = off > 0; lastX = X(x);
+      o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(yb) - 26 - off}" x2="${X(x)}" y2="${Y(ya) + 26 + off}"/>`);
+      [Y(yb) - 38 - off, Y(ya) + 38 + off].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
     });
     // letters run over every column line (ridge included, as on the drawings); only column lines get a bubble
     const colY = new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => v.toFixed(2)));
-    g.allY.filter(y => colY.has(y.toFixed(2)) && inY(y)).forEach(y => {
-      o.push(`<line class="grid-line" x1="${X(xa) - 26}" y1="${Y(y)}" x2="${X(xb) + 26}" y2="${Y(y)}"/>`);
-      [X(xa) - 38, X(xb) + 38].forEach(cx => o.push(`<g class="bubble"><circle cx="${cx}" cy="${Y(y)}" r="11"/><text x="${cx}" y="${Y(y)}">${g.yLabel(y)}</text></g>`));
+    // bubbles of lines closer than a bubble apart (C and D a foot apart) step outward so both read
+    let lastY = null, stepped = false;
+    g.allY.filter(y => colY.has(y.toFixed(2)) && inY(y)).sort((p2, q2) => q2 - p2).forEach(y => {
+      const close = lastY != null && Math.abs(Y(y) - lastY) < 24, off = close && !stepped ? 26 : 0;
+      stepped = off > 0; lastY = Y(y);
+      o.push(`<line class="grid-line" x1="${X(xa) - 26 - off}" y1="${Y(y)}" x2="${X(xb) + 26 + off}" y2="${Y(y)}"/>`);
+      [X(xa) - 38 - off, X(xb) + 38 + off].forEach(cx => o.push(`<g class="bubble"><circle cx="${cx}" cy="${Y(y)}" r="11"/><text x="${cx}" y="${Y(y)}">${g.yLabel(y)}</text></g>`));
     });
     const xsw = g.xs.filter(inX);
     xsw.slice(1).forEach((x, i) => { const a2 = xsw[i]; o.push(`<text class="dim" x="${(X(a2) + X(x)) / 2}" y="${Y(yb) - 52}">${ft(x - a2)}</text>`); });
@@ -1307,7 +1337,7 @@
         // in the second joist bay when there is one (the first has the joist arrow), else toward the far end of the bay
         const bi = bl.length > 2 ? 1 : 0, mid = bl.length > 1 ? (bl[bi] + bl[bi + 1]) / 2 : null, alongX = ly.joists === 'y';
         const along = bi ? 0.5 : 0.7, cx = alongX ? fp.x0 + (fp.x1 - fp.x0) * along : mid ?? (fp.x0 + fp.x1) / 2, cy = alongX ? mid ?? (fp.y0 + fp.y1) / 2 : fp.y0 + (fp.y1 - fp.y0) * along;
-        o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r ? ' · editing' : ''}</text>`);
+        o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r && state.planEdit ? ' · editing' : ''}</text>`);
       }
     });
     $('#planSvg').setAttribute('viewBox', `0 0 ${VW} ${VH}`);
@@ -1347,6 +1377,7 @@
   const laySnap = () => allSettings().map(st => JSON.stringify(Object.fromEntries(LAY_KEYS.filter(k => st[k] !== undefined).map(k => [k, st[k]]))));
   const layRestore = snap => allSettings().forEach((st, i) => { LAY_KEYS.forEach(k => delete st[k]); Object.assign(st, JSON.parse(snap[i] || '{}')); });
   function layDo(msg, fn) {
+    if (!state.colBase || !allSettings().some(layEdited)) state.colBase = colNosRaw();
     layUndo.push(laySnap()); if (layUndo.length > 60) layUndo.shift();
     fn(); hideLayPop(); recompute(); toast(msg);
   }
@@ -1360,10 +1391,10 @@
     $('#v-plan .panel.plan').classList.toggle('is-editing', on);
     $('#layUndo').disabled = !layUndo.length;
   }
-  $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); };
+  $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); if (state.planEdit) $('#layBar').scrollIntoView({ block: 'start', behavior: 'smooth' }); };
   $('#layDone').onclick = () => { state.planEdit = false; hideLayPop(); layBarSync(); };
   $('#layUndo').onclick = () => { const snap = layUndo.pop(); if (!snap) return; layRestore(snap); hideLayPop(); recompute(); toast('Undone'); };
-  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])));
+  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => { allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])); state.colBase = null; });
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideLayPop(); });
   document.addEventListener('click', ev => { const p = $('#layPop'); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest('#planSvg')) hideLayPop(); });
 
@@ -1398,7 +1429,7 @@
           const bs = ly.beams.filter(b => Math.abs(b.line - (ly.joists === 'y' ? sp.y : sp.x)) < 1e-6 && (Math.abs(b.from - along) < 1e-6 || Math.abs(b.to - along) < 1e-6));
           const span = bs.reduce((a, b) => a + b.span, 0);
           items.push({ t: 'Take the column out', sub: `the beam spans through${span ? `: ${ft(span)}` : ''} — one beam instead of two`, go: () => layDo(`${sp.label}: column taken out`, () => owners.forEach(m => { const st = sets[m.index]; st.drop = [...new Set([...(st.drop || []), k])]; })) });
-          items.push({ t: `Remove ${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)} of columns`, sub: 'every beam spans through this line', go: () => layDo(`${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)}: columns removed`, () => { const st = sets[m0.index]; layFreeze(st, ly); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.filter((u, i) => i !== si); }) });
+          items.push({ t: 'Remove the whole column line', sub: `${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)} — every beam spans through it`, go: () => layDo(`Column line removed (${layLine(m0, ly.joists === 'y' ? 'x' : 'y', along)})`, () => { const st = sets[m0.index]; layFreeze(st, ly); st[ly.joists === 'y' ? 'xLines' : 'yLines'] = ly.supportLines.filter((u, i) => i !== si); }) });
         } else items.push({ t: 'A beam ends here', sub: 'an end support stays (no cantilever) — make it a frame or a mezzanine column', off: true });
       }
       ring(v.x, v.y);
@@ -1432,6 +1463,9 @@
     pop.hidden = false;
     const left = Math.min(ev.clientX - wr.left + 10, wr.width - pop.offsetWidth - 8), top = Math.min(ev.clientY - wr.top + 10, wr.height - pop.offsetHeight - 8);
     pop.style.left = Math.max(8, left) + 'px'; pop.style.top = Math.max(8, top) + 'px';
+    // below the fold: open it above the click instead, and keep it in view
+    if (pop.getBoundingClientRect().bottom > innerHeight - 8) pop.style.top = Math.max(8, ev.clientY - wr.top - pop.offsetHeight - 10) + 'px';
+    pop.scrollIntoView({ block: 'nearest' });
     $$('#layPop button[data-i]').forEach(bt => { bt.onclick = e2 => { e2.stopPropagation(); const it = items[+bt.dataset.i]; if (it.go) it.go(); }; });
     $$('#layPop input').forEach(inp => inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { const it = items.find(z => z.at && z.at.id === inp.id); if (it) it.go(); } }));
   }
@@ -1487,7 +1521,7 @@
           ${chk('vertical', cfg.vertical !== false, `Vertical distribution required ${cell('B21')}`)}
           ${chk('ndfs', cfg.ignoreNDFS !== true, `"Steel systems not detailed for seismic" in SDC A–C — R = 3 (the workbook's default) ${cell('F16')}`)}
           ${chk(k + '.story', b.story, `Mezzanine considered a story ${cell('Lateral B30')} — ${n0(b.mezz.reduce((a, m) => a + m.area, 0))} of ${n0(g.width * g.length)} sq ft is ${b.mezz.reduce((a, m) => a + m.area, 0) > g.width * g.length / 3 ? 'over' : 'under'} ⅓ of the floor`)}
-          <label><span class="lab">Mezzanine level diaphragm ${cell('B19')}</span>${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'None / flexible (the workbook\'s default)'], ['rigid', 'Rigid — accidental torsion on the bracing']])}</label>
+          <label><span class="lab">Mezzanine level diaphragm ${cell('B19')}</span>${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'Flexible (workbook default)'], ['rigid', 'Rigid (torsion on the bracing)']])}</label>
         </div>
         <h4 class="seis-h-mz"><span class="step-no sm">3</span>Mezzanine loads <small class="sub-n">Input Data B89–B95 / F89–F95 · storage check box</small></h4>
         <div class="table-wrap"><table class="fl-t seis-mz"><thead><tr><th>Mezzanine</th><th class="num">Elevation</th><th>Floor dead (psf)</th><th class="num">Collateral</th><th class="num">Joists</th><th>Floor live</th><th class="num">Partition</th><th class="num">Seismic psf</th><th class="num">W (lb)</th></tr></thead><tbody>${mz}</tbody></table></div>
@@ -1815,7 +1849,7 @@
       const sz = seisFor(p, info), sj = state.job && state.job.seismic;
       const seisT = !sz ? (sj && !sj.ok && p.r.rows.length ? `<div class="nbg-seis warn"><b>Seismic not added yet</b> — the Seismic page needs: ${esc(sj.need.join('; '))}.</div>` : '')
         : `<div class="nbg-seis note"><b>Seismic for line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))}:</b> the EQR / EQL rows above are the mezzanine's load from the workbook (${sz.mezz}${sz.edited ? ' as calculated; the rows carry your edited values' : ''}). The roof seismic stays NBG Frame's own (file: ${f(sz.now.dead, 2)} psf · ${f(sz.now.factor, 3)}).
-          <small>Not in your procedure, for information: the workbook's alternate roof seismic weight for ${p.lines.length > 1 ? 'these lines' : 'this line'} is ${f(sz.roofPsf, 2)} psf with Cs ${f(sz.Cs, 4)} (Lateral G64 — roof, walls and the extra share the mezzanine puts at the roof); frame base shear ${f(sz.V, 2)} k. See the Seismic page.</small></div>`;
+          <small>Workbook alt. roof weight (Lateral G64, info): ${f(sz.roofPsf, 2)} psf · Cs ${f(sz.Cs, 4)} · base shear ${f(sz.V, 2)} k.</small></div>`;
       const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns, so their loads are not put on it (an endwall column goes with the endwall design; a column made a frame column on the Plan page has to be added in NBG Frame first):${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
       const fl = a.floors, flTxt = ['FloorDead', 'FloorLive'].filter(k => fl[k]).map(k => `${k === 'FloorDead' ? 'Floor Dead' : 'Floor Live'} ${fl[k].was > 0 ? `${f(fl[k].was, 3)} psf (left as it is)` : '0 → 1.000 psf'}`).join(' · ');
       const notes = [flTxt, a.replaced ? `${a.replaced} earlier FDL / FLL row${a.replaced > 1 ? 's' : ''} replaced` : '', a.others.length ? `kept ${a.others.length} other FDL / FLL / EQ row${a.others.length > 1 ? 's' : ''} already in the file (${a.others.map(o => `${o.name} ${o.memberID} ${(+(+o.yMag || +o.xMag)).toFixed(2)}`).join(', ')}) — check they are not the same loads` : '', a.replaced ? '' : ''].filter(Boolean);
@@ -1994,7 +2028,7 @@
       const lv = dz.set ? layoutV(mk, run) : null;
       $('#mbSheet').innerHTML = beamViz(mk, r, run) + (lv
         ? `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame and columns · ${mk.mark} at the layout ${ft(run.span)} × ${ft(mk.trib)}</span><b>Dead ${f(lv.D, 3)} k</b><b>Live ${f(lv.L, 3)} k</b><small>per beam end, ${esc(mk.desc)} — the MB sheet below is at the design ${ft(runL(run))} × ${ft(dz.trib)} (shear D ${f(c.V.D, 3)} / L ${f(c.V.L, 3)} k, highlighted)</small></div>`
-        : `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''}</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored shear at left / right, per beam end — highlighted below</small></div>`) + mbSheetBody(c, p, mk.sec, [
+        : `<div class="frame-strip"><span class="eyebrow">MB sheet end shear · ${mk.mark}${runs.length > 1 ? ' at ' + ft(run.span) : ''} × ${ft(mk.trib)} trib</span><b>Dead ${f(c.V.D, 3)} k</b><b>Live ${f(c.V.L, 3)} k</b><small>unfactored, per beam end — highlighted below${mkLessTrib(mk, run) ? ` · ${mkLessTrib(mk, run)} of these beams carry less trib and send less to the frame (each beam's own trib is in the frame loads, Plan page)` : ''}</small></div>`) + mbSheetBody(c, p, mk.sec, [
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
           ['Total Joist Depth, (in.)', r.joistDepthIn != null ? f(r.joistDepthIn, 2) : '—'], ['Beam Depth, (in.)', mk.sec.d],
@@ -2178,7 +2212,8 @@
     const cno = colNos();
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
     $('#colTabs').innerHTML = r.colGroups.map((g, i) => `<button class="tab ${i === state.colGroup ? 'is-active' : ''}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${cf && cf.checks[i] ? `<small class="tab-ratio ${cf.checks[i].ok ? 'ok' : 'ng'}">${f(cf.checks[i].max, 2)}</small>` : ''}</button>`).join('');
-    $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C3</span> the mezzanine column's number on the plan · <span class="mono">2/B</span> the grid point, frame line 2 × column line B · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
+    const exCol = ((state.res.colGroups[state.colGroup] || {}).cols || [])[0], exNo = exCol ? colNos().get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
+    $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C${exNo || 1}</span> the mezzanine column's number on the plan · <span class="mono">${esc(exPt.join('/'))}</span> the grid point, frame line ${esc(exPt[0])} × column line ${esc(exPt[1] || '')} · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
     $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); renderCalcPack(); }; });
@@ -2265,6 +2300,15 @@
     const el = $('#dzBody');
     if (!el) return;
     const dz = state.dz;
+    // a new job opens the designer on its first mark and column case, not on the last job's numbers
+    const jk = state.pcs ? state.pcs.job.quote || state.pcs.job.project || 'job' : null;
+    if (jk && state.job && state.dzJob !== jk) {
+      state.dzJob = jk;
+      const b0 = dzBeamSources()[0], c0 = dzColSources()[0];
+      if (b0) dzLoadBeam(b0.key);
+      if (c0) dzLoadCol(c0.key);
+      dzSave();
+    }
     $$('#dzTabs button').forEach(b => { b.classList.toggle('is-active', b.dataset.t === dz.tab); b.onclick = () => { dz.tab = b.dataset.t; dzSave(); renderDesigner(); }; });
     el.innerHTML = dz.tab === 'beam' ? dzBeamHTML() : dzColHTML();
     // inputs: every field writes its value and re-checks
@@ -2315,8 +2359,8 @@
       <form class="dz-in panel" onsubmit="return false">
         <div class="dz-head"><h3>Inputs</h3>${srcs.length ? `<select id="dzFrom"><option value="">Start from this job…</option>${srcs.map(x => `<option value="${esc(x.key)}" ${c.from === x.key ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>` : ''}<button class="btn-ghost" id="dzReset" type="button">Clear</button></div>
         <div class="dz-group"><h5>Sheet</h5><div class="dz-row">${dzSel('col.ed', c.ed, [['15', '15th · IBC 2018/21'], ['16', '16th · IBC 2024']])}</div></div>
-        <div class="dz-group"><h5>Column <small>Column C8, C16</small></h5><div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label></div></div>
-        <div class="dz-group"><h5>Beam reactions (kip) <small>Column C27–D28 · MB H6 / H10</small></h5><div class="dz-cells">${dzNum('col.DL_L', c.DL_L, 'Left dead')}${dzNum('col.LL_L', c.LL_L, 'Left live')}${dzNum('col.DL_R', c.DL_R, 'Right dead')}${dzNum('col.LL_R', c.LL_R, 'Right live')}</div></div>
+        <div class="dz-group"><h5>Column <small>Column sheet cells C8, C16</small></h5><div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label></div></div>
+        <div class="dz-group"><h5>Beam reactions (kip) <small>Column sheet cells C27–D28 · from MB H6 / H10</small></h5><div class="dz-cells">${dzNum('col.DL_L', c.DL_L, 'Left dead')}${dzNum('col.LL_L', c.LL_L, 'Left live')}${dzNum('col.DL_R', c.DL_R, 'Right dead')}${dzNum('col.LL_R', c.LL_R, 'Right live')}</div></div>
       </form>
       <div class="dz-out" id="dzOut"></div></div>`;
   }
@@ -2469,7 +2513,7 @@
       '<div class="group-title">Elevations &amp; joists</div>',
       fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under support beams', 'ftin', state.inputs.geom.C && state.inputs.geom.C.source === 'none' ? 'no requirement (entered)' : 'caps the beam depth: A − C − slab − seat'),
       fieldRow('geom.slab', 'Slab & deck thickness, (in.)', 'in'), fieldRow('geom.seat', 'Joist seat depth, (in.)', 'in'), fieldRow('geom.joistSpacing', 'Joist spacing (= beam Lb)', 'ftin'),
-      `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat · also the Headroom option's depth limit</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
+      `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
       '<div class="group-title">Mezzanine footprint</div>',
       fieldRow('geom.width', 'Width (along endwall)', 'ftin'), fieldRow('geom.length', 'Length (along sidewall)', 'ftin'), fieldRow('geom.startLEW', 'Start from LEW', 'ftin'), fieldRow('geom.startFSW', 'Start from FSW', 'ftin'),
       ck ? '<div class="group-title">PCS checkboxes</div>' + ck : '',

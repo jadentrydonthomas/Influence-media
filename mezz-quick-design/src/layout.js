@@ -27,7 +27,13 @@
    */
   function buildingGrid(b) {
     const xs = cum(b.bays);
-    if (!near(xs[xs.length - 1], b.length)) xs.push(b.length); // tolerate a short bay list
+    // a short bay list: the length closes the last bay. Within 2'-0" it is a dimension convention (Box 2 measured to a
+    // different line than the bays), not a bay: the frames stay on the bay lines and the gap is reported
+    const gap = b.length - xs[xs.length - 1];
+    let lengthGap = 0;
+    if (!near(gap, 0) && Math.abs(gap) <= 2 + EPS) lengthGap = gap;
+    else if (!near(gap, 0)) xs.push(b.length);
+    const length = lengthGap ? xs[xs.length - 1] : b.length;
     const lewY = b.lewCols && b.lewCols.length ? cum(b.lewCols) : [0, b.width];
     const rewY = b.rewCols && b.rewCols.length ? cum(b.rewCols) : [0, b.width];
     // interior (multi-span) frame columns per frame line
@@ -49,7 +55,7 @@
     // sidewall soldier columns between frames (spacing from the LEW)
     const fswX = b.fswSoldier && b.fswSoldier.length ? cum(b.fswSoldier) : [];
     const bswX = b.bswSoldier && b.bswSoldier.length ? cum(b.bswSoldier) : [];
-    return { xs, lewY, rewY, interior, allY, yLabel, xLabel, fswX, bswX, width: b.width, length: b.length };
+    return { xs, lewY, rewY, interior, allY, yLabel, xLabel, fswX, bswX, width: b.width, length, boxLength: b.length, lengthGap };
   }
 
   // Is there a building column at (x, y)?
@@ -90,7 +96,10 @@
       snaps.push({ axis, edge: v, line: c });
       return c;
     };
-    const sx0 = snapTo(x0, g.xs, 'x'), sx1 = snapTo(x1, g.xs, 'x');
+    // an edge past the building's end line (within 2'-0", e.g. a Box 2 length longer than the bays) cannot have columns
+    // outside the building: it is framed on the end line and the slab overhangs it
+    const outside = (v, lo, hi, axis) => { const e = v < lo - EPS ? lo : v > hi + EPS ? hi : null; if (e == null || Math.abs(v - e) > 2 + EPS) return null; snaps.push({ axis, edge: v, line: e, outside: true }); return e; };
+    const sx0 = outside(x0, 0, g.length, 'x') ?? snapTo(x0, g.xs, 'x'), sx1 = outside(x1, 0, g.length, 'x') ?? snapTo(x1, g.xs, 'x');
     const sy0 = snapTo(y0, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y'), sy1 = snapTo(y1, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y');
     const xLines = opt.xLines ? uniq(opt.xLines) : uniq([sx0, sx1, ...g.xs.filter(v => inside(v, sx0, sx1))]);
     const yLines = opt.yLines ? uniq(opt.yLines) : uniq([sy0, sy1, ...yCand.filter(v => inside(v, sy0, sy1))]);

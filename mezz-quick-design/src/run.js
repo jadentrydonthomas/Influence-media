@@ -251,6 +251,7 @@
     const bl = inp.building;
     const grid = LAYOUT.buildingGrid({ width: bl.width, length: bl.length, bays: bl.bays, lewCols: bl.lewCols, rewCols: bl.rewCols, ridge: bl.ridge, frames: bl.frames, fswSoldier: bl.fswSoldier, bswSoldier: bl.bswSoldier, yLetters: bl.yLetters });
     const mz = { length: val(inp.geom.length), width: val(inp.geom.width), startLEW: val(inp.geom.startLEW) || 0, startFSW: val(inp.geom.startFSW) || 0 };
+    if (grid.lengthGap) warn.push({ level: 'warn', text: `${inp.mezz.building || 'The building'}: Box 2 length ${PCS.fmtFtIn(grid.boxLength)}, but the bays add to ${PCS.fmtFtIn(grid.length)} (${PCS.fmtFtIn(Math.abs(grid.lengthGap))} ${grid.lengthGap > 0 ? 'more' : 'less'}) — the frames are taken on the bay lines, no extra frame line. Confirm the PCS dimensions.` });
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
     const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop });
     if (fromPlan) {
@@ -281,6 +282,9 @@
     const tight = lay.beamLines.slice(1).map((v, i) => [lay.beamLines[i], v]).filter(([a, b]) => b - a < 12 - 1e-6);
     if (tight.length && !(s.xLines || s.yLines)) warn.push({ level: 'key', text: `Beam lines ${tight.map(([a, b]) => `${PCS.fmtFtIn(a)} / ${PCS.fmtFtIn(b)}`).join(', ')} are under 12'-0" apart — joists span only ${PCS.fmtFtIn(Math.min(...tight.map(([a, b]) => b - a)))} there. Drop a line on the Plan page if the joists should span past it.` });
 
+    // joist span against the total joist depth: SJI limits a K-series joist to 24 × its depth (a removed beam line on the
+    // Plan page, or a wide bay, can go past it)
+    if (joistDepthIn > 0 && lay.joistSpan * 12 / joistDepthIn > 24 + 1e-6) warn.push({ level: 'warn', text: `Joists span ${PCS.fmtFtIn(lay.joistSpan)} on a ${+joistDepthIn.toFixed(2)}" total joist depth — ${(lay.joistSpan * 12 / joistDepthIn).toFixed(1)} × the depth, over the 24 × depth SJI allows for K-series joists. Add a beam line or deepen the joists; confirm with the joist supplier.` });
     const maxDepthByC = Cq != null && A != null ? Math.floor((A - Cq) * 12 - slabIn - seatIn + 1e-6) : null;
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
@@ -497,7 +501,7 @@
     const optionKey = (options.find(o => same(o.pick.sec, chosen)) || {}).key || (chosen ? 'custom' : null);
     if (check && ov && ov.sec) {
       const okB = check.res.CSR <= s.target && check.res.SRvx <= s.target && check.llOK && check.tlOK && (!check.conc || check.conc.ok);
-      if (!okB) say('stop', `${m.mark}: the pinned ${check.desc} no longer passes (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick an option again.`);
+      if (!okB) say('stop', `${m.mark}: ${check.desc}, the section picked by hand, does not pass for these loads (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick another or go back to an option.`);
     }
     if (!chosen) {
       const cap = maxDepth != null && maxDepth < s.dMax;
@@ -630,7 +634,8 @@
       const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/);
       colFinal = { name, quoteAs: DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
       if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${s.colOverride ? ' — the column pick on the Column page overrides the automatic W' : ''}.` });
-      if (!DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'info', text: `${name} is not a stocked W at ${division}.` });
+      // a W on the quote has to be stocked; a larger one quoted as BU is built from plates
+      if (colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
     }
     if (cols.length && !colLen) warn.push({ level: 'stop', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' });
     else if (cols.length && noBeam) warn.push({ level: 'stop', text: 'Columns not sized — the beams framing into them have no section yet.' });
@@ -1315,8 +1320,8 @@
         const notes = [`${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
           run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
-          carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey && mk.optionKey !== 'lightest' && mk.options ? (mk.options.find(o => o.key === mk.optionKey) || {}).label + ' option' : ''].filter(Boolean).join('; ');
-        beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || '', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
+          carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey === 'custom' ? 'section picked by the engineer' : mk.optionKey && mk.optionKey !== 'lightest' && mk.options && mk.options.find(o => o.key === mk.optionKey) ? mk.options.find(o => o.key === mk.optionKey).label + ' option' : ''].filter(Boolean).join('; ');
+        beams.push({ MEZZ: [...new Set(bs.map(x => idOf(x.mi)))].join(' / '), SPAN: round(Lrun, 3), TRIB: round(dz.trib, 3), DLT: round(dlT, 2), LLT: round(llT, 2), SECTION: mk.desc || 'NO SECTION', ENDWT: END_WT_BEAM, QTY: bs.length || run.qty, NOTES: notes });
       });
     });
     // columns: one row per section and height over the job

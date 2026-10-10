@@ -40,7 +40,7 @@
   // ---- styles: a fixed set, by name ----
   // fonts: 0 normal, 1 bold, 2 title, 3 note (italic grey), 4 pass (green bold), 5 fail (red bold), 6 section (bold white)
   // fills: 0 none, 1 gray125 (required), 2 header, 3 section band, 4 input cell
-  const STYLE = { '': 0, h: 1, b: 2, t: 3, note: 4, ok: 5, ng: 6, n0: 7, n1: 8, n2: 9, n3: 10, sec: 11, inp: 12, inp3: 13, warn: 14, n4: 15, n2l: 16, w: 17, inpG: 18, r: 19, c: 20 };
+  const STYLE = { '': 0, h: 1, b: 2, t: 3, note: 4, ok: 5, ng: 6, n0: 7, n1: 8, n2: 9, n3: 10, sec: 11, inp: 12, inp3: 13, warn: 14, n4: 15, n2l: 16, w: 17, inpG: 18, r: 19, c: 20, wb: 21, pad: 22, notew: 23, wpad: 24 };
   const stylesXml = () => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <numFmts count="5"><numFmt numFmtId="164" formatCode="0.000"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="0.0"/><numFmt numFmtId="167" formatCode="#,##0"/><numFmt numFmtId="168" formatCode="0.0000"/></numFmts>
@@ -48,7 +48,7 @@
 <fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDFF5EC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B3D2E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF6D6"/><bgColor indexed="64"/></patternFill></fill></fills>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="thin"><color rgb="FFB4C7DA"/></bottom><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"><alignment vertical="top"/></xf></cellStyleXfs>
-<cellXfs count="21">
+<cellXfs count="25">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top"/></xf>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top"/></xf>
@@ -70,14 +70,24 @@
 <xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="top" indent="1"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="top" wrapText="1" indent="1"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
 
   /* a cell: a value (string, number, boolean, null) or { v, s } with s a style name from STYLE; a row (an array) may
-     carry .ht, its height in points */
+     carry .ht, its height in points, and .full (or .fullFrom: a column index): its cell there spans the rest of the
+     sheet's columns, wrapped. sh.wrap: column indexes
+     whose text wraps — the row is made tall enough for it, so the sheet prints at a readable size instead of running
+     off to the right */
+  const WRAP = { '': 'w', b: 'wb', note: 'notew', pad: 'wpad' };
   function sheetXml(sh) {
-    const rows = sh.rows || [], cols = sh.cols || [];
+    const rows = sh.rows || [], cols = sh.cols || [], wrapCols = new Set(sh.wrap || []);
+    const lines = (text, w) => Math.ceil(String(text).length / Math.max(4, w * 1.1));
+    const merges = (sh.merges || []).slice(), total = cols.reduce((a, w) => a + w, 0);
     const out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">', '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'];
     if (sh.freeze) out.push(`<sheetViews><sheetView workbookViewId="0"><pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`);
     else out.push('<sheetViews><sheetView workbookViewId="0"/></sheetViews>');
@@ -86,10 +96,23 @@
     out.push('<sheetData>');
     rows.forEach((row, ri) => {
       if (!row || !row.length) { out.push(`<row r="${ri + 1}"/>`); return; }
-      const ht = row.ht ? ` ht="${row.ht}" customHeight="1"` : '';
+      let h = row.ht || 0;
+      const k = row.full ? 0 : row.fullFrom;
+      if (k != null && cols.length > k + 1) {
+        const c0 = row[k], v = c0 != null && typeof c0 === 'object' ? c0.v : c0;
+        merges.push(`${colName(k)}${ri + 1}:${colName(cols.length - 1)}${ri + 1}`);
+        const n = lines(v || '', total - cols.slice(0, k).reduce((a, w) => a + w, 0)); if (n > 1) h = Math.max(h, 13.2 * n);
+        row = row.slice(0, k).concat([c0 != null && typeof c0 === 'object' ? { ...c0, s: WRAP[c0.s || ''] || c0.s } : { v: c0, s: 'w' }]);
+      }
+      row.forEach((cell, ci) => {
+        const v = cell != null && typeof cell === 'object' && !Array.isArray(cell) ? cell.v : cell;
+        if (ci !== k && wrapCols.has(ci) && typeof v === 'string' && cols[ci]) { const n = lines(v, cols[ci]); if (n > 1) h = Math.max(h, 13.2 * n); }
+      });
+      const ht = h ? ` ht="${+h.toFixed(1)}" customHeight="1"` : '';
       const cells = row.map((cell, ci) => {
         const c = cell != null && typeof cell === 'object' && !Array.isArray(cell) ? cell : { v: cell };
-        const ref = colName(ci) + (ri + 1), s = STYLE[c.s || ''] || 0, sa = s ? ` s="${s}"` : '';
+        const sn = wrapCols.has(ci) && (c.s || '') in WRAP && typeof c.v === 'string' ? WRAP[c.s || ''] : c.s || '';
+        const ref = colName(ci) + (ri + 1), s = STYLE[sn] || 0, sa = s ? ` s="${s}"` : '';
         if (c.v == null || c.v === '') return s ? `<c r="${ref}"${sa}/>` : '';
         if (typeof c.v === 'number') return isFinite(c.v) ? `<c r="${ref}"${sa}><v>${+c.v.toPrecision(15)}</v></c>` : `<c r="${ref}"${sa} t="inlineStr"><is><t>${xmlEsc(String(c.v))}</t></is></c>`;
         if (typeof c.v === 'boolean') return `<c r="${ref}"${sa} t="b"><v>${c.v ? 1 : 0}</v></c>`;
@@ -98,7 +121,7 @@
       out.push(`<row r="${ri + 1}"${ht}>${cells}</row>`);
     });
     out.push('</sheetData>');
-    if (sh.merges && sh.merges.length) out.push(`<mergeCells count="${sh.merges.length}">${sh.merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`);
+    if (merges.length) out.push(`<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`);
     out.push('<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>');
     out.push('<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>');
     out.push('</worksheet>');

@@ -29,7 +29,7 @@
 }
 [data-theme="light"] {
   --canvas: #eef3f9; --surface: #ffffff; --surface-soft: #f4f8fc;
-  --ink: #142b43; --ink-muted: #51677e; --ink-faint: #647a90;
+  --ink: #142b43; --ink-muted: #475d73; --ink-faint: #556b80;
   --line: #d6e1ed; --line-strong: #b4c7da;
   --green: #007d60; --green-bright: #13b68c; --green-soft: #dff5ec; --green-dark: #006647;
   --red: #ae6036; --red-deep: #8a4523; --red-soft: #fbe9df;
@@ -133,6 +133,7 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .metric:first-child .metric-copy b { color: var(--green); }
 .ring { --ring: 0; position: relative; z-index: 1; flex: 0 0 44px; width: 44px; height: 44px; margin-left: auto; border-radius: 50%; background: conic-gradient(var(--ring-color, var(--green)) calc(var(--ring) * 1%), color-mix(in srgb, var(--line) 80%, transparent) 0); transition: --ring 1.2s var(--ease-out); }
 .ring::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); }
+.ring span { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; color: var(--ink); font: 600 10.5px var(--mono); letter-spacing: -.02em; }
 
 /* ---------------- hero field (always dark, as in Astra) ---------------- */
 .field { position: relative; margin-bottom: 22px; border: 1px solid #729cc62e; border-radius: 28px; color: #dfeefa; background: radial-gradient(ellipse at 50% 42%, #217b8636, transparent 50%), linear-gradient(120deg, #0f2032, #0b1624 75%); box-shadow: var(--lift-3); overflow: hidden; }
@@ -361,13 +362,14 @@ tr.pick:hover td { background: color-mix(in srgb, var(--surface-soft) 80%, var(-
 tr.none td { color: var(--ink-faint); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
 .table-wrap table tr:last-child td { border-bottom: 0; }
-.inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 28px; }
+.inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 28px; }
 .field-row { display: grid; grid-template-columns: minmax(0, 1fr) 124px; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .field-row label { font-size: 13px; }
 .field-row label small { display: block; color: var(--ink-faint); font-size: 11.5px; line-height: 1.3; }
 .field-row input, .field-row select { width: 100%; min-height: 34px; padding: 5px 9px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface-soft); font-family: var(--mono); font-size: 13px; text-align: right; }
 .field-row select { text-align: left; font-family: var(--body); }
-.field-row.wide { grid-template-columns: minmax(0, 1fr) 210px; }
+.field-row.wide { grid-template-columns: minmax(0, 1fr) minmax(210px, 58%); }
+.field-row:has(select) { grid-template-columns: minmax(0, 1fr) minmax(124px, 54%); }
 .field-row.full { grid-column: 1 / -1; grid-template-columns: 220px minmax(0, 1fr); }
 .field-row.full .checks { padding: 2px 0; }
 .field-row .calc { font: 700 14px var(--mono); text-align: right; color: var(--green); }
@@ -521,11 +523,32 @@ tr.none td { color: var(--ink-faint); }
   .field-row { grid-template-columns: minmax(0, 1fr) 118px; }
   .field-row.full { grid-template-columns: 1fr; }
 }
+/* print: the calc summary on white paper — the Design, Beam calc and Column calc pages only, in the light colours,
+   without the controls, the 3D model and the download bars */
 @media print {
-  .rail, .masthead, .option-actions, .tabs, .seg, .btn-soft, .btn-ghost { display: none !important; }
+  html[data-theme] {
+    --canvas: #fff; --surface: #fff; --surface-soft: #f5f7fa; --ink: #0f2236; --ink-muted: #3d5268; --ink-faint: #4f6378;
+    --line: #c9d5e2; --line-strong: #9fb2c6; --green: #006b52; --green-bright: #007d60; --green-soft: #e3f4ec; --green-dark: #005a44;
+    --red: #9c4a20; --red-deep: #7a3816; --red-soft: #fbeae0; --amber: #7d5410; --amber-soft: #fbf1dc; --steel: #0f5f84; --steel-soft: #e6f1f8;
+    --glass: #fff; --glass-border: #c9d5e2; --edge: none; --lift-1: none; --lift-2: none; --lift-3: none; --shadow: none; --plan-bg: #fff; --hatch: rgba(0,107,82,.06);
+    color-scheme: light;
+  }
+  body, .app, .main { background: #fff !important; color: var(--ink); }
+  * { box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; }
+  .rail, .masthead, #mezzTabs, .option-actions, .tabs, .seg, .btn-soft, .btn-ghost, .btn-mint, .btn-rail, .toast, .hover-tip,
+  #modelSec, #needSlot, .calcpack, #wbHead, #wbPanel, .lay-bar, .lay-pop, [data-copy], .qs-head button { display: none !important; }
   .app { display: block; }
-  .screen { display: block !important; animation: none !important; }
-  body { background: #fff; }
+  .screen { display: none !important; }
+  #v-results, #v-beam, #v-column { display: block !important; }
+  #v-beam, #v-column { break-before: page; }
+  .panel, .metric, .option, .qs-block, .frame-strip, details { break-inside: avoid; background: #fff !important; border-color: var(--line) !important; }
+  details:not([open]) > :not(summary) { display: none; }
+  a { color: inherit; text-decoration: none; }
+  /* the framing summary and the drawings are styled for the dark panel: dark ink on paper */
+  .field, .field * { color: var(--ink) !important; background: transparent !important; border-color: var(--line) !important; }
+  .field .eyebrow, .field .step, .ffacts b.qty, .disc-inner strong, .disc-inner span { color: var(--green-dark) !important; }
+  .disc, .disc-wrap, .disc-inner { background: #fff !important; }
+  svg text { fill: var(--ink) !important; opacity: 1 !important; }
 }
 
 /* design page: checks pill, floor loads, frame strip, column diagram */
@@ -660,7 +683,9 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .fcard .mk-why { margin-top: 12px; line-height: 1.45; font-size: 11px; }
 .mk-dot { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; vertical-align: 0; }
 .mark-label .mk-dot { margin-right: 6px; }
-.fl-row { grid-template-columns: minmax(42px, auto) 1fr 1fr; }
+.fl-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; }
+.fl-row span { white-space: nowrap; text-align: right; }
+.fl-row b { line-height: 1.25; }
 .fl-row b small { margin-left: 4px; color: var(--ink-faint); font: 500 10.5px var(--mono); letter-spacing: 0; }
 .beam-inputs { margin: 0 0 14px; padding: 12px 16px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .beam-inputs:empty { display: none; }

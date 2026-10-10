@@ -280,12 +280,17 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     if (!['Summary', 'Inputs', 'MB sheets', 'Beam options', 'Shop rules', 'Columns', 'Frame loads', 'Sources'].every(n => names.includes(n))) fail('the calc package should carry every sheet');
     if (/NaN|undefined/.test(Object.values(parts).map(String).join(''))) fail('the calc package has NaN / undefined in it');
     await page.click('#nav button[data-view="column"]'); await page.waitForTimeout(150);
-    const [cz] = await Promise.all([page.waitForEvent('download'), page.click('.calcpack[data-cp="col"] [data-cpdl="all"]')]);
-    const czp = path.join(shots, cz.suggestedFilename()); await cz.saveAs(czp);
-    const zn = Object.keys(unzip(fs.readFileSync(czp)));
-    console.log('calc package zip'.padEnd(30), cz.suggestedFilename(), '·', zn.length, 'files ·', zn.filter(n => n.startsWith('workbooks/')).length, 'filled workbooks');
-    if (!zn.some(n => /\.xlsx$/.test(n))) fail('the zip should carry the calc package');
-    if (fs.existsSync(path.join(wbDir, 'IBC_Seismic.xls')) && !zn.some(n => /^workbooks\/.+\.xls$/.test(n))) fail('the zip should carry the filled workbooks');
+    // the zip is the design basis with the filled workbooks: offered once the workbooks are added
+    const zipOn = await page.$eval('.calcpack[data-cp="col"] [data-cpdl="all"]', b => !b.disabled);
+    if (zipOn !== fs.existsSync(path.join(wbDir, 'IBC_Seismic.xls'))) fail('"Everything (.zip)" should be on exactly when workbooks are added');
+    if (zipOn) {
+      const [cz] = await Promise.all([page.waitForEvent('download'), page.click('.calcpack[data-cp="col"] [data-cpdl="all"]')]);
+      const czp = path.join(shots, cz.suggestedFilename()); await cz.saveAs(czp);
+      const zn = Object.keys(unzip(fs.readFileSync(czp)));
+      console.log('calc package zip'.padEnd(30), cz.suggestedFilename(), '·', zn.length, 'files ·', zn.filter(n => n.startsWith('workbooks/')).length, 'filled workbooks');
+      if (!zn.some(n => /\.xlsx$/.test(n))) fail('the zip should carry the calc package');
+      if (!zn.some(n => /^workbooks\/.+\.xls$/.test(n))) fail('the zip should carry the filled workbooks');
+    }
   }
 
   const allLightest = async () => { for (let k = 0; k < 8; k++) { const b = await page.$('#options [data-opt="lightest"]'); if (!b) break; await b.click(); await page.waitForTimeout(180); } };

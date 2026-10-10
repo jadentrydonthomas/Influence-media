@@ -15,11 +15,13 @@
   // a number as the workbook would hold it: whole numbers plain, else to three places
   const auto = v => (typeof v === 'number' && isFinite(v) ? { v, s: Math.abs(v - Math.round(v)) < 1e-9 ? '' : 'n3' } : v == null ? '—' : v);
   const typed = v => (v == null ? '(blank)' : { v, s: typeof v === 'number' ? 'inpG' : 'inp' });
-  // a long note across the sheet: merged, wrapped, tall enough for its lines
-  const longRow = (sheet, cells, from, text, chars) => { const r = cells.concat([{ v: text, s: 'w' }]); r.ht = 13.2 * Math.max(1, Math.ceil(String(text).length / chars)); sheet.wrap.push([sheet.rows.length, from]); sheet.rows.push(r); };
-  const mergesFor = (sheet, last) => sheet.wrap.map(([ri, c]) => `${XC(c)}${ri + 1}:${XC(last)}${ri + 1}`);
-  const XC = i => { let t = ''; for (i += 1; i > 0; i = Math.floor((i - 1) / 26)) t = String.fromCharCode(65 + ((i - 1) % 26)) + t; return t; };
-  const note = text => [{ v: text, s: 'note' }];
+  // a long note across the sheet from the column 'from': merged and wrapped (src/xlsx.js sizes the row)
+  const longRow = (sheet, cells, from, text, style = '') => { const r = cells.concat([{ v: text, s: style }]); r.fullFrom = from; sheet.rows.push(r); };
+  // a note under a heading: one cell across the sheet, wrapped
+  const note = text => { const r = [{ v: text, s: 'note' }]; r.full = true; return r; };
+  // a row whose text from the column k on spans the rest of the sheet, wrapped
+  const spanRow = (k, cells) => { cells.fullFrom = k; return cells; };
+  const head = text => { const r = [{ v: text, s: 'b' }]; r.full = true; return r; };
   const okc = ok => ({ v: ok ? 'OK' : 'NG', s: ok ? 'ok' : 'ng' });
   const webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
   const frac = v => { const n = Math.round(v * 16); if (Math.abs(v * 16 - n) > 0.02) return String(+(+v).toFixed(4)); const w = Math.floor(n / 16), r = n % 16, g = (a, b) => (b ? g(b, a % b) : a), q = g(r, 16); return r ? `${w ? w + ' ' : ''}${r / q}/${16 / q}` : String(w); };
@@ -38,30 +40,31 @@
 
     // ---------------- Summary ----------------
     {
-      const cols = [40, 12, 14, 34, 22, 8, 12, 10, 7, 11, 9, 8, 8, 12, 12, 24], B = t => band(t, cols.length);
-      const rows = [[{ v: 'Mezzanine design — calc package', s: 't' }],
-        note(`${q.quote || ''}${q.project ? ' · ' + q.project : ''} · generated ${ctx.generated || new Date().toISOString().slice(0, 10)}. Every number here is an input to, or a result of, NBG's own workbooks — the sheet "Sources" says which. Filled copies of those workbooks come with this package when they are added to the tool.`), [],
-        B('Job'),
-        ['Quote', q.quote || '—'], ['Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'],
-        ['Beam sheet', BOOKS[ed.beamEd] || '—'], ['Column sheet', COLBOOKS[ed.colEd] || '—'], ['Specification', ed.spec || '—'],
-        ['Division (stock and production limits)', div], ['Stress ratio limit (combined and shear)', num(target, 'n2l')], ['Deflection limits', 'L/360 live, L/240 total (MB sheet)'],
-        ['Mezzanines', live.map(r => r.id).join(', ')], [],
-        B('Beams'),
-        H(['Mark', 'Type', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Beams', 'Combined SR', 'Shear SR', 'Live L/', 'Total L/', 'Dead each end (k)', 'Live each end (k)', 'Chosen as']),
-      ];
+      const cols = [13, 10, 22, 13, 6, 8, 7, 5, 8, 7, 6, 6, 8, 8, 13], B = t => band(t, cols.length);
+      const rows = [[{ v: 'Mezzanine design — calc package', s: 't' }]];
+      const sh = { name: 'Summary', cols, rows, long: [], wrap: [2, 3, 14] };
+      longRow(sh, [], 0, `${q.quote || ''}${q.project ? ' · ' + q.project : ''} · generated ${ctx.generated || new Date().toISOString().slice(0, 10)}. Every number here is an input to, or a result of, NBG's own workbooks — the sheet "Sources" says which. These are values: the live calculation is the NBG workbooks themselves — "Everything (.zip)" carries a filled copy of each, where any input can be changed.`, 'note');
+      const kv = (label, value) => spanRow(3, [label, '', '', value]);
+      rows.push([], B('Job'),
+        kv('Quote', q.quote || '—'), kv('Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'),
+        kv('Beam sheet', BOOKS[ed.beamEd] || '—'), kv('Column sheet', COLBOOKS[ed.colEd] || '—'), kv('Specification', ed.spec || '—'),
+        kv('Division (stock and limits)', div), kv('Stress ratio limit', num(target, 'n2l')), kv('Deflection limits', 'L/360 live, L/240 total (MB sheet)'),
+        kv('Mezzanines', live.map(r => r.id).join(', ')), [],
+        B('Beams'));
+      rows.push(
+        H(['Mark', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Qty', 'Comb. SR', 'Shear SR', 'Live L/', 'Total L/', 'MB end shear D (k)', 'MB end shear L (k)', 'Chosen as']));
       marks.forEach(m => (m.spanRuns && m.spanRuns.length ? m.spanRuns : []).forEach((run, i) => {
         const c = run.check; if (!c) return;
         const opt = (m.options || []).find(o => o.key === m.optionKey);
-        rows.push([i ? `${m.mark} · ${ft(run.L != null ? run.L : run.span)} span` : m.mark, m.kind || '', c.desc, secText(m.sec), m.sec && m.sec.type !== 'WF' ? `${flName(m.sec)} ${tierWord(DESIGN.TIER[Math.max(DESIGN.tierOf(m.sec.bof, m.sec.tof), DESIGN.tierOf(m.sec.bif, m.sec.tif))])}` : '—',
+        rows.push([i ? `${m.mark} · ${ft(run.L != null ? run.L : run.span)}` : `${m.mark}${m.kind ? ' ' + m.kind : ''}`, c.desc, secText(m.sec), m.sec && m.sec.type !== 'WF' ? `${flName(m.sec)} ${tierWord(DESIGN.TIER[Math.max(DESIGN.tierOf(m.sec.bof, m.sec.tof), DESIGN.tierOf(m.sec.bif, m.sec.tif))])}` : '—',
           num(c.res.Wt, 'n1'), { v: ft(run.L != null ? run.L : run.span), s: 'r' }, { v: ft(run.params ? run.params.trib : m.trib), s: 'r' }, run.qty, num(c.res.CSR), num(c.res.SRvx), num(c.defl.rLL, 'n0'), num(c.defl.rTL, 'n0'), num(c.V.D), num(c.V.L),
-          i ? 'same section, own MB run' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—']);
+          { v: i ? 'same section, own MB run' : m.optionKey === 'custom' ? 'picked by the engineer' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—', s: 'pad' }]);
       }));
-      rows.push([], B('Columns'), H(['Columns', 'Mezzanine', 'Section', 'Quote as', 'Length', 'Quantity', 'Max CSR', 'Result']));
-      live.forEach(r => { if (!r.colFinal) return; rows.push([r.columns.map(c => c.label).join(', '), r.id, r.colFinal.name, r.colFinal.quoteAs, { v: ft(r.colLen), s: 'r' }, r.columns.length, num(r.colFinal.max), okc(r.colFinal.ok)]); });
+      rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result']));
+      live.forEach(r => { if (!r.colFinal) return; rows.push([r.id, r.colFinal.name, r.columns.map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, r.columns.length, '', num(r.colFinal.max), okc(r.colFinal.ok)]); });
       const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
-      const sh = { name: 'Summary', cols, rows, wrap: [] };
-      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2], 185)); }
-      sh.merges = mergesFor(sh, cols.length - 1); delete sh.wrap;
+      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2])); }
+      delete sh.long;
       out.push(sh);
     }
 
@@ -90,7 +93,7 @@
         set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),
         set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
         set('Column length', s.colLength === 'clear' ? 'clear below the beams' : 'finish floor to top of mezzanine (A)'), set('Column section', s.colPerJob === false ? 'per mezzanine' : 'one W for the whole job'));
-      out.push({ name: 'Inputs', cols: [14, 12, 40, 14, 7, 22, 16, 60], rows, freeze: 4 });
+      out.push({ name: 'Inputs', cols: [12, 10, 34, 13, 6, 18, 13, 40], wrap: [5, 7], rows, freeze: 4 });
     }
 
     // ---------------- MB sheets: the cells typed, and what the sheet shows ----------------
@@ -120,7 +123,7 @@
         });
         rows.push([]);
       });
-      out.push({ name: 'MB sheets', cols: [26, 62, 30], rows });
+      out.push({ name: 'MB sheets', cols: [24, 56, 30], wrap: [1], rows });
     }
 
     // ---------------- Beam options ----------------
@@ -128,23 +131,23 @@
       const rows = [[{ v: 'Beam options — how each section was found', s: 't' }], note('Every stocked web and flange for the division, through the MB sheet, inside the production limits; the options are the lightest, the step-by-step "best fit", and the most economical by the flange chart.'), []];
       marks.forEach(m => {
         const sr = m.search; if (!sr) return;
-        rows.push(band(`${m.mark}${m.kind ? ' ' + m.kind : ''} — designed ${ft(m.params ? m.params.L : m.span)} × ${ft(m.params ? m.params.trib : m.trib)} trib · ${sr.evaluated.toLocaleString('en-US')} combinations run · depth ${sr.options.dMin}"–${sr.dTop}"${sr.dTop < sr.options.dMax ? ' (clearance C)' : ''}`, 14));
-        rows.push(H(['Option', 'Section', 'Depth', 'Web', 'Flanges', 'Economy', 'plf', 'vs lightest', 'Combined', 'Shear', 'Live L/', 'Total L/', 'On the quote', 'Why']));
+        rows.push(band(`${m.mark}${m.kind ? ' ' + m.kind : ''} — designed ${ft(m.params ? m.params.L : m.span)} × ${ft(m.params ? m.params.trib : m.trib)} trib · ${sr.evaluated.toLocaleString('en-US')} combinations run · depth ${sr.options.dMin}"–${sr.dTop}"${sr.dTop < sr.options.dMax ? ' (clearance C)' : ''}`, 13));
+        rows.push(H(['Option', 'Section', 'Depth', 'Web', 'Flanges', 'Economy', 'plf', 'vs lightest', 'Combined', 'Shear', 'Live L/', 'Total L/', 'On the quote']));
         // one row a section: options that land on the same section share it ("Lightest · Best fit")
         const groups = [];
         (m.options || []).forEach(o => { const g = groups.find(x => x.some(y => ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => y.pick.sec[k] === o.pick.sec[k]))); if (g) g.push(o); else groups.push([o]); });
-        groups.map(g => ({ ...g[0], label: g.map(x => x.label).join(' · '), why: g.map(x => (g.length > 1 ? `${x.label}: ` : '') + x.why).join(' '), key: (g.find(x => x.key === m.optionKey) || g[0]).key })).forEach(o => { const p = o.pick; rows.push([o.label, p.desc, `${p.sec.d}"`, p.web, p.flange, tierWord(p.tier), num(p.wt, 'n1'), { v: o.dWt ? `${o.dWt > 0 ? '+' : ''}${(o.dPct * 100).toFixed(1)} %` : 'lightest', s: 'r' }, num(p.CSR), num(p.SRv), num(p.rLL, 'n0'), num(p.rTL, 'n0'), { v: m.optionKey === o.key ? 'yes' : '', s: 'c' }, o.why + (o.needC != null ? ` Needs C ≤ ${ft(o.needC)}.` : '')]); });
+        groups.map(g => ({ ...g[0], label: g.map(x => x.label).join(' · '), why: g.map(x => (g.length > 1 ? `${x.label}: ` : '') + x.why).join(' '), key: (g.find(x => x.key === m.optionKey) || g[0]).key })).forEach(o => { const p = o.pick; rows.push([{ v: o.label, s: 'b' }, p.desc, `${p.sec.d}"`, p.web, p.flange, tierWord(p.tier), num(p.wt, 'n1'), { v: o.dWt ? `${o.dWt > 0 ? '+' : ''}${(o.dPct * 100).toFixed(1)} %` : 'lightest', s: 'r' }, num(p.CSR), num(p.SRv), num(p.rLL, 'n0'), num(p.rTL, 'n0'), { v: m.optionKey === o.key ? 'yes' : '', s: 'c' }], spanRow(1, ['', { v: o.why + (o.needC != null ? ` Needs C ≤ ${ft(o.needC)}.` : ''), s: 'note' }])); });
         const fit = (m.options || []).find(o => o.key === 'fit') || (m.options || []).find(o => o.steps);
         const steps = fit && fit.steps ? fit.steps : null;
-        if (steps) { rows.push([{ v: 'Best fit, step by step', s: 'b' }]); steps.forEach((st, i) => rows.push([`${i + 1}`, st.text])); }
+        if (steps) { rows.push(head('Best fit, step by step')); steps.forEach((st, i) => rows.push(spanRow(1, [`${i + 1}`, st.text]))); }
         const removed = Object.entries(sr.removed || {});
-        if (removed.length) { rows.push([{ v: 'Left out by the production limits', s: 'b' }]); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push([n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k])); }
-        rows.push([{ v: 'Lightest section at each depth', s: 'b' }], H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
+        if (removed.length) { rows.push(head('Left out by the production limits')); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push(spanRow(1, [n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k]))); }
+        rows.push(head('Lightest section at each depth'), H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
         sr.byDepth.forEach(z => rows.push(z.none ? [`${z.d}"`, 'nothing stocked passes'] : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
-        if (m.deeper && m.deeper.length) { rows.push([{ v: 'Deeper than the clearance allows (each needs C lowered)', s: 'b' }], H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
+        if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
         rows.push([]);
       });
-      out.push({ name: 'Beam options', cols: [30, 14, 8, 8, 10, 18, 8, 11, 10, 9, 8, 8, 12, 90], rows });
+      out.push({ name: 'Beam options', cols: [24, 11, 7, 7, 9, 12, 7, 9, 9, 7, 7, 7, 9], wrap: [0], rows });
     }
 
     // ---------------- Shop rules ----------------
@@ -169,10 +172,10 @@
       [5, 6, 8, 10, 12].forEach(w => rows.push([`${w}"`, ...TH.map(t => { if (!DESIGN.inChart(w, t)) return '—'; const g = DESIGN.TIER[DESIGN.tierOf(w, t)]; return { v: g, s: g === 'G' ? 'ok' : g === 'Y' ? 'warn' : 'ng' }; })]));
       rows.push(note('Start considering 10" flanges when F8.50 (IF) and F8.38 (OF) start failing. 12" flanges are good sections but typically more expensive.'), []);
       rows.push(band(`DM 5.1 stock inventory — ${div}`, W), H(['Plate', 'Sizes stocked']));
-      rows.push(['Webs', Object.keys(DESIGN.WEB_STOCK).map(Number).sort((a, b) => a - b).filter(t => DESIGN.inStock(DESIGN.WEB_STOCK, t, div)).map(t => `${t}" (${webName(t)})`).join(', ')]);
-      [6, 8, 10, 12].forEach(w => rows.push([`Flanges ${w}" wide`, Object.keys(DESIGN.FLANGE_STOCK).map(k => k.split('x').map(Number)).filter(([b, t]) => b === w && DESIGN.inStock(DESIGN.FLANGE_STOCK, b + 'x' + t, div)).map(([, t]) => `${frac(t)}"`).join(', ') || 'none']));
-      rows.push(['Wide flange', Object.keys(DESIGN.WF_STOCK).filter(k => DESIGN.inStock(DESIGN.WF_STOCK, k, div)).join(', ')]);
-      out.push({ name: 'Shop rules', cols: [44, 26, 16, 18, 22, 16, 30, 30, 8], rows });
+      rows.push(spanRow(1, ['Webs', Object.keys(DESIGN.WEB_STOCK).map(Number).sort((a, b) => a - b).filter(t => DESIGN.inStock(DESIGN.WEB_STOCK, t, div)).map(t => `${t}" (${webName(t)})`).join(', ')]));
+      [6, 8, 10, 12].forEach(w => rows.push(spanRow(1, [`Flanges ${w}" wide`, Object.keys(DESIGN.FLANGE_STOCK).map(k => k.split('x').map(Number)).filter(([b, t]) => b === w && DESIGN.inStock(DESIGN.FLANGE_STOCK, b + 'x' + t, div)).map(([, t]) => `${frac(t)}"`).join(', ') || 'none'])));
+      rows.push(spanRow(1, ['Wide flange', Object.keys(DESIGN.WF_STOCK).filter(k => DESIGN.inStock(DESIGN.WF_STOCK, k, div)).join(', ')]));
+      out.push({ name: 'Shop rules', cols: [30, 16, 12, 12, 16, 10, 18, 22, 8], wrap: [0, 1, 7], rows });
     }
 
     // ---------------- Columns ----------------
@@ -192,7 +195,7 @@
         if (g && g.design && g.design.tried) { rows.push([{ v: 'Sizes tried, lightest first', s: 'b' }], H(['Section', 'Max CSR', 'Result'])); g.design.tried.forEach(t => rows.push([t.name, num(t.max), okc(t.ok)])); }
         rows.push([]);
       }));
-      out.push({ name: 'Columns', cols: [34, 52, 22, 12, 10], rows });
+      out.push({ name: 'Columns', cols: [30, 46, 18, 12, 10], wrap: [1], rows });
     }
 
     // ---------------- Frame loads ----------------
@@ -203,7 +206,7 @@
         const eq = (e.eq || []).reduce((a, x) => a + x.F, 0), calc = (e.eq || []).reduce((a, x) => a + (x.calc ?? x.F), 0);
         rows.push([fl.building || '', fl.frame, e.label, e.member || '—', e.where, num(e.A != null ? e.A : e.elev, 'n2'), num(e.D), num(e.L), e.eq && e.eq.length ? num(eq) : '', e.eq && e.eq.length ? num(calc) : '', e.parts.map(p => `${p.mezz} ${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + ')]);
       }));
-      out.push({ name: 'Frame loads', cols: [10, 10, 9, 14, 62, 9, 12, 12, 14, 16, 40], rows, freeze: 4 });
+      out.push({ name: 'Frame loads', cols: [10, 7, 8, 10, 34, 8, 9, 9, 10, 11, 30], wrap: [4, 10], rows, freeze: 4 });
     }
 
     // ---------------- Seismic ----------------
@@ -229,11 +232,11 @@
         if (b.long) { rows.push([], band(`${b.name} — bracing`, 7), H(['Mezzanine', 'Seismic force for the bracing (k)'])); b.long.mezzLoads.forEach(m => rows.push([m.id, num(m.F)])); }
         rows.push([]);
       });
-      out.push({ name: 'Seismic', cols: [30, 56, 22, 10, 14, 12, 10], rows });
+      out.push({ name: 'Seismic', cols: [26, 50, 20, 10, 12, 11, 10], wrap: [1], rows });
     }
 
     // ---------------- Sources ----------------
-    out.push({ name: 'Sources', cols: [44, 22, 60, 50], freeze: 3, rows: [
+    out.push({ name: 'Sources', cols: [30, 22, 46, 40], wrap: [0, 1, 2, 3], freeze: 3, rows: [
       [{ v: 'Sources — where each number comes from', s: 't' }], [],
       H(['Document / workbook', 'Revision / file', 'Gives', 'Checked by']),
       [BOOKS[ed.beamEd] || 'Mezzanine Beam Design', ed.beamEd ? `Mezzanine_Beam_Design_${ed.beamEd}th.xls` : '', 'INPUT sheet (loads, heights, clearances); MB1–MB4 (member length, Lb, trib, section → end shears H6 / H10, deflections, combined / shear, joist bearing L7)', 'cell-for-cell port; the real workbook run on every option and every job (oracle) — the filled copy reads the same'],

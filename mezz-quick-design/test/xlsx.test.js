@@ -88,10 +88,10 @@ const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
     const text = sheets.flatMap(s => s.rows.flatMap(r => (r || []).map(cellText))).filter(v => v != null).map(String);
     assert.ok(!text.some(t => /\bNaN\b|undefined|\[object Object\]/.test(t)), `${f}: ${text.find(t => /\bNaN\b|undefined|\[object Object\]/.test(t))}`);
     const sum = sheets.find(s => s.name === 'Summary'), col0 = sum.rows.map(r => cellText((r || [])[0]));
-    job.marks.forEach(m => assert.ok(col0.includes(m.mark), `${f}: ${m.mark} on the Summary`));
-    job.mezz.filter(r => r && r.colFinal).forEach(r => assert.ok(sum.rows.some(row => row && cellText(row[1]) === r.id && cellText(row[2]) === r.colFinal.name), `${f}: ${r.id} columns on the Summary`));
+    job.marks.forEach(m => assert.ok(col0.some(t => t === m.mark || String(t).startsWith(m.mark + ' ')), `${f}: ${m.mark} on the Summary`));
+    job.mezz.filter(r => r && r.colFinal).forEach(r => assert.ok(sum.rows.some(row => row && cellText(row[0]) === r.id && cellText(row[1]) === r.colFinal.name), `${f}: ${r.id} columns on the Summary`));
     // the beam rows carry the MB-sheet numbers as numbers
-    job.marks.forEach(m => { const row = sum.rows.find(r => r && cellText(r[0]) === m.mark), c = m.spanRuns[0].check; assert.strictEqual(cellText(row[9]), c.res.CSR); assert.strictEqual(cellText(row[13]), c.V.D); });
+    job.marks.forEach(m => { const row = sum.rows.find(r => r && (cellText(r[0]) === m.mark || String(cellText(r[0])) === `${m.mark} ${m.kind}`)), c = m.spanRuns[0].check; assert.strictEqual(cellText(row[8]), c.res.CSR); assert.strictEqual(cellText(row[12]), c.V.D); });
     // every MB-sheet cell typed is on the MB sheets page with its value
     const mb = sheets.find(s => s.name === 'MB sheets'), typedCells = new Map(mb.rows.filter(r => r && r.length === 3).map(r => [String(cellText(r[0])).split(' ')[0], cellText(r[2])]));
     (job.excel.beam || []).forEach(b => b.sheets.forEach(sh => sh.steps.forEach(st => assert.ok(typedCells.has(`${st.sheet}!${st.cell}`), `${f}: ${st.sheet}!${st.cell}`))));
@@ -102,6 +102,9 @@ const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
     // the whole package writes and reads back
     const z = unzip(X.book(sheets, { title: f }));
     assert.strictEqual(Object.keys(z).filter(n => n.startsWith('xl/worksheets/')).length, sheets.length);
+    // printable: no row taller than a page (a row that is would shrink the whole sheet to fit it)
+    const tallest = Math.max(...Object.entries(z).filter(([n]) => n.startsWith('xl/worksheets/')).flatMap(([, x]) => [...x.matchAll(/ ht="([\d.]+)"/g)].map(m => +m[1])));
+    assert.ok(tallest < 200, `${f}: a row ${tallest} pt tall`);
     console.log(`  ${f}: ${sheets.length} sheets, ${text.length} cells`);
   }
   // with the seismic answered (W1S-26062: roof dead 4.66 psf asked for): a Seismic sheet — the workbook cells typed per

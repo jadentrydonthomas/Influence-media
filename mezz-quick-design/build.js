@@ -14,6 +14,8 @@ let html = fs.readFileSync(path.join(SRC, 'app.html'), 'utf8');
 html = html.replace(/\/\*@INLINE_CSS ([\w.-]+)\*\//g, (_, n) => fs.readFileSync(resolve(n), 'utf8'));
 html = html.replace(/<script>\/\*@INLINE_JS ([\w.-]+)\*\/<\/script>/g, (_, n) => {
   const code = fs.readFileSync(resolve(n), 'utf8');
+  // a script that does not parse would leave the page dead on load: stop the build instead
+  try { new (require('vm').Script)(code, { filename: n }); } catch (e) { console.error(`build stopped — ${n} does not parse: ${e.message}`); process.exit(1); }
   return `<script>\n/* ---- ${n} ---- */\n${safe(code)}\n</script>`;
 });
 const pkg = JSON.parse(fs.readFileSync(path.join(PDFJS, 'package.json'), 'utf8'));
