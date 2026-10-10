@@ -91,5 +91,23 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   assert.ok(sp.warn.some(w => /passes the column cases that are sized; 2 columns are not sized yet/.test(w.text)) && !sp.warn.some(w => /passes every column case/.test(w.text)));
   const qp = RUN.quoteJob(jp.mezz, inps).columns.filter(c => c.MEZZ === 'Sanctuary').map(c => `${c.SECTION} x${c.QTY}`);
   assert.deepStrictEqual(qp, ['NOT SIZED x2', 'BU8x31 x25']);
+  // a mark with no section: the Seismic page waits (no frame's whole EQ load sent to one column, no framing weight from half the members)
+  const jd = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: i === 0 ? { drop: ['40.31,21.18'] } : {} })));
+  const mb1 = jd.marks.find(m => m.mark === 'MB1');
+  assert.ok(!mb1.check && jd.seismic && !jd.seismic.ok && jd.seismic.need.some(n => /^MB1 sized on the Design page/.test(n)), JSON.stringify(jd.seismic && jd.seismic.need));
+  // the long beam alone fails, the rest would pass: offered its own mark — and only it leaves MB1, no other mark changes
+  assert.ok(mb1.splitHelps && mb1.splitHelps.span === 39 && mb1.splitHelps.n === 1 && mb1.splitHelps.restDesc === 'BU20x41', JSON.stringify(mb1.splitHelps));
+  const jo = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { ...(i === 0 ? { drop: ['40.31,21.18'] } : {}), ownSpan: [39] } })));
+  assert.deepStrictEqual(jo.marks.map(m => [m.mark, m.kind, !!m.own, m.desc || 'NO SECTION', m.qtyAll]), [['MB1', 'interior', true, 'NO SECTION', 1], ['MB2', 'interior', false, 'BU20x41', 38], ['MB3', 'exterior', false, 'BU20x28', 16]]);
+  // split by trib / span keeps four marks: the group carried by MB4 is said, with what its own section would save
+  const js = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { marks: 'split' } })));
+  assert.ok(js.marks.length === 4 && js.mezz[0].warn.some(w => w.level === 'key' && /MB4 also carries 8 beams .* on their own they would be BU19x23, about 723 lb lighter/.test(w.text)));
+  // a W picked by hand: its plate dimensions from the W table — depth, clearance C, the DM checks and the MB workbook's WF input
+  const wv = jf.marks.find(m => m.mark === 'MB2');
+  assert.ok(wv.sec.d === 15.7 && wv.sec.bof === 5.5 && wv.sec.tof === 0.345 && wv.sec.tw === 0.25);
+  assert.ok(jf.mezz.every(r => r.incomplete || !r.clear || !r.clear.C || r.clear.C.prov == null || isFinite(r.clear.C.prov)));
+  assert.ok(!jf.dm.some(i => /NaN/.test(i.text)), jf.dm.filter(i => /NaN/.test(i.text)).map(i => i.text).join(' | '));
+  const wst = Object.fromEntries(jf.excel.beam.flatMap(b => b.sheets).find(sh => sh.mark === 'MB2').steps.map(st => [st.cell, st.value]));
+  assert.deepStrictEqual([wst.Q4, wst.M21, wst.M22, wst.M23, wst.M24, wst.M25], [3, 'W16X26', 15.7, 0.25, 5.5, 0.345]);
   console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange, BU9x22 offered and typed on the Built-Up input)');
 })().catch(e => { console.error(e); process.exit(1); });

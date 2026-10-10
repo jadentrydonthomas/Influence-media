@@ -61,7 +61,7 @@
         const opt = (m.options || []).find(o => o.key === m.optionKey);
         rows.push([i ? `${m.mark} · ${ft(run.L != null ? run.L : run.span)}` : `${m.mark}${m.kind ? ' ' + m.kind : ''}`, c.desc, secText(m.sec), m.sec && m.sec.type !== 'WF' ? `${flName(m.sec)} ${tierWord(DESIGN.TIER[Math.max(DESIGN.tierOf(m.sec.bof, m.sec.tof), DESIGN.tierOf(m.sec.bif, m.sec.tif))])}` : '—',
           num(c.res.Wt, 'n1'), { v: ft(run.L != null ? run.L : run.span), s: 'r' }, { v: ft(run.params ? run.params.trib : m.trib), s: 'r' }, run.qty, num(c.res.CSR), num(c.res.SRvx), num(c.defl.rLL, 'n0'), num(c.defl.rTL, 'n0'), num(c.V.D), num(c.V.L),
-          { v: i ? 'same section, own MB run' : m.optionKey === 'custom' ? 'picked by the engineer' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—', s: 'pad' }]);
+          { v: !(c.res.CSR <= target && c.res.SRvx <= target && c.llOK && c.tlOK && (!c.conc || c.conc.ok)) ? `FAILS — ${i ? 'this run' : 'picked by the engineer'}` : i ? 'same section, own MB run' : m.optionKey === 'custom' ? 'picked by the engineer' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—', s: 'pad' }]);
       }));
       rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result', '', '', '', '', 'Chosen as']));
       const colWhy = cf => (cf.picked ? `picked by the engineer${cf.sec.type === 'BU' ? ' (Built-Up input, Fy 55)' : ''}${cf.auto ? `; the guide's answer ${cf.auto.quoteAs}` : ''}` : cf.quoteAs === cf.name ? 'the guide: lightest common column that passes' : 'the guide: next W that passes, quoted BU');
@@ -126,7 +126,7 @@
     {
       const rows = [[{ v: 'MB sheets — the cells typed into the Mezzanine Beam Design workbook, and what it shows', s: 't' }], note('Typed into the real workbook and read back (LibreOffice, recalculated): every "shows" value equals what Excel shows.'), []];
       (job.excel && job.excel.beam || []).forEach(b => {
-        rows.push(band(`${BOOKS[b.edition] || b.file} — copy ${b.copy}: ${b.sheets.map(x => `${x.sheet} = ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ''}`).join(', ')}`, 3));
+        rows.push(band(`${BOOKS[b.edition] || b.file} — copy ${b.copy}, workbook tabs: ${b.sheets.map(x => `tab ${x.sheet} ← ${x.mark}${x.shorter ? ' at ' + ft(x.span) : ''}`).join(', ')}`, 3));
         const inp = b.inputs[0];
         rows.push([{ v: `INPUT sheet${b.inputs.length > 1 ? ` (${inp.mezz}'s heights)` : ''}`, s: 'b' }], H(['Cell', 'Field', 'Value typed']));
         inp.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}`, st.label, typed(st.value)]));
@@ -223,6 +223,11 @@
           if (r.colFinal && r.colFinal.picked && chk) rows.push([`${r.colFinal.name} — picked by the engineer (on the quote)`, num(chk.max), okc(chk.ok)]);
         }
         rows.push([]);
+      }));
+      // the cases not typed: a beam framing in has no section, so the loads are unknown — named, not left out
+      (job.mezz || []).filter(r => r && !r.incomplete && r.colFinal && (r.colFinal.unsized || []).length).forEach(r => r.colGroups.forEach((g, gi) => {
+        if (r.colFinal.checks[gi]) return;
+        rows.push(band(`NOT SIZED — ${g.cols.map(c => c.label).join(', ')} (${r.id})`, 5), [{ v: (r.colWhy && r.colWhy.text) || 'a beam framing in has no section, so the loads are unknown', s: 'ng' }], []);
       }));
       out.push({ name: 'Columns', cols: [30, 46, 18, 12, 10], wrap: [0, 1], rows });
     }

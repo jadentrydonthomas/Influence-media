@@ -177,8 +177,9 @@
       });
     });
     marks.sort((a, b) => b.span * b.trib - a.span * a.trib);
-    while (marks.length > 4) { // merge the two lightest-loaded into the heavier one (conservative)
+    while (marks.length > 4) { // merge the two lightest-loaded into the heavier one (conservative) — recorded, so it is said
       const last = marks.pop(), prev = marks[marks.length - 1];
+      prev.merged = (prev.merged || []).concat({ span: last.span, trib: last.trib, beams: last.beams.slice() }, last.merged || []);
       prev.span = Math.max(prev.span, last.span); prev.trib = Math.max(prev.trib, last.trib); prev.beams.push(...last.beams);
     }
     return marks.map((mk, i) => ({ mark: 'MB' + (i + 1), ...mk }));

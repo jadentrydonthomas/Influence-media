@@ -467,9 +467,17 @@
         sets = [[bs.filter(x => !x.edgeOnly), 'interior'], [bs.filter(x => x.edgeOnly), 'exterior']].filter(([xs]) => xs.length);
         if (sets.length === 1) sets[0][1] = '';
       } else if (mode === 'split') {
-        sets = LAYOUT.beamMarks(bs.map((x, i) => ({ id: i, span: x.span, trib: x.trib })), 'split').map(m => [m.beams.map(u => bs[u]), '']);
+        // at most 4 marks (MB1..MB4): the lightest-loaded groups are carried by the next heavier mark — kept, to be said
+        sets = LAYOUT.beamMarks(bs.map((x, i) => ({ id: i, span: x.span, trib: x.trib })), 'split').map(m => [m.beams.map(u => bs[u]), '', false, (m.merged || []).map(q => ({ span: q.span, trib: q.trib, beams: q.beams.map(u => bs[u]) }))]);
       } else sets = [[bs, '']];
-      sets.forEach(([xs, kind]) => marks.push({ group: g, groupKey: g.key, kind, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
+      // a long beam given its own mark (Beam calc → "Give the … beam its own mark"): only those beams leave their mark,
+      // every other mark stays as it was
+      const own = (g.ctxs[0].s.ownSpan || []).map(Number).filter(v => v > 0);
+      if (own.length) sets = sets.flatMap(([xs, kind, , merged]) => {
+        const isOwn = x => own.some(v => Math.abs(x.span - v) < 1e-3), rest = xs.filter(x => !isOwn(x));
+        return rest.length && rest.length < xs.length ? [[xs.filter(isOwn), kind, true], [rest, kind, false, merged]] : [[xs, kind, false, merged]];
+      });
+      sets.forEach(([xs, kind, ownMark, merged]) => marks.push({ group: g, groupKey: g.key, kind, own: !!ownMark, merged: merged && merged.length ? merged : null, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
     });
     marks.sort((a, b) => b.span * b.trib - a.span * a.trib || (a.kind === 'interior' ? -1 : 1));
     marks.forEach((m, i) => { m.mark = 'MB' + (i + 1); m.index = i; m.qtyAll = m.beamsAll.length; m.mezzIds = [...new Set(m.beamsAll.map(x => x.mi))]; });
@@ -505,12 +513,20 @@
     const ov = s.override && s.override[m.mark];
     const preferred = options.find(o => o.key === ((ov && ov.key) || s.optionDefault));
     const atDepth = ov && ov.d != null && dz ? dz.byDepth.find(z => z.d === +ov.d && !z.none) : null;
-    const chosen = ov && ov.sec ? ov.sec : atDepth ? atDepth.sec : preferred ? preferred.pick.sec : dz && dz.best ? dz.best.sec : null;
+    const chosen = ov && ov.sec ? DESIGN.secDims(ov.sec) : atDepth ? atDepth.sec : preferred ? preferred.pick.sec : dz && dz.best ? dz.best.sec : null;
     if (ov && ov.d != null && !atDepth && chosen) say('warn', `${m.mark}: nothing passes at ${ov.d}" deep for these loads — back to the ${preferred ? preferred.label.toLowerCase() : 'lightest'} section.`);
     if (ov && ov.key && !options.some(o => o.key === ov.key) && chosen) say('info', `${m.mark}: no ${ov.key} option for these inputs — using the lightest.`);
     const check = chosen ? MZ.beamCheck({ ...p, sec: chosen }, WF) : null;
     const same = (a, b) => a && b && ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => a[k] === b[k]);
     const optionKey = (options.find(o => same(o.pick.sec, chosen)) || {}).key || (chosen ? 'custom' : null);
+    const Fi = PCS.fmtFtIn;
+    // Beam marks "split by trib / span" keeps at most four marks: a lighter group carried by this mark costs weight — said, with how much
+    if (m.merged && check) m.merged.forEach(q => {
+      const dzq = DESIGN.designBeam({ ...c0.beamBase, L: q.span - cut, trib: q.trib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
+      const n = q.beams.length, len = q.beams.reduce((a, x) => a + x.span, 0), own = dzq && dzq.best, dW = own ? (check.res.Wt - own.wt) * len : 0;
+      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of ${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on the next heavier mark${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
+    });
+    if (m.own) say('key', `${m.mark}: the ${Fi(m.span)} beam${m.beamsAll.length > 1 ? 's' : ''} given ${m.beamsAll.length > 1 ? 'their' : 'its'} own mark on Beam calc — the shorter ${m.kind ? m.kind + ' ' : ''}beams keep their mark.`);
     if (check && ov && ov.sec) {
       const okB = check.res.CSR <= s.target && check.res.SRvx <= s.target && check.llOK && check.tlOK && (!check.conc || check.conc.ok);
       if (!okB) say('stop', `${m.mark}: ${check.desc}, the section picked by hand, does not pass for these loads (combined ${check.res.CSR.toFixed(3)}, shear ${check.res.SRvx.toFixed(3)}, L/${Math.round(check.defl.rLL)}) — pick another or go back to an option.`);
@@ -519,7 +535,15 @@
       // the mark fails at its longest beam: when its other beams are shorter, giving the long one(s) its own mark
       // (Settings → Beam marks → split by trib / span) keeps the rest sized — say so
       const lens = m.beamsAll.map(x => x.span), longest = Math.max(...lens), nLong = lens.filter(v => v > longest - 1e-3).length;
-      if (s.marks !== 'split' && nLong < lens.length) say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter. Split the marks by span (Settings → Beam marks, or the button on Beam calc) to size them, and the columns they carry, on their own.`);
+      if (nLong < lens.length) {
+        // would the shorter beams pass on their own? only then is giving the long one(s) their own mark worth offering
+        const rest = Math.max(...lens.filter(v => v < longest - 1e-3)) - cut;
+        const dzr = DESIGN.designBeam({ ...c0.beamBase, L: rest, trib: dTrib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
+        if (dzr && dzr.best) {
+          m.splitHelps = { span: longest, n: nLong, rest: lens.length - nLong, restDesc: dzr.best.desc || (dzr.best.r && dzr.best.r.desc) || '' };
+          say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter and would pass on their own (${m.splitHelps.restDesc}). Give the ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's' : ''} ${nLong > 1 ? 'their' : 'its'} own mark (the button on Beam calc) to size the rest, and the columns they carry — no other mark changes.`);
+        }
+      }
       const cap = maxDepth != null && maxDepth < s.dMax;
       say('stop', cap && maxDepth < s.dMin
         ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. Check the clearance or the minimum depth in Settings.`
@@ -781,7 +805,7 @@
       const conc = ms.every(mk => mk.check.conc);
       const jb = mk => Math.max(mk.check.conc.WLY, mk.check.conc.WC, mk.check.conc.WSB || 0);
       add('15.1.1.4.1.3', 'Beams', 'Top flange at least ¼" thick, no stiffeners at the joists', !ms.every(mk => mk.sec.tof >= 0.25 - 1e-9) || (conc && !ms.every(mk => mk.check.conc.ok)) ? 'stop' : conc ? 'ok' : 'check',
-        ms.map(mk => `${mk.mark} ${plates(mk.sec.bof)} × ${plates(mk.sec.tof)}"${mk.check.conc ? `, joist bearing SR ${jb(mk).toFixed(2)}` : ''}`).join(' · ') + (conc ? ' (web local yielding, crippling and sidesway under the joist reaction, J10 — Concentrated Load Checks).' : ' — the 13th-edition sheet has no joist-bearing check: check J10 by hand.'));
+        ms.map(mk => `${mk.mark} ${plates(mk.sec.bof)} × ${plates(mk.sec.tof)}"${mk.check.conc ? `, joist bearing SR ${jb(mk).toFixed(2)}` : ''}`).join(' · ') + (conc ? ' (web local yielding, crippling and sidesway under the joist reaction, J10 — Concentrated Load Checks).' : ms.some(mk => !mk.check.conc && mk.sec.type === 'WF') ? ` — the joist-bearing check here covers built-up sections; ${ms.filter(mk => !mk.check.conc && mk.sec.type === 'WF').map(mk => `${mk.mark} ${mk.desc}`).join(', ')} (a W): check J10 by hand.` : ' — the 13th-edition sheet has no joist-bearing check: check J10 by hand.'));
       add('15.1.1.4.1.4', 'Beams', 'Web without intermediate stiffeners', ms.every(mk => runs(mk).every(q => q.check.res.SRvx <= 1)) ? 'ok' : 'stop',
         ms.map(mk => `${mk.mark} web ${plates(mk.sec.tw)}", shear SR ${Math.max(...runs(mk).map(q => q.check.res.SRvx)).toFixed(2)}`).join(' · ') + ' — unstiffened web shear on the MB sheet (G2).');
       // perimeter beams: joists from one side only (DM 15.1.1.4.1.3 user note)
@@ -906,17 +930,18 @@
       const runs = ms.map(m => ({ m, q: m.spanRuns[0], i: 0 })).concat(ms.flatMap(m => m.spanRuns.slice(1).map((q, i) => ({ m, q, i: i + 1 }))));
       const dMax = Math.max(...ms.map(m => m.sec.d));
       // the INPUT sheet: loads once; heights and clearances of each mezzanine in the group (the MB results do not use them)
-      const inputFor = c => {
+      // dRead: the beam depth the sheet's C check uses — the 13th takes it typed (the job's deepest beam); the 15th / 16th
+      // INPUT sheet takes the deepest of the four MB sheets in that copy (D26 = MAX(MB1..MB4!M22))
+      const inputFor = (c, dRead) => {
         const v = { dead: c.beamBase.dead, coll: c.beamBase.coll, live: c.beamBase.live, joistWt: c.beamBase.joistWt, A: c.A, slab: c.slabIn, seat: c.seatIn, joistDepth: c.joistDepthIn, beamDepth: dMax, B: c.Bq, C: c.Cq };
         const steps = map.map(([k, cell, label]) => ({ sheet: 'INPUT', cell, label, value: n3(v[k]), show: v[k] == null ? '(leave blank)' : String(n3(v[k])) }));
         const read = XL.clear[e13 ? 13 : 15].map(([k, prov, ok]) => {
-          const p = k === 'B' ? c.A - (c.slabIn + c.joistDepthIn) / 12 : c.A - (c.slabIn + c.seatIn + dMax) / 12, req = k === 'B' ? c.Bq : c.Cq;
+          const p = k === 'B' ? c.A - (c.slabIn + c.joistDepthIn) / 12 : c.A - (c.slabIn + c.seatIn + dRead) / 12, req = k === 'B' ? c.Bq : c.Cq;
           return [{ sheet: 'INPUT', cell: prov, label: `${k} provided (ft.)`, expect: n3(p) }, { sheet: 'INPUT', cell: ok, label: `${k} check`, expect: req == null || p >= req - 1e-9 ? 'OK' : 'No Good' }];
         }).flat();
         return { mezz: c.id, steps, read };
       };
       const members = live.filter(c => ms.some(m => m.mezzIds.includes(c.index)));
-      const inputs = members.map(inputFor);
       for (let k = 0; k < runs.length; k += 4) {
         const sheets = runs.slice(k, k + 4).map(({ m, q, i }, j) => {
           const sheet = 'MB' + (j + 1), c = q.check, sec = m.sec;
@@ -926,14 +951,21 @@
             { sheet, cell: 'D8', label: 'Unbraced Length, ft. (joist spacing)', value: n3(q.params.Lb), show: String(n3(q.params.Lb)) },
             { sheet, cell: 'D9', label: 'Tributary Width, ft.', value: n3(q.params.trib), show: String(n3(q.params.trib)) },
           ].concat(e13 ? [] : [{ sheet, cell: 'D15', label: 'Axial Load, Kip', value: null, show: '(leave blank)' }]).concat([
+          ].concat(sec.type === 'WF' ? [
+            // a W picked by hand: the sheet's own WF input (M19 = "WF" when Q4 = 3; M20 shows the name typed in M21)
+            { sheet, cell: 'Q4', where: 'K19 drop-down', label: 'Wide-flange/Built-up Sect.', value: 3, show: 'WF' },
+            { sheet, cell: 'M21', label: 'Enter WF-Section', value: sec.name, show: sec.name },
+          ] : [
             { sheet, cell: 'Q4', where: 'K19 drop-down', label: 'Wide-flange/Built-up Sect.', value: 2, show: 'BU' },
+          ]).concat([
+            // the plate cells: the sheet's WF path reads them too (Chapter B h/tw, the flange checks) — a W's own d, tw, bf, tf
             { sheet, cell: 'M22', label: 'Total Depth, in.', value: sec.d, show: String(sec.d) },
             { sheet, cell: 'M23', label: 'Web Thickness, in.', value: sec.tw, show: String(sec.tw) },
             { sheet, cell: 'M24', label: 'O. Flange Width, in.', value: sec.bof, show: String(sec.bof) },
             { sheet, cell: 'M25', label: 'O. Flange Thickness, in.', value: sec.tof, show: String(sec.tof) },
             { sheet, cell: 'M26', label: 'I. Flange Width, in.', value: sec.bif, show: String(sec.bif) },
             { sheet, cell: 'M27', label: 'I. Flange Thickness, in.', value: sec.tif, show: String(sec.tif) },
-          ]);
+          ]));
           const read = [
             { sheet, cell: 'M20', label: 'Section Description', expect: c.desc },
             { sheet, cell: 'H6', label: 'Floor dead load — shear at left / right, kips', expect: n3(c.V.D) },
@@ -945,7 +977,8 @@
           ];
           return { sheet, mark: m.mark, kind: m.kind, desc: m.desc, span: q.span, L: q.params.L, trib: q.params.trib, qty: q.qty, shorter: i > 0, mezzIds: m.mezzIds, steps, read };
         });
-        beam.push({ file: XL.beamBook[e13 ? 13 : ed === '16' ? 16 : 15], edition: ed, copy: k / 4 + 1, marks: ms.map(m => m.mark), inputs, sheets });
+        const dCopy = e13 ? dMax : Math.max(...runs.slice(k, k + 4).map(({ m }) => m.sec.d));
+        beam.push({ file: XL.beamBook[e13 ? 13 : ed === '16' ? 16 : 15], edition: ed, copy: k / 4 + 1, marks: ms.map(m => m.mark), inputs: members.map(c => inputFor(c, dCopy)), sheets });
       }
     });
     // Column sheet: one run per column case
@@ -1053,6 +1086,11 @@
     if (inp.Ss.value == null || inp.S1.value == null) need.push('Ss and S1 (PCS Box 3)');
     const d = need.length ? null : SEIS.design({ ed, Ss: inp.Ss.value, S1: inp.S1.value, siteClass: inp.siteClass.value, risk: inp.risk.value, SDS: inp.SDS.value, SD1: inp.SD1.value });
     if (d && !d.ok) d.flags.forEach(t => need.push(t));
+    // the seismic weight (framing) and each frame column's share of the EQ load come from the sized members: a mark with
+    // no section leaves both unknown, so the page waits rather than send a frame's whole load to one column
+    const noSec = [...new Set(mezz.filter(r => r && !r.incomplete).flatMap(r => (r.marks || []).filter(mk => !mk.check).map(mk => mk.mark)))];
+    const nanF = (frames || []).some(f => (f.entries || []).some(e => (e.parts || []).some(p => !isFinite(p.D))));
+    if (noSec.length || nanF) need.push(`${noSec.length ? noSec.join(', ') : 'every beam'} sized on the Design page — with no section the framing weight and each frame column's share of the mezzanine EQ load are unknown`);
     const out = { ok: false, need, notes, inputs: inp, design: d, buildings: [], cfg };
     // per building
     [...new Set(live.map(c => c.bkey))].forEach(bk => {

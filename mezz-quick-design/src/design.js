@@ -320,6 +320,14 @@
     return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
 
+  // a section's plate dimensions: a built-up section carries them; a W (picked by hand) takes them from the W table,
+  // both flanges bf × tf — so the depth, the clearance C, the DM checks and the drawings read it like any other section
+  function secDims(sec) {
+    if (!sec || sec.type !== 'WF' || sec.d != null) return sec;
+    const w = WFT && WFT[String(sec.name).toUpperCase()];
+    return w ? { ...sec, name: String(sec.name).toUpperCase(), d: w.d, tw: w.tw, bof: w.bf, tof: w.tf, bif: w.bf, tif: w.tf } : sec;
+  }
+
   // Beam reactions for a given section (MB!H6 dead, MB!H10 live)
   function reactions(p, sec) {
     const r = MZ.beamCheck({ ...p, sec }, sec && sec.type === 'WF' ? WFT : null);
@@ -390,6 +398,6 @@
   // the production rule each left-out section broke, in words
   const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
 
-  const api = { PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  const api = { secDims, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);

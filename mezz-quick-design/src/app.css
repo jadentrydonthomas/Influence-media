@@ -574,9 +574,15 @@ tr.none td { color: var(--ink-faint); }
   .field, .field * { color: var(--ink) !important; background: transparent !important; border-color: var(--line) !important; }
   .field .eyebrow, .field .step, .ffacts b.qty, .disc-inner strong, .disc-inner span { color: var(--green-dark) !important; }
   /* the dial flat on paper: a ring and the number, red when NG */
-  .disc { transform: none !important; box-shadow: none !important; background: none !important; border: 3px solid var(--green-dark); }
-  .disc::before, .orbit { display: none !important; }
-  .disc.ng { border-color: var(--red); }
+  .disc { transform: none !important; box-shadow: none !important; background: none !important; border: 3px solid var(--green-dark) !important; }
+  .disc::before, .disc::after, .disc-wrap::before, .orbit { display: none !important; }
+  .disc.ng { border-color: var(--red) !important; }
+  .disc-inner { max-width: 78%; }
+  /* screen hints (hover, click) are not for paper; tables stay whole; NO SECTION / not sized in full-strength red */
+  .screen-only, .lg-hint, .tip-hint { display: none !important; }
+  table { break-inside: avoid; }
+  .ng, .nocase.ng, b.ng, .mt-ng, .empty.ng { color: #b42318 !important; }
+  .disc-inner b { white-space: normal; letter-spacing: .04em; line-height: 1.3; }
   .disc.ng .disc-inner strong, .disc.ng .disc-inner b, .disc.ng .disc-inner span { color: var(--red) !important; }
   .disc-inner b { background: none !important; color: var(--ink) !important; }
   .tallies, .tally { break-inside: avoid; }
@@ -1177,3 +1183,5 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 #planSvg .arrow, #planSvg .arrow-t, #planSvg .run-lab, #planSvg .dim, #planSvg .lbl { pointer-events: none; }
 .tally.ng::before { background: #ff8f7a !important; }
 .cp-note { flex-basis: 100%; color: var(--amber); font-size: 12px; }
+.sr-head .sr-back { align-self: flex-start; margin-top: 6px; padding: 4px 10px; font-size: 12px; }
+.empty .split-why { display: block; margin-top: 6px; color: var(--ink-muted); font-weight: 400; font-size: 12.5px; }

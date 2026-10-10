@@ -22,8 +22,9 @@
   // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
   // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
   const jobMarks = () => (state.job && state.job.marks) || [];
-  const mkHex = mk => HEX[(mk && mk.index > 0 ? mk.index : 0) % 4];
-  const mkVar = mk => MARK_COLORS[(mk && mk.index > 0 ? mk.index : 0) % 4];
+  // a mark with no section is drawn red everywhere (plan, run labels, 3D, keys) — never in a mark's "pass" colour
+  const mkHex = mk => (mk && !mk.sec ? '#e5484d' : HEX[(mk && mk.index > 0 ? mk.index : 0) % 4]);
+  const mkVar = mk => (mk && !mk.sec ? 'var(--red)' : MARK_COLORS[(mk && mk.index > 0 ? mk.index : 0) % 4]);
   const mkName = mk => (mk ? mk.mark + (mk.kind ? ' · ' + mk.kind : '') : '');
   const mkOf = (r, id) => (r && r.marks ? r.marks.find(mk => mk.beams.includes(id)) : null);
   const manyMezz = () => !!(state.all && state.all.length > 1);
@@ -46,6 +47,8 @@
   // a mark's MB-sheet span and trib (set on the Beam calc page) vs the layout's; a run's MB-sheet length
   const mkDz = mk => (mk && mk.design) || { span: mk ? mk.span : 0, trib: mk ? mk.trib : 0, cut: 0, set: false };
   const runL = q => (q && q.L != null ? q.L : q ? q.span : 0);
+  // a mark that does not pass (a section picked by hand, or none): the MB sheet ratios, deflection and joist bearing
+  const markFails = mk => { const t = state.settings.target, c = mk && mk.check; return !c || !(c.res.CSR <= t && c.res.SRvx <= t && c.llOK && c.tlOK && (!c.conc || c.conc.ok)); };
   const mkDims = mk => { const d = mkDz(mk); return `${ft(d.span)} × ${ft(d.trib)}${d.set ? ` <small class="sub-n">design · layout ${ft(mk.span)} × ${ft(mk.trib)}</small>` : ''}`; };
   // the beam end loads that go to the frame and the columns: the layout span and trib with the mark's section
   const layoutV = (mk, q) => (mk && mk.sec && mk.params ? DESIGN.reactions({ ...mk.params, L: q ? q.span : mk.span, trib: mk.trib }, mk.sec) : null);
@@ -182,7 +185,7 @@
       const rows = ['left', 'right'].map(sd => { const ps = c.parts.filter(p => p.sheetSide === sd); return ps.length ? ps.map((p, i) => partRow(p, i ? '' : sd)).join('') : `<tr><td class="sd">${sideTxt(sd)}</td><td><small>no beam on this side</small></td><td class="d">0.00</td><td class="l">0.00</td></tr>`; }).join('');
       return head(`C${cno.get(c.label) || '?'} · ${esc(c.label)}`, `mezzanine column${many ? ' · ' + esc(m.id) : ''}`) +
         `<div class="tip-k">Column sheet input · beam reactions, unfactored (kips)</div><div class="tip-lr">${pair('Left', c.DL_L, c.LL_L)}${pair('Right', c.DL_R, c.LL_R)}</div>` + tbl(rows) +
-        `<div class="tip-f">${m.colFinal ? `<b>${esc(m.colFinal.quoteAs)}</b> · ${ft(m.colLen)} · CSR ${chk ? f(chk.max, 3) : '—'}` : 'not sized yet'} · trib ${f(c.tribArea, 0)} ft²${c.shared ? ' · shared by ' + esc(c.mezzes.map(i => job.mezz[i].id).join(' + ')) : ''}</div>`;
+        `<div class="tip-f">${m.colFinal && chk ? `<b>${esc(m.colFinal.quoteAs)}</b> · ${ft(m.colLen)} · CSR ${f(chk.max, 3)}` : `<b class="ng">NOT SIZED</b>${m.colWhy && m.colWhy.marks && m.colWhy.marks.length ? ` — ${esc(m.colWhy.marks.join(', '))} ${m.colWhy.marks.length > 1 ? 'have' : 'has'} no section` : ''}`} · trib ${f(c.tribArea, 0)} ft²${c.shared ? ' · shared by ' + esc(c.mezzes.map(i => job.mezz[i].id).join(' + ')) : ''}</div>`;
     }
     if (kind === 'bcol') {
       // a column of a building attached to this one: its own building's loads and grid
@@ -206,7 +209,7 @@
       const trib = bm.extra ? `${ft(bm.trib)} <small>(${ft(bm.tribOwn)} + ${bm.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')})</small>` : ft(bm.trib);
       return head(`${many ? esc(m.id) + ' ' : ''}${bNo(m, id)} · ${esc(mkName(mk))}`, where) +
         `<div class="tip-sec"><i style="background:${mkHex(mk)}"></i>${esc(mk ? mk.desc || 'no section' : '—')}</div>` +
-        `<dl class="tip-dl"><div><dt>Span</dt><dd>${ft(bm.span)}</dd></div><div><dt>Trib</dt><dd>${trib}</dd></div><div><dt>MB sheet run</dt><dd>${mk ? `${ft(run ? runL(run) : Math.abs(bm.span - mk.span) < 1e-3 ? mkDz(mk).span : bm.span)} × ${ft(mkDz(mk).trib)}` : '—'}</dd></div></dl>` +
+        `<dl class="tip-dl"><div><dt>Span</dt><dd>${ft(bm.span)}</dd></div><div><dt>Trib</dt><dd>${trib}</dd></div><div><dt>MB sheet run</dt><dd>${mk && !mk.sec ? '<b class="ng">none — nothing passes</b>' : mk ? `${ft(run ? runL(run) : Math.abs(bm.span - mk.span) < 1e-3 ? mkDz(mk).span : bm.span)} × ${ft(mkDz(mk).trib)}` : '—'}</dd></div></dl>` +
         (rx ? `<div class="tip-k">End shear, each end · own span and trib (MB H6 / H10)</div><div class="tip-lr one">${pair('Each end', rx.D, rx.L)}</div>` : '') +
         `<div class="tip-f">${mk && mk.kind === 'interior' ? 'Interior: more trib than any edge beam — designed at the largest interior trib.' : mk && mk.kind === 'exterior' ? 'Exterior: edge beam, joists on one side — designed at the largest edge trib.' : ''}</div>`;
     }
@@ -354,7 +357,8 @@
     nav.innerHTML = `<span class="mt-title">${state.all.length} mezzanines<small>designed together</small></span>` + state.job.mezz.map((m, i) => {
       const g = state.all[i].inputs.geom, size = `W ${ft(g.width.value)} × L ${ft(g.length.value)}`;   // width along the endwall, length along the sidewall (Box 22)
       const beams = m.incomplete ? '' : m.marks.map(mk => `${mk.mark} ${esc(mk.desc || 'NO SECTION')} × ${mk.qty}`).join(' · ');
-      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length}` : (m.columns.length ? `<em class="mt-ng">${m.columns.length} column${m.columns.length > 1 ? 's' : ''} not sized</em>` : '');
+      const nUn = m.colFinal ? (m.colFinal.unsized || []).length : 0;
+      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length - nUn}${nUn ? ` · <em class="mt-ng">${nUn} not sized</em>` : ''}` : (m.columns.length ? `<em class="mt-ng">${m.columns.length} column${m.columns.length > 1 ? 's' : ''} not sized</em>` : '');
       const st = m.incomplete ? `<em class="mt-need">needs ${m.need.length} input${m.need.length > 1 ? 's' : ''}</em>` : m.warn.some(w => w.level === 'stop') ? '<em class="mt-check">check notes</em>' : '<em class="mt-ok">designed</em>';
       return `<button class="mt ${i === state.mi ? 'is-on' : ''}" data-mi="${i}" aria-pressed="${i === state.mi}"><span class="mt-name">${esc(m.id)}</span><span class="mt-size">${size}</span>${st}<span class="mt-sec">${beams || '—'}${cols ? '<br>' + cols : ''}</span></button>`;
     }).join('');
@@ -428,7 +432,10 @@
     const labels = cmp.matched.concat(cmp.extra.map(lab)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     const mine = maps[r.index], gb = r.grid;
     const seen = mine ? reg.columns.map(c => ({ ...c, ...mine.fromHost(c.x, c.y) })).filter(c => c.x > -1 && c.x < gb.length + 1 && c.y > -1 && c.y < gb.width + 1) : [];
-    r.planCheck = { ok: true, cols: seen, labels, ...cmp, drawn: cmp.matched.length + cmp.extra.length, laid: cmp.matched.length + cmp.missing.length, extraLabels: cmp.extra.map(lab) };
+    // drawing columns the job no longer has: made frame columns on the Plan page, or taken out
+    const madeFr = (state.job.frameLoads || []).filter(q => q.userKind === 'frame').map(q => { const mi = q.owner != null ? q.owner : q.parts && q.parts[0] && q.parts[0].mi; return maps[mi] ? maps[mi].toHost(q.x, q.y) : null; }).filter(Boolean);
+    const isFr = c => madeFr.some(p => Math.hypot(p.x - c.x, p.y - c.y) < 1);
+    r.planCheck = { ok: true, cols: seen, labels, ...cmp, drawn: cmp.matched.length + cmp.extra.length, laid: cmp.matched.length + cmp.missing.length, extraLabels: cmp.extra.filter(c => !isFr(c)).map(lab), frameLabels: cmp.extra.filter(isFr).map(lab) };
     const many = state.job.mezz.length > 1;
     const per = many ? ' (' + state.job.mezz.filter(m => !m.incomplete).map(m => `${m.id} ${m.columns.length}`).join(', ') + ')' : '';
     const sym = reg.columns.some(c => c.markup) ? 'marked-up X' : reg.columns.some(c => c.kind === 'i') ? 'circled-I' : '⊗';
@@ -496,6 +503,7 @@
   const chip = (lab, val, ok) => `<span class="chip ${ok === true ? 'ok' : ok === false ? 'bad' : ''}"><b>${lab}</b>${val}</span>`;
   function secParts(sec) {
     if (!sec) return '';
+    if (sec.type === 'WF') return sec.d != null ? `W shape · d ${sec.d}" · bf ${sec.bof}" × tf ${sec.tof}" · web ${sec.tw}"` : 'W shape';
     const fl = DESIGN.flangeName(sec.bof, sec.tof), fi = DESIGN.flangeName(sec.bif, sec.tif);
     return `${sec.d}" · web ${sec.tw}" · ${fl === fi ? fl + ' (' + sec.bof + ' × ' + sec.tof + ')' : 'OF ' + fl + ' / IF ' + fi}`;
   }
@@ -790,7 +798,7 @@
     const out = [], q = (state.pcs && state.pcs.job.quote) || 'mezzanine', ex = (state.job && state.job.excel) || { beam: [], column: [] }, cno = colNos();
     ex.beam.forEach(b => {
       const inp = b.inputs[0], steps = inp.steps.concat(b.sheets.flatMap(sh => sh.steps));
-      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: b.sheets.map(x => `${x.mark} ${ft(x.span)}`).join(' · '), sub: b.sheets.map(x => x.sheet).join(', '),
+      out.push({ key: `beam|${b.copy}|${b.marks.join('+')}`, kind: 'beam', ed: b.edition === '13' ? '13' : b.edition === '16' ? '16' : '15', title: b.sheets.map(x => `${x.mark} ${ft(x.span)}`).join(' · '), sub: `workbook tabs: ${b.sheets.map(x => `${x.sheet} ← ${x.mark}${x.shorter ? ' ' + ft(x.span) : ''}`).join(', ')}`,
         note: b.inputs.length > 1 ? `INPUT carries ${inp.mezz}'s heights (the MB results do not use them)` : '', name: `${q}-MB${b.copy > 1 ? '-' + b.copy : ''}.xls`, steps, read: b.sheets.flatMap(sh => sh.read).concat(inp.read) });
     });
     ex.column.forEach(b => b.cases.forEach(c => {
@@ -839,6 +847,7 @@
     const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
     el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
+      ${jobs.length && state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null) ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic page is finished</small>' : ''}
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
     const inp = $('#wbFile'); if (inp) inp.onchange = () => { wbAdd(Array.from(inp.files || [])); inp.value = ''; };
@@ -876,7 +885,7 @@
     const seisWait = !!(state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null));
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic page is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic page is finished</small>' : ''}</div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic page is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic page is finished</small>' : ''}</div></div>`;
     });
   }
 
@@ -960,7 +969,7 @@
           <div class="disc-proof">${unsized ? (c0 || t.colMax != null ? `sized so far: ${c0 ? `${esc(t.govBeam ? t.govBeam.mk.mark : mk0 ? mk0.mark : '')} combined <b>${f(c0.res.CSR, 3)}</b>` : ''}${t.colMax != null ? `${c0 ? ' · ' : ''}columns <b>${f(t.colMax, 3)}</b>` : ''}` : '') : `${c0 ? `combined <b>${f(c0.res.CSR, 3)}</b> · shear <b>${f(c0.res.SRvx, 3)}</b>` : ''}${t.colMax != null ? ` · column <b>${f(t.colMax, 3)}</b>` : ''}`}</div></div>
         <div class="tallies">
           <div class="tally ${nNoCol ? 'ng' : ''}"><div class="step">02 / Mezzanine columns</div><div class="tally-row"><div><h4 class="nocase">${nNoCol ? `<span class="ng">${nNoCol} not sized</span>${sized ? ' · ' + esc(sized) : ''}` : cols ? esc(cols) : 'None needed'}</h4><p>${nNoCol ? esc(noSec.length ? `${noSec.map(mk => mk.mark).join(', ')} ${noSec.length > 1 ? 'have' : 'has'} no section, so the reactions are unknown` : 'see Check before quoting') : cols ? `${colLens} · ${nCases} load case${nCases > 1 ? 's' : ''}${many && s.colPerJob !== false ? ' · one section, whole job' : ''}` : 'beams frame into building columns'}</p></div><div><strong>${t.nC}</strong><small>${t.colMax != null ? 'CSR ' + f(t.colMax, 3) : ''}</small></div></div></div>
-          <div class="tally ${pc && pc.ok && pc.agree ? '' : 'warn'}"><div class="step">03 / Floor plan check</div><div class="tally-row"><div><h4>${pc ? (pc.ok ? (pc.agree ? 'Matches the drawing' : edited ? 'Edited on the Plan page' : 'Differs from the drawing') : 'Not read') : 'No floor plan'}</h4><p>${pc && pc.ok ? (edited && !pc.agree ? esc([pc.extraLabels.length ? `on the drawing, taken out: ${pc.extraLabels.join(', ')}` : '', pc.missing.length ? `added: ${pc.missing.join(', ')}` : ''].filter(Boolean).join(' · ')) : '⊗ at ' + esc(pc.labels.join(', '))) : pc ? esc(pc.reason) : 'confirm the layout by eye'}</p></div><div><strong>${pc && pc.ok ? (edited && !pc.agree ? `${pc.drawn} / ${pc.laid}` : pc.matched.length + '/' + pc.labels.length) : '—'}</strong><small>${pc && pc.ok ? (edited && !pc.agree ? 'drawing / layout' : 'columns found') : ''}</small></div></div></div>
+          <div class="tally ${pc && pc.ok && pc.agree ? '' : 'warn'}"><div class="step">03 / Floor plan check</div><div class="tally-row"><div><h4>${pc ? (pc.ok ? (pc.agree ? 'Matches the drawing' : edited ? 'Edited on the Plan page' : 'Differs from the drawing') : 'Not read') : 'No floor plan'}</h4><p>${pc && pc.ok ? (edited && !pc.agree ? esc([pc.extraLabels.length ? `on the drawing, taken out: ${pc.extraLabels.join(', ')}` : '', (pc.frameLabels || []).length ? `made frame columns: ${pc.frameLabels.join(', ')}` : '', pc.missing.length ? `added: ${pc.missing.join(', ')}` : ''].filter(Boolean).join(' · ')) : '⊗ at ' + esc(pc.labels.join(', '))) : pc ? esc(pc.reason) : 'confirm the layout by eye'}</p></div><div><strong>${pc && pc.ok ? (edited && !pc.agree ? `${pc.drawn} / ${pc.laid}` : pc.matched.length + '/' + pc.labels.length) : '—'}</strong><small>${pc && pc.ok ? (edited && !pc.agree ? 'drawing / layout' : 'columns found') : ''}</small></div></div></div>
         </div></div>
         <div class="field-foot"><b>Field readout</b><span>${joistTxt}; ${t.nB} beams frame into ${t.nC} mezzanine column${t.nC === 1 ? '' : 's'} and the building columns.</span></div>
       </div>`;
@@ -1066,11 +1075,12 @@
       // beams: I-shapes (top flange, web, bottom flange) — web drawn at least 0.9" so it reads; an edge carried by a
       // neighbour's beam is that beam, drawn once by its owner
       lay.beams.filter(bm => !bm.absorbed).forEach(bm => {
-        const mk = mkOf(m, bm.id), sec = mk && mk.sec;
-        if (!sec) return;
+        const mk = mkOf(m, bm.id), sec0 = mk && mk.sec;
+        // no section: drawn at a nominal 18" × 6" in red, see-through, so the floor has no gap and the beam still selects
+        const sec = sec0 || { d: 18, tw: 0.25, bof: 6, tof: 0.375, bif: 6, tif: 0.375 }, ng = !sec0;
         const d = sec.d / 12, bf = sec.bof / 12, tf = sec.tof / 12, bi = sec.bif / 12, ti = sec.tif / 12, tw = Math.max(sec.tw, 0.9) / 12;
         const box = (a0, a1, w, z0, z1) => (alongX ? { x0: a0, x1: a1, y0: bm.line - w / 2, y1: bm.line + w / 2, z0, z1 } : { x0: bm.line - w / 2, x1: bm.line + w / 2, y0: a0, y1: a1, z0, z1 });
-        members.push({ id: pre + bNo(m, bm.id), kind: 'beam', color: mkHex(mk), boxes: [box(bm.from, bm.to, bf, zTop - tf, zTop), box(bm.from, bm.to, tw, zTop - d + ti, zTop - tf), box(bm.from, bm.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', m, b: bm, mk } });
+        members.push({ id: pre + bNo(m, bm.id), kind: 'beam', color: ng ? '#e5484d' : mkHex(mk), ...(ng ? { alpha: 0.45 } : {}), boxes: [box(bm.from, bm.to, bf, zTop - tf, zTop), box(bm.from, bm.to, tw, zTop - d + ti, zTop - tf), box(bm.from, bm.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', m, b: bm, mk } });
       });
       // one tag per run of beams of one mark on one line (not one per beam), at the middle of the run
       const runs = [];
@@ -1259,10 +1269,11 @@
     window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null), beams: () => state.scene.members.filter(x => x.kind === 'beam').map(x => x.id) };
     const ms = jobView(), many = ms.length > 1, t = many ? jobTotals() : totals(), marks = jobMarks();
     const cols = [...new Set(ms.filter(m => m.colFinal && m.columns.length).map(m => m.colFinal.quoteAs))].join(' / ');
+    const nUnC = ms.reduce((a, m) => a + (!m.columns.length ? 0 : m.colFinal ? (m.colFinal.unsized || []).length : m.columns.length), 0);
     $('#modelTitle').textContent = `${many ? ms.map(m => m.id).join(' + ') + ' · ' : ''}${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
-    $('#modelCount').textContent = ms.map(m => `${many ? m.id + ' ' : ''}${ft(m.layout.footprint.x1 - m.layout.footprint.x0)} × ${ft(m.layout.footprint.y1 - m.layout.footprint.y0)} · T/slab ${ft(inpOf(m).geom.A.value)}`).join(' · ');
+    $('#modelCount').textContent = ms.map(m => `${many ? m.id + ' ' : ''}${ft(m.layout.footprint.x1 - m.layout.footprint.x0)} long × ${ft(m.layout.footprint.y1 - m.layout.footprint.y0)} wide · T/slab ${ft(inpOf(m).geom.A.value)}`).join(' · ');
     $('#modelKey').innerHTML = marks.map(mk => `<span class="mk-key"><i style="background:${mkHex(mk)}"></i><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || 'NO SECTION')} × ${mk.qtyAll}</span>`).join('') +
-      `<span><i style="background:#ff9f7a"></i>Mezzanine column ${esc(cols)} × ${t.nC}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${[...new Set(ms.map(m => ft(m.beamBase.Lb)))].join(' / ')}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${[...new Set(ms.map(m => f((inpOf(m).geom.slab.value || 0) * 12, 1) + '"'))].join(' / ')}</span>`;
+      `<span><i style="background:#ff9f7a"></i>Mezzanine column ${cols && t.nC > nUnC ? `${esc(cols)} × ${t.nC - nUnC}` : ''}${nUnC ? `${cols && t.nC > nUnC ? ' · ' : ''}<b class="ng">${nUnC} not sized</b>` : ''}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${[...new Set(ms.map(m => ft(m.beamBase.Lb)))].join(' / ')}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${[...new Set(ms.map(m => f((inpOf(m).geom.slab.value || 0) * 12, 1) + '"'))].join(' / ')}</span>`;
     model.pinned = null;
     showMember(null);
   }
@@ -1277,7 +1288,7 @@
       card.innerHTML = `<div class="eyebrow">Selected member</div><h4>${esc(ms.map(q => q.id).join(' + ') || 'Mezzanine')}</h4><div class="kind">${many ? 'The whole job' : 'Mezzanine'} · click a beam or column</div>
         <div class="mk-mini">${marks.map(mk => `<div style="--mk:${mkHex(mk)}"><b>${mk.mark}</b><span>${esc(mk.kind || 'beams')}</span><em class="nocase">${esc(mk.desc || 'NO SECTION')}</em><small>× ${mk.qtyAll}</small></div>`).join('')}</div>
         <dl><div><dt>Beams</dt><dd>${t.nB}</dd></div><div><dt>Columns</dt><dd>${t.nC}</dd></div></dl>
-        <div class="foot">Green and blue beams are the interior and exterior marks. Click a column to see the left / right dead and live it takes from the beams.</div>`;
+        <div class="foot">${(() => { const ks = jobMarks(); return ks.length ? `Beam colours are the marks (${ks.map(k => k.mark + (k.kind ? ' ' + k.kind : '')).join(', ')}) — key below${ks.some(k => !k.sec) ? '; red, see-through: no section' : ''}.` : ''; })()} Click a column to see the left / right dead and live it takes from the beams.</div>`;
       return;
     }
     const ref = m.ref;
@@ -1285,18 +1296,18 @@
       const o = ref.m, b = ref.b, mk = ref.mk, run = runOf(mk, b.span), c = run ? run.check : mk.check, rx = mk.sec ? DESIGN.reactions({ ...o.beamBase, L: b.span, trib: b.trib }, mk.sec) : null;
       const g = o.grid, lay = o.layout, lab = (lay.joists === 'y' ? g.yLabel(b.line) : g.xLabel(b.line)) || ft(b.line), fl = lay.joists === 'y' ? g.xLabel : g.yLabel;
       card.innerHTML = `<div class="eyebrow">${eb}${many ? ' · ' + esc(o.id) : ''}</div><h4>${bNo(o, b.id)} · ${mkName(mk)}</h4><div class="kind">Beam on line ${esc(lab)} · ${esc(fl(b.from) || ft(b.from))} → ${esc(fl(b.to) || ft(b.to))}</div>
-        <div class="sec nocase">${esc(mk.desc || 'NO SECTION')}</div>
+        <div class="sec nocase${mk.sec ? '' : ' ng'}">${esc(mk.desc || 'NO SECTION')}</div>
         <dl><div><dt>Span</dt><dd>${ft(b.span)}</dd></div><div><dt>Trib</dt><dd>${ft(b.trib)}</dd></div>
         <div><dt>R dead</dt><dd>${rx ? f(rx.D, 2) + 'k' : '—'}</dd></div><div><dt>R live</dt><dd>${rx ? f(rx.L, 2) + 'k' : '—'}</dd></div>
-        <div><dt>Combined</dt><dd>${f(c.res.CSR, 3)}</dd></div><div><dt>Shear</dt><dd>${f(c.res.SRvx, 3)}</dd></div>
-        <div><dt>Live defl.</dt><dd>L/${f(c.defl.rLL, 0)}</dd></div><div><dt>Weight</dt><dd>${f(c.res.Wt, 1)} plf</dd></div></dl>
-        <span class="pill">${b.span < mk.span - 1e-3 ? `shorter member — ${mk.mark} section, MB sheet at ${ft(runL(runOf(mk, b.span) || { span: b.span }))}` : b.trib < mk.trib - 1e-3 ? `designed for ${ft(mk.trib)} trib (${mk.mark} governing)` : `governing ${mk.mark} beam`}</span>
+        ${c ? `<div><dt>Combined</dt><dd>${f(c.res.CSR, 3)}</dd></div><div><dt>Shear</dt><dd>${f(c.res.SRvx, 3)}</dd></div>
+        <div><dt>Live defl.</dt><dd>L/${f(c.defl.rLL, 0)}</dd></div><div><dt>Weight</dt><dd>${f(c.res.Wt, 1)} plf</dd></div>` : ''}</dl>
+        <span class="pill">${!mk.sec ? `nothing passes — drawn at a nominal 18" depth (see Beam calc)` : b.span < mk.span - 1e-3 ? `shorter member — ${mk.mark} section, MB sheet at ${ft(runL(runOf(mk, b.span) || { span: b.span }))}` : b.trib < mk.trib - 1e-3 ? `designed for ${ft(mk.trib)} trib (${mk.mark} governing)` : `governing ${mk.mark} beam`}</span>
         <div class="foot">${secParts(mk.sec)}</div>`;
     } else if (ref.type === 'col') {
       const ci = colInfo({ x: ref.c.ox ?? ref.c.x, y: ref.c.oy ?? ref.c.y, mi: ref.m.index }), col = ci && ci.c, o = ci ? ci.m : ref.m, cf = o.colFinal, chk = cf && ci && ci.gi >= 0 ? cf.checks[ci.gi] : null;
       const from = sd => (col ? col.parts.filter(p => p.sheetSide === sd).map(p => `${many ? esc(p.mezz) + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + ') || 'no beam' : '—');
       card.innerHTML = `<div class="eyebrow">${eb}${many ? ' · ' + esc(o.id) : ''}</div><h4>C${ref.no} · ${esc(ref.c.label)}</h4><div class="kind">Mezzanine column ⊗ · Column sheet input</div>
-        <div class="sec nocase">${cf ? esc(cf.quoteAs) : '—'}</div>
+        <div class="sec nocase${cf && chk ? '' : ' ng'}">${cf && chk ? esc(cf.quoteAs) : 'NOT SIZED'}</div>${cf && chk ? '' : `<div class="kind">${o.colWhy && o.colWhy.marks && o.colWhy.marks.length ? `${esc(o.colWhy.marks.join(', '))} ${o.colWhy.marks.length > 1 ? 'have' : 'has'} no section, so the beam reactions are unknown` : 'the beam reactions are unknown'}</div>`}
         <dl><div><dt>Left D / L (k)</dt><dd>${col ? lr(col.DL_L, col.LL_L) : '—'}</dd></div><div><dt>Right D / L (k)</dt><dd>${col ? lr(col.DL_R, col.LL_R) : '—'}</dd></div>
         <div><dt>Left from</dt><dd>${from('left')}</dd></div><div><dt>Right from</dt><dd>${from('right')}</dd></div>
         <div><dt>Height</dt><dd>${ft(o.colLen)}</dd></div><div><dt>Max CSR</dt><dd>${chk ? f(chk.max, 3) : '—'}</dd></div></dl>
@@ -1792,7 +1803,7 @@
       if (!rows.length) return '';
       return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-apply"><thead><tr><th>Frame line</th><th>Column</th><th>NBG Frame member</th><th class="num">At</th><th>From</th><th class="num">Calculated (k)</th><th class="num">Applied (k)</th><th>In the frame file</th></tr></thead><tbody>${rows.map(r => {
         if (r.loose) return `<tr class="bad-row"><td class="mono"><b>${esc(r.fr.label)}</b></td><td colspan="7"><span class="bad">${esc(r.loose.id)} ${F2(r.loose.F)} k — no frame column on this line: ${esc(r.loose.why)}. Brace the mezzanine here (independent X-bracing) or carry it to the next frames.</span></td></tr>`;
-        const e = r.e, it = fileFor(b, r.fr), from = r.edited === 'typed' ? `${r.mezz.join(' + ')}` : r.mezz.map((m, i) => `${m} ${Math.round(r.shares[i] * 100)} %`).join(' + ');
+        const e = r.e, it = fileFor(b, r.fr), from = r.mezz.map((m, i) => `${m} ${Math.round(r.shares[i] * 100)} %`).join(' + ') + (r.edited === 'typed' ? ' · typed' : '');
         return `<tr class="${r.edited ? 'is-' + r.edited : ''}" data-fr="${esc(b.bkey + '|' + r.fr.label)}" data-member="${esc(e.member)}"><td class="mono"><b>${esc(r.fr.label)}</b></td><td class="mono">${esc(e.label)}</td><td class="mono"><b>${esc(e.member)}</b></td><td class="num mono">${ft(e.at)}</td>
           <td class="sub-n">${esc(from)}${r.edited !== 'typed' && r.shares.some(x => x < 0.999) ? ` <small>of the frame's ${esc(r.mezz.join(' / '))} load (by dead load)</small>` : ''}</td>
           <td class="num mono">${F2(r.calc)}</td>
@@ -1822,7 +1833,7 @@
       const b0 = sj.buildings[0];
       const fOn = sj.buildings.some(b => b.mezz.some(m => m.framing > 0));
       flags.push(`<b>Framing weight in the floor dead.</b> ${fOn ? `${sj.buildings.flatMap(b => b.mezz.filter(m => m.framing > 0).map(m => `${esc(m.id)} + ${F2(m.framing)} psf (this design's beams and half its columns)`)).join(' · ')}, so the workbook's Floor Dead gets ${sj.buildings.flatMap(b => b.mezz.map(m => `${F2(m.FDL + m.framing)}`)).join(' / ')} psf.` : 'Off — the Floor Dead is typed as it is.'} ${chk('framingAll', fOn, 'add the framing weight')} — untick when your floor dead already includes it (e.g. 55).`);
-      flags.push(`<b>Self weight.</b> Lateral frame self weight ${F2(b0.roof.SW.value)} psf (B33, the workbook's default) and roof self weight ${F2(b0.roof.RSW.value)} psf (B36). This is how your W1S-26062 longitudinal table reads (roof W 230,283 lb); if "self weight 1 psf" meant the frame's, type B33 = 1 and B36 = 0 in step 2.`);
+      flags.push(`<b>Self weight.</b> Lateral frame self weight ${F2(b0.roof.SW.value)} psf (B33, the workbook's default) and roof self weight ${F2(b0.roof.RSW.value)} psf (B36), as the workbook has them. If the job gives the frame's own self weight (a note such as "self weight 1 psf"), type it in B33 and B36 = 0 in step 2.`);
       flags.push(`<b>Each frame's mezzanine load split between its columns</b> ${sel('split', cfg.split || 'dead', [['dead', 'by the dead load each column takes'], ['equal', 'equally']])} — or type each column's load in step 5.`);
       flags.push(`<b>R.</b> The workbook takes "steel systems not detailed for seismic" (R 3) in SDC A–C; NBG Frame's own seismic uses OMF R 3.5. The EQ loads here are the workbook's (R ${f((b0.frames[0] || { lat: { R: 3 } }).lat.R, 2)}). Untick the check box in step 2 for OMF.`);
       const roofT = sj.buildings.map(b => b.frames.map(fr => `${esc(fr.label)}: ${F2(fr.lat.altRoof)} psf`).join(' · ')).join(' | ');
@@ -2247,20 +2258,23 @@
     if (state.markSpan >= runs.length) state.markSpan = 0;
     const run = runs[state.markSpan], gov = state.markSpan === 0, dz = mkDz(mk);
     renderBeamInputs(mk);
-    $('#spanRuns').innerHTML = `<div class="sr-head"><span class="eyebrow">MB sheet runs · ${mk.mark}</span><small>${runs.length > 1 ? 'one section; each member length is its own run' : 'one member length'} · trib ${ft(dz.trib)}${mk.kind ? ' (largest ' + mk.kind + ')' : ''}${dz.set ? ' · design inputs set above' : ''}</small></div>` +
+    $('#spanRuns').innerHTML = `<div class="sr-head"><span class="eyebrow">MB sheet runs · ${mk.mark}</span><small>${runs.length > 1 ? 'one section; each member length is its own run' : 'one member length'} · trib ${ft(dz.trib)}${mk.kind ? ' (largest ' + mk.kind + ')' : ''}${dz.set ? ' · design inputs set above' : ''}</small>${mk.own ? `<button class="btn-ghost sr-back" id="ownBack" type="button">Back into one mark</button>` : ''}</div>` +
       runs.map((q, i) => `<button class="sr ${i === state.markSpan ? 'is-on' : ''}" data-i="${i}"><b>${ft(runL(q))}</b><span>${q.qty} beam${q.qty === 1 ? '' : 's'}${i === 0 ? ' · designed' : ''}</span><small>${runBeams(mk, q.span)}${Math.abs(runL(q) - q.span) > 1e-3 ? ' · layout ' + ft(q.span) : ''}</small>${q.check ? `<em class="${q.check.res.CSR <= state.settings.target && q.check.res.SRvx <= state.settings.target && q.check.llOK && q.check.tlOK ? 'ok' : 'ng'}">${f(Math.max(q.check.res.CSR, q.check.res.SRvx), 2)}</em>` : ''}</button>`).join('');
     $$('#spanRuns .sr').forEach(b => { b.onclick = () => { state.markSpan = +b.dataset.i; renderBeam(); renderMiniPlan(); }; });
+    const ob = $('#ownBack');
+    if (ob) ob.onclick = () => { allSettings().forEach(st => { st.ownSpan = (st.ownSpan || []).filter(v => Math.abs(v - mk.span) > 1e-3); }); state.mark = 0; state.markSpan = 0; recompute(); toast(`The ${ft(mk.span)} beam${mk.qtyAll > 1 ? 's are' : ' is'} back in ${mk.qtyAll > 1 ? 'their' : 'its'} mark`); };
     // INPUT-sheet values (A, slab, seat, clearances) of a mezzanine that has this mark — the one on screen when it does
     const r = mk.mezzIds && !mk.mezzIds.includes(state.res.index) && state.job ? state.job.mezz[mk.mezzIds[0]] : state.res;
     const inp = state.all ? state.all[r.index].inputs : state.inputs;
-    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase${mk.sec ? '' : ' ng'}">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(runL(run))}</small>`}`;
+    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase${mk.sec && !markFails(mk) ? '' : ' ng'}">${esc(mk.desc || 'no section')}${mk.sec && markFails(mk) ? ' · FAILS' : ''}</em>${gov ? '' : ` <small class="bc-run">at ${ft(runL(run))}</small>`}`;
     renderBeamHow(mk, r, inp);
     const c = run.check, p = run.params;
     if (!c) {
-      const lens = (mk.beamsAll || []).map(x => x.span), longest = Math.max(...lens), mixed = lens.some(v => v < longest - 1e-3) && state.settings.marks !== 'split';
-      $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth. Lower clearance C, add a column, or design one by hand (Design your own).${mixed ? `<br><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(longest)} beam${lens.filter(v => v > longest - 1e-3).length > 1 ? 's' : ''} ${lens.filter(v => v > longest - 1e-3).length > 1 ? 'their' : 'its'} own mark</button>` : ''}</div>`;
+      // offered only when the shorter beams would pass on their own (run.js designs them): only the long beam(s) leave the mark
+      const sh = mk.splitHelps, nL = sh ? sh.n : 0;
+      $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth. Lower clearance C, add a column, or design one by hand (Design your own).${sh ? `<br><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small>` : ''}</div>`;
       const sm = $('#splitMarks');
-      if (sm) sm.onclick = () => { allSettings().forEach(st => { st.marks = 'split'; }); recompute(); toast('Beam marks split by trib / span (Settings → Beam marks)'); };
+      if (sm) sm.onclick = () => { const v = +sh.span.toFixed(4); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); toast(`The ${ft(sh.span)} beam${nL > 1 ? 's have their' : ' has its'} own mark — the rest keep theirs`); };
     }
     else {
       const x = c.res, clear = r.clear;
@@ -2464,8 +2478,12 @@
       withCols.map(m => (withCols.length > 1 ? `<span class="tab-group">${esc(m.id)}</span>` : '') + m.colGroups.map((g, i) => tabOf(m, g, i)).join('')).join('');
     const exCol = ((r.colGroups[state.colGroup] || {}).cols || [])[0], exNo = exCol ? cno.get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
     $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C${exNo || 1}</span> the mezzanine column's number on the plan · <span class="mono">${esc(exPt.join('/'))}</span> the grid point, frame line ${esc(exPt[0])} × column line ${esc(exPt[1] || '')} · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
-    $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
-    $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
+    // a case with unknown loads (a beam framing in has no section) has nothing to try yet
+    const gNow = r.colGroups[state.colGroup], gKnown = gNow && [gNow.loads.DL_L, gNow.loads.LL_L, gNow.loads.DL_R, gNow.loads.LL_R].every(isFinite);
+    if (gKnown) {
+      $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
+      $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
+    }
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { const mi = +t.dataset.mi; if (state.all && mi !== state.mi) switchMezz(mi); state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); renderCalcPack(); }; });
     const g = r.colGroups[state.colGroup];
     const st = r.index === state.mi ? state.settings : (state.all ? state.all[r.index].settings : state.settings);
@@ -2477,7 +2495,7 @@
     if (!cf || !cf.checks[state.colGroup]) $('#colSheet').innerHTML = `<div class="empty ng">${esc((r.colWhy && r.colWhy.text) || 'No column passes.')}</div>`;
     else {
       const chk = cf.checks[state.colGroup], w = cf.props;
-      const names = ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRT'];
+      const names = ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'];
       $('#colSheet').innerHTML = picked + altCard + colViz(g, r, cno) + `<div class="sheet two">
         <div><h4>Span and loading conditions</h4>${kv([
           ['Column Mark:', (() => { const ord = g.cols.slice().sort((a, b) => a.x - b.x || b.y - a.y); return `${esc(ord.map(c => c.label).join(' '))} <small class="sub-n">(${ord.map(c => 'C' + (cno.get(c.label) || '?')).join(', ')})</small>`; })()], ['Column Length, L', f(r.colLen, 4) + ' ft.'], ['X-Axis Unbraced Length, Lbx', f(r.colLen * 12, 2) + ' in.'], ['Y-Axis Unbraced Length, Lby', f(r.colLen * 12, 2) + ' in.'],
@@ -2538,7 +2556,10 @@
   const dzColSources = () => {
     if (!state.job) return [];
     const cno = colNos();
-    return (state.job.mezz || []).flatMap(r => (r.colGroups || []).map((g, gi) => ({ key: `${r.index}|${gi}`, label: `${g.cols.map(c => `C${cno.get(c.label) || '?'} ${c.label}`).join(', ')}${manyMezz() ? ' · ' + r.id : ''}`, r, g })));
+    // the cases with known loads (a column under a beam with no section has none yet), in C-number order
+    const known = g => [g.loads.DL_L, g.loads.LL_L, g.loads.DL_R, g.loads.LL_R].every(isFinite), no = g => Math.min(...g.cols.map(c => cno.get(c.label) || 1e9));
+    return (state.job.mezz || []).flatMap(r => (r.colGroups || []).map((g, gi) => ({ key: `${r.index}|${gi}`, g, r, gi })).filter(x => known(x.g)))
+      .sort((a, b) => no(a.g) - no(b.g)).map(({ key, r, g }) => ({ key, label: `${g.cols.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9)).map(c => `C${cno.get(c.label) || '?'} ${c.label}`).join(', ')}${manyMezz() ? ' · ' + r.id : ''}`, r, g }));
   };
   function dzLoadBeam(key) {
     const src = dzBeamSources().find(x => x.key === key);
@@ -2901,6 +2922,7 @@
         if (el.dataset.num) v = parseFloat(v); else if (v === 'true' || v === 'false') v = v === 'true';
         state.settings[k] = v;
         if (k === 'marks' || k === 'optionDefault') { state.settings.override = {}; state.mark = 0; state.markSpan = 0; }
+        if (k === 'marks') allSettings().forEach(st => { st.ownSpan = []; });
         if (state.all) state.all.forEach(a => { a.settings[k] = v; if (k === 'marks' || k === 'optionDefault') a.settings.override = {}; });
         if (state.inputs) recompute(); else renderSettings();
       };
