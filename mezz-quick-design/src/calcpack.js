@@ -40,7 +40,7 @@
 
     // ---------------- Summary ----------------
     {
-      const cols = [13, 10, 22, 13, 6, 8, 7, 5, 8, 7, 6, 6, 8, 8, 13], B = t => band(t, cols.length);
+      const cols = [13, 10, 22, 13, 6, 11, 11, 5, 8, 7, 6, 6, 8, 8, 13], B = t => band(t, cols.length);
       const rows = [[{ v: 'Mezzanine design — calc package', s: 't' }]];
       const sh = { name: 'Summary', cols, rows, long: [], wrap: [2, 3, 14] };
       longRow(sh, [], 0, `${q.quote || ''}${q.project ? ' · ' + q.project : ''} · generated ${ctx.generated || new Date().toISOString().slice(0, 10)}. Every number here is an input to, or a result of, NBG's own workbooks — the sheet "Sources" says which. These are values: the live calculation is the NBG workbooks themselves — "Everything (.zip)" carries a filled copy of each, where any input can be changed.`, 'note');
@@ -66,10 +66,12 @@
         rows.push([r.id, r.colFinal.name, r.columns.map(c => c.label).join(', '), r.colFinal.quoteAs, '', { v: ft(r.colLen), s: 'r' }, r.columns.length, '', num(r.colFinal.max), okc(r.colFinal.ok), '', '', '', '', colWhy(r.colFinal)]); });
       if (job.colAlt) rows.push(spanRow(1, ['', { v: `Offered, not on the quote: ${job.colAlt.name} — ${job.colAlt.sec.d}" deep, ${job.colAlt.sec.bof}" × ${job.colAlt.sec.tof}" flanges, ${job.colAlt.sec.tw}" web, Fy 55, max CSR ${job.colAlt.max.toFixed(3)} on the Built-Up input, about ${Math.round(job.colAlt.saves).toLocaleString('en-US')} lb less.`, s: 'note' }]));
       const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
-      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); [...new Map(notes.map(n => [n[2], n])).values()].forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2])); }
+      // a note several mezzanines share is listed once, with every mezzanine it is for
+      const once = list => { const m = new Map(); list.forEach(([id, ...rest]) => { const k = rest[rest.length - 1], e = m.get(k); if (e) { if (!e[0].includes(id)) e[0].push(id); } else m.set(k, [[id], ...rest]); }); return [...m.values()].map(([ids, ...rest]) => [ids.join(', '), ...rest]); };
+      if (notes.length) { rows.push([], B('To check before quoting'), H(['Mezzanine', 'Level', 'Note'])); once(notes).forEach(n => longRow(sh, [n[0], { v: n[1], s: n[1] === 'must fix' ? 'ng' : 'warn' }], 2, n[2])); }
       // the design decisions the tool made (the Design page's list): what an engineer checking it needs to know
       const keys = live.flatMap(r => (r.warn || []).filter(w => w.level === 'key').map(w => [r.id, w.text]));
-      if (keys.length) { rows.push([], B('Design decisions'), H(['Mezzanine', '', 'Decision'])); [...new Map(keys.map(n => [n[1], n])).values()].forEach(n => longRow(sh, [n[0], ''], 2, n[1])); }
+      if (keys.length) { rows.push([], B('Design decisions'), H(['Mezzanine', '', 'Decision'])); once(keys).forEach(n => longRow(sh, [n[0], ''], 2, n[1])); }
       delete sh.long;
       out.push(sh);
     }
@@ -100,7 +102,7 @@
         set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
         set('Column length', s.colLength === 'clear' ? 'clear below the beams' : 'finish floor to top of mezzanine (A)'), set('Column section', s.colPerJob === false ? 'per mezzanine' : 'one section for the whole job'),
         ...(s.colOverride ? [set('Column picked', typeof s.colOverride === 'object' ? `built-up d ${s.colOverride.d}" · ${s.colOverride.bf}" × ${s.colOverride.tf}" flanges · ${s.colOverride.tw}" web` : String(s.colOverride), 'picked by the engineer over the guide\'s column')] : []));
-      out.push({ name: 'Inputs', cols: [12, 10, 34, 13, 6, 18, 13, 40], wrap: [5, 7], rows, freeze: 4 });
+      out.push({ name: 'Inputs', cols: [12, 10, 34, 13, 6, 18, 13, 40], wrap: [2, 5, 7], rows, freeze: 4 });
     }
 
     // ---------------- MB sheets: the cells typed, and what the sheet shows ----------------
@@ -154,7 +156,7 @@
         if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
         rows.push([]);
       });
-      out.push({ name: 'Beam options', cols: [24, 11, 7, 7, 9, 12, 7, 9, 9, 7, 7, 7, 9], wrap: [0], rows });
+      out.push({ name: 'Beam options', cols: [24, 11, 7, 7, 9, 19, 7, 9, 9, 7, 7, 7, 9], wrap: [0], rows });
     }
 
     // ---------------- Shop rules ----------------
@@ -205,7 +207,7 @@
         }
         rows.push([]);
       }));
-      out.push({ name: 'Columns', cols: [30, 46, 18, 12, 10], wrap: [1], rows });
+      out.push({ name: 'Columns', cols: [30, 46, 18, 12, 10], wrap: [0, 1], rows });
     }
 
     // ---------------- Frame loads ----------------

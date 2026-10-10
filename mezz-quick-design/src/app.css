@@ -553,6 +553,8 @@ tr.none td { color: var(--ink-faint); }
   #v-plan .plan-wrap { break-inside: avoid; }
   #planSvg { max-height: 6.2in; width: 100%; }
   #planSvg .bubble circle, #planSvg rect.bldg-cut { fill: #fff !important; }
+  #planSvg .tag rect { fill: #fff !important; stroke: var(--ink) !important; }
+  #planSvg .tag text { fill: var(--ink) !important; }
   /* the frame-load cards in small type: a reference table, several to a page */
   #v-plan .fl-frame { break-inside: avoid; padding: 6px 8px !important; margin-bottom: 6px !important; }
   #v-plan .fl-t { font-size: 8px !important; }
@@ -1151,3 +1153,11 @@ table.seis-apply tr.bad-row td { background: var(--red-soft); }
 .metric-copy b small.ng { display: inline; margin-left: 6px; color: var(--red); font: 600 12px var(--body); letter-spacing: 0; }
 .col-alt.picked { border-color: color-mix(in srgb, var(--steel) 45%, var(--line)); background: var(--steel-soft); }
 .col-alt.picked b { color: var(--steel); }
+/* not sized: said in red in the framing summary too */
+.mk-sec .ng, .tally h4 .ng, #readout em.ng { color: #ff8f7a !important; }
+.tally.ng { border-color: color-mix(in srgb, #ff8f7a 45%, transparent) !important; }
+.disc.ng strong { color: #ff8f7a; }
+/* a step that departs from the training guide, flagged where it is explained */
+em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
+/* drawing annotations never take a click meant for the column or beam under them */
+#planSvg .arrow, #planSvg .arrow-t, #planSvg .run-lab, #planSvg .dim, #planSvg .lbl { pointer-events: none; }

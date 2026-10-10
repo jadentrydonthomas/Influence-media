@@ -74,5 +74,10 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   const cells = Object.fromEntries(jb.excel.column[0].cases[0].steps.map(st => [st.cell, st.value]));
   assert.deepStrictEqual([cells.C16, cells.C17, cells.C18, cells.C19, cells.C20, cells.K8], ['Built-Up', 9, 8, 0.3125, 0.1644, '55']);
   assert.ok(!jb.colAlt, 'no offer once a column is picked');
+  // a W picked by hand: quoted BU (not a common size), and the job-wide note says the pick is on the quote
+  const jw = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { colOverride: 'W10X33' } }))), sw = jw.mezz[0];
+  assert.ok(sw.colFinal.picked && sw.colFinal.quoteAs === 'BU10x33' && sw.colFinal.auto && sw.colFinal.auto.quoteAs === 'BU8x31');
+  assert.ok(sw.warn.some(w => /W10X33 picked by hand, quoted BU10x33/.test(w.text)));
+  assert.ok(sw.warn.some(w => /the guide's would be W8X31 \(quoted BU8x31\); BU10x33, picked by hand, is on the quote/.test(w.text)) && !sw.warn.some(w => /W8X31 \(quoted BU8x31\) passes every column case/.test(w.text)));
   console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange, BU9x22 offered and typed on the Built-Up input)');
 })().catch(e => { console.error(e); process.exit(1); });

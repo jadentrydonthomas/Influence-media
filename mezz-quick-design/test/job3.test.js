@@ -73,6 +73,8 @@ const PLAN = require('../src/plan.js');
     const aj = RUN.runJob(inps.map((inp, i) => ({ inp, settings: i === 0 ? { xLines: job.mezz[0].layout.beamLines.concat(30) } : {} }))), am = aj.mezz[0];
     const at30 = am.layout.beams.filter(b => Math.abs(b.line - 30) < 1e-6 && !b.absorbed);
     assert.ok(at30.length && at30.every(b => (am.marks.find(mk => mk.beams.includes(b.id)) || {}).kind === 'interior'), at30.map(b => b.trib).join(' '));
+    assert.ok(am.warn.some(w => w.level === 'warn' && /28'-0" and 30'-0" from the LEW are only 2'-0" apart/.test(w.text)), 'a line added 2\' from another is flagged');
+    assert.ok(!job.mezz[0].warn.some(w => /only .* apart \(a line added/.test(w.text)), 'not on the layout as read');
   }
   // the quote never drops what does not pass: a mark with no passing section stays as NO SECTION rows, every beam
   // counted; columns that could not be sized stay as NOT SIZED; a failing section picked by hand says FAILS

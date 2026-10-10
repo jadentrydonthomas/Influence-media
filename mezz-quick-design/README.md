@@ -44,7 +44,7 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
 4. **Sizes the columns** on the Column sheet:
    - Loads are the left and right beam reactions (MB `H6` dead, `H10` live), with e = d/2, the three load combinations, and column self-weight.
    - Tries W10X22, W8X24 and W12X26, lightest first. One section goes on the quote for every mezzanine column of the job (every mezzanine): the lightest that passes every load case. If none of the three passes, it takes the next heavier W and quotes it as `BU{d}x{wt}`, per the training guide. *Settings → Column section* can size each mezzanine on its own instead.
-   - Column length defaults to finish floor → top of mezzanine (A). You can switch to *clear below beam* in Settings.
+   - Column length defaults to finish floor → top of mezzanine (A), as instructed. This is not the training guide's (the clear height below the beams), and the Column calc explanation says so; *clear below beam* is in Settings.
 5. **Quote sheet.** The three quote-sheet tables, in the workbook's column order, ready to paste into Excel (tab-separated):
    - *Mezz. Design Information*: MEZZ, FF El., SLAB, WT-NW/LW, DL, COL, LL, PART.
    - *Mezz. Beams*: SPAN, TRIB, DLᴛ (= DL + COL), LLᴛ, SECTION, END WT (40), QTY. One holistic set for the job: a row per mark and member length (the notes say which beams, on which lines, of which mezzanine).
@@ -241,7 +241,7 @@ The *Design your own* page is the MB sheet and the Column sheet without the sear
 - **a beam** — *Remove the beam line* (the joists span past it; edge beams stay).
 - **the floor** — *Add a beam line* or *Add a column line* at the point clicked, or at a typed distance.
 
-Every edit re-designs the whole job — beams, columns, the frame loads, the seismic, the quote — and is listed on the Design page. *Undo* steps back, *Reset layout* returns to the building grid and the PCS drawing.
+Every edit re-designs the whole job — beams, columns, the frame loads, the seismic, the quote — and is listed on the Design page. *Undo* steps back, *Reset layout* returns to the building grid and the PCS drawing. A line added within 6'-0" of another is flagged under *Check before quoting* (short beams or extra columns there). When an edit leaves a mark with no passing section, every summary says so: the governing-ratio dial reads NG with what is not sized, the mark rows read NO SECTION, the columns read "N not sized", and the steel total is "at least" with what is missing.
 
 ### Excel, step by step
 

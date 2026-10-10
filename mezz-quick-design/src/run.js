@@ -255,6 +255,12 @@
     if (grid.lengthGap) warn.push({ level: 'warn', text: `${inp.mezz.building || 'The building'}: Box 2 length ${PCS.fmtFtIn(grid.boxLength)}, but the bays add to ${PCS.fmtFtIn(grid.length)} (${PCS.fmtFtIn(Math.abs(grid.lengthGap))} ${grid.lengthGap > 0 ? 'more' : 'less'}) — the frames are taken on the bay lines, no extra frame line. Confirm the PCS dimensions.` });
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
     const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop });
+    // a line added on the Plan page very close to another: short beams and extra columns there — say so
+    if (s.xLines || s.yLines) {
+      const base = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists });
+      [['xLines', 'LEW'], ['yLines', 'FSW']].forEach(([k, from]) => { if (!s[k]) return; const ls = lay[k].slice().sort((a, b) => a - b), own = v => base[k].some(u => Math.abs(u - v) < 0.01);
+        ls.slice(1).forEach((v, i) => { const gap = v - ls[i]; if (gap > 0.05 && gap < 6 && !(own(v) && own(ls[i]))) warn.push({ level: 'warn', text: `Lines at ${PCS.fmtFtIn(ls[i])} and ${PCS.fmtFtIn(v)} from the ${from} are only ${PCS.fmtFtIn(gap)} apart (a line added on the Plan page) — ${PCS.fmtFtIn(gap)} beams or extra columns there; confirm it is intended.` }); }); });
+    }
     if (fromPlan) {
       lay.why = ({ markup: 'the JOISTS markup on the PCS floor plan', truss: 'the joist symbol on the PCS floor plan' })[inp.mezz.planJoistsFrom] || 'joist arrows on the PCS floor plan';
       const alt = lay.alt, n = o => o.beams.length;
@@ -652,6 +658,7 @@
       // a W on the quote has to be stocked; a larger one quoted as BU is built from plates
       if (sec.type === 'WF' && colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
       if (ovBU) warn.push({ level: 'key', text: `Columns: ${name} picked by hand — ${sec.d}" deep, ${sec.bof}" × ${sec.tof}" flanges, ${sec.tw}" web, Fy 55, on the Column sheet's Built-Up input (max CSR ${colFinal.max.toFixed(3)}).` });
+      else if (ov) warn.push({ level: 'key', text: `Columns: ${name} picked by hand${quoteAs !== name ? `, quoted ${quoteAs} (not a common size — training guide)` : ''} (max CSR ${colFinal.max.toFixed(3)}).` });
     }
     // why the columns have no section: the page and the quote say it in these words
     const noSec = [...new Set(cols.flatMap(q => q.parts.filter(p => !isFinite(p.D) || !isFinite(p.L)).map(p => `${p.mezz} ${p.mark || p.beam}`)))];
@@ -830,7 +837,8 @@
       const fp = xl.length && yl.length ? { x0: Math.min(...xl), x1: Math.max(...xl), y0: Math.min(...yl), y1: Math.max(...yl) } : c.lay.footprint;
       const fdl = c.beamBase.dead + c.beamBase.coll, fll = c.beamBase.live, H = area * (fdl + fll) / 1000 * 0.01;
       const frames = (g.xs || []).filter(x => x > 0.5 && x < L - 0.5);
-      const lab = (axis, at) => (axis === 'y' ? g.yLabel(at) : g.xLabel(at)) || F(at);
+      // a line with no grid letter or number is named by where it is
+      const lab = (axis, at) => (axis === 'y' ? g.yLabel(at) : g.xLabel(at)) || `${F(at)} from the ${axis === 'y' ? 'FSW' : 'LEW'}`;
       const sides = [['y', fp.y0, fp.x0, fp.x1], ['y', fp.y1, fp.x0, fp.x1], ['x', fp.x0, fp.y0, fp.y1], ['x', fp.x1, fp.y0, fp.y1]];
       const by = { side: [], end: [], rigid: [], free: [] }, joins = [];
       const KIND = { side: 'sidewall bracing tiered at the mezzanine level', end: 'endwall bracing tiered at the mezzanine level, or a rigid end frame', rigid: 'rigid frame', free: 'free — independent X-bracing' };
@@ -953,7 +961,7 @@
           { sheet: 'Miscellaneous', cell: 'K8', where: 'Column!D16 Fy (ksi) drop-down', label: `Fy (ksi) — 50 for a W column${ed === '16' ? ' (this sheet opens at 55)' : ''}`, value: '50', show: '50' },
         ];
         const steps = [
-          { sheet: 'Column', cell: 'C7', label: 'Column Mark (the grid points of this case)', value: gp.cols.map(q => q.label).join(' '), show: gp.cols.map(q => q.label).join(' ') },
+          { sheet: 'Column', cell: 'C7', label: 'Column Mark (the grid points of this case)', value: colOrder(gp.cols).map(q => q.label).join(' '), show: colOrder(gp.cols).map(q => q.label).join(' ') },
           { sheet: 'Column', cell: 'C8', label: 'Column Length, L (ft.)', value: n3(L), show: String(n3(L)) },
         ].concat(ed === '16' ? [{ sheet: 'Column', cell: 'C10', label: 'Y-Axis Unbraced Length, Lby (in.) — hard-coded 120 on this sheet: type L × 12', value: n3(L * 12), show: String(n3(L * 12)) }] : []).concat(secSteps, [
           { sheet: 'Column', cell: 'C27', label: 'Left Beam Reaction — Dead (kip)', value: n3(ld.DL_L), show: String(n3(ld.DL_L)) },
@@ -1285,7 +1293,9 @@
     }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
     mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
-    if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName}${DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`} passes every column case of every mezzanine.` }); });
+    // a column picked by hand replaces the guide's job-wide column: say which is on the quote
+    if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) { const q = DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`, pk = r.colFinal && r.colFinal.picked ? r.colFinal.quoteAs : null;
+      r.warn.push({ level: 'key', text: pk ? `One column section for the whole job: the guide's would be ${jobName}${q}; ${pk}, picked by hand, is on the quote.` : `One column section for the whole job: ${jobName}${q} passes every column case of every mezzanine.` }); } });
     // a column quoted BU anyway (no common W passes): the lightest built-up column on the Column sheet's own Built-Up input,
     // offered beside the guide's answer (the next heavier W, quoted as BU) — not put on the quote unless picked
     let colAlt = null;

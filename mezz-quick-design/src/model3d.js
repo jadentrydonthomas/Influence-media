@@ -134,7 +134,7 @@
       ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       // grid bubbles and text first, the mark tags last: a tag that would cover a bubble or another tag steps up clear of it
-      const all = scene.labels || [], bubbles = all.filter(l => l.kind === 'bubble').map(l => project(l.p)), placed = [];
+      const all = scene.labels || [], bubbles = all.filter(l => l.kind === 'bubble').map(l => project(l.p)), placed = [], placedTags = [];
       const hits = (x0, y0, x1, y1) => bubbles.some(b => b[0] + 11 > x0 && b[0] - 11 < x1 && b[1] + 11 > y0 && b[1] - 11 < y1) || placed.some(r => r[0] < x1 && r[2] > x0 && r[1] < y1 && r[3] > y0);
       for (const l of all.filter(q => q.kind !== 'tag').concat(all.filter(q => q.kind === 'tag'))) {
         const p = project(l.p);
@@ -144,6 +144,9 @@
           ctx.font = '700 10px "Cascadia Code", Consolas, monospace';
           const tw = ctx.measureText(l.text).width + 12;
           const y0 = p[1] - 9 + (l.dy || 0), dy = [0, -20, 20, -38, 38].find(d => !hits(p[0] - tw / 2, y0 + d, p[0] + tw / 2, y0 + d + 17)), y = y0 + (dy || 0);
+          // no free spot (a small view): a mark already tagged nearby is not tagged again
+          if (dy == null && placedTags.some(q => q.text === l.text)) continue;
+          placedTags.push(l);
           placed.push([p[0] - tw / 2, y, p[0] + tw / 2, y + 17]);
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(p[0] - tw / 2, y, tw, 17, 8.5); else ctx.rect(p[0] - tw / 2, y, tw, 17);
