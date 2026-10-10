@@ -10,6 +10,7 @@ try { require('./pdf-node.js').loadPdfjs(); } catch (e) { ok = false; }
 if (!ok) { console.log('job4 tests passed (PCS not present, skipped)'); process.exit(0); }
 const { loadJob } = require('../oracle/job_load.js');
 const PLAN = require('../src/plan.js');
+const RUN = require('../src/run.js');
 const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
 (async () => {
   const { pcs, inps, job } = await loadJob(pdf);
@@ -57,5 +58,17 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   const s3 = fe('Sanctuary', 3).entries.map(e => [e.label, e.member, +e.D.toFixed(2), +e.L.toFixed(2)]);
   assert.deepStrictEqual(s3, [['3/G', 'COL01', 16.54, 25.81], ['3/B', 'COL02', 36.8, 58.05]]);
   assert.deepStrictEqual(fe('Lean To', 3).entries.map(e => e.label), ['3/A']);
-  console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange)');
+  // the column quoted BU anyway: a lighter built-up column on the Column sheet's own Built-Up input is offered (not applied)
+  const alt = job.colAlt;
+  assert.ok(alt && alt.name === 'BU9x22' && alt.sec.bof === 8 && alt.sec.tof === 0.3125 && alt.max <= 0.99 && alt.saves > 4000, JSON.stringify(alt && { name: alt.name, sec: alt.sec, max: alt.max, saves: alt.saves }));
+  assert.strictEqual(s.colFinal.quoteAs, 'BU8x31', 'the guide\'s answer stays on the quote until the engineer picks');
+  assert.ok(s.warn.some(w => w.level === 'key' && /Lighter built-up column: BU9x22/.test(w.text)));
+  // picked: on the quote, its own weight, the Column sheet's Built-Up cells typed
+  const jb = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { colOverride: { type: 'BU', d: 9, tw: 0.1644, bf: 8, tf: 0.3125 } } })));
+  const sb = jb.mezz[0];
+  assert.ok(sb.colFinal.name === 'BU9x22' && sb.colFinal.quoteAs === 'BU9x22' && sb.colFinal.ok && sb.colFinal.sec.type === 'BU' && Math.abs(sb.colFinal.props.W - 21.7) < 0.1);
+  const cells = Object.fromEntries(jb.excel.column[0].cases[0].steps.map(st => [st.cell, st.value]));
+  assert.deepStrictEqual([cells.C16, cells.C17, cells.C18, cells.C19, cells.C20, cells.K8], ['Built-Up', 9, 8, 0.3125, 0.1644, '55']);
+  assert.ok(!jb.colAlt, 'no offer once a column is picked');
+  console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange, BU9x22 offered and typed on the Built-Up input)');
 })().catch(e => { console.error(e); process.exit(1); });

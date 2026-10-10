@@ -159,9 +159,13 @@
     let passing = evals.filter(e => e.pass && (o.allowR || e.tier < 2));
     const best = passing.slice().sort(rank)[0] || null;
     const byDepth = [];
+    // a depth where nothing passes: the section that comes closest (the least over its worst limit) and by how much
+    const over = e => Math.max(e.r.res.CSR / o.target, e.r.res.SRvx / o.target, 360 / Math.max(e.r.defl.rLL, 1e-9), 240 / Math.max(e.r.defl.rTL, 1e-9));
     for (let d = o.dMin; d <= dMax + 1e-9; d += o.dStep) {
       const at = passing.filter(e => Math.abs(e.d - d) < 1e-9).sort(rank)[0];
-      byDepth.push(at ? summarize(at) : { d, none: true });
+      if (at) { byDepth.push(summarize(at)); continue; }
+      const near = evals.filter(e => Math.abs(e.d - d) < 1e-9 && isFinite(e.r.res.CSR)).sort((a, b) => over(a) - over(b) || a.wt - b.wt)[0];
+      byDepth.push({ d, none: true, near: near ? { ...summarize(near), over: over(near) } : null });
     }
     return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o, all: evals.filter(e => e.pass), removed, dTop: dMax, params: p };
   }
@@ -351,9 +355,39 @@
     return { name: null, quoteAs: null, common: false, check: null, tried };
   }
 
+  /* a built-up column on the Column sheet's own Built-Up input (C16 "Built-Up", C17 d, C18 bf, C19 tf, C20 tw — one flange
+     size for both): stocked web and flange plates for the division, inside the production limits, flange at least 8" × 1/4"
+     for beams on the flange (DM 15.1.1.4.2 (2A)), plate Fy 55 ksi. The lightest that passes every load set. */
+  const buColName = (sec, wt) => `BU${+sec.d.toFixed(3)}x${Math.round(wt)}`;
+  function designBUColumn(loads, opt) {
+    const sets = Array.isArray(loads) ? loads : [loads], div = opt.division || 'NBS-IN';
+    const { webs, flanges } = candidates(div, { minFlangeWidth: 8, minFlangeThk: 0.25 });
+    const plateWt = sec => (2 * sec.bof * sec.tof + (sec.d - 2 * sec.tof) * sec.tw) * 490 / 144;
+    const list = [];
+    for (let d = opt.dMin || 8; d <= (opt.dMax || 14) + 1e-9; d++) for (const tw of webs) for (const [bf, tf] of flanges) {
+      const sec = { type: 'BU', d, tw, bof: bf, tof: tf, bif: bf, tif: tf };
+      if (opt.production !== false && prodRule(sec, div, opt.L || 0, 0)) continue;
+      list.push({ sec, w: plateWt(sec) });
+    }
+    list.sort((a, b) => a.w - b.w || a.sec.d - b.sec.d || a.sec.tw - b.sec.tw);
+    // opt.count: that many passing, lightest first (Design your own); else the lightest one
+    let n = 0;
+    const found = [];
+    for (const x of list) {
+      n++;
+      const all = sets.map(({ L: Ls, ...ld }) => { const L = Ls || opt.L; return MZ.columnCheck({ sec: x.sec, Fy: 55, Fu: 70, L, Lby: L * 12, ...ld, edition: opt.edition }, null); });
+      if (all.every(c => c.ok && c.max <= (opt.target ?? 1) + 1e-12)) {
+        const gov = all.slice().sort((a, b) => b.max - a.max)[0];
+        found.push({ sec: x.sec, name: buColName(x.sec, gov.Wt), W: gov.Wt, max: gov.max, check: gov, tried: n, of: list.length });
+        if (found.length >= (opt.count || 1)) break;
+      }
+    }
+    return opt.count ? found : found[0] || null;
+  }
+
   // the production rule each left-out section broke, in words
   const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
 
-  const api = { PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  const api = { PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);

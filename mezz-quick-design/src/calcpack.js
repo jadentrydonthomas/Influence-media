@@ -49,7 +49,7 @@
         kv('Quote', q.quote || '—'), kv('Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'),
         kv('Beam sheet', BOOKS[ed.beamEd] || '—'), kv('Column sheet', COLBOOKS[ed.colEd] || '—'), kv('Specification', ed.spec || '—'),
         kv('Division (stock and limits)', div), kv('Stress ratio limit', num(target, 'n2l')), kv('Deflection limits', 'L/360 live, L/240 total (MB sheet)'),
-        kv('Mezzanines', live.map(r => r.id).join(', ')), [],
+        kv('Mezzanines', live.map(r => r.id).join(', ')), kv('Seismic', job.seismic && job.seismic.ok ? 'IBC Seismic workbook, frame by frame (sheet Seismic)' : 'not finished on the Seismic page — no EQ loads in this package'), [],
         B('Beams'));
       rows.push(
         H(['Mark', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Qty', 'Comb. SR', 'Shear SR', 'Live L/', 'Total L/', 'MB end shear D (k)', 'MB end shear L (k)', 'Chosen as']));
@@ -143,7 +143,7 @@
         const removed = Object.entries(sr.removed || {});
         if (removed.length) { rows.push(head('Left out by the production limits')); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push(spanRow(1, [n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k]))); }
         rows.push(head('Lightest section at each depth'), H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
-        sr.byDepth.forEach(z => rows.push(z.none ? [`${z.d}"`, 'nothing stocked passes'] : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
+        sr.byDepth.forEach(z => rows.push(z.none ? (z.near && !sr.best ? [`${z.d}"`, `${z.near.desc} — closest, ${Math.round(z.near.over * 100 - 100)}% over`, '', z.near.web, z.near.flange, tierWord(z.near.tier), num(z.near.wt, 'n1'), '', num(z.near.CSR), num(z.near.SRv), num(z.near.rLL, 'n0'), num(z.near.rTL, 'n0'), num(z.near.conc)] : [`${z.d}"`, 'nothing stocked passes']) : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
         if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
         rows.push([]);
       });
@@ -234,6 +234,13 @@
       });
       out.push({ name: 'Seismic', cols: [26, 50, 20, 10, 12, 11, 10], wrap: [1], rows });
     }
+    else {
+      // not finished on the Seismic page: said here, so the package never reads as if seismic were checked
+      const need = (sj && sj.need) || [];
+      out.push({ name: 'Seismic', cols: [26, 70], wrap: [1], rows: [[{ v: 'Seismic — not finished', s: 't' }],
+        note('The Seismic page still needs the entries below, so this package has no EQ loads, the frame files carry none and no IBC Seismic workbook is filled. Finish the Seismic page and export the package again.'), [],
+        H(['Still needed', '']), ...(need.length ? need.map(t => spanRow(0, [t])) : [spanRow(0, ['the Seismic page has not been run for this job'])])] });
+    }
 
     // ---------------- Sources ----------------
     out.push({ name: 'Sources', cols: [30, 22, 46, 40], wrap: [0, 1, 2, 3], freeze: 3, rows: [
@@ -241,7 +248,7 @@
       H(['Document / workbook', 'Revision / file', 'Gives', 'Checked by']),
       [BOOKS[ed.beamEd] || 'Mezzanine Beam Design', ed.beamEd ? `Mezzanine_Beam_Design_${ed.beamEd}th.xls` : '', 'INPUT sheet (loads, heights, clearances); MB1–MB4 (member length, Lb, trib, section → end shears H6 / H10, deflections, combined / shear, joist bearing L7)', 'cell-for-cell port; the real workbook run on every option and every job (oracle) — the filled copy reads the same'],
       [COLBOOKS[ed.colEd] || 'Mezzanine Column', ed.colEd ? `Mezzanine_Column_${ed.colEd}th_S16-*.xls` : '', 'Column sheet (L, section, left / right reactions → three combinations, CSR)', 'the real workbook on every column case'],
-      ['IBC Seismic', 'rev. 2021.01.20 (IBC_Seismic.xls)', 'Input Data, Lateral Calcs. (1) per frame line, Longitudinal Calcs. → mezzanine seismic force per frame and for the bracing', '1,386 of 1,386 values over 15 cases; every frame of the sample jobs recalculated in the workbook'],
+      ['IBC Seismic', 'rev. 2021.01.20 (IBC_Seismic.xls)', `Input Data, Lateral Calcs. (1) per frame line, Longitudinal Calcs. → mezzanine seismic force per frame and for the bracing${sj && sj.ok ? '' : ' — not used in this package yet (the Seismic page is not finished)'}`, '1,386 of 1,386 values over 15 cases; every frame of the sample jobs recalculated in the workbook'],
       ['NBG Production Guidelines', 'rev. 2026.01.15 (Primary & Secondary Steel, built-up)', 'part depth / width / thickness / length / weight by division; web / flange rules (sheet Shop rules)', 'every section searched is held to them'],
       ['DPM — Production Limitations', '', 'shop limitations behind the guidelines', ''],
       ['NBG Economical Flange Sections', '', 'G / Y / R flange plates; 8" then 10" then 12" (sheet Shop rules)', 'the "most economical" option and the economy column'],

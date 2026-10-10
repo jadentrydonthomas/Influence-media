@@ -84,7 +84,10 @@ const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
     const sheets = CP.sheets(job, { inputs: inps, settings: {}, generated: '2026-01-01' });
     const names = sheets.map(s => s.name);
     ['Summary', 'Inputs', 'MB sheets', 'Beam options', 'Shop rules', 'Columns', 'Frame loads', 'Sources'].forEach(n => assert.ok(names.includes(n), `${f}: sheet ${n}`));
-    assert.strictEqual(names.includes('Seismic'), !!(job.seismic && job.seismic.ok), `${f}: a Seismic sheet when the job has seismic`);
+    // a Seismic sheet always: the workbook cells when the Seismic page is finished, else what it still needs
+    const seis = sheets.find(s => s.name === 'Seismic');
+    assert.ok(seis, `${f}: a Seismic sheet`);
+    assert.strictEqual(/not finished/.test(cellText(seis.rows[0][0])), !(job.seismic && job.seismic.ok), `${f}: the Seismic sheet says whether it is finished`);
     const text = sheets.flatMap(s => s.rows.flatMap(r => (r || []).map(cellText))).filter(v => v != null).map(String);
     assert.ok(!text.some(t => /\bNaN\b|undefined|\[object Object\]/.test(t)), `${f}: ${text.find(t => /\bNaN\b|undefined|\[object Object\]/.test(t))}`);
     const sum = sheets.find(s => s.name === 'Summary'), col0 = sum.rows.map(r => cellText((r || [])[0]));

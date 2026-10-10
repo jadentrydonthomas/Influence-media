@@ -58,7 +58,7 @@ A mezzanine can sit in a building attached to another one, such as a lean-to. Bo
 - **Plan reading.** It takes the plan's letters, symbols and joist markup through that placement.
 - **Shared wall line.** If both buildings have a beam on the wall they share, it is one member. The host building keeps it, because its columns carry it, and adds the attached floor's edge trib. On W1G-26097, line B carries 9'-8 ¾" + 14'-1" = 23'-9 ¾", and its loads go to the Sanctuary's BSW frame columns.
 - **Frame loads.** They are listed per building.
-- **One drawing.** The Plan page, the sidebar and large plans and the 3D model draw both buildings together, in the coordinates of the building picked at the top — the attached building's walls, lettered lines and loaded columns included. Hovering any column gives its own building's loads. In *Edit layout*, clicking the other building's mezzanine switches to it first, so its lines are edited in its own building. The floor-load card and the Column calc tabs cover every mezzanine of the job.
+- **One drawing.** The Plan page, the sidebar and large plans and the 3D model draw both buildings together, in the coordinates of the building picked at the top — the attached building's walls, lettered lines and loaded columns included. Hovering any column gives its own building's loads. In *Edit layout*, clicking the other building's mezzanine switches to it first, so its lines are edited in its own building. The floor-load card and the Column calc tabs cover every mezzanine of the job (with the Lean To picked, the Column calc shows the Sanctuary's columns). The attached building's own frame-line numbers run along its outer wall, dashed, on the plans and in 3D, so its columns ("2/A") read against its own bubble; the picked building's numbers stay on the other side. The C-numbers of the mezzanine columns are counted on the floor plan's building, so a column keeps its number whichever building is picked.
 
 ### Beam marks: interior and exterior
 
@@ -92,7 +92,7 @@ The plan has no text layer, so its geometry is read:
   - An I on a sidewall or endwall line never changes a support (wall openings are drawn with I-like marks).
 - **Grid letters as drawn.** Bubbles on both endwalls, column lines and the ridge are lettered from the BSW, skipping I and O, so "2/C" in the notes is the drawing's 2/C.
 - **The plan page is found by what it is,** not where it is: the page with no text and thousands of vector paths, counting from the back.
-- **Frame-line bubbles may carry extras.** An attached building's end line can be drawn 1'-4" off the endwall, overlapping. Every frame line just has to find its bubble. When that pushes the drawing's numbering (the Sanctuary of W1G-26097 is drawn as lines 2–10), the Design page says so and keeps the PCS frame lines 1–9 (Box 5, NBG Frame files).
+- **Frame-line bubbles may carry extras.** An attached building's end line can be drawn 1'-4" off the endwall, overlapping. Every frame line just has to find its bubble. When that pushes the drawing's numbering (the Sanctuary of W1G-26097 is drawn as lines 2–10), *Check before quoting* says so ("line 1 here is line 2 on the drawing") and keeps the PCS frame lines 1–9 (Box 5, NBG Frame files).
 - **Markup over the plan.** A quote engineer's annotations are read too, and they win over the drawn symbols:
   - an **"X"** text box is a mezzanine column;
   - a line labelled **JOISTS**, and every line of its colour and direction, gives the joist direction wherever it crosses a mezzanine;
@@ -218,7 +218,7 @@ A bar at the bottom of the calcs exports what an engineer needs to check the des
   - *MB sheets* and *Columns*: each cell typed into the Mezzanine Beam Design / Mezzanine Column workbook and what the sheet shows.
   - *Beam options*: how each section was found — the options, the best-fit steps, the sections the production limits left out (in words), the lightest section at each depth, and the deeper ones with the C each needs.
   - *Shop rules*: the NBG Production Guidelines by division and the chosen sections checked against them, the Economical Flange Sections chart, the DM 5.1 stock.
-  - *Frame loads* and *Seismic* (when the Seismic page is complete): the FDL / FLL and EQR / EQL on each frame's columns, and the IBC Seismic cells typed per frame line.
+  - *Frame loads* and *Seismic*: the FDL / FLL and EQR / EQL on each frame's columns, and the IBC Seismic cells typed per frame line. While the Seismic page is not finished, the Seismic sheet says so and lists what it still needs, the Summary says there are no EQ loads, and Sources marks IBC Seismic as not used yet.
   - *Sources*: each workbook and guide, what it gives and how it is checked.
 - **Everything (.zip)** — the design-basis workbook plus a filled copy of every NBG workbook for the job (beam, column, seismic), for the workbooks added to this browser.
 
@@ -230,7 +230,8 @@ The *Design your own* page is the MB sheet and the Column sheet without the sear
 
 - **Start from this job** loads any mark's or column case's inputs.
 - **Sections that pass** lists the lightest sections that pass within 3" of the depth (flagged when deeper than the mark's clearance allows); *Load* puts one in.
-- **Use this section** puts it on a mark of the job (flagged if it does not pass); the Design page's *Lightest* option puts the search's answer back. The column tab can set the job's mezzanine columns to the W tried.
+- **Use this section** puts it on a mark of the job (flagged if it does not pass); the Design page's *Lightest* option puts the search's answer back. A section picked this way (or from the depth table) gets its own *Picked by hand · In the quote* card under Beam options, with its ratios and any flag (red when it fails or breaks clearance C).
+- **Column tab:** a W, or a built-up column (depth, flange plate, web) on the Column sheet's Built-Up input with the production limits and stock beside it; *Built-up columns that pass, lightest first* searches the stocked plates. *Use* sets the job's mezzanine columns to it.
 
 ### Edit the layout (Plan page)
 
@@ -356,7 +357,9 @@ Total joist depth is **A − B − slab − seat**. It feeds the INPUT-sheet cle
 
 **Columns quoted as BU.** When none of the common columns passes, the next W is quoted as BU (Mezzanine Training Guide). Only Ws with at least an 8" × 1/4" flange are taken for that (DM 15.1.1.4.2 (2A), beams on the column flange), and nothing lighter than the common sizes is tried. A W on the quote that is not stocked at the division is flagged under *Check before quoting*.
 
-**Print calc summary** prints the Design, Beam calc and Column calc pages on white paper, in dark ink, without the controls or the 3D model.
+**A lighter built-up column, offered.** When the column is quoted as BU anyway, the tool also runs the Column sheet's own *Built-Up* input (C16 "Built-Up", C17 d, C18 bf, C19 tf, C20 tw, Fy 55) over stocked plates for the division, inside the production limits, flanges at least 8" × 1/4", CSR ≤ the stress-ratio limit, and offers the lightest one that passes every column case at the top of the Column calc page — on W1G-26097, BU9x22 (9" deep, 8" × 5/16" flanges, 0.1644" web, CSR 0.844) against BU8x31, about 4,170 lb less. It is not put on the quote by itself (that would go beyond the guide's method): *Use* puts it on, and then the Column workbook download types the Built-Up cells. The filled workbooks for that case recalculate to the tool's numbers (fill oracle, 0 differ).
+
+**Print calc summary** prints the Design, Beam calc and Column calc pages on white paper, in dark ink, without the controls or the 3D model. A header gives the job, building code → specification → sheets, the division, the date and the tool build; headings stay with what follows them; folded sections are left out (the calc package carries them); the drawings print with white label boxes.
 
 **The quote never hides what does not pass.** A mark with no passing section stays on the quote as *NO SECTION* rows (every beam counted), columns that could not be sized as *NOT SIZED*, and a section that fails (a pick by hand, or one deeper than the clearance C) carries *FAILS — combined …* or *C … provided < … asked* in its notes — the title on the Design page turns red. The Design page's *Check before quoting* lists every mezzanine's notes, each named with its mezzanine, not only the one picked at the top. Building columns that take mezzanine load but are in no NBG Frame file (endwall columns beside a rigid end frame) are listed for the endwall design, and marked *endwall* on the floor-load card.
 

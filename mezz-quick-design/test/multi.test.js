@@ -95,7 +95,7 @@ function inputs(id, geom, loads = {}) {
   assert.ok(pour && /About 200 ft/.test(pour.text), 'pour stop: 2·(40+40) + 2·(40+20) − 2·40 shared = 200 ft — ' + (pour && pour.text));
   assert.ok(/4" vertical leg/.test(pour.text), 'vertical leg = slab');
   const brA = job.dm.find(i => i.ref === '15.1.3' && i.mi === 0);
-  assert.ok(/joins B for 40'-0" \(one floor\)/.test(brA.text) && /1% = 2\.77 k/.test(brA.text), brA.text);   // 1600 ft² × (48 + 125) psf × 1%
+  assert.ok(/line B: one floor with B\b/.test(brA.text) && /line 3: rigid frame/.test(brA.text) && !/X-bracing/.test(brA.text), brA.text);   // no free side: no independent X-bracing
   assert.ok(job.mezz[0].warn.some(w => w.level === 'warn' && /Mezzanine braced on all four sides/.test(w.text)), 'bracing check is in the notes');
   ['15.1.1.4.1.1', '15.1.1.4.1.2', '15.1.1.4.1.3', '15.1.1.4.1.4'].forEach(ref => assert.strictEqual(dmOf(job, ref).status, 'ok', ref));
   assert.strictEqual(dmOf(job, '15.1.1.4.2 (1E)').status, 'ok');

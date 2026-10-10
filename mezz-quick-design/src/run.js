@@ -240,9 +240,10 @@
     if (prov['Auxiliary Columns'] === false) warn.push({ level: 'warn', text: 'Auxiliary Columns are not checked under Materials Provided By Seller.' });
     const mat = inp.mezz.material;
     if (mat && !/Concrete/i.test(mat)) warn.push({ level: 'stop', text: `Mezzanine material is "${mat}" — per the training guide the quote engineer runs anything other than deck + concrete. Enter the dead load manually.` });
-    if (inp.loads.dead.source === 'estimate') warn.push({ level: 'warn', text: `Dead load ${val(inp.loads.dead)} psf: ${inp.loads.dead.note}` });
-    // a deck the deck guide does not know ("Other", "Per Seller", blank): the dead load is for the deck on the Inputs page
-    if (inp.mezz.deckText && !DESIGN.deckKey(inp.mezz.deckText) && inp.loads.dead.auto) warn.push({ level: 'warn', text: `Deck type on the PCS reads "${inp.mezz.deckText}" — the dead load ${val(inp.loads.dead)} psf is taken for ${inp.mezz.deck} form deck. Confirm the deck on the Inputs page.` });
+    // the dead load from the deck guide, and a deck the guide does not know ("Other", "Per Seller", blank): one item
+    const deckOpen = inp.mezz.deckText && !DESIGN.deckKey(inp.mezz.deckText) && inp.loads.dead.auto;
+    const est = inp.loads.dead.source === 'estimate', what = est ? String(inp.loads.dead.note).replace(/ — estimated from the deck guide \((.*)\); confirm\.$/, ' (deck-guide estimate from $1)') : '';
+    if (est || deckOpen) warn.push({ level: 'warn', text: `Dead load ${val(inp.loads.dead)} psf${est ? ` for ${what}` : ''}${deckOpen ? ` — the PCS deck reads "${inp.mezz.deckText}", so ${inp.mezz.deck} form deck is assumed` : ''}. Confirm the ${deckOpen ? 'deck and ' : ''}dead load on the Inputs page.` });
     if (part > 0) warn.push({ level: 'info', text: `Partition load ${part} psf added to the ${s.partitionTo} load.` });
     ['joistSpacing', 'seat'].forEach(k => { if (inp.geom[k].source === 'default') warn.push({ level: 'warn', text: inp.geom[k].note }); });
     if (inp.mezz.openings) warn.push({ level: 'warn', text: `Floor openings listed: ${inp.mezz.openings} — frame openings by hand. An opening wider than one joist spacing needs a joist header; its size and exact location must be on the order documents, and the header locations go to the joist manufacturer (DM 15.1.2).${/@\s*[\d,]+\s*lb/i.test(inp.mezz.openings) ? ` The ${(inp.mezz.openings.match(/@\s*([\d,]+)\s*lb/i) || [])[1]} lb listed with it is not in this design — the beams and quote rows carry the uniform floor load only: check the beams and joists around the opening for it.` : ''}` });
@@ -414,18 +415,21 @@
       });
     }
     ctxs.forEach(c => { if (c.incomplete) return; c.lay.beams.forEach(o => { if (o.extra) o.trib = Math.round(equivTrib(o.span, o.tribOwn, o.extra) * 1000) / 1000; }); });
-    // notes on both sides of every merge
-    merges.forEach(m => {
-      const oc = ctxs[m.owner], sc = ctxs[m.sub], lab = c => (m.dir === 'x' ? c.grid.yLabel(m.line) : c.grid.xLabel(m.line)) || PCS.fmtFtIn(m.line);
-      const fl = c => v => (m.dir === 'x' ? c.grid.xLabel(v) : c.grid.yLabel(v)) || PCS.fmtFtIn(v);
-      sc.warn.push({ level: 'key', text: `Edge beam on line ${lab(sc)} (${fl(sc)(m.from)} → ${fl(sc)(m.to)}) is the ${m.ownerId} beam on the same line — its ${PCS.fmtFtIn(m.trib)} trib is carried there, not counted here.` });
+    // notes on both sides of every merge: one a beam line (the beams of a line that do the same thing, together)
+    const rangeTxt = (fl, xs) => { const lo = Math.min(...xs.map(x => x.from)), hi = Math.max(...xs.map(x => x.to)); return `${fl(lo) || PCS.fmtFtIn(lo)} → ${fl(hi) || PCS.fmtFtIn(hi)}${xs.length > 1 ? `, ${xs.length} beams` : ''}`; };
+    const byKey = (list, key) => { const g = new Map(); list.forEach(x => { const k = key(x); g.set(k, (g.get(k) || []).concat(x)); }); return [...g.values()]; };
+    byKey(merges, m => [m.sub, m.owner, m.dir, m.line.toFixed(3), m.trib.toFixed(3)].join('|')).forEach(ms => {
+      const m = ms[0], sc = ctxs[m.sub], lab = (m.dir === 'x' ? sc.grid.yLabel(m.line) : sc.grid.xLabel(m.line)) || PCS.fmtFtIn(m.line);
+      const fl = m.dir === 'x' ? sc.grid.xLabel : sc.grid.yLabel, many = ms.length > 1;
+      sc.warn.push({ level: 'key', text: `Edge beam${many ? 's' : ''} on line ${lab} (${rangeTxt(fl, ms)}) ${many ? 'are' : 'is'} the ${m.ownerId} beam${many ? 's' : ''} on the same line — ${many ? 'their' : 'its'} ${PCS.fmtFtIn(m.trib)} trib is carried there, not counted here.` });
     });
     ctxs.forEach(c => {
       if (c.incomplete) return;
-      c.lay.beams.filter(o => o.extra).forEach(o => {
-        const lab = (c.lay.joists === 'y' ? c.grid.yLabel(o.line) : c.grid.xLabel(o.line)) || PCS.fmtFtIn(o.line), fl = c.lay.joists === 'y' ? c.grid.xLabel : c.grid.yLabel;
-        const parts = o.extra.map(x => `${x.mezz} ${PCS.fmtFtIn(x.tribOwn)}${x.ratio > 1 + 1e-9 ? ` × ${x.ratio.toFixed(2)} (heavier loads)` : ''} over ${PCS.fmtFtIn(x.e - x.s)}${x.e - x.s < o.span - 0.05 ? ` of ${PCS.fmtFtIn(o.span)}` : ''}`).join(' + ');
-        c.warn.push({ level: 'key', text: `Beam on line ${lab} (${fl(o.from) || PCS.fmtFtIn(o.from)} → ${fl(o.to) || PCS.fmtFtIn(o.to)}) also carries ${parts}: trib ${PCS.fmtFtIn(o.tribOwn)} → ${PCS.fmtFtIn(o.trib)}${o.extra.some(x => x.e - x.s < o.span - 0.05) ? ' (uniform trib with the same max moment and end shear)' : ''}.` });
+      const fl = c.lay.joists === 'y' ? c.grid.xLabel : c.grid.yLabel;
+      const partOf = o => x => `${x.mezz} ${PCS.fmtFtIn(x.tribOwn)}${x.ratio > 1 + 1e-9 ? ` × ${x.ratio.toFixed(2)} (heavier loads)` : ''}${x.e - x.s < o.span - 0.05 ? ` over ${PCS.fmtFtIn(x.e - x.s)} of ${PCS.fmtFtIn(o.span)}` : ''}`;
+      byKey(c.lay.beams.filter(o => o.extra), o => [o.line.toFixed(3), o.tribOwn.toFixed(3), o.trib.toFixed(3), o.extra.map(partOf(o)).join('+')].join('|')).forEach(os => {
+        const o = os[0], lab = (c.lay.joists === 'y' ? c.grid.yLabel(o.line) : c.grid.xLabel(o.line)) || PCS.fmtFtIn(o.line), many = os.length > 1;
+        c.warn.push({ level: 'key', text: `Beam${many ? 's' : ''} on line ${lab} (${rangeTxt(fl, os)}) also carr${many ? 'y' : 'ies'} ${o.extra.map(partOf(o)).join(' + ')}: trib ${PCS.fmtFtIn(o.tribOwn)} → ${PCS.fmtFtIn(o.trib)}${o.extra.some(x => x.e - x.s < o.span - 0.05) ? ' (uniform trib with the same max moment and end shear)' : ''}.` });
       });
     });
     return merges;
@@ -549,7 +553,9 @@
       B: { req: Bq, prov: joistDepthIn != null && A != null ? A - (slabIn + joistDepthIn) / 12 : null },
       C: { req: Cq, prov: A != null && dBeam ? A - (slabIn + seatIn + dBeam) / 12 : null },
     };
-    Object.entries(c.clear).forEach(([k, q]) => { q.ok = q.req == null || q.prov == null ? null : q.prov >= q.req - 1e-9; if (q.ok === false) warn.push({ level: 'stop', text: `Clearance ${k}: provided ${PCS.fmtFtIn(q.prov)} < requested ${PCS.fmtFtIn(q.req)}.` }); });
+    // C is set by the deepest beam: name it, so the engineer knows which pick to change
+    const deep = designed.filter(mk => mk.sec && mk.sec.d === dBeam).map(mk => `${mk.mark} ${mk.desc} (${dBeam}" deep)`);
+    Object.entries(c.clear).forEach(([k, q]) => { q.ok = q.req == null || q.prov == null ? null : q.prov >= q.req - 1e-9; if (q.ok === false) warn.push({ level: 'stop', text: `Clearance ${k}: provided ${PCS.fmtFtIn(q.prov)} < requested ${PCS.fmtFtIn(q.req)}${k === 'C' && deep.length ? ` — ${deep.join(', ')} is deeper than C allows` : ''}.` }); });
     c.colLen = s.colLength === 'clear' && A != null && dBeam ? A - (slabIn + seatIn + dBeam) / 12 : A;
   }
 
@@ -572,7 +578,7 @@
     });
     const reaction = (c, id) => {
       const bm = c.lay.beams[id], mk = c.markOf(id);
-      if (!mk || !mk.sec) return { D: NaN, L: NaN };
+      if (!mk || !mk.sec) return { D: NaN, L: NaN, mark: mk && mk.mark };
       const r = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.trib }, mk.sec);
       return { D: r.D, L: r.L, mark: mk.mark };
     };
@@ -628,25 +634,35 @@
     const env = allOK && groups.length > 1 ? DESIGN.designColumn(groups.map(g => g.loads), { L: colLen, includeW818: s.includeW818, edition: ed.colEd }, WF) : null;
     const govCol = allOK ? (env ? (env.name ? { design: env } : null) : groups[0]) : null;
     let colFinal = null;
-    if (govCol) {
-      const name = s.colOverride || jobName || govCol.design.name;
-      const checks = groups.map(g => MZ.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: colLen, Lby: colLen * 12, ...g.loads, edition: ed.colEd }, WF));
-      const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/);
-      colFinal = { name, quoteAs: DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
-      if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${s.colOverride ? ' — the column pick on the Column page overrides the automatic W' : ''}.` });
+    // the engineer's pick (a W name, or a built-up column from Design your own / the Column page) over the automatic W
+    const ov = s.colOverride, ovBU = !!(ov && typeof ov === 'object' && ov.type === 'BU');
+    if (govCol || (ov && groups.length && !noBeam && colLen && ed.colEd)) {
+      const sec = ovBU ? { type: 'BU', d: +ov.d, tw: +ov.tw, bof: +ov.bf, tof: +ov.tf, bif: +ov.bf, tif: +ov.tf } : { type: 'WF', name: ov || jobName || govCol.design.name };
+      const Fy = ovBU ? 55 : 50, Fu = ovBU ? 70 : 65;
+      const checks = groups.map(g => MZ.columnCheck({ sec, Fy, Fu, L: colLen, Lby: colLen * 12, ...g.loads, edition: ed.colEd }, WF));
+      let name, quoteAs, props;
+      if (ovBU) { name = quoteAs = DESIGN.buColName(sec, checks[0].Wt); props = { d: sec.d, bf: sec.bof, tf: sec.tof, tw: sec.tw, W: checks[0].Wt }; }
+      else { name = sec.name; const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/); quoteAs = DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt; props = WF[name]; }
+      colFinal = { name, quoteAs, sec, props, Fy, picked: !!ov, checks, max: Math.max(...checks.map(q => q.max)), ok: checks.every(q => q.ok) };
+      if (!colFinal.ok) warn.push({ level: 'stop', text: `${name} fails on the Column sheet (max CSR ${colFinal.max.toFixed(3)})${ov ? ' — the column picked by hand overrides the automatic W' : ''}.` });
       // a W on the quote has to be stocked; a larger one quoted as BU is built from plates
-      if (colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
+      if (sec.type === 'WF' && colFinal.quoteAs === name && !DESIGN.inStock(DESIGN.WF_STOCK, name, division)) warn.push({ level: 'warn', text: `${name} is not a stocked W at ${division} (DM 5.1) — confirm it, or quote a stocked size.` });
+      if (ovBU) warn.push({ level: 'key', text: `Columns: ${name} picked by hand — ${sec.d}" deep, ${sec.bof}" × ${sec.tof}" flanges, ${sec.tw}" web, Fy 55, on the Column sheet's Built-Up input (max CSR ${colFinal.max.toFixed(3)}).` });
     }
-    if (cols.length && !colLen) warn.push({ level: 'stop', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' });
-    else if (cols.length && noBeam) warn.push({ level: 'stop', text: 'Columns not sized — the beams framing into them have no section yet.' });
-    else if (cols.length && !govCol) warn.push({ level: 'stop', text: 'No W8–W14 column passes — check the loads or design a BU column.' });
-    return { colLen, groups, colFinal };
+    // why the columns have no section: the page and the quote say it in these words
+    const noSec = [...new Set(cols.flatMap(q => q.parts.filter(p => !isFinite(p.D) || !isFinite(p.L)).map(p => `${p.mezz} ${p.mark || p.beam}`)))];
+    let why = null;
+    if (cols.length && !colLen) why = { kind: 'length', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' };
+    else if (cols.length && noBeam) why = { kind: 'beam', marks: noSec, text: `Columns not sized — ${noSec.join(', ')} ${noSec.length > 1 ? 'have' : 'has'} no section yet, so the reactions are unknown.` };
+    else if (cols.length && !colFinal) why = { kind: 'pass', text: 'No W8–W14 column passes — check the loads or design a built-up column (Design your own).' };
+    if (why) warn.push({ level: 'stop', text: why.text });
+    return { colLen, groups, colFinal, why };
   }
 
   function finish(c, owned, foreign, merges, jobName) {
     const { s, warn, ed, division, grid, lay, designed } = c;
-    const { colLen, groups, colFinal } = designColumns(c, owned, jobName);
-    foreign.forEach(q => warn.push({ level: 'key', text: `Column ${q.label} under this mezzanine is counted with ${q.ownerId} (${q.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')}).` }));
+    const { colLen, groups, colFinal, why: colWhy } = designColumns(c, owned, jobName);
+    foreign.forEach(q => warn.push({ level: 'key', text: `Column ${q.label} under ${c.id} is counted with ${q.ownerId} (${q.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')}).` }));
     // this mezzanine's supports as the job sees them: owned columns, other mezzanines' columns, building columns
     const keep = sp => sp.building ? ['L', 'R'].some(k => sp.beams[k] != null && !lay.beams[sp.beams[k]].absorbed) : owned.some(q => near2(q, sp)) || foreign.some(q => near2(q, sp));
     const layout = { ...lay, supports: lay.supports.filter(keep), mezzCols: owned.map(q => ({ ...(lay.supports.find(sp => near2(q, sp)) || { x: q.x, y: q.y, beams: { L: null, R: null } }), label: q.label, building: false })) };
@@ -654,9 +670,11 @@
       beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: (mk.design || mk).span, trib: (mk.design || mk).trib, qty: mk.qty })),
       columns: colFinal ? [{ mark: 'MC1', section: colFinal.quoteAs, length: colLen, qty: owned.length }] : [],
     };
-    return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
+    return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
   }
   const near2 = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
+  // columns in plan order, as the C-numbers count them: along the length, then from the BSW
+  const colOrder = cs => cs.slice().sort((a, b) => a.x - b.x || b.y - a.y);
 
   /* ---------- NBG DM 15.1 Mezzanine Systems: every item of the manual this job touches, checked or called out ----------
      status  ok    met — read from the design numbers
@@ -716,7 +734,7 @@
       // D / F: clearances under the frame — the frame design has to hold them; E: where the slab edge sits
       const gv = k => { const n = c.inp.geom[k]; return n && n.value != null ? `${F(n.value)}${n.source === 'annotation' ? ' (blue note)' : ''}` : null; };
       const DF = [['D', 'minimum clearance under the frame'], ['F', 'clearance under the frame']].filter(([k]) => gv(k));
-      if (DF.length) add('15.1.1', 'Layout', 'Clearance under the frame (D, F)', 'check', `${tag(c)}${DF.map(([k, t]) => `${k} ${t} ${gv(k)}`).join(' · ')} — not part of the mezzanine design: carry ${DF.length > 1 ? 'them' : 'it'} to the frame design (NBG Frame clear height under the rafters).`, c.index);
+      if (DF.length) add('15.1.1', 'Layout', 'Clearance under the frame (D, F) — for the frame design', 'note', `${tag(c)}${DF.map(([k, t]) => `${k} ${t} ${gv(k)}`).join(' · ')} — not part of the mezzanine design: carry ${DF.length > 1 ? 'them' : 'it'} to the frame design (NBG Frame clear height under the rafters).`, c.index, { mirror: false });
       if (gv('E')) add('15.1.1', 'Layout', 'Slab edge setback (E)', 'note', `${tag(c)}E edge of slab / deck ${gv('E')} from the steel line — the edge angle / pour stop line; the edge beams stay on the column lines.`, c.index, { mirror: false });
       add('15.1.1', 'Layout', 'Finish floor and clear heights defined', bad.length ? 'stop' : 'ok', `${tag(c)}A ${F(c.A)} · B ${c.Bq != null ? F(c.Bq) : '—'} · C ${c.inp.geom.C && c.inp.geom.C.source === 'none' ? 'no requirement' : c.Cq != null ? F(c.Cq) : '—'}${bad.length ? ` — clearance ${bad.join(', ')} not met` : ', each one met'}.`, c.index, { mirror: false });
     });
@@ -756,9 +774,9 @@
       add('15.1.1.4.2 (1E)', 'Connections & columns', 'Columns: full DL + LL both sides, and DL + LL one side with DL only on the other', withCols.every(r => r.colFinal.ok) ? 'ok' : 'stop',
         `The Column sheet's three combinations are exactly these: DLt+LLt+DRt and DLt+DRt+LRt (live on one side) and DLt+LLt+DRt+LRt (both sides) — max CSR ${Math.max(...withCols.map(r => r.colFinal.max)).toFixed(3)} over ${nCase} case${nCase > 1 ? 's' : ''}.`);
       [...new Map(withCols.map(r => [r.colFinal.name + '|' + r.colLen, r])).values()].forEach(r => {
-        const name = r.colFinal.name, w = WF[name], bu = /^BU/.test(r.colFinal.quoteAs);
+        const name = r.colFinal.name, w = r.colFinal.props, bu = /^BU/.test(r.colFinal.quoteAs), own = r.colFinal.sec.type === 'BU';
         if (bu) add('15.1.1.4.2 (2A)', 'Connections & columns', 'Built-up column: flange at least 8" × ¼" for beams on the flange', w.bf >= 8 && w.tf >= 0.25 ? 'ok' : 'check',
-          `Quoted as ${r.colFinal.quoteAs}, sized as ${name} (flange ${w.bf}" × ${w.tf}")${w.bf >= 8 && w.tf >= 0.25 ? '.' : ' — a built-up column with beams on its flange needs an 8" × ¼" flange: build it with an 8" flange, or frame the beams onto a cap plate.'}`);
+          `${own ? `${name}: built up from plate (d ${w.d}", tw ${w.tw}")` : `Quoted as ${r.colFinal.quoteAs}, sized as ${name}`} (flange ${w.bf}" × ${w.tf}")${w.bf >= 8 && w.tf >= 0.25 ? '.' : ' — a built-up column with beams on its flange needs an 8" × ¼" flange: build it with an 8" flange, or frame the beams onto a cap plate.'}`);
         else add('15.1.1.4.2 (2B)', 'Connections & columns', 'Hot-rolled column: flange at least 7" for beams on the flange', w.bf >= 7 ? 'ok' : 'note',
           `${name} flange ${w.bf}"${w.bf >= 7 ? '' : ' — under 7": acceptable with the standard 4" bolt gage (DM note 1); the angles may run past the flange edges'}. Beams frame to the flange, column web parallel to the beam web (the preferred orientation)${/^W8X/.test(name) ? '; no W8 has the 7" + tw "T" needed for beams on its web' : ''}.`);
         const shaft = w.W * r.colLen, all = shaft + END_WT_COL;
@@ -791,29 +809,31 @@
       add('PCS Box 22', 'Deck & pour stop', 'Joists, bridging and deck as ordered', open ? 'check' : 'note', `${tag(c)}${parts.join(' · ')} — for the joist and deck order and the D2D sheet${jc === 'bolted' ? '; bolted joists: the beam top flanges carry the joist seat holes' : ''}${open ? '; tick bolted or welded before the joists are ordered' : ''}.`, c.index, { mirror: !!open });
     });
 
-    // ---- bracing (15.1.3)
+    // ---- bracing (15.1.3): each side of the framed floor (the outermost beam / column lines, not a slab overhang)
     live.forEach(c => {
-      const fp = c.lay.footprint, g = c.grid, W = g.width, L = g.length, area = c.mz.length * c.mz.width;
+      const g = c.grid, W = g.width, L = g.length, area = c.mz.length * c.mz.width, xl = c.lay.xLines, yl = c.lay.yLines;
+      const fp = xl.length && yl.length ? { x0: Math.min(...xl), x1: Math.max(...xl), y0: Math.min(...yl), y1: Math.max(...yl) } : c.lay.footprint;
       const fdl = c.beamBase.dead + c.beamBase.coll, fll = c.beamBase.live, H = area * (fdl + fll) / 1000 * 0.01;
       const frames = (g.xs || []).filter(x => x > 0.5 && x < L - 0.5);
       const lab = (axis, at) => (axis === 'y' ? g.yLabel(at) : g.xLabel(at)) || F(at);
       const sides = [['y', fp.y0, fp.x0, fp.x1], ['y', fp.y1, fp.x0, fp.x1], ['x', fp.x0, fp.y0, fp.y1], ['x', fp.x1, fp.y0, fp.y1]];
-      let needs = false;
-      const desc = sides.map(([axis, at, s0, s1]) => {
+      const by = { side: [], end: [], rigid: [], free: [], one: [] }, joins = [];
+      sides.forEach(([axis, at, s0, s1]) => {
         const sh = shared.filter(e => (e.a === c.index || e.b === c.index) && e.axis === axis && Math.abs(e.at - at) < 0.6);
-        const shLen = sh.reduce((a, e) => a + (e.to - e.from), 0), rest = s1 - s0 - shLen;
-        const joins = sh.length ? `joins ${sh.map(e => idOf(e.a === c.index ? e.b : e.a)).join(', ')} for ${F(shLen)}` : '';
-        if (rest < 1) return `line ${lab(axis, at)}: ${joins} (one floor)`;
-        let what;
-        if (axis === 'y' && (Math.abs(at) < 0.6 || Math.abs(at - W) < 0.6)) what = 'sidewall — its bracing tiered at the mezzanine level';
-        else if (axis === 'x' && (Math.abs(at) < 0.6 || Math.abs(at - L) < 0.6)) what = 'endwall — its bracing tiered at the mezzanine level, or a rigid end frame';
-        else if (axis === 'x' && frames.some(x => Math.abs(x - at) < 0.6)) what = 'rigid frame line';
-        else what = 'free — independent X-bracing';
-        if (what !== 'rigid frame line') needs = true;
-        return `line ${lab(axis, at)}: ${joins ? joins + ', then ' : ''}${what}`;
+        const shLen = sh.reduce((a, e) => a + (e.to - e.from), 0), rest = s1 - s0 - shLen, nm = lab(axis, at);
+        if (sh.length) joins.push(`line ${nm}: one floor with ${sh.map(e => idOf(e.a === c.index ? e.b : e.a)).join(', ')}${rest < 1 ? '' : ' for ' + F(shLen)}`);
+        if (rest < 1) { by.one.push(nm); return; }
+        if (axis === 'y' && (Math.abs(at) < 0.6 || Math.abs(at - W) < 0.6)) by.side.push(nm);
+        else if (axis === 'x' && (Math.abs(at) < 0.6 || Math.abs(at - L) < 0.6)) by.end.push(nm);
+        else if (axis === 'x' && frames.some(x => Math.abs(x - at) < 0.6)) by.rigid.push(nm);
+        else by.free.push(nm);
       });
-      add('15.1.3', 'Bracing', 'Mezzanine braced on all four sides', needs ? 'check' : 'ok',
-        `${tag(c)}${desc.join(' · ')}. Independent X-bracing runs from the mezzanine level to the floor between two adjacent supports and is designed for 1% of the FDL + FLL tributary to it — the whole floor is ${Math.round(area).toLocaleString('en-US')} ft² × (${n3(fdl)} + ${n3(fll)}) psf, 1% = ${H.toFixed(2)} k.`, c.index);
+      const ln = a => (a.length > 1 ? 'lines ' : 'line ') + a.join(', ');
+      const desc = [by.side.length && `${ln(by.side)}: sidewall bracing tiered at the mezzanine level`, by.end.length && `${ln(by.end)}: endwall bracing tiered at the mezzanine level, or a rigid end frame`,
+        by.rigid.length && `${ln(by.rigid)}: rigid frame`, by.free.length && `${ln(by.free)}: free — independent X-bracing, mezzanine level to the floor, for 1% of FDL + FLL = ${H.toFixed(2)} k (${Math.round(area).toLocaleString('en-US')} ft² × ${n3(fdl + fll)} psf)`,
+        joins.length && joins.join(', ')].filter(Boolean);
+      const needs = by.side.length || by.end.length || by.free.length;
+      add('15.1.3', 'Bracing', 'Mezzanine braced on all four sides', needs ? 'check' : 'ok', `${tag(c)}${desc.join(' · ')}.`, c.index);
     });
 
     // a tube / pipe column request on the PCS: not on the Column sheet
@@ -904,14 +924,24 @@
       let book = column.find(b => b.edition === ed);
       if (!book) column.push(book = { file: XL.colBook[ed] || XL.colBook[15], edition: ed, cases: [] });
       r.colGroups.forEach((gp, gi) => {
-        const ck = r.colFinal.checks[gi], ld = gp.loads;
-        const steps = [
-          { sheet: 'Column', cell: 'C7', label: 'Column Mark', value: 'MC1', show: 'MC1' },
-          { sheet: 'Column', cell: 'C8', label: 'Column Length, L (ft.)', value: n3(L), show: String(n3(L)) },
-        ].concat(ed === '16' ? [{ sheet: 'Column', cell: 'C10', label: 'Y-Axis Unbraced Length, Lby (in.) — hard-coded 120 on this sheet: type L × 12', value: n3(L * 12), show: String(n3(L * 12)) }] : []).concat([
+        const ck = r.colFinal.checks[gi], ld = gp.loads, bsec = r.colFinal.sec.type === 'BU' ? r.colFinal.sec : null, n4 = v => +(+v).toFixed(4);   // plate sizes exact (0.3125, 0.1644)
+        // the section: a W by name, or the sheet's Built-Up input (one flange size, both flanges)
+        const secSteps = bsec ? [
+          { sheet: 'Column', cell: 'C16', label: `Section — Built-Up (${name})`, value: 'Built-Up', show: 'Built-Up' },
+          { sheet: 'Column', cell: 'C17', label: 'Total Depth, d (in.)', value: n4(bsec.d), show: String(n4(bsec.d)) },
+          { sheet: 'Column', cell: 'C18', label: 'Flange Width, b (in.)', value: n4(bsec.bof), show: String(n4(bsec.bof)) },
+          { sheet: 'Column', cell: 'C19', label: 'Flange Thickness, tf (in.)', value: n4(bsec.tof), show: String(n4(bsec.tof)) },
+          { sheet: 'Column', cell: 'C20', label: 'Web Thickness, tw (in.)', value: n4(bsec.tw), show: String(n4(bsec.tw)) },
+          { sheet: 'Miscellaneous', cell: 'K8', where: 'Column!D16 Fy (ksi) drop-down', label: 'Fy (ksi) — 55 for plate', value: '55', show: '55' },
+        ] : [
           { sheet: 'Column', cell: 'C16', label: `Section${r.colFinal.quoteAs !== name ? ` (quoted as ${r.colFinal.quoteAs})` : ''}`, value: name, show: name },
           // the Fy drop-down beside the section writes Miscellaneous!K8; the 16th sheet opens at 55 ksi, a W column is 50
           { sheet: 'Miscellaneous', cell: 'K8', where: 'Column!D16 Fy (ksi) drop-down', label: `Fy (ksi) — 50 for a W column${ed === '16' ? ' (this sheet opens at 55)' : ''}`, value: '50', show: '50' },
+        ];
+        const steps = [
+          { sheet: 'Column', cell: 'C7', label: 'Column Mark (the grid points of this case)', value: gp.cols.map(q => q.label).join(' '), show: gp.cols.map(q => q.label).join(' ') },
+          { sheet: 'Column', cell: 'C8', label: 'Column Length, L (ft.)', value: n3(L), show: String(n3(L)) },
+        ].concat(ed === '16' ? [{ sheet: 'Column', cell: 'C10', label: 'Y-Axis Unbraced Length, Lby (in.) — hard-coded 120 on this sheet: type L × 12', value: n3(L * 12), show: String(n3(L * 12)) }] : []).concat(secSteps, [
           { sheet: 'Column', cell: 'C27', label: 'Left Beam Reaction — Dead (kip)', value: n3(ld.DL_L), show: String(n3(ld.DL_L)) },
           { sheet: 'Column', cell: 'D27', label: 'Left Beam Reaction — Live (kip)', value: n3(ld.LL_L), show: String(n3(ld.LL_L)) },
           { sheet: 'Column', cell: 'C28', label: 'Right Beam Reaction — Dead (kip)', value: n3(ld.DL_R), show: String(n3(ld.DL_R)) },
@@ -1023,7 +1053,7 @@
         const area = c.mz.length * c.mz.width;
         // framing self weight from the design: every beam of this mezzanine, and half its columns
         const bw = c.lay.beams.filter(bm => !bm.absorbed).reduce((a, bm) => { const mk = c.markOf(bm.id); return a + (mk && mk.sec ? secWt(mk.sec) * bm.span : 0); }, 0);
-        const cw = r && r.colFinal && r.colLen ? (WF[r.colFinal.name] || {}).W * r.colLen * r.columns.length / 2 : 0;
+        const cw = r && r.colFinal && r.colLen ? (r.colFinal.props || {}).W * r.colLen * r.columns.length / 2 : 0;
         const framing = mo.framing === false ? 0 : (bw + cw) / area;
         const FDL = src(mo.FDL, val(c.inp.loads.dead), null, 'design');
         const storage = mo.storage != null ? !!mo.storage : c.inp.mezz.use === 'Storage';
@@ -1242,6 +1272,23 @@
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
     mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) r.warn.push({ level: 'key', text: `One column section for the whole job: ${jobName} passes every column case of every mezzanine.` }); });
+    // a column quoted BU anyway (no common W passes): the lightest built-up column on the Column sheet's own Built-Up input,
+    // offered beside the guide's answer (the next heavier W, quoted as BU) — not put on the quote unless picked
+    let colAlt = null;
+    const buQuoted = mezz.filter(r => r && !r.incomplete && r.colFinal && !r.colFinal.picked && r.colFinal.sec.type === 'WF' && r.colFinal.quoteAs !== r.colFinal.name);
+    if (buQuoted.length) {
+      const c1 = ctxs[buQuoted[0].index], sets = [];
+      buQuoted.forEach(r => r.colGroups.forEach(g => sets.push({ ...g.loads, L: r.colLen })));
+      try { colAlt = DESIGN.designBUColumn(sets, { L: buQuoted[0].colLen, edition: c1.ed.colEd, division: c1.division, target: c1.s.target }); } catch (e) { colAlt = null; }
+      if (colAlt) {
+        const saves = buQuoted.reduce((a, r) => a + (r.colFinal.props.W - colAlt.W) * r.colLen * r.columns.length, 0);
+        if (saves > 1) {
+          const now = [...new Set(buQuoted.map(r => `${r.colFinal.quoteAs} (sized as ${r.colFinal.name})`))].join(', ');
+          colAlt = { ...colAlt, saves, over: buQuoted.map(r => r.index) };
+          buQuoted.forEach(r => r.warn.push({ level: 'key', text: `Lighter built-up column: ${colAlt.name} — ${colAlt.sec.d}" deep, ${colAlt.sec.bof}" × ${colAlt.sec.tof}" flanges, ${colAlt.sec.tw}" web, Fy 55 — passes every column case at CSR ${colAlt.max.toFixed(3)} on the Column sheet's Built-Up input, about ${Math.round(saves).toLocaleString('en-US')} lb less than ${now}. The quote keeps the guide's method; use it on the Column page.` }));
+        } else colAlt = null;
+      }
+    }
     // the design manual items, and the Excel cells to type
     const dm = dmChecklist(ctxs, mezz, marks, cols);
     mezz.forEach(r => {
@@ -1256,13 +1303,20 @@
     {
       const inFile = new Set(fEntries.flatMap(f => f.entries.filter(e => e.member).map(e => e.label + '|' + f.bkey)));
       const off = cols.frame.filter(q => !inFile.has(q.label + '|' + q.bkey));
+      const say = (mi, text) => { if (mezz[mi] && mezz[mi].warn) mezz[mi].warn.push({ level: 'warn', text }); };
+      // a column made a frame column on the Plan page: a new member in its frame's NBG Frame file
+      off.filter(q => q.userKind === 'frame').forEach(q => {
+        const fr = fEntries.find(f => f.bkey === q.bkey && f.entries.some(e => e.label === q.label));
+        say(q.parts[0].mi, fr ? `${q.label} made a frame column on the Plan page: add a column at ${PCS.fmtFtIn(q.y)} from the FSW in the frame line ${fr.frame} NBG Frame file, then load it D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k.`
+          : `${q.label} made a frame column on the Plan page, but it is not on a frame line — design it as a building column (endwall / sidewall) for D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k.`);
+      });
       const byMi = new Map();
-      off.forEach(q => { const mi = q.parts[0].mi; byMi.set(mi, (byMi.get(mi) || []).concat(q)); });
-      byMi.forEach((qs, mi) => { if (mezz[mi] && mezz[mi].warn) mezz[mi].warn.push({ level: 'warn', text: `Mezzanine load on building columns that are in no NBG Frame file — give it to the endwall / sidewall design: ${qs.map(q => `${q.label} D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`).join(' · ')}.` }); });
+      off.filter(q => q.userKind !== 'frame').forEach(q => { const mi = q.parts[0].mi; byMi.set(mi, (byMi.get(mi) || []).concat(q)); });
+      byMi.forEach((qs, mi) => say(mi, `Mezzanine load on building columns that are in no NBG Frame file — give it to the endwall / sidewall design: ${qs.map(q => `${q.label} D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k`).join(' · ')}.`));
     }
     let seismic = null;
     try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
-    return { mezz, merges, columns: cols, frameLoads: cols.frame, frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
+    return { mezz, merges, columns: cols, colAlt, frameLoads: cols.frame, frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
   }
 
   function run(inp, settings = {}) { return runJob([{ inp, settings }]).mezz[0]; }
@@ -1348,7 +1402,7 @@
         // columns the design could not size yet (a beam framing in has no section): on the quote, marked
         const k = 'NOT SIZED|' + round(r.colLen || 0, 3), row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen || 0, 3), AREA: 0, SECTION: 'NOT SIZED', ENDWT: END_WT_COL, QTY: 0, notes: ['NOT SIZED — see the Design page'], runAs: '' };
         row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea || 0));
-        row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${r.columns.map(c => c.label).join(', ')}`);
+        row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(r.columns).map(c => c.label).join(', ')}`);
         colRows.set(k, row);
         return;
       }
@@ -1356,7 +1410,7 @@
       const row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen, 3), AREA: 0, SECTION: r.colFinal.quoteAs, ENDWT: END_WT_COL, QTY: 0, notes: [], runAs: r.colFinal.quoteAs !== r.colFinal.name ? r.colFinal.name : '' };
       row.MEZZ.push(r.id); row.QTY += r.columns.length; row.AREA = Math.max(row.AREA, ...r.columns.map(c => c.tribArea));
       if (!r.colFinal.ok) row.notes.unshift(`FAILS — max CSR ${r.colFinal.max.toFixed(2)}`);
-      row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${r.columns.map(c => c.label).join(', ')}`);
+      row.notes.push(`${results.length > 1 ? r.id + ' ' : ''}${colOrder(r.columns).map(c => c.label).join(', ')}`);
       r.columns.filter(c => c.shared).forEach(c => row.notes.push(`${c.label} shared with ${[...new Set(c.parts.map(p => p.mezz).filter(m => m !== r.id))].join(', ')}`));
       colRows.set(k, row);
     });

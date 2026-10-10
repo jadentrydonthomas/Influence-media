@@ -31,6 +31,8 @@ checked. The review loop works through this list; a requirement is only marked m
 | D7 | Design your own beam and column (MB / Column sheet inputs → results, DL and LL); use it for a mark | Design your own page | e2e (start from a mark, new depth, sections that pass, use for the mark, column tab) |
 | D8 | Edit the layout: place / remove beam and column lines, remove a column, make a mezzanine column a frame column | Plan page → *Edit layout* (`layout.js` drop, `run.js userColumns`) | `test/layout`, `test/job3`, e2e |
 | D9 | Explanations of every decision, folded (beam and column), not spread over the page | Beam / Column pages | e2e |
+| D10 | Engineers not locked in: a column can be a built-up column on the Column sheet's own Built-Up input; when the guide's answer is quoted BU anyway, the lightest stocked built-up column is offered (not applied) | `design.js designBUColumn`, `run.js designColumns`, Column calc, Design your own | `test/job4` (BU9x22 offered, typed C16–C20), `oracle/fill_check` with `MZ_SETTINGS='{"colOverride":"alt"}'` |
+| D11 | A hand-picked section is always visible as the quote's section, with its ratios and flags | Beam options *Picked by hand* card | review loop |
 
 ## Frame and seismic
 
@@ -56,3 +58,5 @@ checked. The review loop works through this list; a requirement is only marked m
 | P7 | Easy to navigate, simple to use | nav, page structure | review loop |
 | P8 | Remembers jobs (learns usual values) | Settings | e2e |
 | P9 | Everything stays on the computer (single HTML, no uploads) | — | review |
+| P10 | One holistic drawing for attached buildings, each building's columns read against its own frame-line bubbles | plans, 3D (`app.js` attSide) | review loop |
+| P11 | A printout an engineer can check: header (job, code → sheets, division, date, build), readable drawings, no orphaned headings or empty folds | print stylesheet | review loop (`page.pdf`) |

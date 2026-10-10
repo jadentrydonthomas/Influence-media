@@ -69,6 +69,17 @@
     Object.assign(viewCache, { job: state.job, r, ms: ms.length ? ms : [r] });
     return viewCache.ms;
   }
+  // the printout's header: what was designed, to which code and sheets, when, with which build of the tool
+  function printHead() {
+    const el = $('#printHead'), r = state.res;
+    if (!el) return;
+    if (!r || !state.pcs) { el.innerHTML = ''; return; }
+    const j = state.pcs.job || {}, code = (state.inputs.job && state.inputs.job.code) || {}, ed = r.edition || {};
+    const gen = (document.querySelector('meta[name="generator"]') || {}).content || '', build = (gen.match(/build (\S+?);/) || [])[1];
+    const sheets = [ed.beamEd && `Mezzanine Beam Design ${ed.beamEd}th`, ed.colEd && `Mezzanine Column ${ed.colEd}th`].filter(Boolean).join(' · ');
+    el.innerHTML = `<b>Mezzanine design · ${esc(j.quote || state.fileName || '')}</b><span>${esc(code.text || (code.year ? 'IBC ' + code.year : ''))}${code.spec ? ' → ' + esc(code.spec) : ''}${sheets ? ' → ' + esc(sheets) : ''}</span><span>${esc(r.division || '')}${manyMezz() ? ' · ' + esc(state.job.mezz.map(m => m.id).join(' + ')) : ''}</span><span>Printed ${new Date().toISOString().slice(0, 10)}${build ? ' · tool build ' + esc(build) : ''}</span>`;
+  }
+  window.addEventListener('beforeprint', printHead);
   const viewCache = {};
   /* how a mezzanine's building sits in the building picked at the top, through the PCS attachment (both mapped to the
      floor plan's building): separable — x maps on its own, y on its own */
@@ -102,7 +113,12 @@
   const viewQty = mk => { const ids = new Set(jobView().map(m => m.index)); return (mk.beamsAll || []).filter(x => ids.has(x.mi)).length; };
   const atPt = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
   // C1, C2 … numbered once over the job (plans, 3D, Column page): along the length, then from the BSW
-  const colNosRaw = () => new Map(jobView().flatMap(m => m.layout.mezzCols).sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  // counted in the floor plan's building (the PCS drawing's), so a column keeps its number whichever building is picked
+  const colNosRaw = () => {
+    const pcs = state.pcs, ms = state.job ? state.job.mezz.filter(m => m && !m.incomplete) : jobView();
+    const pts = ms.flatMap(m => { const mp = pcs && pcs.mezzanines ? RUN.planMap(pcs, pcs.mezzanines[m.index] || {}) : null; return m.layout.mezzCols.map(c => ({ label: c.label, ...(mp ? mp.toHost(c.x, c.y) : { x: c.x, y: c.y }) })); });
+    return new Map(pts.sort((a, b) => a.x - b.x || b.y - a.y).map((c, i) => [c.label, i + 1]));
+  };
   // the numbers the job had before the Plan page edits stay with their columns; new columns are numbered after them
   const colNos = () => {
     const now = colNosRaw();
@@ -136,8 +152,9 @@
   }
 
   // the column symbol the PCS floor plan shows at a point (a wall column's I is drawn just inside the steel line)
-  function symAt(pt) {
-    const pc = state.inputs && state.inputs.building && state.inputs.building.planCols, g = state.res && state.res.grid;
+  function symAt(pt, om) {
+    // om: a mezzanine of the building the point is in (an attached building's own coordinates and drawing symbols)
+    const inp = om ? inpOf(om) : state.inputs, pc = inp && inp.building && inp.building.planCols, g = om ? om.grid : state.res && state.res.grid;
     if (!pc || !g) return null;
     const wall = (v, ends) => { const e = ends.find(u => Math.abs(v - u) < 2.6); return e == null ? v : e; };
     const hit = pc.map(c => (c.kind === 'I' ? { ...c, x: wall(c.x, [0, g.length]), y: wall(c.y, [0, g.width]) } : c)).filter(c => Math.hypot(c.x - pt.x, c.y - pt.y) <= 1.25).sort((p, q) => Math.hypot(p.x - pt.x, p.y - pt.y) - Math.hypot(q.x - pt.x, q.y - pt.y))[0];
@@ -171,7 +188,7 @@
       const pt = { x: +a, y: +b }, fl = (job.frameLoads || []).filter(inB).find(q => atPt(q, pt)), g = om ? om.grid : r.grid;
       const lab = fl ? fl.label : `${g.xLabel(pt.x) || ft(pt.x)}/${g.yLabel(pt.y) || ft(pt.y)}`;
       const fe = (job.frameEntries || []).filter(inB).flatMap(f => f.entries.map(e => ({ ...e, frame: f.frame }))).find(e => atPt(e, pt));
-      const sym = symAt(pt), drawn = sym ? `<div class="tip-f">On the PCS floor plan: ${sym === 'star' ? '✱ — interior frame column "designated as Most Economical" (pipe, tube or I-shape, set at final design)' : 'I — frame / endwall column'}.</div>` : '';
+      const sym = symAt(pt, om), drawn = sym ? `<div class="tip-f">On the PCS floor plan: ${sym === 'star' ? '✱ — interior frame column "designated as Most Economical" (pipe, tube or I-shape, set at final design)' : 'I — frame / endwall column'}.</div>` : '';
       if (!fl) return head(esc(lab), 'building column') + drawn + '<div class="tip-f">No mezzanine beam frames into this column.</div>';
       return head(esc(lab), 'building column · load to the frame') + `<div class="tip-k">Mezzanine beam reactions · unfactored (kips)</div><div class="tip-lr one">${pair('Total', fl.D, fl.L)}</div>` +
         tbl(fl.parts.map(p => partRow(p)).join('')) + drawn +
@@ -335,7 +352,7 @@
     nav.innerHTML = `<span class="mt-title">${state.all.length} mezzanines<small>designed together</small></span>` + state.job.mezz.map((m, i) => {
       const g = state.all[i].inputs.geom, size = `${ft(g.width.value)} × ${ft(g.length.value)}`;
       const beams = m.incomplete ? '' : m.marks.map(mk => `${mk.mark} ${esc(mk.desc || '—')} × ${mk.qty}`).join(' · ');
-      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length}` : (m.columns.length ? 'no column' : 'no columns');
+      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length}` : (m.columns.length ? `<em class="mt-ng">${m.columns.length} column${m.columns.length > 1 ? 's' : ''} not sized</em>` : '');
       const st = m.incomplete ? `<em class="mt-need">needs ${m.need.length} input${m.need.length > 1 ? 's' : ''}</em>` : m.warn.some(w => w.level === 'stop') ? '<em class="mt-check">check notes</em>' : '<em class="mt-ok">designed</em>';
       return `<button class="mt ${i === state.mi ? 'is-on' : ''}" data-mi="${i}" aria-pressed="${i === state.mi}"><span class="mt-name">${esc(m.id)}</span><span class="mt-size">${size}</span>${st}<span class="mt-sec">${beams || '—'}${cols ? '<br>' + cols : ''}</span></button>`;
     }).join('');
@@ -411,7 +428,7 @@
     const many = state.job.mezz.length > 1;
     const per = many ? ' (' + state.job.mezz.filter(m => !m.incomplete).map(m => `${m.id} ${m.columns.length}`).join(', ') + ')' : '';
     const sym = reg.columns.some(c => c.markup) ? 'marked-up X' : reg.columns.some(c => c.kind === 'i') ? 'circled-I' : '⊗';
-    if (reg.numberOffset > 0) r.warn.push({ level: 'info', text: `The floor plan numbers the ${state.pcs.planBuilding || 'building'} frame lines from ${1 + reg.numberOffset} (${reg.numberOffset === 1 ? 'one extra line' : reg.numberOffset + ' extra lines'} drawn ahead of its LEW, such as an attached building's end); this design keeps the PCS frame lines 1–${reg.frameLines} (Box 5, the NBG Frame files).` });
+    if (reg.numberOffset > 0) r.warn.push({ level: 'warn', text: `Frame-line numbers: the PCS floor plan numbers the ${state.pcs.planBuilding || 'building'} frame lines ${1 + reg.numberOffset}–${reg.frameLines + reg.numberOffset}; this design and the NBG Frame files use Box 5's 1–${reg.frameLines} (line 1 here is line ${1 + reg.numberOffset} on the drawing).` });
     if (!reg.columns.length) r.warn.push({ level: 'info', text: `Floor plan (page ${state.planPage}): no mezzanine column symbols found on the drawing — confirm the columns by eye.` });
     else if (cmp.agree) r.warn.unshift({ level: 'ok', text: `Floor plan check: the drawing shows ${labels.length} ${sym} mezzanine column${labels.length === 1 ? '' : 's'} at ${labels.join(', ')} — matches ${many ? 'the mezzanines\u2019' : 'this'} layout${per}.` });
     else {
@@ -430,7 +447,7 @@
     const own = r.layout.beams.filter(b => !b.absorbed);
     const beams = own.reduce((a, b) => { const mk = mkOf(r, b.id); return a + (mk && mk.check ? b.span * mk.check.res.Wt : 0); }, 0);
     const nB = r.marks.reduce((a, mk) => a + mk.qty, 0), nC = r.columns.length;
-    const cols = r.colFinal ? nC * r.colLen * WF[r.colFinal.name].W : 0;
+    const cols = r.colFinal ? nC * r.colLen * r.colFinal.props.W : 0;
     const plates = nB * 40 + (r.colFinal ? nC * 46 : 0);
     const govBeam = r.marks.filter(mk => mk.check).map(mk => {
       const c = mk.check, parts = [['combined', c.res.CSR], ['shear', c.res.SRvx], ['live deflection', 360 / c.defl.rLL], ['total deflection', 240 / c.defl.rTL], ['joist bearing', c.conc ? c.conc.max : 0]];
@@ -449,7 +466,7 @@
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); }
+  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -483,16 +500,21 @@
     const all = ((state.job && state.job.frameLoads) || []), bks = [...new Set(all.map(q => q.bkey))];
     const bName = q => { const m = state.job.mezz.find(z => z.bkey === q.bkey); return m && state.pcs ? ((state.pcs.mezzanines[m.index] || {}).building || '').trim() : ''; };
     const fls = all.slice().sort((a, b) => bks.indexOf(a.bkey) - bks.indexOf(b.bkey) || a.x - b.x || a.y - b.y), groups = [];
-    fls.forEach(q => { const lab = bks.length > 1 && bName(q) ? `${bName(q)} ${q.label}` : q.label, k = `${q.bkey}|${q.D.toFixed(2)}|${q.L.toFixed(2)}`, g = groups.find(x => x.k === k); if (g) g.cols.push(lab); else groups.push({ k, D: q.D, L: q.L, cols: [lab] }); });
+    // columns no .frame file carries: an endwall column beside a rigid end frame (the endwall design), or one made a frame
+    // column on the Plan page (a member to add in NBG Frame) — grouped apart from the ones in a frame file
+    const inFile = new Set(((state.job && state.job.frameEntries) || []).flatMap(fr => fr.entries.filter(e => e.member).map(e => fr.bkey + '|' + e.label)));
+    const tagOf = q => (inFile.has(q.bkey + '|' + q.label) ? '' : q.userKind === 'frame' ? 'add' : 'endwall');
+    fls.forEach(q => { const lab = bks.length > 1 && bName(q) ? `${bName(q)} ${q.label}` : q.label, t = tagOf(q), k = `${q.bkey}|${q.D.toFixed(2)}|${q.L.toFixed(2)}|${t}`, g = groups.find(x => x.k === k); if (g) g.cols.push(lab); else groups.push({ k, D: q.D, L: q.L, t, cols: [lab] }); });
     const name = cs => { const suf = new Set(cs.map(c => c.split('/')[1])); return cs.length > 2 && suf.size === 1 ? `${cs[0]}–${cs[cs.length - 1].split(' ').pop()}` : cs.join(', '); };
-    groups.sort((a, b) => b.D - a.D);
+    groups.sort((a, b) => (isFinite(b.D) ? b.D : -1) - (isFinite(a.D) ? a.D : -1));
     const shown = groups.slice(0, 6), more = groups.length - shown.length;
-    // columns no .frame file carries (endwall columns beside a rigid end frame): marked, they go to the endwall design
-    const inFile = new Set(((state.job && state.job.frameEntries) || []).flatMap(fr => fr.entries.filter(e => e.member).map(e => (bks.length > 1 && fr.building ? fr.building + ' ' : '') + e.label)));
-    const rows = shown.map(g => `<span class="fl-row"><b title="${esc(g.cols.join(', '))}">${esc(name(g.cols))}${g.cols.some(c => !inFile.has(c)) ? '<i>endwall</i>' : ''}</b><span>D ${f(g.D, 2)}</span><span>L ${f(g.L, 2)}</span></span>`).join('');
+    const TAG = { endwall: '<i>endwall</i>', add: '<i>add in Frame</i>' };
+    const rows = shown.map(g => `<span class="fl-row"><b title="${esc(g.cols.join(', '))}">${esc(name(g.cols))}${TAG[g.t] || ''}</b>${isFinite(g.D) ? `<span>D ${f(g.D, 2)}</span><span>L ${f(g.L, 2)}</span>` : '<span class="ng">beam not sized</span>'}</span>`).join('');
+    const used = new Set(shown.map(g => g.t));
+    const legend = [used.has('endwall') && '<i>endwall</i>: in no frame file, for the endwall design', used.has('add') && '<i>add in Frame</i>: made a frame column — add it in NBG Frame'].filter(Boolean).join(' · ');
     return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
       <div class="fl-rows">${rows || '<span class="sub-n">No mezzanine beam frames into a building column.</span>'}</div>
-      <small>kips at each building column · unfactored MB end shears (H6 / H10)${more ? ` · ${more} more on the Plan page` : ''} · <i>endwall</i>: in no frame file, for the endwall design</small></div></div>`;
+      <small>kips at each building column · unfactored MB end shears (H6 / H10)${more ? ` · ${more} more on the Plan page` : ''}${legend ? ' · ' + legend : ''}</small></div></div>`;
   }
   const ringCard = (label, value, sub, ratio, color) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${ratio == null ? '' : `<div class="ring" title="governing ratio ${f(ratio, 3)}" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"><span>${f(ratio, ratio >= 0.995 && ratio < 1.005 ? 3 : 2)}</span></div>`}</div>`;
   // rings sweep in and whole numbers count up, as in the Astra dashboard
@@ -762,8 +784,8 @@
     });
     ex.column.forEach(b => b.cases.forEach(c => {
       const r = (state.job.mezz || [])[c.mi], g = r && r.colGroups[c.group];
-      const lab = g ? g.cols.map(x => `C${cno.get(x.label) || '?'}`).join(', ') : c.labels.join(', ');
-      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, sub: c.labels.join(', '), note: '', name: `${q}-Column-${lab.replace(/[^A-Za-z0-9]+/g, '')}.xls`, steps: c.steps, read: c.read });
+      const nos = g ? g.cols.map(x => `C${cno.get(x.label) || '?'}`) : c.labels, lab = nos.join(', '), short = nos.length > 3 ? `${nos[0]}-${nos[nos.length - 1]}` : nos.join('');
+      out.push({ key: `column|${c.mi}|${c.group}`, kind: 'column', ed: b.edition === '16' ? '16' : '15', title: `${lab}${manyMezz() ? ' · ' + c.mezz : ''}`, sub: c.labels.join(', '), note: '', name: `${q}-Column-${manyMezz() ? c.mezz.replace(/[^A-Za-z0-9]+/g, '') + '-' : ''}${short.replace(/[^A-Za-z0-9-]+/g, '')}.xls`, steps: c.steps, read: c.read });
     }));
     const sj = state.job && state.job.seismic;
     (sj && sj.ok ? sj.buildings : []).forEach(b => (b.workbook ? b.workbook.frames : []).forEach(fr => out.push({
@@ -838,7 +860,7 @@
     const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (state.res && state.res.colGroups && state.res.colGroups.length ? wbBtn(`column|${state.res.index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button></div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button></div></div>`;
     });
   }
 
@@ -964,7 +986,26 @@
       const lastFail = flStep && flStep.tries ? flStep.tries.filter(t => !t.ok && t.why && !/production|no web/.test(t.why)).pop() : null;
       const oneTxt = one && !(mk.options || []).some(o => o.needC != null) ? `<div class="option-one"><b>One design for these inputs.</b> ${capped ? `The clearance C leaves ${sr.dTop}" for the beam (A − C − slab − seat)${lastFail ? `; at ${sr.dTop}" the next lighter plate fails (${esc(lastFail.sec)}: ${esc(lastFail.why)})` : ''}, so ` : ''}every way of building it — the lightest, the step-by-step method, the economical flanges — lands on the same section.${mk.deeper && mk.deeper.length ? ` More depth would take less steel, but needs the clearance under the beams lowered:` : ''}</div>
         ${mk.deeper && mk.deeper.length ? `<table class="fl-t deeper"><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">Saves</th><th class="num">Combined</th><th class="num">Live</th><th class="num">C would be at most</th></tr></thead><tbody>${mk.deeper.map(z => `<tr><td class="num mono">${z.d}"</td><td class="mono">${esc(z.desc)} <small class="sub-n">${esc(z.flange)} · ${esc(z.web)}</small></td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(groups[0].pick.wt - z.wt, 1)} plf (${f((1 - z.wt / groups[0].pick.wt) * 100, 0)} %)</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td class="num mono">${ft(z.needC)}</td></tr>`).join('')}</tbody></table>` : ''}` : '';
-      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options ${one ? 'is-one' : ''}">${groups.map(card).join('')}</div>${oneTxt}</div>`;
+      // a section picked by depth or by hand (Design your own): its own card, so the quote's section is always on the page
+      const handCard = () => {
+        if (!mk.sec || !mk.check || groups.some(g => sameSec(g.sec, mk.sec))) return '';
+        const c = mk.check, x = c.res, light = groups.find(g => g.roles.some(o => o.key === 'lightest')) || groups[0], dW = x.Wt - light.pick.wt;
+        const under = A != null ? A - (slabIn + seatIn + mk.sec.d) / 12 : null, tg = state.settings.target, Cq = inp.geom.C.value;
+        const flags = [x.CSR > tg && `combined ${f(x.CSR, 3)} over ${f(tg, 2)}`, x.SRvx > tg && `shear ${f(x.SRvx, 3)} over ${f(tg, 2)}`, !c.llOK && `live L/${f(c.defl.rLL, 0)} under L/360`, !c.tlOK && `total L/${f(c.defl.rTL, 0)} under L/240`,
+          under != null && Cq != null && under < Cq - 1e-9 && `${ft(under)} under the beam < C ${ft(Cq)}`].filter(Boolean);
+        return `<article class="option is-chosen is-hand ${flags.length ? 'has-flags' : ''}">
+          <div class="option-top"><span class="option-tags"><span class="option-tag">Picked by hand</span></span><span class="option-delta ${dW > 0 ? '' : 'zero'}">${dW > 1e-9 ? `+${f(dW / light.pick.wt * 100, 1)}% · +${n0(dW * len)} lb` : dW < -1e-9 ? `${f(dW / light.pick.wt * 100, 1)}% · ${n0(dW * len)} lb` : 'same weight'} vs lightest</span></div>
+          ${flags.length ? `<div class="option-flag">${esc(flags.join(' · '))}</div>` : ''}
+          <div class="option-sec nocase">${esc(mk.desc)}</div><div class="option-parts">${secParts(mk.sec)}</div>
+          <div class="option-grid">
+            <div><span>Weight</span><b>${f(x.Wt, 1)} plf</b></div><div><span>Depth</span><b>${mk.sec.d}"</b></div><div><span>Under beam</span><b class="${flags.some(t => / < C /.test(t)) ? 'bad' : ''}">${under != null ? ft(under) : '—'}</b></div>
+            <div><span>Combined</span><b class="${x.CSR <= tg ? 'ok' : 'bad'}">${f(x.CSR, 3)}</b></div><div><span>Shear</span><b class="${x.SRvx <= tg ? 'ok' : 'bad'}">${f(x.SRvx, 3)}</b></div><div><span>Live defl.</span><b class="${c.llOK ? 'ok' : 'bad'}">L/${f(c.defl.rLL, 0)}</b></div>
+          </div>
+          <ul class="option-why"><li><b>Picked by hand</b> — ${mk.optionKey === 'custom' ? 'chosen from the depth table or Design your own' : 'the engineer\u2019s section'}; Beam calc runs it on the MB sheet. "Use this" on an option puts the tool's answer back.</li></ul>
+          <div class="option-actions"><span class="chosen-pill">In the quote</span><button class="btn-ghost" data-go="beam">Calc</button></div>
+        </article>`;
+      };
+      return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options ${one && !handCard() ? 'is-one' : ''}">${handCard()}${groups.map(card).join('')}</div>${oneTxt}</div>`;
     }).join('');
     $$('#options [data-opt]').forEach(b => { b.onclick = () => pickOption(b.dataset.mark, b.dataset.opt); });
   }
@@ -1013,7 +1054,7 @@
       });
       runs.forEach(rn => { const mid = (rn.from + rn.to) / 2; labels.push({ p: alongX ? [mid, rn.line, zTop + 0.2] : [rn.line, mid, zTop + 0.2], text: rn.mk.mark + (rn.mk.kind ? ' ' + rn.mk.kind.slice(0, 3).toUpperCase() : ''), kind: 'tag', color: mkHex(rn.mk) }); });
       // mezzanine columns: W shape, web parallel to the beam web, from the floor to the underside of the beam
-      const cf = m.colFinal, w = cf ? WF[cf.name] : null, dBeam = Math.max(0, ...m.marks.filter(q => q.sec).map(q => q.sec.d)) / 12;
+      const cf = m.colFinal, w = cf ? cf.props : null, dBeam = Math.max(0, ...m.marks.filter(q => q.sec).map(q => q.sec.d)) / 12;
       lay.mezzCols.forEach(c => {
         const cd = (w ? w.d : 10) / 12, cb = (w ? w.bf : 6) / 12, ctf = Math.max(w ? w.tf : 0.4, 0.5) / 12, ctw = Math.max(w ? w.tw : 0.25, 0.9) / 12, zc = zTop - dBeam;
         const bx = (dx0, dx1, dy0, dy1, z0, z1) => (alongX ? { x0: c.x + dx0, x1: c.x + dx1, y0: c.y + dy0, y1: c.y + dy1, z0, z1 } : { x0: c.x + dy0, x1: c.x + dy1, y0: c.y + dx0, y1: c.y + dx1, z0, z1 });
@@ -1053,11 +1094,20 @@
     // floor: grid lines + bubbles around every mezzanine
     const u = { x0: Math.min(...ms.map(m => m.layout.footprint.x0)), x1: Math.max(...ms.map(m => m.layout.footprint.x1)), y0: Math.min(...ms.map(m => m.layout.footprint.y0)), y1: Math.max(...ms.map(m => m.layout.footprint.y1)) };
     const pad = 6, xLo = u.x0 - pad, xHi = u.x1 + pad, yLo = u.y0 - pad, yHi = u.y1 + pad;
-    g.xs.filter(x => x >= xLo - 1e-6 && x <= xHi + 1e-6).forEach(x => { floor.push([[x, yLo, 0], [x, yHi, 0], 'rgba(140,200,235,.22)', true]); labels.push({ p: [x, yLo - 2.2, 0], text: g.xLabel(x), kind: 'bubble' }); });
+    // an attached building beside a sidewall: its own frame numbers on its side, its own letters on its lines (as on the plan)
+    const att3 = [...new Map(ms.filter(m => m.layout.mapped && m._own).map(m => [m.bkey, m])).values()];
+    const aBot = att3.find(m => m.layout.bldg.y0 < -0.05), aTop = att3.find(m => m.layout.bldg.y1 > g.width + 0.05);
+    const hostXY = aBot && !aTop ? yHi + 2.2 : yLo - 2.2;
+    g.xs.filter(x => x >= xLo - 1e-6 && x <= xHi + 1e-6).forEach(x => { floor.push([[x, yLo, 0], [x, yHi, 0], 'rgba(140,200,235,.22)', true]); labels.push({ p: [x, hostXY, 0], text: g.xLabel(x), kind: 'bubble' }); });
+    [[aBot, yLo - 2.2], [aTop, yHi + 2.2]].forEach(([m, yb]) => { if (!m) return; const own = m._own;
+      own.grid.xs.forEach(v => { const x = m._map.X(v); if (x >= xLo - 1e-6 && x <= xHi + 1e-6 && own.grid.xLabel(v)) labels.push({ p: [x, yb, 0], text: own.grid.xLabel(v), kind: 'bubble' }); }); });
     const colY = [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()])];
     colY.filter(y => y >= yLo - 1e-6 && y <= yHi + 1e-6).forEach(y => { floor.push([[xLo, y, 0], [xHi, y, 0], 'rgba(140,200,235,.22)', true]); labels.push({ p: [xLo - 2.2, y, 0], text: g.yLabel(y), kind: 'bubble' }); });
+    att3.forEach(m => { const og = m._own.grid; [...new Set([0, og.width, ...og.lewY, ...og.rewY, ...og.interior.flat()])].forEach(v => { const y = m._map.Y(v);
+      if (y < yLo - 1e-6 || y > yHi + 1e-6 || colY.some(c => Math.abs(c - y) < 0.5) || !og.yLabel(v)) return;
+      floor.push([[xLo, y, 0], [xHi, y, 0], 'rgba(240,190,110,.22)', true]); labels.push({ p: [xLo - 2.2, y, 0], text: og.yLabel(v), kind: 'bubble' }); }); });
     const Z = Atop + 2.5;
-    const box = { x0: xLo - 3.4, x1: xHi, y0: yLo - 3.4, y1: yHi, z0: 0, z1: Z };   // bubbles sit 2.2' outside the grid ends
+    const box = { x0: xLo - 3.4, x1: xHi, y0: yLo - 3.4, y1: yHi + (att3.length ? 3.4 : 0), z0: 0, z1: Z };   // bubbles sit 2.2' outside the grid ends
     return { center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, Z / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2, box, members, labels, floor };
   }
   // the sidebar orb: the same scene, small, turning; click it to jump to the framing model
@@ -1102,16 +1152,26 @@
     const lays = ms.map(m => m.layout);
     const x0 = Math.min(...lays.map(l => Math.min(l.footprint.x0, ...l.xLines))), x1 = Math.max(...lays.map(l => Math.max(l.footprint.x1, ...l.xLines)));
     const y0 = Math.min(...lays.map(l => Math.min(l.footprint.y0, ...l.yLines))), y1 = Math.max(...lays.map(l => Math.max(l.footprint.y1, ...l.yLines)));
-    const s = Math.min((Vw - 2 * M) / Math.max(1, x1 - x0), (Vh - 2 * M - 10 * k - padTop) / Math.max(1, y1 - y0));
-    const ox = (Vw - (x1 - x0) * s) / 2, oy = padTop + (Vh - padTop - 10 * k - (y1 - y0) * s) / 2;
+    // an attached building beside a sidewall: its own frame numbers on its side, this building's on the other
+    const W0 = r.grid.width, attM = ms.filter(m => m.layout.mapped && m.layout.bldg);
+    const aTop = attM.find(m => m.layout.bldg.y1 > W0 + 0.05), aBot = attM.find(m => m.layout.bldg.y0 < -0.05), botPad = aTop || aBot ? 14 * k : 0;
+    const s = Math.min((Vw - 2 * M) / Math.max(1, x1 - x0), (Vh - 2 * M - 10 * k - padTop - botPad) / Math.max(1, y1 - y0));
+    const ox = (Vw - (x1 - x0) * s) / 2, oy = padTop + (Vh - padTop - 10 * k - botPad - (y1 - y0) * s) / 2;
     const X = x => ox + (x - x0) * s, Y = y => oy + (y1 - y) * s;
-    const grp = state.view === 'column' && r.colGroups[state.colGroup] ? r.colGroups[state.colGroup].cols.map(c => c.label) : null;
+    const cr = state.view === 'column' ? colShown() : null, grp = cr && cr.colGroups[state.colGroup] ? cr.colGroups[state.colGroup].cols.map(c => c.label) : null;
     // on the Beam page: the job's beams of the mark (and member length) under review
     const jm = state.view === 'beam' ? jobMarks()[state.mark] : null, run = jm && jm.spanRuns && jm.spanRuns.length > 1 ? jm.spanRuns[state.markSpan] : null;
     const isOn = (m, b) => !!jm && (mkOf(m, b.id) || {}).mark === jm.mark && (!run || Math.abs(b.span - run.span) < 1e-3);
     const o = [], br = 6.5 * k;
     const xL = [...new Set(lays.flatMap(l => l.xLines).map(v => +v.toFixed(3)))], yL = [...new Set(lays.flatMap(l => l.yLines).map(v => +v.toFixed(3)))];
-    xL.forEach(x => { o.push(`<line class="mp-grid" x1="${X(x)}" y1="${Y(y1) - 8 * k}" x2="${X(x)}" y2="${Y(y0) + 8 * k}"/>`); const lb = viewLabX(x); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x)}" cy="${Y(y1) - 15 * k}" r="${br}"/><text x="${X(x)}" y="${Y(y1) - 15 * k}">${lb}</text></g>`); else o.push(`<text class="mp-off" x="${X(x)}" y="${Y(y1) - 13 * k}">${ft(x)}</text>`); });
+    const bubX = (x, cy, lb, cls = '') => `<g class="mp-bub${cls}"><circle cx="${X(x)}" cy="${cy}" r="${br}"/><text x="${X(x)}" y="${cy}">${esc(lb)}</text></g>`;
+    xL.forEach(x => {
+      o.push(`<line class="mp-grid" x1="${X(x)}" y1="${Y(y1) - 8 * k}" x2="${X(x)}" y2="${Y(y0) + 8 * k}"/>`);
+      const top = aTop ? aTop.layout.labX(x) : viewLabX(x);
+      if (top) o.push(bubX(x, Y(y1) - 15 * k, top, aTop ? ' att' : '')); else if (!aTop) o.push(`<text class="mp-off" x="${X(x)}" y="${Y(y1) - 13 * k}">${ft(x)}</text>`);
+      const bot = aBot ? aBot.layout.labX(x) : aTop ? r.grid.xLabel(x) : null;
+      if (bot) o.push(bubX(x, Y(y0) + 15 * k, bot, aBot ? ' att' : ''));
+    });
     yL.forEach(y => { o.push(`<line class="mp-grid" x1="${X(x0) - 8 * k}" y1="${Y(y)}" x2="${X(x1) + 8 * k}" y2="${Y(y)}"/>`); const lb = viewLabY(y); if (lb) o.push(`<g class="mp-bub"><circle cx="${X(x0) - 15 * k}" cy="${Y(y)}" r="${br}"/><text x="${X(x0) - 15 * k}" y="${Y(y)}">${lb}</text></g>`); });
     ms.forEach(m => { const fp = m.layout.footprint; o.push(`<rect class="mp-foot" x="${X(fp.x0)}" y="${Y(fp.y1)}" width="${(fp.x1 - fp.x0) * s}" height="${(fp.y1 - fp.y0) * s}" rx="2"/>`); });
     ms.forEach(m => m.layout.beams.forEach(b => {
@@ -1125,7 +1185,7 @@
     bldgCols().forEach(sp => { const ld = !!bcolLoad(sp); o.push(`<g class="mp-bc ${ld ? 'ld' : ''}" data-tip="${bcolTip(sp)}"><circle class="mp-hit" cx="${X(sp.x)}" cy="${Y(sp.y)}" r="${6 * k}"/><rect x="${X(sp.x) - 2.5 * k}" y="${Y(sp.y) - 2.5 * k}" width="${5 * k}" height="${5 * k}"/></g>`); });
     const xm = (cx, cy, R) => { const d = R * 0.68; return `<circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/>`; };
     const lbl = (cx, cy, t, t2) => `<text class="mp-cl" x="${cx}" y="${cy + 13 * k}" text-anchor="middle">${t}${t2 ? `<tspan class="mp-cl2" x="${cx}" dy="${9 * k}">${t2}</tspan>` : ''}</text>`;
-    ms.forEach(m => m.layout.mezzCols.forEach(c => { const on = grp ? m === r && grp.includes(c.label) : null, cx = X(c.x), cy = Y(c.y);
+    ms.forEach(m => m.layout.mezzCols.forEach(c => { const on = grp ? m.index === cr.index && grp.includes(c.label) : null, cx = X(c.x), cy = Y(c.y);
       const cd = `${c.ox ?? c.x}|${c.oy ?? c.y}|${m.index}`;
       o.push(`<g class="mp-col ${on === true ? 'hi' : on === false || jm ? 'dim' : ''}" data-col="${cd}" data-tip="col|${cd}">${xm(cx, cy, 5 * k)}</g>${lbl(cx, cy, 'C' + cno.get(c.label), k > 1.2 ? c.label : '')}`); }));
     if (many) ms.forEach(m => { const fp = m.layout.footprint, bl = m.layout.beamLines, alongX = m.layout.joists === 'y';
@@ -1281,7 +1341,8 @@
       <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
       <div class="pstat"><span>Joists</span><strong>${uniq(ms.map(m => ft(m.layout.joistSpan)))}</strong><em>span · @ ${uniq(ms.map(m => ft(m.beamBase.Lb)))} · ${uniq(ms.map(m => (m.layout.joists === 'y' ? 'across the width' : 'along the length')))}</em></div>`;
     $$('#joistSeg button').forEach(b => b.classList.toggle('is-active', b.dataset.j === (state.settings.joists || 'auto')));
-    $('#planTitle').textContent = many ? `Framing plan · ${ms.map(m => m.id).join(' + ')}` : `Framing plan · ${inp.mezz.id || 'mezzanine'}`;
+    const gridOf = ((state.pcs && state.pcs.mezzanines[r.index]) || {}).building || '';
+    $('#planTitle').textContent = (many ? `Framing plan · ${ms.map(m => m.id).join(' + ')}` : `Framing plan · ${inp.mezz.id || 'mezzanine'}`) + (ms.some(m => m.layout.mapped) && gridOf ? ` · on the ${gridOf} grid` : '');
     $('#layWhy').textContent = `${many ? 'editing ' + (inp.mezz.id || '') + ' (pick at the top) · ' : ''}joists span ${lay.joists === 'y' ? 'across the width' : 'along the length'} — ${lay.why}`;
     $('#beamLinesIn').value = lay.beamLines.map(v => +v.toFixed(3)).join(', ');
     $('#supLinesIn').value = lay.supportLines.map(v => +v.toFixed(3)).join(', ');
@@ -1306,12 +1367,25 @@
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
       <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker></defs>`);
+    // an attached building beside a sidewall takes that side's frame-line bubbles with its own numbers, so its columns
+    // (named by its own grid) read against the right bubble; this building's numbers stay on the other side
+    const attSide = { top: att.find(m => m.layout.bldg.y1 > W + 0.05), bot: att.find(m => m.layout.bldg.y0 < -0.05) };
     let lastX = null, steppedX = false;
     g.xs.filter(inX).forEach(x => {
       const close = lastX != null && Math.abs(X(x) - lastX) < 24, off = close && !steppedX ? 26 : 0;
       steppedX = off > 0; lastX = X(x);
       o.push(`<line class="grid-line" x1="${X(x)}" y1="${Y(yb) - 26 - off}" x2="${X(x)}" y2="${Y(ya) + 26 + off}"/>`);
-      [Y(yb) - 38 - off, Y(ya) + 38 + off].forEach(cy => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
+      [[Y(yb) - 38 - off, attSide.top], [Y(ya) + 38 + off, attSide.bot]].filter(([, a]) => !a).forEach(([cy]) => o.push(`<g class="bubble"><circle cx="${X(x)}" cy="${cy}" r="11"/><text x="${X(x)}" y="${cy}">${g.xLabel(x)}</text></g>`));
+    });
+    [['top', Y(yb) - 38], ['bot', Y(ya) + 38]].forEach(([k, cy]) => {
+      const m = attSide[k]; if (!m) return;
+      const own = m._own, xs = own.grid.xs.map(v => ({ x: m._map.X(v), lab: own.grid.xLabel(v) })).filter(q => inX(q.x) && q.lab);
+      xs.forEach(q => { if (!g.xs.some(v => Math.abs(v - q.x) < 0.05)) o.push(`<line class="grid-line" x1="${X(q.x)}" y1="${Y(m.layout.bldg.y1)}" x2="${X(q.x)}" y2="${Y(m.layout.bldg.y0)}"/>`); o.push(`<g class="bubble att"><circle cx="${X(q.x)}" cy="${cy}" r="11"/><text x="${X(q.x)}" y="${cy}">${esc(q.lab)}</text></g>`); });
+      // whose numbers each row is
+      const nmOf = mi => ((state.pcs.mezzanines[mi] || {}).building || '').trim();
+      const xMin = Math.min(...xs.map(q => X(q.x)), ...g.xs.filter(inX).map(X));
+      if (nmOf(m.index)) o.push(`<text class="row-name att" x="${xMin - 18}" y="${cy}">${esc(nmOf(m.index))}</text>`);
+      if (nmOf(r.index) && !(attSide.top && attSide.bot)) o.push(`<text class="row-name" x="${xMin - 18}" y="${k === 'top' ? Y(ya) + 38 : Y(yb) - 38}">${esc(nmOf(r.index))}</text>`);
     });
     // letters run over every column line (ridge included, as on the drawings); only column lines get a bubble
     const colY = new Set([0, W, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => v.toFixed(2)));
@@ -1324,7 +1398,7 @@
       [X(xa) - 38 - off, X(xb) + 38 + off].forEach(cx => o.push(`<g class="bubble"><circle cx="${cx}" cy="${Y(y)}" r="11"/><text x="${cx}" y="${Y(y)}">${g.yLabel(y)}</text></g>`));
     });
     const xsw = g.xs.filter(inX);
-    xsw.slice(1).forEach((x, i) => { const a2 = xsw[i]; o.push(`<text class="dim" x="${(X(a2) + X(x)) / 2}" y="${Y(yb) - 52}">${ft(x - a2)}</text>`); });
+    xsw.slice(1).forEach((x, i) => { const a2 = xsw[i]; o.push(`<text class="dim" x="${(X(a2) + X(x)) / 2}" y="${attSide.top && !attSide.bot ? Y(ya) + 62 : Y(yb) - 52}">${ft(x - a2)}</text>`); });
     // the building: walls solid where they are in view, the cut edges of a cropped view dashed
     o.push(`<rect class="bldg-cut" x="${X(xa)}" y="${Y(yb)}" width="${(xb - xa) * s}" height="${(yb - ya) * s}"/>`);
     { const hx0 = Math.max(xa, 0), hx1 = Math.min(xb, L), hy0 = Math.max(ya, 0), hy1 = Math.min(yb, W);   // this building's walls in view
@@ -1451,7 +1525,7 @@
     layBarSync();
     $('#planLegend').innerHTML = marks.map(mk => `<span class="lg-mk"><svg width="26" height="12"><rect width="26" height="12" rx="2" fill="${mkVar(mk)}" opacity=".22"/><line x1="0" y1="6" x2="26" y2="6" stroke="${mkVar(mk)}" stroke-width="5"/></svg><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || '')} · ${mk.qtyAll} beam${mk.qtyAll === 1 ? '' : 's'} · ${ft(mkDz(mk).span)} × ${ft(mkDz(mk).trib)}${mkDz(mk).set ? ' design' : ''}${mkShort(mk) ? ' (' + mkShort(mk) + ')' : ''}</span>`).join('') +
       `<span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2"/><path d="M4,4 L12,12 M4,12 L12,4" stroke="var(--red)" stroke-width="2"/></svg>Mezzanine column · qty ${t.nC}</span>` +
-      (r.planCheck && r.planCheck.ok ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
+      (r.planCheck && r.planCheck.ok && r.planCheck.cols.length ? `<span><svg width="18" height="18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>Column read from the PCS drawing (${r.planCheck.cols.length})</span>` : '') +
       (ms.some(m => m.layout.beams.some(b => b.absorbed)) ? `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="beam carried"/></svg>Edge carried by the neighbour's beam</span>` : '') +
       `<span><svg width="12" height="12"><rect width="10" height="10" x="1" y="1" fill="var(--amber)"/></svg>Building column with a load to the frame</span><span><svg width="10" height="10"><rect width="8" height="8" x="1" y="1" fill="var(--ink)"/></svg>Building column</span><span class="lg-hint">Hover any column for the dead / live it takes · hover a beam for its trib and end shear</span>`;
     // every beam of the job, with its end shear (what the columns take)
@@ -1608,7 +1682,7 @@
           <td class="num mono">${ft(m.elev)}</td>
           <td>${num('m.' + m.id + '.FDL', { value: m.FDL })}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc)}</small>${m.framing ? `<small class="sub-n">+ ${F2(m.framing)} framing = <b>${F2(m.FDL + m.framing)}</b> typed</small>` : ''}</td>
           <td class="num mono">${F2(m.FLC)}</td><td class="num mono">${F2(m.FLJ)}</td>
-          <td>${chk('m.' + m.id + '.storage', m.storage, `storage: 25 % of ${F2(m.FLL)}`)}</td><td class="num mono">${F2(m.FLP)}</td>
+          <td>${chk('m.' + m.id + '.storage', m.storage, m.storage ? `storage: 25 % of ${F2(m.FLL)} included` : '<span class="sub-n">storage — not included (tick for 25 % of live)</span>')}</td><td class="num mono">${F2(m.FLP)}</td>
           <td class="num mono"><b>${F2(m.psf)}</b></td><td class="num mono">${lb(m.psf * m.area)}</td></tr>`).join('');
       return `<div class="seis-group"><h4><span class="step-no sm">2</span>${esc(b.name)} <small class="sub-n">Input Data B7–B22 · B33–B37 · walls</small></h4>
         <div class="seis-echo"><span>${esc(g.rooftype)}</span><span>Width <b>${ft(g.width)}</b></span><span>Length <b>${ft(g.length)}</b></span>${g.rooftype === 'Gable' ? `<span>Ridge <b>${ft(g.dtr)}</b> from the BSW</span>` : ''}<span>Slope <b>${f(g.slope, 2)}:12</b></span><span>Eaves <b>${ft(g.leh)}</b> FSW · <b>${ft(g.heh)}</b> BSW</span><span>Mean roof height <b>${b.long ? ft(b.long.hn) : '—'}</b></span><small class="sub-n">PCS Box 2</small></div>
@@ -1772,7 +1846,7 @@
       const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
       return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>${twoB ? esc(fl.building) + ' · ' : ''}Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
           <button class="btn-soft" data-fl="${fi}"><svg><use href="#i-copy"/></svg>Copy</button></div>
-        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num">Seismic EQR/EQL (k)</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : sj && sj.ok || !e.member ? '—' : '<small class="sub-n">pending</small>'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
+        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num">Seismic EQR/EQL (k)${sj && sj.ok ? '' : '<small class="sub-n eq-tag">pending · Seismic page</small>'}</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}|${e.parts[0].mi}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : '—'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td class="num mono e">${fl.seismic ? (() => { const qs = fl.entries.filter(e => e.member).flatMap(e => e.eq || []), F = qs.reduce((a, q) => a + q.F, 0), calc = qs.reduce((a, q) => a + q.calc, 0); return '±' + F2(F) + (qs.some(q => q.edited) ? `<small class="sub-n eq-tag">edited · calc. ${F2(calc)}</small>` : ''); })() : ''}</td><td>${fl.seismic ? `<small class="sub-n">roof seismic DL ${F2(fl.seismic.roofPsf)} psf · Cs ${f(fl.seismic.Cs, 4)}</small>` : ''}</td></tr></tfoot></table></div>`;
     }).join('');
     el.innerHTML = `<div class="name-key"><b>Column names</b> · <span class="mono">2/A</span> the grid point, frame line 2 × column line A · <span class="mono">COL03</span> the member in that frame's NBG Frame file: COL01 at the FSW, then each interior column, the BSW column last · mezzanine columns (C1, C2 … on the plan) are not frame members and are not listed here.</div><div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic page), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
@@ -2092,7 +2166,7 @@
     if (!el) return;
     const cf = r.colFinal, tried = (g.design ? g.design.tried : (cf && cf.tried) || []);
     $('#colExplainHead').innerHTML = `How the column was chosen <small>${cf ? esc(cf.quoteAs) : 'none'} · ${esc(g.cols.map(nm).join(', '))}</small>`;
-    const s = state.settings, inp = state.inputs;
+    const s = r.settings || state.settings, inp = inpOf(r);
     const parts = side => (g.cols[0].parts || []).filter(q => q.sheetSide === side).map(q => `${esc(q.mezz)} ${esc(q.beam)}${q.mark ? ' (' + esc(q.mark) + ')' : ''}`).join(' + ') || 'no beam';
     el.innerHTML = `<ol>
       <li><b>Which column.</b> ${esc(g.cols.map(nm).join(', '))} — a mezzanine column (not a frame member) under ${g.cols.length > 1 ? 'these grid points, which carry the same loads, so one Column-sheet case covers them' : 'this grid point'}. The C-number counts the job's mezzanine columns on the plan; the grid label is the frame line / column line it stands on.</li>
@@ -2122,10 +2196,10 @@
     // INPUT-sheet values (A, slab, seat, clearances) of a mezzanine that has this mark — the one on screen when it does
     const r = mk.mezzIds && !mk.mezzIds.includes(state.res.index) && state.job ? state.job.mezz[mk.mezzIds[0]] : state.res;
     const inp = state.all ? state.all[r.index].inputs : state.inputs;
-    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(runL(run))}</small>`}`;
+    $('#beamCalcTitle').innerHTML = `${mkName(mk)} · <em class="nocase${mk.sec ? '' : ' ng'}">${esc(mk.desc || 'no section')}</em>${gov ? '' : ` <small class="bc-run">at ${ft(runL(run))}</small>`}`;
     renderBeamHow(mk, r, inp);
     const c = run.check, p = run.params;
-    if (!c) $('#mbSheet').innerHTML = '<div class="empty">No passing section in the depth range.</div>';
+    if (!c) $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth. Lower clearance C, add a column, or design one by hand (Design your own).</div>`;
     else {
       const x = c.res, clear = r.clear;
       const clr = (k, lab) => [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${clear[k].ok === false ? '· NO GOOD' : clear[k].ok ? '· OK' : ''}`, clear[k].ok === false ? 'ng' : ''];
@@ -2141,11 +2215,13 @@
     }
     renderXlBeam(mk, run);
     const sr = mk.search;
-    if (!sr || !sr.best) { $('#altTable').innerHTML = ''; return; }
-    $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(dz.span)} span × ${ft(dz.trib)} trib${dz.set ? ' (design inputs)' : ''} · click a row to use it`;
+    if (!sr) { $('#altTable').innerHTML = ''; $('#altSub').textContent = ''; return; }
+    $('#altSub').textContent = `${sr.evaluated.toLocaleString()} stocked combinations checked for ${ft(dz.span)} span × ${ft(dz.trib)} trib${dz.set ? ' (design inputs)' : ''}${sr.best ? ' · click a row to use it' : ' · none passes: the closest at each depth'}`;
+    const nearRow = a => { const z = a.near; if (!z) return `<tr class="none"><td class="num">${a.d}"</td><td colspan="10">nothing stocked fits at this depth</td></tr>`;
+      return `<tr class="none"><td class="num">${a.d}"</td><td class="mono">${esc(z.desc)} <span class="status-text ng">${f(z.over * 100 - 100, 0)}% over</span></td><td class="mono">${z.web}</td><td class="mono">${z.flange}</td><td>${z.tier}</td><td class="num">${f(z.wt, 2)}</td><td class="num">${f(z.CSR, 3)}</td><td class="num">${f(z.SRv, 3)}</td><td class="num">${f(z.rLL, 0)}</td><td class="num">${f(z.rTL, 0)}</td><td class="num">${z.conc != null ? f(z.conc, 2) : '—'}</td></tr>`; };
     const optAt = sec => (mk.options.find(o => sameSec(o.pick.sec, sec)) || {}).label;
     $('#altTable').innerHTML = `<thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">Wt plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">LL L/</th><th class="num">TL L/</th><th class="num">Bearing</th></tr></thead><tbody>` +
-      sr.byDepth.map(a => a.none ? `<tr class="none"><td class="num">${a.d}"</td><td colspan="10">nothing stocked passes at this depth</td></tr>` :
+      sr.byDepth.map(a => a.none ? (sr.best ? `<tr class="none"><td class="num">${a.d}"</td><td colspan="10">nothing stocked passes at this depth</td></tr>` : nearRow(a)) :
         `<tr class="pick ${sameSec(a.sec, sr.best.sec) ? 'is-best' : ''} ${mk.sec && sameSec(a.sec, mk.sec) ? 'is-chosen' : ''}" data-d="${a.d}"><td class="num">${a.d}"</td><td class="mono"><b>${a.desc}</b>${optAt(a.sec) ? ` <span class="src pcs">${optAt(a.sec)}</span>` : ''}</td><td class="mono">${a.web} (${a.sec.tw})</td><td class="mono">${a.flange}</td><td>${a.tier}</td><td class="num">${f(a.wt, 2)}</td><td class="num">${f(a.CSR, 3)}</td><td class="num">${f(a.SRv, 3)}</td><td class="num">${f(a.rLL, 0)}</td><td class="num">${f(a.rTL, 0)}</td><td class="num">${f(a.conc, 2)}</td></tr>`).join('') + '</tbody>';
     $$('#altTable tr.pick').forEach(tr => { tr.onclick = () => pickDepth(mk.mark, tr.dataset.d); });
   }
@@ -2235,7 +2311,7 @@
   }
   // a column case, drawn: the W column with cap and base plates, the beams sitting on it, the two reactions at e = d/2
   function colViz(g, r, cno) {
-    const cf = r.colFinal, w = WF[cf.name], c = g.cols[0], parts = c.parts || [];
+    const cf = r.colFinal, w = cf.props, c = g.cols[0], parts = c.parts || [];
     const info = p => { const m = state.job.mezz[p.mi], bm = m.layout.beams[p.id], mk = m.marks.find(q => q.beams.includes(p.id)); return { bm, mk }; };
     const side = sd => parts.filter(p => p.sheetSide === sd);
     const cx = 380, yT = 176, yF = 372, cw = Math.max(26, w.d * 3.3), o = [];
@@ -2278,13 +2354,13 @@
     o.push(`<path class="cv-lead" d="M${cx + cw / 2 + 4},${yT + 110} L${cx + cw / 2 + 40},${yT + 96}"/><text class="cv-cl" x="${cx + cw / 2 + 44}" y="${yT + 94}" text-anchor="start">C${cno.get(c.label) || '?'} · ${esc(c.label)} · ${esc(cf.quoteAs)}</text>`);
     const P = g.loads.DL_L + g.loads.LL_L + g.loads.DL_R + g.loads.LL_R;
     o.push(`<text class="cv-s" x="${cx + cw / 2 + 44}" y="${yT + 114}" text-anchor="start">axial P = ${f(P, 2)} k + self-weight</text>`);
-    // W section to scale
+    // the section to scale (a W, or a built-up column's plates)
     const k = Math.min(150 / w.bf, 210 / w.d), sx = 140, top = 70, sv = [];
     sv.push(`<rect class="cv-fl" x="${sx - w.bf * k / 2}" y="${top}" width="${w.bf * k}" height="${Math.max(2.5, w.tf * k)}"/><rect class="cv-col" x="${sx - Math.max(2, w.tw * k) / 2}" y="${top + w.tf * k}" width="${Math.max(2, w.tw * k)}" height="${(w.d - 2 * w.tf) * k}"/><rect class="cv-fl" x="${sx - w.bf * k / 2}" y="${top + (w.d - w.tf) * k}" width="${w.bf * k}" height="${Math.max(2.5, w.tf * k)}"/>`);
     const xl = sx - w.bf * k / 2 - 20;
     sv.push(`<path class="cv-dim" d="M${xl - 5},${top} L${xl + 5},${top} M${xl - 5},${top + w.d * k} L${xl + 5},${top + w.d * k} M${xl},${top} L${xl},${top + w.d * k}"/><text class="cv-t" transform="translate(${xl - 9},${top + w.d * k / 2}) rotate(-90)">d = ${w.d}"</text>`);
     sv.push(`<text class="cv-t" x="${sx}" y="${top - 12}">bf = ${w.bf}" · tf = ${w.tf}"</text><text class="cv-t" x="${sx}" y="${top + w.d * k + 24}">tw = ${w.tw}"</text>`);
-    sv.push(`<text class="cv-cap2" x="${sx}" y="34">${esc(cf.name)}${cf.quoteAs !== cf.name ? ' (quote ' + esc(cf.quoteAs) + ')' : ''}</text><text class="cv-s" x="${sx}" y="${top + w.d * k + 44}">${f(w.W, 0)} plf · Fy 50 ksi · to scale</text>`);
+    sv.push(`<text class="cv-cap2" x="${sx}" y="34">${esc(cf.name)}${cf.quoteAs !== cf.name ? ' (quote ' + esc(cf.quoteAs) + ')' : ''}</text><text class="cv-s" x="${sx}" y="${top + w.d * k + 44}">${f(w.W, 0)} plf · Fy ${cf.Fy || 50} ksi · to scale</text>`);
     // why this case carries what it does: each beam, its span and trib
     const rows = parts.map(p => { const i = info(p); return `<tr><td>${p.sheetSide}</td><td class="mono"><b>${p.mezz !== r.id ? esc(p.mezz) + ' ' : ''}${p.beam}</b></td><td class="mono">${i.mk ? esc(i.mk.mark + ' ' + (i.mk.desc || '')) : '—'}</td><td class="num">${ft(i.bm.span)}</td><td class="num">${ft(i.bm.trib)}${i.bm.extra ? ' <small class="sub-n">incl. ' + esc(i.bm.extra.map(x => x.mezz).join(', ')) + '</small>' : ''}</td><td class="num">${f(p.D, 2)}</td><td class="num">${f(p.L, 2)}</td></tr>`; }).join('');
     const same = g.cols.length > 1 ? `<p class="foot-note">${g.cols.map(q => 'C' + (cno.get(q.label) || '?') + ' · ' + esc(q.label)).join(', ')} carry the same reactions, so they are one case on the sheet.</p>` : '';
@@ -2310,29 +2386,38 @@
     const side = sd => c.parts.filter(p => p.sheetSide === sd).map(p => `${esc(p.mezz)} ${p.beam}${p.mark ? ' (' + p.mark + ')' : ''} ${f(p.D, 2)} / ${f(p.L, 2)}`).join(' + ') || '—';
     return [['Left reaction from (D / L)', side('left')], ['Right reaction from (D / L)', side('right')]];
   }
+  const colMezz = () => (manyMezz() ? state.job.mezz.filter(m => m && !m.incomplete && m.colGroups && m.colGroups.length) : [state.res].filter(m => m && m.colGroups && m.colGroups.length));
+  const colShown = () => { const w = colMezz(); return w.includes(state.res) ? state.res : w[0]; };
   function renderColumn() {
-    const r = state.res, cf = r.colFinal;
-    if (!r.colGroups.length) { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = '<div class="empty">No mezzanine columns in this layout.</div>'; $('#colTried').innerHTML = ''; $('#xlCol').innerHTML = ''; $('#xlColSub').textContent = ''; return; }
-    const cno = colNos();
-    const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`;
-    // every mezzanine's column cases, grouped by mezzanine: a case of another mezzanine switches to it
-    const others = manyMezz() ? state.job.mezz.filter(m => !m.incomplete && m.colGroups && m.colGroups.length) : [r];
-    const tabOf = (m, g, i) => { const mf = m.colFinal, on = m === r && i === state.colGroup; return `<button class="tab ${on ? 'is-active' : ''}" data-mi="${m.index}" data-i="${i}">${esc(g.cols.map(nm).join(', '))}${mf && mf.checks[i] ? `<small class="tab-ratio ${mf.checks[i].ok ? 'ok' : 'ng'}">${f(mf.checks[i].max, 3)}</small>` : ''}</button>`; };
-    $('#colTabs').innerHTML = others.map(m => (others.length > 1 ? `<span class="tab-group">${esc(m.id)}</span>` : '') + m.colGroups.map((g, i) => tabOf(m, g, i)).join('')).join('');
-    const exCol = ((state.res.colGroups[state.colGroup] || {}).cols || [])[0], exNo = exCol ? colNos().get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
+    // every mezzanine's column cases, grouped by mezzanine: the picked mezzanine's when it has columns, else the first
+    // that does (an attached lean-to without columns still shows the job's)
+    const withCols = colMezz(), r = colShown();
+    const clear = msg => { $('#colTabs').innerHTML = ''; $('#colSheet').innerHTML = `<div class="empty">${msg}</div>`; $('#colTried').innerHTML = ''; $('#xlCol').innerHTML = ''; $('#xlColSub').textContent = ''; const h = $('#colHow'); if (h) h.innerHTML = ''; };
+    if (!r) { clear('No mezzanine columns in this layout — every beam ends on a building column or wall.'); return; }
+    if (r !== state.res) state.colGroup = Math.min(state.colGroup, r.colGroups.length - 1);
+    const cf = r.colFinal, cno = colNos();
+    const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`, byNo = cs => cs.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9));
+    const tabOf = (m, g, i) => { const mf = m.colFinal, on = m === r && i === state.colGroup; return `<button class="tab ${on ? 'is-active' : ''}" data-mi="${m.index}" data-i="${i}">${esc(byNo(g.cols).map(nm).join(', '))}${mf && mf.checks[i] ? `<small class="tab-ratio ${mf.checks[i].ok ? 'ok' : 'ng'}">${f(mf.checks[i].max, 3)}</small>` : '<small class="tab-ratio ng">not sized</small>'}</button>`; };
+    $('#colTabs').innerHTML = (r !== state.res ? `<p class="col-note">${esc(state.res.id)} has no mezzanine columns of its own — showing ${esc(r.id)}.</p>` : '') +
+      withCols.map(m => (withCols.length > 1 ? `<span class="tab-group">${esc(m.id)}</span>` : '') + m.colGroups.map((g, i) => tabOf(m, g, i)).join('')).join('');
+    const exCol = ((r.colGroups[state.colGroup] || {}).cols || [])[0], exNo = exCol ? cno.get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
     $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C${exNo || 1}</span> the mezzanine column's number on the plan · <span class="mono">${esc(exPt.join('/'))}</span> the grid point, frame line ${esc(exPt[0])} × column line ${esc(exPt[1] || '')} · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     $('#colTabs').insertAdjacentHTML('beforeend', `<button class="btn-soft col-try" id="colTry">Try another column</button>`);
     $('#colTry').onclick = () => dzOpen('col', `${r.index}|${state.colGroup}`);
     $$('#colTabs .tab').forEach(t => { t.onclick = () => { const mi = +t.dataset.mi; if (state.all && mi !== state.mi) switchMezz(mi); state.colGroup = +t.dataset.i; renderColumn(); renderMiniPlan(); renderCalcPack(); }; });
     const g = r.colGroups[state.colGroup];
-    if (!cf) $('#colSheet').innerHTML = '<div class="empty">No column passes.</div>';
+    const st = r.index === state.mi ? state.settings : (state.all ? state.all[r.index].settings : state.settings);
+    // the guide's answer is quoted as BU anyway: a lighter built-up column on the sheet's own Built-Up input, offered
+    const alt = state.job.colAlt && state.job.colAlt.over.includes(r.index) ? state.job.colAlt : null, pickBU = !!(st.colOverride && typeof st.colOverride === 'object');
+    const altCard = alt ? `<div class="col-alt"><div><b>Lighter built-up column: ${esc(alt.name)}</b><span>${alt.sec.d}" deep · ${alt.sec.bof}" × ${frac(alt.sec.tof)}" flanges · ${alt.sec.tw}" web · Fy 55 · max CSR ${f(alt.max, 3)} over every case on the Column sheet's Built-Up input · about ${n0(alt.saves)} lb less steel than ${esc(cf ? cf.quoteAs : '')}. The quote keeps the guide's method until you pick it.</span></div><span class="col-alt-btns"><button class="btn-soft" id="colAltUse" type="button">Use ${esc(alt.name)}</button><button class="btn-ghost" id="colAltTry" type="button">Open in Design your own</button></span></div>` : '';
+    if (!cf) $('#colSheet').innerHTML = `<div class="empty ng">${esc((r.colWhy && r.colWhy.text) || 'No column passes.')}</div>`;
     else {
-      const chk = cf.checks[state.colGroup], w = WF[cf.name];
+      const chk = cf.checks[state.colGroup], w = cf.props;
       const names = ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRT'];
-      $('#colSheet').innerHTML = colViz(g, r, cno) + `<div class="sheet two">
+      $('#colSheet').innerHTML = altCard + colViz(g, r, cno) + `<div class="sheet two">
         <div><h4>Span and loading conditions</h4>${kv([
-          ['Column Mark:', 'MC1'], ['Column Length, L', f(r.colLen, 4) + ' ft.'], ['X-Axis Unbraced Length, Lbx', f(r.colLen * 12, 2) + ' in.'], ['Y-Axis Unbraced Length, Lby', f(r.colLen * 12, 2) + ' in.'],
-          ['Kx / Ky / Kz', '1.000 / 1.000 / 1.000'], ['Section:', `<b>${cf.name}</b>`], ['Fy (ksi)', '50'],
+          ['Column Mark:', esc(g.cols.map(c => 'C' + (cno.get(c.label) || '?')).join(', '))], ['Column Length, L', f(r.colLen, 4) + ' ft.'], ['X-Axis Unbraced Length, Lbx', f(r.colLen * 12, 2) + ' in.'], ['Y-Axis Unbraced Length, Lby', f(r.colLen * 12, 2) + ' in.'],
+          ['Kx / Ky / Kz', '1.000 / 1.000 / 1.000'], ['Section:', `<b>${cf.sec.type === 'BU' ? 'Built-Up · ' + esc(cf.name) : cf.name}</b>`], ['Fy (ksi)', String(cf.Fy || 50)],
           ['Total Depth, d', f(w.d, 3) + ' in.'], ['Flange Width, b', f(w.bf, 3) + ' in.'], ['Flange Thickness, tf', f(w.tf, 3) + ' in.'], ['Web Thickness, tw', f(w.tw, 3) + ' in.'],
         ])}</div>
         <div><h4>Applied loads (beam reactions)</h4>${kv([
@@ -2355,11 +2440,14 @@
     $('#colTried').innerHTML = `<thead><tr><th>Section</th><th class="num">Wt plf</th><th class="num">bf</th><th class="num">Max CSR</th><th>Result</th><th>Quote as</th></tr></thead><tbody>` +
       tried.map(t => { const q = DESIGN.COMMON_COLUMNS.includes(t.name) || t.name === 'W8X18' ? t.name : t.name.replace(/^W(\d+)X/, 'BU$1x');
         return `<tr class="pick ${cf && cf.name === t.name ? 'is-chosen' : ''}" data-n="${t.name}"><td class="mono"><b>${t.name}</b></td><td class="num">${f(WF[t.name].W, 0)}</td><td class="num">${WF[t.name].bf}</td><td class="num">${f(t.max, 3)}</td><td><span class="status-text ${t.ok ? 'ok' : 'ng'}">${t.ok ? 'OK' : 'NG'}</span></td><td class="mono">${q}</td></tr>`; }).join('') +
-      `<tr><td colspan="6"><div class="field-row wide" style="border:0"><label>Use a different W for every mezzanine column${manyMezz() && state.settings.colPerJob !== false ? ' of the job' : ''}</label><select id="colPick"><option value="">Automatic${!state.settings.colOverride && cf ? ' (' + cf.name + ')' : ''}</option>${Object.keys(WF).filter(k => /^W(6|8|10|12|14)X/.test(k)).sort((a, b) => WF[a].W - WF[b].W).map(k => `<option ${state.settings.colOverride === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div></td></tr></tbody>`;
+      `<tr><td colspan="6"><div class="field-row wide" style="border:0"><label>Use a different W for every mezzanine column${manyMezz() && st.colPerJob !== false ? ' of the job' : ''}</label><select id="colPick"><option value="">Automatic${!st.colOverride && cf ? ' (' + cf.name + ')' : ''}</option>${pickBU ? `<option value="__bu" selected>${esc(cf ? cf.name : 'Built-up')} (picked)</option>` : ''}${Object.keys(WF).filter(k => /^W(6|8|10|12|14)X/.test(k)).sort((a, b) => WF[a].W - WF[b].W).map(k => `<option ${st.colOverride === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div></td></tr></tbody>`;
     // one column section for the job (Settings): the pick goes on every mezzanine
-    const setCol = n => { (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = n; }); recompute(); };
+    const setCol = n => { (st.colPerJob !== false ? allSettings() : [st]).forEach(st => { st.colOverride = n; }); recompute(); };
     $$('#colTried tr.pick').forEach(tr => { tr.onclick = () => setCol(tr.dataset.n === (g.design && g.design.name) ? undefined : tr.dataset.n); });
-    $('#colPick').onchange = e => setCol(e.target.value || undefined);
+    $('#colPick').onchange = e => { if (e.target.value !== '__bu') setCol(e.target.value || undefined); };
+    const au = $('#colAltUse'), at = $('#colAltTry');
+    if (au) au.onclick = () => { setCol({ type: 'BU', d: alt.sec.d, tw: alt.sec.tw, bf: alt.sec.bof, tf: alt.sec.tof }); toast(`Mezzanine columns → ${alt.name}`); };
+    if (at) at.onclick = () => { dzOpen('col', `${r.index}|${state.colGroup}`); Object.assign(state.dz.col, { type: 'BU', d: alt.sec.d, tw: alt.sec.tw, bf: alt.sec.bof, tf: alt.sec.tof, from: '' }); dzSave(); renderDesigner(); };
   }
 
   // ---------- design your own: any section and loads through the same MB / Column sheets ----------
@@ -2368,7 +2456,7 @@
   const dzDefault = () => ({
     tab: 'beam',
     beam: { ed: '15', div: 'NBS-IN', dead: 43, coll: 5, live: 125, joistWt: 8, L: 20, Lb: 4, trib: 20, type: 'BU', d: 24, tw: 0.1875, bof: 6, tof: 0.375, sym: true, bif: 6, tif: 0.375, wf: 'W12X26', from: '' },
-    col: { ed: '15', L: 11.5, wf: 'W8X24', DL_L: 10, LL_L: 20, DL_R: 10, LL_R: 20, from: '' },
+    col: { ed: '15', L: 11.5, type: 'WF', wf: 'W8X24', d: 10, tw: 0.1875, bf: 8, tf: 0.3125, DL_L: 10, LL_L: 20, DL_R: 10, LL_R: 20, from: '' },
     near: null,
   });
   state.dz = (() => { try { const v = JSON.parse(localStorage.getItem(DZ_KEY) || 'null'); if (v && v.beam && v.col) return { ...dzDefault(), ...v, near: null }; } catch (e) { /* storage off */ } return dzDefault(); })();
@@ -2398,7 +2486,10 @@
     const src = dzColSources().find(x => x.key === key);
     if (!src) return;
     const c = state.dz.col, ld = src.g.loads, cf = src.r.colFinal;
-    Object.assign(c, { from: key, ed: (src.r.edition && src.r.edition.colEd) || c.ed, L: +(+src.r.colLen).toFixed(4), wf: cf ? cf.name : c.wf, DL_L: +ld.DL_L.toFixed(3), LL_L: +ld.LL_L.toFixed(3), DL_R: +ld.DL_R.toFixed(3), LL_R: +ld.LL_R.toFixed(3) });
+    Object.assign(c, { from: key, ed: (src.r.edition && src.r.edition.colEd) || c.ed, L: +(+src.r.colLen).toFixed(4), DL_L: +ld.DL_L.toFixed(3), LL_L: +ld.LL_L.toFixed(3), DL_R: +ld.DL_R.toFixed(3), LL_R: +ld.LL_R.toFixed(3) });
+    if (cf && cf.sec.type === 'BU') Object.assign(c, { type: 'BU', d: cf.sec.d, tw: cf.sec.tw, bf: cf.sec.bof, tf: cf.sec.tof });
+    else Object.assign(c, { type: 'WF', wf: cf ? cf.name : c.wf });
+    state.dz.colNear = null;
   }
   // open the designer on a mark or a column case of the job (the Beam / Column pages' "Try another section")
   function dzOpen(tab, key) { state.dz.tab = tab; if (tab === 'beam') dzLoadBeam(key); else dzLoadCol(key); dzSave(); go('designer'); renderDesigner(); }
@@ -2464,7 +2555,11 @@
       <form class="dz-in panel" onsubmit="return false">
         <div class="dz-head"><h3>Inputs</h3>${srcs.length ? `<select id="dzFrom"><option value="">Start from this job…</option>${srcs.map(x => `<option value="${esc(x.key)}" ${c.from === x.key ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>` : ''}<button class="btn-ghost" id="dzReset" type="button">Clear</button></div>
         <div class="dz-group"><h5>Sheet</h5><div class="dz-row">${dzSel('col.ed', c.ed, [['15', '15th · IBC 2018/21'], ['16', '16th · IBC 2024']])}</div></div>
-        <div class="dz-group"><h5>Column <small>Column sheet cells C8, C16</small></h5><div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label></div></div>
+        <div class="dz-group"><h5>Column <small>Column sheet cells C8, C16${c.type === 'BU' ? '–C20' : ''}</small></h5>
+          <div class="seg dz-ctype"><button type="button" data-ctype="WF" class="${c.type !== 'BU' ? 'is-active' : ''}">Wide flange</button><button type="button" data-ctype="BU" class="${c.type === 'BU' ? 'is-active' : ''}">Built-up</button></div>
+          <div class="dz-cells two">${dzNum('col.L', c.L, 'Length L (ft)')}${c.type === 'BU' ? dzNum('col.d', c.d, 'Depth d (in)', '1') : `<label class="dz-f"><span>Section</span>${dzSel('col.wf', c.wf, wfs.map(k => [k, `${k} · ${WF[k].W} plf`]))}</label>`}</div>
+          ${c.type === 'BU' ? `<div class="dz-row"><span class="dz-lab">Flanges (both)</span>${dzSel('col.bf', c.bf, [6, 8, 10, 12].map(w => [w, `${w}"`]))}<span class="dz-x">×</span>${dzSel('col.tf', c.tf, PLATE.map(t => [t, `${frac(t)}"`]))}</div>
+          <div class="dz-row"><span class="dz-lab">Web</span>${dzSel('col.tw', c.tw, WEB.map(t => [t, `${t}" · W${String(Math.round(t * 1000)).padStart(3, '0')}`]))}</div>` : ''}</div>
         <div class="dz-group"><h5>Beam reactions (kip) <small>Column sheet cells C27–D28 · from MB H6 / H10</small></h5><div class="dz-cells">${dzNum('col.DL_L', c.DL_L, 'Left dead')}${dzNum('col.LL_L', c.LL_L, 'Left live')}${dzNum('col.DL_R', c.DL_R, 'Right dead')}${dzNum('col.LL_R', c.LL_R, 'Right live')}</div></div>
       </form>
       <div class="dz-out" id="dzOut"></div></div>`;
@@ -2547,16 +2642,25 @@
   }
   // the column: the Column sheet's three combinations, and the common sizes beside it
   function dzColResults(out) {
-    const cc = state.dz.col;
-    const bad = ['L', 'DL_L', 'DL_R'].filter(k => !(+cc[k] >= 0) || cc[k] === '').concat(+cc.L > 0 ? [] : ['L']);
+    const cc = state.dz.col, bu = cc.type === 'BU';
+    $$('#dzBody .dz-ctype button').forEach(btn => { btn.onclick = () => { cc.type = btn.dataset.ctype; cc.from = ''; state.dz.colNear = null; dzSave(); renderDesigner(); }; });
+    const bad = ['L', 'DL_L', 'DL_R'].filter(k => !(+cc[k] >= 0) || cc[k] === '').concat(+cc.L > 0 ? [] : ['L']).concat(bu && !(+cc.d > 0) ? ['d'] : []);
     if (bad.length) { out.innerHTML = `<div class="panel dz-empty">Enter ${[...new Set(bad)].join(', ')}.</div>`; return; }
-    const run = name => ENG.columnCheck({ sec: { type: 'WF', name }, Fy: 50, Fu: 65, L: +cc.L, Lby: +cc.L * 12, DL_L: +cc.DL_L, LL_L: +cc.LL_L || 0, DL_R: +cc.DL_R, LL_R: +cc.LL_R || 0, edition: cc.ed }, WF);
-    const k = run(cc.wf), w = WF[cc.wf];
+    const ld = { DL_L: +cc.DL_L, LL_L: +cc.LL_L || 0, DL_R: +cc.DL_R, LL_R: +cc.LL_R || 0 };
+    const buSec = bu ? { type: 'BU', d: +cc.d, tw: +cc.tw, bof: +cc.bf, tof: +cc.tf, bif: +cc.bf, tif: +cc.tf } : null;
+    const runSec = (sec, Fy) => ENG.columnCheck({ sec, Fy, Fu: Fy === 55 ? 70 : 65, L: +cc.L, Lby: +cc.L * 12, ...ld, edition: cc.ed }, WF);
+    const run = name => runSec({ type: 'WF', name }, 50);
+    const k = bu ? runSec(buSec, 55) : run(cc.wf), w = bu ? { W: k.Wt, d: buSec.d, bf: buSec.bof, tf: buSec.tof } : WF[cc.wf];
+    const name = bu ? DESIGN.buColName(buSec, k.Wt) : cc.wf, div = (state.res && state.res.division) || 'NBS-IN';
     const names = ['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'];
-    const common = [...new Set(['W8X18', ...DESIGN.COMMON_COLUMNS, cc.wf])].sort((a, c2) => WF[a].W - WF[c2].W).map(n => ({ n, c: run(n) }));
-    const can = state.job && (state.job.mezz || []).some(r => r.colFinal);
+    const common = [...new Set(['W8X18', ...DESIGN.COMMON_COLUMNS, ...(bu ? [] : [cc.wf])])].sort((a, c2) => WF[a].W - WF[c2].W).map(n => ({ n, c: run(n) }));
+    const can = state.job && (state.job.mezz || []).some(r => r.columns && r.columns.length);
+    // built-up: the shop's limits and the 8" × 1/4" flange for beams on the flange, beside the sheet's answer
+    const prod = bu ? DESIGN.prodChecks(buSec, div, +cc.L, k.Wt).filter(q => !['length', 'weight', 'handling'].includes(q.rule) || !q.ok) : [];
+    const flOK = !bu || (buSec.bof >= 8 && buSec.tof >= 0.25);
+    const near = state.dz.colNear;
     out.innerHTML = `<div class="panel dz-res">
-      <div class="dz-res-head"><div><div class="eyebrow">Column sheet · ${esc(cc.ed)}th</div><h3 class="nocase">${esc(cc.wf)} <small>${w.W} plf · d ${f(w.d, 2)}" · bf ${f(w.bf, 2)}" · L ${ft(+cc.L)}</small></h3></div>
+      <div class="dz-res-head"><div><div class="eyebrow">Column sheet · ${esc(cc.ed)}th${bu ? ' · Built-Up input' : ''}</div><h3 class="nocase">${esc(name)} <small>${f(w.W, 1)} plf · d ${f(w.d, 2)}" · bf ${f(w.bf, 2)}"${bu ? ` · tf ${f(w.tf, 4)}" · tw ${f(buSec.tw, 4)}" · Fy 55` : ''} · L ${ft(+cc.L)}</small></h3></div>
         <span class="dz-pill ${k.ok ? 'ok' : 'ng'}">${k.ok ? 'Passes' : 'Does not pass'} · max CSR ${f(k.max, 3)}</span></div>
       <div class="table-wrap"><table class="fl-t dz-combos"><thead><tr><th></th>${names.map(n => `<th class="num">${n}</th>`).join('')}</tr></thead><tbody>
         <tr><td>Mx (ft-kip)</td>${k.combos.map(q => `<td class="num mono">${f(q.Mx, 2)}</td>`).join('')}</tr>
@@ -2567,15 +2671,25 @@
         <div class="dz-tile"><span>Eccentricity e = d/2</span><b>${f(k.ex, 2)} in</b></div>
         <div class="dz-tile"><span>Self-weight</span><b>${f(k.wt, 3)} k</b></div>
         <div class="dz-tile"><span>Unbraced Lbx = Lby</span><b>${f(+cc.L * 12, 1)} in</b></div>
-        <div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, (state.res && state.res.division) || 'NBS-IN') ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, (state.res && state.res.division) || 'NBS-IN') ? 'stocked' : 'not stocked'}</b></div>
+        ${bu ? `<div class="dz-tile ${flOK ? 'ok' : 'ng'}"><span>Flange for beams on it</span><b>${flOK ? '8" × 1/4" or more' : 'under 8" × 1/4"'}</b></div>` : `<div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'stocked' : 'not stocked'}</b></div>`}
       </div>
+      ${bu ? `<div class="dz-checks"><div><h5>NBG Production Guidelines · ${esc(div)}</h5><ul>${prod.map(r => `<li class="${r.ok ? 'ok' : 'ng'}"><i>${r.ok ? '✓' : '✕'}</i>${esc(r.text)}<em>${esc(r.val)}</em></li>`).join('')}</ul></div>
+        <div><h5>DM 5.1 stock · ${esc(div)}</h5><ul>${[[`Flanges ${buSec.bof} × ${frac(buSec.tof)}`, DESIGN.inStock(DESIGN.FLANGE_STOCK, buSec.bof + 'x' + buSec.tof, div)], [`Web ${frac(buSec.tw)}" (W${String(Math.round(buSec.tw * 1000)).padStart(3, '0')})`, DESIGN.inStock(DESIGN.WEB_STOCK, buSec.tw, div)]].map(([lab, ok]) => `<li class="${ok ? 'ok' : 'ng'}"><i>${ok ? '✓' : '✕'}</i>${esc(lab)}<em>${ok ? 'stocked' : 'not stocked'}</em></li>`).join('')}</ul></div></div>` : ''}
       <h5 class="dz-h">The common sizes with these loads</h5>
-      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Section</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th><th></th></tr></thead><tbody>${common.map(q => `<tr class="${q.n === cc.wf ? 'is-chosen' : ''}"><td class="mono"><b>${q.n}</b></td><td class="num mono">${WF[q.n].W}</td><td class="num mono">${f(q.c.max, 3)}</td><td><span class="status-text ${q.c.ok ? 'ok' : 'ng'}">${q.c.ok ? 'OK' : 'NG'}</span></td><td>${q.n === cc.wf ? '' : `<button class="btn-ghost dz-pick" data-n="${q.n}" type="button">Load</button>`}</td></tr>`).join('')}</tbody></table></div>
-      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(cc.wf)} for the job's mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}</div>
+      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Section</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th><th></th></tr></thead><tbody>${common.map(q => `<tr class="${!bu && q.n === cc.wf ? 'is-chosen' : ''}"><td class="mono"><b>${q.n}</b></td><td class="num mono">${WF[q.n].W}</td><td class="num mono">${f(q.c.max, 3)}</td><td><span class="status-text ${q.c.ok ? 'ok' : 'ng'}">${q.c.ok ? 'OK' : 'NG'}</span></td><td>${!bu && q.n === cc.wf ? '' : `<button class="btn-ghost dz-pick" data-n="${q.n}" type="button">Load</button>`}</td></tr>`).join('')}</tbody></table></div>
+      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(name)} for the job's mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}<button class="btn-ghost" id="dzColNear" type="button">Built-up columns that pass, lightest first</button></div>
+      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Flanges</th><th>Web</th><th class="num">plf</th><th class="num">Max CSR</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.sec.d}"</td><td class="mono"><b>${esc(z.name)}</b></td><td class="mono">${z.sec.bof}" × ${frac(z.sec.tof)}"</td><td class="mono">${z.sec.tw}"</td><td class="num mono">${f(z.W, 1)}</td><td class="num mono">${f(z.max, 3)}</td><td><button class="btn-ghost dz-take-col" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="7" class="sub-n">No stocked built-up column within the shop limits passes these loads.</td></tr>'}</tbody></table><p class="foot-note">Stocked plates for ${esc(div)}, inside the production limits, flanges at least 8" × 1/4" (beams frame to the flange), Fy 55, through the Column sheet's Built-Up input, CSR ≤ ${f(state.settings.target, 2)}.</p></div>` : ''}
     </div>`;
-    $$('#dzBody .dz-pick').forEach(btn => { btn.onclick = () => { state.dz.col.wf = btn.dataset.n; dzSave(); renderDesigner(); }; });
+    $$('#dzBody .dz-pick').forEach(btn => { btn.onclick = () => { Object.assign(cc, { type: 'WF', wf: btn.dataset.n }); dzSave(); renderDesigner(); }; });
+    $$('#dzBody .dz-take-col').forEach(btn => { btn.onclick = () => { const z = near[+btn.dataset.i].sec; Object.assign(cc, { type: 'BU', d: z.d, tw: z.tw, bf: z.bof, tf: z.tof, from: '' }); dzSave(); renderDesigner(); }; });
+    const nb = $('#dzColNear');
+    if (nb) nb.onclick = () => { state.dz.colNear = DESIGN.designBUColumn(ld, { L: +cc.L, edition: cc.ed, division: div, target: state.settings.target, count: 8 }); dzColResults(out); };
     const u = $('#dzUseCol');
-    if (u) u.onclick = () => { (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = cc.wf; }); recompute(); toast(`Mezzanine columns → ${cc.wf}${k.ok ? '' : ' (does not pass — flagged)'}`); };
+    if (u) u.onclick = () => {
+      const pick = bu ? { type: 'BU', d: buSec.d, tw: buSec.tw, bf: buSec.bof, tf: buSec.tof } : cc.wf;
+      (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = pick; });
+      recompute(); toast(`Mezzanine columns → ${name}${k.ok ? '' : ' (does not pass — flagged)'}`);
+    };
   }
 
   // ---------- inputs ----------
