@@ -185,9 +185,9 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.deepStrictEqual([mb1.mark, mb1.kind, mb1.desc, mb1.qtyAll], ['MB1', 'interior', 'BU28x50', 4]);
   assert.deepStrictEqual([mb2.mark, mb2.kind, mb2.desc, mb2.qtyAll], ['MB2', 'exterior', 'BU26x36', 10]);
   close(mb1.span, 28, 1e-9); close(mb1.trib, 20, 1e-9); close(mb2.span, 28, 1e-9); close(mb2.trib, 12.333, 1e-9);   // layout lengths are to 0.001 ft, as typed on the MB sheet
-  const who = m => m.beamsAll.map(x => `${job.mezz[x.mi].id} B${x.id + 1}`);
-  assert.deepStrictEqual(who(mb1), ['BSW B1', 'BSW B2', 'LEW B3', 'LEW B4']);
-  assert.deepStrictEqual(who(mb2), ['BSW B3', 'BSW B4', 'BSW B5', 'BSW B6', 'BSW B7', 'BSW B8', 'BSW B9', 'BSW B10', 'LEW B1', 'LEW B2']);
+  const who = m => m.beamsAll.map(x => `${job.mezz[x.mi].id} B${job.mezz[x.mi].bOff + x.id + 1}`);   // beams numbered once over the job
+  assert.deepStrictEqual(who(mb1), ['BSW B1', 'BSW B2', 'LEW B13', 'LEW B14']);
+  assert.deepStrictEqual(who(mb2), ['BSW B3', 'BSW B4', 'BSW B5', 'BSW B6', 'BSW B7', 'BSW B8', 'BSW B9', 'BSW B10', 'LEW B11', 'LEW B12']);
   // shorter members keep the section and get their own MB-sheet run: 40'-4" − 28'-0" = 12'-4"
   assert.deepStrictEqual(mb1.spanRuns.map(r => [+r.span.toFixed(3), r.qty]), [[28, 3], [12.333, 1]]);
   assert.deepStrictEqual(mb2.spanRuns.map(r => [+r.span.toFixed(3), r.qty]), [[28, 9], [12.333, 1]]);
@@ -216,7 +216,7 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SPAN, r.TRIB, r.SECTION, r.QTY]), [
     ['BSW / LEW', 28, 20, 'BU28x50', 3], ['LEW', 12.333, 20, 'BU28x50', 1],
     ['BSW / LEW', 28, 12.333, 'BU26x36', 9], ['LEW', 12.333, 12.333, 'BU26x36', 1]]);
-  assert.ok(/^MB1 interior: BSW B1, B2 \(line C\); LEW B3 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);
+  assert.ok(/^MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);
   assert.ok(/shorter span — same section, MB sheet at 12'-4"/.test(q.beams[1].NOTES), q.beams[1].NOTES);
   assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW / LEW', 'W8X24', 7]]);
   // DM 15.1 on the job: perimeter beams are the exterior mark; both mezzanines need bracing decisions; a W8 column

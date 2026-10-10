@@ -33,7 +33,7 @@
   --line: #d6e1ed; --line-strong: #b4c7da;
   --green: #007d60; --green-bright: #13b68c; --green-soft: #dff5ec; --green-dark: #006647;
   --red: #ae6036; --red-deep: #8a4523; --red-soft: #fbe9df;
-  --amber: #99691a; --amber-soft: #fbf0d9;
+  --amber: #8a5e14; --amber-soft: #fbf0d9;
   --steel: #16739c; --steel-soft: #e1f0f8;
   --then: #187bb8;
   --glass: linear-gradient(135deg, #ffffff, #f3f8fc);
@@ -503,7 +503,14 @@ tr.none td { color: var(--ink-faint); }
   .rail { padding: 22px 12px 18px; }
   .atlas { grid-template-columns: 1fr 1fr; }
   .atlas .disc-wrap { grid-column: 1 / -1; grid-row: 1; }
-  .masthead-context { display: none; }
+  /* narrower: the job and mezzanine names on their own line above the code / division / theme row; the rail's labels wrap */
+  .masthead { flex-wrap: wrap; row-gap: 6px; padding: 12px 0; }
+  .masthead-context { flex: 1 1 100%; min-width: 0; }
+  .masthead-context strong, .masthead-context span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mast-right { justify-content: flex-start; }
+  .rail-nav { grid-template-columns: minmax(0, 1fr); }
+  .rail-nav button { min-width: 0; gap: 9px; padding: 9px 9px; line-height: 1.25; text-align: left; }
+  .rail-nav .count { padding: 1px 5px; }
 }
 @media (max-width: 1100px) {
   .model-body { grid-template-columns: 1fr; }

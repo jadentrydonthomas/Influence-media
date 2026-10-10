@@ -102,10 +102,10 @@ Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line). B = 9
 
 | Mark | Section | Designed at | Beams | Qty |
 |---|---|---|---|---|
-| MB1 interior | BU28x50 | 28'-0" × 20'-0" | BSW B1, B2 (line C, 12'-4" + LEW edge 7'-8"); LEW B3 (line D, 18'-0") | 3 |
-| | same | run at 12'-4" | LEW B4 (line D, 40'-4" − 28'-0") | 1 |
-| MB2 exterior | BU26x36 | 28'-0" × 12'-4" | BSW B3–B5 (line C), B6–B10 (line A); LEW B1 (line E) | 9 |
-| | same | run at 12'-4" | LEW B2 (line E) | 1 |
+| MB1 interior | BU28x50 | 28'-0" × 20'-0" | BSW B1, B2 (line C, 12'-4" + LEW edge 7'-8"); LEW B13 (line D, 18'-0") | 3 |
+| | same | run at 12'-4" | LEW B14 (line D, 40'-4" − 28'-0") | 1 |
+| MB2 exterior | BU26x36 | 28'-0" × 12'-4" | BSW B3–B5 (line C), B6–B10 (line A); LEW B11 (line E) | 9 |
+| | same | run at 12'-4" | LEW B12 (line E) | 1 |
 | Columns | W8X24 | 11'-6" | BSW 2/C–5/C; LEW 2/D, 40'-4"/D, 40'-4"/E | 7 |
 
 All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1 interior BU24x30 × 4 at 20'-0" × 20'-0", MB2 exterior BU15x21 × 4 at 20'-0" × 10'-0", W10X22 × 4.
@@ -127,7 +127,7 @@ All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1
   - Interior beam tags are filled and exterior tags are outlined.
   - Each run of beams is labelled along its line ("MB1 · INTERIOR · BU28x50").
 - **3D model:** each beam carries a tag ("MB1 INT"), which you can switch off.
-- **Columns:** numbered once over the job (C1 … C7), with the grid label beside the number.
+- **Beams and columns:** numbered once over the job (B1 … B14, C1 … C7), so no two members on the drawing share a number; the grid label sits beside each column number. A column added on the Plan page is numbered after the drawing's (C29 on W1G-26097), and the plan legend says so — the others keep their numbers.
 - **Editing:** the joist direction, the beam / support lines and *Edit layout* (below) edit the mezzanine picked at the top.
 - **Tables:** the beam and support tables list the whole job, with each beam's end shear.
 

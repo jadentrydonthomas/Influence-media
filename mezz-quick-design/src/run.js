@@ -598,12 +598,12 @@
     at.forEach(e => {
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
-        const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, mezz: c.id, beam: 'B' + (en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
+        const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, id: en.id, mezz: c.id, beam: 'B' + (c.bOff + en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
         frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, userKind: e.userKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
-      const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id), bm = c.lay.beams[en.id]; return { ...en, mezz: c.id, D: r.D, L: r.L, mark: r.mark, beam: 'B' + (en.id + 1), area: (bm.tribOwn * bm.span + (bm.extra || []).reduce((a, x) => a + x.tribOwn * (x.e - x.s), 0)) / 2 }; });
+      const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id), bm = c.lay.beams[en.id]; return { ...en, mezz: c.id, D: r.D, L: r.L, mark: r.mark, beam: 'B' + (c.bOff + en.id + 1), area: (bm.tribOwn * bm.span + (bm.extra || []).reduce((a, x) => a + x.tribOwn * (x.e - x.s), 0)) / 2 }; });
       const sum = ps => ({ D: ps.reduce((a, p) => a + p.D, 0), L: ps.reduce((a, p) => a + p.L, 0) });
       const dirs = ['x', 'y'].filter(d => parts.some(p => p.dir === d));
       const tot = d => { const q = sum(parts.filter(p => p.dir === d)); return q.D + q.L; };
@@ -981,7 +981,7 @@
         ]);
         const read = ['C', 'D', 'E'].flatMap((col, k) => [{ sheet: 'Column', cell: col + '39', label: `${['DLt+LLt+DRt', 'DLt+DRt+LRt', 'DLt+LLt+DRt+LRt'][k]} result`, expect: ck.combos[k].okText }, { sheet: 'Column', cell: col + '40', label: 'Maximum CSR', expect: n3(ck.combos[k].csr) }]);
         if (ed !== '16') read.unshift({ sheet: 'Column', cell: 'C10', label: 'Lby follows C8 × 12 (in.)', expect: n3(L * 12) });
-        book.cases.push({ mezz: r.id, mi: r.index, group: gi, labels: gp.cols.map(q => q.label), steps, read });
+        book.cases.push({ mezz: r.id, mi: r.index, group: gi, labels: colOrder(gp.cols).map(q => q.label), steps, read });
       });
     });
     return { beam, column };
@@ -1277,6 +1277,9 @@
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
   function runJob(items, opts = {}) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
+    // beams numbered once over the job (B1..), like the columns: each mezzanine's numbers follow the one before
+    let bOff = 0;
+    ctxs.forEach(c => { c.bOff = bOff; bOff += !c.incomplete && c.lay ? c.lay.beams.length : 0; });
     // a mezzanine in a building attached to another mezzanine's building: where its beams sit in that building
     ctxs.forEach(c => {
       const att = !c.incomplete && c.inp.building && c.inp.building.attach;
@@ -1302,7 +1305,7 @@
       if (sets.size) { const env = DESIGN.designColumn([...sets.values()], { L: c0.colLen, includeW818: c0.s.includeW818, edition: c0.ed.colEd }, WF); jobName = env.name; }
     }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
-    mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
+    mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; r.bOff = ctxs[i].bOff; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     // a column picked by hand replaces the guide's job-wide column: say which is on the quote
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) { const q = DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`, pk = r.colFinal && r.colFinal.picked ? r.colFinal.quoteAs : null;
       const nUn = mezz.reduce((a, z) => a + (!z || z.incomplete ? 0 : z.colFinal ? (z.colFinal.unsized || []).length : z.columns.length), 0);
@@ -1421,7 +1424,7 @@
         const bs = (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3);
         const byMezz = [...new Set(bs.map(x => x.mi))].map(mi => {
           const xs = bs.filter(x => x.mi === mi), lines = [...new Set(xs.map(x => lineOf(mi, x)))];
-          return `${results.length > 1 ? idOf(mi) + ' ' : ''}${xs.map(x => 'B' + (x.id + 1)).join(', ')} (line ${lines.join(', ')})`;
+          return `${results.length > 1 ? idOf(mi) + ' ' : ''}${xs.map(x => 'B' + ((results[mi].bOff || 0) + x.id + 1)).join(', ')} (line ${lines.join(', ')})`;
         });
         const carried = bs.some(x => { const b = results[x.mi].layout.beams[x.id]; return b && b.extra; });
         const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
