@@ -1196,3 +1196,9 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 @media print { .field .fcard, .field .disc-wrap, .field .tally { break-inside: avoid; } }
 .dz-jobchk { margin: 10px 0 0; font-size: 13px; } .dz-jobchk.ok b { color: var(--green); } .dz-jobchk.ng { color: var(--red); font-weight: 600; }
 @media print { .mk-sec .ng, .tally h4 .ng, #readout em.ng, #modelKey .ng { color: var(--red) !important; } }
+#resTitle em .ng { color: var(--red); -webkit-text-fill-color: var(--red); }
+/* print: the framing summary starts on its own page, without the panel's frame (no empty frame fragment at a page end) */
+@media print { .field { break-before: page; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding-top: 0 !important; } }
+/* narrow screens: the section drawings keep a sensible size when they stack under the elevation */
+@media (max-width: 1100px) { .viz svg.bsec, .viz svg.csec { max-width: 300px; max-height: 340px; justify-self: center; } .viz svg.bviz, .viz svg.cviz { min-height: 220px; } }
+.dz-tiles.four { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }

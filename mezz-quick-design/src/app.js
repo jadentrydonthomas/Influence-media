@@ -261,7 +261,7 @@
 
   function toast(msg) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1900);
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), Math.min(7000, 1900 + 45 * Math.max(0, msg.length - 40)));   // long messages stay long enough to read
   }
   function status(text, cls) { $('#statusText').textContent = text; $('#statusDot').className = 'dot ' + (cls || ''); }
   async function copyText(txt, msg) {
@@ -919,8 +919,12 @@
     // a job of several mezzanines is one design: the beam marks, counts, columns and steel are the whole job's
     const many = manyMezz(), t = many ? jobTotals() : totals(), cf = r.colFinal, marks = jobMarks(), mk0 = marks[0];
     const done = many ? state.job.mezz.filter(m => !m.incomplete) : [r];
-    const secs = [...new Set(marks.map(mk => mk.desc || 'NO SECTION'))].join(' / ');
-    const cols = [...new Set(done.filter(m => m.columns.length).flatMap(m => (m.colFinal ? [m.colFinal.quoteAs, ...((m.colFinal.unsized || []).length ? ['columns not sized'] : [])] : ['columns not sized'])))].join(' / ');
+    // each section in the headline red only when it is the one that does not pass; a fixed order (sections, then not sized)
+    const tgt0 = s.target, bad0 = mk => !mk.check || !(mk.check.res.CSR <= tgt0 && mk.check.res.SRvx <= tgt0 && mk.check.llOK && mk.check.tlOK && (!mk.check.conc || mk.check.conc.ok));
+    const secItems = [...new Map(marks.map(mk => [mk.desc || 'NO SECTION', bad0(mk)])).entries()];
+    const colMz = done.filter(m => m.columns.length), colItems = [...new Map(colMz.filter(m => m.colFinal).map(m => [m.colFinal.quoteAs, !m.colFinal.ok])).entries()].concat(colMz.some(m => !m.colFinal || (m.colFinal.unsized || []).length) ? [['columns not sized', true]] : []);
+    const secs = secItems.map(([t]) => t).join(' / '), cols = colItems.map(([t]) => t).join(' / ');
+    const redList = items => items.map(([t, bad]) => (bad ? `<span class="ng">${esc(t)}</span>` : esc(t))).join(' / ');
     // red when anything on the quote does not pass: a mark with no section or a failing pick, a column not sized or failing
     const tgt = s.target, mkFails = mk => !mk.check || !(mk.check.res.CSR <= tgt && mk.check.res.SRvx <= tgt && mk.check.llOK && mk.check.tlOK && (!mk.check.conc || mk.check.conc.ok));
     const failing = marks.some(mkFails) || done.some(m => m.columns.length && (!m.colFinal || !m.colFinal.ok || (m.colFinal.unsized || []).length)) || done.some(m => m.clear && m.clear.C && m.clear.C.ok === false);
@@ -929,7 +933,7 @@
     const spans = [...new Set(marks.flatMap(mk => (mk.spanRuns && mk.spanRuns.length ? mk.spanRuns : mk.beamsAll && mk.beamsAll.length ? mk.beamsAll : [mk]).map(q => +q.span.toFixed(3))))].sort((x, y) => y - x).map(ft).join(' / ');
     const nb = t2 => esc(t2).replace(/ /g, '\u00a0');   // a name never breaks across lines ("Lean To")
     const ids = many ? done.map(m => `“${nb(m.id)}”`).join(' + ') : `“${nb(inp.mezz.id || '—')}”`;
-    $('#resTitle').innerHTML = `Mezzanine${many && done.length > 1 ? 's' : ''} ${ids}<br><em class="nocase${failing ? ' ng' : ''}"${failing ? ' title="Something on the quote does not pass — see Check before quoting"' : ''}>${esc(secs)}${cols ? ' · ' + esc(cols) : ''}</em>`;
+    $('#resTitle').innerHTML = `Mezzanine${many && done.length > 1 ? 's' : ''} ${ids}<br><em class="nocase"${failing ? ' title="Something on the quote does not pass — see Check before quoting"' : ''}>${redList(secItems)}${cols ? ' · ' + redList(colItems) : ''}</em>`;
 
     // metric ring cards
     const foreign = !many && (r.foreignCols || []).length ? ` · + ${r.foreignCols.map(c => `${c.label} with ${esc(c.ownerId)}`).join(', ')}` : '';
@@ -2247,10 +2251,11 @@
     const cf = r.colFinal, tried = (g.design ? g.design.tried : (cf && cf.tried) || []);
     $('#colExplainHead').innerHTML = `How the column was chosen <small>${cf ? esc(cf.quoteAs) : 'not sized'} · ${esc(g.cols.map(nm).join(', '))}</small>`;
     const s = r.settings || state.settings, inp = inpOf(r);
-    const parts = side => (g.cols[0].parts || []).filter(q => q.sheetSide === side).map(q => `${esc(q.mezz)} ${esc(q.beam)}${q.mark ? ' (' + esc(q.mark) + ')' : ''}`).join(' + ') || 'no beam';
+    const gc = g.gov || g.cols[0];   // the column drawn beside it: the case's governing column
+    const parts = side => (gc.parts || []).filter(q => q.sheetSide === side).map(q => `${esc(q.mezz)} ${esc(q.beam)}${q.mark ? ' (' + esc(q.mark) + ')' : ''}`).join(' + ') || 'no beam';
     el.innerHTML = `<ol>
       <li><b>Which column.</b> ${esc(g.cols.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9)).map(nm).join(', '))} — a mezzanine column (not a frame member) under ${g.cols.length > 1 ? (g.env ? 'these grid points, whose reactions agree within 0.01 k, so one Column-sheet case covers them, typed with the largest of each' : 'these grid points, which carry the same loads, so one Column-sheet case covers them') : 'this grid point'}. The C-number counts the job's mezzanine columns on the plan; the grid label is the frame line / column line it stands on.</li>
-      <li><b>Its loads.</b> The unfactored end shears (MB sheet H6 / H10) of the beams framing in. Left: ${parts('left')} → <span class="eq">D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)} k</span>; right: ${parts('right')} → <span class="eq">D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k</span>. Each reaction acts at e = d/2 off the column centre (the Column sheet's eccentricity), and the column's own weight is added.</li>
+      <li><b>Its loads.</b> The unfactored end shears (MB sheet H6 / H10) of the beams framing in. ${g.env ? `For ${esc(nm(gc))}, left: ${parts('left')} → <span class="eq">D ${f(gc.DL_L, 2)} / L ${f(gc.LL_L, 2)} k</span>; right: ${parts('right')} → <span class="eq">D ${f(gc.DL_R, 2)} / L ${f(gc.LL_R, 2)} k</span>. The case is typed with the largest of each over its columns: left <span class="eq">D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)} k</span>, right <span class="eq">D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k` : `Left: ${parts('left')} → <span class="eq">D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)} k</span>; right: ${parts('right')} → <span class="eq">D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k`}</span>. Each reaction acts at e = d/2 off the column centre (the Column sheet's eccentricity), and the column's own weight is added.</li>
       <li><b>Its length.</b> <span class="eq">${ft(r.colLen)}</span> — ${s.colLength === 'clear' ? 'the clear height to the underside of the beams (A − slab − seat − beam depth)' : `the top of the mezzanine floor, A = ${ft(inp.geom.A.value)} (the Column sheet's L, braced at the ends only: Lbx = Lby = L). <em class="flag">Not the training guide's:</em> the guide takes the clear height below the beams; A follows your instruction and is the longer (conservative) length — Settings → Column length switches it`}.</li>
       <li><b>The three combinations</b> (DM 15.1.1.4.2): dead + live on the left with dead only on the right, the same the other way, and dead + live on both — the unbalanced cases put the most moment in the column. Each must read OK with CSR ≤ 1.00.</li>
       <li><b>Sizes, in order.</b> The common columns first, lightest first: ${DESIGN.COMMON_COLUMNS.slice().sort((a, b) => WF[a].W - WF[b].W).map(n => `${n} (${WF[n].W} plf)`).join(' → ')}${s.includeW818 ? ', with W8X18 ahead of them' : ''}. The first that passes every case is used${manyMezz() && s.colPerJob !== false ? ' — one section for every mezzanine column of the job' : ''}. If none does, the next heavier W8–W14 that passes is used and quoted as BU (training guide).
@@ -2281,8 +2286,9 @@
     if (ob) ob.onclick = () => {
       // own marks after this one move down a number: their picks and design inputs go with them
       const later = jobMarks().filter(o => o.own && o.index > mk.index).sort((a, b) => a.index - b.index);
-      allSettings().forEach(st => { st.ownSpan = (st.ownSpan || []).filter(v => Math.abs(v - mk.span) > 1e-3);
-        ['override', 'markInput'].forEach(k => { const o = st[k]; if (!o) return; delete o[mk.mark]; later.forEach(l => { const to = 'MB' + l.index; if (o[l.mark] !== undefined) { o[to] = o[l.mark]; delete o[l.mark]; } }); }); }); state.mark = 0; state.markSpan = 0; recompute(); toast(`The ${ft(mk.span)} beam${mk.qtyAll > 1 ? 's are' : ' is'} back in ${mk.qtyAll > 1 ? 'their' : 'its'} mark`); };
+      const spans = [...new Set((mk.beamsAll || []).map(x => x.span))];   // an own mark can hold more than one long span
+      allSettings().forEach(st => { st.ownSpan = (st.ownSpan || []).filter(v => !spans.some(sp => Math.abs(v - sp) < 1e-3));
+        ['override', 'markInput'].forEach(k => { const o = st[k]; if (!o) return; delete o[mk.mark]; later.forEach(l => { const to = 'MB' + l.index; if (o[l.mark] !== undefined) { o[to] = o[l.mark]; delete o[l.mark]; } }); }); }); state.mark = 0; state.markSpan = 0; recompute(); toast(`The ${spans.map(ft).join(' and ')} beam${mk.qtyAll > 1 ? 's are' : ' is'} back in ${mk.qtyAll > 1 ? 'their' : 'its'} mark`); };
     // INPUT-sheet values (A, slab, seat, clearances) of a mezzanine that has this mark — the one on screen when it does
     const r = mk.mezzIds && !mk.mezzIds.includes(state.res.index) && state.job ? state.job.mezz[mk.mezzIds[0]] : state.res;
     const inp = state.all ? state.all[r.index].inputs : state.inputs;
@@ -2294,7 +2300,7 @@
       const sh = mk.splitHelps, nL = sh ? sh.n : 0;
       $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth. Lower clearance C, add a column, or design one by hand (Design your own).${sh ? `<br><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small>` : ''}</div>`;
       const sm = $('#splitMarks');
-      if (sm) sm.onclick = () => { const v = +sh.span.toFixed(4); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); toast(`The ${ft(sh.span)} beam${nL > 1 ? 's have their' : ' has its'} own mark — the rest keep theirs`); };
+      if (sm) sm.onclick = () => { const v = +sh.span.toFixed(4), had = jobMarks().find(o => o.own && o.kind === mk.kind); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); toast(had ? `The ${ft(sh.span)} beam${nL > 1 ? 's join' : ' joins'} ${had.mark}, the long beams' own mark — the rest keep theirs` : `The ${ft(sh.span)} beam${nL > 1 ? 's have their' : ' has its'} own mark — the rest keep theirs`); };
     }
     else {
       const x = c.res, clear = r.clear;
@@ -2460,28 +2466,9 @@
     // why this case carries what it does: each beam, its span and trib
     const rows = parts.map(p => { const i = info(p); return `<tr><td>${p.sheetSide}</td><td class="mono"><b>${p.mezz !== r.id ? esc(p.mezz) + ' ' : ''}${p.beam}</b></td><td class="mono">${i.mk ? esc(i.mk.mark + ' ' + (i.mk.desc || '')) : '—'}</td><td class="num">${ft(i.bm.span)}</td><td class="num">${ft(i.bm.trib)}${i.bm.extra ? ' <small class="sub-n">incl. ' + esc(i.bm.extra.map(x => x.mezz).join(', ')) + '</small>' : ''}</td><td class="num">${f(p.D, 2)}</td><td class="num">${f(p.L, 2)}</td></tr>`; }).join('');
     const byC = g.cols.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9)).map(q => 'C' + (cno.get(q.label) || '?') + ' · ' + esc(q.label)).join(', ');
-    const same = g.cols.length > 1 ? `<p class="foot-note">${byC} ${g.env ? `carry reactions within 0.01 k of each other: one case on the sheet, typed with the largest of each (left D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)}, right D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k), so it covers every one of them. The drawing shows C${cno.get((g.gov || g.cols[0]).label) || '?'} · ${esc((g.gov || g.cols[0]).label)}, the one that carries the most.` : 'carry the same reactions, so they are one case on the sheet.'}</p>` : '';
+    const same = g.cols.length > 1 ? `<p class="foot-note">${byC} ${g.env ? `carry reactions within 0.01 k of each other: one case on the sheet, typed with the largest of each (left D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)}, right D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k)${g.ownMax != null && cf.checks[r.colGroups.indexOf(g)] ? `; checked on its own reactions each column reads max CSR ${f(g.ownMax, 3)} or less, against the case's ${f(cf.checks[r.colGroups.indexOf(g)].max, 3)}` : ''}. The drawing shows C${cno.get((g.gov || g.cols[0]).label) || '?'} · ${esc((g.gov || g.cols[0]).label)}, the one that carries the most.` : 'carry the same reactions, so they are one case on the sheet.'}</p>` : '';
     return `<div class="viz"><svg class="cviz" viewBox="0 0 760 ${yF + 26}" role="img" aria-label="Column elevation">${o.join('')}</svg><svg class="csec" viewBox="0 0 280 ${yF + 26}" role="img" aria-label="${esc(cf.name)} section">${sv.join('')}</svg></div>
       <div class="table-wrap cv-table"><table><thead><tr><th>Side</th><th>Beam</th><th>Mark · section</th><th class="num">Span</th><th class="num">Trib</th><th class="num">Dead (k)</th><th class="num">Live (k)</th></tr></thead><tbody>${rows}</tbody></table></div>${same}`;
-  }
-  // left beam → column ← right beam, with the dead / live shear each one brings (what goes in C27:D28)
-  function lrDiagram(g, cno) {
-    const c = g.cols[0];
-    if (!c || !c.parts) return '';
-    const side = sd => c.parts.filter(p => p.sheetSide === sd);
-    const lab = ps => ps.length ? ps.map(p => `${p.mezz !== state.res.id ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' · ' + p.mark : ''}`).join(' + ') : 'no beam';
-    const val = (D, L) => `D ${f(D, 2)} · L ${f(L, 2)} k`;
-    return `<svg class="lr" viewBox="0 0 520 132" role="img" aria-label="Left and right beam reactions on ${esc(c.label)}">
-      <rect x="236" y="20" width="48" height="104" rx="4" class="lr-col"/><text x="260" y="14" class="lr-c">C${cno.get(c.label) || '?'} · ${esc(c.label)}</text>
-      <rect x="20" y="34" width="210" height="16" rx="3" class="lr-beam ${side('left').length ? '' : 'none'}"/><text x="125" y="66" class="lr-t">${esc(lab(side('left')))}</text><text x="125" y="84" class="lr-v">LEFT ${val(g.loads.DL_L, g.loads.LL_L)}</text>
-      <rect x="290" y="34" width="210" height="16" rx="3" class="lr-beam ${side('right').length ? '' : 'none'}"/><text x="395" y="66" class="lr-t">${esc(lab(side('right')))}</text><text x="395" y="84" class="lr-v">RIGHT ${val(g.loads.DL_R, g.loads.LL_R)}</text>
-      <path d="M222 42 l12 0 m-5 -5 l5 5 l-5 5" class="lr-a"/><path d="M298 42 l-12 0 m5 -5 l-5 5 l5 5" class="lr-a"/></svg>`;
-  }
-  // which beam (and which mezzanine) each Column-sheet reaction comes from
-  function srcRows(c) {
-    if (!c || !c.parts) return [];
-    const side = sd => c.parts.filter(p => p.sheetSide === sd).map(p => `${esc(p.mezz)} ${p.beam}${p.mark ? ' (' + p.mark + ')' : ''} ${f(p.D, 2)} / ${f(p.L, 2)}`).join(' + ') || '—';
-    return [['Left reaction from (D / L)', side('left')], ['Right reaction from (D / L)', side('right')]];
   }
   const colMezz = () => (manyMezz() ? state.job.mezz.filter(m => m && !m.incomplete && m.colGroups && m.colGroups.length) : [state.res].filter(m => m && m.colGroups && m.colGroups.length));
   const colShown = () => { const w = colMezz(); return w.includes(state.res) ? state.res : w[0]; };
@@ -2496,8 +2483,8 @@
     const nm = c => `C${cno.get(c.label) || '?'} · ${c.label}`, byNo = cs => cs.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9));
     const tabOf = (m, g, i) => { const mf = m.colFinal, on = m === r && i === state.colGroup; return `<button class="tab ${on ? 'is-active' : ''}" data-mi="${m.index}" data-i="${i}">${esc(byNo(g.cols).map(nm).join(', '))}${mf && mf.checks[i] ? `<small class="tab-ratio ${mf.checks[i].ok ? 'ok' : 'ng'}">${f(mf.checks[i].max, 3)}</small>` : '<small class="tab-ratio ng">not sized</small>'}</button>`; };
     $('#colTabs').innerHTML = (r !== state.res ? `<p class="col-note">${esc(state.res.id)} has no mezzanine columns of its own — showing ${esc(r.id)}.</p>` : '') +
-      withCols.map(m => (withCols.length > 1 ? `<span class="tab-group">${esc(m.id)}</span>` : '') + m.colGroups.map((g, i) => tabOf(m, g, i)).join('')).join('');
-    const exCol = ((r.colGroups[state.colGroup] || {}).cols || [])[0], exNo = exCol ? cno.get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
+      withCols.map(m => (withCols.length > 1 ? `<span class="tab-group">${esc(m.id)}</span>` : '') + m.colGroups.map((g, i) => [g, i]).sort((a, b) => Math.min(...a[0].cols.map(c => cno.get(c.label) || 1e9)) - Math.min(...b[0].cols.map(c => cno.get(c.label) || 1e9))).map(([g, i]) => tabOf(m, g, i)).join('')).join('');
+    const exCol = ((r.colGroups[state.colGroup] || {}).cols || []).slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9))[0], exNo = exCol ? cno.get(exCol.label) : null, exPt = exCol ? exCol.label.split('/') : ['2', 'B'];
     $('#colTabs').insertAdjacentHTML('beforeend', `<div class="name-key"><b>Column names</b> · <span class="mono">C${exNo || 1}</span> the mezzanine column's number on the plan · <span class="mono">${esc(exPt.join('/'))}</span> the grid point, frame line ${esc(exPt[0])} × column line ${esc(exPt[1] || '')} · a tab holds the columns with the same loads (one Column-sheet case). Frame columns are named by their NBG Frame member, <span class="mono">COL02</span>, on the Plan page.</div>`);
     // a case with unknown loads (a beam framing in has no section) has nothing to try yet
     const gNow = r.colGroups[state.colGroup], gKnown = gNow && [gNow.loads.DL_L, gNow.loads.LL_L, gNow.loads.DL_R, gNow.loads.LL_R].every(isFinite);
@@ -2762,7 +2749,7 @@
   // the column: the Column sheet's three combinations, and the common sizes beside it
   function dzColResults(out) {
     const cc = state.dz.col, bu = cc.type === 'BU';
-    $$('#dzBody .dz-ctype button').forEach(btn => { btn.onclick = () => { cc.type = btn.dataset.ctype; cc.from = ''; state.dz.colNear = null; dzSave(); renderDesigner(); }; });
+    $$('#dzBody .dz-ctype button').forEach(btn => { btn.onclick = () => { cc.type = btn.dataset.ctype; state.dz.colNear = null; dzSave(); renderDesigner(); }; });   // the loads are still that case's
     const bad = ['L', 'DL_L', 'DL_R'].filter(k => !(+cc[k] >= 0) || cc[k] === '').concat(+cc.L > 0 ? [] : ['L']).concat(bu && !(+cc.d > 0) ? ['d'] : []);
     if (bad.length) { out.innerHTML = `<div class="panel dz-empty">Enter ${[...new Set(bad)].join(', ')}.</div>`; return; }
     const ld = { DL_L: +cc.DL_L, LL_L: +cc.LL_L || 0, DL_R: +cc.DL_R, LL_R: +cc.LL_R || 0 };
@@ -2775,13 +2762,16 @@
     const common = [...new Set(['W8X18', ...DESIGN.COMMON_COLUMNS, ...(bu ? [] : [cc.wf])])].sort((a, c2) => WF[a].W - WF[c2].W).map(n => ({ n, c: run(n) }));
     const can = state.job && (state.job.mezz || []).some(r => r.columns && r.columns.length);
     // "Use" puts it on every mezzanine column of the job: check it on every case with known loads, each at its own length
-    const jobSets = can ? (state.job.mezz || []).filter(r => r && !r.incomplete && r.columns.length && r.colLen).flatMap(r => r.colGroups.filter(g => [g.loads.DL_L, g.loads.LL_L, g.loads.DL_R, g.loads.LL_R].every(isFinite)).map(g => ({ ...g.loads, L: r.colLen, r, g }))) : [];
+    // "Per mezzanine" (Settings): Use goes to the mezzanine on screen only, so only its cases are checked
+    const perMz = state.settings.colPerJob === false, mzOn = state.res, scopeTxt = perMz ? `${esc(mzOn.id)}'s` : `the job's`;
+    const jobSets = can ? (state.job.mezz || []).filter(r => r && !r.incomplete && r.columns.length && r.colLen && (!perMz || r.index === mzOn.index)).flatMap(r => r.colGroups.filter(g => [g.loads.DL_L, g.loads.LL_L, g.loads.DL_R, g.loads.LL_R].every(isFinite)).map(g => ({ ...g.loads, L: r.colLen, r, g }))) : [];
     const jobK = jobSets.map(q => ({ q, k: ENG.columnCheck({ sec: bu ? buSec : { type: 'WF', name: cc.wf }, Fy: bu ? 55 : 50, Fu: bu ? 70 : 65, L: q.L, Lby: q.L * 12, DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R, edition: cc.ed }, WF) }));
     const jobMax = jobK.length ? Math.max(...jobK.map(x => x.k.max)) : null, jobOK = jobK.every(x => x.k.ok), cnoJ = colNos();
-    const jobBad = jobK.filter(x => !x.k.ok).map(x => x.q.g.cols.map(c => `C${cnoJ.get(c.label) || '?'}`).join(', '));
+    const cOf = c => cnoJ.get(c.label) || 1e9;
+    const jobBad = jobK.filter(x => !x.k.ok).sort((a, b) => Math.min(...a.q.g.cols.map(cOf)) - Math.min(...b.q.g.cols.map(cOf))).map(x => x.q.g.cols.slice().sort((a, b) => cOf(a) - cOf(b)).map(c => `C${cOf(c)}`).join(', '));
     // built-up: the shop's limits and the 8" × 1/4" flange for beams on the flange, beside the sheet's answer
     const prod = bu ? DESIGN.prodChecks(buSec, div, +cc.L, k.Wt).filter(q => !['length', 'weight', 'handling'].includes(q.rule) || !q.ok) : [];
-    const flOK = !bu || (buSec.bof >= 8 && buSec.tof >= 0.25);
+    const flOK = bu ? buSec.bof >= 8 && buSec.tof >= 0.25 : !!(WF[cc.wf] && WF[cc.wf].bf >= 8 && WF[cc.wf].tf >= 0.25);
     const near = state.dz.colNear;
     out.innerHTML = `<div class="panel dz-res">
       <div class="dz-res-head"><div><div class="eyebrow">Column sheet · ${esc(cc.ed)}th${bu ? ' · Built-Up input' : ''}</div><h3 class="nocase">${esc(name)} <small>${f(w.W, 1)} plf · d ${f(w.d, 2)}" · bf ${f(w.bf, 2)}"${bu ? ` · tf ${f(w.tf, 4)}" · tw ${f(buSec.tw, 4)}" · Fy 55` : ''} · L ${ft(+cc.L)}</small></h3></div>
@@ -2795,25 +2785,25 @@
         <div class="dz-tile"><span>Eccentricity e = d/2</span><b>${f(k.ex, 2)} in</b></div>
         <div class="dz-tile"><span>Self-weight</span><b>${f(k.wt, 3)} k</b></div>
         <div class="dz-tile"><span>Unbraced Lbx = Lby</span><b>${f(+cc.L * 12, 1)} in</b></div>
-        ${bu ? `<div class="dz-tile ${flOK ? 'ok' : 'ng'}"><span>Flange for beams on it</span><b>${flOK ? '8" × 1/4" or more' : 'under 8" × 1/4"'}</b></div>` : `<div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'stocked' : 'not stocked'}</b></div>`}
+        <div class="dz-tile ${flOK ? 'ok' : 'ng'}"><span>Flange for beams on it (DM 15.1.1.4.2)</span><b>${flOK ? '8" × 1/4" or more' : `under 8" × 1/4"${bu ? '' : ` (${f(WF[cc.wf].bf, 2)}" × ${f(WF[cc.wf].tf, 3)}")`}`}</b></div>${bu ? '' : `<div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'stocked' : 'not stocked'}</b></div>`}
       </div>
       ${bu ? `<div class="dz-checks"><div><h5>NBG Production Guidelines · ${esc(div)}</h5><ul>${prod.map(r => `<li class="${r.ok ? 'ok' : 'ng'}"><i>${r.ok ? '✓' : '✕'}</i>${esc(r.text)}<em>${esc(r.val)}</em></li>`).join('')}</ul></div>
         <div><h5>DM 5.1 stock · ${esc(div)}</h5><ul>${[[`Flanges ${buSec.bof} × ${frac(buSec.tof)}`, DESIGN.inStock(DESIGN.FLANGE_STOCK, buSec.bof + 'x' + buSec.tof, div)], [`Web ${frac(buSec.tw)}" (W${String(Math.round(buSec.tw * 1000)).padStart(3, '0')})`, DESIGN.inStock(DESIGN.WEB_STOCK, buSec.tw, div)]].map(([lab, ok]) => `<li class="${ok ? 'ok' : 'ng'}"><i>${ok ? '✓' : '✕'}</i>${esc(lab)}<em>${ok ? 'stocked' : 'not stocked'}</em></li>`).join('')}</ul></div></div>` : ''}
       <h5 class="dz-h">The common sizes with these loads</h5>
       <div class="table-wrap"><table class="fl-t"><thead><tr><th>Section</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th><th></th></tr></thead><tbody>${common.map(q => `<tr class="${!bu && q.n === cc.wf ? 'is-chosen' : ''}"><td class="mono"><b>${q.n}</b></td><td class="num mono">${WF[q.n].W}</td><td class="num mono">${f(q.c.max, 3)}</td><td><span class="status-text ${q.c.ok ? 'ok' : 'ng'}">${q.c.ok ? 'OK' : 'NG'}</span></td><td>${!bu && q.n === cc.wf ? '' : `<button class="btn-ghost dz-pick" data-n="${q.n}" type="button">Load</button>`}</td></tr>`).join('')}</tbody></table></div>
-      ${jobK.length ? `<p class="dz-jobchk ${jobOK ? 'ok' : 'ng'}">Across the job's ${jobK.length} column case${jobK.length > 1 ? 's' : ''}: max CSR <b>${f(jobMax, 3)}</b> — ${jobOK ? 'passes every one' : `does not pass ${esc(jobBad.slice(0, 4).join(' · '))}${jobBad.length > 4 ? ' …' : ''}`}</p>` : ''}
-      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(name)} for the job's mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}<button class="btn-ghost" id="dzColNear" type="button">Built-up columns that pass${jobSets.length > 1 ? ' every case of the job' : ''}, lightest first</button></div>
+      ${jobK.length ? `<p class="dz-jobchk ${jobOK ? 'ok' : 'ng'}">Across ${scopeTxt} ${jobK.length} column case${jobK.length > 1 ? 's' : ''}: max CSR <b>${f(jobMax, 3)}</b> — ${jobOK ? 'passes every one' : `does not pass ${esc(jobBad.slice(0, 4).join(' · '))}${jobBad.length > 4 ? ' …' : ''}`}</p>` : ''}
+      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(name)} for ${scopeTxt} mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}<button class="btn-ghost" id="dzColNear" type="button">Built-up columns that pass${jobSets.length > 1 ? ' every case of the job' : ''}, lightest first</button></div>
       ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Flanges</th><th>Web</th><th class="num">plf</th><th class="num">Max CSR</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.sec.d}"</td><td class="mono"><b>${esc(z.name)}</b></td><td class="mono">${z.sec.bof}" × ${frac(z.sec.tof)}"</td><td class="mono">${z.sec.tw}"</td><td class="num mono">${f(z.W, 1)}</td><td class="num mono">${f(z.max, 3)}</td><td><button class="btn-ghost dz-take-col" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="7" class="sub-n">No stocked built-up column within the shop limits passes these loads.</td></tr>'}</tbody></table><p class="foot-note">Stocked plates for ${esc(div)}, inside the production limits, flanges at least 8" × 1/4" (beams frame to the flange), Fy 55, through the Column sheet's Built-Up input, CSR ≤ ${f(state.settings.target, 2)}.</p></div>` : ''}
     </div>`;
     $$('#dzBody .dz-pick').forEach(btn => { btn.onclick = () => { Object.assign(cc, { type: 'WF', wf: btn.dataset.n }); dzSave(); renderDesigner(); }; });
-    $$('#dzBody .dz-take-col').forEach(btn => { btn.onclick = () => { const z = near[+btn.dataset.i].sec; Object.assign(cc, { type: 'BU', d: z.d, tw: z.tw, bf: z.bof, tf: z.tof, from: '' }); dzSave(); renderDesigner(); }; });
+    $$('#dzBody .dz-take-col').forEach(btn => { btn.onclick = () => { const z = near[+btn.dataset.i].sec; Object.assign(cc, { type: 'BU', d: z.d, tw: z.tw, bf: z.bof, tf: z.tof }); dzSave(); renderDesigner(); }; });
     const nb = $('#dzColNear');
     if (nb) nb.onclick = () => { const sets = jobSets.length ? jobSets.map(({ r, g, ...q }) => q) : [ld]; state.dz.colNear = DESIGN.designBUColumn(sets, { L: +cc.L, edition: cc.ed, division: div, target: state.settings.target, count: 8 }); dzColResults(out); };
     const u = $('#dzUseCol');
     if (u) u.onclick = () => {
       const pick = bu ? { type: 'BU', d: buSec.d, tw: buSec.tw, bf: buSec.bof, tf: buSec.tof } : cc.wf;
       (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = pick; });
-      recompute(); toast(`Mezzanine columns → ${name}${(jobK.length ? jobOK : k.ok) ? '' : ` — does not pass ${jobK.length ? jobBad.join(' · ') : 'this case'} (max CSR ${f(jobK.length ? jobMax : k.max, 3)}), flagged`}`);
+      recompute(); toast(`${perMz ? esc(mzOn.id) + ' m' : 'M'}ezzanine columns → ${name}${(jobK.length ? jobOK : k.ok) ? '' : ` — does not pass ${jobK.length ? jobBad.join(' · ') : 'this case'} (max CSR ${f(jobK.length ? jobMax : k.max, 3)}), flagged`}`);
     };
   }
 

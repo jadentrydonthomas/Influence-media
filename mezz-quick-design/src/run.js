@@ -528,7 +528,7 @@
     if (m.merged && check) m.merged.forEach(q => {
       const dzq = DESIGN.designBeam({ ...c0.beamBase, L: q.span - cut, trib: q.trib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
       const n = q.beams.length, len = q.beams.reduce((a, x) => a + x.span, 0), own = dzq && dzq.best, dW = own ? (check.res.Wt - own.wt) * len : 0;
-      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of up to ${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on ${m.mark}${q.covered ? ', whose span and trib already cover it' : ', raising its design point to cover it'}${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
+      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of ${n > 1 ? 'up to ' : ''}${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on ${m.mark}${q.covered ? ', whose span and trib already cover it' : ', raising its design point to cover it'}${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
     });
     if (m.own) say('key', `${m.mark}: the ${Fi(m.span)} beam${m.beamsAll.length > 1 ? 's' : ''} given ${m.beamsAll.length > 1 ? 'their' : 'its'} own mark on Beam calc — the shorter ${m.kind ? m.kind + ' ' : ''}beams keep their mark.`);
     if (check && ov && ov.sec) {
@@ -690,6 +690,8 @@
       const sec = ovBU ? { type: 'BU', d: +ov.d, tw: +ov.tw, bof: +ov.bf, tof: +ov.tf, bif: +ov.bf, tif: +ov.tf } : { type: 'WF', name: ov || jobName || govCol.design.name };
       const Fy = ovBU ? 55 : 50, Fu = ovBU ? 70 : 65;
       const checks = groups.map(g => (g.known ? MZ.columnCheck({ sec, Fy, Fu, L: colLen, Lby: colLen * 12, ...g.loads, edition: ed.colEd }, WF) : null)), done = checks.filter(Boolean);
+      // a case typed with the largest of each: each column on its own reactions too, so the page can say how they compare
+      groups.forEach((g, gi) => { if (g.env && checks[gi]) g.ownMax = Math.max(...g.cols.map(q => MZ.columnCheck({ sec, Fy, Fu, L: colLen, Lby: colLen * 12, DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R, edition: ed.colEd }, WF).max)); });
       let name, quoteAs, props;
       if (ovBU) { name = quoteAs = DESIGN.buColName(sec, done[0].Wt); props = { d: sec.d, bf: sec.bof, tf: sec.tof, tw: sec.tw, W: done[0].Wt }; }
       else { name = sec.name; const [, dn, wt] = name.match(/^W(\d+)X([\d.]+)/); quoteAs = DESIGN.COMMON_COLUMNS.includes(name) || name === 'W8X18' ? name : 'BU' + dn + 'x' + wt; props = WF[name]; }
@@ -1381,7 +1383,7 @@
         if (saves > 1) {
           const now = [...new Set(buQuoted.map(r => `${r.colFinal.quoteAs} (sized as ${r.colFinal.name})`))].join(', ');
           colAlt = { ...colAlt, saves, over: buQuoted.map(r => r.index), unsized: nUnAlt };
-          buQuoted.forEach(r => r.warn.push({ level: 'key', text: `Lighter built-up column: ${colAlt.name} — ${colAlt.sec.d}" deep, ${colAlt.sec.bof}" × ${colAlt.sec.tof}" flanges, ${colAlt.sec.tw}" web, Fy 55 — passes ${nUnAlt ? 'the sized column cases' : 'every column case'} at CSR ${colAlt.max.toFixed(3)} on the Column sheet's Built-Up input, about ${Math.round(saves).toLocaleString('en-US')} lb less than ${now}. The quote keeps the guide's method; use it on the Column page.` }));
+          buQuoted.forEach(r => r.warn.push({ level: 'key', text: `Lighter built-up column: ${colAlt.name} — ${colAlt.sec.d}" deep, ${colAlt.sec.bof}" × ${colAlt.sec.tof}" flanges, ${colAlt.sec.tw}" web, Fy 55 — passes ${nUnAlt ? 'the sized column cases' : 'every column case'} at CSR ${colAlt.max.toFixed(3)} (held to the ${c1.s.target} stress-ratio limit; the guide's W column goes by the sheet's OK, < 1.00) on the Column sheet's Built-Up input, about ${Math.round(saves).toLocaleString('en-US')} lb less than ${now}. The quote keeps the guide's method; use it on the Column page.` }));
         } else colAlt = null;
       }
     }
@@ -1484,7 +1486,10 @@
         });
         const carried = bs.some(x => { const b = results[x.mi].layout.beams[x.id]; return b && b.extra; });
         const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
-        const notes = [fails(run), clearC ? `C ${PCS.fmtFtIn(clearC.prov)} provided < ${PCS.fmtFtIn(clearC.req)} asked` : '', `${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
+        // a BU name (depth x weight) can fit more than one plate set: the plates go on every row
+        const fr16 = t => { const n = Math.round(t * 16); if (Math.abs(t * 16 - n) > 0.02) return String(t); const g = (a, b) => (b ? g(b, a % b) : a), w = Math.floor(n / 16), q = n % 16; return q ? `${w ? w + ' ' : ''}${q / g(q, 16)}/${16 / g(q, 16)}` : String(w); };
+        const sc = mk.sec, plates = sc && sc.type !== 'WF' ? (sc.bof === sc.bif && sc.tof === sc.tif ? `plates: flanges ${sc.bof}" x ${fr16(sc.tof)}", web ${sc.tw}"` : `plates: top ${sc.bof}" x ${fr16(sc.tof)}", bottom ${sc.bif}" x ${fr16(sc.tif)}", web ${sc.tw}"`) : '';
+        const notes = [fails(run), plates, clearC ? `C ${PCS.fmtFtIn(clearC.prov)} provided < ${PCS.fmtFtIn(clearC.req)} asked` : '', `${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`,
           !mk.sec ? `nothing passes at ${PCS.fmtFtIn(mk.span)}` : run.span < mk.span - 1e-3 ? `shorter span — same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on the Beam calc page (layout ${PCS.fmtFtIn(run.span)} × ${PCS.fmtFtIn(mk.trib)}; columns and frame loads at the layout)` : '',
           carried ? 'trib incl. neighbouring mezzanine edge' : '', mk.optionKey === 'custom' ? 'section picked by the engineer' : mk.optionKey && mk.optionKey !== 'lightest' && mk.options && mk.options.find(o => o.key === mk.optionKey) ? mk.options.find(o => o.key === mk.optionKey).label + ' option' : ''].filter(Boolean).join('; ');
@@ -1511,7 +1516,7 @@
       const k = r.colFinal.quoteAs + '|' + round(r.colLen, 3);
       const row = colRows.get(k) || { MEZZ: [], HEIGHT: round(r.colLen, 3), AREA: 0, SECTION: r.colFinal.quoteAs, ENDWT: END_WT_COL, QTY: 0, notes: [], runAs: r.colFinal.quoteAs !== r.colFinal.name ? r.colFinal.name : '' };
       row.MEZZ.push(r.id); row.QTY += sz.length; row.AREA = Math.max(row.AREA, ...sz.map(c => c.tribArea));
-      if (!r.colFinal.ok) row.notes.unshift(`FAILS — max CSR ${r.colFinal.max.toFixed(2)}`);
+      if (!r.colFinal.ok) (row.fails = row.fails || []).push({ id: r.id, max: r.colFinal.max });   // said once, first, below
       // a built-up column's name (depth x weight) can fit two plate sets: the plates go with it
       const bs = r.colFinal.sec.type === 'BU' ? r.colFinal.sec : null;
       if (bs && !row.notes.some(n => /^built up/.test(n))) { const n = Math.round(bs.tof * 16), g = (a, b) => (b ? g(b, a % b) : a), w = Math.floor(n / 16), q = n % 16, t = Math.abs(bs.tof * 16 - n) > 0.02 ? String(bs.tof) : q ? `${w ? w + ' ' : ''}${q / g(q, 16)}/${16 / g(q, 16)}` : String(w);
@@ -1520,7 +1525,9 @@
       sz.filter(c => c.shared).forEach(c => row.notes.push(`${c.label} shared with ${[...new Set(c.parts.map(p => p.mezz).filter(m => m !== r.id))].join(', ')}`));
       colRows.set(k, row);
     });
-    const columns = [...colRows.values()].map(row => ({ MEZZ: row.MEZZ.join(' / '), HEIGHT: row.HEIGHT, AREA: round(row.AREA, 1), SECTION: row.SECTION, ENDWT: row.ENDWT, QTY: row.QTY, NOTES: [...row.notes, row.runAs ? `run as ${row.runAs}` : ''].filter(Boolean).join('; ') }));
+    // a failing column, said once: the row's max CSR to 3 decimals, each mezzanine's when they differ
+    const failNote = row => { const fs = (row.fails || []).slice().sort((a, b) => b.max - a.max); return !fs.length ? [] : [`FAILS — max CSR ${fs.length > 1 && results.length > 1 ? fs.map(q => `${q.max.toFixed(3)} (${q.id})`).join(', ') : fs[0].max.toFixed(3)}`]; };
+    const columns = [...colRows.values()].map(row => ({ MEZZ: row.MEZZ.join(' / '), HEIGHT: row.HEIGHT, AREA: round(row.AREA, 1), SECTION: row.SECTION, ENDWT: row.ENDWT, QTY: row.QTY, NOTES: [...failNote(row), ...row.notes, row.runAs ? `run as ${row.runAs}` : ''].filter(Boolean).join('; ') }));
     return pack(design, beams, columns);
   }
   // one mezzanine (or a job of one)

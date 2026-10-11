@@ -172,22 +172,28 @@
     const marks = [];
     spanGroups.forEach(sg => {
       const inGroup = beams.filter(b => sg.members.some(s => near(s, b.span)));
-      uniq(inGroup.map(b => b.trib)).sort((a, b) => b - a).forEach(t => {
-        marks.push({ span: sg.max, trib: t, beams: inGroup.filter(b => near(b.trib, t)).map(b => b.id) });
+      // tribs within 6" share a mark (designed at the larger) — two marks a few inches apart would land on one section
+      const tGroups = [];
+      uniq(inGroup.map(b => b.trib)).sort((a, b) => b - a).forEach(t => { const tg = tGroups.find(q => q.top - t <= 0.5 + 1e-9); tg ? tg.ts.push(t) : tGroups.push({ top: t, ts: [t] }); });
+      tGroups.forEach(tg => {
+        const ids = inGroup.filter(b => tg.ts.some(t => near(b.trib, t))).map(b => b.id);
+        marks.push({ span: sg.max, trib: tg.top, beams: ids, own: ids.slice() });
       });
     });
     marks.sort((a, b) => b.span * b.trib - a.span * a.trib);
-    while (marks.length > 4) { // the lightest-loaded group rides on another mark — recorded, so it is said
-      const last = marks.pop();
+    const spanOf = ids => Math.max(...ids.map(u => beams.find(b => b.id === u).span));
+    while (marks.length > 4) { // the lightest-loaded group rides on another mark — recorded once per group, so it is said
+      const last = marks.pop(), lastSpan = spanOf(last.own), allSpan = spanOf(last.beams);   // its own beams; with what it already carried
       // a mark whose span and trib both cover the group carries it at its own design point (the lightest such mark);
       // only when none does is the next heavier mark's design point raised to cover it (conservative)
-      const cover = marks.filter(m => m.span >= last.span - EPS && m.trib >= last.trib - EPS).sort((a, b) => a.span * a.trib - b.span * b.trib)[0];
+      const cover = marks.filter(m => m.span >= allSpan - EPS && m.trib >= last.trib - EPS).sort((a, b) => a.span * a.trib - b.span * b.trib)[0];
       const host = cover || marks[marks.length - 1];
-      host.merged = (host.merged || []).concat({ span: last.span, trib: last.trib, beams: last.beams.slice(), covered: !!cover }, last.merged || []);
-      if (!cover) { host.span = Math.max(host.span, last.span); host.trib = Math.max(host.trib, last.trib); }
+      // its own beams once (at their own longest span), and the groups it already carried as they were recorded
+      host.merged = (host.merged || []).concat({ span: lastSpan, trib: last.trib, beams: last.own.slice(), covered: !!cover }, (last.merged || []).map(q => ({ ...q, covered: !!cover })));
+      if (!cover) { host.span = Math.max(host.span, spanOf(last.beams)); host.trib = Math.max(host.trib, last.trib); }
       host.beams.push(...last.beams);
     }
-    return marks.map((mk, i) => ({ mark: 'MB' + (i + 1), ...mk }));
+    return marks.map((mk, i) => { const { own, ...rest } = mk; return { mark: 'MB' + (i + 1), ...rest }; });
   }
 
   const api = { buildingGrid, layout, beamMarks, isBuildingColumn, cum, letters };

@@ -216,7 +216,7 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SPAN, r.TRIB, r.SECTION, r.QTY]), [
     ['BSW / LEW', 28, 20, 'BU28x50', 3], ['LEW', 12.333, 20, 'BU28x50', 1],
     ['BSW / LEW', 28, 12.333, 'BU26x36', 9], ['LEW', 12.333, 12.333, 'BU26x36', 1]]);
-  assert.ok(/^MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);
+  assert.ok(/^plates: flanges 8" x 1\/2", web 0\.25"; MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);   // the plates first: a BU name can fit two plate sets
   assert.ok(/shorter span — same section, MB sheet at 12'-4"/.test(q.beams[1].NOTES), q.beams[1].NOTES);
   assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW / LEW', 'W8X24', 7]]);
   // DM 15.1 on the job: perimeter beams are the exterior mark; both mezzanines need bracing decisions; a W8 column
@@ -237,7 +237,11 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.ok(fw && /FAILS — combined 1\.187, total L\/237 < L\/240/.test(fw) && !/live L/.test(fw), fw);
   // split by trib / span: a group past the fourth rides on a mark that covers its span and trib (MB4 stays at 28' × 12'-4")
   const jsp = RUN.runJob(inps.map(inp => ({ inp, settings: { marks: 'split' } })));
-  const m4 = jsp.marks.find(m => m.mark === 'MB4');
-  assert.ok(Math.abs(m4.span - 28) < 1e-6 && Math.abs(m4.trib - 12.333) < 0.01 && m4.desc === 'BU26x36', `${m4.desc} ${m4.span} x ${m4.trib}`);
+  const m4 = jsp.marks.find(m => Math.abs(m.trib - 12.333) < 0.01);
+  assert.ok(m4 && Math.abs(m4.span - 28) < 1e-6 && m4.desc === 'BU26x36', m4 && `${m4.desc} ${m4.span} x ${m4.trib}`);
+  // tribs within 6" share a mark (18'-0" and 17'-8"): no two marks on one section, every carried group said once
+  assert.strictEqual(new Set(jsp.marks.map(m => m.desc)).size, jsp.marks.length, jsp.marks.map(m => m.desc).join(' '));
+  const carried = jsp.marks.flatMap(m => (m.merged || []).flatMap(q => q.beams.map(x => x.mi + ':' + x.id)));
+  assert.strictEqual(new Set(carried).size, carried.length, 'a carried beam counted twice');
   console.log('multi tests passed (W0S-26160: MB1 interior BU28x50 ×4 (3 @ 28\' + 1 @ 12\'-4"), MB2 exterior BU26x36 ×10 (9 + 1), W8X24 ×7, 7/7 columns on the drawing)');
 })().catch(e => { console.error(e); process.exit(1); });

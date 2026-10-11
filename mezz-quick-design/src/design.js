@@ -287,7 +287,7 @@
         if (alt) { fit = summarize(alt); usedLesser = true; }   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: usedLesser ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the step-by-step method's own answer: deepest allowed, F8.31 and up, depth out until the next inch fails${lighterUsed ? `, then a lighter plate at that depth (${fit.flange}, ${fit.web})` : ''} (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: usedLesser ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the step-by-step method's own answer: deepest allowed, F8.31 and up, depth out until the next inch fails${lighterUsed ? `, then a lighter plate at that depth (${fit.flange}, ${fit.web})` : ''} (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails${lighterUsed ? `, then a lighter plate at that depth (${fit.flange}, ${fit.web})` : ''}.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----
@@ -387,6 +387,8 @@
     for (const x of list) {
       n++;
       const all = sets.map(({ L: Ls, ...ld }) => { const L = Ls || opt.L; return MZ.columnCheck({ sec: x.sec, Fy: 55, Fu: 70, L, Lby: L * 12, ...ld, edition: opt.edition }, null); });
+      // the tool's own offer goes by the stress-ratio limit (Settings, 0.99) — stricter than the sheet's OK (< 1.00) the
+      // guide's W column uses — so nothing is offered at 0.999
       if (all.every(c => c.ok && c.max <= (opt.target ?? 1) + 1e-12)) {
         const gov = all.slice().sort((a, b) => b.max - a.max)[0];
         found.push({ sec: x.sec, name: buColName(x.sec, gov.Wt), W: gov.Wt, max: gov.max, check: gov, tried: n, of: list.length });
