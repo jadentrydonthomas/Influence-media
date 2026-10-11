@@ -468,7 +468,7 @@
         if (sets.length === 1) sets[0][1] = '';
       } else if (mode === 'split') {
         // at most 4 marks (MB1..MB4): the lightest-loaded groups are carried by the next heavier mark — kept, to be said
-        sets = LAYOUT.beamMarks(bs.map((x, i) => ({ id: i, span: x.span, trib: x.trib })), 'split').map(m => [m.beams.map(u => bs[u]), '', false, (m.merged || []).map(q => ({ span: q.span, trib: q.trib, beams: q.beams.map(u => bs[u]) }))]);
+        sets = LAYOUT.beamMarks(bs.map((x, i) => ({ id: i, span: x.span, trib: x.trib })), 'split').map(m => [m.beams.map(u => bs[u]), '', false, (m.merged || []).map(q => ({ span: q.span, trib: q.trib, covered: q.covered, beams: q.beams.map(u => bs[u]) }))]);
       } else sets = [[bs, '']];
       // a long beam given its own mark (Beam calc → "Give the … beam its own mark"): only those beams leave their mark,
       // every other mark stays as it was
@@ -528,7 +528,7 @@
     if (m.merged && check) m.merged.forEach(q => {
       const dzq = DESIGN.designBeam({ ...c0.beamBase, L: q.span - cut, trib: q.trib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
       const n = q.beams.length, len = q.beams.reduce((a, x) => a + x.span, 0), own = dzq && dzq.best, dW = own ? (check.res.Wt - own.wt) * len : 0;
-      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of up to ${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on the next heavier mark${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
+      say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of up to ${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on ${m.mark}${q.covered ? ', whose span and trib already cover it' : ', raising its design point to cover it'}${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
     });
     if (m.own) say('key', `${m.mark}: the ${Fi(m.span)} beam${m.beamsAll.length > 1 ? 's' : ''} given ${m.beamsAll.length > 1 ? 'their' : 'its'} own mark on Beam calc — the shorter ${m.kind ? m.kind + ' ' : ''}beams keep their mark.`);
     if (check && ov && ov.sec) {
@@ -672,6 +672,8 @@
     cols.forEach(q => { const g = groups.find(g2 => close(g2, q));
       if (g) { g.cols.push(q); LK.forEach(k => { if (isFinite(q[k])) g.loads[k] = Math.max(g.loads[k], q[k]); }); g.key = key(g.loads); }
       else groups.push({ key: key(q), cols: [q], first: { DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R }, loads: { DL_L: q.DL_L, LL_L: q.LL_L, DL_R: q.DL_R, LL_R: q.LL_R } }); });
+    // the case's loads are the largest of each over its columns: whether they differ at all, and which column carries the most
+    groups.forEach(g => { g.env = g.cols.some(q => LK.some(k2 => isFinite(q[k2]) && Math.abs(q[k2] - g.loads[k2]) > 5e-4)); g.gov = g.cols.slice().sort((a, b) => LK.reduce((t, k2) => t + (b[k2] || 0), 0) - LK.reduce((t, k2) => t + (a[k2] || 0), 0))[0]; });
     // a column under a beam with no section yet has unknown loads: it is not sized; every other case still is
     const known = l => [l.DL_L, l.LL_L, l.DL_R, l.LL_R].every(isFinite);
     const noBeam = cols.some(q => !known(q));
@@ -1472,7 +1474,7 @@
       if (!runs.length) runs.push({ span: mk.span, qty: mk.qtyAll || mk.qty });
       const tgt = r0.settings.target;
       // a section that does not pass, or breaks the clearance C, says so on the row that gets pasted
-      const fails = run => { const c = run.check || mk.check; if (!c) return 'NO PASSING SECTION — see the Design page'; const bad = []; if (!(c.res.CSR <= tgt)) bad.push(`combined ${c.res.CSR.toFixed(2)}`); if (!(c.res.SRvx <= tgt)) bad.push(`shear ${c.res.SRvx.toFixed(2)}`); if (!c.llOK) bad.push(`live L/${Math.round(c.defl.rLL)} < L/360`); if (!c.tlOK) bad.push(`total L/${Math.round(c.defl.rTL)} < L/240`); if (c.conc && !c.conc.ok) bad.push('joist bearing'); return bad.length ? `FAILS — ${bad.join(', ')}` : ''; };
+      const fails = run => { const c = run.check || mk.check; if (!c) return 'NO PASSING SECTION — see the Design page'; const bad = []; if (!(c.res.CSR <= tgt)) bad.push(`combined ${c.res.CSR.toFixed(3)}`); if (!(c.res.SRvx <= tgt)) bad.push(`shear ${c.res.SRvx.toFixed(3)}`); if (!c.llOK) bad.push(`live L/${Math.round(c.defl.rLL)} < L/360`); if (!c.tlOK) bad.push(`total L/${Math.round(c.defl.rTL)} < L/240`); if (c.conc && !c.conc.ok) bad.push('joist bearing'); return bad.length ? `FAILS — ${bad.join(', ')}` : ''; };
       const clearC = [...new Set((mk.beamsAll || []).map(x => x.mi))].map(mi => results[mi] && results[mi].clear && results[mi].clear.C).find(q => q && q.ok === false);
       runs.forEach(run => {
         const bs = (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3);

@@ -211,6 +211,7 @@
       (job.excel && job.excel.column || []).forEach(b => b.cases.forEach(cs => {
         const r = (job.mezz || [])[cs.mi], g = r && r.colGroups[cs.group], chk = r && r.colFinal && r.colFinal.checks[cs.group];
         rows.push(band(`${COLBOOKS[b.edition] || b.file} — ${cs.labels.join(', ')} (${cs.mezz})${r && r.colFinal ? ' · ' + r.colFinal.name : ''}`, 5), H(['Cell', 'Field', 'Value typed']));
+        if (g && g.env) rows.push([{ v: `These ${g.cols.length} columns' reactions agree within 0.01 k: the case is typed with the largest of each (so it covers every one); each column's own reactions show on its plan hover card.`, s: 'pad' }]);
         cs.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}${st.where ? ' (' + st.where + ')' : ''}`, st.label, typed(st.value)]));
         rows.push(H(['Cell', 'The sheet shows', 'Value']));
         cs.read.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));

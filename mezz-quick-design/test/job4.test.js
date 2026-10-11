@@ -117,5 +117,9 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   // Best fit says how it was found: MB1 by the method's lesser-depth step, MB2 the method's own answer (no lesser-depth step)
   const fitWhy = mk => job.marks.find(m => m.mark === mk).options.find(o => o.key === 'fit').why;
   assert.ok(/the method's lesser-depth step/.test(fitWhy('MB1')) && /the step-by-step method's own answer/.test(fitWhy('MB2')), fitWhy('MB2'));
+  assert.ok(/then a lighter plate at that depth \(F6\.38/.test(fitWhy('MB2')), fitWhy('MB2'));
+  // column cases within 0.01 k: typed with the largest of each, said so, with the column that carries the most
+  const envG = s.colGroups.filter(g => g.env);
+  assert.ok(envG.length && envG.every(g => g.gov && g.cols.includes(g.gov) && ['DL_L', 'LL_L', 'DL_R', 'LL_R'].every(k => g.cols.every(q => q[k] <= g.loads[k] + 1e-9))));
   console.log('job4 tests passed (W1G-26097: Box 22 from the alternate pages, 62.5 psf blue note, 1.5" deck, 28/28 marked-up columns, joists across from the JOISTS markup, lean-to edge on the Sanctuary line B beam, MB1 BU20x41 ×40, MB2 BU20x28 ×16 (no phantom line 10), BU8x31 ×28 on an 8" flange, BU9x22 offered and typed on the Built-Up input)');
 })().catch(e => { console.error(e); process.exit(1); });

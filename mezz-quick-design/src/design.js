@@ -227,7 +227,7 @@
     // ---- best fit, step by step ----
     const ladder = LADDER.filter(([b, t]) => inStock(FLANGE_STOCK, b + 'x' + t, div) && tierOf(b, t) === 0);
     const steps = [];
-    let fit = null;
+    let fit = null, lighterUsed = false;
     {
       const d0 = search.dTop;
       steps.push({ step: 'depth', text: search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
@@ -267,7 +267,7 @@
           const lighter = all.filter(e => e.d === d && e.tier === 0 && e.sec.bof <= kept.bof && e.wt < rk.r.res.Wt - 1e-9).sort((a, b) => a.wt - b.wt)[0];
           if (lighter) {
             steps.push({ step: 'cut', text: `At ${d}" a lighter plate still works: ${lighter.r.desc} (${flangeName(lighter.sec.bof, lighter.sec.tof)}, ${webName(lighter.sec.tw)}), ${lighter.wt.toFixed(1)} plf against ${rk.r.res.Wt.toFixed(1)}.` });
-            fit = summarize(lighter);
+            fit = summarize(lighter); lighterUsed = true;
           } else {
             steps.push({ step: 'cut', text: `No lighter economical plate passes at ${d}" — ${rk.r.desc} so far.` });
             fit = asPick(kept, rk.r);
@@ -287,7 +287,7 @@
         if (alt) { fit = summarize(alt); usedLesser = true; }   // else the method's own answer stands (on the lightest, it merges with that card)
       }
     }
-    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: usedLesser ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the step-by-step method's own answer: deepest allowed, F8.31 and up, depth out until the next inch fails (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
+    if (fit) opts.push({ key: 'fit', label: 'Best fit', why: usedLesser ? `${light.d - fit.d}" shallower than the lightest — the method's lesser-depth step (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : fit.d < light.d ? `${light.d - fit.d}" shallower than the lightest — the step-by-step method's own answer: deepest allowed, F8.31 and up, depth out until the next inch fails${lighterUsed ? `, then a lighter plate at that depth (${fit.flange}, ${fit.web})` : ''} (combined ${fit.CSR.toFixed(2)}, shear ${fit.SRv.toFixed(2)}).` : same(fit.sec, light.sec) ? 'The step-by-step method lands on the lightest; nothing shallower passes.' : `The step-by-step method: deepest allowed, F8.31 and up, depth out until the next inch fails.`, pick: fit, steps });
 
     // ---- most economical: NBG Economical Flange Sections — green plate, 5"–8" wide first, 10" when no 8" works, 12" last
     //      (typically more expensive); yellow only when no green plate works ----

@@ -234,6 +234,10 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   // names the checks that fail — the total deflection, not the live one that passes
   const jw = RUN.runJob(inps.map(inp => ({ inp, settings: { override: { MB1: { sec: { type: 'WF', name: 'W24X55' } } } } })));
   const fw = RUN.quoteJob(jw.mezz, inps).beams.map(b => b.NOTES).find(n => /FAILS/.test(n));
-  assert.ok(fw && /FAILS — combined 1\.19, total L\/237 < L\/240/.test(fw) && !/live L/.test(fw), fw);
+  assert.ok(fw && /FAILS — combined 1\.187, total L\/237 < L\/240/.test(fw) && !/live L/.test(fw), fw);
+  // split by trib / span: a group past the fourth rides on a mark that covers its span and trib (MB4 stays at 28' × 12'-4")
+  const jsp = RUN.runJob(inps.map(inp => ({ inp, settings: { marks: 'split' } })));
+  const m4 = jsp.marks.find(m => m.mark === 'MB4');
+  assert.ok(Math.abs(m4.span - 28) < 1e-6 && Math.abs(m4.trib - 12.333) < 0.01 && m4.desc === 'BU26x36', `${m4.desc} ${m4.span} x ${m4.trib}`);
   console.log('multi tests passed (W0S-26160: MB1 interior BU28x50 ×4 (3 @ 28\' + 1 @ 12\'-4"), MB2 exterior BU26x36 ×10 (9 + 1), W8X24 ×7, 7/7 columns on the drawing)');
 })().catch(e => { console.error(e); process.exit(1); });
