@@ -216,7 +216,7 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SPAN, r.TRIB, r.SECTION, r.QTY]), [
     ['BSW / LEW', 28, 20, 'BU28x50', 3], ['LEW', 12.333, 20, 'BU28x50', 1],
     ['BSW / LEW', 28, 12.333, 'BU26x36', 9], ['LEW', 12.333, 12.333, 'BU26x36', 1]]);
-  assert.ok(/^plates: flanges 8" x 1\/2", web 0\.25"; MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);   // the plates first: a BU name can fit two plate sets
+  assert.ok(/^plates: flanges F8\.50 \(8" × 1\/2"\), web W250 \(1\/4"\), Fy 55; MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);   // the plates first: a BU name can fit two plate sets
   assert.ok(/shorter span — same section, MB sheet at 12'-4"/.test(q.beams[1].NOTES), q.beams[1].NOTES);
   assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW / LEW', 'W8X24', 7]]);
   // DM 15.1 on the job: perimeter beams are the exterior mark; both mezzanines need bracing decisions; a W8 column

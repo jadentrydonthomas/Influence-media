@@ -25,7 +25,7 @@
   const okc = ok => ({ v: ok ? 'OK' : 'NG', s: ok ? 'ok' : 'ng' });
   const webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
   const frac = v => { const n = Math.round(v * 16); if (Math.abs(v * 16 - n) > 0.02) return String(+(+v).toFixed(4)); const w = Math.floor(n / 16), r = n % 16, g = (a, b) => (b ? g(b, a % b) : a), q = g(r, 16); return r ? `${w ? w + ' ' : ''}${r / q}/${16 / q}` : String(w); };
-  const secText = s => (!s ? '—' : s.type === 'WF' ? s.name : `d ${s.d}" · web ${frac(s.tw)}" · ${s.bof} × ${frac(s.tof)}${s.bif !== s.bof || s.tif !== s.tof ? ` / ${s.bif} × ${frac(s.tif)}` : ''}`);
+  const secText = s => (!s ? '—' : s.type === 'WF' ? s.name : `${s.d}" deep, ${DESIGN.plateText(s)}`);   // the one plate notation (design.js)
   const flName = s => (!s || s.type === 'WF' ? '—' : DESIGN.flangeName(s.bof, s.tof) + (s.bif !== s.bof || s.tif !== s.tof ? ' / ' + DESIGN.flangeName(s.bif, s.tif) : ''));
   const tierWord = t => ({ G: 'economical', Y: 'somewhat economical', R: 'non-economical' })[t] || t || '—';
   const SRC = { pcs: 'PCS', annotation: 'PCS note', deckGuide: 'deck guide', default: 'standard value', estimate: 'estimate (deck guide)', missing: 'missing', manual: 'typed', none: 'no requirement', design: 'design', typed: 'typed', PCS: 'PCS', 'frame file': 'NBG Frame file' };
@@ -81,7 +81,7 @@
         const tot = sum.beams + sum.cols + sum.plates, lb = v => Math.round(v).toLocaleString('en-US') + ' lb';
         rows.push([], B('Steel take-off'), kv('Beams (each at its member length)', lb(sum.beams)), kv('Columns', lb(sum.cols)), kv('End plates (40 lb a beam, 46 lb a column)', lb(sum.plates)),
           kv(missing.length ? 'Total — at least' : 'Total', { v: lb(tot), s: 'b' }), ...(missing.length ? [kv('Not in the total (not sized)', { v: missing.join(', '), s: 'ng' })] : [])); }
-      if (job.colAlt) rows.push(spanRow(1, ['', { v: `Offered, not on the quote: ${job.colAlt.name} — ${job.colAlt.sec.d}" deep, ${job.colAlt.sec.bof}" × ${job.colAlt.sec.tof}" flanges, ${job.colAlt.sec.tw}" web, Fy 55, max CSR ${job.colAlt.max.toFixed(3)} on the Built-Up input${job.colAlt.unsized ? ' (sized columns only)' : ''}, about ${Math.round(job.colAlt.saves).toLocaleString('en-US')} lb less.`, s: 'note' }]));
+      if (job.colAlt) rows.push(spanRow(1, ['', { v: `Offered, not on the quote: ${job.colAlt.name} — ${job.colAlt.sec.d}" deep, ${DESIGN.plateText(job.colAlt.sec)}, max CSR ${job.colAlt.max.toFixed(3)} on the Built-Up input${job.colAlt.unsized ? ' (sized columns only)' : ''}, about ${Math.round(job.colAlt.saves).toLocaleString('en-US')} lb less.`, s: 'note' }]));
       const notes = live.flatMap(r => (r.warn || []).filter(w => w.level === 'stop' || w.level === 'warn').map(w => [r.id, w.level === 'stop' ? 'must fix' : 'check', w.text]));
       // a note several mezzanines share is listed once, with every mezzanine it is for
       const once = list => { const m = new Map(); list.forEach(([id, ...rest]) => { const k = rest[rest.length - 1], e = m.get(k); if (e) { if (!e[0].includes(id)) e[0].push(id); } else m.set(k, [[id], ...rest]); }); return [...m.values()].map(([ids, ...rest]) => [ids.join(', '), ...rest]); };
@@ -208,10 +208,13 @@
     // ---------------- Columns ----------------
     {
       const rows = [[{ v: 'Columns — the Column sheet, case by case', s: 't' }], note('Loads: the unfactored MB-sheet end shears (H6 dead, H10 live) of the beams framing in, summed per side. Three combinations (DM 15.1.1.4.2); each must read OK.'), []];
-      (job.excel && job.excel.column || []).forEach(b => b.cases.forEach(cs => {
+      // the plan's C-numbers (the page, the tabs and the workbook file names use them): cases in C order, headed by them
+      const cno = ctx.cno || new Map(), cOf = l => cno.get(l) || 1e9, cMin = cs => Math.min(...cs.labels.map(cOf));
+      const cName = cs => { const ls = cs.labels.slice().sort((a, c) => cOf(a) - cOf(c)); return ls.some(l => cno.has(l)) ? `${ls.map(l => 'C' + cno.get(l)).join(', ')} · ${ls.join(', ')}` : ls.join(', '); };
+      (job.excel && job.excel.column || []).forEach(b => b.cases.slice().sort((a, c) => cMin(a) - cMin(c)).forEach(cs => {
         const r = (job.mezz || [])[cs.mi], g = r && r.colGroups[cs.group], chk = r && r.colFinal && r.colFinal.checks[cs.group];
-        rows.push(band(`${COLBOOKS[b.edition] || b.file} — ${cs.labels.join(', ')} (${cs.mezz})${r && r.colFinal ? ' · ' + r.colFinal.name : ''}`, 5), H(['Cell', 'Field', 'Value typed']));
-        if (g && g.env) rows.push([{ v: `These ${g.cols.length} columns' reactions agree within 0.01 k: the case is typed with the largest of each (so it covers every one); each column's own reactions show on its plan hover card.`, s: 'pad' }]);
+        rows.push(band(`${COLBOOKS[b.edition] || b.file} — ${cName(cs)} (${cs.mezz})${r && r.colFinal ? ' · ' + r.colFinal.name : ''}`, 5), H(['Cell', 'Field', 'Value typed']));
+        if (g && g.env) rows.push([{ v: `These ${g.cols.length} columns' reactions agree within 0.01 k: the case is typed with the largest of each${g.ownMax != null && chk ? `; on its own reactions each column reads max CSR ${g.ownMax.toFixed(3)}${Math.abs(g.ownMax - chk.max) < 5e-4 ? ', the same as the case' : ` or less, against the case's ${chk.max.toFixed(3)}`}` : ''}.`, s: 'pad' }]);
         cs.steps.forEach(st => rows.push([`${st.sheet}!${st.cell}${st.where ? ' (' + st.where + ')' : ''}`, st.label, typed(st.value)]));
         rows.push(H(['Cell', 'The sheet shows', 'Value']));
         cs.read.forEach(rd => rows.push([`${rd.sheet}!${rd.cell}`, rd.label, auto(rd.expect)]));

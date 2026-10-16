@@ -587,7 +587,7 @@ tr.none td { color: var(--ink-faint); }
   .disc-inner b { white-space: normal; letter-spacing: .04em; line-height: 1.3; }
   .disc.ng .disc-inner strong, .disc.ng .disc-inner b, .disc.ng .disc-inner span { color: var(--red) !important; }
   .disc-inner b { background: none !important; color: var(--ink) !important; }
-  .tallies, .tally { break-inside: avoid; }
+  .tally { break-inside: avoid; }
   .disc, .disc-wrap, .disc-inner { background: #fff !important; }
   svg text { fill: var(--ink) !important; opacity: 1 !important; }
   /* the quote tables fit the page: notes wrap, the type is smaller */
@@ -597,7 +597,7 @@ tr.none td { color: var(--ink-faint); }
   .qs-wrap td.qnotes { word-break: break-word; }
   /* drawings at a size that leaves room for their numbers */
   #v-beam svg, #v-column svg { max-height: 3.4in; max-width: 100%; }
-  .disc-wrap, .field-stage, .mk-list { break-inside: avoid; }
+  .disc-wrap, .mk-list { break-inside: avoid; }   /* not the whole stage: it is taller than a page */
   /* a heading stays with what follows it; folded sections are left out (the calc package carries them) */
   h1, h2, h3, h4, h5, .eyebrow, .panel-head, .screen-heading, summary { break-after: avoid; }
   details:not([open]) { display: none !important; }
@@ -1202,3 +1202,4 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 /* narrow screens: the section drawings keep a sensible size when they stack under the elevation */
 @media (max-width: 1100px) { .viz svg.bsec, .viz svg.csec { max-width: 300px; max-height: 340px; justify-self: center; } .viz svg.bviz, .viz svg.cviz { min-height: 220px; } }
 .dz-tiles.four { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.cv-table td.num { white-space: nowrap; }

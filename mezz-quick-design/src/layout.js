@@ -183,15 +183,19 @@
     marks.sort((a, b) => b.span * b.trib - a.span * a.trib);
     const spanOf = ids => Math.max(...ids.map(u => beams.find(b => b.id === u).span));
     while (marks.length > 4) { // the lightest-loaded group rides on another mark — recorded once per group, so it is said
-      const last = marks.pop(), lastSpan = spanOf(last.own), allSpan = spanOf(last.beams);   // its own beams; with what it already carried
-      // a mark whose span and trib both cover the group carries it at its own design point (the lightest such mark);
-      // only when none does is the next heavier mark's design point raised to cover it (conservative)
-      const cover = marks.filter(m => m.span >= allSpan - EPS && m.trib >= last.trib - EPS).sort((a, b) => a.span * a.trib - b.span * b.trib)[0];
-      const host = cover || marks[marks.length - 1];
-      // its own beams once (at their own longest span), and the groups it already carried as they were recorded
-      host.merged = (host.merged || []).concat({ span: lastSpan, trib: last.trib, beams: last.own.slice(), covered: !!cover }, (last.merged || []).map(q => ({ ...q, covered: !!cover })));
-      if (!cover) { host.span = Math.max(host.span, spanOf(last.beams)); host.trib = Math.max(host.trib, last.trib); }
-      host.beams.push(...last.beams);
+      const last = marks.pop();
+      // its own beams and each group it already carried are placed separately, each by its own span and trib, so a group
+      // never rides along to a heavier mark than one that covers it
+      const groups = [{ span: spanOf(last.own), trib: last.trib, beams: last.own.slice() }].concat((last.merged || []).map(q => ({ span: q.span, trib: q.trib, beams: q.beams.slice() })));
+      groups.forEach(g => {
+        // the lightest mark whose span and trib both cover the group carries it at its own design point; only when none
+        // does is the lightest remaining mark raised to cover it (conservative)
+        const cover = marks.filter(m => m.span >= g.span - EPS && m.trib >= g.trib - EPS).sort((a, b) => a.span * a.trib - b.span * b.trib)[0];
+        const host = cover || marks[marks.length - 1];
+        host.merged = (host.merged || []).concat({ ...g, covered: !!cover });
+        if (!cover) { host.span = Math.max(host.span, g.span); host.trib = Math.max(host.trib, g.trib); }
+        host.beams.push(...g.beams);
+      });
     }
     return marks.map((mk, i) => { const { own, ...rest } = mk; return { mark: 'MB' + (i + 1), ...rest }; });
   }

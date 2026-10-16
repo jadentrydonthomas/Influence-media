@@ -491,7 +491,7 @@
   function renderRail() {
     const inp = state.inputs, r = state.res, t = totals();
     const c = inp.job.code || {};
-    $('#fCode').textContent = (c.text ? (c.text.match(/IBC\s*\d{4}|NBCC\s*\d{4}/i) || [c.text])[0] + ' → ' : '') + (r.edition.ed ? edLabel(r.edition.ed) : '—');
+    $('#fCode').textContent = (c.text ? (c.text.match(/IBC\s*\d{4}|NBCC\s*\d{4}/i) || [c.text])[0] + ' → ' : '') + (r.edition.ed ? (r.edition.colEd && r.edition.beamEd && r.edition.colEd !== r.edition.beamEd ? `${edLabel(r.edition.beamEd)} beams · ${r.edition.colEd}th columns` : edLabel(r.edition.ed)) : '—');
     $('#fDiv').textContent = r.division;
     const allIds = state.job && state.job.mezz.length > 1 ? state.job.mezz.map(m => `“${m.id}”`).join(' + ') : null;
     $('#mastContext').textContent = [inp.job.quote, inp.job.project, allIds ? `Mezzanines ${allIds}` : inp.mezz.id ? `Mezzanine “${inp.mezz.id}”` : ''].filter(Boolean).join(' · ');
@@ -510,8 +510,7 @@
   function secParts(sec) {
     if (!sec) return '';
     if (sec.type === 'WF') return sec.d != null ? `W shape · d ${sec.d}" · bf ${sec.bof}" × tf ${sec.tof}" · web ${sec.tw}"` : 'W shape';
-    const fl = DESIGN.flangeName(sec.bof, sec.tof), fi = DESIGN.flangeName(sec.bif, sec.tif);
-    return `${sec.d}" · web ${sec.tw}" · ${fl === fi ? fl + ' (' + sec.bof + ' × ' + sec.tof + ')' : 'OF ' + fl + ' / IF ' + fi}`;
+    return `${sec.d}" deep · ${DESIGN.plateText(sec)}`;   // the one plate notation (design.js), as on the quote
   }
   // the floor dead / live that goes to the frame: at each building column, the MB-sheet end shears (H6 / H10) of the
   // beams framing in — the same numbers as the frame loads table, the CSV and the .frame files. Columns that take the
@@ -868,7 +867,7 @@
      the filled NBG workbooks — at the bottom of the Beam and Column pages, and on the Design page ---------- */
   const cpName = () => ((state.pcs && state.pcs.job.quote) || 'mezzanine').replace(/[^A-Za-z0-9-]+/g, '');
   function cpXlsx() {
-    const sheets = window.MZ_CALCPACK.sheets(state.job, { inputs: state.all ? state.all.map(a => a.inputs) : [state.inputs], settings: state.settings, codeText: state.inputs && state.inputs.job && state.inputs.job.code ? state.inputs.job.code.text : '', generated: new Date().toISOString().slice(0, 10) });
+    const sheets = window.MZ_CALCPACK.sheets(state.job, { cno: colNos(), inputs: state.all ? state.all.map(a => a.inputs) : [state.inputs], settings: state.settings, codeText: state.inputs && state.inputs.job && state.inputs.job.code ? state.inputs.job.code.text : '', generated: new Date().toISOString().slice(0, 10) });
     return window.MZ_XLSX.book(sheets, { title: `${cpName()} calc package` });
   }
   const cpSave = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
@@ -1759,7 +1758,7 @@
       const k = 'b.' + b.bkey, g = b.g, ffl = ((cfg.buildings || {})[b.bkey] || {}).frameFile;
       const mz = b.mezz.map((m, i) => `<tr><td><b>${esc(m.id)}</b>${i < 2 ? `<small class="sub-n">Mezzanine #${i + 1} · ${n0(m.area)} sq ft</small>` : '<small class="bad">the workbook takes two mezzanines</small>'}</td>
           <td class="num mono">${ft(m.elev)}</td>
-          <td>${num('m.' + m.id + '.FDL', { value: m.FDL })}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc)}</small>${m.framing == null && m.framingWaits ? `<small class="sub-n ng">framing not known — ${esc(m.framingWaits.join(', '))} ${m.framingWaits.length > 1 ? 'have' : 'has'} no section</small>` : m.framing ? `<small class="sub-n">+ ${F2(m.framing)} framing (the design's beams and columns) = <b>${F2(m.FDL + m.framing)}</b></small>` : ''}</td>
+          <td>${num('m.' + m.id + '.FDL', { value: m.FDL })}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc)}</small>${m.framing == null && m.framingWaits ? `<small class="sub-n ng">framing not known — ${esc(m.framingWaits.join(', '))} ${m.framingWaits.length > 1 ? 'have' : 'has'} no section</small>` : m.framing ? `<small class="sub-n">+ ${F2(m.framing)} framing (the design's beams, and half the columns' height) = <b>${F2(m.FDL + m.framing)}</b></small>` : ''}</td>
           <td class="num mono">${F2(m.FLC)}</td><td class="num mono">${F2(m.FLJ)}</td>
           <td>${chk('m.' + m.id + '.storage', m.storage, m.storage ? `storage: 25 % of ${F2(m.FLL)} included` : '<span class="sub-n">storage — not included (tick for 25 % of live)</span>')}</td><td class="num mono">${F2(m.FLP)}</td>
           <td class="num mono"><b>${m.psf == null ? '—' : F2(m.psf)}</b></td><td class="num mono">${m.psf == null ? '—' : lb(m.psf * m.area)}</td></tr>`).join('');
@@ -2260,7 +2259,7 @@
       <li><b>The three combinations</b> (DM 15.1.1.4.2): dead + live on the left with dead only on the right, the same the other way, and dead + live on both — the unbalanced cases put the most moment in the column. Each must read OK with CSR ≤ 1.00.</li>
       <li><b>Sizes, in order.</b> The common columns first, lightest first: ${DESIGN.COMMON_COLUMNS.slice().sort((a, b) => WF[a].W - WF[b].W).map(n => `${n} (${WF[n].W} plf)`).join(' → ')}${s.includeW818 ? ', with W8X18 ahead of them' : ''}. The first that passes every case is used${manyMezz() && s.colPerJob !== false ? ' — one section for every mezzanine column of the job' : ''}. If none does, the next heavier W8–W14 that passes is used and quoted as BU (training guide).
         <table><thead><tr><th>Tried</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th></tr></thead><tbody>${tried.map(t => `<tr class="${t.ok ? 'pass' : 'fail'}"><td class="mono">${esc(t.name)}</td><td class="num">${f(WF[t.name].W, 0)}</td><td class="num">${f(t.max, 3)}</td><td>${t.ok ? (cf && cf.name === t.name ? 'passes — used' : 'passes') : 'fails'}</td></tr>`).join('')}</tbody></table></li>
-      ${cf && cf.picked ? `<li><b>On the quote: ${esc(cf.quoteAs)}${cf.quoteAs !== cf.name ? ` (run as ${esc(cf.name)})` : ''}, picked by hand</b>${cf.sec.type === 'BU' ? ` — on the Column sheet's Built-Up input (C16 "Built-Up", d ${cf.sec.d}", bf ${cf.sec.bof}", tf ${cf.sec.tof}", tw ${cf.sec.tw}", Fy 55)` : ''}, max CSR ${f(cf.max, 3)}${cf.auto ? `. The method above gives ${esc(cf.auto.name)}${cf.auto.quoteAs !== cf.auto.name ? `, quoted ${esc(cf.auto.quoteAs)}` : ''}; "Back to the guide's column" at the top of the page puts it back` : ''}.</li>` : ''}
+      ${cf && cf.picked ? `<li><b>On the quote: ${esc(cf.quoteAs)}${cf.quoteAs !== cf.name ? ` (run as ${esc(cf.name)})` : ''}, picked by hand</b>${cf.sec.type === 'BU' ? ` — on the Column sheet's Built-Up input (C16 "Built-Up": ${cf.sec.d}" deep, ${DESIGN.plateText(cf.sec)})` : ''}, max CSR ${f(cf.max, 3)}${cf.auto ? `. The method above gives ${esc(cf.auto.name)}${cf.auto.quoteAs !== cf.auto.name ? `, quoted ${esc(cf.auto.quoteAs)}` : ''}; "Back to the guide's column" at the top of the page puts it back` : ''}.</li>` : ''}
       <li><b>Tubes / pipe.</b> When a customer asks for tube (HSS) or pipe columns, they are not on the Column sheet — size them separately and note it on the quote; this page designs W / BU only.</li>
     </ol>`;
   }
@@ -2466,7 +2465,7 @@
     // why this case carries what it does: each beam, its span and trib
     const rows = parts.map(p => { const i = info(p); return `<tr><td>${p.sheetSide}</td><td class="mono"><b>${p.mezz !== r.id ? esc(p.mezz) + ' ' : ''}${p.beam}</b></td><td class="mono">${i.mk ? esc(i.mk.mark + ' ' + (i.mk.desc || '')) : '—'}</td><td class="num">${ft(i.bm.span)}</td><td class="num">${ft(i.bm.trib)}${i.bm.extra ? ' <small class="sub-n">incl. ' + esc(i.bm.extra.map(x => x.mezz).join(', ')) + '</small>' : ''}</td><td class="num">${f(p.D, 2)}</td><td class="num">${f(p.L, 2)}</td></tr>`; }).join('');
     const byC = g.cols.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9)).map(q => 'C' + (cno.get(q.label) || '?') + ' · ' + esc(q.label)).join(', ');
-    const same = g.cols.length > 1 ? `<p class="foot-note">${byC} ${g.env ? `carry reactions within 0.01 k of each other: one case on the sheet, typed with the largest of each (left D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)}, right D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k)${g.ownMax != null && cf.checks[r.colGroups.indexOf(g)] ? `; checked on its own reactions each column reads max CSR ${f(g.ownMax, 3)} or less, against the case's ${f(cf.checks[r.colGroups.indexOf(g)].max, 3)}` : ''}. The drawing shows C${cno.get((g.gov || g.cols[0]).label) || '?'} · ${esc((g.gov || g.cols[0]).label)}, the one that carries the most.` : 'carry the same reactions, so they are one case on the sheet.'}</p>` : '';
+    const same = g.cols.length > 1 ? `<p class="foot-note">${byC} ${g.env ? `carry reactions within 0.01 k of each other: one case on the sheet, typed with the largest of each (left D ${f(g.loads.DL_L, 2)} / L ${f(g.loads.LL_L, 2)}, right D ${f(g.loads.DL_R, 2)} / L ${f(g.loads.LL_R, 2)} k)${g.ownMax != null && cf.checks[r.colGroups.indexOf(g)] ? `; checked on its own reactions each column reads max CSR ${f(g.ownMax, 3)}${Math.abs(g.ownMax - cf.checks[r.colGroups.indexOf(g)].max) < 5e-4 ? ', the same as the case' : ` or less, against the case's ${f(cf.checks[r.colGroups.indexOf(g)].max, 3)}`}` : ''}. The drawing shows C${cno.get((g.gov || g.cols[0]).label) || '?'} · ${esc((g.gov || g.cols[0]).label)}, the one that carries the most.` : 'carry the same reactions, so they are one case on the sheet.'}</p>` : '';
     return `<div class="viz"><svg class="cviz" viewBox="0 0 760 ${yF + 26}" role="img" aria-label="Column elevation">${o.join('')}</svg><svg class="csec" viewBox="0 0 280 ${yF + 26}" role="img" aria-label="${esc(cf.name)} section">${sv.join('')}</svg></div>
       <div class="table-wrap cv-table"><table><thead><tr><th>Side</th><th>Beam</th><th>Mark · section</th><th class="num">Span</th><th class="num">Trib</th><th class="num">Dead (k)</th><th class="num">Live (k)</th></tr></thead><tbody>${rows}</tbody></table></div>${same}`;
   }
@@ -2497,9 +2496,9 @@
     const st = r.index === state.mi ? state.settings : (state.all ? state.all[r.index].settings : state.settings);
     // the guide's answer is quoted as BU anyway: a lighter built-up column on the sheet's own Built-Up input, offered
     const alt = state.job.colAlt && state.job.colAlt.over.includes(r.index) ? state.job.colAlt : null, pickBU = !!(st.colOverride && typeof st.colOverride === 'object');
-    const altCard = alt ? `<div class="col-alt"><div><b>Lighter built-up column: ${esc(alt.name)}</b><span>${alt.sec.d}" deep · ${alt.sec.bof}" × ${frac(alt.sec.tof)}" flanges · ${alt.sec.tw}" web · Fy 55 · max CSR ${f(alt.max, 3)} over ${alt.unsized ? 'the sized cases' : 'every case'} on the Column sheet's Built-Up input · about ${n0(alt.saves)} lb less steel than ${esc(cf ? cf.quoteAs : '')}. The quote keeps the guide's method until you pick it.</span></div><span class="col-alt-btns"><button class="btn-soft" id="colAltUse" type="button">Use ${esc(alt.name)}</button><button class="btn-ghost" id="colAltTry" type="button">Open in Design your own</button></span></div>` : '';
+    const altCard = alt ? `<div class="col-alt"><div><b>Lighter built-up column: ${esc(alt.name)}</b><span>${alt.sec.d}" deep · ${DESIGN.plateText(alt.sec)} · max CSR ${f(alt.max, 3)} over ${alt.unsized ? 'the sized cases' : 'every case'} on the Column sheet's Built-Up input · about ${n0(alt.saves)} lb less steel than ${esc(cf ? cf.quoteAs : '')}. The quote keeps the guide's method until you pick it.</span></div><span class="col-alt-btns"><button class="btn-soft" id="colAltUse" type="button">Use ${esc(alt.name)}</button><button class="btn-ghost" id="colAltTry" type="button">Open in Design your own</button></span></div>` : '';
     // a column picked by hand (Design your own, the built-up offer, the W list): said first, with the way back
-    const picked = cf && cf.picked ? `<div class="col-alt picked"><div><b>Picked by hand · in the quote: ${esc(cf.quoteAs)}</b><span>${cf.sec.type === 'BU' ? `the Column sheet's Built-Up input — ${cf.sec.d}" deep, ${cf.sec.bof}" × ${frac(cf.sec.tof)}" flanges, ${cf.sec.tw}" web, Fy 55` : `${esc(cf.name)}, Fy 50${cf.quoteAs !== cf.name ? ` — not a common size, so quoted ${esc(cf.quoteAs)} (training guide)` : ''}`} · max CSR ${f(cf.max, 3)}${cf.ok ? '' : ' — fails'}${cf.auto ? ` · the guide's answer is ${esc(cf.auto.name)}${cf.auto.quoteAs !== cf.auto.name ? `, quoted ${esc(cf.auto.quoteAs)}` : ''}` : ''}.</span></div><span class="col-alt-btns"><button class="btn-soft" id="colBack" type="button">Back to the guide's column</button></span></div>` : '';
+    const picked = cf && cf.picked ? `<div class="col-alt picked"><div><b>Picked by hand · in the quote: ${esc(cf.quoteAs)}</b><span>${cf.sec.type === 'BU' ? `the Column sheet's Built-Up input — ${cf.sec.d}" deep, ${DESIGN.plateText(cf.sec)}` : `${esc(cf.name)}, Fy 50${cf.quoteAs !== cf.name ? ` — not a common size, so quoted ${esc(cf.quoteAs)} (training guide)` : ''}`} · max CSR ${f(cf.max, 3)}${cf.ok ? '' : ' — fails'}${cf.auto ? ` · the guide's answer is ${esc(cf.auto.name)}${cf.auto.quoteAs !== cf.auto.name ? `, quoted ${esc(cf.auto.quoteAs)}` : ''}` : ''}.</span></div><span class="col-alt-btns"><button class="btn-soft" id="colBack" type="button">Back to the guide's column</button></span></div>` : '';
     if (!cf || !cf.checks[state.colGroup]) $('#colSheet').innerHTML = `<div class="empty ng">${esc((r.colWhy && r.colWhy.text) || 'No column passes.')}</div>`;
     else {
       const chk = cf.checks[state.colGroup], w = cf.props;
@@ -2771,7 +2770,12 @@
     const jobBad = jobK.filter(x => !x.k.ok).sort((a, b) => Math.min(...a.q.g.cols.map(cOf)) - Math.min(...b.q.g.cols.map(cOf))).map(x => x.q.g.cols.slice().sort((a, b) => cOf(a) - cOf(b)).map(c => `C${cOf(c)}`).join(', '));
     // built-up: the shop's limits and the 8" × 1/4" flange for beams on the flange, beside the sheet's answer
     const prod = bu ? DESIGN.prodChecks(buSec, div, +cc.L, k.Wt).filter(q => !['length', 'weight', 'handling'].includes(q.rule) || !q.ok) : [];
-    const flOK = bu ? buSec.bof >= 8 && buSec.tof >= 0.25 : !!(WF[cc.wf] && WF[cc.wf].bf >= 8 && WF[cc.wf].tf >= 0.25);
+    // DM 15.1.1.4.2: a built-up column, or a W quoted as BU, needs an 8" × 1/4" flange (2A); a W quoted as itself (the common
+    // sizes, W8X18) is hot-rolled: 7" (2B), and under 7" is acceptable with the standard 4" bolt gage — a note, not a fail
+    const quotedBU = bu || !(DESIGN.COMMON_COLUMNS.includes(cc.wf) || cc.wf === 'W8X18'), wfR = WF[cc.wf] || {};
+    const flOK = quotedBU ? (bu ? buSec.bof >= 8 && buSec.tof >= 0.25 : wfR.bf >= 8 && wfR.tf >= 0.25) : true;
+    const flTile = quotedBU ? { cls: flOK ? 'ok' : 'ng', lab: 'Flange for beams on it (DM 15.1.1.4.2 (2A), built-up)', val: flOK ? '8" × 1/4" or more' : `under 8" × 1/4"${bu ? '' : ` (${f(wfR.bf, 2)}" × ${f(wfR.tf, 3)}")`}` }
+      : { cls: wfR.bf >= 7 ? 'ok' : '', lab: 'Flange for beams on it (DM 15.1.1.4.2 (2B), hot-rolled)', val: wfR.bf >= 7 ? `${f(wfR.bf, 2)}" — 7" or more` : `${f(wfR.bf, 2)}" — under 7": acceptable with the standard 4" bolt gage` };
     const near = state.dz.colNear;
     out.innerHTML = `<div class="panel dz-res">
       <div class="dz-res-head"><div><div class="eyebrow">Column sheet · ${esc(cc.ed)}th${bu ? ' · Built-Up input' : ''}</div><h3 class="nocase">${esc(name)} <small>${f(w.W, 1)} plf · d ${f(w.d, 2)}" · bf ${f(w.bf, 2)}"${bu ? ` · tf ${f(w.tf, 4)}" · tw ${f(buSec.tw, 4)}" · Fy 55` : ''} · L ${ft(+cc.L)}</small></h3></div>
@@ -2785,14 +2789,14 @@
         <div class="dz-tile"><span>Eccentricity e = d/2</span><b>${f(k.ex, 2)} in</b></div>
         <div class="dz-tile"><span>Self-weight</span><b>${f(k.wt, 3)} k</b></div>
         <div class="dz-tile"><span>Unbraced Lbx = Lby</span><b>${f(+cc.L * 12, 1)} in</b></div>
-        <div class="dz-tile ${flOK ? 'ok' : 'ng'}"><span>Flange for beams on it (DM 15.1.1.4.2)</span><b>${flOK ? '8" × 1/4" or more' : `under 8" × 1/4"${bu ? '' : ` (${f(WF[cc.wf].bf, 2)}" × ${f(WF[cc.wf].tf, 3)}")`}`}</b></div>${bu ? '' : `<div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'stocked' : 'not stocked'}</b></div>`}
+        <div class="dz-tile ${flTile.cls}"><span>${flTile.lab}</span><b>${flTile.val}</b></div>${bu ? '' : `<div class="dz-tile ${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'ok' : ''}"><span>DM 5.1 stock</span><b>${DESIGN.inStock(DESIGN.WF_STOCK, cc.wf, div) ? 'stocked' : 'not stocked'}</b></div>`}
       </div>
       ${bu ? `<div class="dz-checks"><div><h5>NBG Production Guidelines · ${esc(div)}</h5><ul>${prod.map(r => `<li class="${r.ok ? 'ok' : 'ng'}"><i>${r.ok ? '✓' : '✕'}</i>${esc(r.text)}<em>${esc(r.val)}</em></li>`).join('')}</ul></div>
         <div><h5>DM 5.1 stock · ${esc(div)}</h5><ul>${[[`Flanges ${buSec.bof} × ${frac(buSec.tof)}`, DESIGN.inStock(DESIGN.FLANGE_STOCK, buSec.bof + 'x' + buSec.tof, div)], [`Web ${frac(buSec.tw)}" (W${String(Math.round(buSec.tw * 1000)).padStart(3, '0')})`, DESIGN.inStock(DESIGN.WEB_STOCK, buSec.tw, div)]].map(([lab, ok]) => `<li class="${ok ? 'ok' : 'ng'}"><i>${ok ? '✓' : '✕'}</i>${esc(lab)}<em>${ok ? 'stocked' : 'not stocked'}</em></li>`).join('')}</ul></div></div>` : ''}
       <h5 class="dz-h">The common sizes with these loads</h5>
       <div class="table-wrap"><table class="fl-t"><thead><tr><th>Section</th><th class="num">plf</th><th class="num">Max CSR</th><th>Result</th><th></th></tr></thead><tbody>${common.map(q => `<tr class="${!bu && q.n === cc.wf ? 'is-chosen' : ''}"><td class="mono"><b>${q.n}</b></td><td class="num mono">${WF[q.n].W}</td><td class="num mono">${f(q.c.max, 3)}</td><td><span class="status-text ${q.c.ok ? 'ok' : 'ng'}">${q.c.ok ? 'OK' : 'NG'}</span></td><td>${!bu && q.n === cc.wf ? '' : `<button class="btn-ghost dz-pick" data-n="${q.n}" type="button">Load</button>`}</td></tr>`).join('')}</tbody></table></div>
       ${jobK.length ? `<p class="dz-jobchk ${jobOK ? 'ok' : 'ng'}">Across ${scopeTxt} ${jobK.length} column case${jobK.length > 1 ? 's' : ''}: max CSR <b>${f(jobMax, 3)}</b> — ${jobOK ? 'passes every one' : `does not pass ${esc(jobBad.slice(0, 4).join(' · '))}${jobBad.length > 4 ? ' …' : ''}`}</p>` : ''}
-      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(name)} for ${scopeTxt} mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}<button class="btn-ghost" id="dzColNear" type="button">Built-up columns that pass${jobSets.length > 1 ? ' every case of the job' : ''}, lightest first</button></div>
+      <div class="dz-actions">${can ? `<button class="btn-soft" id="dzUseCol" type="button">Use ${esc(name)} for ${scopeTxt} mezzanine columns</button>` : '<span class="sub-n">Load a PCS to use this column for the job.</span>'}<button class="btn-ghost" id="dzColNear" type="button">Built-up columns that pass${jobSets.length > 1 ? ` every case of ${perMz ? esc(mzOn.id) : 'the job'}` : ''}, lightest first</button></div>
       ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Flanges</th><th>Web</th><th class="num">plf</th><th class="num">Max CSR</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.sec.d}"</td><td class="mono"><b>${esc(z.name)}</b></td><td class="mono">${z.sec.bof}" × ${frac(z.sec.tof)}"</td><td class="mono">${z.sec.tw}"</td><td class="num mono">${f(z.W, 1)}</td><td class="num mono">${f(z.max, 3)}</td><td><button class="btn-ghost dz-take-col" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="7" class="sub-n">No stocked built-up column within the shop limits passes these loads.</td></tr>'}</tbody></table><p class="foot-note">Stocked plates for ${esc(div)}, inside the production limits, flanges at least 8" × 1/4" (beams frame to the flange), Fy 55, through the Column sheet's Built-Up input, CSR ≤ ${f(state.settings.target, 2)}.</p></div>` : ''}
     </div>`;
     $$('#dzBody .dz-pick').forEach(btn => { btn.onclick = () => { Object.assign(cc, { type: 'WF', wf: btn.dataset.n }); dzSave(); renderDesigner(); }; });
@@ -2803,7 +2807,8 @@
     if (u) u.onclick = () => {
       const pick = bu ? { type: 'BU', d: buSec.d, tw: buSec.tw, bf: buSec.bof, tf: buSec.tof } : cc.wf;
       (state.settings.colPerJob !== false ? allSettings() : [state.settings]).forEach(st => { st.colOverride = pick; });
-      recompute(); toast(`${perMz ? esc(mzOn.id) + ' m' : 'M'}ezzanine columns → ${name}${(jobK.length ? jobOK : k.ok) ? '' : ` — does not pass ${jobK.length ? jobBad.join(' · ') : 'this case'} (max CSR ${f(jobK.length ? jobMax : k.max, 3)}), flagged`}`);
+      const qName = !bu && !(DESIGN.COMMON_COLUMNS.includes(cc.wf) || cc.wf === 'W8X18') ? `${name} (quoted ${name.replace(/^W(\d+)X/, 'BU$1x')})` : name;
+      recompute(); toast(`${perMz ? esc(mzOn.id) + ' m' : 'M'}ezzanine columns → ${qName}${(jobK.length ? jobOK : k.ok) ? '' : ` — does not pass ${jobK.length ? jobBad.join(' · ') : 'this case'} (max CSR ${f(jobK.length ? jobMax : k.max, 3)}), flagged`}`);
     };
   }
 

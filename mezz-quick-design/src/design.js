@@ -321,6 +321,17 @@
     return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
 
+  // one plate notation for every output (quote, calc package, notes, page): the NBG names (F8.50, W188) with the sizes a
+  // detailer reads, in sixteenths where they are, and the grade
+  const frac16 = t => { const n = Math.round(t * 16); if (Math.abs(t * 16 - n) > 0.02) return String(+(+t).toFixed(4)); const g = (a, b) => (b ? g(b, a % b) : a), w = Math.floor(n / 16), q = n % 16; return q ? `${w ? w + ' ' : ''}${q / g(q, 16)}/${16 / g(q, 16)}` : String(w); };
+  function plateText(sec) {
+    if (!sec || sec.type === 'WF') return '';
+    const fn = (b, t) => { const n = flangeName(b, t); return /undefined/.test(n) ? 'F' + b : n; };
+    const fl = (b, t) => `${fn(b, t)} (${b}" × ${frac16(t)}")`, web = `W${String(Math.round(sec.tw * 1000)).padStart(3, '0')} (${frac16(sec.tw)}")`;
+    const sym = sec.bif == null || (sec.bof === sec.bif && sec.tof === sec.tif);
+    return `${sym ? `flanges ${fl(sec.bof, sec.tof)}` : `top flange ${fl(sec.bof, sec.tof)}, bottom ${fl(sec.bif, sec.tif)}`}, web ${web}, Fy 55`;
+  }
+
   // a section's plate dimensions: a built-up section carries them; a W (picked by hand) takes them from the W table,
   // both flanges bf × tf — so the depth, the clearance C, the DM checks and the drawings read it like any other section
   function secDims(sec) {
@@ -401,6 +412,6 @@
   // the production rule each left-out section broke, in words
   const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
 
-  const api = { secDims, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  const api = { secDims, plateText, frac16, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);
