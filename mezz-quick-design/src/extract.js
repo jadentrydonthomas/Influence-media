@@ -1,30 +1,32 @@
 /* pdf.js page extraction shared by the browser tool and the Node tests.
-   Produces the page shape src/pcs.js expects: top-origin text items + annotations. */
+   Produces the page shape src/pcs.js expects: top-origin text items + annotations, placed through the page's
+   viewport transform (vt) so a rotated sheet (a floor plan set landscape with /Rotate 90) reads as printed. */
 (function (root) {
   'use strict';
 
   async function extractPage(page) {
     const vp = page.getViewport({ scale: 1 });
-    const H = vp.height;
+    const H = vp.height, T = vp.transform;
+    const P = (x, y) => [T[0] * x + T[2] * y + T[4], T[1] * x + T[3] * y + T[5]];
     const tc = await page.getTextContent();
     const items = tc.items.filter(i => i.str != null && i.str.trim()).map(i => {
       const [a, b, , d, e, f] = i.transform;
-      const h = Math.hypot(b, d) || i.height || 8;
-      return { str: i.str, x: e, y: H - f, w: i.width || Math.abs(a) * i.str.length * 0.5, h };
+      const h = Math.hypot(b, d) || i.height || 8, [x, y] = P(e, f);
+      return { str: i.str, x, y, w: i.width || Math.abs(a) * i.str.length * 0.5, h };
     });
     let annots = [];
     try {
       annots = (await page.getAnnotations()).map(a => {
         const text = (a.contentsObj && a.contentsObj.str) || a.contents || (Array.isArray(a.textContent) ? a.textContent.join(' ') : '') || '';
-        const [x1, y1, x2, y2] = a.rect || [0, 0, 0, 0];
-        const o = { subtype: a.subtype, text, x1: Math.min(x1, x2), x2: Math.max(x1, x2), y1: H - Math.max(y1, y2), y2: H - Math.min(y1, y2) };
+        const [x1, y1, x2, y2] = a.rect || [0, 0, 0, 0], c = [P(x1, y1), P(x2, y2)];
+        const o = { subtype: a.subtype, text, x1: Math.min(c[0][0], c[1][0]), x2: Math.max(c[0][0], c[1][0]), y1: Math.min(c[0][1], c[1][1]), y2: Math.max(c[0][1], c[1][1]) };
         // markup drawn over the floor plan: its colour and, for a line, its two ends (top-origin like the rest)
         if (a.color && a.color.length >= 3) o.color = [a.color[0], a.color[1], a.color[2]];
-        if (a.lineCoordinates && a.lineCoordinates.length === 4) { const L = a.lineCoordinates; o.line = [[L[0], H - L[1]], [L[2], H - L[3]]]; }
+        if (a.lineCoordinates && a.lineCoordinates.length === 4) { const L = a.lineCoordinates; o.line = [P(L[0], L[1]), P(L[2], L[3])]; }
         return o;
       });
     } catch (e) { annots = []; }
-    return { width: vp.width, height: H, items, annots };
+    return { width: vp.width, height: H, vt: Array.from(T), items, annots };
   }
 
   async function extractDoc(pdf) {

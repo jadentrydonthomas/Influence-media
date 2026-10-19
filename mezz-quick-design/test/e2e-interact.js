@@ -48,7 +48,7 @@ if (pdfArgs.length > 1) {
     return c.slice(1, -1).join(' ');
   }).join(' / ')).join(' || '));
   const log = async label => { const q = await quote(); console.log(label.padEnd(30), q); return q; };
-  const base = await log('default');
+  let base = await log('default');
 
   const setSetting = async (key, value) => {
     await page.click('#nav button[data-view="settings"]');
@@ -77,6 +77,20 @@ if (pdfArgs.length > 1) {
   await setNum('dMax', 18); await log('max depth 18');
   await setNum('dMax', 30);
   if (await quote() !== base) fail('settings round-trip did not return to the default answer');
+  // a job whose clearance C leaves no stocked section (W2R-26047: C 8'-6" under A 10'-6" leaves 14") says so on every row
+  // and why; to drive the rest of the page it is opened the way an engineer would — C cleared on the Inputs page, then
+  // "No requirement"
+  if (/NO SECTION/.test(base)) {
+    const why = await page.$$eval('#warnings .note', ns => ns.some(n => /no stocked BU section .*capped by clearance C/.test(n.textContent)));
+    console.log('no section at the PCS clearance'.padEnd(30), why ? 'the stop says clearance C caps the depth — C opened to go on' : 'NO SECTION, no reason given');
+    if (!why) fail('a mark with no section should say why');
+    await page.click('#nav button[data-view="inputs"]'); await page.waitForTimeout(150);
+    await page.fill('#inputsGrid input[data-path="geom.C"]', ''); await page.press('#inputsGrid input[data-path="geom.C"]', 'Tab'); await page.waitForTimeout(300);
+    await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
+    await page.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await page.waitForTimeout(400);
+    base = await log('C: no requirement');
+    if (/NO SECTION/.test(base)) fail('with C open every mark should get a section');
+  }
 
   // joist direction toggle + trib hover
   await page.click('#nav button[data-view="plan"]');
@@ -367,13 +381,15 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   const deck0 = await page.$eval('#inputsGrid select[data-mezz="deck"]', e => e.value), conc0 = await page.$eval('#inputsGrid select[data-mezz="concrete"]', e => e.value);
   const deadSrc = await page.$eval('#inputsGrid input[data-path="loads.dead"]', e => { const b = e.closest('.field-row') && e.closest('.field-row').querySelector('.src'); return b ? b.className : ''; });
   const guide = /deckGuide|estimate/.test(deadSrc);
-  await page.selectOption('#inputsGrid select[data-mezz="concrete"]', 'LW'); await page.waitForTimeout(150);
-  const dLW = await dead(); await log(`LW concrete (DL ${dLW})`);
+  // the other concrete weight than the PCS's (W2R-26047 is lightweight already): the deck-guide value follows it
+  const conc1 = conc0 === 'LW' ? 'NW' : 'LW';
+  await page.selectOption('#inputsGrid select[data-mezz="concrete"]', conc1); await page.waitForTimeout(150);
+  const dLW = await dead(); await log(`${conc1} concrete (DL ${dLW})`);
   await page.selectOption('#inputsGrid select[data-mezz="deck"]', '2VL'); await page.waitForTimeout(150);
-  const dLW2 = await dead(); await log(`LW on 2VL (DL ${dLW2})`);
+  const dLW2 = await dead(); await log(`${conc1} on 2VL (DL ${dLW2})`);
   await page.selectOption('#inputsGrid select[data-mezz="concrete"]', conc0); await page.selectOption('#inputsGrid select[data-mezz="deck"]', deck0); await page.waitForTimeout(150);
-  console.log('dead load NW / LW / LW 2VL'.padEnd(30), d0, dLW, dLW2, guide ? '(deck guide)' : `(given: ${deadSrc.replace('src ', '')})`);
-  if (guide && !(+dLW < +d0)) fail('lightweight concrete should lower the deck-guide dead load');
+  console.log(`dead load ${conc0} / ${conc1} / ${conc1} 2VL`.padEnd(30), d0, dLW, dLW2, guide ? '(deck guide)' : `(given: ${deadSrc.replace('src ', '')})`);
+  if (guide && !(conc1 === 'LW' ? +dLW < +d0 : +dLW > +d0)) fail('the deck-guide dead load should follow the concrete (lightweight lighter)');
   if (!guide && (dLW !== d0 || dLW2 !== d0)) fail('a dead load given on the PCS should not follow the deck / concrete');
   if (await dead() !== d0) fail('dead load did not return to the deck guide value');
   if (await quote() !== base) fail('inputs round-trip did not return to the default answer');
@@ -392,13 +408,13 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   for (const id of (await page.evaluate(() => window.MZ_DEBUG && window.MZ_DEBUG.beams ? window.MZ_DEBUG.beams().slice(0, 6) : ['B1', 'B2', 'B3', 'B5']))) {
     const pt = await page.evaluate(i => window.MZ_DEBUG && window.MZ_DEBUG.modelPoint(i), id);
     if (!pt) continue;
-    await page.mouse.move(box.x + pt[0], box.y + pt[1]);
+    await page.mouse.move(box.x + pt[0], box.y + pt[1]); await page.waitForTimeout(60);   // the card follows a frame later
     const h = await page.$eval('#modelCard h4', e => e.textContent);
     if (/^B\d+ · /.test(h)) { hit = [box.x + pt[0], box.y + pt[1], h]; break; }
   }
   for (let j = 0.2; j < 0.86 && !hit; j += 0.01) {
     for (let i = 0.12; i < 0.88 && !hit; i += 0.025) {
-      await page.mouse.move(box.x + box.w * i, box.y + box.h * j);
+      await page.mouse.move(box.x + box.w * i, box.y + box.h * j); await page.waitForTimeout(8);
       const h = await page.$eval('#modelCard h4', e => e.textContent);
       if (/^B\d+ · /.test(h)) hit = [box.x + box.w * i, box.y + box.h * j, h];
     }
@@ -420,6 +436,15 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     const nBeams = () => page.$eval('#planStats .pstat.beams strong', e => parseInt(e.textContent, 10));
     const c0 = await nCols(), b0 = await nBeams(), q0 = await quote();
     await page.click('#layEdit'); await page.waitForTimeout(150);
+    // the edit bar reads where the pointer is: from the LEW, and from the FSW and the BSW
+    {
+      await page.$eval('#planSvg rect.foot', e => e.scrollIntoView({ block: 'center' })); await page.waitForTimeout(500);
+      const fb = await page.$eval('#planSvg rect.foot', e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width * 0.37, y: r.top + r.height * 0.41 }; });
+      await page.mouse.move(fb.x, fb.y); await page.waitForTimeout(80);
+      const rd = await page.$eval('#layCoord', e => e.textContent);
+      console.log('layout: pointer readout'.padEnd(30), rd);
+      if (!/from the LEW .* from the FSW · .* from the BSW/.test(rd)) fail('the edit bar should read the pointer from the LEW and the FSW / BSW: ' + rd);
+    }
     const col = await page.$('#planSvg .mcol[data-col]');
     if (col) {
       await col.click({ force: true });
@@ -449,6 +474,44 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
         taken = true; break;
       }
       if (!taken && c0 >= 4) fail('no mezzanine column offers "Take the column out"');
+      // drag a mezzanine column along its beam: the bar reads where it is going, it lands there (one column, moved); undo
+      const colKeys = () => page.$$eval('#planSvg g.mcol[data-col]:not(.dropped)', es => es.map(e => e.dataset.col).sort());
+      const along = /across the width/.test(await page.$eval('#layWhy', e => e.textContent)) ? 'x' : 'y';
+      let dragged = false;
+      for (const k of keys.slice(0, 12)) {
+        const before = await colKeys();
+        const at = await page.$eval(`#planSvg g.mcol[data-col="${k}"] circle.hit`, e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+        const d = along === 'x' ? [24, 0] : [0, -24];
+        await page.mouse.move(at.x, at.y); await page.mouse.down();
+        await page.mouse.move(at.x + d[0] / 2, at.y + d[1] / 2, { steps: 3 }); await page.mouse.move(at.x + d[0], at.y + d[1], { steps: 3 });
+        const rd = await page.$eval('#layCoord', e => e.textContent);
+        await page.mouse.up(); await page.waitForTimeout(450);
+        const after = await colKeys();
+        if (JSON.stringify(after) === JSON.stringify(before)) { await page.keyboard.press('Escape'); continue; }   // too close to a line: the next
+        console.log('layout: column dragged'.padEnd(30), rd);
+        if (!/→ .* from the LEW .* from the FSW/.test(rd)) fail('a dragged column should read where it is going: ' + rd);
+        if (after.length !== before.length || await nCols() !== c0) fail('a dragged column should move, not add or drop one');
+        await page.click('#layUndo'); await page.waitForTimeout(400);
+        if (JSON.stringify(await colKeys()) !== JSON.stringify(before)) fail('undo should put the dragged column back');
+        dragged = true; break;
+      }
+      if (!dragged && c0 >= 3) fail('no mezzanine column could be dragged along its beam');
+      // a typed spot: "Move this column to" — x from the LEW, y from the FSW or the BSW
+      for (const k of keys.slice(0, 12)) {
+        await page.click(`#planSvg .mcol[data-col="${k}"]`, { force: true }); await page.waitForTimeout(120);
+        const items = await page.$$eval('#layPop button[data-i]', bs => bs.map(b => b.innerText));
+        const i = items.findIndex(t => /Move this column to/.test(t));
+        if (i < 0) { await page.keyboard.press('Escape'); await page.waitForTimeout(80); continue; }
+        const before = await colKeys();
+        const [x0, y0] = k.split('|').map(Number);
+        const tx = along === 'x' ? x0 + 2.5 : x0, ty = along === 'x' ? y0 : y0 + 2.5;
+        await page.fill('#layMvX', String(tx)); await page.fill('#layMvY', String(ty));
+        await page.click(`#layPop button[data-i="${i}"]`); await page.waitForTimeout(450);
+        const after = await colKeys(), moved = after.some(q => { const [x, y] = q.split('|').map(Number); return Math.abs(x - tx) < 0.01 && Math.abs(y - ty) < 0.01; });
+        console.log('layout: column typed to'.padEnd(30), `${tx}, ${ty}${moved ? '' : ' (not moved: ' + (await page.$eval('#toast', e => e.textContent).catch(() => '')) + ')'}`);
+        if (moved) { if (after.length !== before.length) fail('a typed move should keep the column count'); await page.click('#layUndo'); await page.waitForTimeout(400); }
+        break;
+      }
     }
     // a point on the floor of the first mezzanine, between its first two beam lines (clear of the beams and their tags)
     // and off the column lines

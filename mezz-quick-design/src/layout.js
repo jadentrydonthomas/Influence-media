@@ -74,10 +74,12 @@
   /**
    * m: { length (along x), width (along y), startLEW, startFSW }
    * opt: { joists: 'auto' | 'x' | 'y', xLines?:[ft], yLines?:[ft] (absolute, override),
-   *        drop?: ['x,y'] — columns taken out: the beam on that line spans through (never a line's first or last) }
+   *        drop?: ['x,y'] — columns taken out: the beam on that line spans through (never a line's first or last),
+   *        drawn?: [{x, y}] — the column symbols on the PCS floor plan (building ft) }
    *   joists 'y' => joists span across the width (y), beams run along x.
    */
   const SNAP_EDGE = 1;   // ft: a frame line this close outside a mezzanine edge still frames that edge
+  const SNAP_DRAWN = 3;  // ft: how far an edge with no column drawn on it may overhang a line the drawing puts columns on
   function layout(g, m, opt = {}) {
     const x0 = m.startLEW || 0, x1 = x0 + m.length, y0 = m.startFSW || 0, y1 = y0 + m.width;
     const inside = (v, a, b) => v > a + EPS && v < b - EPS;
@@ -90,17 +92,32 @@
     // short of, the line by the difference instead of creating a second line a few inches away
     const SNAP = opt.snap ?? 1;
     const snaps = [];
-    const snapTo = (v, cands, axis) => {
-      const c = cands.filter(u => Math.abs(u - v) <= SNAP + EPS && !near(u, v)).sort((a, b) => Math.abs(a - v) - Math.abs(b - v))[0];
+    // the floor plan's column symbols along a line, within the mezzanine's extent the other way
+    const drawn = opt.drawn && opt.drawn.length ? opt.drawn : null;
+    const drawnOn = (axis, v) => drawn.some(c => { const a = axis === 'x' ? c.x : c.y, o = axis === 'x' ? c.y : c.x, [lo, hi] = axis === 'x' ? [y0, y1] : [x0, x1]; return Math.abs(a - v) < 0.75 && o > lo - 1 && o < hi + 1; });
+    // side: -1 for the edge at the LEW / FSW end of the mezzanine, +1 for the other
+    const snapTo = (v, cands, axis, side) => {
+      const by = (a, b) => Math.abs(a - v) - Math.abs(b - v);
+      // within 1/8" of a line (Box 22's 1/16" dimensions adding up a hair past a wall): on the line, nothing to say
+      const on = cands.filter(u => near(u, v)).sort(by)[0];
+      if (on != null) return on;
+      let c = cands.filter(u => Math.abs(u - v) <= SNAP + EPS && !near(u, v)).sort(by)[0], drawnSnap = false;
+      // the PCS floor plan draws no column on this edge but does on a line up to 3'-0" inside it: the edge is framed on
+      // that line and the slab overhangs it (a joist or beam cantilever), as drawn — not a beam line of its own on new
+      // columns. An edge short of a line (the slab stops inside it) is never moved out to it this way.
+      if (c == null && drawn && !drawnOn(axis, v)) {
+        c = cands.filter(u => (u - v) * side < -EPS && Math.abs(u - v) <= SNAP_DRAWN + EPS && drawnOn(axis, u)).sort(by)[0];
+        drawnSnap = c != null;
+      }
       if (c == null) return v;
-      snaps.push({ axis, edge: v, line: c });
+      snaps.push({ axis, edge: v, line: c, drawn: drawnSnap });
       return c;
     };
     // an edge past the building's end line (within 2'-0", e.g. a Box 2 length longer than the bays) cannot have columns
     // outside the building: it is framed on the end line and the slab overhangs it
     const outside = (v, lo, hi, axis) => { const e = v < lo - EPS ? lo : v > hi + EPS ? hi : null; if (e == null || Math.abs(v - e) > 2 + EPS) return null; snaps.push({ axis, edge: v, line: e, outside: true }); return e; };
-    const sx0 = outside(x0, 0, g.length, 'x') ?? snapTo(x0, g.xs, 'x'), sx1 = outside(x1, 0, g.length, 'x') ?? snapTo(x1, g.xs, 'x');
-    const sy0 = snapTo(y0, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y'), sy1 = snapTo(y1, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y');
+    const sx0 = outside(x0, 0, g.length, 'x') ?? snapTo(x0, g.xs, 'x', -1), sx1 = outside(x1, 0, g.length, 'x') ?? snapTo(x1, g.xs, 'x', 1);
+    const sy0 = snapTo(y0, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y', -1), sy1 = snapTo(y1, uniq([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()]), 'y', 1);
     const xLines = opt.xLines ? uniq(opt.xLines) : uniq([sx0, sx1, ...g.xs.filter(v => inside(v, sx0, sx1))]);
     const yLines = opt.yLines ? uniq(opt.yLines) : uniq([sy0, sy1, ...yCand.filter(v => inside(v, sy0, sy1))]);
     // slab beyond (+) or short of (−) the first / last line along each axis, added to the edge beam's trib
@@ -112,6 +129,8 @@
       // joists 'y': beams along x on each y line, spanning between consecutive x lines
       const beamLines = joists === 'y' ? yLines : xLines;
       const supportLines = joists === 'y' ? xLines : yLines;
+      // slab past the first / last support line along the beams: the end beams cantilever it to their end supports
+      const ovAlong = over[joists === 'y' ? 'x' : 'y'];
       const beams = [], supports = new Map(), dropped = [];
       beamLines.forEach((c, i) => {
         const prev = i > 0 ? c - beamLines[i - 1] : 0, next = i < beamLines.length - 1 ? beamLines[i + 1] - c : 0;
@@ -127,7 +146,8 @@
         });
         for (let k = 0; k < stops.length - 1; k++) {
           const a = stops[k], b = stops[k + 1];
-          const beam = { id: beams.length, line: c, from: a, to: b, span: r3(b - a), trib, dir: joists === 'y' ? 'x' : 'y', edge: prev === 0 || next === 0, ends: [P(a), P(b)] };
+          const beam = { id: beams.length, line: c, from: a, to: b, span: r3(b - a), trib, dir: joists === 'y' ? 'x' : 'y', edge: prev === 0 || next === 0, ends: [P(a), P(b)],
+            ov: [k === 0 ? Math.max(0, r3(ovAlong[0])) : 0, k === stops.length - 2 ? Math.max(0, r3(ovAlong[1])) : 0] };
           beams.push(beam);
           [[P(a), 'R'], [P(b), 'L']].forEach(([p, side]) => {
             // side: which side of the support this beam frames in from (L = beam lies before the support)

@@ -18,11 +18,13 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - Box 2: bays, endwall column spacing and soldier columns, per building. On a single slope or a lean-to the "Distance to Ridge" is N/A, so there is no ridge line.
    - Box 3: building code, which picks the workbook edition.
    - Box 5: frame interior modules.
+   - **Building names that wrap in their cells** are read whole: "MAINTENANCE" / "BUILDING" in the spacing table, mid-word "MAINTENAN" / "CE BUILDING" in the information and roof-load rows (where a short gap can also glue the name to "Per Seller"), and Box 5's head running on into "Cold Formed Materials Allowed on Frame". The pieces join toward a building name the quote spells out in full (Box 5's heads, Box 22, the attachment notes), so each table's row is the building's own and a second building's rows stay its own. A box that runs past the page is read on under the next page's header ("5) FRAME INFORMATION (CONTINUED)").
 2. **Lays out the framing.**
    - Grid lines inside the footprint become beam lines and support lines.
    - Beams run the shorter span (DM 15.1.1.3). On a tie, the layout with fewer beams wins.
    - Each beam's trib is half the distance to the next beam line on each side.
    - Every support that is not a building column (sidewall, endwall, interior frame or soldier column) is a ⊗ mezzanine column.
+   - An edge within 1'-0" of a grid line is framed on that line. Where the PCS drawing puts no column on an edge but does on a line up to 3'-0" inside it, the edge is framed on that line and the slab overhangs it, as drawn (W2R-26047: 1'-3" past line 4, 1'-10 13/16" past line C). Slab past the last support along the beams is cantilevered to it: those columns' reactions take w·a·(1 + a/2L) on top of the end shear. An edge short of a line is never moved out to it.
    - **Floor plan check.** The floor-plan page has no text layer, but its geometry can be read:
      - The grid bubbles register the drawing to the bays.
      - Every ⊗ mezzanine-column symbol is snapped to a grid intersection.
@@ -79,19 +81,20 @@ Every mezzanine in Box 22 (including "22) MEZZANINES (CONTINUED)" pages) is read
 - **Shared column.** A column at the same location in two mezzanines is one column. Its Column-sheet Left / Right reactions come from the beams of both, the Column page lists which beam each comes from, and it is counted once (with the mezzanine that loads it most).
 - **Edges a few inches off a grid line** (95'-8" vs the 96'-0" column line) are framed on that line, with the overhang added to the edge trib.
 
-### Read off the floor plan (last page)
+### Read off the floor plan
 
 The plan has no text layer, so its geometry is read:
 
-- **Joist direction** from the "Mez. Jst." arrows inside each mezzanine. This sets where the beams go; the auto rule (beams on the shorter span) is only used when no arrow is found, and the other direction is offered on the Plan page.
+- **Joist direction** from the "Mez. Jst." / "JOIST" arrows inside each mezzanine (a straight shaft with a half arrowhead at each end, 10°–40° off the shaft; dimension ticks and hatching are at 45°). This sets where the beams go; the auto rule (beams on the shorter span) is only used when no arrow is found, and the other direction is offered on the Plan page.
 - **Joist direction from the joist symbol** (the zigzag truss drawn across a bay) when a job has no "Mez. Jst." arrows.
-- **Mezzanine columns:** both symbol styles, ⊗ and circled-I, are checked against the layout of every mezzanine.
+- **Mezzanine columns:** every symbol style — ⊗, ⊘ (one diagonal, W2R-26047) and circled-I — is checked against the layout of every mezzanine. As read they must match: a column drawn but not laid out, or laid out but not drawn, is a stop that names it.
 - **Frame columns are not mezzanine columns.** A bare I is a building (frame) column, and so is a ✱, the column the contract notes as designed "Most Economical" (Box 5 *Int. Column Type*). Where the drawing and the building data disagree, the drawing wins and the Design page says so:
   - a ⊗ or circled-I where Box 2 / Box 5 has a frame column → designed as a mezzanine column;
   - a ✱ or an interior I where the layout had a mezzanine column → taken as a building column (its load goes to the frame).
-  - An I on a sidewall or endwall line never changes a support (wall openings are drawn with I-like marks).
+  - An I on a sidewall or endwall line never changes a support (wall openings are drawn with I-like marks). A wall column's I is drawn about 1'-9" inside its steel line and an end frame's ✱ about 1'-4" inside its endwall; both are read on the wall line.
 - **Grid letters as drawn.** Bubbles on both endwalls, column lines and the ridge are lettered from the BSW, skipping I and O, so "2/C" in the notes is the drawing's 2/C.
-- **The plan page is found by what it is,** not where it is: the page with no text and thousands of vector paths, counting from the back.
+- **The plan page is found by what it is,** not where it is: every drawing page (no text layer, hundreds of vector paths) is tried from the back, and the plan is the first whose grid bubbles register to the frame lines and that shows mezzanine columns or joist arrows. A components-and-cladding wind table or an elevation is vector-only too and is passed over (W2R-26047: the plan is page 16, ahead of the C&C table on page 17).
+- **Rotated sheets.** A drawing set landscape with /Rotate 90 or 270 is read through the page's viewport transform, as printed — W2R-26047's floor plan is one; read without the rotation its frame-line bubbles run down the page and nothing registers. Markup annotations on such a page are placed the same way.
 - **Frame-line bubbles may carry extras.** An attached building's end line can be drawn 1'-4" off the endwall, overlapping. Every frame line just has to find its bubble. When that pushes the drawing's numbering (the Sanctuary of W1G-26097 is drawn as lines 2–10), *Check before quoting* says so ("line 1 here is line 2 on the drawing") and keeps the PCS frame lines 1–9 (Box 5, NBG Frame files).
 - **Markup over the plan.** A quote engineer's annotations are read too, and they win over the drawn symbols:
   - an **"X"** text box is a mezzanine column;
@@ -109,6 +112,18 @@ Example W0S-26160 (two mezzanines, "BSW" and "LEW", sharing the 96' line). B = 9
 | Columns | W8X24 | 11'-6" | BSW 2/C–5/C; LEW 2/D, 40'-4"/D, 40'-4"/E | 7 |
 
 All 7 columns match the drawing. Example W2H-26018 (one mezzanine) comes out MB1 interior BU24x30 × 4 at 20'-0" × 20'-0", MB2 exterior BU15x21 × 4 at 20'-0" × 10'-0", W10X22 × 4.
+
+Example W2R-26047 (182' × 102', frames 1–7 multi-span with a "Most Economical" interior column at 52'-4"; the mezzanine 92'-3" × 51'-6 7/8" from 50'-5 3/16" off the FSW). Read as drawn: joists N-S from the JOIST arrow; beams on lines A, B and C over lines 1–4; ⊘ mezzanine columns at 2/B, 3/B, 4/B; frame columns A/1–A/4 (sidewall), B/1 (LEW endwall) and C/1–C/4 (✱ interior); the slab overhangs line 4 by 1'-3" and line C by 1'-10 13/16". Its (C) 8'-6" under (A) 10'-6" leaves 14" for the beams, and nothing stocked that shallow carries 30'–31' spans — the marks say NO SECTION and why. With C open: MB1 interior BU29x69 × 3, MB2 exterior BU30x45 × 6, BU8x31 × 3.
+
+### Reading checks — a misread is never designed on silently
+
+A misread moves every beam and column, so each check below is a **stop** on the Design page until the input is fixed on the Inputs page (or the drawing confirms it). Each was fed a deliberate misread of W2R-26047 to prove it fires (`test/plan.test.js`, `test/job5.test.js`):
+
+- **Box 2:** bays not read, or adding to more than 2'-0" off the building length (part of a wrapped list lost); an endwall's column spacing not read, or not adding to the width.
+- **Box 5:** no frame rows for the building; a frame line with no row, or a row past the last frame line; interior modules not adding to the width; a post-and-beam end frame whose columns disagree with Box 2's endwall spacing.
+- **Box 22:** a footprint past the building's ends or sidewalls. A Box 22 building name matched to Box 2 only loosely is noted.
+- **The floor plan:** not matched to the grid (the reason is given); ✱ interior columns where Box 5 has none; mezzanine columns on the drawing and in the layout that differ. No joist arrow inside a mezzanine, or arrows both ways, is a warning (the rule's direction is used); no drawing at all is a warning to check the layout by eye.
+- When everything agrees, the Design page says so: *Floor plan check: the drawing shows 3 ⊘ mezzanine columns in mezzanine 1, at 2/B, 3/B, 4/B — the same as the layout.*
 
 ### The Design page, top to bottom
 
@@ -238,11 +253,12 @@ The *Design your own* page is the MB sheet and the Column sheet without the sear
 
 ### Edit the layout (Plan page)
 
-*Edit layout* on the framing plan, then click:
+*Edit layout* on the framing plan. As the pointer moves, the bar under the buttons reads where it is — "61'-0" from the LEW (line 3) · 76'-0" from the FSW · 26'-0" from the BSW (line B)" — with a cross-hair over the plan; points snap to a grid, beam or column line within 6", else to the inch. Then:
 
-- **a column** — *Make it a frame column* (its beam reactions go to the frame design as FDL / FLL; if the frame has no column there, the frame loads say to add it in NBG Frame), *Make it a mezzanine column* (designed on the Column sheet; the frame takes no mezzanine load there), *Take the column out* (the beam on that line spans through; never a beam's end) or *Remove the line of columns*.
-- **a beam** — *Remove the beam line* (the joists span past it; edge beams stay).
-- **the floor** — *Add a beam line* or *Add a column line* at the point clicked, or at a typed distance.
+- **drag a mezzanine column** along its beam: the bar and a ghost beside it read where it is going, and it lands there (the beam splits there, its old place spans through). A column where the beams end takes its whole column line with it.
+- **click a column** — *Make it a frame column* (its beam reactions go to the frame design as FDL / FLL; if the frame has no column there, the frame loads say to add it in NBG Frame), *Make it a mezzanine column* (designed on the Column sheet; the frame takes no mezzanine load there), *Take the column out* (the beam on that line spans through; never a beam's end), *Remove the line of columns*, *Move this column to* a typed x from the LEW and y from the FSW or the BSW (on a beam line), or *Move its column line to* a typed distance. The menu shows where the column is, from the LEW and both sidewalls; so do its hover tip and the selected-member card.
+- **click a beam** — *Add a mezzanine column on this beam at* a typed distance (it opens at the point clicked), or *Remove the beam line* (the joists span past it; edge beams stay).
+- **click the floor** — *Add a beam line* or *Add a column line* at the point clicked, or at a typed distance (from the FSW or the BSW across the width).
 
 Every edit re-designs the whole job — beams, columns, the frame loads, the seismic, the quote — and is listed on the Design page. *Undo* steps back, *Reset layout* returns to the building grid and the PCS drawing. A line added within 6'-0" of another is flagged under *Check before quoting* (short beams or extra columns there). When an edit leaves a mark with no passing section, every summary says so: the governing-ratio dial reads NG with what is not sized, the mark rows read NO SECTION, the columns read "N not sized", and the steel total is "at least" with what is missing.
 
@@ -434,13 +450,15 @@ Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the li
 ```bash
 npm install            # pdfjs-dist 3.11.174 (inlined into the build)
 npm run build          # -> index.html
-npm test               # guide examples, layout cases (layout edits too), parser, plan symbols, frame-file writer,
+npm test               # guide examples, layout cases (layout edits, drawn overhangs too), parser (wrapped building
+                       # names, boxes over a page break), plan symbols (⊗ ⊘ ✱ I, a rotated sheet, the plan page
+                       # picked by registration), the reading checks fed deliberate misreads, frame-file writer,
                        # beam options, the workbook writer, the .xlsx writer and calc package; the example jobs,
                        # variant loop, real frame files and workbooks when private/pcs/, private/frame/ and
                        # private/workbooks/ have them
 npm run e2e            # drive index.html in Chromium for every PDF in private/pcs/: load, every control, 3D pick,
                        # copy, manual entry, NBG Frame files, seismic edits, filled-workbook downloads, the calc
-                       # package, Design your own, layout edits
+                       # package, Design your own, layout edits (pointer readout, a dragged column, a typed move)
 MZ_DUMP=oracle/out node test/variants.test.js   # also write the picked sections as oracle cases
 ```
 

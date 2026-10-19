@@ -451,7 +451,7 @@ tr.none td { color: var(--ink-faint); }
 .lay-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--green-soft); color: var(--ink); font-size: 13px; font-weight: 600; }
 .lay-acts { display: inline-flex; gap: 8px; }
 .plan.is-editing .plan-wrap { outline: 2px solid var(--green); outline-offset: -2px; }
-.plan.is-editing svg { cursor: crosshair; }
+.plan.is-editing svg { cursor: crosshair; user-select: none; -webkit-user-select: none; }
 .plan.is-editing .beam:hover, .plan.is-editing .bcol-g:hover .bcol, .plan.is-editing .mcol:hover circle { stroke: var(--green-bright); }
 .plan .mcol.dropped circle { fill: none; stroke: var(--ink-faint); stroke-dasharray: 3 3; }
 .plan .mcol.dropped path { stroke: var(--ink-faint); opacity: .5; }
@@ -463,6 +463,19 @@ tr.none td { color: var(--ink-faint); }
 .lay-pop button small { display: block; color: var(--ink-muted); font-size: 12px; }
 .lay-pop .lay-at { display: flex; gap: 6px; align-items: center; padding: 4px 10px 8px; font-size: 12.5px; color: var(--ink-muted); }
 .lay-pop .lay-at input { width: 96px; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface-soft); color: var(--ink); font: 13px var(--mono); }
+.lay-pop .lay-at select { padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 12.5px; }
+.lay-pop .lay-xy { padding-top: 0; }
+.lay-pop .lay-xy > span:first-child { width: 10px; font: 600 12.5px var(--mono); color: var(--ink); }
+.lay-pop .lay-where, .model-card .where, .tip-where { margin: 0 8px 6px; color: var(--ink); font: 12px/1.5 var(--mono); }
+.model-card .where { margin: 4px 0 8px; }
+.tip-where { margin: 2px 0 6px; }
+/* edit mode: where the pointer is, read from the LEW and both sidewalls, and where a dragged column goes */
+.lay-coord { order: 3; flex: 1 1 100%; min-height: 1.3em; color: var(--ink); font: 600 12.5px var(--mono); }
+.plan .plan-cursor { pointer-events: none; }
+.plan .plan-cursor line { stroke: var(--green); stroke-width: 1; stroke-dasharray: 5 4; opacity: .75; }
+.plan .plan-cursor text { fill: var(--ink); font: 600 12px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.plan .plan-cursor .ghost { fill: var(--green-soft); stroke: var(--green-bright); stroke-width: 2.5; }
+.plan.is-editing .mcol { cursor: grab; touch-action: none; }
 .plan-wrap svg { display: block; width: 100%; height: auto; }
 .plan .grid-line { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 10 4 2 4; }
 .plan .bldg { fill: none; stroke: var(--ink-muted); stroke-width: 2; }

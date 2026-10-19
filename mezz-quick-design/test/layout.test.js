@@ -54,4 +54,27 @@ assert.deepStrictEqual([60, 40, 30, 20, 0].map(g.yLabel), ['A', 'B', 'C', 'D', '
   assert.deepStrictEqual(L.mezzCols.map(c => c.label).sort(), ['2/B', '3/B', '3/D']);
   assert.strictEqual(L.beamSpan, 40);
 }
+// edges and the PCS drawing (W2R-26047: frames with an interior column at 52'-4", the mezzanine 1'-3" past line 4 and
+// 1'-10 13/16" past line C, its back edge 1/16" past the BSW): an edge the drawing puts no column on, up to 3'-0" outside a
+// line it does, is framed on that line — the slab overhangs it; an edge short of a line is never moved out to it
+{
+  const C = 52 + 4 / 12, ew = [28, 24 + 4 / 12, 23 + 8 / 12, 26];
+  const gb = LAY.buildingGrid({ width: 102, length: 182, ridge: 51, bays: [31, 30, 30, 30, 30, 31], lewCols: ew, rewCols: ew, frames: [{ from: 1, to: 7, interior: [C, 102 - C] }] });
+  const mz = { length: 92.25, width: 102.00520833333333 - 50.432291666666664, startLEW: 0, startFSW: 50.432291666666664 };
+  const drawn = [...[31, 61, 91].map(x => ({ x, y: 76 })), ...[0, 31, 61, 91].map(x => ({ x, y: C })), ...[0, 31, 61, 91].map(x => ({ x, y: 102 })), { x: 0, y: 76 }, { x: 0, y: 28 }];
+  const L = LAY.layout(gb, mz, { joists: 'y', drawn });
+  assert.deepStrictEqual(L.beamLines.map(v => +v.toFixed(3)), [52.333, 76, 102], 'the 1/16" past the BSW is on it; the slab past C is framed on C');
+  assert.deepStrictEqual(L.supportLines, [0, 31, 61, 91]);
+  assert.deepStrictEqual(L.snaps.map(q => [q.axis, +q.edge.toFixed(3), +q.line.toFixed(3), q.drawn]), [['x', 92.25, 91, true], ['y', 50.432, 52.333, true]]);
+  assert.deepStrictEqual(L.mezzCols.map(c => c.label), ['2/B', '3/B', '4/B']);
+  // the end beams carry the 1'-3" past line 4 to it (and nothing past line 1); the line-C beams take the 1'-10 13/16"
+  assert.ok(L.beams.every(b => b.ov[0] === 0 && b.ov[1] === (b.to === 91 ? 1.25 : 0)));
+  assert.ok(L.beams.filter(b => Math.abs(b.line - C) < 0.01).every(b => Math.abs(b.trib - ((76 - C) / 2 + (C - mz.startFSW))) < 0.001));
+  // without the drawing (1'-0" rule): both edges are beam / column lines of their own, on new columns
+  const N = LAY.layout(gb, mz, { joists: 'y' });
+  assert.ok(N.supportLines.includes(92.25) && N.beamLines.some(v => Math.abs(v - 50.432) < 0.01));
+  // the slab stopping 2'-1" short of line A stays short: its edge is a beam line on new columns
+  const S = LAY.layout(gb, { ...mz, width: 49.5 }, { joists: 'y', drawn });
+  assert.ok(S.beamLines.some(v => Math.abs(v - 99.932) < 0.01) && !S.beamLines.some(v => Math.abs(v - 102) < 0.01));
+}
 console.log('layout tests passed');

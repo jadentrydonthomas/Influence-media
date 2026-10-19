@@ -70,6 +70,68 @@ assert.strictEqual(PCS.divisionFrom('Nucor Building Systems - IN'), 'NBS-IN');
   assert.deepStrictEqual([m2.checks.material['Light Weight Concrete'], m2.checks.use.Office, m2.checks.use.Theater], [true, true, false]);
 }
 
+// A building name that wraps in its table cells — "WAREHOUSE" / "BUILDING" in the spacing table, mid-word "WAREHOUS" /
+// "E BUILDING" in the information and roof-load rows (where a short gap also glues it to "Per Seller") — and Box 5's
+// head running on into "Cold Formed Materials Allowed on Frame", its block continued on the next page: every table
+// still reads the building's own row, and a second building's rows stay its own
+{
+  const it = (str, x, y) => ({ str, x, y, w: str.length * 3.6, h: 8 });   // ~3.6 pt a character, as pdf.js gives these cells
+  const head = [it('PROJECT #:', 361, 35), it('LABEL: 0 - Base', 378, 78), it('CONTROL #: P2', 420, 91)];
+  const p3 = { num: 3, annots: [], items: [...head, it('2) BUILDING DESCRIPTION', 28, 121), it('BUILDING INFORMATION', 47, 143),
+    it('Building', 38, 158), it('Building Profile', 87, 158), it('Name', 43, 169), it('Width', 165, 169), it('Length', 215, 169),
+    it('WAREHOUS', 31, 198.6), it('Gable', 106, 198.6), it(`102'-0"`, 164, 198.6), it(`182'-0"`, 215, 198.6), it(`51'-0"`, 272, 198.6), it(`22'-9"`, 324, 198.6), it(`22'-9"`, 370, 198.6), it('1:12"', 414, 198.6), it('1:12"', 454, 198.6),
+    it('E BUILDING', 30, 209.6), it('Symmetrical', 95, 209.6),
+    it('SHED', 40, 224.3), it('Lean-To', 102, 224.3), it(`20'-0"`, 166, 224.3), it(`180'-0"`, 215, 224.3), it('N/A', 275, 224.3), it(`18'-0"`, 324, 224.3), it(`20'-0"`, 370, 224.3),
+    it('* Unless noted in Special Requirements all structural members are primed.', 28, 237),
+    it('SIDEWALL AND ENDWALL SPACING', 47, 337), it('Building Name', 35, 351.6), it('Sidewall Bay Spacing', 108, 351.6), it('FSW Soldier Column', 204, 351.6), it('BSW Soldier Column', 297, 351.6), it('Left Endwall (LEW)', 395, 351.6), it('Right Endwall (REW)', 486, 351.6),
+    it('WAREHOUSE', 35, 388.3), it(`1@31'-0", 4@30'-0",`, 111, 388.3), it('N/A', 236, 388.3), it('N/A', 330, 388.3), it(`1@28'-0", 1@24'-4",`, 395, 388.3), it(`1@28'-0", 1@24'-4",`, 489, 388.3),
+    it('BUILDING', 46, 399.2), it(`1@31'-0"`, 131, 399.2), it(`1@23'-8", 1@26'-0"`, 396, 399.2), it(`1@23'-8", 1@26'-0"`, 490, 399.2),
+    it('SHED', 40, 412), it(`6@30'-0"`, 131, 412), it('N/A', 236, 412), it('N/A', 330, 412), it(`1@20'-0"`, 415, 412), it(`1@20'-0"`, 509, 412),
+    it('GIRT CONDITION, DEPTH, AND SPACING', 47, 430), it('3) PROJECT LOAD REQUIREMENTS', 28, 541)] };
+  const p4 = { num: 4, annots: [], items: [...head, it('4) BUILDING LOAD REQUIREMENTS', 28, 121),
+    it('Building', 38, 150.5), it('Roof Dead Roof Snow', 87, 150.5), it('Wind', 201, 150.5), it('Primary', 305, 150.5), it('Secondary', 350, 150.5), it('Collateral', 406, 150.5),
+    it('Name', 43, 161.4), it('Load', 98, 161.4), it('Load', 150, 161.4), it('Collateral Collateral Load Due To', 302, 161.4),
+    it('WAREHOUS', 31, 176.2), it('Per Seller', 72, 176.2), it('21.0 psf', 145, 176.2), it('Enclosed', 195, 176.2), it('7.5 psf', 309, 176.2), it('7.5 psf', 358, 176.2), it('Mech/Elec/', 404, 176.2),
+    it('E BUILDING', 30, 187.1), it('Std.', 101, 187.1),
+    it('SHED', 40, 200), it('Per Seller', 90, 200), it('30.0 psf*', 144, 200), it('5.0 psf', 309, 200), it('6.0 psf', 358, 200),
+    it('DEFLECTION REQUIREMENTS (Serviceability Criteria)', 47, 221),
+    it('5) FRAME INFORMATION', 28, 454), it('BUILDING NAME: WAREHOUSE BUILDING Cold Formed Materials Allowed on Frame', 47, 487.9),
+    it('1 (LEW)', 39, 554.3), it('Rigid Frame Multi Span (Non-Exp) -', 83, 554.3), it('N/A', 233, 554.3), it(`1@52'-4", 1@49'-8"`, 283, 554.3), it('Most', 393, 554.3),
+    it('RMG', 139, 565.2), it('Economical', 382, 565.2),
+    it('2 - 6', 44, 580), it('Rigid Frame Multi Span - RMG', 93, 580), it('N/A', 233, 580), it(`1@52'-4", 1@49'-8"`, 283, 580), it('Most', 393, 580), it('Economical', 382, 590.9)] };
+  const p5 = { num: 5, annots: [], items: [...head, it('5) FRAME INFORMATION (CONTINUED)', 28, 121),
+    it('7 (REW)', 38, 150), it('Rigid Frame Multi Span (Non-Exp) -', 83, 150), it('N/A', 233, 150), it(`1@52'-4", 1@49'-8"`, 283, 150), it('Most', 393, 150),
+    it('RMG', 139, 161), it('Economical', 382, 161), it('Base Plate Elevations: Negative values are below finish floor.', 28, 175),
+    it('BUILDING NAME: SHED Cold Formed Materials Allowed on Frame', 47, 200), it('1 - 7', 44, 230), it('Lean-To Clear Span - LCS', 103, 230), it('N/A', 233, 230), it(`1@20'-0"`, 302, 230),
+    it('6) ROOF PANEL', 28, 300)] };
+  const p10 = { num: 10, annots: [], items: [...head, it('22) MEZZANINES', 30, 100), it('Mezzanine ID: 1', 33, 120), it('Building Name: WAREHOUSE BUILDING', 176, 120), it('23) CRANES - NONE REQUIRED', 30, 200)] };
+  const pages = [p3, p4, p5, p10], r3 = a => a.map(v => +v.toFixed(3));
+  const b = PCS.building(pages, 'WAREHOUSE BUILDING');
+  assert.deepStrictEqual([b.name, b.width, b.length, b.ridge, b.profile], ['WAREHOUSE BUILDING', 102, 182, 51, 'Gable']);
+  assert.deepStrictEqual(b.bays, [31, 30, 30, 30, 30, 31]);
+  assert.deepStrictEqual([r3(b.lewCols), r3(b.rewCols)], [[28, 24.333, 23.667, 26], [28, 24.333, 23.667, 26]]);
+  const sh = PCS.building(pages, 'SHED');
+  assert.deepStrictEqual([sh.name, sh.width, sh.profile, sh.bays, sh.lewCols], ['SHED', 20, 'Lean-To', [30, 30, 30, 30, 30, 30], [20]]);
+  const fr = PCS.frames(pages, 'WAREHOUSE BUILDING');
+  assert.deepStrictEqual(fr.map(f => [f.from, f.to, f.wall, f.type, r3(f.interior), f.intType]), [
+    [1, 1, 'LEW', 'Rigid Frame Multi Span (Non-Exp) - RMG', [52.333, 49.667], 'Most Economical'],
+    [2, 6, null, 'Rigid Frame Multi Span - RMG', [52.333, 49.667], 'Most Economical'],
+    [7, 7, 'REW', 'Rigid Frame Multi Span (Non-Exp) - RMG', [52.333, 49.667], 'Most Economical']], 'the block read on over the page break');
+  assert.deepStrictEqual(PCS.frames(pages, 'SHED').map(f => [f.from, f.to, f.interior]), [[1, 7, [20]]]);
+  const rf = PCS.roofLoads(pages, 'WAREHOUSE BUILDING');
+  assert.deepStrictEqual([rf.building, rf.dead.perSeller, rf.snow.value, rf.coll1, rf.coll2], ['WAREHOUSE BUILDING', true, 21, 7.5, 7.5], 'name glued to "Per Seller" split off');
+  const rs = PCS.roofLoads(pages, 'SHED');
+  assert.deepStrictEqual([rs.snow.value, rs.snow.override, rs.coll1, rs.coll2], [30, true, 5, 6]);
+  const pcs = PCS.parse(pages);
+  assert.deepStrictEqual(Object.keys(pcs.buildings), ['WAREHOUSE BUILDING']);
+  assert.deepStrictEqual(pcs.building.bays, [31, 30, 30, 30, 30, 31]);
+  assert.strictEqual(pcs.frames.length, 3);
+  // lengths read to the PCS's own 1/16"
+  assert.strictEqual(PCS.fmtFtIn(52 + 4 / 12 - 50.432291666666664), `1'-10 13/16"`);
+  assert.strictEqual(PCS.fmtFtIn(20 + 4.5625 / 12), `20'-4 9/16"`);
+  assert.strictEqual(PCS.fmtFtIn(-1e-4), `0'-0"`);
+}
+
 // Full example job (the PCS is customer data and stays out of the repo)
 const pdf = process.env.MZ_PCS || path.join(__dirname, '..', 'private', 'pcs', 'Project_Confirmation_Summary_W2H-26018.pdf');
 if (!fs.existsSync(pdf)) { console.log('pcs tests passed (example PCS not present, full-job test skipped)'); process.exit(0); }
@@ -114,7 +176,7 @@ try { ({ readPcs } = require('./pdf-node.js')); require('./pdf-node.js').loadPdf
   const { loadPdfjs } = require('./pdf-node.js');
   const planPage = pages[pages.length - 1];
   const ol = await planPage._page.getOperatorList();
-  const paths = PLAN.subpaths(ol, loadPdfjs().OPS, planPage.height);
+  const paths = PLAN.subpaths(ol, loadPdfjs().OPS, planPage.vt || planPage.height);
   const reg = PLAN.registerAndRead(paths, { xs: res.grid.xs, colY: [0, 20, 40, 60] });
   assert.ok(reg.ok, reg.reason);
   assert.strictEqual(reg.columns.length, 4);

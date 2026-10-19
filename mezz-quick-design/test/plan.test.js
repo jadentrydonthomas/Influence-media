@@ -93,4 +93,71 @@ const mezzCols = j => j.columns.map(c => c.label).sort();
   assert.deepStrictEqual(PLAN.readMarkup([ln([10, 10], [10, 300], [0, 0, 255])]).arrows, [], 'a line without a JOISTS note says nothing');
   assert.deepStrictEqual(PLAN.readMarkup(null), { crosses: [], arrows: [], beams: [] });
 }
-console.log('plan tests passed (symbols: lopsided ⊗, I, circled I, ✱, joist truss, marked-up X and JOISTS lines; frame vs mezzanine settled by the drawing)');
+// ⊘ (one diagonal) is a mezzanine column too; a bare circle is not; a "JOIST" arrow with shallow (~15°) half heads reads,
+// a shaft with 45° ticks does not
+{
+  const slash = (cx, cy, r) => [circle(cx, cy, r), seg(cx - r * 0.7, cy + r * 0.7, cx + r * 0.7, cy - r * 0.7)];
+  const s = PLAN.readSymbols([...slash(100, 100, 2.5), circle(140, 100, 2.5), ...xMark(180, 100, 2.8, 0)]);
+  assert.deepStrictEqual(s.crosses.map(c => [c.kind, Math.round(c.x)]).sort((a, b) => a[1] - b[1]), [['s', 100], ['x', 180]]);
+  const arrow = (x, y0, y1, k) => [seg(x, y0, x, y1), seg(x, y0, x - k * 11, y0 + 11), seg(x, y1, x + k * 11, y1 - 11)];   // heads at atan(k)
+  assert.strictEqual(PLAN.readArrows([...arrow(300, 100, 180, 0.27)].map(([a, b]) => ({ a, b, len: Math.hypot(b[0] - a[0], b[1] - a[1]) }))).length, 1, '15° heads');
+  assert.strictEqual(PLAN.readArrows([...arrow(300, 100, 180, 1)].map(([a, b]) => ({ a, b, len: Math.hypot(b[0] - a[0], b[1] - a[1]) }))).length, 0, '45° ticks');
+}
+const pending = [];
+// a drawing sheet set landscape with /Rotate 90: paths are read through the page's viewport transform, as printed; and
+// the floor plan is the drawing whose bubbles register to the frame lines — not the vector-only page after it
+{
+  const OPS = { save: 1, restore: 2, transform: 3, constructPath: 4, moveTo: 5, lineTo: 6, curveTo: 7, curveTo2: 8, curveTo3: 9, closePath: 10, rectangle: 11, beginAnnotation: 12, endAnnotation: 13, paintFormXObjectBegin: 14, paintFormXObjectEnd: 15 };
+  const ops = (paths, rot) => ({ fnArray: paths.map(() => OPS.constructPath), argsArray: paths.map(pts => [[OPS.moveTo, ...pts.slice(1).map(() => OPS.lineTo)], pts.flatMap(([x, y]) => (rot ? [y, x] : [x, 612 - y]))]) });
+  assert.deepStrictEqual(PLAN.subpaths(ops([seg(10, 20, 30, 20)], true), OPS, [0, 1, 1, 0, 0, 0]), [[[10, 20], [30, 20]]], 'rotated sheet read as printed');
+  assert.deepStrictEqual(PLAN.subpaths(ops([seg(10, 20, 30, 20)], false), OPS, 612), [[[10, 20], [30, 20]]], 'a height still works');
+  // a 60' x 40' building, frame lines at 0 / 30 / 60, endwall columns at 20': 3 pt a foot, the BSW at page y 280
+  const X = x => 100 + 3 * x, Y = y => 400 - 3 * y, bub = (x, y) => circle(x, y, 8, 40);
+  const plan = [...[0, 30, 60].flatMap(x => [bub(X(x), Y(40) - 30), bub(X(x), Y(0) + 30)]), ...[0, 20, 40].flatMap(y => [bub(X(0) - 30, Y(y)), bub(X(60) + 30, Y(y))]),
+    circle(X(30), Y(20), 2.5), seg(X(30) - 1.75, Y(20) + 1.75, X(30) + 1.75, Y(20) - 1.75), seg(X(15), Y(20) + 3, X(15), Y(40) - 3), seg(X(15), Y(20) + 3, X(15) - 3, Y(20) - 8), seg(X(15), Y(40) - 3, X(15) + 3, Y(40) + 8)];
+  const decoy = [...[0, 1, 2, 3, 4, 5].map(i => circle(80 + i * 40, 500, 8, 40)), ...Array.from({ length: 900 }, (_, i) => seg(i % 300, 50 + (i % 7), i % 300 + 2, 52 + (i % 7)))];
+  const pad = Array.from({ length: 900 }, (_, i) => seg(600 + (i % 50), 30 + (i % 11), 601 + (i % 50), 31 + (i % 11)));   // stroked text and title block
+  const pages = [{ num: 7, items: [], height: 612, vt: [0, 1, 1, 0, 0, 0], ops: ops([...plan, ...pad], true) }, { num: 8, items: [], height: 612, ops: ops(decoy, false) }];
+  const grid = { xs: [0, 30, 60], colY: [0, 20, 40], lewY: [0, 20, 40], rewY: [0, 20, 40], width: 40, letterLines: [0, 20, 40] };
+  pending.push((async () => {
+    const got = await PLAN.findPlan(pages, grid, p => p.ops, OPS);
+    assert.ok(got && got.page === 7 && got.reg.ok, got && got.reg.reason);
+    assert.deepStrictEqual(got.reg.columns.map(c => [c.kind, Math.round(c.x), Math.round(c.y)]), [['s', 30, 20]]);
+    assert.deepStrictEqual(got.reg.arrows.map(a => [a.dir, Math.round(a.x)]), [['y', 15]]);
+    // without the rotation the same page does not register (the sheet's bubbles would run the wrong way)
+    const flat = await PLAN.findPlan([{ ...pages[0], vt: null }], grid, p => p.ops, OPS);
+    assert.ok(!flat.reg.ok);
+  })());
+}
+// the drawing frames an overhanging edge on the line it puts columns on, and the end beams' cantilever loads its columns:
+// W2R-26047's 1'-3" past line 4 and 1'-10 13/16" past line C, ⊘ at 2/B, 3/B, 4/B
+{
+  const C = 52 + 4 / 12, ew = [28, 24 + 4 / 12, 23 + 8 / 12, 26];
+  const bw = { width: 102, length: 182, ridge: 51, bays: [31, 30, 30, 30, 30, 31], lewCols: ew, rewCols: ew, frames: [{ from: 1, to: 7, interior: [C, 102 - C] }], fswSoldier: [], bswSoldier: [],
+    planCols: [...[31, 61, 91].map(x => sym(x, 76, 's')), ...[0, 31, 61, 91, 121, 151, 182].map(x => sym(x, C, 'star')), ...[31, 61, 91].map(x => sym(x, 100.2, 'I')), sym(1.4, 76, 'I'), sym(1.4, 28, 'I')] };
+  const one = (b, extra = {}) => { const m0 = mz('1', 102 - 50.432291666666664 + 0.005208333, 92.25, 0, 50.432291666666664, b);
+    return RUN.runJob([{ inp: { ...m0, geom: { ...m0.geom, C: { value: null, source: 'none' } }, mezz: { ...m0.mezz, planJoists: 'y', planRead: { found: true, ok: true }, ...extra } } }]); };
+  const j = one(bw), r = j.mezz[0], L = r.layout;
+  assert.deepStrictEqual(L.beamLines.map(v => +v.toFixed(3)), [52.333, 76, 102]);
+  assert.deepStrictEqual(L.supportLines, [0, 31, 61, 91]);
+  assert.deepStrictEqual(j.columns.map(c => c.label), ['2/B', '3/B', '4/B']);
+  assert.ok(r.warn.some(w => w.level === 'ok' && /3 ⊘ mezzanine columns in mezzanine 1, at 2\/B, 3\/B, 4\/B — the same as the layout/.test(w.text)));
+  assert.ok(r.warn.some(w => /edge 92'-3" from the LEW is framed on the grid line 4 \(91'-0"\) — the slab overhangs it by 1'-3", as the PCS floor plan draws it/.test(w.text)));
+  // 4/B: the 61→91 beam on line B, plus its 1'-3" cantilever: R = V (1 + 2a/L (1 + a/2L)); 3/B: plain end shears
+  const c4 = j.columns.find(c => c.label === '4/B'), c3 = j.columns.find(c => c.label === '3/B');
+  const bB = L.beams.find(b => Math.abs(b.line - 76) < 0.01 && b.to === 91), mkB = r.marks.find(mk => mk.beams.includes(bB.id));
+  const V = require('../src/design.js').reactions({ ...r.beamBase, L: bB.span, trib: bB.trib }, mkB.sec), k = 1 + 2 * 1.25 / 30 * (1 + 1.25 / 60);
+  assert.ok(Math.abs(c4.DL_L - V.D * k) < 1e-9 && Math.abs(c4.LL_L - V.L * k) < 1e-9, `${c4.DL_L} vs ${V.D * k}`);
+  assert.ok(Math.abs(c3.DL_L - V.D) < 1e-9 && Math.abs(c3.DL_R - V.D) < 1e-9);
+  // a misread on either side stops the layout: Box 5 without the interior columns (the ✱ say otherwise), a bay list cut short
+  const stops = b => one(b).mezz[0].warn.filter(w => w.level === 'stop').map(w => w.text).join('\n');
+  assert.match(stops({ ...bw, frames: [{ from: 1, to: 7, interior: [102] }] }), /PCS floor plan shows ✱ interior frame columns at 1\/C, 2\/C, 3\/C, 4\/C, where Box 5 lists no interior column/);
+  assert.match(stops({ ...bw, bays: [31, 30, 30, 30, 30] }), /bays of "BLDG 1" .* add to 151'-0", but the building is 182'-0" long/);
+  assert.match(stops({ ...bw, frames: bw.frames.map(f => ({ ...f, to: 6 })) }), /Box 5: frame line 7 of "BLDG 1" has no frame row/);
+  assert.match(stops({ ...bw, lewCols: [28, 24 + 4 / 12] }), /LEW column spacing of "BLDG 1" .* adds to 52'-4", but the building is 102'-0" wide/);
+  assert.match(one(bw, { planRead: { found: true, ok: false, reason: 'letter bubbles do not line up', page: 16 } }).mezz[0].warn.filter(w => w.level === 'stop').map(w => w.text).join(' '), /The PCS floor plan \(page 16\) could not be matched to the building grid/);
+  // the drawing's ⊘ against a layout without them (line B lost with the endwall list): a stop that names where they are
+  const lost = one({ ...bw, lewCols: [28, 24 + 4 / 12, 49 + 8 / 12], rewCols: [28, 24 + 4 / 12, 49 + 8 / 12] }).mezz[0];
+  assert.ok(lost.warn.some(w => w.level === 'stop' && /does not match the PCS drawing's ⊘ mezzanine columns — drawn but not in the layout: 2\/76'-0", 3\/76'-0", 4\/76'-0"/.test(w.text)), lost.warn.map(w => w.text).join('\n'));
+}
+Promise.all(pending).then(() => console.log('plan tests passed (symbols: lopsided ⊗, ⊘, I, circled I, ✱, joist truss and shallow-headed arrows, marked-up X and JOISTS lines; a rotated sheet; the plan page picked by registration; frame vs mezzanine settled by the drawing; drawn overhangs and their reactions; misreads stop)')).catch(e => { console.error(e); process.exit(1); });

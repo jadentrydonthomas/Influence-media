@@ -60,7 +60,9 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   console.log('load+design ms', ms);
   console.log(JSON.stringify({ ...answer, quote }, null, 1));
   if (quote.length !== 3 || quote.some(t => !t.length)) fail('quote sheet should have design, beam and column rows');
-  if (!/BU\d+x\d+/.test(quote[1] && quote[1][0] || '')) fail('beam row has no BU section');
+  // a beam row carries its BU section — or, where the design says nothing stocked passes (a clearance cap), says so
+  const noneOk = answer.notes.some(n => /^stop: MB\d: no stocked BU section/.test(n));
+  if (!/BU\d+x\d+/.test(quote[1] && quote[1][0] || '') && !(noneOk && /NO SECTION .*NO PASSING SECTION/.test(quote[1] && quote[1][0] || ''))) fail('beam row has no BU section');
   if (answer.metrics.length !== 4) fail('four metric cards expected');
   // the 3D model drew something: count non-transparent pixels in the canvas
   const inked = await page.$eval('#model3d', c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return n; });

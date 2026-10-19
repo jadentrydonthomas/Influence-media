@@ -1,30 +1,35 @@
-/* Floor-plan reader. The eQuote floor plan (last PCS page) has no text layer: everything, text included,
+/* Floor-plan reader. The eQuote floor plan (a drawing page near the end of the PCS) has no text layer: everything, text included,
    is stroked vectors. What can be read reliably is geometry:
      - grid bubbles  : circles r ≈ 6–14 pt (numbers along the top/bottom, letters along the sides)
-     - mezz columns  : a small circle r ≈ 2.5–7 pt with either two diagonals (⊗) or an I-shape (web + flange
-                       strokes) at its centre — both conventions appear on eQuote drawings
+     - mezz columns  : a small circle r ≈ 2.5–7 pt with two diagonals (⊗), one diagonal (⊘) or an I-shape (web +
+                       flange strokes) at its centre — all three conventions appear on eQuote drawings
      - frame columns : a bare I (web stroke with a flange stroke across each end, no circle) — sidewall, endwall
                        and interior frame columns; and ✱ (four strokes through one point: horizontal, vertical,
                        two diagonals), the interior frame columns "designated as Most Economical" in Box 5
-     - joist arrows  : "Mez. Jst." — a straight shaft with a half arrowhead (~30°) at each end
+     - joist arrows  : "Mez. Jst." / "JOIST" — a straight shaft with a half arrowhead (~15–30°) at each end
      - joist symbols : a short truss drawn along the joists — a chord line with a zigzag of webs beside it
      - markup        : what the quote engineer marks up over the plan as PDF annotations — an "X" text box on each
                        mezzanine column, a line labelled "JOISTS" (and lines of its colour) across the joist span
    Circles are drawn either as one polyline or as dozens of 2-point segments; segments are chained first.
+   A drawing sheet is often a rotated page (/Rotate 90 or 270, set landscape): paths are taken through the page's
+   viewport transform, so the plan reads the way it is printed.
    The bubbles register the drawing to the building grid (same scale on both axes, so extra bubbles — a
    lean-to, an offset letter — cannot throw the fit), every side bubble is lettered from the BSW down
    skipping I and O like the drafting, and each symbol is snapped to building coordinates. */
 (function (root) {
   'use strict';
 
-  // Walk a pdf.js operator list and return every subpath in page coordinates (top-origin y).
-  function subpaths(opList, OPS, pageHeight) {
+  /* Walk a pdf.js operator list and return every subpath in top-origin page coordinates, as the page is shown.
+     view: the page's viewport transform (page.getViewport({ scale: 1 }).transform; a rotated page turns with it),
+     or just the page height for an unrotated page. */
+  function subpaths(opList, OPS, view) {
     const out = [];
     let ctm = [1, 0, 0, 1, 0, 0];
     const stack = [];
     let inAnnot = 0;
+    const V = view && typeof view === 'object' && view.length === 6 ? view : [1, 0, 0, -1, 0, view];
     const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
-    const P = (x, y) => [ctm[0] * x + ctm[2] * y + ctm[4], pageHeight - (ctm[1] * x + ctm[3] * y + ctm[5])];
+    const P = (x, y) => { const u = ctm[0] * x + ctm[2] * y + ctm[4], w = ctm[1] * x + ctm[3] * y + ctm[5]; return [V[0] * u + V[2] * w + V[4], V[1] * u + V[3] * w + V[5]]; };
     const { fnArray, argsArray } = opList;
     for (let i = 0; i < fnArray.length; i++) {
       const fn = fnArray[i], args = argsArray[i];
@@ -110,13 +115,14 @@
     uniq.forEach(c => {
       if (c.r > 8) { plain.push(c); return; }
       const diag = segs.filter(s => Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.35 && s.len > c.r * 1.1 && s.len < c.r * 2.4 && Math.abs(Math.abs(s.slope) - 1) < 0.6);
-      const hasX = diag.some(s => s.slope > 0) && diag.some(s => s.slope < 0);
+      const hasX = diag.some(s => s.slope > 0) && diag.some(s => s.slope < 0), hasSlash = !hasX && diag.length > 0;
       // circled I: a web stroke through the centre (either orientation) with a flange stroke across one end
       const webs = segs.filter(s => axial(s) && Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.3 && s.len > c.r * 0.6 && s.len < c.r * 1.6);
       const hasI = webs.some(w => segs.some(f => f !== w && axial(f) && axial(f) !== axial(w) && f.len > c.r * 0.35 && f.len < c.r * 1.3
         && Math.min(Math.hypot(f.mx - w.a[0], f.my - w.a[1]), Math.hypot(f.mx - w.b[0], f.my - w.b[1])) < c.r * 0.3));
       if (hasX) crosses.push({ ...c, kind: 'x' });
       else if (hasI) crosses.push({ ...c, kind: 'i' });
+      else if (hasSlash) crosses.push({ ...c, kind: 's' });
       else plain.push(c);
     });
     const inCircle = p => uniq.some(c => c.r <= 8 && Math.hypot(c.x - p.x, c.y - p.y) < c.r * 1.05);
@@ -144,9 +150,9 @@
     return { crosses, frameCols, circles: plain, arrows: readArrows(segs.concat(longSegs)).concat(readJoistSymbols(paths)) };
   }
 
-  /* "Mez. Jst." joist-span arrows: an axis-aligned shaft with a short stroke leaving each end at ~30° to it
-     (a half arrowhead; the two heads sit on opposite sides). Hatching is at 45° and dimension lines carry
-     ticks, so the 20–40° window plus a head at both ends keeps them out. */
+  /* "Mez. Jst." / "JOIST" joist-span arrows: an axis-aligned shaft with a short stroke leaving each end at ~15–30° to
+     it (a half arrowhead; the two heads sit on opposite sides). Hatching and dimension ticks are at 45°, so the
+     10–40° window plus a head at both ends keeps them out. */
   function readArrows(segs) {
     const out = [];
     const long = segs.filter(s => s.len >= 25 && s.len <= 400 && (Math.abs(s.b[0] - s.a[0]) < 0.02 * s.len || Math.abs(s.b[1] - s.a[1]) < 0.02 * s.len));
@@ -159,7 +165,7 @@
         if (!o) return false;
         const along = Math.abs(vert ? o[1] - end[1] : o[0] - end[0]), across = Math.abs(vert ? o[0] - end[0] : o[1] - end[1]);
         const ang = Math.atan2(across, along) * 180 / Math.PI;
-        return ang > 20 && ang < 40;
+        return ang > 10 && ang < 40;
       });
       if (head(sh.a) && head(sh.b)) out.push({ x: (sh.a[0] + sh.b[0]) / 2, y: (sh.a[1] + sh.b[1]) / 2, len: sh.len, vert, a: sh.a, b: sh.b });
     });
@@ -342,6 +348,30 @@
     return out;
   }
 
+  // registerAndRead's grid from LAYOUT.buildingGrid: the frame lines, every column line (sidewalls, endwall columns,
+  // interior frame columns), the endwall column lines, and the lettered lines (column lines + ridge)
+  const gridOf = g => ({ xs: g.xs, colY: [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => +v.toFixed(3)))], lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
+
+  /* The floor plan among a PCS's pages: a drawing (no text layer, hundreds of vector paths) whose grid bubbles register
+     to the building's frame lines. A quote can carry other vector-only sheets — the components-and-cladding wind
+     table, elevations — so the drawings are tried from the last page back: the first that registers and shows
+     mezzanine columns or joist arrows is the plan; else the first that registers; else the one with the most grid
+     bubbles, whose reason says why it did not read. opsOf(page) → the page's operator list (async). */
+  async function findPlan(pages, grid, opsOf, OPS) {
+    let fit = null, best = null;
+    for (const p of pages.slice().reverse()) {
+      if (p.items.length > 40) continue;
+      const paths = subpaths(await opsOf(p), OPS, p.vt || p.height);
+      if (paths.length < 800) continue;
+      const reg = grid ? registerAndRead(paths, grid, p.annots || []) : { ok: false, reason: 'no building grid to register the drawing to', bubbles: 0 };
+      const c = { page: p.num, paths, annots: p.annots || [], reg };
+      if (reg.ok && (reg.columns.length || reg.arrows.length)) return c;
+      if (reg.ok && !fit) fit = c;
+      if (!best || (reg.bubbles || 0) > (best.reg.bubbles || 0)) best = c;
+    }
+    return fit || best;
+  }
+
   // Compare detected ⊗ with the derived layout's mezzanine columns (tolerance in ft)
   function compare(detected, mezzCols, tol = 1.5) {
     const used = new Set();
@@ -354,6 +384,6 @@
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { readMarkup, subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters };
+  const api = { readMarkup, subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters, gridOf, findPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
 })(typeof self !== 'undefined' ? self : this);

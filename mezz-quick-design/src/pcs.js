@@ -48,14 +48,15 @@
     while ((m = re.exec(clean(s)))) { const f = ftin(m[2]); for (let i = 0; i < +m[1]; i++) out.push(f); }
     return out;
   }
+  // to the 1/16" the PCS itself writes (1'-10 13/16"), reduced (1/2, 3/8, 9/16)
   const fmtFtIn = ft => {
     if (ft == null || !isFinite(ft)) return '—';
     const neg = ft < 0; ft = Math.abs(ft);
-    let f = Math.floor(ft + 1e-9), i = Math.round((ft - f) * 12 * 8) / 8;
-    if (i >= 12) { f += 1; i -= 12; }
-    const whole = Math.floor(i), frac = i - whole;
-    const fr = frac ? ' ' + ({ 0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8' })[frac] : '';
-    return (neg ? '-' : '') + f + "'-" + whole + fr + '"';
+    let f = Math.floor(ft + 1e-9), n = Math.round((ft - f) * 12 * 16);
+    if (n >= 12 * 16) { f += 1; n -= 12 * 16; }
+    const whole = Math.floor(n / 16), q = n % 16, gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    const fr = q ? ` ${q / gcd(q, 16)}/${16 / gcd(q, 16)}` : '';
+    return (neg && (f || n) ? '-' : '') + f + "'-" + whole + fr + '"';
   };
 
   // ---------- page -> lines ----------
@@ -99,6 +100,94 @@
   const allLines = pages => pages.flatMap(p => lines(p).map(l => ({ ...l, page: p.num })));
   const findLine = (ls, re, from = 0) => { for (let i = from; i < ls.length; i++) if (re.test(ls[i].text)) return i; return -1; };
   const grab = (text, re) => { const m = text.match(re); return m ? clean(m[1]) : null; };
+  const shift = (l, dy) => ({ ...l, y: l.y + dy, items: l.items.map(it => ({ ...it, y: it.y + dy })) });
+
+  /* A numbered box's lines, from its heading ("5) FRAME INFORMATION") down to the next box's heading. A box that runs
+     past the page goes on under the next page's header ("5) FRAME INFORMATION (CONTINUED)" after "CONTROL #"); those
+     lines are shifted below the page before, so a wrapped row still reads as the row above it. */
+  function boxLines(pages, n) {
+    const head = new RegExp(String.raw`^\s*${n}\)\s`);
+    const isNext = l => { const m = l.text.match(/^\s*(\d{1,2})\)\s+[A-Z][A-Z ,&/-]{3,}/); return !!m && +m[1] > n; };
+    const out = [];
+    let dy = 0, on = false;
+    for (const p of pages) {
+      const ls = lines(p);
+      let from;
+      if (!on) {
+        const h = findLine(ls, head);
+        if (h < 0) continue;
+        on = true; from = h + 1;
+      } else {
+        const c = findLine(ls, /CONTROL #/i) + 1;
+        if (!(ls[c] && head.test(ls[c].text) && /CONTINUED/i.test(ls[c].text))) break;
+        from = c + 1;
+      }
+      let e = -1;
+      for (let i = from; i < ls.length; i++) if (isNext(ls[i])) { e = i; break; }
+      ls.slice(from, e < 0 ? ls.length : e).forEach(l => out.push(dy ? shift(l, dy) : l));
+      if (e >= 0) break;
+      dy += p.height || 792;
+    }
+    return out;
+  }
+
+  /* Building names. A name wraps inside its table cell ("MAINTENANCE" / "BUILDING", or mid-word "MAINTENAN" /
+     "CE BUILDING"), and Box 5 runs it into the next words ("BUILDING NAME: MAINTENANCE BUILDING Cold Formed Materials
+     Allowed on Frame"). Names compare on letters and digits only, BLDG read as BUILDING, so the pieces of a wrapped name
+     join to the same key however the cell broke them. */
+  const nkey = t => String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/BLDG/g, 'BUILDING');
+  const headName = t => clean(t).replace(/\s*\bCold\s+Formed\s+Materials\b.*$/i, '');
+  // every building name the quote spells out in full: Box 5's block heads, Box 22's mezzanines, the attachment notes
+  const knownCache = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+  function knownNames(pages, name) {
+    let base = knownCache && knownCache.get(pages);
+    if (!base) {
+      base = [];
+      allLines(pages).forEach(l => { const m = l.text.match(/BUILDING NAME:\s*(.+?)(?:\s{2,}|$)/i); if (m) base.push(headName(m[1])); });
+      attachments(pages).forEach(a => base.push(a.building, a.to));
+      if (knownCache) knownCache.set(pages, base);
+    }
+    return [...new Set([name, ...base].filter(Boolean))];
+  }
+  /* The rows of a table that opens each row with the building name (cells left of xData). A name piece that carries the
+     row's name on toward a known building name continues that row; any other piece opens a new row; a line with
+     nothing in the name cell (a spacing list that wraps) stays with the row above. `glue` finds where the next cell
+     starts when a short gap ran it into the name ("MAINTENAN Per Seller"); unless the whole text still spells toward a
+     known name, it is cut there and the rest kept as the row's first value. */
+  function nameRows(ls, xData, known, glue) {
+    const keys = known.map(nkey).filter(Boolean), rows = [];
+    ls.forEach(l => {
+      let items = l.items, piece = null;
+      const it = items[0], cur = rows[rows.length - 1];
+      if (it && it.x < xData - 6) {
+        const fits = s => keys.some(k => k.startsWith(nkey(s)) || (cur && k.startsWith(nkey(cur.raw + ' ' + s))));
+        const g = glue ? it.str.search(glue) : -1;
+        const cut = g >= 0 && !fits(it.str);
+        piece = cut ? it.str.slice(0, g).trim() || null : it.str;
+        if (cut) items = [...(piece ? [{ ...it, str: piece }] : []), { ...it, str: it.str.slice(g).trim(), x: xData }, ...items.slice(1)];
+        if (piece) items = [{ ...items[0], name: true }, ...items.slice(1)];
+      }
+      const line = { ...l, items };
+      if (piece) {
+        const joined = cur ? nkey(cur.raw + ' ' + piece) : '';
+        if (cur && joined && keys.some(k => k.startsWith(joined))) { cur.raw += ' ' + piece; cur.lines.push(line); }
+        else rows.push({ raw: piece, lines: [line] });
+      } else if (cur) cur.lines.push(line);
+    });
+    rows.forEach(r => { r.key = nkey(r.raw); r.name = known.find(n => nkey(n) === r.key) || clean(r.raw); });
+    return rows;
+  }
+  /* The named building's row: the same name; else the one row whose name starts the other (a cut-off cell); else, when
+     the table lists a single building, that one. With no name, the first row. `matched` says which rule found it. */
+  function pickRow(rows, name) {
+    if (!name) return rows[0] ? { row: rows[0], matched: 'first' } : null;
+    const k = nkey(name);
+    const same = rows.find(r => r.key === k);
+    if (same) return { row: same, matched: 'name' };
+    const pre = rows.filter(r => r.key && (k.startsWith(r.key) || r.key.startsWith(k)));
+    if (pre.length === 1) return { row: pre[0], matched: 'prefix' };
+    return rows.length === 1 ? { row: rows[0], matched: 'only' } : null;
+  }
 
   // ---------- header / job facts ----------
   function jobFacts(pages) {
@@ -182,49 +271,55 @@
      Building | Roof Dead | Roof Snow | Wind Enclosure | Thermal | Primary Collateral | Secondary Collateral | …
      ("Per Seller" or "n psf"; a * on the snow marks a user override) */
   function roofLoads(pages, name) {
-    for (const p of pages.slice(0, 8)) {
-      const ls = lines(p), h = findLine(ls, /Roof Dead\s+Roof Snow|Roof Dead/i);
-      if (h < 0 || !/Collateral/i.test(ls[h].text)) continue;
-      const hx = re => { for (const l of ls.slice(h, h + 3)) for (const it of l.items) if (re.test(it.str)) return it.x; return null; };
-      const xPrim = hx(/^Primary/i), xSec = hx(/^Secondary/i), xDue = hx(/^Collateral$|Collateral Load/i);
-      const end = findLine(ls, /DEFLECTION REQUIREMENTS|^\* /i, h + 1);
-      const rows = ls.slice(h + 2, end < 0 ? h + 12 : end).filter(l => l.items.length >= 3 && !/psf/i.test(l.items[0].str));
-      const row = rows.find(l => !name || bkey(l.items[0].str) === bkey(name)) || (!name ? rows[0] : null);
-      if (!row) continue;
-      const psf = t => { const m = /([\d.]+)\s*psf(\*)?/i.exec(t || ''); return m ? { value: +m[1], override: !!m[2] } : /per seller/i.test(t || '') ? { value: null, perSeller: true } : null; };
-      const rest = row.items.slice(1);
-      const bin = x => [[xPrim, 'coll1'], [xSec, 'coll2'], [xDue, 'due']].filter(c => c[0] != null).sort((a, b) => Math.abs(a[0] - x) - Math.abs(b[0] - x))[0];
-      const out = { building: clean(row.items[0].str), dead: psf(rest[0] && rest[0].str), snow: psf(rest[1] && rest[1].str), coll1: null, coll2: null };
-      rest.slice(2).forEach(it => { const v = psf(it.str), b = v && v.value != null && bin(it.x); if (b && (b[1] === 'coll1' || b[1] === 'coll2') && out[b[1]] == null) out[b[1]] = v.value; });
-      return out;
-    }
-    return null;
+    const ls = boxLines(pages, 4), h = findLine(ls, /Roof Dead/i);
+    if (h < 0 || !/Collateral/i.test(ls[h].text)) return null;
+    const hx = re => { for (const l of ls.slice(h, h + 3)) for (const it of l.items) if (re.test(it.str)) return it.x; return null; };
+    const xPrim = hx(/^Primary/i), xSec = hx(/^Secondary/i), xDue = hx(/^Collateral$|Collateral Load/i), xDead = hx(/^Roof Dead/i) ?? 85;
+    const end = findLine(ls, /DEFLECTION REQUIREMENTS|^\* /i, h + 1);
+    const PSF = /Per Seller|([\d.]+)\s*psf(\*)?/gi;
+    const rows = nameRows(ls.slice(h + 2, end < 0 ? h + 12 : end), xDead, knownNames(pages, name), /\s(?:Per Seller|[\d.]+\s*psf)/i);
+    const pick = pickRow(rows, name);
+    if (!pick) return null;
+    // the row's own line: dead and snow are its first two values ("Per Seller" or "n psf", * = a user override); the
+    // collaterals sit under their headers
+    const toks = [];
+    pick.row.lines[0].items.forEach(it => { if (it.name) return; let m; PSF.lastIndex = 0; while ((m = PSF.exec(it.str))) toks.push({ x: it.x, v: m[1] != null ? { value: +m[1], override: !!m[2] } : { value: null, perSeller: true } }); });
+    const bin = x => [[xPrim, 'coll1'], [xSec, 'coll2'], [xDue, 'due']].filter(c => c[0] != null).sort((a, b) => Math.abs(a[0] - x) - Math.abs(b[0] - x))[0];
+    const out = { building: pick.row.name, matched: pick.matched, dead: toks[0] ? toks[0].v : null, snow: toks[1] ? toks[1].v : null, coll1: null, coll2: null };
+    toks.slice(2).forEach(t => { const b = t.v.value != null && bin(t.x); if (b && (b[1] === 'coll1' || b[1] === 'coll2') && out[b[1]] == null) out[b[1]] = t.v.value; });
+    return out;
   }
-  const bkey = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
 
   // ---------- Box 2: building geometry ----------
   function building(pages, name) {
-    const pi = pages.findIndex(p => lines(p).some(l => /BUILDING DESCRIPTION/i.test(l.text)));
-    if (pi < 0) return null;
-    const ls = lines(pages[pi]);
-    const out = { name: null, width: null, length: null, ridge: null, eave: null, eaveFSW: null, eaveBSW: null, slopeFSW: null, slopeBSW: null, profile: null, bays: [], lewCols: [], rewCols: [], fswSoldier: [], bswSoldier: [] };
-    // building information row: first line after the header carrying >= 3 dimensions
+    const ls = boxLines(pages, 2);
+    if (!ls.length) return null;
+    const known = knownNames(pages, name);
+    const out = { name: null, width: null, length: null, ridge: null, eave: null, eaveFSW: null, eaveBSW: null, slopeFSW: null, slopeBSW: null, profile: null, bays: [], lewCols: [], rewCols: [], fswSoldier: [], bswSoldier: [], rows: {} };
+    // building information: one row per building, from the first line carrying >= 3 dimensions down to the footnote
     const hi = findLine(ls, /BUILDING INFORMATION/i);
-    for (let i = hi + 1; i < ls.length && i >= 0; i++) {
-      if (/ROOF SECONDARY|SIDEWALL AND ENDWALL/i.test(ls[i].text)) break;
-      const dims = (ls[i].text.match(reDimAll) || []).map(ftin).filter(v => v != null);
-      if (dims.length >= 3 && (!name || ls[i].text.toUpperCase().includes(name.toUpperCase()) || !out.width)) {
+    if (hi >= 0) {
+      const end = findLine(ls, /^\*|ROOF SECONDARY|SIDEWALL AND ENDWALL/i, hi + 1);
+      const region = ls.slice(hi + 1, end < 0 ? ls.length : end);
+      const first = region.findIndex(l => (l.text.match(reDimAll) || []).map(ftin).filter(v => v != null).length >= 3);
+      const prof = region.slice(0, Math.max(first, 0)).flatMap(l => l.items).find(it => /^Building Profile/i.test(it.str));
+      const pick = first < 0 ? null : pickRow(nameRows(region.slice(first), prof ? prof.x : 87, known, /\s(?:Gable|Single\s*Slope|Lean[- ]?To|Multi[- ]?Gable|Mono[- ]?Slope)\b/i), name);
+      if (pick) {
+        // the row's own line, without the name piece; the profile can wrap ("Gable" / "Symmetrical")
+        const own = pick.row.lines[0].items.filter(it => !it.name).map(it => it.str).join('  ');
+        const all = pick.row.lines.flatMap(l => l.items.filter(it => !it.name).map(it => it.str)).join('  ');
+        const dims = (own.match(reDimAll) || []).map(ftin).filter(v => v != null);
         // width, length, distance to ridge (N/A on a single slope or a lean-to), eave heights: N/A keeps its place
-        const tok = (ls[i].text.match(new RegExp(DIM + '|N\\/A', 'g')) || []).map(t => (t === 'N/A' ? null : ftin(t)));
+        const tok = (own.match(new RegExp(DIM + '|N\\/A', 'g')) || []).map(t => (t === 'N/A' ? null : ftin(t)));
         [out.width, out.length, out.ridge, out.eave] = tok.length >= 3 ? tok : dims;
         // eave heights FSW / BSW and roof slopes FSW / BSW ("1:12\"", N/A on the low side of a single slope); the
         // slope's 12" would read as a dimension, so slopes are taken on their own
         out.eaveFSW = out.eave; out.eaveBSW = tok.length >= 5 && tok[4] != null ? tok[4] : out.eave;
-        const sl = [...ls[i].text.matchAll(/(\d+(?:\.\d+)?)\s*:\s*12/g)].map(m => +m[1]);
+        const sl = [...own.matchAll(/(\d+(?:\.\d+)?)\s*:\s*12/g)].map(m => +m[1]);
         out.slopeFSW = sl[0] ?? null; out.slopeBSW = sl[1] ?? null;
-        out.profile = /single\s*slope/i.test(ls[i].text) ? 'Single Slope' : /lean/i.test(ls[i].text) ? 'Lean-To' : /gable/i.test(ls[i].text) ? 'Gable' : null;
-        out.name = clean(ls[i].items[0].str);
-        if (!name || out.name.toUpperCase() === name.toUpperCase()) break;
+        out.profile = /single\s*slope/i.test(all) ? 'Single Slope' : /lean/i.test(all) ? 'Lean-To' : /gable/i.test(all) ? 'Gable' : null;
+        out.name = pick.row.name;
+        out.rows.info = { name: pick.row.name, matched: pick.matched };
       }
     }
     // sidewall / endwall spacing table: bin n@ft-in tokens by header column x
@@ -239,19 +334,14 @@
       ].filter(c => c[1] != null).sort((a, b) => a[1] - b[1]);
       const colOf = x => { let k = null; cols.forEach(c => { if (x >= c[1] - 6) k = c[0]; }); return k; };
       const text = { bays: '', fswSoldier: '', bswSoldier: '', lewCols: '', rewCols: '' };
-      // data rows start with the building name in the first column; continuation rows (spacings that wrap)
-      // have nothing there. Only the rows of the mezzanine's building are read (a lean-to has its own row).
-      const xFirst = cols[0][1];
-      let started = false, current = null;
-      for (const l of region) {
-        const hasSp = /\d+\s*@/.test(l.text);
-        if (!hasSp && started && /Building Name/i.test(l.text)) break;
-        if (!hasSp && !(started && /N\/A/.test(l.text))) continue;
-        const lead = l.items[0] && l.items[0].x < xFirst - 6 ? clean(l.items[0].str) : null;
-        if (lead) current = lead;
-        if (name && current && current.toUpperCase() !== name.toUpperCase()) { started = true; continue; }
-        started = true;
-        l.items.forEach(it => { const k = colOf(it.x); if (k) text[k] += ' ' + it.str; });
+      // one row per building (a lean-to has its own): the name, then the spacing lists, which wrap onto the lines under
+      // it as the name can; only the mezzanine's building's row is read
+      const xFirst = cols.length ? cols[0][1] : 108;
+      const first = region.findIndex(l => l.items.some(it => it.x >= xFirst - 6 && (/\d+\s*@/.test(it.str) || /^N\/A$/i.test(it.str))));
+      const pick = first < 0 ? null : pickRow(nameRows(region.slice(first), xFirst, known, /\s\d+\s*@/), name);
+      if (pick) {
+        pick.row.lines.forEach(l => l.items.forEach(it => { const k = !it.name && colOf(it.x); if (k) text[k] += ' ' + it.str; }));
+        out.rows.spacing = { name: pick.row.name, matched: pick.matched };
       }
       Object.keys(text).forEach(k => { out[k] = spacingList(text[k]); });
     }
@@ -260,28 +350,33 @@
 
   // ---------- Box 5: frame information (interior columns) ----------
   function frames(pages, name) {
-    const pi = pages.findIndex(p => lines(p).some(l => /FRAME INFORMATION/i.test(l.text)));
-    if (pi < 0) return [];
-    const ls = lines(pages[pi]);
-    const s = findLine(ls, /FRAME INFORMATION/i);
     // every building's block, down to the next box (each block ends with its own "Base Plate Elevations" note)
-    const e = findLine(ls, /^\s*6\)\s|6\) ROOF PANEL/i, s + 1);
-    let region = ls.slice(s + 1, e < 0 ? ls.length : e);
+    let region = boxLines(pages, 5);
+    if (!region.length) return [];
     // one block per building ("BUILDING NAME: Main", "BUILDING NAME: Lean-To Canopy"): keep the mezzanine's
-    const heads = region.map((l, i) => { const m = l.text.match(/BUILDING NAME:\s*(.+?)(?:\s{2,}|$)/i); return m ? { i, name: clean(m[1]) } : null; }).filter(Boolean);
-    const key = t => String(t || '').toUpperCase().replace(/BUILDING/g, 'BLDG').replace(/[^A-Z0-9]/g, '');
+    const heads = region.map((l, i) => { const m = l.text.match(/BUILDING NAME:\s*(.+?)(?:\s{2,}|$)/i); return m ? { i, raw: m[1], name: headName(m[1]), key: nkey(headName(m[1])) } : null; }).filter(Boolean);
+    let matched = null;
     if (heads.length) {
       // the named building's block; with no name, the first building's (never another building's frames)
-      const k = name ? heads.findIndex(h => key(h.name) === key(name)) : 0;
-      if (k < 0) return [];
+      const pick = pickRow(heads, name);
+      if (!pick) return [];
+      const k = heads.indexOf(pick.row);
+      matched = { name: pick.row.name, matched: pick.matched };
       region = region.slice(heads[k].i, heads[k + 1] ? heads[k + 1].i : region.length);
     }
+    const TYPE = /Frame|Bearing|Post|Beam|Lean|Rigid|Truss|Span/i;
     const rows = [];
     region.forEach(l => {
-      const m = l.items[0] && l.items[0].str.match(/^(\d+)(?:\s*-\s*(\d+))?(?:\s*\((LEW|REW)\))?$/);
-      const typeIt = l.items[1] && /Frame|Bearing|Post|Beam|Lean|Rigid|Truss/i.test(l.items[1].str);
-      if (m && typeIt) rows.push({ from: +m[1], to: m[2] ? +m[2] : +m[1], wall: m[3] || null, type: clean(l.items[1].str), y: l.y, tokens: [] });
+      // "1 (LEW)" / "2 - 6" / "7 (REW)", then the frame type; a short gap can run the two together
+      const it0 = l.items[0];
+      const m = it0 && it0.str.match(/^(\d+)(?:\s*-\s*(\d+))?(?:\s*\((LEW|REW)\))?(?:\s+(.+))?$/);
+      const type = m && (m[4] ? (TYPE.test(m[4]) ? m[4] : null) : l.items[1] && TYPE.test(l.items[1].str) ? l.items[1].str : null);
+      if (m && type) rows.push({ from: +m[1], to: m[2] ? +m[2] : +m[1], wall: m[3] || null, type: clean(type), x: m[4] ? it0.x : l.items[1].x, y: l.y, tokens: [] });
     });
+    // a long frame type wraps its code onto the line under it ("Rigid Frame Multi Span (Non-Exp) -" / "RMG")
+    const xFuture = (region.flatMap(l => l.items).find(it => /^Future/i.test(it.str)) || {}).x ?? 221;
+    rows.forEach((r, i) => region.filter(l => l.y > r.y + 3 && (!rows[i + 1] || l.y < rows[i + 1].y - 3) && !/BUILDING NAME:|Base Plate/i.test(l.text))
+      .forEach(l => l.items.forEach(it => { if (it.x >= r.x - 12 && it.x < xFuture - 6) r.type = clean(r.type + ' ' + it.str); })));
     // module spacing tokens (n@ft) belong to the nearest row above
     region.forEach(l => l.items.forEach(it => {
       if (!/\d+\s*@/.test(it.str)) return;

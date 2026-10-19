@@ -93,15 +93,20 @@ const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
     const sum = sheets.find(s => s.name === 'Summary'), col0 = sum.rows.map(r => cellText((r || [])[0]));
     job.marks.forEach(m => assert.ok(col0.some(t => t === m.mark || String(t).startsWith(m.mark + ' ')), `${f}: ${m.mark} on the Summary`));
     job.mezz.filter(r => r && r.colFinal).forEach(r => assert.ok(sum.rows.some(row => row && cellText(row[0]) === r.id && cellText(row[1]) === r.colFinal.name), `${f}: ${r.id} columns on the Summary`));
-    // the beam rows carry the MB-sheet numbers as numbers
-    job.marks.forEach(m => { const row = sum.rows.find(r => r && (cellText(r[0]) === m.mark || String(cellText(r[0])) === `${m.mark} ${m.kind}`)), c = m.spanRuns[0].check; assert.strictEqual(cellText(row[8]), c.res.CSR); assert.strictEqual(cellText(row[12]), c.V.D); });
+    // the beam rows carry the MB-sheet numbers as numbers; a mark with nothing passing stays on as NO SECTION
+    job.marks.forEach(m => { const row = sum.rows.find(r => r && (cellText(r[0]) === m.mark || String(cellText(r[0])) === `${m.mark} ${m.kind}`));
+      if (!m.sec) { assert.ok(row && row.some(c => /NO SECTION/i.test(String(cellText(c)))), `${f}: ${m.mark} NO SECTION on the Summary`); return; }
+      const c = m.spanRuns[0].check; assert.strictEqual(cellText(row[8]), c.res.CSR); assert.strictEqual(cellText(row[12]), c.V.D); });
     // every MB-sheet cell typed is on the MB sheets page with its value
     const mb = sheets.find(s => s.name === 'MB sheets'), typedCells = new Map(mb.rows.filter(r => r && r.length === 3).map(r => [String(cellText(r[0])).split(' ')[0], cellText(r[2])]));
     (job.excel.beam || []).forEach(b => b.sheets.forEach(sh => sh.steps.forEach(st => assert.ok(typedCells.has(`${st.sheet}!${st.cell}`), `${f}: ${st.sheet}!${st.cell}`))));
     // the frame loads add up to the beam end shears
-    const fl = sheets.find(s => s.name === 'Frame loads'), D = fl.rows.slice(4).reduce((a, r) => a + (cellText(r[6]) || 0), 0);
-    const want = (job.frameEntries || []).reduce((a, x) => a + x.entries.reduce((b, e) => b + e.D, 0), 0);
-    assert.ok(Math.abs(D - want) < 1e-6, `${f}: frame dead ${D} vs ${want}`);
+    // (a load not known yet — a beam framing in has no section — is "—", never a number)
+    const fl = sheets.find(s => s.name === 'Frame loads'), es = (job.frameEntries || []).flatMap(x => x.entries);
+    if (es.every(e => isFinite(e.D))) {
+      const D = fl.rows.slice(4).reduce((a, r) => a + (cellText(r[6]) || 0), 0), want = es.reduce((b, e) => b + e.D, 0);
+      assert.ok(Math.abs(D - want) < 1e-6, `${f}: frame dead ${D} vs ${want}`);
+    } else assert.ok(fl.rows.slice(4).some(r => r && cellText(r[6]) === '—') && !fl.rows.slice(4).some(r => r && typeof cellText(r[6]) === 'number' && !isFinite(cellText(r[6]))), `${f}: unknown frame loads shown as —`);
     // the whole package writes and reads back
     const z = unzip(X.book(sheets, { title: f }));
     assert.strictEqual(Object.keys(z).filter(n => n.startsWith('xl/worksheets/')).length, sheets.length);

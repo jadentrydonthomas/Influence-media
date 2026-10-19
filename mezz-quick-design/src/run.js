@@ -65,6 +65,8 @@
   function applyPlan(pcs, reg) {
     if (!pcs) return;
     pcs.plan = reg && reg.ok ? { letters: reg.letters, arrows: reg.arrows, columns: reg.columns, frameCols: reg.frameCols || [], numberOffset: reg.numberOffset || 0, markup: reg.markup || null } : null;
+    // for the reading checks: was a floor plan found in the PCS (reg null: none), and did it register to the grid
+    pcs.planRead = reg ? { found: true, ok: !!reg.ok, reason: reg.ok ? null : reg.reason || 'not read', page: reg.page ?? null } : { found: false };
     if (pcs.planBuilding == null) pcs.planBuilding = (pcs.mezzanines[0] || {}).building || '';
     pcs.mezzanines.forEach(m => {
       m.planJoists = null; m.planArrows = 0; m.planJoistsFrom = null;
@@ -123,7 +125,7 @@
       job: { ...pcs.job, code: pcs.code },
       // Box 3: seismic site data and risk category (the seismic loads to the frames and the bracing)
       seismic: { ...(pcs.seismic || {}) },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null },
+      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null },
       loads: {
         dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
         live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
@@ -140,7 +142,7 @@
       },
       building: {
         width: b.width, length: b.length, ridge: b.ridge, bays: b.bays || [], lewCols: b.lewCols || [], rewCols: b.rewCols || [],
-        fswSoldier: b.fswSoldier || [], bswSoldier: b.bswSoldier || [], frames,
+        fswSoldier: b.fswSoldier || [], bswSoldier: b.bswSoldier || [], frames, fromPCS: true, rows: b.rows || null,
         yLetters: planFor(pcs, mi).yLetters,
         // column symbols on the floor plan: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column
         planCols: planFor(pcs, mi).planCols,
@@ -187,9 +189,53 @@
     });
     const b = inp.building || {};
     if (!(b.width > 0) || !(b.length > 0)) miss.push('Building width / length (Box 2)');
-    if (!b.bays || !b.bays.length) soft.push('Sidewall bay spacing was not read (Box 2) — only the building ends are frame lines. Enter the bays on the Inputs page.');
-    if ((!b.lewCols || !b.lewCols.length) && (!b.rewCols || !b.rewCols.length)) soft.push('Endwall column spacing was not read (Box 2) — beam lines fall only on the mezzanine edges. Enter it on the Inputs page.');
+    else soft.push(...buildingChecks(inp));
     return { miss, soft, need };
+  }
+
+  /* Reading checks on the building data: each Box 2 list against the building's own size, and Box 5 against Box 2. A
+     misread list moves frame lines and columns, so it stops the layout until it is confirmed or fixed on the Inputs
+     page — never designed on silently. */
+  function buildingChecks(inp) {
+    const out = [], b = inp.building, F = PCS.fmtFtIn, sum = a => a.reduce((p, q) => p + q, 0), list = a => a.map(F).join(', ');
+    const who = inp.mezz && inp.mezz.building ? `"${inp.mezz.building}"` : 'the building';
+    const stop = text => out.push({ level: 'stop', text });
+    // Box 22's building name against the Box 2 rows it was read from
+    Object.values(b.rows || {}).filter(rw => rw.matched === 'prefix' || rw.matched === 'only').slice(0, 1).forEach(rw => out.push({ level: 'warn', text: `Box 22 names the building ${who}; Box 2 lists "${rw.name}" — read as the same building (${rw.matched === 'only' ? 'the only one listed' : 'the one name that matches'}). Confirm.` }));
+    // the footprint inside the building (an edge may run up to 2'-0" past an end line, framed on it)
+    const gm = inp.geom || {}, x0 = val(gm.startLEW) || 0, y0 = val(gm.startFSW) || 0, mL = val(gm.length), mW = val(gm.width), mid = inp.mezz && inp.mezz.id != null ? mezzName(inp.mezz.id) : 'the mezzanine';
+    if (mL > 0 && (x0 < -0.01 || x0 + mL > b.length + 2 + 1e-6)) stop(`Box 22: ${mid} runs from ${F(x0)} to ${F(x0 + mL)} from the LEW, past the ends of ${who} (${F(b.length)} long) — its start or length was misread, or it is in another building. Check Box 22.`);
+    if (mW > 0 && (y0 < -0.01 || y0 + mW > b.width + 2 + 1e-6)) stop(`Box 22: ${mid} runs from ${F(y0)} to ${F(y0 + mW)} from the FSW, past the sidewalls of ${who} (${F(b.width)} wide) — its start or width was misread, or it is in another building. Check Box 22.`);
+    const bays = b.bays || [];
+    if (!bays.length) stop(`Box 2: the sidewall bay spacing of ${who} was not read — the frame lines are unknown, so the layout takes the building as one ${F(b.length)} bay. Enter the bays on the Inputs page (Building) or check Box 2.`);
+    else if (Math.abs(sum(bays) - b.length) > 2 + 1e-6) stop(`Box 2: the bays of ${who} (${list(bays)}) add to ${F(sum(bays))}, but the building is ${F(b.length)} long — part of the bay list was not read, or Box 2 is inconsistent. A frame line is put at ${F(b.length)}; check the bays on the Inputs page.`);
+    [['lewCols', 'LEW'], ['rewCols', 'REW']].forEach(([k, w]) => {
+      const c = b[k] || [];
+      if (!c.length) stop(`Box 2: the ${w} column spacing of ${who} was not read — only its corner columns are known, so beam and column lines along the ${w} may be missing. Enter it on the Inputs page (Building) or check Box 2.`);
+      else if (Math.abs(sum(c) - b.width) > 0.1) stop(`Box 2: the ${w} column spacing of ${who} (${list(c)}) adds to ${F(sum(c))}, but the building is ${F(b.width)} wide — part of the list was not read. Check it on the Inputs page.`);
+    });
+    const fr = b.frames || [];
+    if (b.fromPCS && !fr.length) stop(`Box 5: no frame information was read for ${who} — whether its frames have interior columns is unknown, so the layout puts none. Check Box 5 (Frame Information) before using this layout.`);
+    if (fr.length) {
+      const n = LAYOUT.buildingGrid({ width: b.width, length: b.length, bays, lewCols: b.lewCols, rewCols: b.rewCols, frames: fr }).xs.length;
+      const miss = [];
+      for (let i = 1; i <= n; i++) if (!fr.some(f => i >= f.from && i <= f.to)) miss.push(i);
+      if (miss.length) stop(`Box 5: frame line${miss.length > 1 ? 's' : ''} ${miss.join(', ')} of ${who} ${miss.length > 1 ? 'have' : 'has'} no frame row, but Box 2's bays give ${n} frame lines — a frame row was not read, or the bays were misread.`);
+      const top = Math.max(...fr.map(f => f.to));
+      if (top > n) stop(`Box 5 lists frame line ${top} for ${who}, but Box 2's bays give only ${n} frame lines — a bay was not read, or Box 5 was misread.`);
+      const cum = a => a.reduce((acc, v) => (acc.push(acc[acc.length - 1] + v), acc), [0]);
+      fr.forEach(f => {
+        const t = sum(f.interior || []), lines = f.from === f.to ? `frame line ${f.from}` : `frames ${f.from}–${f.to}`;
+        if ((f.interior || []).length && Math.abs(t - b.width) > 0.1) stop(`Box 5: the interior module spacing of ${lines} (${list(f.interior)}) adds to ${F(t)}, but ${who} is ${F(b.width)} wide — part of the list was not read. Check Box 5.`);
+        // a post-and-beam end frame stands on the endwall columns: Box 5's modules and Box 2's endwall spacing are one list
+        const ew = f.wall === 'LEW' ? b.lewCols : f.wall === 'REW' ? b.rewCols : null;
+        if (ew && ew.length && (f.interior || []).length > 1 && /post|bearing/i.test(f.type || '')) {
+          const a = cum(f.interior), c = cum(ew);
+          if (a.length !== c.length || a.some((v, i) => Math.abs(v - c[i]) > 0.1)) stop(`Box 5 (${lines}, ${f.type}) puts the end-frame columns at ${list(a.slice(1, -1))} from the FSW, but Box 2's ${f.wall} column spacing puts them at ${list(c.slice(1, -1))} — one of the two was misread.`);
+        }
+      });
+    }
+    return out;
   }
 
   // Dead load from the deck guide tracks slab / deck / concrete edits until someone types a dead load
@@ -207,7 +253,7 @@
     const warn = [];
     refreshDeadLoad(inp);
     const chk = validate(inp);
-    chk.soft.forEach(t => warn.push({ level: 'warn', text: t }));
+    chk.soft.forEach(t => warn.push(typeof t === 'string' ? { level: 'warn', text: t } : t));
     if (chk.miss.length) {
       warn.unshift({ level: 'stop', text: `Needs input: ${chk.miss.join(', ')} — not on the PCS (TBD, no blue note). Enter ${chk.miss.length > 1 ? 'them' : 'it'} above to run the design.` });
       const ed0 = resolveEdition(inp, s);
@@ -254,10 +300,12 @@
     const mz = { length: val(inp.geom.length), width: val(inp.geom.width), startLEW: val(inp.geom.startLEW) || 0, startFSW: val(inp.geom.startFSW) || 0 };
     if (grid.lengthGap) warn.push({ level: 'warn', text: `${inp.mezz.building || 'The building'}: Box 2 length ${PCS.fmtFtIn(grid.boxLength)}, but the bays add to ${PCS.fmtFtIn(grid.length)} (${PCS.fmtFtIn(Math.abs(grid.lengthGap))} ${grid.lengthGap > 0 ? 'more' : 'less'}) — the frames are taken on the bay lines, no extra frame line. Confirm the PCS dimensions.` });
     const fromPlan = s.joists === 'auto' && (inp.mezz.planJoists === 'x' || inp.mezz.planJoists === 'y');
-    const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop });
+    // the column symbols on the PCS floor plan frame the edges the way the drawing does (a wall column's I sits on the wall)
+    const drawn = planSymbols(bl.planCols, grid);
+    const lay = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, xLines: s.xLines, yLines: s.yLines, drop: s.drop, drawn });
     // a line added on the Plan page very close to another: short beams and extra columns there — say so
     if (s.xLines || s.yLines) {
-      const base = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists });
+      const base = LAYOUT.layout(grid, mz, { joists: fromPlan ? inp.mezz.planJoists : s.joists, drawn });
       [['xLines', 'LEW'], ['yLines', 'FSW']].forEach(([k, from]) => { if (!s[k]) return; const ls = lay[k].slice().sort((a, b) => a - b), own = v => base[k].some(u => Math.abs(u - v) < 0.01);
         ls.slice(1).forEach((v, i) => { const gap = v - ls[i]; if (gap > 0.05 && gap < 6 && !(own(v) && own(ls[i]))) { const beamLine = (k === 'yLines') === (lay.joists === 'y');
           warn.push({ level: 'warn', text: `${beamLine ? 'Beam' : 'Column'} lines at ${PCS.fmtFtIn(ls[i])} and ${PCS.fmtFtIn(v)} from the ${from} are only ${PCS.fmtFtIn(gap)} apart (a line added on the Plan page) — ${beamLine ? `joists spanning ${PCS.fmtFtIn(gap)} between them` : `${PCS.fmtFtIn(gap)} beams and extra columns there`}; confirm it is intended.` }); } }); });
@@ -270,7 +318,12 @@
     lay.beams.forEach(b => { b.tribOwn = b.trib; });
     readColumnSymbols(lay, bl.planCols, grid, warn);
     userColumns(lay, s.colKind, grid, warn);
-    lay.snaps.forEach(sn => warn.push({ level: 'key', text: `The mezzanine edge ${PCS.fmtFtIn(sn.edge)} from the ${sn.axis === 'y' ? 'FSW' : 'LEW'} is framed on the grid line at ${PCS.fmtFtIn(sn.line)} — the slab ${(sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW)) ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}.` }));
+    planChecks(inp, grid, lay, s, warn);
+    lay.snaps.forEach(sn => {
+      const lab = (sn.axis === 'y' ? grid.yLabel(sn.line) : grid.xLabel(sn.line)), past = (sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW));
+      const along = (sn.axis === 'x') === (lay.joists === 'y');   // the overhang runs along the beams (else along the joists)
+      warn.push({ level: 'key', text: `The mezzanine edge ${PCS.fmtFtIn(sn.edge)} from the ${sn.axis === 'y' ? 'FSW' : 'LEW'} is framed on the grid line ${lab ? lab + ' (' + PCS.fmtFtIn(sn.line) + ')' : 'at ' + PCS.fmtFtIn(sn.line)} — the slab ${past ? 'overhangs it' : 'stops short of it'} by ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))}${sn.drawn ? ', as the PCS floor plan draws it: no column on the edge, columns on that line' : ''}.${past && along ? ` The end beams cantilever it, and the columns on that line take its load as well (w × ${PCS.fmtFtIn(Math.abs(sn.line - sn.edge))} added to their reactions).` : past ? ' The edge beam carries it (added to its trib).' : ''}` });
+    });
     // an edge just past the 1'-0" snap of a line of building columns: the layout frames it with new mezzanine columns, and
     // the beams there stop loading the frame (a footprint cut to a beam's clear length does this). Say so.
     {
@@ -297,6 +350,55 @@
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
     return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+  }
+
+  /* Reading checks against the PCS floor plan: was it found and matched to the grid, does it show this mezzanine's
+     joist direction and columns, and does it agree with Box 5's interior frame columns. */
+  function planChecks(inp, grid, lay, s, warn) {
+    const pr = inp.mezz.planRead, F = PCS.fmtFtIn, id = inp.mezz.id ? mezzName(inp.mezz.id) : 'this mezzanine';
+    if (!pr) return;   // not from a PCS (manual entry)
+    if (pr.found === false) { warn.push({ level: 'warn', text: 'No floor plan drawing was found in the PCS — the layout comes from Box 2, Box 5 and Box 22 alone. Check the frame lines, columns and joist direction against the drawing before using it.' }); return; }
+    if (!pr.ok) { warn.push({ level: 'stop', text: `The PCS floor plan${pr.page ? ` (page ${pr.page})` : ''} could not be matched to the building grid from Box 2 / Box 5 (${pr.reason}). The building data may be misread or the drawing laid out differently — check the frame lines, the columns and the joist direction against the drawing before using this layout.` }); return; }
+    const pc = planSymbols(inp.building.planCols, grid);
+    if (!pc) return;   // a building the drawing does not show (not attached to the drawn one)
+    const fp = lay.footprint, inFp = c => c.x > fp.x0 - 1 && c.x < fp.x1 + 1 && c.y > fp.y0 - 1 && c.y < fp.y1 + 1, dir = lay.joists === 'y' ? 'across the width' : 'along the length';
+    const near = (arr, v) => arr.find(u => Math.abs(u - v) < 1), lab = c => { const nx = near(grid.xs, c.x), ny = near(grid.allY, c.y); return (nx != null ? grid.xLabel(nx) : F(c.x)) + '/' + (ny != null && grid.yLabel(ny) ? grid.yLabel(ny) : F(c.y)); };
+    if ((s.joists || 'auto') === 'auto' && !inp.mezz.planJoists) warn.push({ level: 'warn', text: `${inp.mezz.planArrows ? `The PCS floor plan has joist arrows both ways inside ${id}` : `The PCS floor plan shows no joist arrow inside ${id}`} — the joists span ${dir} by rule (${lay.why}). Confirm the joist direction against the drawing (Plan page).` });
+    // the mezzanine columns drawn against the layout's: drawingCheck, once the job's columns are known
+    // ✱ (Box 5's "Most Economical" interior columns) drawn where Box 5 has no interior column
+    const off = pc.filter(c => c.kind === 'star' && inFp(c) && c.y > 0.5 && c.y < grid.width - 0.5).filter(c => { const i = grid.xs.findIndex(x => Math.abs(x - c.x) < 1); return i >= 0 && !(grid.interior[i] || []).some(y => Math.abs(y - c.y) < 1); });
+    if (off.length) warn.push({ level: 'stop', text: `The PCS floor plan shows ✱ interior frame column${off.length > 1 ? 's' : ''} at ${off.map(lab).join(', ')}, where Box 5 lists no interior column — Box 5 was misread or differs from the drawing. Check the frame information before using this layout.` });
+  }
+
+  // "mezzanine 1", "Mezz 2": a mezzanine ID read as a name in a sentence
+  const mezzName = id => (/^mezz/i.test(String(id)) ? String(id) : `mezzanine ${id}`);
+  /* The PCS floor plan against the layout, per mezzanine: every mezzanine column symbol drawn inside it (⊗ / ⊘ / circled I
+     / marked-up X) is one of the job's mezzanine columns there, and every one of those is drawn. As read they must
+     agree — a stop when they do not; once the layout was edited on the Plan page, a note of how it differs. */
+  function drawingCheck(ctxs, mezz, cols) {
+    mezz.forEach((r, i) => {
+      const c = ctxs[i], pc = !r.incomplete && c.inp.building.planCols, pr = c.inp.mezz.planRead;
+      if (!pc || !(pr && pr.ok)) return;
+      const F = PCS.fmtFtIn, g = c.grid, fp = c.lay.footprint, inFp = q => q.x > fp.x0 - 1 && q.x < fp.x1 + 1 && q.y > fp.y0 - 1 && q.y < fp.y1 + 1;
+      const near = (arr, v) => arr.find(u => Math.abs(u - v) < 0.6);
+      const lab = q => { const nx = near(g.xs, q.x), ny = near(g.allY.concat((c.inp.building.yLetters || []).map(l => l.y)), q.y); return (nx != null ? g.xLabel(nx) : F(q.x)) + '/' + (ny != null && g.yLabel(ny) ? g.yLabel(ny) : F(q.y)); };
+      const drawn = pc.filter(q => MEZZ_SYM[q.kind] && inFp(q)), laid = cols.filter(q => ctxs[q.owner].bkey === c.bkey && inFp(q));
+      const used = new Set(), extra = [];
+      drawn.forEach(d => { const k = laid.findIndex((q, j) => !used.has(j) && Math.hypot(q.x - d.x, q.y - d.y) <= 1.5); if (k >= 0) used.add(k); else extra.push(d); });
+      const missing = laid.filter((q, j) => !used.has(j));
+      const sym = drawn.some(q => q.markup) ? 'marked-up X' : drawn.some(q => q.kind === 'i') ? 'circled-I' : drawn.some(q => q.kind === 's') ? '⊘' : '⊗';
+      // the layout's own labels where it has the column; the drawn position where only the drawing does
+      const id = mezzName(c.id), sort = a => a.sort((p, q) => p.localeCompare(q, undefined, { numeric: true })).join(', '), list = a => sort(a.map(q => q.label || lab(q)));
+      r.planAgree = !extra.length && !missing.length;
+      if (!drawn.length && !laid.length) return;
+      if (r.planAgree) { r.warn.unshift({ level: 'ok', text: `Floor plan check: the drawing shows ${drawn.length} ${sym} mezzanine column${drawn.length === 1 ? '' : 's'} in ${id}, at ${list(laid)} — the same as the layout.` }); return; }
+      const st = c.s, edited = !!(st.xLines || st.yLines || (st.drop && st.drop.length) || (st.colKind && Object.keys(st.colKind).length) || (st.joists && st.joists !== 'auto'));
+      const diff = [extra.length ? `drawn but not in the layout: ${list(extra)}` : '', missing.length ? `in the layout but not drawn: ${list(missing)}` : ''].filter(Boolean).join('; ');
+      if (edited) { r.warn.push({ level: 'info', text: `Floor plan check: ${id} was edited on the Plan page — against the drawing's ${sym} columns, ${diff}.` }); return; }
+      // the other joist direction, if it is the one that matches
+      const alt = c.lay.alt && c.lay.alt.mezzCols, altOk = alt && drawn.length === alt.filter(inFp).length && drawn.every(d => alt.some(q => Math.hypot(q.x - d.x, q.y - d.y) <= 1.5));
+      r.warn.unshift({ level: 'stop', text: `Floor plan check: the layout of ${id} does not match the PCS drawing's ${sym} mezzanine columns — ${diff}. ${altOk ? 'The other joist direction matches the drawing: switch it on the Plan page.' : 'Do not use this layout until it matches: check the building data (Box 2 / Box 5), then set the columns on the Plan page.'}` });
+    });
   }
 
   /* The engineer's layout edits on the Plan page, after the drawing: a column made a frame column (its beam reactions go
@@ -326,12 +428,17 @@
   /* The floor plan decides frame vs mezzanine column where it disagrees with the building data (Box 2 / Box 5):
      ⊗ or a circled I is a mezzanine column; a bare I, or ✱ ("Most Economical" interior frame column), is a building
      column whose beam reactions go to the frame design. Every support also keeps the symbol drawn at it. */
-  const MEZZ_SYM = { x: '⊗', i: 'circled I' };
+  const MEZZ_SYM = { x: '⊗', s: '⊘', i: 'circled I' };
+  // the floor plan's column symbols in building ft; a wall column's I is drawn about 1'-9" inside the steel line, and an
+  // end frame's ✱ about 1'-4" inside its endwall: they stand on the wall line
+  function planSymbols(planCols, grid) {
+    if (!planCols || !planCols.length) return null;
+    const W = grid.width, Lg = grid.length, wall = (v, ends) => { const e = ends.find(u => Math.abs(v - u) < 2.6); return e == null ? v : e; };
+    return planCols.map(c => (c.kind === 'I' ? { ...c, x: wall(c.x, [0, Lg]), y: wall(c.y, [0, W]) } : c.kind === 'star' ? { ...c, x: wall(c.x, [0, Lg]) } : c));
+  }
   function readColumnSymbols(lay, planCols, grid, warn) {
     if (!planCols || !planCols.length) return;
-    // a wall column's I is drawn about 1'-9" inside the steel line: it stands on the wall line
-    const W = grid.width, Lg = grid.length, wall = (v, ends) => { const e = ends.find(u => Math.abs(v - u) < 2.6); return e == null ? v : e; };
-    const syms = planCols.map(c => (c.kind === 'I' ? { ...c, x: wall(c.x, [0, Lg]), y: wall(c.y, [0, W]) } : c));
+    const W = grid.width, Lg = grid.length, syms = planSymbols(planCols, grid);
     const symAt = sp => syms.map(c => ({ c, d: Math.hypot(c.x - sp.x, c.y - sp.y) })).filter(o => o.d <= 1.25).sort((a, b) => a.d - b.d)[0];
     const flips = [];
     [lay, lay.alt].filter(Boolean).forEach((L, li) => {
@@ -616,22 +723,25 @@
         at.set(key, e);
       });
     });
-    const reaction = (c, id) => {
+    // a beam's end reaction at the support on its `side` (L: the beam lies before the support, its `to` end). Slab past
+    // the last support along the beam (an overhang framed on that line) is cantilevered to it: R = V (1 + 2a/L (1 + a/2L))
+    const reaction = (c, id, side) => {
       const bm = c.lay.beams[id], mk = c.markOf(id);
       if (!mk || !mk.sec) return { D: NaN, L: NaN, mark: mk && mk.mark };
       const r = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.trib }, mk.sec);
-      return { D: r.D, L: r.L, mark: mk.mark };
+      const a = side && bm.ov ? bm.ov[side === 'L' ? 1 : 0] : 0, k = a > 0 ? 2 * a / bm.span * (1 + a / (2 * bm.span)) : 0;
+      return { D: r.D * (1 + k), L: r.L * (1 + k), mark: mk.mark, ov: a };
     };
     const cols = [], frame = [];
     at.forEach(e => {
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
-        const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id); return { mi: en.mi, id: en.id, mezz: c.id, beam: 'B' + (c.bOff + en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
+        const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id, en.side); return { mi: en.mi, id: en.id, mezz: c.id, beam: 'B' + (c.bOff + en.id + 1), mark: r.mark, D: r.D, L: r.L, ov: r.ov }; });
         frame.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, planKind: e.planKind, userKind: e.userKind, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
         return;
       }
       if (e.building || !e.ends.length) return;
-      const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id), bm = c.lay.beams[en.id]; return { ...en, mezz: c.id, D: r.D, L: r.L, mark: r.mark, beam: 'B' + (c.bOff + en.id + 1), area: (bm.tribOwn * bm.span + (bm.extra || []).reduce((a, x) => a + x.tribOwn * (x.e - x.s), 0)) / 2 }; });
+      const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id, en.side), bm = c.lay.beams[en.id]; return { ...en, mezz: c.id, D: r.D, L: r.L, mark: r.mark, ov: r.ov, beam: 'B' + (c.bOff + en.id + 1), area: (bm.tribOwn * bm.span + (bm.extra || []).reduce((a, x) => a + x.tribOwn * (x.e - x.s), 0)) / 2 + bm.tribOwn * (r.ov || 0) }; });
       const sum = ps => ({ D: ps.reduce((a, p) => a + p.D, 0), L: ps.reduce((a, p) => a + p.L, 0) });
       const dirs = ['x', 'y'].filter(d => parts.some(p => p.dir === d));
       const tot = d => { const q = sum(parts.filter(p => p.dir === d)); return q.D + q.L; };
@@ -1364,6 +1474,7 @@
     }
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
     mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; r.bOff = ctxs[i].bOff; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
+    drawingCheck(ctxs, mezz, cols);
     // a column picked by hand replaces the guide's job-wide column: say which is on the quote
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) { const q = DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`, pk = r.colFinal && r.colFinal.picked ? r.colFinal.quoteAs : null;
       const nUn = mezz.reduce((a, z) => a + (!z || z.incomplete ? 0 : z.colFinal ? (z.colFinal.unsized || []).length : z.columns.length), 0);
