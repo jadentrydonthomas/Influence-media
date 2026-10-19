@@ -8923,7 +8923,8 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       view.style.setProperty('--rv', full + 'px');
       const over = rail.scrollHeight - rail.clientHeight;
       size = Math.max(128, full - Math.max(0, over));
-      if (over <= 0 || (lv < 3 && over <= full * (lv ? 0.25 : 0.1))) break;   // a little short: a slightly smaller square first
+      // fits; or a little short, and a slightly smaller square (not under 128 px) takes it before the next step
+      if (over <= 0 || (lv < 3 && over <= full * (lv ? 0.25 : 0.1) && full - over >= 128)) break;
     }
     view.style.setProperty('--rv', size + 'px');
   }

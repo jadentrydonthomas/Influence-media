@@ -101,6 +101,14 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
     if (active !== 'page') fail(`nav ${v} not marked current`);
     await page.screenshot({ path: path.join(out, `${v}${light ? '-light' : ''}.png`), fullPage: true });
   }
+  // a 1280 x 720 projector: the whole sidebar fits without scrolling, and its 3D / plan view is a whole square, not
+  // squeezed (it was cut to a strip once the rail ran taller than the window)
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(400);
+  const rail = await page.evaluate(() => { const r = document.querySelector('.rail'), v = document.querySelector('#railView').getBoundingClientRect(), sc = document.querySelector('.rail-score').getBoundingClientRect();
+    return { over: r.scrollHeight - r.clientHeight, w: Math.round(v.width), h: Math.round(v.height), inside: v.bottom <= sc.bottom + 0.5 }; });
+  console.log('sidebar at 1280 x 720', JSON.stringify(rail));
+  if (rail.over > 1 || rail.w < 150 || Math.abs(rail.w - rail.h) > 1 || !rail.inside) fail(`sidebar at 1280 x 720: ${JSON.stringify(rail)}`);
   // phone width: no horizontal page scroll
   await page.setViewportSize({ width: 390, height: 844 });
   await page.click('#nav button[data-view="results"]');
