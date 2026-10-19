@@ -597,34 +597,24 @@
     return marks;
   }
 
-  /* The frame column setback at each end of a beam: a beam that frames into a building column stops at the column's
-     inside face, short of the grid line (the steel line) by about the column's depth — 1'-4" at a rigid frame column,
-     1'-0" at a post-and-beam column (Settings). Taken where the beam runs into the face of a wall's column:
-       - a beam across the building, at a sidewall: the frame's own column, in the frame's plane (rigid 1'-4", post-and-
-         beam 1'-0"); a soldier column between frames, 1'-0";
-       - a beam along the building, at an endwall: a post-and-beam end frame's columns, 1'-0"; beside a rigid end frame
-         the wind columns face it like posts, 1'-0", but the frame's own columns (corners, interior) stand in the frame's
-         plane and the beam meets them side-on — none.
-     A beam running along a wall, an interior frame column (centred on its grid line) and a mezzanine column take none.
-     Where in doubt the setback is left out: a shorter design span is the unconservative side. */
+  /* The frame column setback at each end of a beam. A beam that runs into a wall ends at that wall's column, and the
+     girts hold the column inside the steel line (the grid line), so the beam stops short of the grid by the girts and
+     the column: 1'-4" at a rigid frame column, 1'-0" at a post-and-beam column (Settings; a soldier column between
+     sidewall frames counts as a post). The wall is the one the beam runs into: a sidewall for a beam across the
+     building, an endwall for one along it. A beam running along a wall, an interior column (on its grid line) and a
+     mezzanine column take none. */
   function beamEnds(c, id, s) {
     const L = c.lay, g = c.grid, W = g.width, Lg = g.length, near = (a, v) => Math.abs(a - v) < 0.05;
     const frames = c.inp.building.frames || [], across = L.joists === 'x';   // joists along x: the beams run across (y)
-    const fiOf = x => g.xs.findIndex(v => near(v, x)), frameAt = x => { const fi = fiOf(x); return fi < 0 ? null : frames.find(f => fi + 1 >= f.from && fi + 1 <= f.to) || null; };
-    const isPB = fr => !fr || /post|bearing/i.test(fr.type || ''), amt = { rigid: +s.setbackRigid || 0, pb: +s.setbackPB || 0 };
+    const frameAt = x => { const fi = g.xs.findIndex(v => near(v, x)); return fi < 0 ? null : frames.find(f => fi + 1 >= f.from && fi + 1 <= f.to) || null; };
+    const amt = { rigid: +s.setbackRigid || 0, pb: +s.setbackPB || 0 };
     return L.supports.filter(sp => sp.beams.L === id || sp.beams.R === id).map(sp => {
-      const at = { label: sp.label, x: sp.x, y: sp.y, kind: null, ft: 0 }, none = why => ({ ...at, why });
-      if (!sp.building) return none('mezzanine column');
-      const side = across ? (near(sp.y, 0) ? 'FSW' : near(sp.y, W) ? 'BSW' : null) : (near(sp.x, 0) ? 'LEW' : near(sp.x, Lg) ? 'REW' : null);
-      if (!side) return none((across ? near(sp.x, 0) || near(sp.x, Lg) : near(sp.y, 0) || near(sp.y, W)) ? 'the beam runs along the wall' : 'interior frame column, centred on its grid line');
-      const fr = frameAt(sp.x), type = fr && fr.type ? ` (${fr.type})` : '';
-      if (across) {
-        const kind = fr && !isPB(fr) ? 'rigid' : 'pb';
-        return { ...at, kind, ft: amt[kind], why: fr ? `${side} column of frame ${g.xLabel(sp.x)}${type}` : `${side} soldier column` };
-      }
-      if (isPB(fr)) return { ...at, kind: 'pb', ft: amt.pb, why: `${side} column${type}` };
-      const member = near(sp.y, 0) || near(sp.y, W) || (g.interior[fiOf(sp.x)] || []).some(y => near(y, sp.y));
-      return member ? none(`${side} rigid end frame column${type} — the beam meets it side-on`) : { ...at, kind: 'pb', ft: amt.pb, why: `${side} wind column beside the rigid end frame${type}` };
+      const at = { label: sp.label, x: sp.x, y: sp.y, kind: null, ft: 0 };
+      if (!sp.building) return { ...at, why: 'mezzanine column' };
+      const wall = across ? (near(sp.y, 0) ? 'FSW' : near(sp.y, W) ? 'BSW' : null) : (near(sp.x, 0) ? 'LEW' : near(sp.x, Lg) ? 'REW' : null);
+      if (!wall) return { ...at, why: (across ? near(sp.x, 0) || near(sp.x, Lg) : near(sp.y, 0) || near(sp.y, W)) ? 'the beam runs along the wall' : 'interior column, on its grid line' };
+      const fr = frameAt(sp.x), kind = fr && !/post|bearing/i.test(fr.type || '') ? 'rigid' : 'pb';
+      return { ...at, kind, wall, ft: amt[kind], why: `${wall} column, ${fr ? `${kind === 'rigid' ? 'rigid frame' : 'post-and-beam'} (${fr.type})` : 'soldier column (a post)'}` };
     });
   }
 
@@ -640,7 +630,7 @@
     const ends = [];
     m.beamsAll.forEach(x => (x.ends || []).filter(e => e.ft > 0).forEach(e => {
       const c = members.find(k => k.index === x.mi), key = x.mi + '|' + e.label;
-      if (!ends.some(q => q.key === key)) ends.push({ key, mi: x.mi, mezz: c ? c.id : '', label: e.label, kind: e.kind, ft: e.ft, why: e.why });
+      if (!ends.some(q => q.key === key)) ends.push({ key, mi: x.mi, mezz: c ? c.id : '', label: e.label, kind: e.kind, wall: e.wall, ft: e.ft, why: e.why });
     }));
     // offer: it would shorten the design span · applied: in use, and still nothing passes · typed: a design span typed on
     // Beam calc is already at or under the clear span · none: no beam frames into a frame column's face · short: only
@@ -682,7 +672,7 @@
   /* one mark: section search → three options → the pick (stored as intent) → MB-sheet runs at every span in it */
   function designMark(m) {
     const members = m.group.ctxs.filter(c => m.mezzIds.includes(c.index)), c0 = members[0], s = c0.s, ed = c0.ed;
-    const say = (level, text) => members.forEach(c => c.warn.push({ level, text }));
+    const say = (level, text, tag) => members.forEach(c => c.warn.push(tag ? { level, text, tag } : { level, text }));
     const caps = members.map(c => c.maxDepthByC).filter(v => v != null), maxDepth = caps.length ? Math.min(...caps) : null;
     const jd = members.map(c => c.joistDepthIn).filter(v => v != null), dLimit = jd.length ? Math.floor(Math.min(...jd) + 1e-6) : null;
     // the design span / trib set on the Beam calc page (e.g. the member length between column faces): they go on the MB
@@ -742,7 +732,7 @@
         const dzr = DESIGN.designBeam({ ...c0.beamBase, L: rest, trib: dTrib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
         if (dzr && dzr.best) {
           m.splitHelps = { span: longest, n: nLong, rest: lens.length - nLong, restDesc: dzr.best.desc || (dzr.best.r && dzr.best.r.desc) || '' };
-          say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter and would pass on their own (${m.splitHelps.restDesc}). Give the ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's' : ''} ${nLong > 1 ? 'their' : 'its'} own mark (the button on Beam calc) to size the rest, and the columns they carry — no other mark changes.`);
+          say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter and would pass on their own (${m.splitHelps.restDesc}). Give the ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's' : ''} ${nLong > 1 ? 'their' : 'its'} own mark (the button on Beam calc) to size the rest, and the columns they carry — no other mark changes.`, 'nosec');
         }
       }
       const cap = maxDepth != null && maxDepth < s.dMax;
@@ -752,8 +742,8 @@
       const next = [sb.state === 'offer' ? (sb.best ? `the frame column setback — at the ${F(sb.span)} clear span ${sb.best.desc} passes` : `the frame column setback (${F(sb.span)} clear span) does not do it on its own`) : sb.state === 'applied' ? `the frame column setback is in use (${F(sb.span)} clear span)` : '',
         cl && !cl.none ? `more clear height — a ${cl.d}" beam needs C ${F(cl.needC)} (now ${F(cl.C)}) or the floor at ${F(cl.needA)}` : ''].filter(Boolean);
       say('stop', cap && maxDepth < s.dMin
-        ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. ${next.length ? `What next (Beam options): ${next.join('; or ')}.` : 'Check the clearance or the minimum depth in Settings.'}`
-        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. ${next.length ? `What next (Beam options): ${next.join('; or ')}. Otherwise shorten the span (put a column back) or add a beam line to cut the trib.` : cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`);
+        ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}.` : 'Check the clearance or the minimum depth in Settings.'}`
+        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}. Otherwise shorten the span (put a column back) or add a beam line to cut the trib.` : cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`, 'nosec');
     }
     // every member length in the mark: the governing run plus the shorter beams (same section, own MB-sheet run)
     const spans = [];   // distinct member lengths, kept exact (12'-4" = 12.3333 ft, not 12.333)
@@ -917,7 +907,7 @@
     if (cols.length && !colLen) why = { kind: 'length', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' };
     else if (cols.length && noBeam) { const nU = cols.filter(q => !known(q)); why = { kind: 'beam', marks: noSec, text: `${nU.length === cols.length ? 'Columns' : `${nU.length} of ${cols.length} columns (${colOrder(nU).map(q => q.label).join(', ')})`} not sized — ${noSec.join(', ')} ${noSec.length > 1 ? 'have' : 'has'} no section yet, so the reactions are unknown${nU.length < cols.length ? '; the others are sized' : ''}.` }; }
     else if (cols.length && !colFinal) why = { kind: 'pass', text: 'No W8–W14 column passes — check the loads or design a built-up column (Design your own).' };
-    if (why) warn.push({ level: 'stop', text: why.text });
+    if (why) warn.push(why.kind === 'beam' ? { level: 'stop', text: why.text, tag: 'nosec' } : { level: 'stop', text: why.text });
     return { colLen, groups, colFinal, why };
   }
 

@@ -48,15 +48,18 @@ const r4 = a => a.map(v => +v.toFixed(4));
   // nothing read is in doubt: the only stops are the design's own (8'-6" clearance C caps the beams at 14")
   const stops = r.warn.filter(w => w.level === 'stop').map(w => w.text);
   assert.ok(stops.length && stops.every(t => /no stocked BU section|not sized/.test(t)), stops.join('\n'));
-  // what next: MB1's line B beams end at the LEW wind column 1/B beside the rigid end frame (1'-0", a post): 30'-0" clear
-  // is still not enough, so more clear height — 19" at the clear span. MB2 frames into the end frame's own columns 1/A,
-  // 1/C side-on and the ✱ interior columns on their grid: no setback, straight to the clear height
+  // what next: the beams that run into the LEW end at its columns, held in from the grid by the girts — 1'-4" at the
+  // rigid end frame (1/B on line B for MB1; 1/A and 1/C for MB2). The longest beams left are the 30'-0" ones, and
+  // nothing passes there either, so the clear height: 19" (MB1) at the clear span, C 8'-1"
   const F = require('../src/pcs.js').fmtFtIn, [k1, k2] = job.marks;
-  assert.ok(k1.rescue.setback && k1.rescue.setback.span === 30 && !k1.rescue.setback.best && k1.rescue.setback.ends.map(e => `${e.label} ${e.kind} ${F(e.ft)}`).join() === `1/B pb 1'-0"`);
+  assert.ok(k1.rescue.setback.state === 'offer' && k1.rescue.setback.span === 30 && !k1.rescue.setback.best && k1.rescue.setback.ends.map(e => `${e.label} ${e.wall} ${e.kind} ${F(e.ft)}`).join() === `1/B LEW rigid 1'-4"`);
   assert.ok(k1.rescue.clear.d === 19 && F(k1.rescue.clear.needC) === `8'-1"` && F(k1.rescue.clear.needA) === `10'-11"` && /^Mezzanine 1: MB1 /.test(k1.rescue.clear.request), k1.rescue.clear.request);
-  assert.ok(k2.rescue.setback.state === 'none' && !k2.rescue.clear.withSetback && k2.rescue.clear.d === 16 && F(k2.rescue.clear.needC) === `8'-4"`);
-  assert.ok(k2.beamsAll.every(x => x.sb === 0) && k2.beamsAll.some(x => x.ends.some(e => /rigid end frame column .* side-on/.test(e.why))));
-  assert.ok(stops.some(t => /^MB1: .* What next \(Beam options\): the frame column setback \(30'-0" clear span\) does not do it on its own; or more clear height — a 19" beam needs C 8'-1"/.test(t)));
+  assert.deepStrictEqual(k2.rescue.setback.ends.map(e => `${e.label} ${e.kind} ${F(e.ft)}`).sort(), [`1/A rigid 1'-4"`, `1/C rigid 1'-4"`]);
+  assert.ok(k2.rescue.setback.state === 'offer' && k2.rescue.setback.span === 30 && !k2.rescue.setback.best && k2.rescue.clear.withSetback && k2.rescue.clear.grid.d === 16, JSON.stringify([k2.rescue.setback.state, k2.rescue.clear.d]));
+  assert.ok(k2.beamsAll.some(x => x.ends.some(e => e.why === 'interior column, on its grid line')) && k2.beamsAll.some(x => x.ends.some(e => e.why === 'the beam runs along the wall')));
+  // the notes a missing section brings are tagged, so the page asks for the decision in their place
+  assert.ok(r.warn.filter(w => w.level === 'stop').every(w => w.tag === 'nosec'));
+  assert.ok(stops.some(t => /^MB1: .* What next \(the card at the top of the Design page\): the frame column setback \(30'-0" clear span\) does not do it on its own; or more clear height — a 19" beam needs C 8'-1"/.test(t)));
   // C entered as no requirement: every beam sized, and line 4 takes the 1'-3" overhang the end beams cantilever to it
   const c2 = JSON.parse(JSON.stringify(inps));
   c2[0].geom.C = { value: null, source: 'none' };

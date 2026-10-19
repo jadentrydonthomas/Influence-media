@@ -67,10 +67,10 @@ const PLAN = require('../src/plan.js');
     // corner columns of the end frames (in those frames' planes); Mezz 2's 2/E is an interior frame column on its grid
     const why = mk => [...new Set(mk.beamsAll.flatMap(x => x.ends.filter(e => e.why !== 'mezzanine column').map(e => `${nj.mezz[x.mi].id} ${e.label} ${F(e.ft)}`)))].sort();
     assert.deepStrictEqual(why(n2), [`Mezz 1 1/A 1'-4"`, `Mezz 1 1/B 0'-0"`, `Mezz 1 6/A 1'-4"`, `Mezz 1 6/B 0'-0"`, `Mezz 2 1/B 0'-0"`, `Mezz 2 1/C 0'-0"`, `Mezz 2 1/E 0'-0"`]);
-    assert.ok(n1.beamsAll.some(x => x.ends.some(e => e.label === '2/E' && e.ft === 0 && /interior frame column/.test(e.why))));
+    assert.ok(n1.beamsAll.some(x => x.ends.some(e => e.label === '2/E' && e.ft === 0 && e.why === 'interior column, on its grid line')));
     assert.ok(cl.d === 15 && cl.best.desc === 'BU15x73' && F(cl.needC) === `9'-5"` && F(cl.needA) === `11'-7"` && cl.withSetback && cl.grid.d === 15 && cl.grid.best.desc === 'BU15x95', JSON.stringify([cl.d, cl.best && cl.best.desc, F(cl.needC), F(cl.needA)]));
     assert.ok(/^Mezz 1 \/ Mezz 2: MB1 \(6 beams, 22'-8" clear span with the frame column setback × 28'-0" trib\) has no beam section within the 14" of depth .* Requesting C 9'-5" clear under the beams, or the floor raised to 11'-7": a 15" beam \(BU15x73\) then works\.$/.test(cl.request), cl.request);
-    assert.ok(nj.mezz[0].warn.some(w => w.level === 'stop' && /^MB1: no stocked BU section .* What next \(Beam options\): the frame column setback — at the 22'-8" clear span BU14x94 passes; or more clear height — a 15" beam needs C 9'-5" \(now 9'-6"\) or the floor at 11'-7"\./.test(w.text)));
+    assert.ok(nj.mezz[0].warn.some(w => w.level === 'stop' && /^MB1: no stocked BU section .* What next \(the card at the top of the Design page\): the frame column setback — at the 22'-8" clear span BU14x94 passes; or more clear height — a 15" beam needs C 9'-5" \(now 9'-6"\) or the floor at 11'-7"\./.test(w.text)));
     // picked: each member length less its own setback — Mezz 2's 20'-0" and 16'-0" MB1 beams end on 2/E (interior) and
     // mezzanine columns, so they keep their length (not the 1'-4" cut of a typed design span)
     const sj = RUN.runJob(six.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } }))), s1 = sj.marks.find(m => m.mark === 'MB1'), s2 = sj.marks.find(m => m.mark === 'MB2');

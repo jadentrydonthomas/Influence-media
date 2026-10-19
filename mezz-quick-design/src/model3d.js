@@ -143,6 +143,7 @@
           if (!view.toggles.tags) continue;
           ctx.font = '700 10px "Cascadia Code", Consolas, monospace';
           const tw = ctx.measureText(l.text).width + 12;
+          p[0] = Math.min(Math.max(p[0], tw / 2 + 4), W - tw / 2 - 4);   // a tag near the edge stays whole on the canvas
           const y0 = p[1] - 9 + (l.dy || 0), dy = [0, -20, 20, -38, 38].find(d => !hits(p[0] - tw / 2, y0 + d, p[0] + tw / 2, y0 + d + 17)), y = y0 + (dy || 0);
           // no free spot (a small view): a mark already tagged nearby is not tagged again
           if (dy == null && placedTags.some(q => q.text === l.text)) continue;
@@ -161,8 +162,10 @@
           ctx.fillStyle = '#d9ecfa'; ctx.fillText(l.text, p[0], p[1] + 0.5);
         } else {
           ctx.font = '11px "Cascadia Code", Consolas, monospace';
-          ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, p[0] + 8, p[1] + (l.dy || 0));
-          placed.push([p[0] + 8, p[1] + (l.dy || 0) - 7, p[0] + 8 + ctx.measureText(l.text).width, p[1] + (l.dy || 0) + 7]);   // the tags keep clear of it
+          // to the right of its point, or to the left where the right would run off the canvas (T/beam at the near corner)
+          const tw = ctx.measureText(l.text).width, x = Math.max(6, p[0] + 8 + tw > W - 6 ? p[0] - 8 - tw : p[0] + 8);
+          ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, x, p[1] + (l.dy || 0));
+          placed.push([x, p[1] + (l.dy || 0) - 7, x + tw, p[1] + (l.dy || 0) + 7]);   // the tags keep clear of it
           ctx.textAlign = 'center'; ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
         }
       }

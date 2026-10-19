@@ -82,7 +82,9 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   // the post-and-beam endwalls: the Sanctuary beams along the building end at the LEW / REW post-and-beam columns, 1'-0"
   // each — offered on Beam calc as a 19'-9 3/4" clear span (the mark passes, so nothing is flagged)
   const sm1 = job.marks.find(m => m.mark === 'MB1');
-  assert.ok(Math.abs(sm1.design.sbSpan - (sm1.span - 1)) < 1e-9 && !sm1.design.setback && !sm1.rescue && sm1.beamsAll.some(x => x.ends.some(e => e.kind === 'pb' && /^LEW column \(Post and Beam/.test(e.why))));
+  assert.ok(Math.abs(sm1.design.sbSpan - (sm1.span - 1)) < 1e-9 && !sm1.design.setback && !sm1.rescue && sm1.beamsAll.some(x => x.ends.some(e => e.kind === 'pb' && /^LEW column, post-and-beam \(Post and Beam/.test(e.why))));
+  // the Lean To's end beams run into its end frames' corner columns: rigid frame, 1'-4"
+  assert.ok(job.marks.find(m => m.mark === 'MB2').beamsAll.some(x => x.ends.some(e => /^(1|9)\/A$/.test(e.label) && e.kind === 'rigid' && Math.abs(e.ft - 4 / 3) < 1e-9)));
   // a W picked by hand: quoted BU (not a common size), and the job-wide note says the pick is on the quote
   const jw = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { colOverride: 'W10X33' } }))), sw = jw.mezz[0];
   assert.ok(sw.colFinal.picked && sw.colFinal.quoteAs === 'BU10x33' && sw.colFinal.auto && sw.colFinal.auto.quoteAs === 'BU8x31');

@@ -139,7 +139,7 @@ A misread moves every beam and column, so each check below is a **stop** on the 
 
 ### The Design page, top to bottom
 
-1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame** — the dead and live, in kips, at each building column the mezzanine beams frame into: the MB sheet's unfactored end shears (*Floor dead / live load — shear at left / right*) of each beam, at its own trib, summed at the column. These are the numbers in the frame loads table, the CSV and the NBG Frame files; columns with the same load share a row (2/A–5/A). The Beam calc page shows the MB sheet's end shear for the mark itself (at the mark's design trib) and says when some of its beams carry less.
+1. **The design**: sections, beam and column counts, steel weight, and **Floor loads to the frame** — the dead and live, in kips, at each building column the mezzanine beams frame into: the MB sheet's unfactored end shears (*Floor dead / live load — shear at left / right*) of each beam, at its own trib, summed at the column. These are the numbers in the frame loads table, the CSV and the NBG Frame files; the card lists them as a small Dead / Live table, and columns with the same load share a row (2/A–5/A). The Beam calc page shows the MB sheet's end shear for the mark itself (at the mark's design trib) and says when some of its beams carry less.
 2. **3D framing model**, then the **framing summary** (beams → governing ratio → columns, floor-plan check).
 3. **Beam options** to pick from: up to three different designs a mark — the lightest, the best fit (the quote engineer's step-by-step method) and the most economical by NBG Economical Flange Sections. Options that land on one section share a card ("Lightest · Best fit"); when they all land on one, another flange width, a shallower section or — where the clearance C leaves one depth — the deeper sections with the C each needs fill the other cards.
 4. **Checks & decisions**: what to check before quoting; what was confirmed against the PCS, the design decisions and how it was read are folded under it. The **DM 15.1** list is folded too, with its counts on the bar.
@@ -166,7 +166,7 @@ A misread moves every beam and column, so each check below is a **stop** on the 
 
 The cards work on the plan page, the sidebar plan and the large plan. Clicking a column or beam opens its calc, and the 3D card shows the same loads.
 
-The sidebar shows the job turning in **3D** or as a labelled **Plan** (grid bubbles, beams, C# columns, building columns). The plan lights what you are reviewing: the column case on Column calc, or the mark and member length on Beam calc. Click a column or beam to open its calc, or ⤢ to see the plan large beside the page.
+The sidebar shows the job turning in **3D** or as a labelled **Plan** (grid bubbles, beams, C# columns, building columns). The plan lights what you are reviewing: the column case on Column calc, or the mark and member length on Beam calc. Click a column or beam to open its calc, or ⤢ to see the plan large beside the page. On a short window (a 1280 × 720 projector, a laptop) the sidebar tightens its spacing in steps and the 3D / plan square takes the height that is left, so the whole sidebar fits without scrolling and the square is never cut off.
 
 The Beam calc page lists the job's marks (MB1 · interior, MB2 · exterior) and, under them, a chip per member length: the designed run and each shorter one, with which beams it covers and its ratio. The MB sheet and the drawing follow the chip. The page opens with a drawing of the mark: the uniform load (D + L in klf), joists at the unbraced length, reactions, the deflected shape, member length, and moment and shear diagrams. Beside it is the BU section to scale with its plates. The Column calc page draws the case: the W column with cap and base plates, the left and right beams on it, both reactions (D / L kips) at e = d/2, the height, and the W section to scale. A table underneath lists each beam's span and trib, so you can see why one column carries more than another.
 
@@ -223,27 +223,30 @@ Each mark has a **design span** and a **design trib**. They change only the beam
 - **Use it when a member is shorter than the grid**, e.g. the clear length between column faces: MB1 at 22'-4" instead of the 24'-0" column-line span.
 - **The change in span applies to every member length of the mark.** With MB1 at 24'-0" → 22'-4", its 20'-0" and 16'-0" runs go to 18'-4" and 14'-4".
 - **One member over the job:** a mark's inputs go on every mezzanine. *Back to the layout* clears them.
-- **Frame column setback** (button, when it applies). Each member length is its layout length less its own setbacks, and the mark is designed at the longest. On W1S-26062 that is MB1 24'-0" → 22'-8", while Mezz 2's 20'-0" and 16'-0" MB1 beams keep their length because they end on mezzanine and interior columns. A design span typed in replaces it and goes back to the same cut on every member.
+- **Frame column setback** (button, when it applies): the beams that run into a wall end at its columns, held in from the grid by the girts (1'-4" rigid frame, 1'-0" post-and-beam). Each member length is its layout length less its own setbacks, and the mark is designed at the longest. On W1S-26062 that is MB1 24'-0" → 22'-8", while Mezz 2's 20'-0" and 16'-0" MB1 beams keep their length because they end on mezzanine and interior columns. A design span typed in replaces it and goes back to the same cut on every member.
 
-### When a beam does not work: What next
+### When a beam does not work: one decision, asked like a missing value
 
-A mark with no passing section gets a card under Beam options, and on Beam calc. It is not just an error, and nothing on it is applied until clicked:
+When a beam mark has no passing section once the open values are in, the Design page does not show a failing design. It asks for one decision, the way it asks for a value the PCS leaves open: the same card at the top of the page, with the inputs on it.
 
-1. **Include the frame column setback.** A beam that frames into a building column stops at the column's face, short of the grid (the steel line). The card lists those columns, the clear span (W1S-26062 MB1: 2/A–5/A, BSW rigid frame columns, 24'-0" → 22'-8") and whether a section passes there. *Design MB1 at 22'-8"* uses it, and *MB1 + MB2* does every mark it applies to.
-   - **Amounts:** 1'-4" at a rigid frame column and 1'-0" at a post-and-beam column. Change them on the card or in Settings.
-   - **Where it is taken:** where the beam runs into a wall column's face:
-     - a sidewall column under a beam across the building (the frame's own column, in its plane), or a soldier column (1'-0");
-     - a post-and-beam endwall column under a beam along the building (1'-0");
-     - a wind column beside a rigid end frame (1'-0", a post).
-   - **Where it is not:** a rigid end frame's own corner and interior columns stand in the frame's plane, and the beam meets them side-on. Interior frame columns sit centred on their grid line. A beam running along a wall gets none either. Where in doubt it is left out, because a shorter design span is the unconservative side.
-2. **Request more clear height.** If the setback is not enough (or there is none), the card gives:
-   - the shallowest beam that passes, at the clear span when the setback applies;
-   - the clearance C under the beams it needs, or the floor height A to raise to: C = A − (slab + seat + d) / 12, A = C + (slab + seat + d) / 12;
-   - a lighter one up to 6" deeper, and the depth without the setback.
-   - *Copy request* gives the note for the estimator. *Design with C …* / *Design with A …* put that value on the Inputs page, with the setback when the depth was found with it.
-   - Examples: W1S-26062 with a 6" seat needs a 15" beam, C 9'-5" or A 11'-7". W2R-26047 as read needs a 19" beam, C 8'-1" (its 30'-0" clear span is still not enough).
-
-The stop note on the Design page names both options.
+- **What stops it, in a line.** *Clear height not met — MB1 needs a 15" beam, C 9'-6" leaves 14"*, with the arithmetic: A 11'-6" − C 9'-6" − slab 4" − seat 6" = 14". The other causes are *Clear height below the minimum beam depth* and *No beam section in the depth range* (no clearance limit; nothing passes up to the deepest).
+- **Nothing failing on screen while it waits.** The title reads *one decision to make*, and so do the status and the mezzanine tabs. The metric cards, the 3D model, the options, the quote sheet and the calc package come back once it is made; the sidebar keeps the layout turning in 3D meanwhile, the beams to decide in amber. The stop notes the missing section brings (*no stocked section*, *columns not sized*) are left to the card.
+- **Two ways forward, with their inputs:**
+  1. **Set the beams back at the wall columns.** A beam that runs into a wall ends at that wall's column, and the girts hold the column in from the grid (steel) line. So the beam is shorter by 1'-4" at a rigid frame and 1'-0" at a post-and-beam frame (or a soldier column).
+     - The card names the columns and their frame. On W1S-26062 MB1 ends at the BSW columns 2/A–5/A (rigid frame, 1'-4"): 24'-0" → 22'-8", and BU14x94 passes.
+     - The amount is on the card, and in Settings.
+     - *Use the setback* applies it to every mark whose beams end there (MB2 → BU14x41 too). Each member length is less its own setback.
+     - A beam running along a wall, an interior column (on its grid line) and a mezzanine column take none.
+     - The plan, the columns and the loads to the frame keep the grid spans, which is the conservative side for them.
+  2. **Request more clear height.** The card gives the shallowest beam that passes and the clear height it needs: C = A − (slab + seat + d) / 12, or the floor raised to A = C + (slab + seat + d) / 12.
+     - Type the clear height the estimator gives into the card, or click the value it needs (*C 9'-5"*). *Floor to 11'-7"* raises A instead.
+     - When the setback is offered but not enough, the card shows both: *C 8'-1" + setback* and the C without it.
+     - *Copy request* gives the note for the estimator.
+     - With no clearance limit, this row is *Shorten the span or the trib*: the Plan page, or the long beam on its own mark when the rest pass.
+- **The design runs as soon as one is picked**, and the page shows the full design. Beam calc shows the same card for the mark, above its depth table.
+- Examples:
+  - W1S-26062 with a 6" seat: setback → BU14x94 / BU14x41; or C 9'-5" → BU15x95 / BU15x42.
+  - W2R-26047 as read: the setback leaves both marks short (30'-0" still needs 19"), so *C 8'-1" + setback* → BU19x100 / BU19x54.
 
 Don't shorten the mezzanine footprint for this. On W1S-26062, cutting Mezz 1 to 22'-4" moves its edge 1'-8" off the BSW column line. That puts six new mezzanine columns along 118'-4", and frame line A loses its loads. Now that case is flagged: a footprint edge between 1'-0" and 3'-0" short of a line of building columns gets a warning on the Design page.
 

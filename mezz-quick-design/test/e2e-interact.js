@@ -77,19 +77,19 @@ if (pdfArgs.length > 1) {
   await setNum('dMax', 18); await log('max depth 18');
   await setNum('dMax', 30);
   if (await quote() !== base) fail('settings round-trip did not return to the default answer');
-  // a job whose clearance C leaves no stocked section (W2R-26047: C 8'-6" under A 10'-6" leaves 14") says so on every row
-  // and why; to drive the rest of the page it is opened the way an engineer would — C cleared on the Inputs page, then
-  // "No requirement"
-  if (/NO SECTION/.test(base)) {
-    const why = await page.$$eval('#warnings .note', ns => ns.some(n => /no stocked BU section .*capped by clearance C/.test(n.textContent)));
-    console.log('no section at the PCS clearance'.padEnd(30), why ? 'the stop says clearance C caps the depth — C opened to go on' : 'NO SECTION, no reason given');
-    if (!why) fail('a mark with no section should say why');
+  // a job whose clearance C leaves no stocked section (W2R-26047: C 8'-6" under A 10'-6" leaves 14"): the page asks for
+  // the decision — why, then the setback and the clear height; to drive the rest of the page it is opened the way an
+  // engineer would — C cleared on the Inputs page, then "No requirement"
+  if (await page.$('#decideCard')) {
+    const why = await page.$eval('#decideCard', e => /Clear height not met/i.test(e.innerText) && /Set the beams back at the wall columns/.test(e.innerText) && /Request more clear height/.test(e.innerText));
+    console.log('no section at the PCS clearance'.padEnd(30), why ? 'the page asks: clear height not met — setback or clear height; C opened to go on' : 'no reason given');
+    if (!why) fail('a mark with no section should say why and offer the setback and the clear height');
     await page.click('#nav button[data-view="inputs"]'); await page.waitForTimeout(150);
     await page.fill('#inputsGrid input[data-path="geom.C"]', ''); await page.press('#inputsGrid input[data-path="geom.C"]', 'Tab'); await page.waitForTimeout(300);
     await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
     await page.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await page.waitForTimeout(400);
     base = await log('C: no requirement');
-    if (/NO SECTION/.test(base)) fail('with C open every mark should get a section');
+    if (/NO SECTION/.test(base) || await page.$('#decideCard')) fail('with C open every mark should get a section');
   }
 
   // joist direction toggle + trib hover
@@ -150,7 +150,7 @@ if (pdfArgs.length > 1) {
     await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(200);
     const seisTxt = await page.$eval('#v-seismic', e => e.innerText);
     console.log('Seismic page'.padEnd(30), (seisTxt.match(/SDC\s*\S+/) || [''])[0], '· frames', (await page.$$('#seisFrames .seis-fr')).length, '· brace lines', (await page.$$('#seisBracing tbody tr')).length);
-    if (!/FRAME FILE/i.test(seisTxt) || (await page.$$('#seisFrames .seis-fr')).length !== 6 || /Needs:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
+    if (!/FRAME FILE/i.test(seisTxt) || (await page.$$('#seisFrames .seis-fr')).length !== 6 || /Needs input:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
     await page.click('#seisFrames .seis-fr'); await page.waitForTimeout(120);
     if (await page.$eval('#seisFrames .seis-dist-row', e => e.hidden)) fail('a frame row should open its distribution');
     await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);

@@ -70,10 +70,31 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 
 /* ---------------- shell ---------------- */
 .app { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
-.rail { position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; height: 100vh; padding: 26px 16px 20px; overflow-y: auto; scrollbar-width: none; color: #c8d8eb; border-right: 1px solid #abcfff15; background: linear-gradient(160deg, #101d2d, #080e19 75%); }
+.rail { position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; height: 100vh; padding: 26px 16px 20px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2b4157 transparent; color: #c8d8eb; border-right: 1px solid #abcfff15; background: linear-gradient(160deg, #101d2d, #080e19 75%); }
+.rail > * { flex-shrink: 0; }   /* nothing in the sidebar is squeezed: on a short window it tightens in steps (data-fit) and the 3D square takes what is left */
+.rail[data-fit] { padding-top: 18px; padding-bottom: 14px; }
+.rail[data-fit] .rail-label { margin-top: 14px; }
+.rail[data-fit] .rail-score { margin-top: 12px; }
+.rail[data-fit] .rail-nav { gap: 2px; margin-top: 12px; }
+.rail[data-fit] .rail-nav button { min-height: 36px; padding-top: 7px; padding-bottom: 7px; }
+.rail[data-fit] .rail-bottom { padding-top: 12px; }
+.rail[data-fit] .rail-bottom p { display: none; }
+.rail[data-fit~="2"] { padding-top: 14px; padding-bottom: 10px; }
+.rail[data-fit~="2"] .brand { min-height: 36px; padding-top: 5px; padding-bottom: 5px; }
+.rail[data-fit~="2"] .rail-label { margin-top: 10px; }
+.rail[data-fit~="2"] .rail-title { margin-top: 3px; font-size: 19px; }
+.rail[data-fit~="2"] .rail-score { margin-top: 10px; }
+.rail[data-fit~="2"] .rail-nav { margin-top: 10px; }
+.rail[data-fit~="2"] .rail-nav button { min-height: 32px; padding-top: 5px; padding-bottom: 5px; }
+.rail[data-fit~="2"] .rail-bottom { padding-top: 10px; gap: 6px; }
+.rail[data-fit~="2"] .btn-mint { min-height: 38px; }
+.rail[data-fit~="2"] .btn-rail { min-height: 36px; }
+.rail[data-fit~="3"] .rail-label { display: none; }
+.rail[data-fit~="3"] .rail-title { margin-top: 8px; font-size: 18px; }
+.rail[data-fit~="3"] .rail-nav button { min-height: 30px; padding-top: 4px; padding-bottom: 4px; font-size: 13.5px; }
 .brand { display: inline-flex; align-items: center; justify-content: center; width: 156px; min-height: 44px; padding: 8px 11px; border-radius: 8px; background: #fff; box-shadow: 0 16px 30px -20px #000; }
 .wordmark { color: #007338; font-family: "Arial Black", "Segoe UI", sans-serif; font-size: 25px; font-weight: 900; font-style: italic; letter-spacing: .12em; line-height: 1; }
-.rail-label { margin-top: 24px; color: #7091ac; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.rail-label { margin-top: 24px; color: #7091ac; font-size: 11.5px; font-weight: 600; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; }
 .rail-title { margin: 6px 0 0; color: #edf5ff; font-family: var(--display); font-size: 22px; font-weight: 550; line-height: 1.15; letter-spacing: -.035em; }
 .rail-score { position: relative; margin-top: 18px; padding: 8px 8px 10px; border: 1px solid #65e7c128; border-radius: 20px; background: radial-gradient(at top right, #35d4ae17, transparent 70%), #101e2c; overflow: hidden; }
 .rail-score::after { content: none; }
@@ -85,7 +106,7 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .rail-orb canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .orb-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #6f8ea3; font: 600 11px var(--body); font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
 .rail-score small { text-align: center; }
-.rail-score small { display: block; margin-top: 7px; color: #94aabe; font-size: 12px; line-height: 1.45; }
+.rail-score small { display: block; margin-top: 7px; color: #94aabe; font-size: 12px; line-height: 1.45; text-wrap: balance; }
 .rail-score b { display: block; margin-top: 3px; color: #a5b9cd; font-size: 12px; font-weight: 400; }
 .rail-nav { display: grid; gap: 5px; margin-top: 20px; }
 .rail-nav button { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid transparent; border-radius: 12px; color: #93a9bf; background: transparent; font: 500 14px var(--body); text-align: left; white-space: nowrap; transition: background .25s, transform .25s, color .25s; }
@@ -131,7 +152,7 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focu
 .lede { margin: 0; color: var(--ink-muted); font-size: 14px; line-height: 1.6; }
 
 /* ---------------- metric ring cards ---------------- */
-.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 4px 0 22px; align-items: start; }
+.metrics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; margin: 4px 0 22px; align-items: stretch; }   /* the floor-loads table a little wider */
 .metric { position: relative; display: flex; align-items: flex-start; gap: 10px; min-height: 132px; padding: 20px 19px; border: 1px solid var(--line); border-radius: 19px; background: linear-gradient(130deg, color-mix(in srgb, var(--surface) 88%, var(--steel) 12%), var(--surface) 64%); box-shadow: var(--lift-2); overflow: hidden; transition: transform .35s var(--ease), border-color .35s; }
 .metric::before { content: ""; position: absolute; right: -43px; top: -65px; width: 130px; height: 130px; border-radius: 50%; border: 1px solid var(--line); box-shadow: 0 0 0 15px color-mix(in srgb, var(--line) 20%, transparent); }
 .metric:hover { transform: translateY(-4px); border-color: var(--line-strong); }
@@ -240,8 +261,8 @@ tr.muted td { color: var(--ink-faint); }
 
 /* ---------------- options ---------------- */
 .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 28px 0 12px; }
-.section-title h3 { margin: 0; font: 550 23px var(--display); letter-spacing: -.035em; }
-.section-title p { margin: 0; color: var(--ink-faint); font-size: 12.5px; }
+.section-title h3 { flex: none; margin: 0; font: 550 23px var(--display); letter-spacing: -.035em; white-space: nowrap; }
+.section-title p { margin: 0; color: var(--ink-faint); font-size: 12.5px; text-align: right; text-wrap: balance; }
 .mark-block + .mark-block { margin-top: 18px; }
 .mark-label { margin: 0 0 10px; color: var(--ink-muted); font-size: 13px; }
 .mark-label b { color: var(--ink); font-weight: 600; }
@@ -254,7 +275,7 @@ tr.muted td { color: var(--ink-faint); }
 .option.is-chosen::before { content: ""; position: absolute; left: 0; top: 22px; bottom: 22px; width: 3px; border-radius: 3px; background: var(--green); box-shadow: 0 0 12px color-mix(in srgb, var(--green) 50%, transparent); }
 .option-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .option-tag { color: var(--green); font: 600 11px var(--body); letter-spacing: .12em; text-transform: uppercase; }
-.option-delta { padding: 2px 8px; border-radius: 999px; color: var(--ink-muted); background: var(--surface-soft); font: 11.5px var(--mono); }
+.option-delta { flex: none; padding: 2px 8px; border-radius: 999px; color: var(--ink-muted); background: var(--surface-soft); font: 11.5px var(--mono); white-space: nowrap; }
 .option-delta.zero { color: var(--green-dark); background: var(--green-soft); }
 .option-sec { margin: 6px 0 2px; font: 600 clamp(22px, 1.9vw, 28px) var(--mono); letter-spacing: -.05em; line-height: 1.05; }
 .option-parts { color: var(--ink-muted); font: 12px var(--mono); }
@@ -262,29 +283,22 @@ tr.muted td { color: var(--ink-faint); }
 .option-why li { margin: 0 0 6px; } .option-why li b { color: var(--ink); font-weight: 600; }
 .option-tags { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 .options.is-one { grid-template-columns: minmax(0, 1.4fr); max-width: 720px; }
-/* nothing passes for a mark: what next (frame column setback, then more clear height) */
-.rescue { margin: 10px 0 4px; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: 14px; background: var(--surface); box-shadow: var(--lift-1); overflow: hidden; }
-.rq-head { padding: 10px 14px; background: var(--amber-soft); border-bottom: 1px solid var(--line); }
-.rq-head p { margin: 3px 0 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
-.rq-steps { margin: 0; padding: 0; list-style: none; counter-reset: rq; }
-.rq-step { position: relative; padding: 11px 14px 11px 46px; border-top: 1px solid var(--line); counter-increment: rq; }
-.rq-step:first-child { border-top: 0; }
-.rq-step::before { content: counter(rq); position: absolute; left: 14px; top: 11px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 12px var(--mono); color: var(--ink); background: var(--surface-soft); border: 1px solid var(--line); }
-.rq-step.is-na { opacity: .72; }
-.rq-t { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.rq-t b { font: 600 13.5px var(--display); }
-.rq-t small { color: var(--ink-faint); font-size: 11.5px; }
-.rq-act { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
-.rq-act2 { margin: 6px 0 0; justify-content: flex-start; }
-.rq-step p { margin: 5px 0 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.55; }
-.rq-step p b { color: var(--ink); }
-.rq-step p.rq-ok { color: var(--green); }
-.rq-step p.rq-ng { color: var(--red); }
-.rq-step p.rq-sub { font-size: 11.5px; color: var(--ink-faint); }
-.rq-amt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 7px; color: var(--ink-faint); font-size: 11.5px; }
-.rq-amt label { display: inline-flex; align-items: center; gap: 6px; }
-.rq-amt input { width: 64px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: 12px var(--mono); }
-@media print { .rescue .rq-act, .rescue .rq-amt { display: none !important; } }
+/* a beam mark with no section: the decision, asked in the "needs your input" card */
+.need.decide .dc-row { grid-template-columns: minmax(220px, 1.25fr) 210px minmax(0, 1.45fr); align-items: start; }
+.need.decide .dc-row > label small { margin-top: 3px; line-height: 1.45; }
+.need.decide .dc-row.is-na { opacity: .66; }
+.dc-in { display: grid; gap: 6px; }
+.need-row .dc-amt { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 500; color: var(--ink-faint); }
+.need-row .dc-amt input { width: 100%; min-width: 0; box-sizing: border-box; }
+.dc-foot span { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip.chip-go { border-color: var(--green); color: var(--green); background: color-mix(in srgb, var(--green) 10%, var(--surface)); }
+.dc-res { flex-basis: 100%; display: grid; gap: 2px; margin-top: 4px; font: 12px var(--mono); }
+.dc-ok { color: var(--green); }
+.dc-no { color: var(--amber); }
+.need-foot.dc-foot { font-family: var(--body); font-size: 12px; }
+.split-wrap { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+@media (max-width: 760px) { .need.decide .dc-row { grid-template-columns: 1fr; } }
+@media print { .need.decide .chips, .need.decide .dc-in { display: none !important; } }
 .option-one { margin: 10px 0 6px; padding: 10px 13px; border-radius: 10px; background: var(--surface-soft); color: var(--ink-muted); font-size: 12.5px; line-height: 1.55; }
 .option-one b { color: var(--ink); }
 table.deeper { max-width: 900px; margin-bottom: 14px; }
@@ -337,6 +351,12 @@ table.deeper { max-width: 900px; margin-bottom: 14px; }
 /* values the PCS leaves open */
 .need { margin: 0 0 6px; padding: 20px 22px; border: 1px solid color-mix(in srgb, var(--amber) 55%, var(--line)); border-radius: 20px; background: linear-gradient(120deg, var(--amber-soft), var(--surface) 60%); box-shadow: var(--lift-2); }
 .need-head { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+/* a card that asks for something arrives once (not on every value typed): it rises in, and the decision draws the eye with one soft ring */
+.need.enter { animation: needIn .55s var(--ease-out) both; }
+@keyframes needIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.need.decide { position: relative; }
+.need.decide.enter::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; animation: needRing 1.5s .5s var(--ease-out) both; }
+@keyframes needRing { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--amber) 45%, transparent); } to { box-shadow: 0 0 0 18px transparent; } }
 .need-head .eyebrow { color: var(--amber); }
 .need-head h3 { margin: 6px 0 0; font: 500 22px var(--display); letter-spacing: -.03em; }
 .need-head p { max-width: 520px; margin: 0; color: var(--ink-muted); font-size: 13px; line-height: 1.5; }
@@ -349,6 +369,8 @@ table.deeper { max-width: 900px; margin-bottom: 14px; }
 .chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); font: 600 12.5px var(--mono); cursor: pointer; }
 .chip small { color: var(--ink-faint); font: 500 11px var(--body); }
 .chip:hover { border-color: var(--green); color: var(--green); }
+.chip { transition: border-color .15s, color .15s, background-color .15s, box-shadow .15s, transform .1s; }
+.chip:active { transform: translateY(1px); }
 .need-foot { display: grid; gap: 4px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line-strong); font: 12.5px var(--mono); color: var(--ink-muted); }
 .need-foot .good { color: var(--green); } .need-foot .bad { color: var(--red); } .need-foot .dim-t { color: var(--ink-faint); }
 @media (max-width: 760px) { .need-row { grid-template-columns: 1fr; } .need-head { display: block; } .need-head p { margin-top: 8px; } }
@@ -428,6 +450,7 @@ tr.none td { color: var(--ink-faint); }
 .src.default, .src.deckGuide { color: var(--ink); background: var(--steel-soft); }
 .src.estimate, .src.missing { color: var(--ink); background: var(--amber-soft); }
 .src.manual { color: var(--canvas); background: var(--ink-muted); }
+.srcs { white-space: nowrap; }
 .checks { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
 .check { padding: 3px 9px; border-radius: 999px; font-size: 12px; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-faint); }
 .check.on { color: var(--green-dark); background: var(--green-soft); box-shadow: none; font-weight: 600; }
@@ -447,7 +470,7 @@ tr.none td { color: var(--ink-faint); }
 .sheet .full { grid-column: 1 / -1; }
 .sheet h4 { margin: 0 0 6px; color: var(--green); font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
 .kv { display: grid; grid-template-columns: minmax(10em, 1fr) minmax(0, max-content); gap: 0 12px; font-size: 13px; }
-.kv span:nth-child(even) { overflow-wrap: anywhere; }
+.kv span { overflow-wrap: anywhere; }   /* a long formula key (Ru = (D+coll+joist+L)·spacing·trib) wraps inside its column */
 .kv span { padding: 5px 0; border-bottom: 1px dotted var(--line); }
 .kv span:nth-child(even) { font-family: var(--mono); text-align: right; }
 .kv .ng { color: var(--red); font-weight: 700; }
@@ -485,6 +508,7 @@ tr.none td { color: var(--ink-faint); }
 .pstat { position: relative; padding: 18px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--glass); box-shadow: var(--lift-1); overflow: hidden; }
 .pstat span { display: block; color: var(--ink-muted); font-size: 12.5px; }
 .pstat strong { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; font: 550 40px var(--display); letter-spacing: -.06em; line-height: 1; }
+.pstat strong { flex-wrap: wrap; }
 .pstat strong small { color: var(--ink-faint); font: 500 13px var(--body); letter-spacing: 0; }
 .pstat.beams strong { color: var(--green); }
 .pstat.cols strong { color: var(--col); }
@@ -560,7 +584,9 @@ tr.none td { color: var(--ink-faint); }
 @media (max-width: 1350px) {
   .app { grid-template-columns: 204px minmax(0, 1fr); }
   .rail { padding: 22px 12px 18px; }
-  .atlas { grid-template-columns: 1fr 1fr; }
+  .atlas { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .atlas .tallies { grid-auto-rows: 1fr; }   /* the two tallies share the height of the beams card beside them */
+  .atlas .tally { display: flex; flex-direction: column; justify-content: space-between; }
   .atlas .disc-wrap { grid-column: 1 / -1; grid-row: 1; }
   /* narrower: the job and mezzanine names on their own line above the code / division / theme row; the rail's labels wrap */
   .masthead { flex-wrap: wrap; row-gap: 6px; padding: 12px 0; }
@@ -595,6 +621,15 @@ tr.none td { color: var(--ink-faint); }
   .masthead { flex-wrap: wrap; padding: 12px 0; }
   .field-row { grid-template-columns: minmax(0, 1fr) 118px; }
   .field-row.full { grid-template-columns: 1fr; }
+  .metric.floor { grid-column: 1 / -1; }   /* the floor-loads table needs the full width */
+  .metrics > .metric:last-child { grid-column: 1 / -1; }
+  .section-title, .model-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .section-title p { text-align: left; }
+  .section-title h3 { white-space: normal; }
+}
+/* reduced motion (an OS setting): pages, cards and rings appear without moving */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 /* print: the calc summary on white paper — the Design, Beam calc and Column calc pages only, in the light colours,
    without the controls, the 3D model and the download bars */
@@ -623,6 +658,7 @@ tr.none td { color: var(--ink-faint); }
   #planSvg .tag text { fill: var(--ink) !important; }
   /* the frame-load cards in small type: a reference table, several to a page */
   #v-plan .fl-frame { break-inside: avoid; padding: 6px 8px !important; margin-bottom: 6px !important; }
+  #v-plan .fl-frame { overflow: visible !important; } #v-plan table.fl-fr { min-width: 0 !important; }
   #v-plan .fl-t { font-size: 8px !important; }
   #v-plan .fl-t th, #v-plan .fl-t td, #v-plan .fl-t td * { padding: 2px 4px !important; font-size: 8px !important; }
   #v-plan .fl-head small, #v-plan .name-key, #v-plan .xl-foot { font-size: 8px !important; }
@@ -677,10 +713,15 @@ tr.none td { color: var(--ink-faint); }
 .check-pill.stop { color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 40%, transparent); }
 #needSlot:empty { display: none; }
 #needSlot { margin-bottom: 18px; }
-.metric.floor .fl-rows { display: grid; gap: 4px; margin: 10px 0 6px; }
-.fl-row { display: grid; grid-template-columns: 42px 1fr 1fr; gap: 8px; align-items: baseline; font: 600 clamp(15px, 1.35vw, 19px) var(--mono); letter-spacing: -.02em; }
-.fl-row b { color: var(--ink-faint); font: 600 11px var(--mono); letter-spacing: .04em; }
-.fl-row span:nth-child(2) { color: var(--steel); } .fl-row span:nth-child(3) { color: var(--green); }
+/* floor loads: a small table — columns on the left, dead and live right-aligned in their own columns */
+.metric.floor .fl-rows { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 6px; align-items: baseline; margin: 12px 0 9px; }
+.fl-row { display: contents; }
+.fl-row > b { min-width: 0; margin: 0; color: var(--ink-muted); font: 600 11.5px var(--mono); letter-spacing: .02em; line-height: 1.35; white-space: normal; }
+.fl-row > b small { margin-right: 6px; color: var(--ink-faint); font: 600 9.5px var(--body); letter-spacing: .08em; text-transform: uppercase; }   /* the building, before its columns; wraps when narrow */
+.fl-row > span { padding-left: 14px; font: 600 15px var(--mono); letter-spacing: -.02em; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fl-row > span:nth-child(2) { color: var(--steel); } .fl-row > span:nth-child(3) { color: var(--green); }
+.fl-row > span.ng { grid-column: 2 / -1; color: var(--red); font: 600 12px var(--body); }
+.fl-row.fl-hd > b, .fl-row.fl-hd > span { padding-bottom: 5px; border-bottom: 1px solid var(--line); color: var(--ink-faint); font: 600 9.5px var(--body); letter-spacing: .1em; text-transform: uppercase; }
 .frame-strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 0 0 14px; padding: 13px 18px; border: 1px solid color-mix(in srgb, var(--green) 35%, var(--line)); border-radius: 16px; background: linear-gradient(110deg, var(--green-soft), var(--surface) 70%); }
 .frame-strip b { font: 600 18px var(--mono); }
 .frame-strip small { color: var(--ink-faint); font-size: 12px; }
@@ -703,12 +744,14 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .jobs-row { align-items: start; }
 .jobs ul { margin: 0 0 10px; padding: 0; list-style: none; display: grid; gap: 4px; font: 12px var(--mono); color: var(--ink-muted); }
 .jobs li b { color: var(--ink); } .jobs li span { color: var(--ink-faint); margin: 0 6px; }
+.jobs li { padding: 6px 0; border-bottom: 1px dotted var(--line); }
+.jobs li small { display: block; margin-top: 2px; color: var(--ink-faint); font: 11.5px var(--body); line-height: 1.45; }
 .jobs-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .file-btn { cursor: pointer; display: inline-flex; align-items: center; }
 #settingsGrid .field-row { grid-template-columns: minmax(0, 1fr) 230px; }
 
 /* sidebar view: the mezzanine turning in 3D, or a labelled floor plan */
-.rail-view { position: relative; width: 100%; aspect-ratio: 1; border-radius: 14px; background: radial-gradient(ellipse at 50% 45%, #1d4a5266, #0b1724 72%); box-shadow: inset 0 0 0 1px #65e7c126; overflow: hidden; }
+.rail-view { position: relative; width: var(--rv, 100%); max-width: 100%; margin: 0 auto; aspect-ratio: 1; border-radius: 14px; background: radial-gradient(ellipse at 50% 45%, #1d4a5266, #0b1724 72%); box-shadow: inset 0 0 0 1px #65e7c126; overflow: hidden; }
 .rail-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
 .rail-view svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .rv-toggle { position: absolute; right: 6px; top: 6px; display: flex; gap: 2px; padding: 2px; border-radius: 9px; background: #0b1724e6; box-shadow: inset 0 0 0 1px #65e7c133; }
@@ -783,7 +826,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 @media (max-width: 1100px) { .viz { grid-template-columns: 1fr; } }
 
 .rv-toggle #rvBig { font-size: 12px; padding: 1px 7px; }
-.plan-pop { position: fixed; z-index: 40; left: 262px; top: 96px; width: min(720px, calc(100vw - 290px)); padding: 12px 14px 14px; border: 1px solid #65e7c140; border-radius: 18px; background: linear-gradient(160deg, #102234f5, #0a1522f8); box-shadow: 0 30px 60px #000a; backdrop-filter: blur(10px); }
+.plan-pop { position: fixed; z-index: 40; left: 262px; top: 96px; width: min(1040px, calc(100vw - 290px)); max-height: calc(100vh - 110px); overflow: auto; padding: 12px 14px 14px; border: 1px solid #65e7c140; border-radius: 18px; background: linear-gradient(160deg, #102234f5, #0a1522f8); box-shadow: 0 30px 60px #000a; backdrop-filter: blur(10px); }
 .pp-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; color: #dfeefa; }
 .pp-head b { font: 600 15px var(--display); }
 .pp-head span { color: #8fb2c7; font-size: 12px; }
@@ -804,12 +847,7 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .fcard .mk-why { margin-top: 12px; line-height: 1.45; font-size: 11px; }
 .mk-dot { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; vertical-align: 0; }
 .mark-label .mk-dot { margin-right: 6px; }
-.fl-row { grid-template-columns: 1fr auto; gap: 1px 12px; }
-.fl-row b { grid-column: 1 / -1; line-height: 1.25; }
-.fl-row span { white-space: nowrap; }
-.fl-row span.ng { grid-column: 1 / -1; color: var(--red); font: 600 12px var(--body); }
 .fl-row i, .metric.floor small i { margin-left: 6px; padding: 0 5px; border-radius: 5px; background: var(--amber-soft); color: var(--amber); font: 600 10px var(--mono); font-style: normal; letter-spacing: .02em; text-transform: none; }
-.fl-row b small { margin-left: 4px; color: var(--ink-faint); font: 500 10.5px var(--mono); letter-spacing: 0; }
 .beam-inputs { margin: 0 0 14px; padding: 12px 16px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .beam-inputs:empty { display: none; }
 .bi-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; }
@@ -829,8 +867,8 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 .bi-out.ng { border-left-color: var(--red); } .bi-out.ng b { color: var(--red); }
 .span-runs { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin: 0 0 14px; }
 .span-runs:empty { display: none; }
-.sr-head { flex: 0 1 300px; display: flex; flex-direction: column; justify-content: center; min-width: 180px; padding: 4px 8px 4px 2px; }
-.sr-head small { margin-top: 3px; color: var(--ink-faint); font-size: 12px; }
+.sr-head { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; padding: 2px 2px 2px; }
+.sr-head small { color: var(--ink-faint); font-size: 12px; }
 .sr { flex: 0 1 auto; max-width: 100%; position: relative; display: grid; grid-template-columns: auto auto; gap: 2px 12px; min-width: 180px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; }
 .sr b { font: 600 18px var(--mono); letter-spacing: -.03em; }
 .sr span { align-self: center; color: var(--ink-muted); font-size: 12px; }
@@ -945,6 +983,9 @@ table.xl tr.rb td.val { color: var(--green); font-weight: 600; }
 .fl-head small { color: var(--ink-faint); font-size: 11.5px; }
 .fl-no { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink-muted); font: 700 13px var(--body); }
 table.fl-t { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.fl-fr { table-layout: fixed; min-width: 640px; }   /* every frame's table has the same columns, so they line up down the page */
+.fl-fr .c-lab { width: 8%; } .fl-fr .c-at { width: 10%; } .fl-fr .c-n { width: 11.5%; } .fl-fr .c-eq { width: 15.5%; } .fl-fr .c-from { width: 15%; }
+.fl-frame { overflow-x: auto; }
 table.fl-t th { padding: 6px 6px; color: var(--ink-faint); font: 600 10.5px var(--mono); text-align: left; border-bottom: 1px solid var(--line-strong); }
 table.fl-t td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
 table.fl-t .num { text-align: right; }
@@ -1022,7 +1063,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 .seis-grid > label.seis-chk { flex-direction: row; align-items: flex-start; gap: 8px; color: var(--ink); line-height: 1.45; }
 .seis-grid > label.seis-chk input { flex: 0 0 auto; margin-top: 2px; padding: 0; }
 .seis-grid input, .seis-grid select, .seis-mz input { font: 600 13px var(--mono); padding: 6px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0; }
-.seis-in.need { border-color: var(--red); background: var(--red-soft); }
+.seis-in.need { border-color: var(--amber); background: var(--amber-soft); }   /* a value still to type: asked for, not an error */
 .seis-walls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .seis-chk { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: var(--ink); grid-column: span 2; }
 .seis-chk input { margin-top: 2px; }
@@ -1032,7 +1073,7 @@ table.nbg-t td.sub-n { white-space: normal; min-width: 140px; }
 .src-PCS, .src-design { background: var(--green-soft); color: var(--green); }
 .src-frame-file { background: var(--steel-soft); color: var(--steel); }
 .src-typed { background: var(--amber-soft); color: var(--amber); }
-.src-missing { background: var(--red-soft); color: var(--red); }
+.src-missing { background: var(--amber-soft); color: var(--amber); }
 .seis-frames tr.seis-fr { cursor: pointer; }
 .seis-frames tr.seis-fr:hover td, .seis-frames tr.seis-fr.open td { background: var(--surface-soft); }
 .seis-frames td small, .seis-dist td small { display: block; }
@@ -1058,6 +1099,7 @@ table.fl-t .e, .hover-tip .e { color: var(--amber); }
 table.nbg-t tr.eq-row td { background: var(--amber-soft); }
 .seis-grid > label .src { align-self: flex-start; margin-left: 0; }
 .seis-mz td small, #seisBracing td small, .seis-frames td small { display: block; }
+.seis-mz td small.src { display: inline-block; margin-top: 4px; }
 .seis-notes { margin-top: 10px; padding: 9px 12px; border-radius: 9px; background: var(--surface-soft); font-size: 12px; line-height: 1.5; color: var(--ink-muted); }
 .seis-notes ul { margin: 4px 0 0; padding-left: 18px; }
 /* folding panels: closed by default, the heading is the switch */
@@ -1105,6 +1147,7 @@ table.nbg-t td .card-eq { width: 78px; }
 .wb-group h5 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
 .wb-group h5 small { margin-left: 6px; color: var(--ink-faint); font-weight: 500; text-transform: none; letter-spacing: 0; }
 .wb-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; }
+.wb-rows[data-k="beam"] { grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); }   /* the beam workbooks carry a longer note */
 .wb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .wb-row b { display: block; font-size: 13px; } .wb-row small { display: block; color: var(--ink-faint); font-size: 11.5px; }
 .wb-btn { white-space: nowrap; }
@@ -1242,7 +1285,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 #planSvg .arrow, #planSvg .arrow-t, #planSvg .run-lab, #planSvg .dim, #planSvg .lbl { pointer-events: none; }
 .tally.ng::before { background: #ff6b6b !important; }
 .cp-note { flex-basis: 100%; color: var(--amber); font-size: 12px; }
-.sr-head .sr-back { align-self: flex-start; margin-top: 6px; padding: 4px 10px; font-size: 12px; }
+.sr-head .sr-back { margin-left: auto; padding: 4px 10px; font-size: 12px; }
 .empty .split-why { display: block; margin-top: 6px; color: var(--ink-muted); font-weight: 400; font-size: 12.5px; }
 #modelKey .ng { color: #ff6b6b; }
 /* the column section drawing stays its own size when the elevation stacks above it (narrow screens) */
@@ -1281,7 +1324,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 <div class="app">
   <aside class="rail" aria-label="Mezzanine design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
-    <div class="rail-label">Building systems · quote eng.</div>
+    <div class="rail-label">Building systems<br>Quote engineering</div>
     <h1 class="rail-title">Mezzanine design</h1>
     <section class="rail-score" aria-label="This job">
       <div class="rail-view" id="railView">
@@ -1508,7 +1551,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     <section class="screen" id="v-inputs">
       <div class="screen-heading">
         <div><div class="eyebrow">What was read</div><h2>Inputs <em>read</em></h2></div>
-        <p class="lede">Every value and its source: <span class="src pcs">PCS</span> <span class="src annotation">note</span> <span class="src deckGuide">guide</span> <span class="src estimate">est.</span> <span class="src manual">edit</span>. Edits re-run the design.</p>
+        <p class="lede">Edits re-run the design. Each value shows where it came from: <span class="srcs"><span class="src pcs">PCS</span> <span class="src annotation">note</span> <span class="src deckGuide">guide</span> <span class="src estimate">est.</span> <span class="src manual">edit</span></span></p>
       </div>
       <div class="panel"><div class="panel-body"><div class="inputs-grid" id="inputsGrid"></div></div></div>
     </section>
@@ -4628,6 +4671,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
           if (!view.toggles.tags) continue;
           ctx.font = '700 10px "Cascadia Code", Consolas, monospace';
           const tw = ctx.measureText(l.text).width + 12;
+          p[0] = Math.min(Math.max(p[0], tw / 2 + 4), W - tw / 2 - 4);   // a tag near the edge stays whole on the canvas
           const y0 = p[1] - 9 + (l.dy || 0), dy = [0, -20, 20, -38, 38].find(d => !hits(p[0] - tw / 2, y0 + d, p[0] + tw / 2, y0 + d + 17)), y = y0 + (dy || 0);
           // no free spot (a small view): a mark already tagged nearby is not tagged again
           if (dy == null && placedTags.some(q => q.text === l.text)) continue;
@@ -4646,8 +4690,10 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
           ctx.fillStyle = '#d9ecfa'; ctx.fillText(l.text, p[0], p[1] + 0.5);
         } else {
           ctx.font = '11px "Cascadia Code", Consolas, monospace';
-          ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, p[0] + 8, p[1] + (l.dy || 0));
-          placed.push([p[0] + 8, p[1] + (l.dy || 0) - 7, p[0] + 8 + ctx.measureText(l.text).width, p[1] + (l.dy || 0) + 7]);   // the tags keep clear of it
+          // to the right of its point, or to the left where the right would run off the canvas (T/beam at the near corner)
+          const tw = ctx.measureText(l.text).width, x = Math.max(6, p[0] + 8 + tw > W - 6 ? p[0] - 8 - tw : p[0] + 8);
+          ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, x, p[1] + (l.dy || 0));
+          placed.push([x, p[1] + (l.dy || 0) - 7, x + tw, p[1] + (l.dy || 0) + 7]);   // the tags keep clear of it
           ctx.textAlign = 'center'; ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
         }
       }
@@ -6354,34 +6400,24 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     return marks;
   }
 
-  /* The frame column setback at each end of a beam: a beam that frames into a building column stops at the column's
-     inside face, short of the grid line (the steel line) by about the column's depth — 1'-4" at a rigid frame column,
-     1'-0" at a post-and-beam column (Settings). Taken where the beam runs into the face of a wall's column:
-       - a beam across the building, at a sidewall: the frame's own column, in the frame's plane (rigid 1'-4", post-and-
-         beam 1'-0"); a soldier column between frames, 1'-0";
-       - a beam along the building, at an endwall: a post-and-beam end frame's columns, 1'-0"; beside a rigid end frame
-         the wind columns face it like posts, 1'-0", but the frame's own columns (corners, interior) stand in the frame's
-         plane and the beam meets them side-on — none.
-     A beam running along a wall, an interior frame column (centred on its grid line) and a mezzanine column take none.
-     Where in doubt the setback is left out: a shorter design span is the unconservative side. */
+  /* The frame column setback at each end of a beam. A beam that runs into a wall ends at that wall's column, and the
+     girts hold the column inside the steel line (the grid line), so the beam stops short of the grid by the girts and
+     the column: 1'-4" at a rigid frame column, 1'-0" at a post-and-beam column (Settings; a soldier column between
+     sidewall frames counts as a post). The wall is the one the beam runs into: a sidewall for a beam across the
+     building, an endwall for one along it. A beam running along a wall, an interior column (on its grid line) and a
+     mezzanine column take none. */
   function beamEnds(c, id, s) {
     const L = c.lay, g = c.grid, W = g.width, Lg = g.length, near = (a, v) => Math.abs(a - v) < 0.05;
     const frames = c.inp.building.frames || [], across = L.joists === 'x';   // joists along x: the beams run across (y)
-    const fiOf = x => g.xs.findIndex(v => near(v, x)), frameAt = x => { const fi = fiOf(x); return fi < 0 ? null : frames.find(f => fi + 1 >= f.from && fi + 1 <= f.to) || null; };
-    const isPB = fr => !fr || /post|bearing/i.test(fr.type || ''), amt = { rigid: +s.setbackRigid || 0, pb: +s.setbackPB || 0 };
+    const frameAt = x => { const fi = g.xs.findIndex(v => near(v, x)); return fi < 0 ? null : frames.find(f => fi + 1 >= f.from && fi + 1 <= f.to) || null; };
+    const amt = { rigid: +s.setbackRigid || 0, pb: +s.setbackPB || 0 };
     return L.supports.filter(sp => sp.beams.L === id || sp.beams.R === id).map(sp => {
-      const at = { label: sp.label, x: sp.x, y: sp.y, kind: null, ft: 0 }, none = why => ({ ...at, why });
-      if (!sp.building) return none('mezzanine column');
-      const side = across ? (near(sp.y, 0) ? 'FSW' : near(sp.y, W) ? 'BSW' : null) : (near(sp.x, 0) ? 'LEW' : near(sp.x, Lg) ? 'REW' : null);
-      if (!side) return none((across ? near(sp.x, 0) || near(sp.x, Lg) : near(sp.y, 0) || near(sp.y, W)) ? 'the beam runs along the wall' : 'interior frame column, centred on its grid line');
-      const fr = frameAt(sp.x), type = fr && fr.type ? ` (${fr.type})` : '';
-      if (across) {
-        const kind = fr && !isPB(fr) ? 'rigid' : 'pb';
-        return { ...at, kind, ft: amt[kind], why: fr ? `${side} column of frame ${g.xLabel(sp.x)}${type}` : `${side} soldier column` };
-      }
-      if (isPB(fr)) return { ...at, kind: 'pb', ft: amt.pb, why: `${side} column${type}` };
-      const member = near(sp.y, 0) || near(sp.y, W) || (g.interior[fiOf(sp.x)] || []).some(y => near(y, sp.y));
-      return member ? none(`${side} rigid end frame column${type} — the beam meets it side-on`) : { ...at, kind: 'pb', ft: amt.pb, why: `${side} wind column beside the rigid end frame${type}` };
+      const at = { label: sp.label, x: sp.x, y: sp.y, kind: null, ft: 0 };
+      if (!sp.building) return { ...at, why: 'mezzanine column' };
+      const wall = across ? (near(sp.y, 0) ? 'FSW' : near(sp.y, W) ? 'BSW' : null) : (near(sp.x, 0) ? 'LEW' : near(sp.x, Lg) ? 'REW' : null);
+      if (!wall) return { ...at, why: (across ? near(sp.x, 0) || near(sp.x, Lg) : near(sp.y, 0) || near(sp.y, W)) ? 'the beam runs along the wall' : 'interior column, on its grid line' };
+      const fr = frameAt(sp.x), kind = fr && !/post|bearing/i.test(fr.type || '') ? 'rigid' : 'pb';
+      return { ...at, kind, wall, ft: amt[kind], why: `${wall} column, ${fr ? `${kind === 'rigid' ? 'rigid frame' : 'post-and-beam'} (${fr.type})` : 'soldier column (a post)'}` };
     });
   }
 
@@ -6397,7 +6433,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const ends = [];
     m.beamsAll.forEach(x => (x.ends || []).filter(e => e.ft > 0).forEach(e => {
       const c = members.find(k => k.index === x.mi), key = x.mi + '|' + e.label;
-      if (!ends.some(q => q.key === key)) ends.push({ key, mi: x.mi, mezz: c ? c.id : '', label: e.label, kind: e.kind, ft: e.ft, why: e.why });
+      if (!ends.some(q => q.key === key)) ends.push({ key, mi: x.mi, mezz: c ? c.id : '', label: e.label, kind: e.kind, wall: e.wall, ft: e.ft, why: e.why });
     }));
     // offer: it would shorten the design span · applied: in use, and still nothing passes · typed: a design span typed on
     // Beam calc is already at or under the clear span · none: no beam frames into a frame column's face · short: only
@@ -6439,7 +6475,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   /* one mark: section search → three options → the pick (stored as intent) → MB-sheet runs at every span in it */
   function designMark(m) {
     const members = m.group.ctxs.filter(c => m.mezzIds.includes(c.index)), c0 = members[0], s = c0.s, ed = c0.ed;
-    const say = (level, text) => members.forEach(c => c.warn.push({ level, text }));
+    const say = (level, text, tag) => members.forEach(c => c.warn.push(tag ? { level, text, tag } : { level, text }));
     const caps = members.map(c => c.maxDepthByC).filter(v => v != null), maxDepth = caps.length ? Math.min(...caps) : null;
     const jd = members.map(c => c.joistDepthIn).filter(v => v != null), dLimit = jd.length ? Math.floor(Math.min(...jd) + 1e-6) : null;
     // the design span / trib set on the Beam calc page (e.g. the member length between column faces): they go on the MB
@@ -6499,7 +6535,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         const dzr = DESIGN.designBeam({ ...c0.beamBase, L: rest, trib: dTrib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
         if (dzr && dzr.best) {
           m.splitHelps = { span: longest, n: nLong, rest: lens.length - nLong, restDesc: dzr.best.desc || (dzr.best.r && dzr.best.r.desc) || '' };
-          say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter and would pass on their own (${m.splitHelps.restDesc}). Give the ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's' : ''} ${nLong > 1 ? 'their' : 'its'} own mark (the button on Beam calc) to size the rest, and the columns they carry — no other mark changes.`);
+          say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter and would pass on their own (${m.splitHelps.restDesc}). Give the ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's' : ''} ${nLong > 1 ? 'their' : 'its'} own mark (the button on Beam calc) to size the rest, and the columns they carry — no other mark changes.`, 'nosec');
         }
       }
       const cap = maxDepth != null && maxDepth < s.dMax;
@@ -6509,8 +6545,8 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       const next = [sb.state === 'offer' ? (sb.best ? `the frame column setback — at the ${F(sb.span)} clear span ${sb.best.desc} passes` : `the frame column setback (${F(sb.span)} clear span) does not do it on its own`) : sb.state === 'applied' ? `the frame column setback is in use (${F(sb.span)} clear span)` : '',
         cl && !cl.none ? `more clear height — a ${cl.d}" beam needs C ${F(cl.needC)} (now ${F(cl.C)}) or the floor at ${F(cl.needA)}` : ''].filter(Boolean);
       say('stop', cap && maxDepth < s.dMin
-        ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. ${next.length ? `What next (Beam options): ${next.join('; or ')}.` : 'Check the clearance or the minimum depth in Settings.'}`
-        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. ${next.length ? `What next (Beam options): ${next.join('; or ')}. Otherwise shorten the span (put a column back) or add a beam line to cut the trib.` : cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`);
+        ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}.` : 'Check the clearance or the minimum depth in Settings.'}`
+        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}. Otherwise shorten the span (put a column back) or add a beam line to cut the trib.` : cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`, 'nosec');
     }
     // every member length in the mark: the governing run plus the shorter beams (same section, own MB-sheet run)
     const spans = [];   // distinct member lengths, kept exact (12'-4" = 12.3333 ft, not 12.333)
@@ -6674,7 +6710,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (cols.length && !colLen) why = { kind: 'length', text: 'Column length unknown — enter the top of mezzanine (A) to size the columns.' };
     else if (cols.length && noBeam) { const nU = cols.filter(q => !known(q)); why = { kind: 'beam', marks: noSec, text: `${nU.length === cols.length ? 'Columns' : `${nU.length} of ${cols.length} columns (${colOrder(nU).map(q => q.label).join(', ')})`} not sized — ${noSec.join(', ')} ${noSec.length > 1 ? 'have' : 'has'} no section yet, so the reactions are unknown${nU.length < cols.length ? '; the others are sized' : ''}.` }; }
     else if (cols.length && !colFinal) why = { kind: 'pass', text: 'No W8–W14 column passes — check the loads or design a built-up column (Design your own).' };
-    if (why) warn.push({ level: 'stop', text: why.text });
+    if (why) warn.push(why.kind === 'beam' ? { level: 'stop', text: why.text, tag: 'nosec' } : { level: 'stop', text: why.text });
     return { colLen, groups, colFinal, why };
   }
 
@@ -7922,10 +7958,11 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (!many) { nav.innerHTML = ''; return; }
     nav.innerHTML = `<span class="mt-title">${state.all.length} mezzanines<small>designed together</small></span>` + state.job.mezz.map((m, i) => {
       const g = state.all[i].inputs.geom, size = `W ${ft(g.width.value)} × L ${ft(g.length.value)}`;   // width along the endwall, length along the sidewall (Box 22)
-      const beams = m.incomplete ? '' : m.marks.map(mk => `${mk.mark} ${esc(mk.desc || 'NO SECTION')} × ${mk.qty}`).join(' · ');
+      const waits = !m.incomplete && m.marks.some(mk => !mk.sec && mk.rescue);
+      const beams = m.incomplete ? '' : m.marks.map(mk => `${mk.mark} ${esc(mk.desc || (mk.rescue ? 'to decide' : 'NO SECTION'))} × ${mk.qty}`).join(' · ');
       const nUn = m.colFinal ? (m.colFinal.unsized || []).length : 0;
-      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length - nUn}${nUn ? ` · <em class="mt-ng">${nUn} not sized</em>` : ''}` : (m.columns.length ? `<em class="mt-ng">${m.columns.length} column${m.columns.length > 1 ? 's' : ''} not sized</em>` : '');
-      const st = m.incomplete ? `<em class="mt-need">needs ${m.need.length} input${m.need.length > 1 ? 's' : ''}</em>` : m.warn.some(w => w.level === 'stop') ? '<em class="mt-check">check notes</em>' : '<em class="mt-ok">designed</em>';
+      const cols = m.incomplete ? '' : m.colFinal ? `${esc(m.colFinal.quoteAs)} × ${m.columns.length - nUn}${nUn ? ` · ${waits ? `${nUn} after the decision` : `<em class="mt-ng">${nUn} not sized</em>`}` : ''}` : (m.columns.length ? (waits ? `${m.columns.length} column${m.columns.length > 1 ? 's' : ''} after the decision` : `<em class="mt-ng">${m.columns.length} column${m.columns.length > 1 ? 's' : ''} not sized</em>`) : '');
+      const st = m.incomplete ? `<em class="mt-need">needs ${m.need.length} input${m.need.length > 1 ? 's' : ''}</em>` : waits ? '<em class="mt-need">one decision to make</em>' : m.warn.some(w => w.level === 'stop') ? '<em class="mt-check">check notes</em>' : '<em class="mt-ok">designed</em>';
       return `<button class="mt ${i === state.mi ? 'is-on' : ''}" data-mi="${i}" aria-pressed="${i === state.mi}"><span class="mt-name">${esc(m.id)}</span><span class="mt-size">${size}</span>${st}<span class="mt-sec">${beams || '—'}${cols ? '<br>' + cols : ''}</span></button>`;
     }).join('');
     $$('#mezzTabs .mt').forEach(b => { b.onclick = () => switchMezz(+b.dataset.mi); });
@@ -7970,11 +8007,11 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (state.mark >= jobMarks().length) { state.mark = 0; state.markSpan = 0; }
     if (state.colGroup >= state.res.colGroups.length) state.colGroup = 0;
     $$('#nav button').forEach(b => { b.disabled = false; });
-    $('#copyQuote').disabled = !!state.res.incomplete; $('#printBtn').disabled = false;
+    $('#copyQuote').disabled = !!state.res.incomplete || decideMarks().length > 0; $('#printBtn').disabled = false;
     const bad = (state.job.mezz || [state.res]).some(m => (m.warn || []).some(w => w.level === 'stop'));
     const ok = !state.res.incomplete && state.res.marks.length && state.res.marks.every(m => m.sec) && (!state.res.columns.length || state.res.colFinal);
-    const open = state.job && state.job.mezz.some(m => m.incomplete);
-    status(open ? 'Needs input' : ok ? (bad ? 'Designed · check notes' : 'Designed') : 'Needs attention', open ? 'warn' : ok ? (bad ? 'warn' : 'ok') : 'bad');
+    const open = state.job && state.job.mezz.some(m => m.incomplete), decide = !open && decideMarks().length;
+    status(open ? 'Needs input' : decide ? 'One decision to make' : ok ? (bad ? 'Designed · check notes' : 'Designed') : 'Needs attention', open || decide ? 'warn' : ok ? (bad ? 'warn' : 'ok') : 'bad');
     renderAll();
     remember();
     return true;
@@ -8052,6 +8089,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     renderMezzTabs();
     const many = state.all && state.all.length > 1;
     if (r.incomplete) { $('#rsSub').textContent = 'Needs input — see Design'; renderMiniPlan(); return; }
+    if (decideMarks().length) { $('#rsSub').textContent = 'One decision to make — see Design'; renderMiniPlan(); return; }
     const jt = many ? jobTotals() : t;
     $('#rsSub').textContent = many ? `${state.job.mezz.filter(m => !m.incomplete).map(m => m.id).join(' + ')} · ${jt.nB} beams · ${jt.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
     $('#navPlanCount').hidden = false;
@@ -8085,18 +8123,20 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const unkRow = unk.length ? [{ k: 'unk', D: NaN, L: NaN, t: '', b: [...new Set(unk.map(g => g.b))].join(', '), cols: unk.flatMap(g => g.cols) }] : [];
     const shown = unkRow.concat(known.slice(0, 4 - unkRow.length)), more = unk.length + known.length - shown.length - (unk.length ? unk.length - 1 : 0);
     const TAG = { endwall: '<i>endwall</i>', add: '<i>add in Frame</i>' };
-    const rows = shown.map(g => `<span class="fl-row"><b title="${esc((g.b ? g.b + ' ' : '') + g.cols.join(', '))}">${g.b ? `<small>${esc(g.b)}</small> ` : ''}${esc(name(g.cols))}${TAG[g.t] ? ' ' + TAG[g.t] : ''}</b>${isFinite(g.D) ? `<span>D ${f(g.D, 2)}</span><span>L ${f(g.L, 2)}</span>` : '<span class="ng">beam not sized</span>'}</span>`).join('');
+    // a small table: the columns (with their building) on the left, dead and live in two aligned columns
+    const rows = shown.map(g => `<span class="fl-row"><b title="${esc((g.b ? g.b + ' ' : '') + g.cols.join(', '))}">${g.b ? `<small>${esc(g.b)}</small>` : ''}${esc(name(g.cols))}${TAG[g.t] ? TAG[g.t] : ''}</b>${isFinite(g.D) ? `<span>${f(g.D, 2)}</span><span>${f(g.L, 2)}</span>` : '<span class="ng">beam not sized</span>'}</span>`).join('');
     const used = new Set(shown.map(g => g.t));
     const legend = [used.has('endwall') && '<i>endwall</i>: in no frame file, for the endwall design', used.has('add') && '<i>add in Frame</i>: made a frame column — add it in NBG Frame'].filter(Boolean).join(' · ');
     return `<div class="metric floor"><div class="metric-copy"><span>Floor loads to the frame</span>
-      <div class="fl-rows">${rows || '<span class="sub-n">No mezzanine beam frames into a building column.</span>'}</div>
-      <small>kips at each building column · unfactored MB end shears (H6 / H10)${more ? ` · ${more} more on the Plan page` : ''}${legend ? ' · ' + legend : ''}</small></div></div>`;
+      <div class="fl-rows">${rows ? `<span class="fl-row fl-hd"><b>Column</b><span>Dead</span><span>Live</span></span>${rows}` : '<span class="sub-n">No mezzanine beam frames into a building column.</span>'}</div>
+      <small>kips at each building column, unfactored MB end shears (H6 / H10)${more ? ` · ${more} more on the Plan page` : ''}${legend ? ' · ' + legend : ''}</small></div></div>`;
   }
   // bad: a member with no section / not sized — a red ring with no ratio, so it never reads as a pass
   const ringCard = (label, value, sub, ratio, color, bad) => `<div class="metric"><div class="metric-copy"><span>${label}</span><b class="nocase">${value}</b><small>${sub}</small></div>${bad ? `<div class="ring bad" title="${esc(bad)}" data-ring="100" style="--ring:0;--ring-color:var(--red)"><span>NG</span></div>` : ratio == null ? '' : `<div class="ring" title="governing ratio ${f(ratio, 3)}" data-ring="${pct(ratio).toFixed(1)}" style="--ring:0;--ring-color:${color || (ratio <= state.settings.target ? 'var(--green)' : ratio <= 1 ? 'var(--amber)' : 'var(--red)')}"><span>${f(ratio, ratio >= 0.995 && ratio < 1.005 ? 3 : 2)}</span></div>`}</div>`;
   // rings sweep in and whole numbers count up, as in the Astra dashboard
   function animateIn() {
     requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-ring]').forEach(el => el.style.setProperty('--ring', el.dataset.ring))));
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;   // the numbers are already written in full
     $$('[data-count]').forEach(el => {
       const to = +el.dataset.count, fmt = el.dataset.fmt || '', dur = 900, t0 = performance.now();
       const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3), v = to * e;
@@ -8243,7 +8283,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     recompute();
   }
   function wireNeed() {
-    $$('#needCard input[data-need]').forEach(el => { el.onchange = () => { const v = parseKind(el.dataset.kind, el.value); if (v == null || !isFinite(v)) { toast('Could not read "' + el.value + '"'); return; } setNeed(el.dataset.need, v); }; });
+    $$('#needCard input[data-need]').forEach(el => { el.onchange = () => { if (el.dataset.used) return; const v = parseKind(el.dataset.kind, el.value); if (v == null || !isFinite(v)) { toast('Could not read "' + el.value + '"'); return; } el.dataset.used = '1'; setNeed(el.dataset.need, v); }; });
     $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, b.dataset.v === 'none' ? 'none' : +b.dataset.v); });
     const ag = $('#needAgain'); if (ag) ag.onclick = useAgain;
   }
@@ -8405,7 +8445,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const kinds = [['beam', '13'], ['beam', '15'], ['beam', '16'], ['column', '15'], ['column', '16'], ['seismic', null]];
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
     const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
-    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
+    const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows" data-k="${k}">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
     el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
       ${jobs.length && state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null) ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic page is finished</small>' : ''}
@@ -8450,6 +8490,12 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     });
   }
 
+  function setNeedSlot(html) {
+    const had = { need: !!$('#needCard'), dec: !!$('#decideCard') };
+    $('#needSlot').innerHTML = html;
+    if (!had.need && $('#needCard')) $('#needCard').classList.add('enter');
+    if (!had.dec && $('#decideCard')) $('#decideCard').classList.add('enter');
+  }
   function renderResults() {
     const r = state.res, inp = state.inputs, s = state.settings;
     $('#resEyebrow').textContent = [inp.job.quote, inp.job.project].filter(Boolean).join(' / ') || 'Design result';
@@ -8457,15 +8503,31 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (r.incomplete) {
       $('#resTitle').innerHTML = `Mezzanine “${esc(inp.mezz.id || '—')}”<br><em>needs input.</em>`;
       $('#metrics').innerHTML = ''; $('#field').innerHTML = ''; $('#options').innerHTML = ''; $('#readout').innerHTML = '';
-      $('#modelSec').hidden = true; $('#optHead').hidden = true; $('#checkPill').hidden = true;
+      $('#modelSec').hidden = true; $('#optHead').hidden = true; $('#checkPill').hidden = true; $('#wbHead').hidden = true; $('#wbPanel').hidden = true;
       renderMini(null);
-      $('#needSlot').innerHTML = card;
+      setNeedSlot(card);
       $('#warnings').innerHTML = notesHtml(jobWarn(), !!card);
       wireNeed();
       renderDM();
       const anyDone = state.all && state.all.length > 1 && state.job.mezz.some(m => !m.incomplete);
       $('#qsHead').hidden = !anyDone;
       if (anyDone) renderQuoteSheet(); else $('#quoteSheet').innerHTML = '';
+      return;
+    }
+    // a beam mark with no section: the decision is asked for like a missing value — what stops it and the two ways
+    // forward, with their inputs, at the top; the design shows once it is made
+    const dec = decideMarks();
+    $('#wbHead').hidden = !!dec.length; $('#wbPanel').hidden = !!dec.length;
+    if (dec.length) {
+      const doneIds = (state.job ? state.job.mezz.filter(m => !m.incomplete) : [r]).map(m => `“${esc(m.id).replace(/ /g, '\u00a0')}”`);
+      $('#resTitle').innerHTML = `Mezzanine${doneIds.length > 1 ? 's' : ''} ${doneIds.join(' + ')}<br><em>one decision to make.</em>`;
+      $('#metrics').innerHTML = ''; $('#field').innerHTML = ''; $('#options').innerHTML = ''; $('#readout').innerHTML = '';
+      $('#modelSec').hidden = true; $('#optHead').hidden = true; $('#checkPill').hidden = true; $('#qsHead').hidden = true; $('#quoteSheet').innerHTML = '';
+      setNeedSlot(card + decideCard(dec));
+      $('#warnings').innerHTML = notesHtml(jobWarn().filter(w => w.tag !== 'nosec'), true);
+      wireNeed(); wireDecide($('#needSlot'), dec);
+      renderDM();
+      if (M3) renderMini(buildScene({ calm: true }));   // the sidebar keeps the layout turning, the beams to decide in amber
       return;
     }
     // a job of several mezzanines is one design: the beam marks, counts, columns and steel are the whole job's
@@ -8500,7 +8562,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       floorCard(),
       ringCard(many ? 'Steel · whole job' : 'Mezzanine steel', `<span data-count="${Math.round(t.total)}" data-fmt="lb">${n0(t.total)} lb</span>${missing ? '<small class="ng"> at least</small>' : ''}`, `${missing ? `<b class="ng">${esc(missing)} not sized — not in this total</b> · ` : ''}beams ${n0(t.beams)} · columns ${n0(t.cols)} · end plates ${n0(t.plates)}`, null),
     ].join('');
-    $('#needSlot').innerHTML = card;
+    setNeedSlot(card);
     $('#warnings').innerHTML = notesHtml(jobWarn(), !!card);
     wireNeed();
     renderDM();
@@ -8559,7 +8621,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     $('#optSub').textContent = (marks[0] && marks[0].search ? `every stocked web and flange within the production rules, through the MB sheet — ${marks[0].search.evaluated.toLocaleString()} combinations a mark · pick one for the quote${manyMezz() ? ' (it goes on every mezzanine)' : ''}` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
     const TIERW = { G: 'economical', Y: 'somewhat economical', R: 'non-economical' };
     $('#options').innerHTML = marks.map(mk => {
-      if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — no passing section in the depth range.${mk.sec ? ` On the quote: <b class="${markFails(mk) ? 'ng' : ''}">${esc(mk.desc)}</b>, picked by hand${markFails(mk) ? ' — does not pass (see Beam calc)' : ''}.` : ''}</p>${mk.sec ? '' : rescueCard(mk)}</div>`;
+      if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — ${mk.sec ? `no passing section in the depth range. On the quote: <b class="${markFails(mk) ? 'ng' : ''}">${esc(mk.desc)}</b>, picked by hand${markFails(mk) ? ' — does not pass (see Beam calc)' : ''}.` : 'waits on the decision at the top of the page (setback or clear height).'}</p></div>`;
       const len = (mk.beamsAll || []).reduce((a, x) => a + x.span, 0) || mk.qtyAll * mk.span;   // every member at its own length
       const where = mkWhere(mk), short = mkShort(mk);
       // one card per different section; the options that land on it are named together
@@ -8609,74 +8671,118 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options ${one && !handCard() ? 'is-one' : ''}">${handCard()}${groups.map(card).join('')}</div>${oneTxt}</div>`;
     }).join('');
     $$('#options [data-opt]').forEach(b => { b.onclick = () => pickOption(b.dataset.mark, b.dataset.opt); });
-    wireRescue($('#options'));
   }
-  // ---------- nothing passes for a mark: what next (the frame column setback, then more clear height) ----------
-  // Offered, never applied until clicked: run.js works out each option (m.rescue).
-  function rescueCard(mk, compact) {
-    const rs = mk.rescue;
-    if (!rs) return '';
-    const sb = rs.setback, cl = rs.clear, dz = mkDz(mk), s = state.settings;
-    const cap = rs.cap != null ? `within the ${rs.cap}" of depth clearance C leaves` : `between ${s.dMin}" and ${s.dMax}" deep`;
-    // the building columns the beams frame into, by setback: "2/A, 3/A, 4/A, 5/A (BSW, rigid frame) 1'-4""
-    const byKind = new Map();
-    const what = e => (/wind column/.test(e.why) ? 'wind column' : /soldier/.test(e.why) ? 'soldier column' : e.kind === 'rigid' ? 'rigid frame' : 'post-and-beam');
-    (sb ? sb.ends : []).forEach(e => { const wall = (e.why.match(/^(FSW|BSW|LEW|REW)/) || [])[1] || '', k = `${what(e)}|${wall}|${e.ft}`; if (!byKind.has(k)) byKind.set(k, { what: what(e), wall, ft: e.ft, by: new Map() }); const g = byKind.get(k); if (!g.by.has(e.mezz)) g.by.set(e.mezz, []); if (!g.by.get(e.mezz).includes(e.label)) g.by.get(e.mezz).push(e.label); });
-    const endTxt = [...byKind.values()].map(g => `${[...g.by].map(([mz, ls]) => (manyMezz() ? mz + ': ' : '') + ls.join(', ')).join('; ')} (${g.wall ? g.wall + ', ' : ''}${g.what}) ${ft(g.ft)}`).join(' · ');
-    const others = jobMarks().filter(o => o.mark !== mk.mark && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback);
-    const sbInputs = `<span class="rq-amt">Setback at a <label>rigid frame column <input data-sbamt="setbackRigid" value="${esc(ft(s.setbackRigid))}" spellcheck="false" autocomplete="off"></label> · <label>post-and-beam column <input data-sbamt="setbackPB" value="${esc(ft(s.setbackPB))}" spellcheck="false" autocomplete="off"></label></span>`;
-    const st = sb ? sb.state : 'none', withSb = st === 'offer' || st === 'applied';
-    const naTxt = { none: `None to take: no beam of ${mk.mark} frames into a frame column's face (they run along a wall, or end on mezzanine or interior columns).`,
-      short: `No change: the beams of ${mk.mark} that frame into frame columns are not its longest — the design span stays ${ft(dz.span)}.`,
-      typed: `The design span typed on Beam calc (${ft(dz.span)}) is already at or under the ${ft(sb ? sb.span : 0)} clear span.`,
-      applied: `In use: ${ft(sb ? sb.span : 0)} clear span (layout ${ft(sb ? sb.from : 0)}) at ${esc(endTxt)} — and nothing passes even so.` };
-    const step1 = st === 'offer'
-      ? `<li class="rq-step"><div class="rq-t"><b>Include the frame column setback</b><span class="rq-act"><button class="btn-soft" data-rq="setback" data-mark="${mk.mark}">Design ${mk.mark} at ${ft(sb.span)}</button>${others.length ? `<button class="btn-ghost" data-rq="setback-all" data-mark="${mk.mark}" title="${esc(others.map(o => `${o.mark} at ${ft(o.design.sbSpan)}`).join(', '))} too">${[mk, ...others].map(o => o.mark).join(' + ')}</button>` : ''}</span></div>
-          <p>The beams stop at the frame columns' inside faces, not on the grid: ${esc(endTxt)}. Clear span <b>${ft(sb.span)}</b> (layout ${ft(sb.from)}).</p>
-          <p class="${sb.best ? 'rq-ok' : 'rq-ng'}">${sb.best ? `At ${ft(sb.span)}: <b class="nocase">${esc(sb.best.desc)}</b> passes — ${sb.best.d}", ${f(sb.best.wt, 1)} plf, combined ${f(sb.best.CSR, 3)}.` : `At ${ft(sb.span)} nothing passes ${cap} either — the setback is not enough on its own.`}</p>${sbInputs}</li>`
-      : `<li class="rq-step is-na"><div class="rq-t"><b>Frame column setback</b></div><p>${naTxt[st] || naTxt.none}</p>${sbInputs}</li>`;
-    const lim = q => q.per && q.per.length > 1 && new Set(q.per.map(x => `${x.A}|${x.C}`)).size > 1;
-    const step2 = !cl ? `<li class="rq-step is-na"><div class="rq-t"><b>More clear height</b></div><p>No clearance limit on this mark (C is no requirement) — nothing passes up to ${s.dMax}" deep: put a column back to shorten the span, or add a beam line to cut the trib.</p></li>`
-      : cl.none ? `<li class="rq-step"><div class="rq-t"><b>More clear height</b></div><p class="rq-ng">Nothing passes up to ${s.dMax}" deep at ${ft(cl.span)} — more clear height does not do it: put a column back to shorten the span, or add a beam line to cut the trib.</p></li>`
-      : `<li class="rq-step"><div class="rq-t"><b>Request more clear height</b> <small>from the estimator</small><span class="rq-act"><button class="btn-soft" data-rq="copy" data-mark="${mk.mark}">Copy request</button></span></div>
-          <p>A <b>${cl.d}"</b> beam works${withSb ? ` at the ${ft(cl.span)} clear span` : ''}: <b class="nocase">${esc(cl.best.desc)}</b>, ${f(cl.best.wt, 1)} plf. It needs clear height C <b>${ft(cl.needC)}</b> under the beams (now ${ft(cl.C)}), or the mezzanine raised to A <b>${ft(cl.needA)}</b> (now ${ft(cl.A)})${lim(cl) ? ` — each mezzanine: ${cl.per.map(x => `${esc(x.id)} C ${ft(x.needC)} or A ${ft(x.needA)}`).join(', ')}` : ''}.</p>
-          ${cl.light ? `<p class="rq-sub">Lighter, a little deeper: ${cl.light.d}" ${esc(cl.light.desc)} ${f(cl.light.wt, 1)} plf — C ${ft(cl.light.needC)} or A ${ft(cl.light.needA)}.</p>` : ''}
-          ${st === 'offer' && cl.grid && !cl.grid.none ? `<p class="rq-sub">Without the setback (${ft(cl.grid.span)}): ${cl.grid.d}" ${esc(cl.grid.best.desc)} — C ${ft(cl.grid.needC)} or A ${ft(cl.grid.needA)}.</p>` : ''}
-          ${compact ? '' : `<span class="rq-act rq-act2"><button class="btn-ghost" data-rq="useC" data-mark="${mk.mark}">Design with C ${ft(cl.needC)}${st === 'offer' ? ' + the setback' : ''}</button><button class="btn-ghost" data-rq="useA" data-mark="${mk.mark}">Design with A ${ft(cl.needA)}${st === 'offer' ? ' + the setback' : ''}</button></span>`}</li>`;
-    return `<div class="rescue"><div class="rq-head"><span class="eyebrow">What next · ${mk.mark}</span><p>Nothing passes at ${ft(dz.span)} × ${ft(dz.trib)} trib ${cap}${rs.cap != null ? ` (C ${ft(cl ? cl.C : inpOfMark(mk).geom.C.value)})` : ''}. Two ways forward, in this order — neither is applied until you pick it.</p></div>
-      <ol class="rq-steps">${step1}${step2}</ol></div>`;
-  }
+  // ---------- a mark with no passing section: one decision, asked the way the values the PCS leaves open are ----------
+  // It says what stops it (the clear height, as a rule) and puts both ways forward on the card with their inputs:
+  // set the beams back at the wall columns (the girts: 1'-4" at a rigid frame, 1'-0" at a post-and-beam frame), or
+  // a new clear height. run.js works out each option (m.rescue); nothing is applied until it is picked.
+  const decideMarks = () => (state.job ? jobMarks() : []).filter(m => !m.sec && m.rescue);
   const inpOfMark = mk => inputsOf((mk.mezzIds || [state.mi])[0]);
-  function wireRescue(root) {
+  // the needs of several marks, per mezzanine: the strictest C and A of each
+  function needBy(list) {
+    const by = new Map();
+    list.forEach(q => { if (q && !q.none) (q.per || []).forEach(p => { const e = by.get(p.mi); by.set(p.mi, e ? { ...e, needC: Math.min(e.needC, p.needC), needA: Math.max(e.needA, p.needA), d: Math.max(e.d, q.d) } : { ...p, d: q.d }); }); });
+    return [...by.values()];
+  }
+  const oneVal = (xs, k) => { const v = [...new Set(xs.map(x => +x[k].toFixed(4)))]; return v.length === 1 ? ft(v[0]) : xs.map(x => `${esc(x.id)} ${ft(x[k])}`).join(', '); };
+  function decideCard(ms) {
+    if (!ms.length) return '';
+    const s = state.settings, names = ms.map(m => m.mark).join(' and ');
+    const now = m => { const rs = m.rescue; return rs.clear ? (rs.setback.state === 'offer' ? rs.clear.grid : rs.clear) : null; };   // at the span as it is
+    const withSb = m => { const rs = m.rescue; return rs.clear && rs.setback.state === 'offer' ? rs.clear : null; };              // at the set-back span
+    const caps = ms.map(m => m.rescue.cap).filter(v => v != null), cap = caps.length ? Math.min(...caps) : null;
+    const cl0 = ms.map(m => m.rescue.clear).find(Boolean), g = inpOfMark(ms[0]).geom;
+    const cause = cap == null ? 'range' : cap < s.dMin ? 'min' : 'clear';
+    const needD = m => { const q = now(m); return q && !q.none ? q.d : null; };
+    // what stops it, in a line
+    const eyebrow = { clear: 'Clear height not met', min: 'Clear height below the minimum beam depth', range: 'No beam section in the depth range' }[cause];
+    const h3 = cause === 'range' ? `${names}: no section up to ${s.dMax}" deep`
+      : ms.length === 1 && needD(ms[0]) ? `${names} needs a ${needD(ms[0])}" beam — C ${ft(cl0.C)} leaves ${cap}"` : `${names} need more depth than C ${ft(cl0 ? cl0.C : g.C.value)} leaves (${cap}")`;
+    const why = cause === 'range' ? `${ms.map(m => `${m.mark}: ${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib`).join('; ')}. Nothing stocked passes at that span and trib within the ${s.dMin}"–${s.dMax}" range (Settings).`
+      : `A ${ft(cl0.A)} − C ${ft(cl0.C)} − slab ${+(g.slab.value * 12).toFixed(2)}" − seat ${+(g.seat.value * 12).toFixed(2)}" = ${cap}" for the beam. ${ms.map(m => `${m.mark} (${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib) needs ${needD(m) ? needD(m) + '"' : 'more'}`).join('; ')}. Two ways to make it work — the design runs as soon as you pick one.`;
+    // 1 · the setback at the wall columns
+    const offer = ms.filter(m => m.rescue.setback.state === 'offer'), applied = ms.filter(m => m.rescue.setback.state === 'applied');
+    const also = jobMarks().filter(o => !ms.includes(o) && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback);
+    const endsTxt = m => { const by = new Map(); (m.rescue.setback.ends || []).forEach(e => { const k = `${e.wall}|${e.kind}`; if (!by.has(k)) by.set(k, { e, mz: new Map() }); const b = by.get(k); if (!b.mz.has(e.mezz)) b.mz.set(e.mezz, []); if (!b.mz.get(e.mezz).includes(e.label)) b.mz.get(e.mezz).push(e.label); });
+      return [...by.values()].map(({ e, mz }) => { const n = [...mz.values()].flat().length; return `${e.wall} column${n > 1 ? 's' : ''} ${[...mz].map(([m2, ls]) => ls.join(', ') + (manyMezz() ? ` (${m2})` : '')).join('; ')} — ${e.kind === 'rigid' ? 'rigid frame' : /soldier/.test(e.why) ? 'soldier column' : 'post-and-beam'}, ${ft(e.ft)}`; }).join(' · '); };
+    const kinds = [...new Set(offer.concat(applied).flatMap(m => (m.rescue.setback.ends || []).map(e => e.kind)))];
+    const amtIn = k => `<label class="dc-amt"><span>${k === 'rigid' ? 'rigid frame' : 'post-and-beam'}</span><input data-sbamt="${k === 'rigid' ? 'setbackRigid' : 'setbackPB'}" value="${esc(ft(k === 'rigid' ? s.setbackRigid : s.setbackPB))}" spellcheck="false" autocomplete="off"></label>`;
+    const res = m => { const sb = m.rescue.setback; return sb.best ? `<span class="dc-ok">${m.mark} ${ft(sb.from)} → ${ft(sb.span)}: ${esc(sb.best.desc)} passes</span>` : `<span class="dc-no">${m.mark} ${ft(sb.from)} → ${ft(sb.span)}: still needs ${withSb(m) && !withSb(m).none ? withSb(m).d + '"' : 'more depth'}</span>`; };
+    const row1 = offer.length
+      ? `<div class="need-row dc-row"><label>Set the beams back at the wall columns<small>${offer.map(m => `${m.mark} ends at the ${esc(endsTxt(m))}`).join(' · ')}. The girts hold those columns in from the grid line, so the beam is that much shorter.</small></label>
+          <div class="dc-in">${kinds.map(amtIn).join('')}</div>
+          <div class="chips"><button class="chip chip-go" data-dc="setback">Use the setback<small>${offer.map(m => `${m.mark} at ${ft(m.rescue.setback.span)}`).concat(also.map(o => `${o.mark} at ${ft(o.design.sbSpan)}`)).join(' · ')}</small></button><div class="dc-res">${offer.map(res).join('')}</div></div></div>`
+      : applied.length
+        ? `<div class="need-row dc-row"><label>Beams set back at the wall columns<small>${applied.map(m => `${m.mark} at ${ft(m.rescue.setback.span)} (${esc(endsTxt(m))})`).join(' · ')} — in use, and not enough on its own.</small></label>
+            <div class="dc-in">${kinds.map(amtIn).join('')}</div><div class="chips"><button class="chip" data-dc="unsetback">Undo the setback</button></div></div>`
+        : `<div class="need-row dc-row is-na"><label>Set the beams back at the wall columns<small>${ms.map(m => m.rescue.setback.state === 'typed' ? `${m.mark}: a design span typed on Beam calc (${ft(mkDz(m).span)}) is already shorter` : `${m.mark}: its longest beams do not end at a wall column (mezzanine or interior columns, or along a wall) — no setback`).join(' · ')}.</small></label><div></div><div></div></div>`;
+    // 2 · the clear height (or, with no clearance limit, a shorter span)
+    let row2;
+    if (cause === 'range') {
+      const sh = ms.find(m => m.splitHelps);
+      row2 = `<div class="need-row dc-row"><label>Shorten the span or the trib<small>Put a column back under the long beams, or add a beam line, on the Plan page${sh ? `; or give the ${ft(sh.splitHelps.span)} beam its own mark — the rest pass (${esc(sh.splitHelps.restDesc)})` : ''}.</small></label><div></div>
+        <div class="chips"><button class="chip" data-dc="plan">Edit the layout<small>Plan page</small></button>${sh ? `<button class="chip" data-dc="own" data-mark="${sh.mark}">Own mark for the ${ft(sh.splitHelps.span)} beam</button>` : ''}</div></div>`;
+    } else {
+      const fixed = m => m.rescue.setback.state === 'offer' && m.rescue.setback.best;
+      const plain = needBy(ms.map(now)), both = offer.length && ms.some(m => !fixed(m)) ? needBy(ms.filter(m => !fixed(m)).map(m => withSb(m) || now(m))) : [];
+      const none = !plain.length;
+      const chip = (q, sb, small) => `<button class="chip" data-dc="setC" data-sb="${sb ? 1 : 0}" data-v='${esc(JSON.stringify(q.map(x => [x.mi, x.needC])))}'>C ${oneVal(q, 'needC')}${sb ? ' + setback' : ''}<small>${small}</small></button>`;
+      const primary = both.length ? both : plain;
+      row2 = none ? `<div class="need-row dc-row is-na"><label>Request more clear height<small>No stocked section passes up to ${s.dMax}" deep either — shorten the span or the trib (Plan page).</small></label><div></div><div class="chips"><button class="chip" data-dc="plan">Edit the layout<small>Plan page</small></button></div></div>`
+        : `<div class="need-row dc-row"><label>Request more clear height<small>${both.length ? `With the setback a ${Math.max(...both.map(x => x.d))}" beam needs C ${oneVal(both, 'needC')}; without it a ${Math.max(...plain.map(x => x.d))}" beam needs C ${oneVal(plain, 'needC')}` : `A ${Math.max(...plain.map(x => x.d))}" beam needs C ${oneVal(plain, 'needC')} or less`} — the PCS asks ${ft(cl0.C)}. Type the clear height the estimator gives, or raise the floor.</small></label>
+          <input data-dc="C" placeholder="new C, e.g. ${esc(ft(primary[0].needC))}" autocomplete="off">
+          <div class="chips">${both.length ? chip(both, true, 'with the setback') + chip(plain, false, 'without') : chip(plain, false, `${Math.max(...plain.map(x => x.d))}" beam`)}<button class="chip" data-dc="setA" data-sb="${both.length ? 1 : 0}" data-v='${esc(JSON.stringify(primary.map(x => [x.mi, x.needA])))}'>Floor to ${oneVal(primary, 'needA')}<small>raise A instead</small></button><button class="chip" data-dc="copy">Copy request<small>for the estimator</small></button></div></div>`;
+    }
+    const sh = cause !== 'range' ? ms.find(m => m.splitHelps) : null;
+    const foot = `${sh ? `<span>${sh.mark}'s ${ft(sh.splitHelps.span)} beam${sh.splitHelps.n > 1 ? 's set' : ' sets'} it; the other ${sh.splitHelps.rest} pass on their own (${esc(sh.splitHelps.restDesc)}). <button class="chip" data-dc="own" data-mark="${sh.mark}">Own mark for the ${ft(sh.splitHelps.span)} beam${sh.splitHelps.n > 1 ? 's' : ''}</button></span>` : ''}<span>Other ways: put a column back or add a beam line on the Plan page, or pick a section by hand (Design your own). ${ms.length === 1 ? `Beam calc shows ${ms[0].mark} at every depth.` : 'Beam calc shows each mark at every depth.'}</span>`;
+    return `<section class="need decide" id="decideCard"><div class="need-head"><div><div class="eyebrow">${eyebrow}</div><h3>${h3}</h3></div><p>${why}</p></div>
+      <div class="need-rows">${row1}${row2}</div><div class="need-foot dc-foot">${foot}</div></section>`;
+  }
+  // the request for the estimator, from the card's numbers
+  function decideRequest(ms) {
+    const fixed = m => m.rescue.setback.state === 'offer' && m.rescue.setback.best;
+    const offer = ms.some(m => m.rescue.setback.state === 'offer'), useSb = offer && ms.some(m => !fixed(m));
+    const q = m => { const rs = m.rescue; return rs.clear ? (rs.setback.state === 'offer' ? (useSb && !fixed(m) ? rs.clear : rs.clear.grid) : rs.clear) : null; };
+    const list = ms.filter(m => !(useSb && fixed(m))), by = needBy(list.map(q)), cl0 = ms.map(m => m.rescue.clear).find(Boolean), job = state.inputs.job;
+    const mz = [...new Set(ms.flatMap(m => (m.mezzIds || []).map(i => { const id = inputsOf(i).mezz.id; return !id ? 'Mezzanine ' + (i + 1) : /^\d+$/.test(id) ? 'Mezzanine ' + id : id; })))].join(' / ');
+    return `${job.quote ? job.quote + ' · ' : ''}${mz}: ${list.map(m => `${m.mark} (${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(useSb && m.rescue.setback.state === 'offer' ? m.rescue.setback.span : mkDz(m).span)} span${useSb && m.rescue.setback.state === 'offer' ? ' with the beams set back at the wall columns' : ''}, ${ft(mkDz(m).trib)} trib) needs a ${q(m).d}" beam`).join('; ')}. The clear height under the mezzanine beams leaves ${cl0.cap}" (C ${ft(cl0.C)}, floor at ${ft(cl0.A)}). Requesting C ${oneVal(by, 'needC')} clear under the beams, or the floor raised to ${oneVal(by, 'needA')}.`;
+  }
+  function wireDecide(root, ms) {
     if (!root) return;
-    const markOf = b => jobMarks().find(m => m.mark === b.dataset.mark);
-    root.querySelectorAll('[data-rq]').forEach(b => {
-      b.onclick = () => {
-        const mk = markOf(b), rs = mk && mk.rescue, kind = b.dataset.rq;
-        if (!rs) return;
-        if (kind === 'setback' || kind === 'setback-all') {
-          const ms = kind === 'setback' ? [mk] : [mk, ...jobMarks().filter(o => o.mark !== mk.mark && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback)];
-          ms.forEach(m => { const cur = (state.settings.markInput || {})[m.mark] || {}, { span, ...rest } = cur; setMarkInput(m.mark, { ...rest, setback: true }); });
-          recompute();
-          const out = ms.map(m => jobMarks().find(o => o.mark === m.mark)).map(o => `${o.mark} at ${ft(mkDz(o).span)} → ${o.desc || 'no section'}`);
-          toast(`Frame column setback: ${out.join(' · ')}. Beam calc → Back to the layout undoes it.`);
-        } else if (kind === 'copy') copyText(rs.clear.request, 'Clear-height request copied');
-        else if (kind === 'useC' || kind === 'useA') {
-          const k = kind === 'useC' ? 'C' : 'A';
-          rs.clear.per.forEach(q => { inputsOf(q.mi).geom[k] = { value: kind === 'useC' ? rs.clear.needC : rs.clear.needA, source: 'manual' }; });
-          // the depth was found at the clear span: the setback goes with it
-          if (rs.clear.withSetback && rs.setback.state === 'offer') { const { span, ...rest } = (state.settings.markInput || {})[mk.mark] || {}; setMarkInput(mk.mark, { ...rest, setback: true }); }
-          recompute();
-          const o = jobMarks().find(m => m.mark === mk.mark);
-          toast(`${k} ${ft(kind === 'useC' ? rs.clear.needC : rs.clear.needA)} on ${rs.clear.per.map(q => q.id).join(', ')} (Inputs) → ${mk.mark} ${o && o.desc ? o.desc : 'no section'}. Confirm it with the estimator.`);
+    const applySetback = list => list.forEach(m => { const { span, ...rest } = (state.settings.markInput || {})[m.mark] || {}; setMarkInput(m.mark, { ...rest, setback: true }); });
+    const sbMarks = () => [...ms.filter(m => m.rescue.setback.state === 'offer'), ...jobMarks().filter(o => !ms.includes(o) && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback)];
+    const after = what => { const out = jobMarks().map(o => `${o.mark} ${o.desc || 'no section yet'}`).join(' · '); toast(`${what} → ${out}`); };
+    root.querySelectorAll('[data-dc]').forEach(el => {
+      const k = el.dataset.dc;
+      if (el.tagName === 'INPUT') {
+        el.onchange = () => { if (el.dataset.used) return; const v = parseKind('ftin', el.value); if (v == null || !(v > 0)) { toast(`Could not read "${el.value}" — e.g. 9'-5"`); return; }
+          el.dataset.used = '1';
+          const mis = [...new Set(ms.flatMap(m => (m.rescue.clear ? m.rescue.clear.per : []).map(p => p.mi)))];
+          mis.forEach(i => { inputsOf(i).geom.C = { value: v, source: 'manual' }; }); recompute(); after(`C ${ft(v)}`); };
+        el.onkeydown = e => { if (e.key === 'Enter') el.blur(); };
+        return;
+      }
+      el.onclick = () => {
+        if (k === 'setback') { applySetback(sbMarks()); recompute(); after('Beams set back at the wall columns'); }
+        else if (k === 'unsetback') { ms.forEach(m => { const { setback, ...rest } = (state.settings.markInput || {})[m.mark] || {}; setMarkInput(m.mark, Object.keys(rest).length ? rest : null); }); recompute(); toast('Setback taken off'); }
+        else if (k === 'setC' || k === 'setA') {
+          const vals = JSON.parse(el.dataset.v), key = k === 'setC' ? 'C' : 'A';
+          vals.forEach(([mi, v]) => { inputsOf(mi).geom[key] = { value: v, source: 'manual' }; });
+          if (el.dataset.sb === '1') applySetback(ms.filter(m => m.rescue.setback.state === 'offer'));
+          recompute(); after(`${key} ${[...new Set(vals.map(x => ft(x[1])))].join(' / ')}${el.dataset.sb === '1' ? ' + setback' : ''} (Inputs page) — confirm it with the estimator`);
         }
+        else if (k === 'copy') copyText(decideRequest(ms), 'Clear-height request copied — paste it to the estimator');
+        else if (k === 'plan') { go('plan'); if (!state.planEdit) { const b = $('#layEdit'); if (b) b.click(); } }
+        else if (k === 'own') { const m = ms.find(x => x.mark === el.dataset.mark), v = +m.splitHelps.span.toFixed(4); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); after(`The ${ft(m.splitHelps.span)} beam on its own mark`); }
       };
     });
     root.querySelectorAll('[data-sbamt]').forEach(inp => {
       inp.onchange = () => {
+        if (inp.dataset.used) return;
         // 1'-4", 1' 4", 16" or 1.333 (ft)
         const raw = inp.value.trim(), v = raw === '' ? null : PCS.ftin(raw.replace(/'\s+(?=\d)/, "'-")) ?? (/^\d*\.?\d+$/.test(raw) ? +raw : null);
         if (v == null || !(v >= 0) || v > 5) { toast(`${raw} is not a setback — e.g. 1'-4"`); inp.value = ft(state.settings[inp.dataset.sbamt]); return; }
+        inp.dataset.used = '1';
         allSettings().forEach(st => { st[inp.dataset.sbamt] = v; });
         recompute(); toast(`Setback at a ${inp.dataset.sbamt === 'setbackRigid' ? 'rigid frame' : 'post-and-beam'} column: ${ft(v)}`);
       };
@@ -8700,8 +8806,9 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   let model = null;
   // the whole job in one scene: every mezzanine at its own elevation, beams in their mark's colour (interior / exterior)
   // with a mark tag at mid-span, every column once (numbered over the job), the building columns beams frame into
-  function buildScene() {
+  function buildScene(opt = {}) {
     const r = state.res, g = r.grid, ms = jobView(), many = ms.length > 1, cno = colNos();
+    const NG = opt.calm ? '#f6c779' : '#ff6b6b';   // no section yet: red on the Design page, amber while the decision is open
     const members = [], labels = [], floor = [];
     let Atop = 0;
     ms.forEach(m => {
@@ -8718,7 +8825,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         const sec = sec0 || { d: 18, tw: 0.25, bof: 6, tof: 0.375, bif: 6, tif: 0.375 }, ng = !sec0;
         const d = sec.d / 12, bf = sec.bof / 12, tf = sec.tof / 12, bi = sec.bif / 12, ti = sec.tif / 12, tw = Math.max(sec.tw, 0.9) / 12;
         const box = (a0, a1, w, z0, z1) => (alongX ? { x0: a0, x1: a1, y0: bm.line - w / 2, y1: bm.line + w / 2, z0, z1 } : { x0: bm.line - w / 2, x1: bm.line + w / 2, y0: a0, y1: a1, z0, z1 });
-        members.push({ id: pre + bNo(m, bm.id), kind: 'beam', color: ng ? '#ff6b6b' : mkHex(mk), ...(ng ? { alpha: 0.45 } : {}), boxes: [box(bm.from, bm.to, bf, zTop - tf, zTop), box(bm.from, bm.to, tw, zTop - d + ti, zTop - tf), box(bm.from, bm.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', m, b: bm, mk } });
+        members.push({ id: pre + bNo(m, bm.id), kind: 'beam', color: ng ? NG : mkHex(mk), ...(ng ? { alpha: 0.45 } : {}), boxes: [box(bm.from, bm.to, bf, zTop - tf, zTop), box(bm.from, bm.to, tw, zTop - d + ti, zTop - tf), box(bm.from, bm.to, bi, zTop - d, zTop - d + ti)], ref: { type: 'beam', m, b: bm, mk } });
       });
       // one tag per run of beams of one mark on one line (not one per beam), at the middle of the run
       const runs = [];
@@ -8734,7 +8841,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         const cd = (w ? w.d : 10) / 12, cb = (w ? w.bf : 6) / 12, ctf = Math.max(w ? w.tf : 0.4, 0.5) / 12, ctw = Math.max(w ? w.tw : 0.25, 0.9) / 12, zc = zTop - dBeam;
         const bx = (dx0, dx1, dy0, dy1, z0, z1) => (alongX ? { x0: c.x + dx0, x1: c.x + dx1, y0: c.y + dy0, y1: c.y + dy1, z0, z1 } : { x0: c.x + dy0, x1: c.x + dy1, y0: c.y + dx0, y1: c.y + dx1, z0, z1 });
         const unsz = !cf || (cf.unsized || []).includes(c.label);   // not sized: red and see-through, like a beam with no section
-        members.push({ id: 'C' + cno.get(c.label), kind: 'col', color: unsz ? '#ff6b6b' : '#ff9f7a', ...(unsz ? { alpha: 0.45 } : {}), boxes: [
+        members.push({ id: 'C' + cno.get(c.label), kind: 'col', color: unsz ? NG : '#ff9f7a', ...(unsz ? { alpha: 0.45 } : {}), boxes: [
           bx(-cd / 2, -cd / 2 + ctf, -cb / 2, cb / 2, 0, zc), bx(cd / 2 - ctf, cd / 2, -cb / 2, cb / 2, 0, zc), bx(-cd / 2 + ctf, cd / 2 - ctf, -ctw / 2, ctw / 2, 0, zc),
           bx(-cd / 2 - 0.12, cd / 2 + 0.12, -cb / 2 - 0.12, cb / 2 + 0.12, zc - 0.06, zc), bx(-cd / 2 - 0.25, cd / 2 + 0.25, -cb / 2 - 0.25, cb / 2 + 0.25, 0, 0.07),
         ], ref: { type: 'col', m, c, no: cno.get(c.label) } });
@@ -8803,10 +8910,34 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   $('#rvBig').onclick = e => { e.stopPropagation(); openPop($('#planPop').hidden); };
   $('#ppClose').onclick = () => openPop(false);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#planPop').hidden) openPop(false); });
+  // the sidebar fits the window: on a short screen it tightens in steps, then the 3D / plan square takes the height
+  // that is left (never wider than the rail) — nothing in it is squeezed or cut off
+  function fitRail() {
+    const rail = $('.rail'), score = rail && rail.querySelector('.rail-score'), view = $('#railView');
+    if (!rail || !score || !view) return;
+    if (getComputedStyle(score).display === 'none') { delete rail.dataset.fit; view.style.removeProperty('--rv'); return; }
+    let size = 0;
+    for (const lv of [0, 1, 2, 3]) {
+      if (lv) rail.dataset.fit = [1, 2, 3].slice(0, lv).join(' '); else delete rail.dataset.fit;
+      const cs = getComputedStyle(score), full = Math.floor(score.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+      view.style.setProperty('--rv', full + 'px');
+      const over = rail.scrollHeight - rail.clientHeight;
+      size = Math.max(128, full - Math.max(0, over));
+      if (over <= 0 || (lv < 3 && over <= full * (lv ? 0.25 : 0.1))) break;   // a little short: a slightly smaller square first
+    }
+    view.style.setProperty('--rv', size + 'px');
+  }
+  let fitQueued = false;
+  const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitRail(); }); };
+  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(queueFit); ['.rail', '#rsSub', '.rail-nav'].forEach(q => $(q) && ro.observe($(q))); }
+  window.addEventListener('resize', queueFit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueFit);
+  queueFit();
   function renderMini(scene) {
     const cv = $('#miniModel');
     if (!cv || !M3) return;
     $('#orbEmpty').hidden = !!scene;
+    $('#orbEmpty').textContent = state.res && state.res.incomplete ? 'Needs input' : 'Drop a PCS';
     $('#rvToggle').hidden = !scene;
     if (!scene) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); return; }
     if (!mini) {
@@ -8885,8 +9016,9 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (!pop || pop.hidden) return;
     if (!ok) { pop.hidden = true; return; }
     const lays = jobView().map(m => m.layout), ext = (k, lo) => lays.map(l => (lo ? Math.min : Math.max)(l.footprint[k], ...(k[0] === 'x' ? l.xLines : l.yLines)));
-    const w = 680, ratio = (Math.max(...ext('y1')) - Math.min(...ext('y0', 1))) / Math.max(1, Math.max(...ext('x1')) - Math.min(...ext('x0', 1)));
-    const h = Math.round(Math.max(240, Math.min(560, (w - 80) * ratio + 110)));
+    // drawn at the popup's own width and within the window's height: the labels keep their size, the plan gets the room
+    const w = Math.max(680, Math.round(pop.clientWidth - 28)), ratio = (Math.max(...ext('y1')) - Math.min(...ext('y0', 1))) / Math.max(1, Math.max(...ext('x1')) - Math.min(...ext('x0', 1)));
+    const h = Math.round(Math.max(240, Math.min(Math.max(320, innerHeight - 176), (w - 80) * ratio + 110)));
     const big = $('#planPopSvg');
     big.setAttribute('viewBox', `0 0 ${w} ${h}`); big.style.setProperty('--k', 1.8);
     big.innerHTML = planMarkup(w, h, 1.8); wirePlan(big);
@@ -9040,7 +9172,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     $('#planStats').innerHTML = `
       <div class="pstat beams"><span>Mezzanine beams${many ? ' · whole job' : ''}</span><strong>${t.nB}<small>beams</small></strong><em>${marks.filter(m => viewQty(m)).map(m => `${mkName(m)} ${esc(m.desc || 'NO SECTION')} × ${viewQty(m)}`).join(' · ')}</em></div>
       <div class="pstat cols"><span>Mezzanine columns ⊗${many ? ' · whole job' : ''}</span><strong>${t.nC}<small>columns</small></strong><em title="${esc(allCols.map(c => `C${cno.get(c.label)} ${c.label}`).join(' · '))}">${colListShort(allCols, cno)}</em></div>
-      <div class="pstat"><span>Beam spans</span><strong>${spans.map(ft).join(' / ')}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
+      <div class="pstat"><span>Beam spans</span><strong>${spans.length ? ft(spans[0]) : '—'}${spans.length > 1 ? `<small>+ ${spans.slice(1).map(ft).join(' · ')}</small>` : ''}</strong><em>${ms.map(m => `${many ? esc(m.id) + ': ' : ''}${m.layout.supportLines.length - 1} bay${m.layout.supportLines.length > 2 ? 's' : ''} × ${m.layout.beamLines.length} beam lines (${m.layout.beamLines.map(v => lineOf(m, v)).join(', ')})`).join(' · ')}</em></div>
       <div class="pstat"><span>Joists</span><strong>${uniq(ms.map(m => ft(m.layout.joistSpan)))}</strong><em>span · @ ${uniq(ms.map(m => ft(m.beamBase.Lb)))} · ${uniq(ms.map(m => (m.layout.joists === 'y' ? 'across the width' : 'along the length')))}</em></div>`;
     $$('#joistSeg button').forEach(b => b.classList.toggle('is-active', b.dataset.j === (state.settings.joists || 'auto')));
     const gridOf = ((state.pcs && state.pcs.mezzanines[r.index]) || {}).building || '';
@@ -9550,7 +9682,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const infos = (sj.notes || []).filter(n => n.level === 'info');
     // entries kept for this quote from before: said, with a way to start over
     const back = state.seisRestored ? `<div class="seis-msg info">Your Seismic entries for this quote from ${esc(String(state.seisRestored))} are back (typed values, EQ scale and typed EQ loads). <button class="btn-ghost" id="seisForget" type="button">Clear them</button></div>` : '';
-    $('#seisStatus').innerHTML = back + (sj.need.length ? `<div class="seis-msg stop"><b>Needs:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
+    $('#seisStatus').innerHTML = back + (sj.need.length ? `<div class="seis-msg warn"><b>Needs input:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
       + (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span><span>SDS <b>${f(d.SDS, 4)}</b></span><span>SD1 <b>${f(d.SD1, 4)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${f(d.Ie, 2)}</b></span><span>Risk Category <b>${esc(d.risk)}</b></span>${d.Fa != null ? `<span>Fa ${f(d.Fa, 3)} · Fv ${f(d.Fv, 3)}</span>` : ''}</div>` : '') + notes;
 
     // ---- steps 1–3: Input Data ----
@@ -9639,7 +9771,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (ra) ra.onclick = () => { delete state.seis.eqOverride; delete state.seis.eqScale; seisSave(); recompute(); toast('EQ loads back to the calculated values'); };
 
     // ---- step 6: bracing (Longitudinal Calcs.) ----
-    $('#seisBracing').innerHTML = !live ? '' : sj.buildings.map(b => { const G = b.long; if (!G) return ''; const slot = b.mezz.slice(0, 2), first = b.frames[0];
+    $('#seisBracing').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => { const G = b.long; if (!G) return ''; const slot = b.mezz.slice(0, 2), first = b.frames[0];
       return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
       <div class="seis-sum"><span>${esc(G.sys.name)} · R ${f(G.sys.R, 2)}</span><span>Ta ${f(G.Ta, 3)} s · k ${f(G.k, 2)}</span><span>Cs <b>${f(G.cs.Cs, 4)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span><span>FSW ${esc((cfg.types || RUN.SEIS_DEFAULTS.types)[0])} ${cell('B8')} · BSW ${esc((cfg.types || RUN.SEIS_DEFAULTS.types)[1])} ${cell('B9')}</span>${first ? wbBtn(`seismic|${b.bkey}|${first.label}`, 'Workbook') : ''}</div>
       <div class="table-wrap"><table class="fl-t seis-brace"><thead><tr><th>Mezzanine</th><th class="num">Loading area ${cell('B27 / B30')}</th><th class="num">At</th><th class="num">Seismic force for the bracing ${cell('G77 / G78')}</th></tr></thead><tbody>${G.mezzLoads.map((m, k) => `<tr><td><b>${esc(m.id)}</b></td><td class="num mono">${n0((slot[k] || {}).area || 0)}</td><td class="num mono">${ft(m.at)}</td><td class="num mono"><b>${F2(m.F)} k</b></td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3">Mezzanine total</td><td class="num mono"><b>${F2(G.mezzLoads.reduce((a, m) => a + m.F, 0))} k</b></td></tr></tfoot></table></div>
@@ -9734,7 +9866,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
       return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>${twoB ? esc(fl.building) + ' · ' : ''}Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
           <button class="btn-soft" data-fl="${fi}"><svg><use href="#i-copy"/></svg>Copy</button></div>
-        <table class="fl-t"><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num">Seismic EQR/EQL (k)${sj && sj.ok ? '' : '<small class="sub-n eq-tag">pending · Seismic page</small>'}</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}|${e.parts[0].mi}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : '—'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
+        <table class="fl-t fl-fr"><colgroup><col class="c-lab"><col class="c-mem"><col class="c-at"><col class="c-n"><col class="c-n"><col class="c-eq"><col class="c-from"></colgroup><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num" title="Seismic: the mezzanine's share of the frame (Seismic page), EQR +X / EQL −X">EQR / EQL (k)${sj && sj.ok ? '' : '<small class="sub-n eq-tag">pending · Seismic page</small>'}</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}|${e.parts[0].mi}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : '—'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td class="num mono e">${fl.seismic ? (() => { const qs = fl.entries.filter(e => e.member).flatMap(e => e.eq || []), F = qs.reduce((a, q) => a + q.F, 0), calc = qs.reduce((a, q) => a + q.calc, 0); return '±' + F2(F) + (qs.some(q => q.edited) ? `<small class="sub-n eq-tag">edited · calc. ${F2(calc)}</small>` : ''); })() : ''}</td><td>${fl.seismic ? `<small class="sub-n">roof seismic DL ${F2(fl.seismic.roofPsf)} psf · Cs ${f(fl.seismic.Cs, 4)}</small>` : ''}</td></tr></tfoot></table></div>`;
     }).join('');
     el.innerHTML = `<div class="name-key"><b>Column names</b> · <span class="mono">2/A</span> the grid point, frame line 2 × column line A · <span class="mono">COL03</span> the member in that frame's NBG Frame file: COL01 at the FSW, then each interior column, the BSW column last · mezzanine columns (C1, C2 … on the plan) are not frame members and are not listed here.</div><div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic page), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
@@ -10107,8 +10239,9 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     if (!c) {
       // offered only when the shorter beams would pass on their own (run.js designs them): only the long beam(s) leave the mark
       const sh = mk.splitHelps, nL = sh ? sh.n : 0;
-      $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth.${mk.rescue ? '' : ' Lower clearance C, add a column, or design one by hand (Design your own).'}${sh ? `<br><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small>` : ''}</div>${rescueCard(mk)}`;
-      wireRescue($('#mbSheet'));
+      $('#mbSheet').innerHTML = (mk.rescue ? decideCard([mk]) : `<div class="empty">No stocked section passes for ${esc(mk.mark)} in the depth range — the table below gives the closest at each depth. Add a column, or design one by hand (Design your own).</div>`)
+        + (sh && !mk.rescue ? `<div class="split-wrap"><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small></div>` : '');
+      if (mk.rescue) wireDecide($('#mbSheet'), [mk]);
       const sm = $('#splitMarks');
       if (sm) sm.onclick = () => { const v = +sh.span.toFixed(4), had = jobMarks().find(o => o.own && o.kind === mk.kind); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); toast(had ? `The ${ft(sh.span)} beam${nL > 1 ? 's join' : ' joins'} ${had.mark}, the long beams' own mark — the rest keep theirs` : `The ${ft(sh.span)} beam${nL > 1 ? 's have their' : ' has its'} own mark — the rest keep theirs`); };
     }
@@ -10708,7 +10841,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   // ---------- settings ----------
   function jobsRow() {
     const list = histLoad();
-    const last = list.slice(-6).reverse().map(r => `<li><b>${esc(r.quote || r.key)}</b> <span>${esc(r.saved.replace('T', ' '))}</span> ${esc((r.mezz || []).map(m => `${m.id}: ${(m.beams || []).join(', ')}${m.columns ? ' · ' + m.columns : ''}`).join(' | '))}</li>`).join('');
+    const last = list.slice(-6).reverse().map(r => `<li><b>${esc(r.quote || r.key)}</b> <span>${esc(r.saved.replace('T', ' '))}</span><small>${esc((r.mezz || []).map(m => `${m.id}: ${(m.beams || []).join(', ')}${m.columns ? ' · ' + m.columns : ''}`).join(' | '))}</small></li>`).join('');
     return `<div class="field-row full jobs-row"><label>${list.length} job${list.length === 1 ? '' : 's'} remembered<small>Saved automatically when a job is fully designed: what you typed for open values, the option you picked, the joist direction and the sections. They make your usual values the first suggestions next time; opening a PCS again starts fresh — a hand-picked section or column and layout edits are not put back (the calc package keeps a record of them). The Seismic page's entries are kept per quote and come back when the same quote opens, with a note and a Clear button. Nothing leaves this computer unless you export it.</small></label>
       <div class="jobs"><ul>${last || '<li class="dim-t">None yet — design a job and it is remembered.</li>'}</ul>
       <div class="jobs-btns"><button class="btn-soft" id="jobsExport" ${list.length ? '' : 'disabled'}>Export (.json)</button><label class="btn-ghost file-btn">Import<input type="file" id="jobsImport" accept=".json,application/json" hidden></label><button class="btn-ghost" id="jobsClear" ${list.length ? '' : 'disabled'}>Forget all</button></div></div></div>`;
@@ -10748,7 +10881,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       sel('requireConc', 'Joist bearing check (MB L7)', [['true', 'Must pass'], ['false', 'Report only']]),
       sel('marks', 'Beam marks', [['intext', 'Interior / exterior'], ['single', 'One governing mark'], ['split', 'Split by trib / span']], 'over the whole job · shorter beams keep the section, own MB run'),
       sel('partitionTo', 'Partition load', [['live', 'Add to live'], ['dead', 'Add to dead']]),
-      `<div class="field-row"><label>Frame column setback, rigid frame (ft)<small>a beam framing into the column stops at its face — offered under Beam options → What next; 1.3333 = 1'-4"</small></label><input type="number" step="0.0833" data-set="setbackRigid" data-num="1" value="${+(+s.setbackRigid).toFixed(4)}"></div>`,
+      `<div class="field-row"><label>Frame column setback, rigid frame (ft)<small>a beam that runs into a wall column stops at it, the column held inside the steel line by the girts — offered when a beam does not work; 1.3333 = 1'-4"</small></label><input type="number" step="0.0833" data-set="setbackRigid" data-num="1" value="${+(+s.setbackRigid).toFixed(4)}"></div>`,
       `<div class="field-row"><label>Frame column setback, post-and-beam (ft)<small>also soldier and endwall wind columns; 1.0 = 1'-0"</small></label><input type="number" step="0.0833" data-set="setbackPB" data-num="1" value="${+(+s.setbackPB).toFixed(4)}"></div>`,
       '<div class="group-title">Columns</div>',
       sel('colPerJob', 'Column section', [['true', 'One W for the whole job'], ['false', 'Per mezzanine']], 'several mezzanines: the lightest W that passes every column case'),

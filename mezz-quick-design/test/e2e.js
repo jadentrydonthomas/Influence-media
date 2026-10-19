@@ -49,6 +49,20 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
     await page.waitForTimeout(250);
   }
   await page.waitForTimeout(1200);   // counters and rings settle
+  // a mark with no section once the open values are in: the page asks for one decision, the way it asks for a missing
+  // value — what stops it and the two ways forward with their inputs, no failing design on screen. The test takes the
+  // clear height the card offers (with the setback when the setback is offered) and goes on with the design.
+  if (await page.$('#decideCard')) {
+    const d = await page.evaluate(() => ({ title: document.querySelector('#resTitle').innerText.replace(/\s+/g, ' '), status: document.querySelector('#statusText').textContent, card: document.querySelector('#decideCard').innerText.replace(/\s+/g, ' '), metrics: document.querySelectorAll('#metrics .metric').length, quote: document.querySelectorAll('#quoteSheet table').length, stops: [...document.querySelectorAll('#warnings .note.stop')].map(n => n.textContent) }));
+    console.log('decision', d.title, '|', d.status, '|', d.card.slice(0, 220));
+    if (!/one decision to make/.test(d.title) || d.status !== 'One decision to make' || d.metrics || d.quote || d.stops.some(t => /no stocked BU section|not sized/.test(t))) fail('a mark with no section should ask for the decision, not show a failing design');
+    if (!/Set the beams back at the wall columns/.test(d.card) || !/Request more clear height|Shorten the span/.test(d.card)) fail('the decision should offer the setback and the clear height');
+    const cp = await page.$('#decideCard [data-dc="copy"]');
+    if (cp) { await cp.click(); await page.waitForTimeout(120); const r = await clip(); console.log('clear-height request', r); if (r != null && !/Requesting C \d+'-\d/.test(r)) fail('the request should name the clear height to ask for'); }
+    const pick = (await page.$('#decideCard [data-dc="setC"][data-sb="1"]')) || (await page.$('#decideCard [data-dc="setC"]')) || (await page.$('#decideCard [data-dc="setback"]'));
+    if (pick) { await pick.click(); await page.waitForTimeout(1500); console.log('decided', await page.$eval('#toast', e => e.textContent)); }
+    if (await page.$('#decideCard')) fail('the clear height the card offers should design every mark');
+  }
   const answer = await page.evaluate(() => ({
     title: document.querySelector('#resTitle').textContent,
     status: document.querySelector('#statusText').textContent,
@@ -61,9 +75,8 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   console.log('load+design ms', ms);
   console.log(JSON.stringify({ ...answer, quote }, null, 1));
   if (quote.length !== 3 || quote.some(t => !t.length)) fail('quote sheet should have design, beam and column rows');
-  // a beam row carries its BU section — or, where the design says nothing stocked passes (a clearance cap), says so
-  const noneOk = answer.notes.some(n => /^stop: MB\d: no stocked BU section/.test(n));
-  if (!/BU\d+x\d+/.test(quote[1] && quote[1][0] || '') && !(noneOk && /NO SECTION/.test(quote[1] && quote[1][0] || ''))) fail('beam row has no BU section');
+  // a beam row carries its BU section
+  if (!/BU\d+x\d+/.test(quote[1] && quote[1][0] || '')) fail('beam row has no BU section');
   // the MEZZ sheet's cells: each table pastes at its first cell, rows numbered as the sheet's, the beams' DLT / LLF / END WT
   // as the sheet's own formulas, an empty field for the hidden half of SPAN's merged B:C
   const at = await page.$$eval('#quoteSheet .qs-at b', bs => bs.map(b => b.textContent));
@@ -75,14 +88,6 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
     const f = bt.split('\n')[0].split('\t');
     console.log('beam rows copied', JSON.stringify(f));
     if (f.length < 9 || f[2] !== '' || f[4] !== '=IF(B17="","",F$7+G$7+I$7)' && !/^=IF\(B17="","",F\$\d+\+G\$\d+/.test(f[4]) || f[7] !== '=IF(B17="","",40)') fail('beam rows do not paste into the MEZZ sheet cells');
-  }
-  // nothing passes for a mark: the What next card — the frame column setback, then the clear height to ask for
-  if (noneOk) {
-    const card = await page.$$eval('#options .rescue', cs => cs.map(c => c.innerText.replace(/\s+/g, ' ')));
-    console.log('what next', card.map(t => t.slice(0, 160)).join(' || '));
-    if (!card.length || !card.every(t => /Frame column setback|Include the frame column setback/.test(t) && /clear height/i.test(t))) fail('a mark with no section should offer the setback and the clear height');
-    const cp = await page.$('#options [data-rq="copy"]');
-    if (cp) { await cp.click(); await page.waitForTimeout(120); const r = await clip(); console.log('clear-height request', r); if (r != null && !/Requesting C \d+'-\d/.test(r)) fail('the request should name the clear height to ask for'); }
   }
   if (answer.metrics.length !== 4) fail('four metric cards expected');
   // the 3D model drew something: count non-transparent pixels in the canvas
