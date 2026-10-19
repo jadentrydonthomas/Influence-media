@@ -63,6 +63,13 @@
           num(c.res.Wt, 'n1'), { v: ft(run.L != null ? run.L : run.span), s: 'r' }, { v: ft(run.params ? run.params.trib : m.trib), s: 'r' }, run.qty, num(c.res.CSR), num(c.res.SRvx), num(c.defl.rLL, 'n0'), num(c.defl.rTL, 'n0'), num(c.V.D), num(c.V.L),
           { v: !(c.res.CSR <= target && c.res.SRvx <= target && c.llOK && c.tlOK && (!c.conc || c.conc.ok)) ? `FAILS — ${i ? 'this run' : 'picked by the engineer'}` : i ? 'same section, own MB run' : m.optionKey === 'custom' ? 'picked by the engineer' : m.pinned && m.pinned.sec ? 'picked by the engineer' : m.pinned && m.pinned.d != null ? `lightest at ${m.pinned.d}"` : opt ? opt.label : m.optionKey || '—', s: 'pad' }]);
       }));
+      // a mark designed shorter than laid out: why its member lengths are what they are
+      marks.filter(m => m.design && m.design.set).forEach(m => {
+        const sbEnds = [...new Set((m.beamsAll || []).flatMap(x => (x.ends || []).filter(e => e.ft > 0).map(e => `${e.label} ${ft(e.ft)}`)))];
+        rows.push(spanRow(1, ['', { v: m.design.setback
+          ? `${m.mark}: member lengths are the layout spans less the frame column setback at each beam's ends (${sbEnds.join(', ')}) — designed at ${ft(m.design.span)}, the longest. The plan, the columns and the loads to the frame use the layout spans (${ft(m.span)}).`
+          : `${m.mark}: designed at ${ft(m.design.span)} × ${ft(m.design.trib)} trib, set on Beam calc (layout ${ft(m.span)} × ${ft(m.trib)})${Math.abs(m.design.cut) > 1e-6 ? `; ${ft(Math.abs(m.design.cut))} ${m.design.cut > 0 ? 'off' : 'onto'} every member length of the mark` : ''}. The plan, the columns and the loads to the frame use the layout.`, s: 'note' }]));
+      });
       rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result', '', '', '', '', 'Chosen as']));
       const colWhy = cf => (cf.picked ? `picked by the engineer${cf.sec.type === 'BU' ? ' (Built-Up input, Fy 55)' : ''}${cf.auto ? `; the guide's answer ${cf.auto.quoteAs}` : ''}` : cf.quoteAs === cf.name ? 'the guide: lightest common column that passes' : 'the guide: next W that passes, quoted BU');
       // the sized columns on the section's row; the ones under a beam with no section on a NOT SIZED row

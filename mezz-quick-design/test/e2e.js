@@ -27,7 +27,8 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   const light = process.argv.includes('--light');
   fs.mkdirSync(out, { recursive: true });
   const browser = await pw.chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const page = await (await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] })).newPage();
+  const clip = () => page.evaluate(() => navigator.clipboard.readText().catch(() => null));
   const errors = [], fail = msg => errors.push('assert: ' + msg);
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -62,7 +63,27 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   if (quote.length !== 3 || quote.some(t => !t.length)) fail('quote sheet should have design, beam and column rows');
   // a beam row carries its BU section — or, where the design says nothing stocked passes (a clearance cap), says so
   const noneOk = answer.notes.some(n => /^stop: MB\d: no stocked BU section/.test(n));
-  if (!/BU\d+x\d+/.test(quote[1] && quote[1][0] || '') && !(noneOk && /NO SECTION .*NO PASSING SECTION/.test(quote[1] && quote[1][0] || ''))) fail('beam row has no BU section');
+  if (!/BU\d+x\d+/.test(quote[1] && quote[1][0] || '') && !(noneOk && /NO SECTION/.test(quote[1] && quote[1][0] || ''))) fail('beam row has no BU section');
+  // the MEZZ sheet's cells: each table pastes at its first cell, rows numbered as the sheet's, the beams' DLT / LLF / END WT
+  // as the sheet's own formulas, an empty field for the hidden half of SPAN's merged B:C
+  const at = await page.$$eval('#quoteSheet .qs-at b', bs => bs.map(b => b.textContent));
+  if (at.join() !== 'A7,A17,A37') fail('paste cells should be A7 / A17 / A37: ' + at.join());
+  if (![quote[0][0], quote[1][0], quote[2][0]].every((r, i) => (r || '').startsWith(['7 |', '17 |', '37 |'][i]))) fail('rows should carry the sheet row numbers 7 / 17 / 37');
+  await page.click('#quoteSheet [data-copy="beams"]'); await page.waitForTimeout(120);
+  const bt = await clip();
+  if (bt != null) {
+    const f = bt.split('\n')[0].split('\t');
+    console.log('beam rows copied', JSON.stringify(f));
+    if (f.length < 9 || f[2] !== '' || f[4] !== '=IF(B17="","",F$7+G$7+I$7)' && !/^=IF\(B17="","",F\$\d+\+G\$\d+/.test(f[4]) || f[7] !== '=IF(B17="","",40)') fail('beam rows do not paste into the MEZZ sheet cells');
+  }
+  // nothing passes for a mark: the What next card — the frame column setback, then the clear height to ask for
+  if (noneOk) {
+    const card = await page.$$eval('#options .rescue', cs => cs.map(c => c.innerText.replace(/\s+/g, ' ')));
+    console.log('what next', card.map(t => t.slice(0, 160)).join(' || '));
+    if (!card.length || !card.every(t => /Frame column setback|Include the frame column setback/.test(t) && /clear height/i.test(t))) fail('a mark with no section should offer the setback and the clear height');
+    const cp = await page.$('#options [data-rq="copy"]');
+    if (cp) { await cp.click(); await page.waitForTimeout(120); const r = await clip(); console.log('clear-height request', r); if (r != null && !/Requesting C \d+'-\d/.test(r)) fail('the request should name the clear height to ask for'); }
+  }
   if (answer.metrics.length !== 4) fail('four metric cards expected');
   // the 3D model drew something: count non-transparent pixels in the canvas
   const inked = await page.$eval('#model3d', c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return n; });

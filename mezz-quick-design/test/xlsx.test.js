@@ -131,5 +131,15 @@ const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
     });
     assert.ok(cells.some(r => /Lateral Calcs\. \(1\)!Q1/.test(r[0] || '')), 'R typed on the Lateral sheet');
   }
+  // W1S-26062 designed with the frame column setback: the Summary says why MB1's member length is 22'-8"
+  {
+    const { inps } = await loadJob(path.join(dir, 'PCS_job3.pdf'));
+    const RUN = require('../src/run.js'), sj = RUN.runJob(inps.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true } } } })));
+    const sum = CP.sheets(sj, { inputs: inps, settings: {}, generated: '2026-01-01' }).find(x => x.name === 'Summary');
+    const text = sum.rows.flatMap(r => (r || []).map(cellText)).filter(v => v != null).map(String);
+    assert.ok(!text.some(t => /\bNaN\b|undefined|\[object Object\]/.test(t)));
+    assert.ok(text.some(t => /^MB1: member lengths are the layout spans less the frame column setback at each beam's ends \(2\/A 1'-4", 3\/A 1'-4", 4\/A 1'-4", 5\/A 1'-4"\) — designed at 22'-8"/.test(t)), 'the setback note on the Summary');
+    assert.ok(sum.rows.some(r => r && cellText(r[0]) === 'MB1 interior' && cellText(r[5]) === `22'-8"`), 'MB1 at its 22\'-8" member length');
+  }
   console.log('xlsx tests passed');
 })().catch(e => { console.error(e); process.exit(1); });

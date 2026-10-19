@@ -208,7 +208,7 @@ function designAll(label, pcs, mi, expect = {}) {
         assert.strictEqual(inp.mezz.id, 'Storage Mezz'); assert.strictEqual(inp.loads.live.value, 250); assert.strictEqual(inp.loads.dead.value, 50);
         assert.strictEqual(inp.geom.startLEW.value, 64); assert.strictEqual(inp.geom.A.value, 14); assert.strictEqual(inp.geom.joistSpacing.value, 3);
       },
-      result: (res, q) => { assert.strictEqual(q.design[0].MEZZ, 'Storage Mezz'); assert.strictEqual(q.design[0].LL, 250); },
+      result: (res, q) => { assert.strictEqual(q.design[0].MEZZ, 1); assert.strictEqual(q.design[0].MEZZID, 'Storage Mezz'); assert.strictEqual(q.design[0].LL, 250); },
     });
   }
 

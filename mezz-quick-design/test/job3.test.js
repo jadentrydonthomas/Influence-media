@@ -48,6 +48,66 @@ const PLAN = require('../src/plan.js');
   const xl = dj.excel.beam[0].sheets.find(sh => sh.mark === 'MB1' && !sh.shorter).steps.find(st => st.cell === 'D7');
   assert.strictEqual(xl.value, 22.333, 'Excel D7 at the design span');
   assert.ok(dj.mezz[0].warn.some(w => /designed at 22'-4" span \(layout 24'-0"/.test(w.text)));
+  // What next when nothing passes: a 6" seat leaves 14" of beam depth under C 9'-6", and MB1 (24'-0" × 28'-0") has no
+  // section. Offered, in order, nothing applied: (1) the frame column setback — MB1's Mezz 1 beams stop at the BSW rigid
+  // frame columns 2/A–5/A, 1'-4" inside line A: 22'-8" clear, where BU14x94 passes; (2) more clear height — a 15" beam
+  // (BU15x73 at the 22'-8" clear span) needs C 9'-5" or the floor at 11'-7"
+  {
+    const six = JSON.parse(JSON.stringify(inps));
+    six.forEach(inp => { inp.geom.seat = { value: 0.5, source: 'manual' }; });
+    const F = require('../src/pcs.js').fmtFtIn;
+    const nj = RUN.runJob(six.map(inp => ({ inp, settings: {} }))), n1 = nj.marks.find(m => m.mark === 'MB1'), n2 = nj.marks.find(m => m.mark === 'MB2');
+    assert.ok(nj.mezz[0].maxDepthByC === 14 && !n1.sec && n2.desc === 'BU14x48' && !n2.rescue, `${n1.desc} / ${n2.desc}`);
+    assert.ok(n1.design.span === 24 && !n1.design.setback, 'flagged, not applied');
+    const sb = n1.rescue.setback, cl = n1.rescue.clear;
+    assert.strictEqual(sb.state, 'offer');
+    assert.ok(Math.abs(sb.span - (22 + 8 / 12)) < 1e-9 && sb.best && sb.best.desc === 'BU14x94' && sb.best.d === 14, JSON.stringify(sb.best && sb.best.desc));
+    assert.deepStrictEqual(sb.ends.map(e => [e.mezz, e.label, e.kind, F(e.ft)]), [['Mezz 1', '2/A', 'rigid', `1'-4"`], ['Mezz 1', '3/A', 'rigid', `1'-4"`], ['Mezz 1', '4/A', 'rigid', `1'-4"`], ['Mezz 1', '5/A', 'rigid', `1'-4"`]]);
+    // every end of MB1 and MB2 and why it takes what it takes: line 1 / line 6 beams run along the endwalls into the
+    // corner columns of the end frames (in those frames' planes); Mezz 2's 2/E is an interior frame column on its grid
+    const why = mk => [...new Set(mk.beamsAll.flatMap(x => x.ends.filter(e => e.why !== 'mezzanine column').map(e => `${nj.mezz[x.mi].id} ${e.label} ${F(e.ft)}`)))].sort();
+    assert.deepStrictEqual(why(n2), [`Mezz 1 1/A 1'-4"`, `Mezz 1 1/B 0'-0"`, `Mezz 1 6/A 1'-4"`, `Mezz 1 6/B 0'-0"`, `Mezz 2 1/B 0'-0"`, `Mezz 2 1/C 0'-0"`, `Mezz 2 1/E 0'-0"`]);
+    assert.ok(n1.beamsAll.some(x => x.ends.some(e => e.label === '2/E' && e.ft === 0 && /interior frame column/.test(e.why))));
+    assert.ok(cl.d === 15 && cl.best.desc === 'BU15x73' && F(cl.needC) === `9'-5"` && F(cl.needA) === `11'-7"` && cl.withSetback && cl.grid.d === 15 && cl.grid.best.desc === 'BU15x95', JSON.stringify([cl.d, cl.best && cl.best.desc, F(cl.needC), F(cl.needA)]));
+    assert.ok(/^Mezz 1 \/ Mezz 2: MB1 \(6 beams, 22'-8" clear span with the frame column setback × 28'-0" trib\) has no beam section within the 14" of depth .* Requesting C 9'-5" clear under the beams, or the floor raised to 11'-7": a 15" beam \(BU15x73\) then works\.$/.test(cl.request), cl.request);
+    assert.ok(nj.mezz[0].warn.some(w => w.level === 'stop' && /^MB1: no stocked BU section .* What next \(Beam options\): the frame column setback — at the 22'-8" clear span BU14x94 passes; or more clear height — a 15" beam needs C 9'-5" \(now 9'-6"\) or the floor at 11'-7"\./.test(w.text)));
+    // picked: each member length less its own setback — Mezz 2's 20'-0" and 16'-0" MB1 beams end on 2/E (interior) and
+    // mezzanine columns, so they keep their length (not the 1'-4" cut of a typed design span)
+    const sj = RUN.runJob(six.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } }))), s1 = sj.marks.find(m => m.mark === 'MB1'), s2 = sj.marks.find(m => m.mark === 'MB2');
+    assert.ok(s1.desc === 'BU14x94' && s2.desc === 'BU14x41' && s1.design.setback && Math.abs(s1.design.span - 22.6667) < 1e-3 && !s1.rescue);
+    assert.deepStrictEqual(s1.spanRuns.map(q => [q.span, +q.L.toFixed(3), q.qty]), [[24, 22.667, 4], [20, 20, 1], [16, 16, 1]]);
+    assert.deepStrictEqual(s2.spanRuns.map(q => [q.span, +q.L.toFixed(3), q.qty]), [[24, 22.667, 2], [20, 20, 2], [16, 16, 2]]);
+    assert.deepStrictEqual(sj.excel.beam[0].sheets.map(sh => `${sh.sheet}=${sh.mark}@${+sh.L.toFixed(3)}`).slice(0, 2), ['MB1=MB1@22.667', 'MB2=MB2@22.667'], 'the MB sheets at the clear span');
+    assert.deepStrictEqual(sj.frameEntries.map(f => f.frame + ':' + f.entries.map(e => e.label).join(',')), nj.frameEntries.map(f => f.frame + ':' + f.entries.map(e => e.label).join(',')), 'the frame columns stay');
+    const fa = sj.frameEntries.find(f => f.frame === '3').entries.find(e => e.label === '3/A');
+    assert.ok(Math.abs(fa.L - 42) < 1e-9, 'line A keeps the layout load: 125 psf × 28\' × 24\' / 2');
+    // the quote sheet as pasted at A7 / A17 / A37 of the MEZZ sheet: the user's own rows 17–22 (they quoted BU14x92, F12×1
+    // flanges on a 1/4" web — tw/tf 0.25 under the production guidelines' 0.30; with the guidelines off it is the answer)
+    const q = RUN.quoteJob(sj.mezz, six);
+    assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SPAN, r.TRIB, r.SECTION, r.QTY]), [[1, 24, 28, 'BU14x94', 4], [1, 24, 14, 'BU14x41', 2], [2, 20, 28, 'BU14x94', 1], [2, 16, 28, 'BU14x94', 1], [2, 20, 14, 'BU14x41', 2], [2, 16, 14, 'BU14x41', 2]]);
+    assert.deepStrictEqual(q.tsv.design.split('\n'), ['1\t11.5\t\t4\tNW\t40\t5\t125\t', '2\t11.5\t\t4\tNW\t40\t5\t125\t']);
+    assert.deepStrictEqual(q.tsv.beams.split('\n').slice(0, 3), ['1\t24\t\t28\t=IF(B17="","",F$7+G$7+I$7)\t=IF(B17="","",H7)\tBU14x94\t=IF(B17="","",40)\t4', '1\t24\t\t14\t=IF(B18="","",F$7+G$7+I$7)\t=IF(B18="","",H7)\tBU14x41\t=IF(B18="","",40)\t2', '2\t20\t\t28\t=IF(B19="","",F$8+G$8+I$8)\t=IF(B19="","",H8)\tBU14x94\t=IF(B19="","",40)\t1']);
+    assert.deepStrictEqual(q.tsv.columns.split('\n'), ['1&2\t11.5\t\t496\t\tW8x24\t=IF(B37="","",46)\t8']);
+    assert.deepStrictEqual([q.sheet.design.at, q.sheet.beams.at, q.sheet.columns.at, q.sheet.beams.to, q.sheet.columns.letters.AREA], ['A7', 'A17', 'A37', 'I', 'D:E']);
+    const off = RUN.runJob(six.map(inp => ({ inp, settings: { production: false, markInput: { MB1: { setback: true }, MB2: { setback: true } } } })));
+    assert.deepStrictEqual(off.marks.map(m => m.desc), ['BU14x92', 'BU14x41'], 'the quote engineer\'s BU14x92 with the production guidelines off');
+    // one mezzanine with no clearance requirement: the request is the other one's (Mezz 1's C caps the shared mark)
+    const mix = JSON.parse(JSON.stringify(six)); mix[1].geom.C = { value: null, source: 'none' };
+    const mc = RUN.runJob(mix.map(inp => ({ inp, settings: {} }))).marks.find(m => m.mark === 'MB1').rescue.clear;
+    assert.ok(mc && mc.per.length === 1 && mc.per[0].id === 'Mezz 1' && F(mc.C) === `9'-6"` && F(mc.needC) === `9'-5"` && /^Mezz 1: MB1 /.test(mc.request), mc && mc.request);
+    // the setback in use and still nothing (an 8" seat leaves 12"): the card says so and goes on to the clear height,
+    // found at the 22'-8" clear span
+    const eight = JSON.parse(JSON.stringify(six)); eight.forEach(inp => { inp.geom.seat = { value: 8 / 12, source: 'manual' }; });
+    const ar = RUN.runJob(eight.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true } } } }))).marks.find(m => m.mark === 'MB1');
+    assert.ok(!ar.sec && ar.design.setback && ar.rescue.setback.state === 'applied' && ar.rescue.clear.withSetback && Math.abs(ar.rescue.clear.span - 22.6667) < 1e-3 && !ar.rescue.clear.grid, JSON.stringify(ar.rescue.setback.state));
+    // a typed design span replaces the setback (the cut on every member again)
+    const tj = RUN.runJob(six.map(inp => ({ inp, settings: { markInput: { MB1: { span: 22 + 8 / 12 } } } })));
+    assert.deepStrictEqual(tj.marks[0].spanRuns.map(q => +q.L.toFixed(3)), [22.667, 18.667, 14.667]);
+    // partition carried as live load: the pasted DLT / LLF formulas follow it (the sheet's own DLT adds PART to the dead)
+    const pt = JSON.parse(JSON.stringify(six)); pt.forEach(inp => { inp.loads.partition = { value: 15, source: 'manual' }; });
+    const pq = RUN.quoteJob(RUN.runJob(pt.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true } } } }))).mezz, pt);
+    assert.ok(pq.beams[0].partLive && pq.beams[0].DLT === 45 && pq.beams[0].LLT === 140 && pq.tsv.beams.split('\n')[0].split('\t').slice(4, 6).join(' ') === '=IF(B17="","",F$7+G$7) =IF(B17="","",H7+I7)' && pq.tsv.design.split('\n')[0].split('\t')[8] === '15');
+  }
   // the other way (footprint cut to 22'-4"): the loads leave line A, and the page says so
   const cut = JSON.parse(JSON.stringify(inps));
   cut[0].geom.width = { value: 22 + 4 / 12, source: 'manual' };
@@ -83,12 +143,13 @@ const PLAN = require('../src/plan.js');
     const nj = RUN.runJob(inps.map(inp => ({ inp, settings: { dMax: 10 } })));
     const q = RUN.quoteJob(nj.mezz, inps);
     assert.strictEqual(q.beams.reduce((a, b) => a + b.QTY, 0), all, 'every beam on the quote');
-    assert.ok(q.beams.every(b => b.SECTION === 'NO SECTION' && /NO PASSING SECTION/.test(b.NOTES)));
+    assert.ok(q.beams.every(b => b.SECTION === 'NO SECTION' && /nothing passes at/.test(b.DETAIL)));
     assert.strictEqual(q.columns.reduce((a, c) => a + c.QTY, 0), cols, 'every column on the quote');
     assert.ok(q.columns.every(c => c.SECTION === 'NOT SIZED'));
     const pj = RUN.runJob(inps.map(inp => ({ inp, settings: { override: { MB1: { sec: { type: 'BU', d: 10, tw: 0.25, bof: 6, tof: 0.375, bif: 6, tif: 0.375 } } } } })));
-    const pq = RUN.quoteJob(pj.mezz, inps).beams.filter(b => /^FAILS — combined/.test(b.NOTES));
-    assert.ok(pq.length >= 1 && pq.every(b => /section picked by the engineer/.test(b.NOTES)), 'a failing pick says so on the row');
+    const pq = RUN.quoteJob(pj.mezz, inps).beams.filter(b => /^FAILS — combined/.test(b.FLAG));
+    assert.ok(pq.length >= 1 && pq.every(b => /section picked by the engineer/.test(b.DETAIL)), 'a failing pick says so on the row');
+    assert.ok(RUN.quoteJob(pj.mezz, inps).tsv.beams.split('\n').every(l => l.split('\t').length === 11 && /^FAILS|^$/.test(l.split('\t')[9])), 'with a failing row the copy carries the J:K note (J, K)');
   }
-  console.log('job3 tests passed (W1S-26062: 8/8 ⊗, ✱ 3/E–6/E, I 2/E, joists along the length from the truss symbols, frame loads on members; MB1 design span 22\'-4" keeps line A on the frame; footprint cut flagged)');
+  console.log('job3 tests passed (W1S-26062: 8/8 ⊗, ✱ 3/E–6/E, I 2/E, joists along the length from the truss symbols, frame loads on members; MB1 design span 22\'-4" keeps line A on the frame; footprint cut flagged; nothing at a 14" cap → setback 22\'-8" BU14x94 or C 9\'-5"; quote rows as pasted at A7 / A17 / A37)');
 })().catch(e => { console.error(e); process.exit(1); });

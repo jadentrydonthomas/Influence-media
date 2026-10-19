@@ -78,7 +78,11 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   const jf = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { override: { MB2: { sec: { type: 'WF', name: 'W16X26' } } } } })));
   const wf = jf.marks.find(m => m.mark === 'MB2');
   assert.ok(wf.desc === 'W16X26' && wf.check && wf.check.res.CSR > 1 && jf.mezz[0].colFinal && jf.frameEntries.length, 'a W beam pick designs through');
-  assert.ok(RUN.quoteJob(jf.mezz, inps).beams.some(b => b.SECTION === 'W16X26' && /FAILS/.test(b.NOTES)), 'a failing W pick is FAILS on the quote');
+  assert.ok(RUN.quoteJob(jf.mezz, inps).beams.some(b => b.SECTION === 'W16x26' && /FAILS/.test(b.FLAG)), 'a failing W pick is FAILS on the quote');
+  // the post-and-beam endwalls: the Sanctuary beams along the building end at the LEW / REW post-and-beam columns, 1'-0"
+  // each — offered on Beam calc as a 19'-9 3/4" clear span (the mark passes, so nothing is flagged)
+  const sm1 = job.marks.find(m => m.mark === 'MB1');
+  assert.ok(Math.abs(sm1.design.sbSpan - (sm1.span - 1)) < 1e-9 && !sm1.design.setback && !sm1.rescue && sm1.beamsAll.some(x => x.ends.some(e => e.kind === 'pb' && /^LEW column \(Post and Beam/.test(e.why))));
   // a W picked by hand: quoted BU (not a common size), and the job-wide note says the pick is on the quote
   const jw = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: { colOverride: 'W10X33' } }))), sw = jw.mezz[0];
   assert.ok(sw.colFinal.picked && sw.colFinal.quoteAs === 'BU10x33' && sw.colFinal.auto && sw.colFinal.auto.quoteAs === 'BU8x31');
@@ -89,7 +93,7 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   assert.deepStrictEqual(sp.colFinal.unsized, ['2/F', '4/F']);
   assert.ok(sp.colFinal.ok && sp.colWhy && /2 of 27 columns \(2\/F, 4\/F\) not sized/.test(sp.colWhy.text), JSON.stringify(sp.colWhy));
   assert.ok(sp.warn.some(w => /passes the column cases that are sized; 2 columns are not sized yet/.test(w.text)) && !sp.warn.some(w => /passes every column case/.test(w.text)));
-  const qp = RUN.quoteJob(jp.mezz, inps).columns.filter(c => c.MEZZ === 'Sanctuary').map(c => `${c.SECTION} x${c.QTY}`);
+  const qp = RUN.quoteJob(jp.mezz, inps).columns.filter(c => c.MEZZID === 'Sanctuary').map(c => `${c.SECTION} x${c.QTY}`);
   assert.deepStrictEqual(qp, ['NOT SIZED x2', 'BU8x31 x25']);
   // a mark with no section: the Seismic page waits (no frame's whole EQ load sent to one column, no framing weight from half the members)
   const jd = RUN.runJob(job.mezz.map((m, i) => ({ inp: inps[i], settings: i === 0 ? { drop: ['40.31,21.18'] } : {} })));

@@ -45,7 +45,7 @@ if (pdfArgs.length > 1) {
   // beam / column quote rows, compact
   const quote = () => page.$$eval('#quoteSheet table', ts => ts.slice(1).map(t => [...t.querySelectorAll('tbody tr')].map(tr => {
     const c = [...tr.cells].map(x => x.textContent.trim());
-    return c.slice(1, -1).join(' ');
+    return c.slice(2).join(' ');   // past the sheet row number and MEZZ
   }).join(' / ')).join(' || '));
   const log = async label => { const q = await quote(); console.log(label.padEnd(30), q); return q; };
   let base = await log('default');
@@ -582,12 +582,13 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   await page.click('#dzTabs button[data-t="beam"]');
   await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
 
-  // copy buttons: rail copies all three tables as TSV
-  await page.click('#copyQuote'); await page.waitForTimeout(150);
+  // copy buttons: the rail goes to the quote sheet; each table copies for its own cell (A7 / A17 / A37)
+  await page.click('#copyQuote'); await page.waitForTimeout(300);
+  await page.click('#quoteSheet [data-copy="beams"]'); await page.waitForTimeout(150);
   const clip = await page.evaluate(() => navigator.clipboard.readText().catch(() => null));
   if (clip != null) {
     console.log('clipboard lines'.padEnd(30), clip.split('\n').length);
-    if (!clip.includes('\t') || !/BU\d+x\d+/.test(clip)) fail('copied quote rows are not tab-separated with the BU section');
+    if (!clip.includes('\t') || !/BU\d+x\d+/.test(clip) || !clip.includes('=IF(B17="","",')) fail('copied beam rows are not the MEZZ sheet\'s cells (tab-separated, BU section, the sheet\'s formulas)');
   }
   for (const b of await page.$$('#quoteSheet [data-copy]')) await b.click();
 
@@ -631,7 +632,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     // every mezzanine (the default): one edit reaches both
     await page.click('#linkSeg button[data-l="1"]');
     await page.fill('#inputsGrid input[data-path="loads.partition"]', '10'); await page.press('#inputsGrid input[data-path="loads.partition"]', 'Tab'); await page.waitForTimeout(250);
-    const parts = await page.$$eval('#quoteSheet table', ts => [...ts[0].querySelectorAll('tbody tr')].map(tr => tr.cells[7].textContent.trim()));
+    const parts = await page.$$eval('#quoteSheet table', ts => [...ts[0].querySelectorAll('tbody tr')].map(tr => tr.cells[8].textContent.trim()));   // I: PART.
     console.log('partition 10 on every mezz'.padEnd(30), parts.join(' / '));
     if (!parts.every(p => p === '10')) fail('a linked edit should reach every mezzanine');
     await page.fill('#inputsGrid input[data-path="loads.partition"]', '5'); await page.press('#inputsGrid input[data-path="loads.partition"]', 'Tab'); await page.waitForTimeout(250);

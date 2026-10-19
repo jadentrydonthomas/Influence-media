@@ -52,7 +52,7 @@ function inputs(id, geom, loads = {}) {
   assert.ok(j3b.DL_L + j3b.DL_R > a3b.DL_L + a3b.DL_R + 1, 'shared column carries both mezzanines');
   assert.ok(job.mezz.every(r => r.colFinal && r.colFinal.ok));
   const q = RUN.quoteJob(job.mezz, [A, B]);
-  assert.deepStrictEqual(q.design.map(r => r.MEZZ), ['A', 'B']);
+  assert.deepStrictEqual(q.design.map(r => [r.MEZZ, r.MEZZID]), [[1, 'A'], [2, 'B']], 'the sheet numbers the mezzanines when their names carry no number');
   assert.strictEqual(q.columns.reduce((a, r) => a + r.QTY, 0), job.columns.length);
 }
 
@@ -212,13 +212,15 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   const cmp = PLAN.compare(reg.columns, job.columns);
   assert.ok(cmp.agree, 'floor plan columns match the job layout');
   const q = RUN.quoteJob(job.mezz, inps);
-  // quote rows: one per mark and member length, one per column section and height — the whole job
+  // quote rows: one per mark and member length, one per column section and height — the whole job, by mezzanine
+  // (BSW = 1, LEW = 2 on the MEZZ sheet; a row of both is "1&2")
   assert.deepStrictEqual(q.beams.map(r => [r.MEZZ, r.SPAN, r.TRIB, r.SECTION, r.QTY]), [
-    ['BSW / LEW', 28, 20, 'BU28x50', 3], ['LEW', 12.333, 20, 'BU28x50', 1],
-    ['BSW / LEW', 28, 12.333, 'BU26x36', 9], ['LEW', 12.333, 12.333, 'BU26x36', 1]]);
-  assert.ok(/^plates: flanges F8\.50 \(8" × 1\/2"\), web W250 \(1\/4"\), Fy 55; MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\)/.test(q.beams[0].NOTES), q.beams[0].NOTES);   // the plates first: a BU name can fit two plate sets
-  assert.ok(/shorter span — same section, MB sheet at 12'-4"/.test(q.beams[1].NOTES), q.beams[1].NOTES);
-  assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['BSW / LEW', 'W8X24', 7]]);
+    ['1&2', 28, 20, 'BU28x50', 3], ['1&2', 28, 12.333, 'BU26x36', 9],
+    [2, 12.333, 20, 'BU28x50', 1], [2, 12.333, 12.333, 'BU26x36', 1]]);
+  assert.ok(/^MB1 interior: BSW B1, B2 \(line C\); LEW B13 \(line D\); plates: flanges F8\.50 \(8" × 1\/2"\), web W250 \(1\/4"\), Fy 55/.test(q.beams[0].DETAIL), q.beams[0].DETAIL);   // a BU name can fit two plate sets: the plates are with the row
+  assert.ok(/same section, MB sheet at 12'-4"/.test(q.beams[2].DETAIL), q.beams[2].DETAIL);
+  assert.deepStrictEqual(q.columns.map(r => [r.MEZZ, r.SECTION, r.QTY]), [['1&2', 'W8x24', 7]]);
+  assert.deepStrictEqual(q.mezzNos.map(m => [m.no, m.id]), [[1, 'BSW'], [2, 'LEW']]);
   // DM 15.1 on the job: perimeter beams are the exterior mark; both mezzanines need bracing decisions; a W8 column
   const per = job.dm.find(i => i.title.startsWith('Perimeter beams'));
   assert.ok(per && /^MB2 exterior BU26x36 \(10 edge beams\)/.test(per.text) && /9\.77 k per joist/.test(per.text), per && per.text);
@@ -233,7 +235,7 @@ if (!fs.existsSync(pdf) || !pdfjsOK) { console.log('multi tests passed (two-mezz
   // a W picked by hand that fails: A992 Fy 50 (the workbook at M31-M33 = 50 / 50 / 65 reads SR 1.19), and the FAILS note
   // names the checks that fail — the total deflection, not the live one that passes
   const jw = RUN.runJob(inps.map(inp => ({ inp, settings: { override: { MB1: { sec: { type: 'WF', name: 'W24X55' } } } } })));
-  const fw = RUN.quoteJob(jw.mezz, inps).beams.map(b => b.NOTES).find(n => /FAILS/.test(n));
+  const fw = RUN.quoteJob(jw.mezz, inps).beams.map(b => b.FLAG).find(n => /FAILS/.test(n));
   assert.ok(fw && /FAILS — combined 1\.187, total L\/237 < L\/240/.test(fw) && !/live L/.test(fw), fw);
   // split by trib / span: a group past the fourth rides on a mark that covers its span and trib (MB4 stays at 28' × 12'-4")
   const jsp = RUN.runJob(inps.map(inp => ({ inp, settings: { marks: 'split' } })));

@@ -51,7 +51,7 @@
   const runL = q => (q && q.L != null ? q.L : q ? q.span : 0);
   // a mark that does not pass (a section picked by hand, or none): the MB sheet ratios, deflection and joist bearing
   const markFails = mk => { const t = state.settings.target, c = mk && mk.check; return !c || !(c.res.CSR <= t && c.res.SRvx <= t && c.llOK && c.tlOK && (!c.conc || c.conc.ok)); };
-  const mkDims = mk => { const d = mkDz(mk); return `${ft(d.span)} × ${ft(d.trib)}${d.set ? ` <small class="sub-n">design · layout ${ft(mk.span)} × ${ft(mk.trib)}</small>` : ''}`; };
+  const mkDims = mk => { const d = mkDz(mk); return `${ft(d.span)} × ${ft(d.trib)}${d.set ? ` <small class="sub-n">${d.setback ? 'clear span, frame column setback' : 'design'} · layout ${ft(mk.span)} × ${ft(mk.trib)}</small>` : ''}`; };
   // the beam end loads that go to the frame and the columns: the layout span and trib with the mark's section
   const layoutV = (mk, q) => (mk && mk.sec && mk.params ? DESIGN.reactions({ ...mk.params, L: q ? q.span : mk.span, trib: mk.trib }, mk.sec) : null);
   const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
@@ -332,7 +332,7 @@
   function keepSettings() {
     const s = state.settings, keep = {};
     // preferences carry to the next PCS; the sheet edition and the stock division are the job's own (its code, its plant) — back to Auto
-    ['target', 'dMin', 'dMax', 'symmetric', 'requireConc', 'marks', 'colPerJob', 'colLength', 'includeW818', 'partitionTo', 'optionDefault', 'production'].forEach(k => { keep[k] = s[k]; });
+    ['target', 'dMin', 'dMax', 'symmetric', 'requireConc', 'marks', 'colPerJob', 'colLength', 'includeW818', 'partitionTo', 'optionDefault', 'production', 'setbackRigid', 'setbackPB'].forEach(k => { keep[k] = s[k]; });
     return keep;
   }
 
@@ -1002,7 +1002,7 @@
     $('#optSub').textContent = (marks[0] && marks[0].search ? `every stocked web and flange within the production rules, through the MB sheet — ${marks[0].search.evaluated.toLocaleString()} combinations a mark · pick one for the quote${manyMezz() ? ' (it goes on every mezzanine)' : ''}` : '') + (uo ? ` · you usually quote ${uoLab} (${uo.n} of ${uo.tot})` : '');
     const TIERW = { G: 'economical', Y: 'somewhat economical', R: 'non-economical' };
     $('#options').innerHTML = marks.map(mk => {
-      if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — no passing section in the depth range.${mk.sec ? ` On the quote: <b class="${markFails(mk) ? 'ng' : ''}">${esc(mk.desc)}</b>, picked by hand${markFails(mk) ? ' — does not pass (see Beam calc)' : ''}.` : ''}</p></div>`;
+      if (!mk.options || !mk.options.length) return `<div class="mark-block"><p class="mark-label"><b>${mkName(mk)}</b> — no passing section in the depth range.${mk.sec ? ` On the quote: <b class="${markFails(mk) ? 'ng' : ''}">${esc(mk.desc)}</b>, picked by hand${markFails(mk) ? ' — does not pass (see Beam calc)' : ''}.` : ''}</p>${mk.sec ? '' : rescueCard(mk)}</div>`;
       const len = (mk.beamsAll || []).reduce((a, x) => a + x.span, 0) || mk.qtyAll * mk.span;   // every member at its own length
       const where = mkWhere(mk), short = mkShort(mk);
       // one card per different section; the options that land on it are named together
@@ -1052,6 +1052,79 @@
       return `<div class="mark-block"><p class="mark-label"><i class="mk-dot" style="background:${mkHex(mk)}"></i><b>${mkName(mk)}</b> · ${mk.qtyAll} beam${mk.qtyAll > 1 ? 's' : ''}${where ? ' (' + where + ')' : ''} · designed ${mkDims(mk)} trib${short ? ' · ' + short + ', same section' : ''}</p><div class="options ${one && !handCard() ? 'is-one' : ''}">${handCard()}${groups.map(card).join('')}</div>${oneTxt}</div>`;
     }).join('');
     $$('#options [data-opt]').forEach(b => { b.onclick = () => pickOption(b.dataset.mark, b.dataset.opt); });
+    wireRescue($('#options'));
+  }
+  // ---------- nothing passes for a mark: what next (the frame column setback, then more clear height) ----------
+  // Offered, never applied until clicked: run.js works out each option (m.rescue).
+  function rescueCard(mk, compact) {
+    const rs = mk.rescue;
+    if (!rs) return '';
+    const sb = rs.setback, cl = rs.clear, dz = mkDz(mk), s = state.settings;
+    const cap = rs.cap != null ? `within the ${rs.cap}" of depth clearance C leaves` : `between ${s.dMin}" and ${s.dMax}" deep`;
+    // the building columns the beams frame into, by setback: "2/A, 3/A, 4/A, 5/A (BSW, rigid frame) 1'-4""
+    const byKind = new Map();
+    const what = e => (/wind column/.test(e.why) ? 'wind column' : /soldier/.test(e.why) ? 'soldier column' : e.kind === 'rigid' ? 'rigid frame' : 'post-and-beam');
+    (sb ? sb.ends : []).forEach(e => { const wall = (e.why.match(/^(FSW|BSW|LEW|REW)/) || [])[1] || '', k = `${what(e)}|${wall}|${e.ft}`; if (!byKind.has(k)) byKind.set(k, { what: what(e), wall, ft: e.ft, by: new Map() }); const g = byKind.get(k); if (!g.by.has(e.mezz)) g.by.set(e.mezz, []); if (!g.by.get(e.mezz).includes(e.label)) g.by.get(e.mezz).push(e.label); });
+    const endTxt = [...byKind.values()].map(g => `${[...g.by].map(([mz, ls]) => (manyMezz() ? mz + ': ' : '') + ls.join(', ')).join('; ')} (${g.wall ? g.wall + ', ' : ''}${g.what}) ${ft(g.ft)}`).join(' · ');
+    const others = jobMarks().filter(o => o.mark !== mk.mark && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback);
+    const sbInputs = `<span class="rq-amt">Setback at a <label>rigid frame column <input data-sbamt="setbackRigid" value="${esc(ft(s.setbackRigid))}" spellcheck="false" autocomplete="off"></label> · <label>post-and-beam column <input data-sbamt="setbackPB" value="${esc(ft(s.setbackPB))}" spellcheck="false" autocomplete="off"></label></span>`;
+    const st = sb ? sb.state : 'none', withSb = st === 'offer' || st === 'applied';
+    const naTxt = { none: `None to take: no beam of ${mk.mark} frames into a frame column's face (they run along a wall, or end on mezzanine or interior columns).`,
+      short: `No change: the beams of ${mk.mark} that frame into frame columns are not its longest — the design span stays ${ft(dz.span)}.`,
+      typed: `The design span typed on Beam calc (${ft(dz.span)}) is already at or under the ${ft(sb ? sb.span : 0)} clear span.`,
+      applied: `In use: ${ft(sb ? sb.span : 0)} clear span (layout ${ft(sb ? sb.from : 0)}) at ${esc(endTxt)} — and nothing passes even so.` };
+    const step1 = st === 'offer'
+      ? `<li class="rq-step"><div class="rq-t"><b>Include the frame column setback</b><span class="rq-act"><button class="btn-soft" data-rq="setback" data-mark="${mk.mark}">Design ${mk.mark} at ${ft(sb.span)}</button>${others.length ? `<button class="btn-ghost" data-rq="setback-all" data-mark="${mk.mark}" title="${esc(others.map(o => `${o.mark} at ${ft(o.design.sbSpan)}`).join(', '))} too">${[mk, ...others].map(o => o.mark).join(' + ')}</button>` : ''}</span></div>
+          <p>The beams stop at the frame columns' inside faces, not on the grid: ${esc(endTxt)}. Clear span <b>${ft(sb.span)}</b> (layout ${ft(sb.from)}).</p>
+          <p class="${sb.best ? 'rq-ok' : 'rq-ng'}">${sb.best ? `At ${ft(sb.span)}: <b class="nocase">${esc(sb.best.desc)}</b> passes — ${sb.best.d}", ${f(sb.best.wt, 1)} plf, combined ${f(sb.best.CSR, 3)}.` : `At ${ft(sb.span)} nothing passes ${cap} either — the setback is not enough on its own.`}</p>${sbInputs}</li>`
+      : `<li class="rq-step is-na"><div class="rq-t"><b>Frame column setback</b></div><p>${naTxt[st] || naTxt.none}</p>${sbInputs}</li>`;
+    const lim = q => q.per && q.per.length > 1 && new Set(q.per.map(x => `${x.A}|${x.C}`)).size > 1;
+    const step2 = !cl ? `<li class="rq-step is-na"><div class="rq-t"><b>More clear height</b></div><p>No clearance limit on this mark (C is no requirement) — nothing passes up to ${s.dMax}" deep: put a column back to shorten the span, or add a beam line to cut the trib.</p></li>`
+      : cl.none ? `<li class="rq-step"><div class="rq-t"><b>More clear height</b></div><p class="rq-ng">Nothing passes up to ${s.dMax}" deep at ${ft(cl.span)} — more clear height does not do it: put a column back to shorten the span, or add a beam line to cut the trib.</p></li>`
+      : `<li class="rq-step"><div class="rq-t"><b>Request more clear height</b> <small>from the estimator</small><span class="rq-act"><button class="btn-soft" data-rq="copy" data-mark="${mk.mark}">Copy request</button></span></div>
+          <p>A <b>${cl.d}"</b> beam works${withSb ? ` at the ${ft(cl.span)} clear span` : ''}: <b class="nocase">${esc(cl.best.desc)}</b>, ${f(cl.best.wt, 1)} plf. It needs clear height C <b>${ft(cl.needC)}</b> under the beams (now ${ft(cl.C)}), or the mezzanine raised to A <b>${ft(cl.needA)}</b> (now ${ft(cl.A)})${lim(cl) ? ` — each mezzanine: ${cl.per.map(x => `${esc(x.id)} C ${ft(x.needC)} or A ${ft(x.needA)}`).join(', ')}` : ''}.</p>
+          ${cl.light ? `<p class="rq-sub">Lighter, a little deeper: ${cl.light.d}" ${esc(cl.light.desc)} ${f(cl.light.wt, 1)} plf — C ${ft(cl.light.needC)} or A ${ft(cl.light.needA)}.</p>` : ''}
+          ${st === 'offer' && cl.grid && !cl.grid.none ? `<p class="rq-sub">Without the setback (${ft(cl.grid.span)}): ${cl.grid.d}" ${esc(cl.grid.best.desc)} — C ${ft(cl.grid.needC)} or A ${ft(cl.grid.needA)}.</p>` : ''}
+          ${compact ? '' : `<span class="rq-act rq-act2"><button class="btn-ghost" data-rq="useC" data-mark="${mk.mark}">Design with C ${ft(cl.needC)}${st === 'offer' ? ' + the setback' : ''}</button><button class="btn-ghost" data-rq="useA" data-mark="${mk.mark}">Design with A ${ft(cl.needA)}${st === 'offer' ? ' + the setback' : ''}</button></span>`}</li>`;
+    return `<div class="rescue"><div class="rq-head"><span class="eyebrow">What next · ${mk.mark}</span><p>Nothing passes at ${ft(dz.span)} × ${ft(dz.trib)} trib ${cap}${rs.cap != null ? ` (C ${ft(cl ? cl.C : inpOfMark(mk).geom.C.value)})` : ''}. Two ways forward, in this order — neither is applied until you pick it.</p></div>
+      <ol class="rq-steps">${step1}${step2}</ol></div>`;
+  }
+  const inpOfMark = mk => inputsOf((mk.mezzIds || [state.mi])[0]);
+  function wireRescue(root) {
+    if (!root) return;
+    const markOf = b => jobMarks().find(m => m.mark === b.dataset.mark);
+    root.querySelectorAll('[data-rq]').forEach(b => {
+      b.onclick = () => {
+        const mk = markOf(b), rs = mk && mk.rescue, kind = b.dataset.rq;
+        if (!rs) return;
+        if (kind === 'setback' || kind === 'setback-all') {
+          const ms = kind === 'setback' ? [mk] : [mk, ...jobMarks().filter(o => o.mark !== mk.mark && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback)];
+          ms.forEach(m => { const cur = (state.settings.markInput || {})[m.mark] || {}, { span, ...rest } = cur; setMarkInput(m.mark, { ...rest, setback: true }); });
+          recompute();
+          const out = ms.map(m => jobMarks().find(o => o.mark === m.mark)).map(o => `${o.mark} at ${ft(mkDz(o).span)} → ${o.desc || 'no section'}`);
+          toast(`Frame column setback: ${out.join(' · ')}. Beam calc → Back to the layout undoes it.`);
+        } else if (kind === 'copy') copyText(rs.clear.request, 'Clear-height request copied');
+        else if (kind === 'useC' || kind === 'useA') {
+          const k = kind === 'useC' ? 'C' : 'A';
+          rs.clear.per.forEach(q => { inputsOf(q.mi).geom[k] = { value: kind === 'useC' ? rs.clear.needC : rs.clear.needA, source: 'manual' }; });
+          // the depth was found at the clear span: the setback goes with it
+          if (rs.clear.withSetback && rs.setback.state === 'offer') { const { span, ...rest } = (state.settings.markInput || {})[mk.mark] || {}; setMarkInput(mk.mark, { ...rest, setback: true }); }
+          recompute();
+          const o = jobMarks().find(m => m.mark === mk.mark);
+          toast(`${k} ${ft(kind === 'useC' ? rs.clear.needC : rs.clear.needA)} on ${rs.clear.per.map(q => q.id).join(', ')} (Inputs) → ${mk.mark} ${o && o.desc ? o.desc : 'no section'}. Confirm it with the estimator.`);
+        }
+      };
+    });
+    root.querySelectorAll('[data-sbamt]').forEach(inp => {
+      inp.onchange = () => {
+        // 1'-4", 1' 4", 16" or 1.333 (ft)
+        const raw = inp.value.trim(), v = raw === '' ? null : PCS.ftin(raw.replace(/'\s+(?=\d)/, "'-")) ?? (/^\d*\.?\d+$/.test(raw) ? +raw : null);
+        if (v == null || !(v >= 0) || v > 5) { toast(`${raw} is not a setback — e.g. 1'-4"`); inp.value = ft(state.settings[inp.dataset.sbamt]); return; }
+        allSettings().forEach(st => { st[inp.dataset.sbamt] = v; });
+        recompute(); toast(`Setback at a ${inp.dataset.sbamt === 'setbackRigid' ? 'rigid frame' : 'post-and-beam'} column: ${ft(v)}`);
+      };
+      inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    });
   }
   // a mark is one member over the job, so its pick goes into every mezzanine's settings
   const setOverride = (mark, ov) => allSettings().forEach(st => { st.override = { ...(st.override || {}), [mark]: ov }; });
@@ -1331,30 +1404,40 @@
     }
   }
 
-  // ---------- quote sheet (workbook tables) ----------
+  // ---------- quote sheet (the MEZZ sheet of the quote workbook, cell for cell) ----------
   function renderQuoteSheet() {
     // one holistic set of rows for the job: a row per beam mark and member length, a row per column section
     const q = RUN.quoteJob(state.job ? state.job.mezz : [state.res], state.all ? state.all.map(a => a.inputs) : [state.inputs]);
     state.quote = q;
-    const cur = state.inputs.mezz.id || 'A', many = manyMezz();
+    const cur = state.res && state.res.id, many = manyMezz();
+    const names = { design: 'Design information rows', beams: 'Beam rows', columns: 'Column rows' };
     const block = (key, title, sub, foot) => {
-      const h = q.heads[key], rows = q[key];
-      const cls = k => (k === 'NOTES' ? 'qnotes' : k === 'SECTION' ? 'sec' : k === 'DLT' || k === 'LLT' || k === 'ENDWT' ? 'calc' : k === 'MEZZ' ? 'left' : '');
-      return `<div class="qs-block"><div class="qs-head"><div><h4>${title}</h4>${sub ? `<small>${sub}</small>` : ''}</div><button class="btn-soft" data-copy="${key}"><svg><use href="#i-copy"/></svg>Copy rows</button></div>
-        <div class="qs-wrap"><table><thead><tr>${h.map(([k, t]) => `<th class="${k === 'NOTES' || k === 'MEZZ' ? 'left' : ''}">${t}</th>`).join('')}</tr></thead>
-        <tbody>${rows.length ? rows.map(row => `<tr class="${many && String(row.MEZZ).split(' / ').includes(cur) ? 'is-cur' : ''}">${h.map(([k]) => `<td class="${cls(k)}${k === 'SECTION' && (/^(NO SECTION|NOT SIZED)$/.test(row[k]) || /FAILS|C .* provided </.test(row.NOTES || '')) ? ' ng' : ''}">${esc(row[k])}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${h.length}" class="qnotes">No rows.</td></tr>`}</tbody></table></div>
-        <div class="qs-foot">${foot}</div></div>`;
+      const h = q.heads[key], rows = q[key], sh = q.sheet[key], fx = q.formulas[key] || {};
+      const cls = k => (k === 'SECTION' ? 'sec' : fx[k] ? 'calc' : '');
+      const noteAt = sh.withNote ? (key === 'columns' ? 'I:K' : 'J:K') : '';
+      const isCur = r => many && String(r.MEZZID).split(' / ').includes(cur);
+      const warn = [sh.over ? `${sh.rows} rows — the sheet has room for ${sh.room} (rows ${sh.first}–${sh.last}). Insert ${sh.over} row${sh.over > 1 ? 's' : ''} above row ${sh.last + 1} first, or the paste runs over the lines under the table.` : '',
+        key === 'beams' && rows.some(r => r.partLive) ? 'Partition is carried as live load (Settings), so these rows paste DLT = DLF + COLF and LLF = LLF + PART. — not the sheet’s own DLT formula, which adds PART. to the dead load.' : ''].filter(Boolean);
+      const detail = rows.filter(r => r.DETAIL).map((r, i) => `<li><b>Row ${sh.first + rows.indexOf(r)}</b> ${esc(r.DETAIL)}</li>`).join('');
+      return `<div class="qs-block"><div class="qs-head"><div><h4>${title}</h4>${sub ? `<small>${sub}</small>` : ''}</div>
+          <div class="qs-act"><span class="qs-at">Paste at <b>${sh.at}</b></span><button class="btn-soft" data-copy="${key}"><svg><use href="#i-copy"/></svg>Copy rows</button></div></div>
+        <div class="qs-wrap"><table><thead><tr class="qs-letters"><th class="rn"></th>${h.map(([k]) => `<th>${sh.letters[k]}</th>`).join('')}${noteAt ? `<th>${noteAt}</th>` : ''}</tr>
+          <tr><th class="rn"></th>${h.map(([k, t]) => `<th class="${k === 'MEZZ' ? 'left' : ''}">${t}</th>`).join('')}${noteAt ? '<th class="left">ADDITIONAL NOTES</th>' : ''}</tr></thead>
+        <tbody>${rows.length ? rows.map((row, i) => `<tr class="${isCur(row) ? 'is-cur' : ''}"><th class="rn">${sh.first + i}</th>${h.map(([k]) => {
+          const f = fx[k] ? fx[k](sh.first + i, row) : null;
+          return `<td class="${cls(k)}${k === 'MEZZ' ? ' left' : ''}${k === 'SECTION' && (/^(NO SECTION|NOT SIZED)$/.test(row[k]) || row.FLAG) ? ' ng' : ''}"${f ? ` title="Pasted as the sheet's formula ${esc(f)}"` : ''}>${esc(row[k])}</td>`; }).join('')}${noteAt ? `<td class="qnotes ng">${esc(row.FLAG || '')}</td>` : ''}</tr>`).join('') : `<tr><td colspan="${h.length + 1}" class="qnotes">No rows.</td></tr>`}</tbody></table></div>
+        ${warn.map(w => `<div class="qs-warn">${esc(w)}</div>`).join('')}
+        <div class="qs-foot"><span>${foot}</span>${detail ? `<details class="qs-detail"><summary>What each row is</summary><ul>${detail}</ul></details>` : ''}</div></div>`;
     };
+    const legend = q.mezzNos.length > 1 && !q.mezzNos[0].own ? ` · MEZZ ${q.mezzNos.map(m => `${m.no} = ${esc(m.id)}`).join(', ')}` : '';
     $('#quoteSheet').innerHTML =
-      block('design', 'Mezz. Design Information', '', '**DEAD LOAD DOES NOT INCLUDE THE WEIGHT OF THE FLOOR JOISTS OR BEAMS**') +
-      block('beams', 'Mezz. Beams', 'U.N.O., live load deflection limit = L/360; total load deflection limit = L/240', 'DLᴛ = DL + COL · END PL. WT. = 40 lb PER BEAM') +
-      block('columns', 'Mezz. Columns', '', 'END PL. WT. = 46 lb PER COLUMN · trib area = floor area carried by the worst column');
-    $$('#quoteSheet [data-copy]').forEach(b => { b.onclick = () => copyText(q.tsv[b.dataset.copy], 'Rows copied — paste into the quote sheet'); });
+      block('design', 'Mezz. Design Information', '', `**DEAD LOAD DOES NOT INCLUDE THE WEIGHT OF THE FLOOR JOISTS OR BEAMS**${legend}`) +
+      block('beams', 'Mezz. Beams', 'U.N.O., live load deflection limit = L/360; total load deflection limit = L/240', 'DLT = DLF + COLF · END PL. WT. = 40 lb PER BEAM · DLT, LLF and END WT paste as the sheet’s own formulas') +
+      block('columns', 'Mezz. Columns', '', 'END PL. WT. = 46 lb PER COLUMN · trib area: the floor area of the worst column · END WT pastes as the sheet’s formula');
+    $$('#quoteSheet [data-copy]').forEach(b => { b.onclick = () => { const k = b.dataset.copy; copyText(q.tsv[k], `${names[k]} copied — click ${q.sheet[k].at} on the MEZZ sheet, then paste`); }; });
   }
-  $('#copyQuote').onclick = () => {
-    const q = state.quote || RUN.quoteJob(state.job ? state.job.mezz : [state.res], state.all ? state.all.map(a => a.inputs) : [state.inputs]);
-    copyText([q.tsv.design, '', q.tsv.beams, '', q.tsv.columns].join('\n'), 'Design, beam and column rows copied');
-  };
+  // the rail button: to the quote sheet, where each table is copied for its own cell
+  $('#copyQuote').onclick = () => { go('results'); setTimeout(() => $('#qsHead').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); };
   $('#printBtn').onclick = () => window.print();
 
   // ---------- plan ----------
@@ -2363,9 +2446,9 @@
     const dz = mkDz(mk), cur = (state.settings.markInput || {})[mk.mark] || {};
     const runs = (mk.spanRuns || []).slice(1);
     $('#beamInputs').innerHTML = `<div class="bi-head"><div><span class="eyebrow">Beam inputs · ${mk.mark}</span><small>MB sheet only — the plan, the columns and the loads to the frame keep the layout (${ft(mk.span)} × ${ft(mk.trib)})</small></div>
-        <span class="bi-btns"><button class="btn-soft" id="biTry">Try another section</button><button class="btn-ghost" id="biReset" ${dz.set ? '' : 'disabled'}>Back to the layout</button></span></div>
+        <span class="bi-btns">${dz.sbSpan < mk.span - 1e-6 && !dz.setback ? `<button class="btn-soft" id="biSetback" title="The beams that frame into frame columns stop at the column faces: each member length less its own setback (Settings: rigid frame ${esc(ft(state.settings.setbackRigid))}, post-and-beam ${esc(ft(state.settings.setbackPB))})">Frame column setback → ${ft(dz.sbSpan)}</button>` : ''}<button class="btn-soft" id="biTry">Try another section</button><button class="btn-ghost" id="biReset" ${dz.set ? '' : 'disabled'}>Back to the layout</button></span></div>
       <div class="bi-row">
-        <label class="bi-f ${cur.span ? 'is-set' : ''}"><span>Design span <small>member length</small></span><input data-bi="span" value="${esc(ft(dz.span))}" spellcheck="false" autocomplete="off"><small>${dz.cut ? `${dz.cut > 0 ? '−' : '+'}${ft(Math.abs(dz.cut))} from ${ft(mk.span)}${runs.length ? ', also on the ' + runs.map(q => ft(q.span) + ' → ' + ft(runL(q))).join(', ') + ' run' + (runs.length > 1 ? 's' : '') : ''}` : `layout ${ft(mk.span)}`}</small></label>
+        <label class="bi-f ${cur.span || cur.setback ? 'is-set' : ''}"><span>Design span <small>member length</small></span><input data-bi="span" value="${esc(ft(dz.span))}" spellcheck="false" autocomplete="off"><small>${dz.setback ? `frame column setback: each member less its own (layout ${ft(mk.span)}${runs.length ? '; ' + runs.map(q => ft(q.span) + ' → ' + ft(runL(q))).join(', ') : ''})` : dz.cut ? `${dz.cut > 0 ? '−' : '+'}${ft(Math.abs(dz.cut))} from ${ft(mk.span)}${runs.length ? ', also on the ' + runs.map(q => ft(q.span) + ' → ' + ft(runL(q))).join(', ') + ' run' + (runs.length > 1 ? 's' : '') : ''}` : `layout ${ft(mk.span)}`}</small></label>
         <label class="bi-f ${cur.trib ? 'is-set' : ''}"><span>Design trib <small>tributary width</small></span><input data-bi="trib" value="${esc(ft(dz.trib))}" spellcheck="false" autocomplete="off"><small>layout ${ft(mk.trib)}</small></label>
         <div class="bi-out${mk.check ? '' : ' ng'}">${mk.check ? `<b class="nocase">${esc(mk.desc)}</b><small>combined ${f(mk.check.res.CSR, 3)} · shear ${f(mk.check.res.SRvx, 3)} · L/${f(mk.check.defl.rLL, 0)}</small>` : '<b>NO SECTION</b><small>nothing passes — the depth table gives the closest at each depth</small>'}</div>
       </div>`;
@@ -2376,6 +2459,7 @@
         const v = raw === '' ? lay[k] : (PCS.ftin(raw) ?? PCS.ftin(raw + "'"));
         if (v == null || !(v > 0)) { toast(`${raw} is not a length — e.g. 22'-4" or 22.333`); inp.value = ft(mkDz(mk)[k]); return; }
         const next = { ...((state.settings.markInput || {})[mk.mark] || {}) };
+        if (k === 'span') delete next.setback;   // a span typed in replaces the setback
         if (Math.abs(v - lay[k]) < 1e-4) delete next[k]; else next[k] = v;
         setMarkInput(mk.mark, Object.keys(next).length ? next : null);
         recompute();
@@ -2386,6 +2470,8 @@
     });
     $('#biReset').onclick = () => { setMarkInput(mk.mark, null); recompute(); toast(`${mk.mark} back to the layout ${ft(mk.span)} × ${ft(mk.trib)}`); };
     $('#biTry').onclick = () => dzOpen('beam', mk.mark);
+    const sbb = $('#biSetback');
+    if (sbb) sbb.onclick = () => { const { span, ...rest } = (state.settings.markInput || {})[mk.mark] || {}; setMarkInput(mk.mark, { ...rest, setback: true }); recompute(); const nm = jobMarks().find(m => m.mark === mk.mark); toast(`${mk.mark} at the ${ft(mkDz(nm).span)} clear span (frame column setback) → ${nm && nm.desc ? nm.desc : 'no section'}`); };
   }
   // ---------- how a beam / a column was arrived at: the steps, with this job's numbers (folded under the tabs) ----------
   const RULE_TXT = DESIGN.RULE_TXT;
@@ -2464,7 +2550,8 @@
     if (!c) {
       // offered only when the shorter beams would pass on their own (run.js designs them): only the long beam(s) leave the mark
       const sh = mk.splitHelps, nL = sh ? sh.n : 0;
-      $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth. Lower clearance C, add a column, or design one by hand (Design your own).${sh ? `<br><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small>` : ''}</div>`;
+      $('#mbSheet').innerHTML = `<div class="empty ng">No stocked section passes for ${esc(mk.mark)} within ${r.maxDepthByC ? `the ${r.maxDepthByC}" depth clearance C allows` : 'the depth range'} — the table below gives the closest at each depth.${mk.rescue ? '' : ' Lower clearance C, add a column, or design one by hand (Design your own).'}${sh ? `<br><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small>` : ''}</div>${rescueCard(mk)}`;
+      wireRescue($('#mbSheet'));
       const sm = $('#splitMarks');
       if (sm) sm.onclick = () => { const v = +sh.span.toFixed(4), had = jobMarks().find(o => o.own && o.kind === mk.kind); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); toast(had ? `The ${ft(sh.span)} beam${nL > 1 ? 's join' : ' joins'} ${had.mark}, the long beams' own mark — the rest keep theirs` : `The ${ft(sh.span)} beam${nL > 1 ? 's have their' : ' has its'} own mark — the rest keep theirs`); };
     }
@@ -3104,6 +3191,8 @@
       sel('requireConc', 'Joist bearing check (MB L7)', [['true', 'Must pass'], ['false', 'Report only']]),
       sel('marks', 'Beam marks', [['intext', 'Interior / exterior'], ['single', 'One governing mark'], ['split', 'Split by trib / span']], 'over the whole job · shorter beams keep the section, own MB run'),
       sel('partitionTo', 'Partition load', [['live', 'Add to live'], ['dead', 'Add to dead']]),
+      `<div class="field-row"><label>Frame column setback, rigid frame (ft)<small>a beam framing into the column stops at its face — offered under Beam options → What next; 1.3333 = 1'-4"</small></label><input type="number" step="0.0833" data-set="setbackRigid" data-num="1" value="${+(+s.setbackRigid).toFixed(4)}"></div>`,
+      `<div class="field-row"><label>Frame column setback, post-and-beam (ft)<small>also soldier and endwall wind columns; 1.0 = 1'-0"</small></label><input type="number" step="0.0833" data-set="setbackPB" data-num="1" value="${+(+s.setbackPB).toFixed(4)}"></div>`,
       '<div class="group-title">Columns</div>',
       sel('colPerJob', 'Column section', [['true', 'One W for the whole job'], ['false', 'Per mezzanine']], 'several mezzanines: the lightest W that passes every column case'),
       sel('colLength', 'Column length L', [['A', 'Finish floor to top of mezzanine (A)'], ['clear', 'Clear below mezzanine beam (guide)']]),
