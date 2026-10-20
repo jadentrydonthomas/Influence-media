@@ -7929,6 +7929,40 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       ta.remove();
     }
   }
+  // text and a table together: Excel pastes the table (its merged cells and formats), anything else the text
+  async function copyRich(txt, html, msg) {
+    let done = false;
+    const on = e => { e.clipboardData.setData('text/plain', txt); e.clipboardData.setData('text/html', html); e.preventDefault(); done = true; };
+    document.addEventListener('copy', on);
+    try { document.execCommand('copy'); } catch (e) { /* the async clipboard below */ }
+    document.removeEventListener('copy', on);
+    if (done) { toast(msg); return; }
+    try { await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([txt], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]); toast(msg); }
+    catch (e) { copyText(txt, msg); }
+  }
+  // a quote-sheet table as the MEZZ sheet lays it out, for Excel: B:C (FF El., SPAN, HEIGHT), the columns' D:E (TRIB.
+  // AREA) and the note J:K (I:K for columns) are merged on the sheet, so each goes as one merged cell — a plain-text paste
+  // splits them — in the sheet's own Arial 8, centred, thin borders with a hairline bottom and its number formats
+  const QS_HTML = {
+    design: { merge: { 1: 2, 9: 2 }, fmt: { 5: '0\\.0', 6: '0\\.0', 7: '0\\.0', 8: '0\\.0' } },
+    beams: { merge: { 1: 2, 9: 2 }, fmt: { 1: '0\\.000', 4: '\\#\\,\\#\\#0', 5: '\\#\\,\\#\\#0', 6: '\\#\\,\\#\\#0' } },
+    columns: { merge: { 1: 2, 3: 2, 8: 3 }, fmt: { 1: '0\\.00' } },
+  };
+  function quoteHtml(k, tsv) {
+    const spec = QS_HTML[k] || { merge: {}, fmt: {} }, h = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rows = String(tsv).split('\n').map(l => l.split('\t'));
+    const body = rows.map(cs => {
+      let out = '';
+      for (let i = 0; i < cs.length;) {
+        const span = Math.min(spec.merge[i] || 1, cs.length - i), last = i + span >= cs.length, fmt = spec.fmt[i];
+        const css = `font-family:Arial,sans-serif;font-size:8.0pt;text-align:center;vertical-align:bottom;border-top:.5pt solid windowtext;border-bottom:.5pt hairline windowtext;border-left:${i === 0 ? '1.0pt' : '.5pt'} solid windowtext;border-right:${last && cs.length > 9 ? '1.0pt' : '.5pt'} solid windowtext;${fmt ? `mso-number-format:'${fmt}';` : ''}`;
+        out += `<td${span > 1 ? ` colspan="${span}"` : ''} style="${css}">${h(cs[i])}</td>`;
+        i += span;
+      }
+      return `<tr>${out}</tr>`;
+    }).join('');
+    return `<table style="border-collapse:collapse">${body}</table>`;
+  }
 
   // ---------- intake ----------
   const drop = $('#drop');
@@ -9267,7 +9301,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       block('design', 'Mezz. Design Information', '', `**DEAD LOAD DOES NOT INCLUDE THE WEIGHT OF THE FLOOR JOISTS OR BEAMS**${legend}`) +
       block('beams', 'Mezz. Beams', 'U.N.O., live load deflection limit = L/360; total load deflection limit = L/240', 'DLT = DLF + COLF · END PL. WT. = 40 lb PER BEAM · DLT, LLF and END WT paste as the sheet’s own formulas') +
       block('columns', 'Mezz. Columns', '', 'END PL. WT. = 46 lb PER COLUMN · trib area: the floor area of the worst column · END WT pastes as the sheet’s formula');
-    $$('#quoteSheet [data-copy]').forEach(b => { b.onclick = () => { const k = b.dataset.copy; copyText(q.tsv[k], `${names[k]} copied — click ${q.sheet[k].at} on the MEZZ sheet, then paste`); }; });
+    $$('#quoteSheet [data-copy]').forEach(b => { b.onclick = () => { const k = b.dataset.copy; copyRich(q.tsv[k], quoteHtml(k, q.tsv[k]), `${names[k]} copied — click ${q.sheet[k].at} on the MEZZ sheet, then paste (merged cells stay merged)`); }; });
   }
   // the rail button: to the quote sheet, where each table is copied for its own cell
   $('#copyQuote').onclick = () => { go('results'); setTimeout(() => $('#qsHead').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); };
