@@ -115,11 +115,12 @@ const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
     assert.ok(tallest < 200, `${f}: a row ${tallest} pt tall`);
     console.log(`  ${f}: ${sheets.length} sheets, ${text.length} cells`);
   }
-  // with the seismic answered (W1S-26062: roof dead 4.66 psf asked for): a Seismic sheet — the workbook cells typed per
-  // frame line and the EQ loads that go to NBG Frame, the ones the frame files get
+  // with the seismic answered (W1S-26062 as quoted — the frame column setback on MB1 and MB2; roof dead 4.66 psf asked
+  // for): a Seismic sheet — the workbook cells typed per frame line and the EQ loads that go to NBG Frame, the ones the
+  // frame files get
   {
     const RUN = require('../src/run.js'), { inps } = await loadJob(path.join(dir, 'PCS_job3.pdf'));
-    const items = inps.map(inp => ({ inp, settings: {} })), bk = RUN.runJob(items).seismic.buildings[0].bkey;
+    const items = inps.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } })), bk = RUN.runJob(items).seismic.buildings[0].bkey;
     const job = RUN.runJob(items, { seis: { buildings: { [bk]: { RDL: 4.66 } }, eqOverride: {} } });
     assert.ok(job.seismic.ok, job.seismic.need.join('; '));
     const se = CP.sheets(job, { inputs: inps, settings: {} }).find(s => s.name === 'Seismic');

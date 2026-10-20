@@ -77,13 +77,28 @@ if (pdfArgs.length > 1) {
   await setNum('dMax', 18); await log('max depth 18');
   await setNum('dMax', 30);
   if (await quote() !== base) fail('settings round-trip did not return to the default answer');
-  // a job whose clearance C leaves no stocked section (W2R-26047: C 8'-6" under A 10'-6" leaves 14"): the page asks for
-  // the decision — why, then the setback and the clear height; to drive the rest of the page it is opened the way an
-  // engineer would — C cleared on the Inputs page, then "No requirement"
+  // a job whose clearance C leaves no stocked section (W1S-26062 at the 5" seat: 15" of room, MB1 takes 16.03" with its
+  // sag; W2R-26047: C 8'-6" under A 10'-6" leaves 14"): the page asks for the decision — why, then the setback and the
+  // clear height; to drive the rest of the page it is opened the way an engineer would — C cleared on the Inputs page,
+  // then "No requirement"
   if (await page.$('#decideCard')) {
     const why = await page.$eval('#decideCard', e => /Clear height not met/i.test(e.innerText) && /Set the beams back at the wall columns/.test(e.innerText) && /Make room for a deeper beam/.test(e.innerText) && /Check the joist seat/.test(e.innerText));
     console.log('no section at the PCS clearance'.padEnd(30), why ? 'the page asks: clear height not met — setback or clear height; C opened to go on' : 'no reason given');
     if (!why) fail('a mark with no section should say why and offer the setback and the clear height');
+    // the setback, picked on the card the way the engineer would when it does it on its own: the design comes back
+    // (W1S-26062, the practice inputs: MB1 BU14x94 / MB2 BU13x48 at the 22'-8" clear span), then undone on Beam calc
+    await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
+    if (await page.$('#decideCard .dc-ok') && await page.$('#decideCard [data-dc="setback"]')) {
+      await page.click('#decideCard [data-dc="setback"]'); await page.waitForTimeout(600);
+      const sq = await log('setback picked');
+      if (await page.$('#decideCard') || /NO SECTION/.test(sq)) fail('the setback the card says does it should design every mark');
+      if (/W1S-26062/.test(await page.$eval('#mastContext', e => e.textContent)) && !/^24 28 45 125 BU14x94 40 4 \/ 24 14 45 125 BU13x48 40 2 \//.test(sq)) fail('W1S-26062 with the setback should be BU14x94 / BU13x48');
+      await page.click('#nav button[data-view="beam"]'); await page.waitForTimeout(150);
+      const nT = await page.$$eval('#markTabs .tab', ts => ts.length);
+      for (let i = 0; i < nT; i++) { await page.click(`#markTabs .tab[data-i="${i}"]`); await page.waitForTimeout(150); const rb = await page.$('#biReset:not([disabled])'); if (rb) { await rb.click(); await page.waitForTimeout(400); } }
+      await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
+      if (!(await page.$('#decideCard'))) fail('back to the layout should bring the decision back');
+    }
     await page.click('#nav button[data-view="inputs"]'); await page.waitForTimeout(150);
     await page.fill('#inputsGrid input[data-path="geom.C"]', ''); await page.press('#inputsGrid input[data-path="geom.C"]', 'Tab'); await page.waitForTimeout(300);
     await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
@@ -141,8 +156,8 @@ if (pdfArgs.length > 1) {
     const got = await cardRows();
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
     const one = got.find(g => /_1_1\.frame$/.test(g[0])), two = got.find(g => /_1_2\.frame$/.test(g[0]));
-    // floor dead / live at the floor level A (11'-6"), web centreline
-    if (!two || two[1].filter(r => /^F[DL]L/.test(r)).join('|') !== 'FDL 2 COL02 0.000 -11.555 11.50 WebCenterline Global|FLL 2 COL02 0.000 -25.000 11.50 WebCenterline Global|FDL 3 COL03 0.000 -18.954 11.50 WebCenterline Global|FLL 3 COL03 0.000 -42.000 11.50 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
+    // floor dead / live at the floor level A (11'-6"), web centreline — the job as driven here, C opened (MB1 BU26x48)
+    if (!two || two[1].filter(r => /^F[DL]L/.test(r)).join('|') !== 'FDL 2 COL02 0.000 -11.085 11.50 WebCenterline Global|FLL 2 COL02 0.000 -25.000 11.50 WebCenterline Global|FDL 3 COL03 0.000 -18.390 11.50 WebCenterline Global|FLL 3 COL03 0.000 -42.000 11.50 WebCenterline Global') fail('frame 2 should get 2/E on COL02 and 2/A on COL03');
     // seismic: the frame files gave NBG Frame's roof dead, so the Seismic page is complete and each frame gets EQR / EQL
     const eq2 = two ? two[1].filter(r => /^EQ/.test(r)).map(r => r.split(' ')) : [];
     console.log('NBG seismic rows, frame 2'.padEnd(30), eq2.map(r => r.join(' ')).join(' | '));

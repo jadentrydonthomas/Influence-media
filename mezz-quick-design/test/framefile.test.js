@@ -141,14 +141,19 @@ const lines = [
   try { require('./pdf-node.js').loadPdfjs(); } catch (e) { have = false; }
   if (!have) { console.log('frame file tests passed (W1S-26062 frame files not present, skipped)'); return; }
   const { loadJob } = require('../oracle/job_load.js');
-  const { pcs, job } = await loadJob(pdf);
+  // the job as quoted: the practice inputs (5" joist seat) leave MB1 to a decision — 15" of room under C, and it takes
+  // 16.03" with its sag — so the loads go to the frame with the frame column setback picked: MB1 BU14x94, MB2 BU13x48
+  // at the 22'-8" clear span (the loads stay at the layout spans)
+  const { pcs, inps } = await loadJob(pdf);
+  const job = require('../src/run.js').runJob(inps.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } })));
+  assert.deepStrictEqual(job.marks.map(m => m.desc), ['BU14x94', 'BU13x48']);
   const leanTo = (pcs.attachments || []).find(a => a.to === 'Bldg 1' && /^(FSW|BSW)$/.test(a.toWall));
   assert.deepStrictEqual(leanTo, { building: 'Bldg 2', wall: 'BSW', to: 'Bldg 1', toWall: 'FSW', at: 0 });
   const want = {
-    '1': { rows: [['FDL 2', 'COL02', 7.84], ['FLL 2', 'COL02', 17.5], ['FDL 3', 'COL03', 9.41], ['FLL 3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
-    '2': { rows: [['FDL 2', 'COL02', 11.55], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 18.95], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '3-5': { rows: [['FDL 3', 'COL03', 18.95], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '6': { rows: [['FDL 3', 'COL03', 9.41], ['FLL 3', 'COL03', 21]], unplaced: ['6/B'] },
+    '1': { rows: [['FDL 2', 'COL02', 7.9], ['FLL 2', 'COL02', 17.5], ['FDL 3', 'COL03', 9.47], ['FLL 3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
+    '2': { rows: [['FDL 2', 'COL02', 11.54], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 18.94], ['FLL 3', 'COL03', 42]], unplaced: [] },
+    '3-5': { rows: [['FDL 3', 'COL03', 18.94], ['FLL 3', 'COL03', 42]], unplaced: [] },
+    '6': { rows: [['FDL 3', 'COL03', 9.47], ['FLL 3', 'COL03', 21]], unplaced: ['6/B'] },
   };
   const outDir = process.env.MZ_FRAME_OUT;
   for (const name of fs.readdirSync(dir).filter(n => /^Frame_\d+_Bldg_1_[\d-]+\.frame$/.test(n)).sort()) {

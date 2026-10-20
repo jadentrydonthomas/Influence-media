@@ -70,6 +70,14 @@
           ? `${m.mark}: member lengths are the layout spans less the frame column setback at each beam's ends (${sbEnds.join(', ')}) — designed at ${ft(m.design.span)}, the longest. The plan, the columns and the loads to the frame use the layout spans (${ft(m.span)}).`
           : `${m.mark}: designed at ${ft(m.design.span)} × ${ft(m.design.trib)} trib, set on Beam calc (layout ${ft(m.span)} × ${ft(m.trib)})${Math.abs(m.design.cut) > 1e-6 ? `; ${ft(Math.abs(m.design.cut))} ${m.design.cut > 0 ? 'off' : 'onto'} every member length of the mark` : ''}. The plan, the columns and the loads to the frame use the layout.`, s: 'note' }]));
       });
+      // clearance C under the beams: the MB sheet's own C row (A − slab − seat − depth) and the bottom of the beam at
+      // midspan, with its total-load sag (the MB sheet's TOTAL LOAD max deflection) — the verdict is the midspan one
+      const cRows = live.filter(r => r.clear && r.clear.C && r.clear.C.req != null && r.clear.C.prov != null);
+      if (cRows.length) {
+        rows.push([], B('Clearance C under the beams'), H(['Mezzanine', 'C asked', 'MB sheet C row (depth only)', 'C at midspan', '', 'Result', '', '', '', '', '', '', '', '', 'Lowest beam bottom']));
+        cRows.forEach(r => { const C = r.clear.C, pend = marks.filter(m => !m.check && (m.mezzIds || []).includes(r.index)).map(m => m.mark);
+          rows.push([r.id, { v: ft(C.req), s: 'r' }, { v: ft(C.prov), s: 'r' }, { v: C.mid != null ? ft(C.mid) : '—', s: 'r' }, '', okc(C.ok), '', '', '', '', '', '', '', '', [C.sag ? `${C.sag.mark} ${C.sag.desc}: ${C.sag.d}" + ${C.sag.tl.toFixed(2)}" sag` : '', pend.length ? `${pend.join(', ')} not sized yet` : ''].filter(Boolean).join('; ')]); });
+      }
       rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result', '', '', '', '', 'Chosen as']));
       const colWhy = cf => (cf.picked ? `picked by the engineer${cf.sec.type === 'BU' ? ' (Built-Up input, Fy 55)' : ''}${cf.auto ? `; the guide's answer ${cf.auto.quoteAs}` : ''}` : cf.quoteAs === cf.name ? 'the guide: lightest common column that passes' : 'the guide: next W that passes, quoted BU');
       // the sized columns on the section's row; the ones under a beam with no section on a NOT SIZED row
@@ -121,7 +129,7 @@
       rows.push([], band('Design settings', 8), H(['', '', 'Setting', 'Value', '', '', '', 'Note']),
         set('Stress ratio limit', num(target, 'n2l'), 'combined and shear, as the MB sheet reads OK below 1.00'),
         set('Steel', 'built-up plate Fy 55 / Fu 70 ksi; W shapes A992 Fy 50 / Fu 65', 'MB sheet M30–M33 (Q11 = 3 plate, 2 for a W); Column sheet Fy 50 for a W, 55 on its Built-Up input'),
-        set('Depth range searched', `${s.dMin ?? 10}"–${s.dMax ?? 30}"`, 'capped by the clearance C'),
+        set('Depth range searched', `${s.dMin ?? 10}"–${s.dMax ?? 30}"`, 'capped by the clearance C: the depth plus the total-load sag within A − C − slab − seat'),
         set('Flanges', s.symmetric === false ? 'top and bottom may differ' : 'same plate top and bottom'),
         set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),
         set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
@@ -178,7 +186,7 @@
         if (removed.length) { rows.push(head('Left out by the production limits')); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push(spanRow(1, [n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k]))); }
         rows.push(head('Lightest section at each depth'), H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
         sr.byDepth.forEach(z => rows.push(z.none ? (z.near && !sr.best ? [`${z.d}"`, `${z.near.desc} — closest, ${Math.round(z.near.over * 100 - 100)}% over`, '', z.near.web, z.near.flange, tierWord(z.near.tier), num(z.near.wt, 'n1'), '', num(z.near.CSR), num(z.near.SRv), num(z.near.rLL, 'n0'), num(z.near.rTL, 'n0'), num(z.near.conc)] : [`${z.d}"`, 'nothing stocked passes']) : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
-        if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
+        if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', 'Depth + sag', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), `${z.need.toFixed(2)}"`, ft(z.needC)])); }
         rows.push([]);
       });
       out.push({ name: 'Beam options', cols: [24, 11, 7, 7, 9, 19, 7, 9, 9, 7, 7, 7, 9], wrap: [0], rows });

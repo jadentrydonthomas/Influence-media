@@ -128,11 +128,15 @@
   }
 
   /* p: { dead, coll, live, joistWt, L, Lb, trib, edition }
-     opt: { division, target, dMin, dMax, dStep, symmetric, requireConc, maxDepth, allowR } */
+     opt: { division, target, dMin, dMax, dStep, symmetric, requireConc, maxDepth, room, allowR }
+     room: the clear height under C for the beam, in inches (A − C − slab − seat). A section fits it when its depth plus
+     its total-load deflection — the MB sheet's TOTAL LOAD max deflection — is within it: the bottom of the beam at
+     midspan, sagged, stays at or above C. */
   function designBeam(p, opt = {}) {
     const o = { division: 'NBS-IN', target: 0.99, dMin: 10, dMax: 30, dStep: 1, symmetric: true, requireConc: true, allowR: true, ...opt };
     const { webs, flanges } = candidates(o.division, o);
-    const dMax = Math.min(o.dMax, o.maxDepth ?? Infinity);
+    const room = o.room != null && isFinite(o.room) ? o.room : null;
+    const dMax = Math.min(o.dMax, o.maxDepth ?? Infinity, room != null ? Math.floor(room + 1e-3) : Infinity);
     const evals = [], removed = {};
     let n = 0;
     for (let d = o.dMin; d <= dMax + 1e-9; d += o.dStep) {
@@ -150,8 +154,9 @@
             const tier = Math.max(tierOf(bof, tof), tierOf(bif, tif));
             const pw = o.production !== false ? prodRule(sec, o.division, p.L, r.res.Wt) : null;
             if (pw) { removed[pw.rule] = (removed[pw.rule] || 0) + 1; continue; }
-            const pass = r.res.CSR <= o.target && r.res.SRvx <= o.target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
-            evals.push({ sec, r, tier, pass, wt: r.res.Wt, d, maxSR: Math.max(r.res.CSR, r.res.SRvx) });
+            const fits = room == null || d + r.defl.TL <= room + 1e-3;
+            const pass = r.res.CSR <= o.target && r.res.SRvx <= o.target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR) && fits;
+            evals.push({ sec, r, tier, pass, fits, wt: r.res.Wt, d, maxSR: Math.max(r.res.CSR, r.res.SRvx) });
           }
         }
       }
@@ -162,14 +167,14 @@
     const best = passing.slice().sort(rank)[0] || null;
     const byDepth = [];
     // a depth where nothing passes: the section that comes closest (the least over its worst limit) and by how much
-    const over = e => Math.max(e.r.res.CSR / o.target, e.r.res.SRvx / o.target, 360 / Math.max(e.r.defl.rLL, 1e-9), 240 / Math.max(e.r.defl.rTL, 1e-9));
+    const over = e => Math.max(e.r.res.CSR / o.target, e.r.res.SRvx / o.target, 360 / Math.max(e.r.defl.rLL, 1e-9), 240 / Math.max(e.r.defl.rTL, 1e-9), room > 0 ? (e.d + e.r.defl.TL) / room : 0);
     for (let d = o.dMin; d <= dMax + 1e-9; d += o.dStep) {
       const at = passing.filter(e => Math.abs(e.d - d) < 1e-9).sort(rank)[0];
       if (at) { byDepth.push(summarize(at)); continue; }
       const near = evals.filter(e => Math.abs(e.d - d) < 1e-9 && isFinite(e.r.res.CSR)).sort((a, b) => over(a) - over(b) || a.wt - b.wt)[0];
       byDepth.push({ d, none: true, near: near ? { ...summarize(near), over: over(near) } : null });
     }
-    return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o, all: evals.filter(e => e.pass), removed, dTop: dMax, params: p };
+    return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o, all: evals.filter(e => e.pass), removed, dTop: dMax, room, params: p };
   }
 
   function summarize(e) {
@@ -179,6 +184,7 @@
       flange: flangeName(e.sec.bof, e.sec.tof) + (e.sec.bif !== e.sec.bof || e.sec.tif !== e.sec.tof ? ' / ' + flangeName(e.sec.bif, e.sec.tif) : ''),
       web: 'W' + String(Math.round(e.sec.tw * 1000)).padStart(3, '0'),
       CSR: r.res.CSR, SRv: r.res.SRvx, rDL: r.defl.rDL, rLL: r.defl.rLL, rTL: r.defl.rTL,
+      dTL: r.defl.TL, need: e.sec.d + r.defl.TL,   // the total-load sag (in) and the room the beam takes with it
       conc: r.conc ? r.conc.max : null, concOK: r.conc ? r.conc.ok : true, check: r,
     };
   }
@@ -204,7 +210,8 @@
     const same = (a, b) => a && b && ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => a[k] === b[k]);
     const light = search.best;
     const all = (search.all || []).filter(e => e.pass);
-    const passes = r => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
+    const room = search.room ?? null, fitsRoom = (sec, r) => room == null || sec.d + r.defl.TL <= room + 1e-3;
+    const passes = (r, sec) => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR) && fitsRoom(sec, r);
     const webs = candidates(div, o).webs;
     const run = sec => {
       const h = sec.d - sec.tof - sec.tif;
@@ -214,23 +221,24 @@
       const r = MZ.beamCheck({ ...p, sec }, null);
       const pw = o.production !== false ? prodRule(sec, div, p.L, r.res.Wt) : null;
       if (pw) return { ok: false, why: pw.text, rule: pw.rule, r };
-      const ok = passes(r);
-      const gov = !ok ? (r.res.CSR > target ? `combined ${r.res.CSR.toFixed(3)} > ${target}` : r.res.SRvx > target ? `shear ${r.res.SRvx.toFixed(3)} > ${target}` : r.defl.rLL < 360 ? `live deflection L/${Math.round(r.defl.rLL)} < L/360` : r.defl.rTL < 240 ? `total deflection L/${Math.round(r.defl.rTL)} < L/240` : 'joist bearing') : null;
+      const ok = passes(r, sec);
+      const gov = !ok ? (r.res.CSR > target ? `combined ${r.res.CSR.toFixed(3)} > ${target}` : r.res.SRvx > target ? `shear ${r.res.SRvx.toFixed(3)} > ${target}` : r.defl.rLL < 360 ? `live deflection L/${Math.round(r.defl.rLL)} < L/360` : r.defl.rTL < 240 ? `total deflection L/${Math.round(r.defl.rTL)} < L/240` : !fitsRoom(sec, r) ? `${sec.d}" deep + ${r.defl.TL.toFixed(2)}" sag = ${(sec.d + r.defl.TL).toFixed(2)}", over the ${+room.toFixed(2)}" of room under C` : 'joist bearing') : null;
       return { ok, why: gov, r };
     };
     const asPick = (sec, r) => summarize({ sec, r, tier: Math.max(tierOf(sec.bof, sec.tof), tierOf(sec.bif, sec.tif)) });
     const sym = (d, tw, [b, t]) => ({ type: 'BU', d, tw, bof: b, tof: t, bif: b, tif: t });
     const flName = ([b, t]) => flangeName(b, t), webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
     const opts = [];
-    opts.push({ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked section that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (C caps the depth)' : ''}.`, pick: light });
+    opts.push({ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked section that passes, ${o.dMin}"–${search.dTop}" deep${room != null && search.dTop < o.dMax ? ' (C caps the depth with the beam\'s sag)' : search.dTop < o.dMax ? ' (C caps the depth)' : ''}.`, pick: light });
 
     // ---- best fit, step by step ----
     const ladder = LADDER.filter(([b, t]) => inStock(FLANGE_STOCK, b + 'x' + t, div) && tierOf(b, t) === 0);
     const steps = [];
     let fit = null, lighterUsed = false;
     {
-      const d0 = search.dTop;
-      steps.push({ step: 'depth', text: search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
+      // as deep as the clearance allows — with the room under C, the deepest depth where a section fits with its sag
+      const dFit = room != null && all.length ? Math.max(...all.map(e => e.d)) : search.dTop, d0 = Math.min(search.dTop, dFit);
+      steps.push({ step: 'depth', text: room != null && d0 < search.dTop ? `Start as deep as the clearance allows: ${d0}" — the ${+room.toFixed(2)}" of room under C has to take the beam and its total-load sag, and at ${d0 + o.dStep}" nothing fits with its sag.` : search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
       // the web: the thinnest that works in shear at that depth (with the starting flange)
       const f0 = ladder[0];
       let tw = null; const webTries = [];
@@ -316,7 +324,7 @@
     }
     (ctx.deeper || []).filter(z => z.sec).forEach((z, i) => {
       if (distinct().length >= 3) return;
-      opts.push({ key: 'deeper' + (i + 1), label: `${z.d}" deep`, why: `Less steel than the ${search.dTop}" design, but the beam bottom drops below the clearance C asked for.`, pick: z, needC: z.needC });
+      opts.push({ key: 'deeper' + (i + 1), label: `${z.d}" deep`, why: `Less steel than the ${light.d}" design, but ${z.d}" + ${z.dTL.toFixed(2)}" sag takes ${z.need.toFixed(2)}": the beam bottom at midspan drops below the clearance C asked for.`, pick: z, needC: z.needC });
     });
     return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
@@ -412,6 +420,6 @@
   // the production rule each left-out section broke, in words
   const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
 
-  const api = { secDims, plateText, frac16, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  const api = { secDims, plateText, frac16, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, summarize, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);

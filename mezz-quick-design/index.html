@@ -4921,11 +4921,15 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   }
 
   /* p: { dead, coll, live, joistWt, L, Lb, trib, edition }
-     opt: { division, target, dMin, dMax, dStep, symmetric, requireConc, maxDepth, allowR } */
+     opt: { division, target, dMin, dMax, dStep, symmetric, requireConc, maxDepth, room, allowR }
+     room: the clear height under C for the beam, in inches (A − C − slab − seat). A section fits it when its depth plus
+     its total-load deflection — the MB sheet's TOTAL LOAD max deflection — is within it: the bottom of the beam at
+     midspan, sagged, stays at or above C. */
   function designBeam(p, opt = {}) {
     const o = { division: 'NBS-IN', target: 0.99, dMin: 10, dMax: 30, dStep: 1, symmetric: true, requireConc: true, allowR: true, ...opt };
     const { webs, flanges } = candidates(o.division, o);
-    const dMax = Math.min(o.dMax, o.maxDepth ?? Infinity);
+    const room = o.room != null && isFinite(o.room) ? o.room : null;
+    const dMax = Math.min(o.dMax, o.maxDepth ?? Infinity, room != null ? Math.floor(room + 1e-3) : Infinity);
     const evals = [], removed = {};
     let n = 0;
     for (let d = o.dMin; d <= dMax + 1e-9; d += o.dStep) {
@@ -4943,8 +4947,9 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
             const tier = Math.max(tierOf(bof, tof), tierOf(bif, tif));
             const pw = o.production !== false ? prodRule(sec, o.division, p.L, r.res.Wt) : null;
             if (pw) { removed[pw.rule] = (removed[pw.rule] || 0) + 1; continue; }
-            const pass = r.res.CSR <= o.target && r.res.SRvx <= o.target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
-            evals.push({ sec, r, tier, pass, wt: r.res.Wt, d, maxSR: Math.max(r.res.CSR, r.res.SRvx) });
+            const fits = room == null || d + r.defl.TL <= room + 1e-3;
+            const pass = r.res.CSR <= o.target && r.res.SRvx <= o.target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR) && fits;
+            evals.push({ sec, r, tier, pass, fits, wt: r.res.Wt, d, maxSR: Math.max(r.res.CSR, r.res.SRvx) });
           }
         }
       }
@@ -4955,14 +4960,14 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const best = passing.slice().sort(rank)[0] || null;
     const byDepth = [];
     // a depth where nothing passes: the section that comes closest (the least over its worst limit) and by how much
-    const over = e => Math.max(e.r.res.CSR / o.target, e.r.res.SRvx / o.target, 360 / Math.max(e.r.defl.rLL, 1e-9), 240 / Math.max(e.r.defl.rTL, 1e-9));
+    const over = e => Math.max(e.r.res.CSR / o.target, e.r.res.SRvx / o.target, 360 / Math.max(e.r.defl.rLL, 1e-9), 240 / Math.max(e.r.defl.rTL, 1e-9), room > 0 ? (e.d + e.r.defl.TL) / room : 0);
     for (let d = o.dMin; d <= dMax + 1e-9; d += o.dStep) {
       const at = passing.filter(e => Math.abs(e.d - d) < 1e-9).sort(rank)[0];
       if (at) { byDepth.push(summarize(at)); continue; }
       const near = evals.filter(e => Math.abs(e.d - d) < 1e-9 && isFinite(e.r.res.CSR)).sort((a, b) => over(a) - over(b) || a.wt - b.wt)[0];
       byDepth.push({ d, none: true, near: near ? { ...summarize(near), over: over(near) } : null });
     }
-    return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o, all: evals.filter(e => e.pass), removed, dTop: dMax, params: p };
+    return { best: best ? summarize(best) : null, byDepth, evaluated: n, options: o, all: evals.filter(e => e.pass), removed, dTop: dMax, room, params: p };
   }
 
   function summarize(e) {
@@ -4972,6 +4977,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       flange: flangeName(e.sec.bof, e.sec.tof) + (e.sec.bif !== e.sec.bof || e.sec.tif !== e.sec.tof ? ' / ' + flangeName(e.sec.bif, e.sec.tif) : ''),
       web: 'W' + String(Math.round(e.sec.tw * 1000)).padStart(3, '0'),
       CSR: r.res.CSR, SRv: r.res.SRvx, rDL: r.defl.rDL, rLL: r.defl.rLL, rTL: r.defl.rTL,
+      dTL: r.defl.TL, need: e.sec.d + r.defl.TL,   // the total-load sag (in) and the room the beam takes with it
       conc: r.conc ? r.conc.max : null, concOK: r.conc ? r.conc.ok : true, check: r,
     };
   }
@@ -4997,7 +5003,8 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const same = (a, b) => a && b && ['d', 'tw', 'bof', 'tof', 'bif', 'tif'].every(k => a[k] === b[k]);
     const light = search.best;
     const all = (search.all || []).filter(e => e.pass);
-    const passes = r => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR);
+    const room = search.room ?? null, fitsRoom = (sec, r) => room == null || sec.d + r.defl.TL <= room + 1e-3;
+    const passes = (r, sec) => r.res.CSR <= target && r.res.SRvx <= target && r.defl.rLL >= 360 && r.defl.rTL >= 240 && (!o.requireConc || !r.conc || r.conc.ok) && isFinite(r.res.CSR) && fitsRoom(sec, r);
     const webs = candidates(div, o).webs;
     const run = sec => {
       const h = sec.d - sec.tof - sec.tif;
@@ -5007,23 +5014,24 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       const r = MZ.beamCheck({ ...p, sec }, null);
       const pw = o.production !== false ? prodRule(sec, div, p.L, r.res.Wt) : null;
       if (pw) return { ok: false, why: pw.text, rule: pw.rule, r };
-      const ok = passes(r);
-      const gov = !ok ? (r.res.CSR > target ? `combined ${r.res.CSR.toFixed(3)} > ${target}` : r.res.SRvx > target ? `shear ${r.res.SRvx.toFixed(3)} > ${target}` : r.defl.rLL < 360 ? `live deflection L/${Math.round(r.defl.rLL)} < L/360` : r.defl.rTL < 240 ? `total deflection L/${Math.round(r.defl.rTL)} < L/240` : 'joist bearing') : null;
+      const ok = passes(r, sec);
+      const gov = !ok ? (r.res.CSR > target ? `combined ${r.res.CSR.toFixed(3)} > ${target}` : r.res.SRvx > target ? `shear ${r.res.SRvx.toFixed(3)} > ${target}` : r.defl.rLL < 360 ? `live deflection L/${Math.round(r.defl.rLL)} < L/360` : r.defl.rTL < 240 ? `total deflection L/${Math.round(r.defl.rTL)} < L/240` : !fitsRoom(sec, r) ? `${sec.d}" deep + ${r.defl.TL.toFixed(2)}" sag = ${(sec.d + r.defl.TL).toFixed(2)}", over the ${+room.toFixed(2)}" of room under C` : 'joist bearing') : null;
       return { ok, why: gov, r };
     };
     const asPick = (sec, r) => summarize({ sec, r, tier: Math.max(tierOf(sec.bof, sec.tof), tierOf(sec.bif, sec.tif)) });
     const sym = (d, tw, [b, t]) => ({ type: 'BU', d, tw, bof: b, tof: t, bif: b, tif: t });
     const flName = ([b, t]) => flangeName(b, t), webName = tw => 'W' + String(Math.round(tw * 1000)).padStart(3, '0');
     const opts = [];
-    opts.push({ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked section that passes, ${o.dMin}"–${search.dTop}" deep${search.dTop < o.dMax ? ' (C caps the depth)' : ''}.`, pick: light });
+    opts.push({ key: 'lightest', label: 'Lightest', why: `Least weight of every stocked section that passes, ${o.dMin}"–${search.dTop}" deep${room != null && search.dTop < o.dMax ? ' (C caps the depth with the beam\'s sag)' : search.dTop < o.dMax ? ' (C caps the depth)' : ''}.`, pick: light });
 
     // ---- best fit, step by step ----
     const ladder = LADDER.filter(([b, t]) => inStock(FLANGE_STOCK, b + 'x' + t, div) && tierOf(b, t) === 0);
     const steps = [];
     let fit = null, lighterUsed = false;
     {
-      const d0 = search.dTop;
-      steps.push({ step: 'depth', text: search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
+      // as deep as the clearance allows — with the room under C, the deepest depth where a section fits with its sag
+      const dFit = room != null && all.length ? Math.max(...all.map(e => e.d)) : search.dTop, d0 = Math.min(search.dTop, dFit);
+      steps.push({ step: 'depth', text: room != null && d0 < search.dTop ? `Start as deep as the clearance allows: ${d0}" — the ${+room.toFixed(2)}" of room under C has to take the beam and its total-load sag, and at ${d0 + o.dStep}" nothing fits with its sag.` : search.dTop < o.dMax ? `Start as deep as the clearance allows: ${d0}".` : `No clearance limit: start at the top of the depth range, ${d0}".` });
       // the web: the thinnest that works in shear at that depth (with the starting flange)
       const f0 = ladder[0];
       let tw = null; const webTries = [];
@@ -5109,7 +5117,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     }
     (ctx.deeper || []).filter(z => z.sec).forEach((z, i) => {
       if (distinct().length >= 3) return;
-      opts.push({ key: 'deeper' + (i + 1), label: `${z.d}" deep`, why: `Less steel than the ${search.dTop}" design, but the beam bottom drops below the clearance C asked for.`, pick: z, needC: z.needC });
+      opts.push({ key: 'deeper' + (i + 1), label: `${z.d}" deep`, why: `Less steel than the ${light.d}" design, but ${z.d}" + ${z.dTL.toFixed(2)}" sag takes ${z.need.toFixed(2)}": the beam bottom at midspan drops below the clearance C asked for.`, pick: z, needC: z.needC });
     });
     return opts.map(x => ({ ...x, dWt: x.pick.wt - light.wt, dPct: (x.pick.wt - light.wt) / light.wt, sameAs: opts.filter(y => y !== x && same(y.pick.sec, x.pick.sec)).map(y => y.key) }));
   }
@@ -5205,7 +5213,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   // the production rule each left-out section broke, in words
   const RULE_TXT = { depth: 'outside the part-depth range', width: 'flange width outside the line\'s range', tfmax: 'flange thicker than the line takes', 'tw<=tf': 'web thicker than the flange (DG 25: tw ≤ tf)', 'tw/tf': 'web under 0.30 × the flange thickness', thin: 'flange too thick for the thinnest web', 'bf<=d': 'flange wider than the member is deep', 'd/bf': 'deeper than 7 × the flange width', 'tf ratio': 'flange thicknesses more than 2 : 1', handling: 'under the handling minimum flange for the part length', length: 'part longer than the line takes', weight: 'part heavier than the line takes' };
 
-  const api = { secDims, plateText, frac16, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
+  const api = { secDims, plateText, frac16, PROD, RULE_TXT, prodRule, prodChecks, designBeam, beamOptions, summarize, designColumn, designBUColumn, buColName, DECKS, deckKey, reactions, deadLoadFor, candidates, DIVISIONS, FLANGE_STOCK, WEB_STOCK, WF_STOCK, ECON, TIER, tierOf, inChart, flangeName, COMMON_COLUMNS, inStock };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_DESIGN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -5284,6 +5292,14 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
           ? `${m.mark}: member lengths are the layout spans less the frame column setback at each beam's ends (${sbEnds.join(', ')}) — designed at ${ft(m.design.span)}, the longest. The plan, the columns and the loads to the frame use the layout spans (${ft(m.span)}).`
           : `${m.mark}: designed at ${ft(m.design.span)} × ${ft(m.design.trib)} trib, set on Beam calc (layout ${ft(m.span)} × ${ft(m.trib)})${Math.abs(m.design.cut) > 1e-6 ? `; ${ft(Math.abs(m.design.cut))} ${m.design.cut > 0 ? 'off' : 'onto'} every member length of the mark` : ''}. The plan, the columns and the loads to the frame use the layout.`, s: 'note' }]));
       });
+      // clearance C under the beams: the MB sheet's own C row (A − slab − seat − depth) and the bottom of the beam at
+      // midspan, with its total-load sag (the MB sheet's TOTAL LOAD max deflection) — the verdict is the midspan one
+      const cRows = live.filter(r => r.clear && r.clear.C && r.clear.C.req != null && r.clear.C.prov != null);
+      if (cRows.length) {
+        rows.push([], B('Clearance C under the beams'), H(['Mezzanine', 'C asked', 'MB sheet C row (depth only)', 'C at midspan', '', 'Result', '', '', '', '', '', '', '', '', 'Lowest beam bottom']));
+        cRows.forEach(r => { const C = r.clear.C, pend = marks.filter(m => !m.check && (m.mezzIds || []).includes(r.index)).map(m => m.mark);
+          rows.push([r.id, { v: ft(C.req), s: 'r' }, { v: ft(C.prov), s: 'r' }, { v: C.mid != null ? ft(C.mid) : '—', s: 'r' }, '', okc(C.ok), '', '', '', '', '', '', '', '', [C.sag ? `${C.sag.mark} ${C.sag.desc}: ${C.sag.d}" + ${C.sag.tl.toFixed(2)}" sag` : '', pend.length ? `${pend.join(', ')} not sized yet` : ''].filter(Boolean).join('; ')]); });
+      }
       rows.push([], B('Columns'), H(['Mezzanine', 'Section', 'Columns', 'Quote as', '', 'Length', 'Qty', '', 'Max CSR', 'Result', '', '', '', '', 'Chosen as']));
       const colWhy = cf => (cf.picked ? `picked by the engineer${cf.sec.type === 'BU' ? ' (Built-Up input, Fy 55)' : ''}${cf.auto ? `; the guide's answer ${cf.auto.quoteAs}` : ''}` : cf.quoteAs === cf.name ? 'the guide: lightest common column that passes' : 'the guide: next W that passes, quoted BU');
       // the sized columns on the section's row; the ones under a beam with no section on a NOT SIZED row
@@ -5335,7 +5351,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       rows.push([], band('Design settings', 8), H(['', '', 'Setting', 'Value', '', '', '', 'Note']),
         set('Stress ratio limit', num(target, 'n2l'), 'combined and shear, as the MB sheet reads OK below 1.00'),
         set('Steel', 'built-up plate Fy 55 / Fu 70 ksi; W shapes A992 Fy 50 / Fu 65', 'MB sheet M30–M33 (Q11 = 3 plate, 2 for a W); Column sheet Fy 50 for a W, 55 on its Built-Up input'),
-        set('Depth range searched', `${s.dMin ?? 10}"–${s.dMax ?? 30}"`, 'capped by the clearance C'),
+        set('Depth range searched', `${s.dMin ?? 10}"–${s.dMax ?? 30}"`, 'capped by the clearance C: the depth plus the total-load sag within A − C − slab − seat'),
         set('Flanges', s.symmetric === false ? 'top and bottom may differ' : 'same plate top and bottom'),
         set('Production Guidelines', s.production === false ? 'off' : 'applied'), set('Joist bearing check (MB L7)', s.requireConc === false ? 'report only' : 'must pass'),
         set('Beam marks', ({ intext: 'interior / exterior', single: 'one governing mark', split: 'split by trib / span' })[s.marks] || s.marks || 'interior / exterior'),
@@ -5392,7 +5408,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         if (removed.length) { rows.push(head('Left out by the production limits')); removed.sort((a, b) => b[1] - a[1]).forEach(([k, n]) => rows.push(spanRow(1, [n.toLocaleString('en-US'), DESIGN.RULE_TXT[k] || k]))); }
         rows.push(head('Lightest section at each depth'), H(['Depth', 'Section', '', 'Web', 'Flanges', 'Economy', 'plf', '', 'Combined', 'Shear', 'Live L/', 'Total L/', 'Joist bearing']));
         sr.byDepth.forEach(z => rows.push(z.none ? (z.near && !sr.best ? [`${z.d}"`, `${z.near.desc} — closest, ${Math.round(z.near.over * 100 - 100)}% over`, '', z.near.web, z.near.flange, tierWord(z.near.tier), num(z.near.wt, 'n1'), '', num(z.near.CSR), num(z.near.SRv), num(z.near.rLL, 'n0'), num(z.near.rTL, 'n0'), num(z.near.conc)] : [`${z.d}"`, 'nothing stocked passes']) : [`${z.d}"`, z.desc, '', z.web, z.flange, tierWord(z.tier), num(z.wt, 'n1'), '', num(z.CSR), num(z.SRv), num(z.rLL, 'n0'), num(z.rTL, 'n0'), num(z.conc)]));
-        if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', '', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), '', ft(z.needC)])); }
+        if (m.deeper && m.deeper.length) { rows.push(head('Deeper than the clearance allows (each needs C lowered)'), H(['Depth', 'Section', '', '', '', '', 'plf', '', 'Combined', '', 'Live L/', 'Depth + sag', 'C at most'])); m.deeper.forEach(z => rows.push([`${z.d}"`, z.desc, '', '', '', '', num(z.wt, 'n1'), '', num(z.CSR), '', num(z.rLL, 'n0'), `${z.need.toFixed(2)}"`, ft(z.needC)])); }
         rows.push([]);
       });
       out.push({ name: 'Beam options', cols: [24, 11, 7, 7, 9, 19, 7, 9, 9, 7, 7, 7, 9], wrap: [0], rows });
@@ -6163,10 +6179,12 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     // joist span against the total joist depth: SJI limits a K-series joist to 24 × its depth (a removed beam line on the
     // Plan page, or a wide bay, can go past it)
     if (joistDepthIn > 0 && lay.joistSpan * 12 / joistDepthIn > 24 + 1e-6) warn.push({ level: 'warn', text: `Joists span ${PCS.fmtFtIn(lay.joistSpan)} on a ${+joistDepthIn.toFixed(2)}" total joist depth — ${(lay.joistSpan * 12 / joistDepthIn).toFixed(1)} × the depth, over the 24 × depth SJI allows for K-series joists. Add a beam line or deepen the joists; confirm with the joist supplier.` });
-    const maxDepthByC = Cq != null && A != null ? Math.floor((A - Cq) * 12 - slabIn - seatIn + 1e-6) : null;
+    // the room under C for the beam and its sag, in inches: A − C − slab − seat (a 1/1000" tolerance absorbs rounding)
+    const roomIn = Cq != null && A != null ? (A - Cq) * 12 - slabIn - seatIn : null;
+    const maxDepthByC = roomIn != null ? Math.floor(roomIn + 1e-3) : null;
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
-    return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+    return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, roomIn, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
   }
 
   /* Reading checks against the PCS floor plan: was it found and matched to the grid, does it show this mezzanine's
@@ -6436,10 +6454,11 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   /* Nothing passes for a mark: what the engineer can do next, in this order — neither is applied until picked.
      1. The frame column setback: the beams that frame into building columns are shorter than their grid span. Designed
         at that clear span (the longest of the mark's beams, each less its own setbacks), does a section pass?
-     2. More clear height: the shallowest beam that passes (at the clear span when the setback applies) and the
-        clearance C — or the floor height A — it needs: a request to the estimator. */
+     2. More clear height: the beam that takes the least room — its depth plus its total-load sag — and the clearance C,
+        or the floor height A, it needs: a request to the estimator. With the setback when it is in use, or offered and
+        not enough on its own; at the grid span when the setback alone does it (the other way, then). */
   function rescueMark(m, members, p, o) {
-    const { s, c0, maxDepth, dSpan, sbSpan } = o, F = PCS.fmtFtIn;
+    const { s, c0, maxDepth, dSpan, sbSpan } = o, F = PCS.fmtFtIn, F2 = v => String(+(+v).toFixed(2));
     const search = (L, extra) => DESIGN.designBeam({ ...p, L }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, production: s.production !== false, ...extra });
     // the building columns the mark's beams frame into, by setback: "2/A, 3/A (BSW column of frame 2 …) 1'-4""
     const ends = [];
@@ -6453,38 +6472,46 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const state = m.design.setback ? 'applied' : sbSpan < dSpan - 1e-3 ? 'offer' : !ends.length ? 'none' : m.design.set && dSpan <= sbSpan + 1e-3 ? 'typed' : 'short';
     let setback = { state, span: state === 'applied' ? dSpan : sbSpan, from: m.span, ends, best: null };
     if (state === 'offer') {
-      const dz = search(sbSpan, { maxDepth: maxDepth ?? undefined });
+      const dz = search(sbSpan, { maxDepth: maxDepth ?? undefined, room: o.room ?? undefined });
       setback.best = dz && dz.best ? dz.best : null;
     }
-    const withSb = state === 'offer' || state === 'applied';
+    // the clear-height route is with the setback when it is in use or offered and not enough; when the setback alone
+    // does it, the route is the other way — at the span as it is
+    const withSb = state === 'applied' || (state === 'offer' && !setback.best);
     // more depth: each mezzanine of the mark with a clearance C has its own A, C, slab and seat — the request is the
     // strictest of them
     let clear = null;
     const capped = members.filter(c => c.Cq != null && c.A != null);
-    if (maxDepth != null && maxDepth < s.dMax && capped.length) {
-      const L = state === 'offer' ? sbSpan : dSpan, need = d => {
-        const per = capped.map(c => ({ mi: c.index, id: c.id, A: c.A, C: c.Cq, slabIn: c.slabIn, seatIn: c.seatIn, needC: c.A - (c.slabIn + c.seatIn + d) / 12, needA: c.Cq + (c.slabIn + c.seatIn + d) / 12 }));
+    if (o.room != null && capped.length) {
+      // what a beam of depth d and total-load sag tl needs, per mezzanine: C lowered to A − slab − seat − d − tl (on the
+      // 1/8" grid, never more than that) or A raised to C + slab + seat + d + tl (on the grid, never less)
+      const L = state === 'offer' && withSb ? sbSpan : dSpan, need = (d, tl) => {
+        const per = capped.map(c => { const tot = c.slabIn + c.seatIn + d + tl; return { mi: c.index, id: c.id, A: c.A, C: c.Cq, slabIn: c.slabIn, seatIn: c.seatIn, needC: Math.floor((c.A * 12 - tot) * 8 + 1e-6) / 96, needA: Math.ceil((c.Cq * 12 + tot) * 8 - 1e-6) / 96 }; });
         return { needC: Math.min(...per.map(q => q.needC)), needA: Math.max(...per.map(q => q.needA)), per };
       };
-      // the shallowest that passes (the least clear height to give up); a lighter one up to 6" deeper is named with it
+      // the beam alone, with no clearance: of every section that passes and takes more room than there is (a request
+      // always asks for more than now), the one that takes the least — its depth plus its sag — so the least clear height
+      // to give up; and the lightest that takes up to 6" more
       const at = Lx => {
-        const d0 = Math.max(s.dMin, maxDepth + 1);
-        let dz = search(Lx, { dMin: d0, dMax: Math.min(s.dMax, d0 + 5) }), first = dz.byDepth.find(z => !z.none);
-        if (!first && d0 + 6 <= s.dMax) { dz = search(Lx, { dMin: d0 + 6 }); first = dz.byDepth.find(z => !z.none); }
-        if (!first) return { span: Lx, none: true, dMax: s.dMax };
-        const light = dz.best && dz.best.d !== first.d && dz.best.wt < first.wt - 1e-9 ? { ...dz.best, ...need(dz.best.d) } : null;
-        return { span: Lx, d: first.d, best: first, ...need(first.d), light };
+        const dz = search(Lx, {}), ok = (dz.all || []).map(e => ({ e, need: e.d + e.r.defl.TL })).filter(x => x.need > o.room + 1e-3);
+        if (!ok.length) return { span: Lx, none: true, dMax: s.dMax };
+        const f = ok.slice().sort((a, b) => a.need - b.need || a.e.r.res.Wt - b.e.r.res.Wt)[0];
+        const lt = ok.filter(x => x.need <= f.need + 6 && x.e.r.res.Wt < f.e.r.res.Wt - 1e-9).sort((a, b) => a.e.r.res.Wt - b.e.r.res.Wt)[0];
+        const first = DESIGN.summarize(f.e), light = lt ? { ...DESIGN.summarize(lt.e), ...need(lt.e.d, lt.e.r.defl.TL) } : null;
+        return { span: Lx, d: first.d, dTL: first.dTL, needIn: first.need, best: first, ...need(first.d, first.dTL), light };
       };
       // the room for the beam, term by term, on the mezzanine that has the least: A − C − slab & deck − joist seat
-      const room = c => (c.A - c.Cq) * 12 - c.slabIn - c.seatIn, tight = capped.reduce((a, c) => (room(c) < room(a) - 1e-9 ? c : a));
-      const stack = { mi: tight.index, id: tight.id, A: tight.A, C: tight.Cq, slabIn: tight.slabIn, seatIn: tight.seatIn, room: room(tight) };
-      clear = { withSetback: withSb, A: Math.min(...capped.map(c => c.A)), C: Math.min(...capped.map(c => c.Cq)), cap: maxDepth, stack, ...at(L) };
-      if (state === 'offer') clear.grid = at(dSpan);
+      const roomOf = c => (c.A - c.Cq) * 12 - c.slabIn - c.seatIn, tight = capped.reduce((a, c) => (roomOf(c) < roomOf(a) - 1e-9 ? c : a));
+      const stack = { mi: tight.index, id: tight.id, A: tight.A, C: tight.Cq, slabIn: tight.slabIn, seatIn: tight.seatIn, room: roomOf(tight) };
+      // nothing passes even with all the room it wants: the clear height is not what stops it (the span or trib is)
+      const first = at(L);
+      if (!first.none) clear = { withSetback: withSb, A: Math.min(...capped.map(c => c.A)), C: Math.min(...capped.map(c => c.Cq)), cap: maxDepth, stack, ...first };
+      if (clear && state === 'offer' && withSb) clear.grid = at(dSpan);
       // the request, ready to send
       const span = F(L), mezz = [...new Set(capped.map(c => (/^\d+$/.test(c.id) ? 'Mezzanine ' + c.id : c.id)))].join(' / ');
-      if (!clear.none) clear.request = `${mezz}: ${m.mark} (${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${span}${withSb ? ` clear span with the frame column setback` : ' span'} × ${F(m.design.trib)} trib) has no beam section within the ${maxDepth}" of depth the clear height under the mezzanine beams leaves (C ${F(clear.C)}, floor at ${F(clear.A)}). Requesting C ${F(clear.needC)} clear under the beams, or the floor raised to ${F(clear.needA)}: a ${clear.d}" beam (${clear.best.desc}) then works.`;
+      if (clear) clear.request = `${mezz}: ${m.mark} (${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${span}${withSb ? ` clear span with the frame column setback` : ' span'} × ${F(m.design.trib)} trib) has no beam section that fits, with its total-load sag, in the ${F2(stack.room)}" the clear height under the mezzanine beams leaves (C ${F(clear.C)}, floor at ${F(clear.A)}). Requesting C ${F(clear.needC)} clear under the beams, or the floor raised to ${F(clear.needA)}: a ${clear.d}" beam (${clear.best.desc}, ${F2(clear.dTL)}" sag) then works.`;
     }
-    return { setback, clear, cap: maxDepth };
+    return { setback, clear, cap: clear ? maxDepth : null };
   }
 
   /* one mark: section search → three options → the pick (stored as intent) → MB-sheet runs at every span in it */
@@ -6492,6 +6519,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const members = m.group.ctxs.filter(c => m.mezzIds.includes(c.index)), c0 = members[0], s = c0.s, ed = c0.ed;
     const say = (level, text, tag) => members.forEach(c => c.warn.push(tag ? { level, text, tag } : { level, text }));
     const caps = members.map(c => c.maxDepthByC).filter(v => v != null), maxDepth = caps.length ? Math.min(...caps) : null;
+    const rooms = members.map(c => c.roomIn).filter(v => v != null), room = rooms.length ? Math.min(...rooms) : null;
     const jd = members.map(c => c.joistDepthIn).filter(v => v != null), dLimit = jd.length ? Math.floor(Math.min(...jd) + 1e-6) : null;
     // the design span / trib set on the Beam calc page (e.g. the member length between column faces): they go on the MB
     // sheet only. The plan, the columns and the loads to the frame keep the layout's spans and tribs. A typed span's
@@ -6506,14 +6534,15 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     // a member length on the MB sheet: the longest of these beams less their own setbacks, or less the design span's cut
     const lenOf = xs => Math.max(1, useSb ? Math.max(...xs.map(x => x.span - (x.sb || 0))) : Math.max(...xs.map(x => x.span)) - cut);
     const p = { ...c0.beamBase, L: dSpan, trib: dTrib };
-    const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
+    const dz = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, room: room ?? undefined, production: s.production !== false });
     // the clearance caps the depth: what more depth would give (each needs C lowered to suit) — shown when the capped
     // search leaves fewer than three different designs
     let deeper = null;
     if (dz && dz.best && maxDepth != null && maxDepth < s.dMax) {
-      const up = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: maxDepth + 1, dMax: Math.min(s.dMax, maxDepth + 6), symmetric: s.symmetric, requireConc: s.requireConc, production: s.production !== false });
-      const A = Math.min(...members.map(c => c.A)), lose = Math.max(...members.map(c => (c.slabIn + c.seatIn) / 12));
-      deeper = up.byDepth.filter(z => !z.none && z.wt < dz.best.wt - 1e-9).map(z => ({ ...z, needC: A - lose - z.d / 12 }));
+      const up = DESIGN.designBeam(p, { division: c0.division, target: s.target, dMin: s.dMin, dMax: Math.min(s.dMax, maxDepth + 6), symmetric: s.symmetric, requireConc: s.requireConc, production: s.production !== false });
+      const A = Math.min(...members.map(c => c.A)), lose = Math.max(...members.map(c => c.slabIn + c.seatIn));
+      // C to ask for, on the 1/8" grid and never more than the beam leaves: A − slab − seat − depth − sag
+      deeper = up.byDepth.filter(z => !z.none && z.wt < dz.best.wt - 1e-9 && z.need > room + 1e-3).map(z => ({ ...z, needC: Math.floor((A * 12 - lose - z.need) * 8 + 1e-6) / 96 }));
     }
     const options = dz ? DESIGN.beamOptions(dz, { dLimit, span: dSpan, deeper }) : [];
     // a pick is stored as intent — an option key or a depth — so every input change re-runs the search:
@@ -6531,7 +6560,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const Fi = PCS.fmtFtIn;
     // Beam marks "split by trib / span" keeps at most four marks: a lighter group carried by this mark costs weight — said, with how much
     if (m.merged && check) m.merged.forEach(q => {
-      const dzq = DESIGN.designBeam({ ...c0.beamBase, L: lenOf(q.beams), trib: q.trib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
+      const dzq = DESIGN.designBeam({ ...c0.beamBase, L: lenOf(q.beams), trib: q.trib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, room: room ?? undefined, production: s.production !== false });
       const n = q.beams.length, len = q.beams.reduce((a, x) => a + x.span, 0), own = dzq && dzq.best, dW = own ? (check.res.Wt - own.wt) * len : 0;
       say('key', `${m.mark} also carries ${n} beam${n > 1 ? 's' : ''} of ${n > 1 ? 'up to ' : ''}${Fi(q.span)} × ${Fi(q.trib)} trib: Beam marks "split by trib / span" keeps at most four marks (MB1–MB4 of one MB workbook), so the lightest-loaded group rides on ${m.mark}${q.covered ? ', whose span and trib already cover it' : ', raising its design point to cover it'}${own && dW > 1 ? ` — on their own they would be ${own.desc}, about ${Math.round(dW).toLocaleString('en-US')} lb lighter` : ''}.`);
     });
@@ -6547,7 +6576,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       if (nLong < lens.length) {
         // would the shorter beams pass on their own? only then is giving the long one(s) their own mark worth offering
         const rest = lenOf(m.beamsAll.filter(x => x.span < longest - 1e-3));
-        const dzr = DESIGN.designBeam({ ...c0.beamBase, L: rest, trib: dTrib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, production: s.production !== false });
+        const dzr = DESIGN.designBeam({ ...c0.beamBase, L: rest, trib: dTrib }, { division: c0.division, target: s.target, dMin: s.dMin, dMax: s.dMax, symmetric: s.symmetric, requireConc: s.requireConc, maxDepth: maxDepth ?? undefined, room: room ?? undefined, production: s.production !== false });
         if (dzr && dzr.best) {
           m.splitHelps = { span: longest, n: nLong, rest: lens.length - nLong, restDesc: dzr.best.desc || (dzr.best.r && dzr.best.r.desc) || '' };
           say('warn', `${m.mark}: its ${nLong === 1 ? 'one' : nLong} ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's set' : ' sets'} the design and nothing passes there; the other ${lens.length - nLong} ${m.mark} beams are shorter and would pass on their own (${m.splitHelps.restDesc}). Give the ${PCS.fmtFtIn(longest)} beam${nLong > 1 ? 's' : ''} ${nLong > 1 ? 'their' : 'its'} own mark (the button on Beam calc) to size the rest, and the columns they carry — no other mark changes.`, 'nosec');
@@ -6555,13 +6584,13 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       }
       const cap = maxDepth != null && maxDepth < s.dMax;
       // what next, in order: the frame column setback, then more clear height (Design page → Beam options)
-      const rs = m.rescue = rescueMark(m, members, p, { s, c0, maxDepth, dSpan, sbSpan });
+      const rs = m.rescue = rescueMark(m, members, p, { s, c0, maxDepth, room, dSpan, sbSpan });
       const F = PCS.fmtFtIn, sb = rs.setback, cl = rs.clear;
-      const next = [sb.state === 'offer' ? (sb.best ? `the frame column setback — at the ${F(sb.span)} clear span ${sb.best.desc} passes` : `the frame column setback (${F(sb.span)} clear span) does not do it on its own`) : sb.state === 'applied' ? `the frame column setback is in use (${F(sb.span)} clear span)` : '',
-        cl && !cl.none ? `more clear height — a ${cl.d}" beam needs C ${F(cl.needC)} (now ${F(cl.C)}) or the floor at ${F(cl.needA)}` : ''].filter(Boolean);
+      const next = [sb.state === 'offer' ? (sb.best ? `the frame column setback — at the ${F(sb.span)} clear span ${sb.best.desc} passes and fits with its sag (${sb.best.d}" + ${sb.best.dTL.toFixed(2)}")` : `the frame column setback (${F(sb.span)} clear span) does not do it on its own`) : sb.state === 'applied' ? `the frame column setback is in use (${F(sb.span)} clear span)` : '',
+        cl && !cl.none ? `more clear height${cl.withSetback && sb.state === 'offer' ? ' with the setback' : ''} — a ${cl.d}" beam (${cl.dTL.toFixed(2)}" sag) needs C ${F(cl.needC)} (now ${F(cl.C)}) or the floor at ${F(cl.needA)}` : ''].filter(Boolean);
       say('stop', cap && maxDepth < s.dMin
         ? `${m.mark}: clearance (C) under the floor beams leaves only ${maxDepth}" of beam depth (A − C − slab − seat) — below the ${s.dMin}" minimum. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}.` : 'Check the clearance or the minimum depth in Settings.'}`
-        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep${cap ? ' (capped by clearance C)' : ''} meets SR ≤ ${s.target}, L/360 and L/240. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}. Otherwise shorten the span (put a column back) or add a beam line to cut the trib.` : cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`, 'nosec');
+        : `${m.mark}: no stocked BU section between ${s.dMin}" and ${Math.min(s.dMax, maxDepth ?? Infinity)}" deep meets SR ≤ ${s.target}, L/360 and L/240${cap || cl ? ` and fits the ${+(+room).toFixed(2)}" of room under clearance C with its total-load sag` : ''}. ${next.length ? `What next (the card at the top of the Design page): ${next.join('; or ')}. Otherwise shorten the span (put a column back) or add a beam line to cut the trib.` : cap ? `Clearance C caps it at ${maxDepth}": lower C, shorten the span (put a column back) or add a beam line to cut the trib.` : 'Widen the depth range, shorten the span or cut the trib.'}`, 'nosec');
     }
     // every member length in the mark: the governing run plus the shorter beams (same section, own MB-sheet run)
     const spans = [];   // distinct member lengths, kept exact (12'-4" = 12.3333 ft, not 12.333)
@@ -6592,20 +6621,34 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       return { ...rest, beams: mine.map(x => x.id), qty: mine.length };
     });
     if (c.inp.geom.C && c.inp.geom.C.source === 'none') warn.push({ level: 'key', text: 'No minimum clearance under the support beams (entered as no requirement) — beam depth is limited only by the depth range in Settings.' });
-    if (maxDepthByC != null && maxDepthByC < s.dMax && maxDepthByC >= s.dMin) warn.push({ level: 'key', text: `Clearance (C) ${PCS.fmtFtIn(Cq)} caps the beam depth at ${maxDepthByC}".` });
+    if (maxDepthByC != null && maxDepthByC < s.dMax && maxDepthByC >= s.dMin) warn.push({ level: 'key', text: `Clearance (C) ${PCS.fmtFtIn(Cq)} leaves ${+c.roomIn.toFixed(2)}" for the beam and its sag (A − C − slab − seat): a section fits when its depth plus its total-load deflection is within that.` });
     c.designed = designed;
     c.markOf = id => designed.find(mk => mk.beams.includes(id));
     // clearances (INPUT sheet)
     const { A, Bq, slabIn, seatIn } = c;
     const dBeam = Math.max(0, ...designed.filter(mk => mk.sec).map(mk => mk.sec.d));
+    // C at midspan: the beam bottom sags by its total-load deflection (the MB sheet's TOTAL LOAD max deflection), so the
+    // lowest point is the depth plus the sag — taken on this mezzanine's own member lengths (each MB-sheet run of a mark
+    // with a beam here); the sheet's own C row (prov) uses the depth alone
+    const sag = designed.filter(mk => mk.sec).flatMap(mk => (mk.spanRuns || []).filter(run => run.check && (mk.beamsAll || []).some(x => x.mi === c.index && Math.abs(x.span - run.span) < 1e-3))
+      .map(run => ({ mk, d: mk.sec.d, tl: run.check.defl.TL, need: mk.sec.d + run.check.defl.TL, L: run.L }))).sort((a, b) => b.need - a.need)[0] || null;
     c.clear = {
       A: { req: A, prov: A },
       B: { req: Bq, prov: joistDepthIn != null && A != null ? A - (slabIn + joistDepthIn) / 12 : null },
-      C: { req: Cq, prov: A != null && dBeam ? A - (slabIn + seatIn + dBeam) / 12 : null },
+      C: { req: Cq, prov: A != null && dBeam ? A - (slabIn + seatIn + dBeam) / 12 : null, mid: A != null && sag ? A - (slabIn + seatIn + sag.need) / 12 : null, sag: sag ? { mark: sag.mk.mark, desc: sag.mk.desc, d: sag.d, tl: sag.tl, L: sag.L } : null },
     };
-    // C is set by the deepest beam: name it, so the engineer knows which pick to change
-    const deep = designed.filter(mk => mk.sec && mk.sec.d === dBeam).map(mk => `${mk.mark} ${mk.desc} (${dBeam}" deep)`);
-    Object.entries(c.clear).forEach(([k, q]) => { q.ok = q.req == null || q.prov == null ? null : q.prov >= q.req - 1e-9; if (q.ok === false) warn.push({ level: 'stop', text: `Clearance ${k}: provided ${PCS.fmtFtIn(q.prov)} < requested ${PCS.fmtFtIn(q.req)}${k === 'C' && deep.length ? ` — ${deep.join(', ')} is deeper than C allows` : ''}.` }); });
+    Object.entries(c.clear).forEach(([k, q]) => {
+      const at = k === 'C' && q.mid != null ? q.mid : q.prov;
+      q.ok = q.req == null || at == null ? null : at >= q.req - 1e-9;
+      if (k === 'C') q.okSheet = q.req == null || q.prov == null ? null : q.prov >= q.req - 1e-9;   // the sheet's own verdict
+      if (q.ok === false) warn.push({ level: 'stop', text: k === 'C' && sag ? `Clearance C at midspan: ${sag.mk.mark} ${sag.mk.desc} (${PCS.fmtFtIn(sag.L)} member) is ${sag.d}" deep and sags ${sag.tl.toFixed(2)}" under the total load, so its bottom is at ${PCS.fmtFtIn(q.mid)} — under the ${PCS.fmtFtIn(q.req)} asked for${q.okSheet ? ` (the MB sheet's C row, without the sag, shows ${PCS.fmtFtIn(q.prov)} OK)` : ''}.` : `Clearance ${k}: provided ${PCS.fmtFtIn(q.prov)} < requested ${PCS.fmtFtIn(q.req)}.` });
+    });
+    // a tight fit: the bottom of the beam at midspan within 1/8" of C — said, so the heights are confirmed before quoting
+    const Cc = c.clear.C;
+    if (Cc.ok && sag && Cc.req != null && Cc.mid != null && c.roomIn != null && (Cc.mid - Cc.req) * 12 < 0.125 - 1e-9) {
+      const spare = (Cc.mid - Cc.req) * 12, dp = spare < 0.01 ? 3 : 2;
+      warn.push({ level: 'warn', text: `Clearance C is tight: ${sag.mk.mark} ${sag.mk.desc} (${PCS.fmtFtIn(sag.L)} member) is ${sag.d}" deep and sags ${sag.tl.toFixed(dp)}" under the total load, ${sag.need.toFixed(dp)}" of the ${+c.roomIn.toFixed(3)}" of room — ${spare.toFixed(dp)}" to spare (C at midspan ${PCS.fmtFtIn(Cc.mid)}). Confirm A, C, the slab and the joist seat before quoting.` });
+    }
     c.colLen = s.colLength === 'clear' && A != null && dBeam ? A - (slabIn + seatIn + dBeam) / 12 : A;
   }
 
@@ -6740,7 +6783,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: (mk.design || mk).span, trib: (mk.design || mk).trib, qty: mk.qty })),
       columns: colFinal ? [{ mark: 'MC1', section: colFinal.quoteAs, length: colLen, qty: owned.length }] : [],
     };
-    return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
+    return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, roomIn: c.roomIn, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
   }
   const near2 = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
   // columns in plan order, as the C-numbers count them: along the length, then from the BSW
@@ -7536,7 +7579,12 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       const tgt = r0.settings.target;
       // a section that does not pass, or breaks the clearance C, says so on the row that gets pasted
       const fails = run => { const c = run.check || mk.check; if (!c) return ''; const bad = []; if (!(c.res.CSR <= tgt)) bad.push(`combined ${c.res.CSR.toFixed(3)}`); if (!(c.res.SRvx <= tgt)) bad.push(`shear ${c.res.SRvx.toFixed(3)}`); if (!c.llOK) bad.push(`live L/${Math.round(c.defl.rLL)} < L/360`); if (!c.tlOK) bad.push(`total L/${Math.round(c.defl.rTL)} < L/240`); if (c.conc && !c.conc.ok) bad.push('joist bearing'); return bad.length ? `FAILS — ${bad.join(', ')}` : ''; };
-      const clearC = [...new Set((mk.beamsAll || []).map(x => x.mi))].map(mi => results[mi] && results[mi].clear && results[mi].clear.C).find(q => q && q.ok === false);
+      // C at midspan on the row's own beams: the depth plus the total-load sag at that member length, within each of its
+      // mezzanines' room (A − C − slab − seat) — the bottom of the beam under the full load is then at C + (room − that)
+      const clearC = (run, mis) => { const c = run.check || mk.check; if (!mk.sec || !c) return '';
+        const need = mk.sec.d + c.defl.TL, low = mis.map(mi => results[mi]).filter(r => r && r.roomIn != null && r.clear && r.clear.C && r.clear.C.req != null && need > r.roomIn + 1e-3)
+          .map(r => ({ C: r.clear.C.req, mid: r.clear.C.req + (r.roomIn - need) / 12 })).sort((a, b) => a.mid - a.C - (b.mid - b.C))[0];
+        return low ? `C at midspan ${PCS.fmtFtIn(low.mid)} < ${PCS.fmtFtIn(low.C)} asked (${mk.sec.d}" deep + ${c.defl.TL.toFixed(2)}" sag)` : ''; };
       runs.forEach(run => {
         const bs = (mk.beamsAll || []).filter(x => Math.abs(x.span - run.span) < 1e-3);
         const mis = [...new Set(bs.map(x => x.mi))].sort((a, b) => done.indexOf(a) - done.indexOf(b));
@@ -7548,7 +7596,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         const dz = mk.design || { span: mk.span, trib: mk.trib, set: false }, Lrun = run.L != null ? run.L : run.span;
         // a BU name (depth x weight) can fit more than one plate set: the plates go with every row
         const sc = mk.sec, plates = sc && sc.type !== 'WF' ? `plates: ${DESIGN.plateText(sc)}` : '';
-        const flag = [fails(run), clearC ? `C ${PCS.fmtFtIn(clearC.prov)} provided < ${PCS.fmtFtIn(clearC.req)} asked` : ''].filter(Boolean).join('; ');
+        const flag = [fails(run), clearC(run, mis)].filter(Boolean).join('; ');
         const detail = [`${mk.mark}${mk.kind ? ' ' + mk.kind : ''}: ${byMezz.join('; ')}`, plates,
           !mk.sec ? `nothing passes at ${PCS.fmtFtIn(dz.span)}` : Math.abs(Lrun - dz.span) > 1e-3 ? `same section, MB sheet at ${PCS.fmtFtIn(Lrun)}` : `designed ${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)} trib`,
           dz.set ? `design span / trib set on Beam calc (${PCS.fmtFtIn(dz.span)} × ${PCS.fmtFtIn(dz.trib)}; layout ${PCS.fmtFtIn(mk.span)} × ${PCS.fmtFtIn(mk.trib)})` : '',
@@ -8168,9 +8216,12 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   const histSave = list => { try { localStorage.setItem(HIST, JSON.stringify(list.slice(-300))); } catch (e) { /* private window / storage off */ } };
   const ENTER = ['geom.A', 'geom.B', 'geom.C', 'geom.slab', 'geom.seat', 'geom.joistSpacing', 'loads.dead', 'loads.live', 'loads.coll', 'loads.partition'];
   const jobKey = () => (state.pcs ? (state.pcs.job.quote || state.fileName || '') : '');
+  // a remembered value back as it was typed: dimensions (kept in feet) on the 1/16" grid — feet to four places made a
+  // 5" seat 5.0004" and cost the beam an inch of room; loads to four places
+  const snapVal = (pth, v) => (v === 'none' || v == null || !isFinite(+v) ? v : /^geom\./.test(pth) ? Math.round(+v * 192) / 192 : +(+v).toFixed(4));
   function entered(inp) {
     const o = {};
-    ENTER.forEach(pth => { const [g, k] = pth.split('.'), n = inp[g][k]; if (n && (n.source === 'manual' || n.source === 'none')) o[pth] = n.source === 'none' ? 'none' : +(+n.value).toFixed(4); });
+    ENTER.forEach(pth => { const [g, k] = pth.split('.'), n = inp[g][k]; if (n && (n.source === 'manual' || n.source === 'none')) o[pth] = n.source === 'none' ? 'none' : snapVal(pth, n.value); });
     return o;
   }
   let lastSaved = '';
@@ -8199,7 +8250,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const cur = jobKey(), cnt = new Map();
     histLoad().filter(r => r.key !== cur).forEach(r => {
       const seen = new Set();
-      (r.mezz || []).forEach(m => { const v = m.entered && m.entered[path]; if (v == null || seen.has(String(v))) return; seen.add(String(v)); cnt.set(String(v), (cnt.get(String(v)) || 0) + 1); });
+      (r.mezz || []).forEach(m => { const v0 = m.entered && m.entered[path], v = v0 == null ? v0 : snapVal(path, v0); if (v == null || seen.has(String(v))) return; seen.add(String(v)); cnt.set(String(v), (cnt.get(String(v)) || 0) + 1); });
     });
     return [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([v, n]) => ({ v: v === 'none' ? 'none' : +v, n }));
   }
@@ -8273,7 +8324,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const rec = lastTime();
     if (!rec) return;
     needRows().forEach(q => q.mezz.forEach(i => {
-      const inp = inputsOf(i), m = rec.mezz.find(x => x.id === inp.mezz.id), v = m && m.entered ? m.entered[q.path] : null;
+      const inp = inputsOf(i), m = rec.mezz.find(x => x.id === inp.mezz.id), v = m && m.entered && m.entered[q.path] != null ? snapVal(q.path, m.entered[q.path]) : null;
       if (v == null) return;
       const [g, k] = q.path.split('.');
       inp[g][k] = v === 'none' ? { value: null, source: 'none' } : { value: v, source: 'manual' };
@@ -8645,14 +8696,15 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       const one = groups.length === 1, sr = mk.search, capped = sr && sr.dTop < sr.options.dMax;
       const card = g => {
         const p = g.pick, o = g.roles[0], chosen = sameSec(p.sec, mk.sec);
-        const under = A != null ? A - (slabIn + seatIn + p.sec.d) / 12 : null;
+        // the bottom of the beam at midspan, under the total load: A − slab − seat − depth − sag
+        const under = A != null ? A - (slabIn + seatIn + p.sec.d + (p.dTL || 0)) / 12 : null;
         const dLbs = o.dWt * len;
         return `<article class="option ${chosen ? 'is-chosen' : ''} ${g.roles.length > 1 ? 'is-merged' : ''}">
           <div class="option-top"><span class="option-tags">${g.roles.map(x => `<span class="option-tag">${esc(x.label)}</span>`).join('')}</span><span class="option-delta ${o.dWt > 0 ? '' : 'zero'}">${o.dWt > 1e-9 ? `+${f(o.dPct * 100, 1)}% · +${n0(dLbs)} lb` : o.dWt < -1e-9 ? `${f(o.dPct * 100, 1)}% · ${n0(dLbs)} lb` : 'least weight'}</span></div>
           ${o.needC != null ? `<div class="option-flag">Needs clearance C ≤ ${ft(o.needC)} — the PCS asks ${ft(inp.geom.C.value)}</div>` : ''}
           <div class="option-sec nocase">${esc(p.desc)}</div><div class="option-parts">${secParts(p.sec)} · flange ${TIERW[p.tier] || p.tier}</div>
           <div class="option-grid">
-            <div><span>Weight</span><b>${f(p.wt, 1)} plf</b></div><div><span>Depth</span><b>${p.sec.d}"</b></div><div><span>Under beam</span><b>${under != null ? ft(under) : '—'}</b></div>
+            <div><span>Weight</span><b>${f(p.wt, 1)} plf</b></div><div><span>Depth</span><b>${p.sec.d}"</b></div><div title="The bottom of the beam at midspan under the total load: A − slab − seat − depth − ${f(p.dTL || 0, 2)}&quot; sag"><span>Under beam, mid</span><b>${under != null ? ft(under) : '—'}</b></div>
             <div><span>Combined</span><b class="${p.CSR <= state.settings.target ? 'ok' : 'bad'}">${f(p.CSR, 3)}</b></div><div><span>Shear</span><b class="${p.SRv <= state.settings.target ? 'ok' : 'bad'}">${f(p.SRv, 3)}</b></div><div><span>Live defl.</span><b class="ok">L/${f(p.rLL, 0)}</b></div>
           </div>
           <ul class="option-why">${g.roles.map(x => `<li><b>${esc(x.label)}</b> — ${esc(x.why)}</li>`).join('')}</ul>
@@ -8662,21 +8714,21 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       // why only one: the lighter plates that fail at that depth (from the step-by-step tries)
       const fitO = mk.options.find(o => o.key === 'fit'), flStep = fitO && fitO.steps && fitO.steps.find(x => x.step === 'flange');
       const lastFail = flStep && flStep.tries ? flStep.tries.filter(t => !t.ok && t.why && !/production|no web/.test(t.why)).pop() : null;
-      const oneTxt = one && !(mk.options || []).some(o => o.needC != null) ? `<div class="option-one"><b>One design for these inputs.</b> ${capped ? `The clearance C leaves ${sr.dTop}" for the beam (A − C − slab − seat)${lastFail ? `; at ${sr.dTop}" the next lighter plate fails (${esc(lastFail.sec)}: ${esc(lastFail.why)})` : ''}, so ` : ''}every way of building it — the lightest, the step-by-step method, the economical flanges — lands on the same section.${mk.deeper && mk.deeper.length ? ` More depth would take less steel, but needs the clearance under the beams lowered:` : ''}</div>
-        ${mk.deeper && mk.deeper.length ? `<table class="fl-t deeper"><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">Saves</th><th class="num">Combined</th><th class="num">Live</th><th class="num">C would be at most</th></tr></thead><tbody>${mk.deeper.map(z => `<tr><td class="num mono">${z.d}"</td><td class="mono">${esc(z.desc)} <small class="sub-n">${esc(z.flange)} · ${esc(z.web)}</small></td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(groups[0].pick.wt - z.wt, 1)} plf (${f((1 - z.wt / groups[0].pick.wt) * 100, 0)} %)</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td class="num mono">${ft(z.needC)}</td></tr>`).join('')}</tbody></table>` : ''}` : '';
+      const oneTxt = one && !(mk.options || []).some(o => o.needC != null) ? `<div class="option-one"><b>One design for these inputs.</b> ${capped ? `The clearance C leaves ${sr.room != null ? `${f(sr.room, 2)}" for the beam and its sag (A − C − slab − seat; depth + total-load deflection has to fit)` : `${sr.dTop}" for the beam (A − C − slab − seat)`}${lastFail ? `; at ${sr.dTop}" the next lighter plate fails (${esc(lastFail.sec)}: ${esc(lastFail.why)})` : ''}, so ` : ''}every way of building it — the lightest, the step-by-step method, the economical flanges — lands on the same section.${mk.deeper && mk.deeper.length ? ` More depth would take less steel, but needs the clearance under the beams lowered:` : ''}</div>
+        ${mk.deeper && mk.deeper.length ? `<table class="fl-t deeper"><thead><tr><th class="num">Depth</th><th>Section</th><th class="num">plf</th><th class="num">Saves</th><th class="num">Combined</th><th class="num">Live</th><th class="num">Depth + sag</th><th class="num">C would be at most</th></tr></thead><tbody>${mk.deeper.map(z => `<tr><td class="num mono">${z.d}"</td><td class="mono">${esc(z.desc)} <small class="sub-n">${esc(z.flange)} · ${esc(z.web)}</small></td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(groups[0].pick.wt - z.wt, 1)} plf (${f((1 - z.wt / groups[0].pick.wt) * 100, 0)} %)</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td class="num mono">${f(z.need, 2)}"</td><td class="num mono">${ft(z.needC)}</td></tr>`).join('')}</tbody></table>` : ''}` : '';
       // a section picked by depth or by hand (Design your own): its own card, so the quote's section is always on the page
       const handCard = () => {
         if (!mk.sec || !mk.check || groups.some(g => sameSec(g.sec, mk.sec))) return '';
         const c = mk.check, x = c.res, light = groups.find(g => g.roles.some(o => o.key === 'lightest')) || groups[0], dW = x.Wt - light.pick.wt;
-        const under = A != null ? A - (slabIn + seatIn + mk.sec.d) / 12 : null, tg = state.settings.target, Cq = inp.geom.C.value;
+        const under = A != null ? A - (slabIn + seatIn + mk.sec.d + mk.check.defl.TL) / 12 : null, tg = state.settings.target, Cq = inp.geom.C.value;
         const flags = [x.CSR > tg && `combined ${f(x.CSR, 3)} over ${f(tg, 2)}`, x.SRvx > tg && `shear ${f(x.SRvx, 3)} over ${f(tg, 2)}`, !c.llOK && `live L/${f(c.defl.rLL, 0)} under L/360`, !c.tlOK && `total L/${f(c.defl.rTL, 0)} under L/240`,
-          under != null && Cq != null && under < Cq - 1e-9 && `${ft(under)} under the beam < C ${ft(Cq)}`].filter(Boolean);
+          under != null && Cq != null && under < Cq - 1e-9 && `${ft(under)} under the beam at midspan, with its ${f(mk.check.defl.TL, 2)}" sag < C ${ft(Cq)}`].filter(Boolean);
         return `<article class="option is-chosen is-hand ${flags.length ? 'has-flags' : ''}">
           <div class="option-top"><span class="option-tags"><span class="option-tag">Picked by hand</span></span><span class="option-delta ${dW > 0 ? '' : 'zero'}">${dW > 1e-9 ? `+${f(dW / light.pick.wt * 100, 1)}% · +${n0(dW * len)} lb` : dW < -1e-9 ? `${f(dW / light.pick.wt * 100, 1)}% · ${n0(dW * len)} lb` : 'same weight'} vs lightest</span></div>
           ${flags.length ? `<div class="option-flag">${esc(flags.join(' · '))}</div>` : ''}
           <div class="option-sec nocase">${esc(mk.desc)}</div><div class="option-parts">${secParts(mk.sec)}</div>
           <div class="option-grid">
-            <div><span>Weight</span><b>${f(x.Wt, 1)} plf</b></div><div><span>Depth</span><b>${mk.sec.d}"</b></div><div><span>Under beam</span><b class="${flags.some(t => / < C /.test(t)) ? 'bad' : ''}">${under != null ? ft(under) : '—'}</b></div>
+            <div><span>Weight</span><b>${f(x.Wt, 1)} plf</b></div><div><span>Depth</span><b>${mk.sec.d}"</b></div><div title="The bottom of the beam at midspan under the total load: A − slab − seat − depth − ${f(mk.check.defl.TL, 2)}&quot; sag"><span>Under beam, mid</span><b class="${flags.some(t => / < C /.test(t)) ? 'bad' : ''}">${under != null ? ft(under) : '—'}</b></div>
             <div><span>Combined</span><b class="${x.CSR <= tg ? 'ok' : 'bad'}">${f(x.CSR, 3)}</b></div><div><span>Shear</span><b class="${x.SRvx <= tg ? 'ok' : 'bad'}">${f(x.SRvx, 3)}</b></div><div><span>Live defl.</span><b class="${c.llOK ? 'ok' : 'bad'}">L/${f(c.defl.rLL, 0)}</b></div>
           </div>
           <ul class="option-why"><li><b>Picked by hand</b> — ${mk.optionKey === 'custom' ? 'chosen from the depth table or Design your own' : 'the engineer\u2019s section'}; Beam calc runs it on the MB sheet. "Use this" on an option puts the tool's answer back.</li></ul>
@@ -8692,11 +8744,15 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   // set the beams back at the wall columns (the girts: 1'-4" at a rigid frame, 1'-0" at a post-and-beam frame), or
   // a new clear height. run.js works out each option (m.rescue); nothing is applied until it is picked.
   const decideMarks = () => (state.job ? jobMarks() : []).filter(m => !m.sec && m.rescue);
+  // the clear-height result of a mark at the span as it is (no setback added), and with the setback added — run.js gives
+  // the second (and the first as .grid) only when the setback is offered and not enough on its own
+  const clearNow = m => { const c = m.rescue.clear; return c ? c.grid || c : null; };
+  const clearSb = m => { const c = m.rescue.clear; return c && c.grid ? c : null; };
   const inpOfMark = mk => inputsOf((mk.mezzIds || [state.mi])[0]);
   // the needs of several marks, per mezzanine: the strictest C and A of each
   function needBy(list) {
     const by = new Map();
-    list.forEach(q => { if (q && !q.none) (q.per || []).forEach(p => { const e = by.get(p.mi); by.set(p.mi, e ? { ...e, needC: Math.min(e.needC, p.needC), needA: Math.max(e.needA, p.needA), d: Math.max(e.d, q.d) } : { ...p, d: q.d }); }); });
+    list.forEach(q => { if (q && !q.none) (q.per || []).forEach(p => { const e = by.get(p.mi), up = !e || q.needIn > e.need; by.set(p.mi, e ? { ...e, needC: Math.min(e.needC, p.needC), needA: Math.max(e.needA, p.needA), d: up ? q.d : e.d, dTL: up ? q.dTL : e.dTL, need: up ? q.needIn : e.need } : { ...p, d: q.d, dTL: q.dTL, need: q.needIn }); }); });
     return [...by.values()];
   }
   const oneVal = (xs, k) => { const v = [...new Set(xs.map(x => +x[k].toFixed(4)))]; return v.length === 1 ? ft(v[0]) : xs.map(x => `${esc(x.id)} ${ft(x[k])}`).join(', '); };
@@ -8707,21 +8763,22 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   function decideCard(ms, id = 'decideCard') {
     if (!ms.length) return '';
     const s = state.settings, names = ms.map(m => m.mark).join(' and ');
-    const now = m => { const rs = m.rescue; return rs.clear ? (rs.setback.state === 'offer' ? rs.clear.grid : rs.clear) : null; };   // at the span as it is
-    const withSb = m => { const rs = m.rescue; return rs.clear && rs.setback.state === 'offer' ? rs.clear : null; };              // at the set-back span
+    const now = clearNow, withSb = clearSb;
     const caps = ms.map(m => m.rescue.cap).filter(v => v != null), cap = caps.length ? Math.min(...caps) : null;
     const cl0 = ms.map(m => m.rescue.clear).find(Boolean), g = inpOfMark(ms[0]).geom;
     const cause = cap == null ? 'range' : cap < s.dMin ? 'min' : 'clear';
     const needD = m => { const q = now(m); return q && !q.none ? q.d : null; };
+    const needIn = m => { const q = now(m); return q && !q.none ? q.needIn : null; };   // depth + total-load sag
+    const in2 = x => `${(+x).toFixed(2)}"`;
     // what stops it, in a line
     const eyebrow = { clear: 'Clear height not met', min: 'Clear height below the minimum beam depth', range: 'No beam section in the depth range' }[cause];
     // the room for the beam, term by term: the top of the mezzanine less the clear height under the beams, the slab and
-    // deck, and the joist seat (the MB sheet's own check: A − slab − seat − d ≥ C)
+    // deck, and the joist seat — and what the beam takes of it: its depth plus its sag under the total load (the MB
+    // sheet's TOTAL LOAD max deflection), so the bottom of the beam at midspan stays at or above C
     const st = cl0 && cl0.stack, room = st ? st.room : cap;
-    const needTxt = m => (needD(m) ? `${needD(m)}"` : `more than ${s.dMax}"`);
+    const needTxt = m => (needIn(m) ? in2(needIn(m)) : `more than ${s.dMax}"`);
     const h3 = cause === 'range' ? `${names}: no section up to ${s.dMax}" deep`
-      : ms.length === 1 ? `${names} needs ${needD(ms[0]) ? `a ${needD(ms[0])}" beam` : `more than ${s.dMax}"`} — there is ${inch(room)} of room`
-      : `${ms.map(m => `${m.mark} needs ${needTxt(m)}`).join(', ')} — there is ${inch(room)} of room`;
+      : `${ms.length === 1 ? `${names} needs ${needTxt(ms[0])}` : ms.map(m => `${m.mark} needs ${needTxt(m)}`).join(', ')} — there is ${inch(room)} of room`;
     const SRC = { manual: 'typed', pcs: 'from the PCS', annotation: 'blue note', default: 'default', estimate: 'estimate' };
     const seatSrc = st ? (inputsOf(st.mi).geom.seat || {}).source : null;
     const others = st ? [...new Map(ms.flatMap(m => (m.rescue.clear && m.rescue.clear.per) || []).filter(p => p.mi !== st.mi).map(p => [p.mi, p])).values()].filter(p => Math.abs(roomAt({ per: [p] }) - st.room) > 1e-6) : [];
@@ -8731,9 +8788,13 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         <span class="dc-t"><b>${inch(st.slabIn)}</b><small>slab &amp; deck</small></span><i>−</i>
         <span class="dc-t dc-seat"><b>${inch(st.seatIn)}</b><small>joist seat${SRC[seatSrc] ? ' · ' + SRC[seatSrc] : ''}</small></span><i>=</i>
         <span class="dc-t dc-room"><b>${inch(st.room)}</b><small>room for the beam${manyMezz() ? ' · ' + esc(st.id) : ''}</small></span>
-        ${others.length ? `<span class="dc-others">${others.map(p => `${esc(p.id)}: ${inch(roomAt({ per: [p] }))} of room`).join(' · ')}</span>` : ''}</div>`;
+        ${others.length ? `<span class="dc-others">${others.map(p => `${esc(p.id)}: ${inch(roomAt({ per: [p] }))} of room`).join(' · ')}</span>` : ''}</div>
+      ${ms.filter(m => needIn(m)).map(m => { const q = now(m); return `<div class="dc-stack dc-needs" aria-label="What ${m.mark} needs">
+        <span class="dc-t"><b>${q.d}"</b><small>${m.mark} · ${esc(q.best.desc)}, the least room of any that works</small></span><i>+</i>
+        <span class="dc-t"><b>${in2(q.dTL)}</b><small>sag under the total load</small></span><i>=</i>
+        <span class="dc-t dc-room"><b>${in2(q.needIn)}</b><small>room it needs</small></span></div>`; }).join('')}`;
     const why = cause === 'range' ? `${ms.map(m => `${m.mark}: ${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib`).join('; ')}. Nothing stocked passes at that span and trib within the ${s.dMin}"–${s.dMax}" range (Settings).`
-      : `${ms.map(m => `${m.mark}: ${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib — needs ${needTxt(m)}`).join('; ')}. A beam is only as deep as the room between the joist seat and the clear height under it. Pick a way below — the design runs as soon as you do.`;
+      : `${ms.map(m => `${m.mark}: ${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib`).join('; ')}. The beam has to fit in the room with its sag, so its bottom at midspan stays at or above C. Pick a way below — the design runs as soon as you do.`;
     // 1 · the setback at the wall columns
     const offer = ms.filter(m => m.rescue.setback.state === 'offer'), applied = ms.filter(m => m.rescue.setback.state === 'applied');
     const also = jobMarks().filter(o => !ms.includes(o) && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback);
@@ -8741,7 +8802,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       return [...by.values()].map(({ e, mz }) => { const n = [...mz.values()].flat().length; return `${e.wall} column${n > 1 ? 's' : ''} ${[...mz].map(([m2, ls]) => ls.join(', ') + (manyMezz() ? ` (${m2})` : '')).join('; ')} — ${e.kind === 'rigid' ? 'rigid frame' : /soldier/.test(e.why) ? 'soldier column' : 'post-and-beam'}, ${ft(e.ft)}`; }).join(' · '); };
     const kinds = [...new Set(offer.concat(applied).flatMap(m => (m.rescue.setback.ends || []).map(e => e.kind)))];
     const amtIn = k => `<label class="dc-amt"><span>${k === 'rigid' ? 'rigid frame' : 'post-and-beam'}</span><input data-sbamt="${k === 'rigid' ? 'setbackRigid' : 'setbackPB'}" value="${esc(ft(k === 'rigid' ? s.setbackRigid : s.setbackPB))}" spellcheck="false" autocomplete="off"></label>`;
-    const res = m => { const sb = m.rescue.setback; return sb.best ? `<span class="dc-ok">${m.mark} ${ft(sb.from)} → ${ft(sb.span)}: ${esc(sb.best.desc)} passes</span>` : `<span class="dc-no">${m.mark} ${ft(sb.from)} → ${ft(sb.span)}: still needs ${withSb(m) && !withSb(m).none ? withSb(m).d + '"' : 'more depth'}</span>`; };
+    const res = m => { const sb = m.rescue.setback; return sb.best ? `<span class="dc-ok">${m.mark} ${ft(sb.from)} → ${ft(sb.span)}: ${esc(sb.best.desc)} fits, ${sb.best.d}" + ${in2(sb.best.dTL)} sag = ${in2(sb.best.need)}</span>` : `<span class="dc-no">${m.mark} ${ft(sb.from)} → ${ft(sb.span)}: still needs ${withSb(m) && !withSb(m).none ? in2(withSb(m).needIn) : 'more depth'}</span>`; };
     const row1 = offer.length
       ? `<div class="need-row dc-row"><label>Set the beams back at the wall columns<small>${offer.map(m => `${m.mark} ends at the ${esc(endsTxt(m))}`).join(' · ')}. The girts hold those columns in from the grid line, so the beam is that much shorter.</small></label>
           <div class="dc-in">${kinds.map(amtIn).join('')}</div>
@@ -8759,24 +8820,27 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     } else {
       const fixed = m => m.rescue.setback.state === 'offer' && m.rescue.setback.best;
       const plain = needBy(ms.map(now)), both = offer.length && ms.some(m => !fixed(m)) ? needBy(ms.filter(m => !fixed(m)).map(m => withSb(m) || now(m))) : [];
-      const none = !plain.length;
+      const none = !plain.length && !both.length;
       const chip = (q, sb, label) => `<button class="chip" data-dc="setC" data-sb="${sb ? 1 : 0}" data-v='${esc(JSON.stringify(q.map(x => [x.mi, x.needC])))}'>${label}<small>clear ${oneVal(q, 'needC')}</small></button>`;
-      const primary = both.length ? both : plain, dOf = q => Math.max(...q.map(x => x.d));
+      const primary = both.length ? both : plain, top = q => q.reduce((a, x) => (x.need > a.need ? x : a)), dOf = q => top(q).d;
+      const sagTxt = q => `${top(q).d}" deep, sags ${in2(top(q).dTL)} under the total load — ${in2(top(q).need)} with its sag`;
       // how much less clear height (or how much higher a floor) the beam needs, when it is the same on every mezzanine
       const by = (q, k) => { const v = [...new Set(q.map(x => +((k === 'needC' ? x.C - x.needC : x.needA - x.A) * 12).toFixed(3)))]; return v.length === 1 ? inch(v[0]) : null; };
       const less = q => (by(q, 'needC') ? ` — ${by(q, 'needC')} less than the ${ft(cl0.C)} the PCS asks` : '');
       row2 = none ? `<div class="need-row dc-row is-na"><label>Make room for a deeper beam<small>No stocked section passes up to ${s.dMax}" deep either — shorten the span or the trib (Plan page).</small></label><div></div><div class="chips"><button class="chip" data-dc="plan">Edit the layout<small>Plan page</small></button></div></div>`
-        : `<div class="need-row dc-row"><label>Make room for a deeper beam<small>${both.length ? `With the setback a ${dOf(both)}" beam fits with ${oneVal(both, 'needC')} clear under the beams${less(both)}; without the setback a ${dOf(plain)}" beam needs ${oneVal(plain, 'needC')}.` : `A ${dOf(plain)}" beam fits with ${oneVal(plain, 'needC')} clear under the beams${less(plain)} — or with the floor ${by(plain, 'needA') || 'raised'}${by(plain, 'needA') ? ' higher' : ''}.`} Ask the estimator, then type the clear height they give.</small></label>
+        : `<div class="need-row dc-row"><label>Make room for a deeper beam<small>${both.length ? `With the setback the beam is ${sagTxt(both)}: it fits with ${oneVal(both, 'needC')} clear under the beams${less(both)}${plain.length ? `; without the setback, ${sagTxt(plain)}, it needs ${oneVal(plain, 'needC')}` : ''}.` : `The beam is ${sagTxt(plain)}: it fits with ${oneVal(plain, 'needC')} clear under the beams${less(plain)} — or with the floor ${by(plain, 'needA') || 'raised'}${by(plain, 'needA') ? ' higher' : ''}.`} Ask the estimator, then type the clear height they give.</small></label>
           <input data-dc="C" placeholder="clear, e.g. ${esc(ft(primary[0].needC))}" aria-label="New clear height under the beams" autocomplete="off">
-          <div class="chips">${both.length ? chip(both, true, `${dOf(both)}" beam + setback`) + chip(plain, false, `${dOf(plain)}" beam`) : chip(plain, false, `Use the ${dOf(plain)}" beam`)}<button class="chip" data-dc="setA" data-sb="${both.length ? 1 : 0}" data-v='${esc(JSON.stringify(primary.map(x => [x.mi, x.needA])))}'>Raise the floor to ${oneVal(primary, 'needA')}<small>keeps ${ft(cl0.C)} clear</small></button><button class="chip" data-dc="copy">Copy request<small>for the estimator</small></button></div></div>`;
+          <div class="chips">${both.length ? chip(both, true, `${dOf(both)}" beam + setback`) + (plain.length ? chip(plain, false, `${dOf(plain)}" beam`) : '') : chip(plain, false, `Use the ${dOf(plain)}" beam`)}<button class="chip" data-dc="setA" data-sb="${both.length ? 1 : 0}" data-v='${esc(JSON.stringify(primary.map(x => [x.mi, x.needA])))}'>Raise the floor to ${oneVal(primary, 'needA')}<small>keeps ${ft(cl0.C)} clear</small></button><button class="chip" data-dc="copy">Copy request<small>for the estimator</small></button></div></div>`;
     }
     // 3 · the joist seat: the room for the beam is measured down from the joist seat, so a shallower seat (when the joists
     // allow it) gives the beam that much more room — the standard seats, what each leaves and whether the beam then fits
     let row3 = '';
-    if (cause !== 'range' && st && ms.some(m => needD(m))) {
-      const fit = seatIn => ms.every(m => needD(m) && Math.floor(roomAt(now(m), seatIn) + 1e-6) >= needD(m));
+    if (cause !== 'range' && st && ms.some(m => needIn(m))) {
+      const fit = seatIn => ms.every(m => needIn(m) && roomAt(now(m), seatIn) + 1e-3 >= needIn(m));
+      // or with the setback: every mark the setback alone does, or whose set-back beam then fits
+      const fitSb = seatIn => offer.length > 0 && ms.every(m => { const sb = m.rescue.setback; if (sb.state === 'offer' && sb.best) return true; const q = withSb(m) || now(m); return q && !q.none && roomAt(q, seatIn) + 1e-3 >= q.needIn; });
       const std = [[2.5, 'K-series'], [5, 'LH-series']].filter(([v]) => v < st.seatIn - 1e-6);
-      const seatChip = ([v, series]) => { const r = (st.A - st.C) * 12 - st.slabIn - v, ok = fit(v); return `<button class="chip${ok ? ' chip-fit' : ''}" data-dc="seat" data-v="${v / 12}">${inch(v)} seat · ${series}<small>${inch(r)} of room — ${ok ? `the ${Math.max(...ms.map(needD).filter(Boolean))}" beam fits` : 'still short'}</small></button>`; };
+      const seatChip = ([v, series]) => { const r = (st.A - st.C) * 12 - st.slabIn - v, ok = fit(v), okSb = !ok && fitSb(v); return `<button class="chip${ok || okSb ? ' chip-fit' : ''}" data-dc="seat" data-v="${v / 12}">${inch(v)} seat · ${series}<small>${inch(r)} of room — ${ok ? `the ${Math.max(...ms.map(needD).filter(Boolean))}" beam fits with its sag` : okSb ? 'enough with the setback' : 'still short'}</small></button>`; };
       row3 = std.length
         ? `<div class="need-row dc-row"><label>Check the joist seat<small>The room is measured down from the joist seat, ${inch(st.seatIn)} here${SRC[seatSrc] ? ` (${SRC[seatSrc]})` : ''}. K-series joists sit on a 2 1/2" seat and LH-series on 5"; if the joists on this job have a shallower seat, the beam gets that much more room.</small></label>
             <input data-dc="seatIn" placeholder="seat, e.g. ${std[std.length - 1][0]}&quot;" aria-label="Joist seat depth" autocomplete="off">
@@ -8793,18 +8857,19 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   function decideRequest(ms) {
     const fixed = m => m.rescue.setback.state === 'offer' && m.rescue.setback.best;
     const offer = ms.some(m => m.rescue.setback.state === 'offer'), useSb = offer && ms.some(m => !fixed(m));
-    const q = m => { const rs = m.rescue; return rs.clear ? (rs.setback.state === 'offer' ? (useSb && !fixed(m) ? rs.clear : rs.clear.grid) : rs.clear) : null; };
+    const q = m => (useSb && !fixed(m) ? m.rescue.clear : clearNow(m));
     const list = ms.filter(m => !(useSb && fixed(m)) && q(m) && !q(m).none), by = needBy(list.map(q)), st = ms.map(m => m.rescue.clear).find(Boolean).stack, job = state.inputs.job;
     if (!list.length || !st) return `${job.quote ? job.quote + ': ' : ''}the mezzanine beams need more depth than the clear height under them leaves — the span or the trib has to come down (Plan page).`;
     const name = i => { const id = inputsOf(i).mezz.id; return !id ? 'Mezzanine ' + (i + 1) : /^\d+$/.test(id) ? 'Mezzanine ' + id : id; };
     const mz = [...new Set(ms.flatMap(m => (m.mezzIds || []).map(name)))].join(' and ');
-    const deep = list.reduce((a, m) => (q(m).d > q(a).d ? m : a), list[0]), d = q(deep).d;
-    const span = ft(useSb && deep.rescue.setback.state === 'offer' ? deep.rescue.setback.span : mkDz(deep).span), several = list.length > 1;
+    const deep = list.reduce((a, m) => (q(m).needIn > q(a).needIn ? m : a), list[0]), d = q(deep).d, sag = q(deep).dTL, needR = q(deep).needIn;
+    const sbDeep = useSb && deep.rescue.setback.state === 'offer', sbIn = deep.rescue.setback.state === 'applied';
+    const span = ft(sbDeep ? deep.rescue.setback.span : mkDz(deep).span), several = list.length > 1;
     // the same change on every mezzanine reads as one value; otherwise each mezzanine's own
     const ask = (k, verb, word) => { const v = [...new Set(by.map(x => +x[k].toFixed(4)))], dv = [...new Set(by.map(x => +((k === 'needC' ? x.C - x.needC : x.needA - x.A) * 12).toFixed(3)))];
       return v.length === 1 ? `${verb} to ${ft(v[0])}${dv.length === 1 ? ` (${inch(dv[0])} ${word})` : ''}` : `${verb}: ${by.map(x => `${name(x.mi)} to ${ft(x[k])}`).join(', ')}`; };
-    const beams = useSb ? `Even with the beams shortened to a ${span} span at the wall columns, they need ${several ? 'up to ' : ''}${d}".`
-      : several ? `The beams span up to ${span} and need up to ${d}".` : `The beams span ${span} and need ${d}".`;
+    const sagTxt = `the beam that needs the least room is ${d}" deep and sags ${sag.toFixed(2)}" under the full load, so it needs ${needR.toFixed(2)}"`;
+    const beams = sbDeep ? `Even with the beams shortened to a ${span} span at the wall columns, ${sagTxt}.` : sbIn ? `With the beams already set back at the wall columns (a ${span} span), ${sagTxt}.` : `The beams span ${several ? 'up to ' : ''}${span}; ${sagTxt}.`;
     return [
       'Hi,',
       '',
@@ -10256,12 +10321,12 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const pick = mk.options.find(o => o.key === mk.optionKey);
     el.innerHTML = `<ol>
       <li><b>The load on the beam.</b> Floor dead ${f(p.dead, 1)} + collateral ${f(p.coll, 1)} + joists ${f(p.joistWt, 1)} = <span class="eq">${f(D, 1)} psf</span>, live <span class="eq">${f(p.live, 1)} psf</span>${s.partitionTo === 'live' && +inp.loads.partition.value ? ` (partition ${f(+inp.loads.partition.value, 1)} psf in it)` : ''}, over a <span class="eq">${ft(dz.trib)}</span> trib${mk.kind ? ` — the largest ${esc(mk.kind)} trib of the mark` : ''}: <span class="eq">w = ${f(D * dz.trib / 1000, 3)} k/ft dead, ${f(p.live * dz.trib / 1000, 3)} k/ft live</span> (+ the beam's own weight, as the MB sheet adds it), on a <span class="eq">${ft(dz.span)}</span> span${dz.set ? ' (design span set above)' : ''}. The joists brace the top flange every <span class="eq">${ft(p.Lb)}</span>.</li>
-      <li><b>How deep it can be.</b> ${sr.dTop < sr.options.dMax ? `Clearance (C) under the floor beams caps it: <span class="eq">(A − C) × 12 − slab − seat = (${ft(A)} − ${ft(C)}) × 12 − ${f(slab, 2)} − ${f(seat, 2)} = ${f(mk.maxDepth, 0)}"</span>.` : `No clearance (C) limit below the ${sr.options.dMax}" top of the range (Settings).`} Depths ${sr.options.dMin}"–${sr.dTop}" are searched, an inch at a time.</li>
+      <li><b>How deep it can be.</b> ${sr.dTop < sr.options.dMax ? `Clearance (C) under the floor beams leaves the room for the beam and its sag: <span class="eq">(A − C) × 12 − slab − seat = (${ft(A)} − ${ft(C)}) × 12 − ${f(slab, 2)} − ${f(seat, 2)} = ${f(sr.room != null ? sr.room : mk.maxDepth, 2)}"</span>. A section fits when its depth plus its total-load deflection (the MB sheet's TOTAL LOAD max deflection) is within that — the bottom of the beam at midspan, sagged, stays at or above C${mk.check ? `: ${esc(mk.desc)} is <span class="eq">${mk.sec.d}" + ${f(mk.check.defl.TL, 2)}" = ${f(mk.sec.d + mk.check.defl.TL, 2)}"</span>` : ''}.` : `No clearance (C) limit below the ${sr.options.dMax}" top of the range (Settings).`} Depths ${sr.options.dMin}"–${sr.dTop}" are searched, an inch at a time.</li>
       <li><b>The plates.</b> ${esc(div)} stock (DM 5.1): webs ${stock.webs.map(t => 'W' + String(Math.round(t * 1000)).padStart(3, '0')).join(', ')}; flanges ${stock.flanges.length} widths × thicknesses, 6"–12" × ¼"–1"${s.symmetric ? ', the same plate top and bottom' : ''}. <b>${sr.evaluated.toLocaleString()}</b> combinations were run through the MB sheet${removed.length ? `; ${removed.reduce((a, x) => a + x[1], 0).toLocaleString()} more were left out by the NBG Production Guidelines: ${removed.map(([k, n]) => `${n.toLocaleString()} ${RULE_TXT[k] || k}`).join(' · ')}` : ''}.</li>
       <li><b>What has to pass</b> (each combination, MB sheet, ASD ${esc(edLabel(state.res.edition.beamEd || ''))}): combined stress ratio ≤ ${s.target} (flexure with the joists bracing the top flange), shear ≤ ${s.target}, live deflection ≤ L/360, total ≤ L/240${s.requireConc ? ', and the joist-seat concentrated-load (bearing) check' : ''}. <b>${nPass.toLocaleString()}</b> pass.</li>
       <li><b>The options.</b> ${(() => { const gs = []; mk.options.forEach(o => { const g = gs.find(x => sameSec(x.sec, o.pick.sec)); if (g) g.roles.push(o); else gs.push({ sec: o.pick.sec, pick: o.pick, roles: [o] }); }); return !gs.length ? 'None: no stocked section passes for these loads within the depth the clearance allows.<ul>' : `${gs.length === 1 ? 'They all land on one section' : `${gs.length} different sections`}:<ul>${gs.map(g => `<li><b>${esc(g.pick.desc)}</b> (${f(g.pick.wt, 1)} plf, ${esc(g.pick.flange)} on ${esc(g.pick.web)}) — ${g.roles.map(o => `<b>${esc(o.label)}</b>: ${esc(o.why)}`).join(' ')}</li>`).join('')}</ul>`; })()}
         ${fit && fit.steps ? `<h5>Best fit, step by step (the quote engineer's method)</h5><ol class="fit-steps">${fit.steps.map(st => `<li>${esc(st.text)}${st.tries && st.tries.length > 1 ? `<div class="fit-tries">${st.tries.map(t => `<span class="${t.ok ? 'ok' : 'no'}">${esc(t.sec || t.web || (t.d != null ? t.d + '"' : ''))}${t.CSR != null ? ` · ${f(t.CSR, 2)}` : t.shear != null ? ` · shear ${f(t.shear, 2)}` : ''}${!t.ok && t.why ? ` — ${esc(t.why)}` : ''}</span>`).join('')}</div>` : ''}</li>`).join('')}</ol>` : ''}
-        ${mk.deeper && mk.deeper.length ? `<h5>More depth (needs a lower clearance C)</h5><p>${mk.deeper.map(z => `${z.d}" ${esc(z.desc)} ${f(z.wt, 1)} plf (C ≤ ${ft(z.needC)})`).join(' · ')}</p>` : ''}</li>
+        ${mk.deeper && mk.deeper.length ? `<h5>Lighter, but needs a lower clearance C (depth + sag over the room)</h5><p>${mk.deeper.map(z => `${z.d}" ${esc(z.desc)} ${f(z.wt, 1)} plf, ${f(z.need, 2)}" with its sag (C ≤ ${ft(z.needC)})`).join(' · ')}</p>` : ''}</li>
       <li><b>On the quote:</b> ${pick ? `<b>${esc(pick.label)}</b> — ${mk.pinned && mk.pinned.key ? 'picked on the Design page' : (pick.key !== s.optionDefault ? `the default option (Settings: ${esc(({ lightest: 'Lightest', fit: 'Best fit', econ: 'Most economical' })[s.optionDefault] || s.optionDefault)}) lands on this same section` : 'the default option (Settings)')}` : mk.optionKey === 'custom' ? 'a section picked by depth or by hand' : 'nothing passes'}: <b>${esc(mk.desc || 'NO SECTION')}</b>${mk.check ? ` — combined ${f(mk.check.res.CSR, 3)}, shear ${f(mk.check.res.SRvx, 3)}, live L/${f(mk.check.defl.rLL, 0)}, total L/${f(mk.check.defl.rTL, 0)}; end shear ${f(mk.check.V.D, 2)} k dead, ${f(mk.check.V.L, 2)} k live to the column or frame` : ''}.${(mk.spanRuns || []).length > 1 ? ` The shorter members of the mark (${mkShort(mk)}) take the same section, each checked at its own length.` : ''}</li>
     </ol>`;
   }
@@ -10326,7 +10391,9 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     }
     else {
       const x = c.res, clear = r.clear;
-      const clr = (k, lab) => [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${clear[k].ok === false ? '· NO GOOD' : clear[k].ok ? '· OK' : ''}`, clear[k].ok === false ? 'ng' : ''];
+      // the sheet's own rows (C from the depth alone, as the MB sheet's INPUT has it), then C at midspan with the sag
+      const clr = (k, lab) => { const ok = k === 'C' ? clear[k].okSheet : clear[k].ok; return [lab, `${clear[k].req != null ? f(clear[k].req, 2) : '—'} req · ${clear[k].prov != null ? f(clear[k].prov, 2) : '—'} prov ${ok === false ? '· NO GOOD' : ok ? '· OK' : ''}`, ok === false ? 'ng' : '']; };
+      const mid = clear.C && clear.C.mid != null && clear.C.sag ? [`C at midspan, less the beam's sag (${clear.C.sag.mark} ${f(clear.C.sag.d, 0)}" + ${f(clear.C.sag.tl, 2)}")`, `${clear.C.req != null ? f(clear.C.req, 2) : '—'} req · ${f(clear.C.mid, 2)} prov ${clear.C.ok === false ? '· NO GOOD' : clear.C.ok ? '· OK' : ''}`, clear.C.ok === false ? 'ng' : 'hl'] : null;
       const lv = dz.set ? layoutV(mk, run) : null;
       $('#mbSheet').innerHTML = beamViz(mk, r, run) + (lv
         ? `<div class="frame-strip"><span class="eyebrow">Floor loads to the frame and columns · ${mk.mark} at the layout ${ft(run.span)} × ${ft(mk.trib)}</span><b>Dead ${f(lv.D, 3)} k</b><b>Live ${f(lv.L, 3)} k</b><small>per beam end, ${esc(mk.desc)} — the MB sheet below is at the design ${ft(runL(run))} × ${ft(dz.trib)} (shear D ${f(c.V.D, 3)} / L ${f(c.V.L, 3)} k, highlighted)</small></div>`
@@ -10334,7 +10401,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
           ['Dead, (psf)', f(p.dead, 1)], ['Collateral, (psf)', f(p.coll, 1)], ['Live, (psf)', f(p.live, 1)], ['Est. Joist Wt., (psf)', f(p.joistWt, 1)],
           ['Top of Mezzanine, (ft.)', f(inp.geom.A.value, 3)], ['Slab & Deck Thickness, (in.)', f(inp.geom.slab.value * 12, 3)], ['Joist Seat Depth, (in.)', f(inp.geom.seat.value * 12, 3)],
           ['Total Joist Depth, (in.)', r.joistDepthIn != null ? f(r.joistDepthIn, 2) : '—'], ['Beam Depth, (in.)', mk.sec.d],
-          clr('A', 'A - Finish floor to top of mezz'), clr('B', 'B - Clearance under joist'), clr('C', 'C - Clearance under support beams'),
+          clr('A', 'A - Finish floor to top of mezz'), clr('B', 'B - Clearance under joist'), clr('C', 'C - Clearance under support beams'), ...(mid ? [mid] : []),
         ]);
     }
     renderXlBeam(mk, run);
@@ -10725,9 +10792,10 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const cap = sr0 && sr0.dTop < sr0.options.dMax ? sr0.dTop : null;
     // the near-section search stops at the clearance cap of the mark it would go on (never below the low end)
     const nearHi = sc => { const lo = Math.max(state.settings.dMin, sc.d - 3), hi = Math.min(state.settings.dMax, sc.d + 3); return cap != null ? Math.max(lo, Math.min(hi, cap)) : hi; };
-    const overC = d => (cap != null && d > cap ? `<small class="dz-flag">deeper than ${esc(um0.mark)}'s clearance allows (${cap}")</small>` : '');
+    const room0 = sr0 && sr0.room != null ? sr0.room : null;
+    const overC = (d, tl) => (room0 != null && tl != null ? (d + tl > room0 + 1e-3 ? `<small class="dz-flag">${d}" deep + ${f(tl, 2)}" sag = ${f(d + tl, 2)}" — more than the ${f(room0, 2)}" of room under ${esc(um0.mark)}'s clearance C</small>` : '') : cap != null && d > cap ? `<small class="dz-flag">deeper than ${esc(um0.mark)}'s clearance allows (${cap}")</small>` : '');
     out.innerHTML = `<div class="panel dz-res">
-      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf · ${secParts(DESIGN.secDims(sec))}</small></h3>${overC(DESIGN.secDims(sec).d)}</div>
+      <div class="dz-res-head"><div><div class="eyebrow">MB sheet · AISC ${esc(b.ed)}th</div><h3 class="nocase">${esc(c.desc)} <small>${f(x.Wt, 1)} plf · ${secParts(DESIGN.secDims(sec))}</small></h3>${overC(DESIGN.secDims(sec).d, c.defl ? c.defl.TL : null)}</div>
         <span class="dz-pill ${pass ? 'ok' : 'ng'}">${pass ? 'Passes' : 'Does not pass'}${gov ? ` · ${gov[0]} ${gov[0].includes('deflection') ? `L/${f(gov[0] === 'live deflection' ? c.defl.rLL : c.defl.rTL, 0)}` : f(gov[1], 3)}` : ''}</span></div>
       <div class="dz-tiles">
         ${tile('Floor dead · each end', `${f(c.V.D, 3)} k`, null, 'MB H6 · to the column / frame')}
@@ -10744,7 +10812,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         ${marks.length ? `<label class="dz-use">Use for ${dzSel('beam.useMark', b.useMark || (marks.find(m => m.mark === b.from) || marks[0]).mark, marks.map(m => [m.mark, `${m.mark}${m.kind ? ' · ' + m.kind : ''} (now ${m.desc || 'NO SECTION'})`]))}</label><button class="btn-soft" id="dzUse" type="button" ${pass ? '' : 'title="It does not pass — it can still be used, flagged on the Design page"'}>Use this section</button>` : '<span class="sub-n">Load a PCS to use this section for a beam mark.</span>'}
         ${sec.type === 'BU' ? `<button class="btn-ghost" id="dzNear" type="button">Sections that pass, ${Math.max(state.settings.dMin, sec.d - 3)}"–${nearHi(sec)}"${cap != null && cap < Math.min(state.settings.dMax, sec.d + 3) ? ` (${esc(um0.mark)}'s clearance)` : ''}, lightest first</button>` : ''}
       </div>
-      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b>${overC(z.d)}</td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
+      ${near ? `<div class="table-wrap"><table class="fl-t dz-near"><thead><tr><th class="num">Depth</th><th>Section</th><th>Web</th><th>Flanges</th><th>Econ.</th><th class="num">plf</th><th class="num">Combined</th><th class="num">Shear</th><th class="num">Live</th><th></th></tr></thead><tbody>${near.length ? near.map((z, i) => `<tr><td class="num mono">${z.d}"</td><td class="mono"><b>${esc(z.desc)}</b>${overC(z.d, z.dTL)}</td><td class="mono">${esc(z.web)}</td><td class="mono">${esc(z.flange)}</td><td>${z.tier}</td><td class="num mono">${f(z.wt, 1)}</td><td class="num mono">${f(z.CSR, 3)}</td><td class="num mono">${f(z.SRv, 3)}</td><td class="num mono">L/${f(z.rLL, 0)}</td><td><button class="btn-ghost dz-take" data-i="${i}" type="button">Load</button></td></tr>`).join('') : '<tr><td colspan="10" class="sub-n">Nothing stocked passes in this depth range.</td></tr>'}</tbody></table></div>` : ''}
       <details class="dz-sheet"><summary>The full MB sheet</summary>${mbSheetBody(c, p, sec, null)}</details>
     </div>`;
     const use = $('#dzUse');
@@ -10875,7 +10943,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       fieldRow('loads.dead', 'Dead, (psf)', 'num'), deadReset, concSel, deckSel, fieldRow('loads.coll', 'Collateral, (psf)', 'num'), fieldRow('loads.live', 'Live, (psf)', 'num'),
       fieldRow('loads.partition', 'Partition, (psf)', 'num', `added to ${state.settings.partitionTo}`), fieldRow('loads.joistWt', 'Est. joist wt., (psf)', 'num'),
       '<div class="group-title">Elevations &amp; joists</div>',
-      fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under support beams', 'ftin', state.inputs.geom.C && state.inputs.geom.C.source === 'none' ? 'no requirement (entered)' : 'caps the beam depth: A − C − slab − seat'),
+      fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under support beams', 'ftin', state.inputs.geom.C && state.inputs.geom.C.source === 'none' ? 'no requirement (entered)' : 'the beam and its sag fit in A − C − slab − seat'),
       fieldRow('geom.slab', 'Slab & deck thickness, (in.)', 'in'), fieldRow('geom.seat', 'Joist seat depth, (in.)', 'in'), fieldRow('geom.joistSpacing', 'Joist spacing (= beam Lb)', 'ftin'),
       `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
       '<div class="group-title">Mezzanine footprint</div>',

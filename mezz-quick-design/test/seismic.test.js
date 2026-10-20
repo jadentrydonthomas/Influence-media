@@ -69,7 +69,10 @@ if (!ok) { console.log('seismic tests passed (engine vs the workbook; W1S-26062 
   const { loadJob } = require('../oracle/job_load.js');
   const RUN = require('../src/run.js');
   const { inps } = await loadJob(pdf);
-  const items = inps.map(inp => ({ inp, settings: {} }));
+  // as the practice inputs leave it, MB1 waits on a decision (15" of room under C, 16.03" with its sag): the Seismic page
+  // waits too. The job as quoted takes the frame column setback (MB1 BU14x94, MB2 BU13x48)
+  assert.ok(RUN.runJob(inps.map(inp => ({ inp, settings: {} }))).seismic.need.some(n => /^MB1 sized on the Design page/.test(n)));
+  const items = inps.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } }));
   // roof dead is "Per Seller" on the PCS: asked for, never guessed
   let sj = RUN.runJob(items).seismic;
   assert.ok(!sj.ok && /roof dead load/.test(sj.need.join(' ')));

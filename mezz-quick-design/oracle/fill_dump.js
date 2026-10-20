@@ -13,11 +13,11 @@ const WB = process.env.MZ_WORKBOOKS || path.join(__dirname, '..', 'private', 'wo
   for (const pdf of process.argv.slice(3)) {
     const ld = await loadJob(pdf), { pcs, inps } = ld, q = pcs.job.quote;
     // MZ_SETTINGS: settings for every mezzanine (JSON); colOverride "alt" takes the job's lighter built-up column
-    let job = ld.job;
+    let job = ld.job, used = {};
     if (process.env.MZ_SETTINGS) {
       const st = JSON.parse(process.env.MZ_SETTINGS), RUN0 = require('../src/run.js');
       if (st.colOverride === 'alt') { const a = job.colAlt; if (!a) { console.log(q, 'no built-up alternative — skipped'); continue; } st.colOverride = { type: 'BU', d: a.sec.d, tw: a.sec.tw, bf: a.sec.bof, tf: a.sec.tof }; }
-      job = RUN0.runJob(inps.map(inp => ({ inp, settings: { ...st } })));
+      job = RUN0.runJob(inps.map(inp => ({ inp, settings: { ...st } }))); used = st;
     }
     const books = [];
     job.excel.beam.forEach((b, i) => books.push({ kind: 'beam', file: b.file, runs: [{ steps: b.inputs[0].steps.concat(b.sheets.flatMap(s => s.steps)), read: b.sheets.flatMap(s => s.read).concat(b.inputs[0].read) }], tag: `beam${i + 1}` }));
@@ -25,7 +25,7 @@ const WB = process.env.MZ_WORKBOOKS || path.join(__dirname, '..', 'private', 'wo
     // the seismic workbook, a copy per frame line (roof dead is "Per Seller" on these PCSs: a stand-in where it is missing)
     const RUN = require('../src/run.js');
     let sj = job.seismic;
-    if (sj && !sj.ok) sj = RUN.runJob(inps.map(inp => ({ inp, settings: {} })), { seis: { buildings: Object.fromEntries(sj.buildings.map(b => [b.bkey, { RDL: 4.66 }])) } }).seismic;
+    if (sj && !sj.ok) sj = RUN.runJob(inps.map(inp => ({ inp, settings: { ...used } })), { seis: { buildings: Object.fromEntries(sj.buildings.map(b => [b.bkey, { RDL: 4.66 }])) } }).seismic;
     (sj && sj.ok ? sj.buildings : []).forEach((b, bi) => (b.workbook ? b.workbook.frames : []).forEach(fr => books.push({ kind: 'seismic', file: b.workbook.file, runs: [{ steps: b.workbook.input.concat(b.workbook.long, fr.steps), read: fr.read.concat(b.workbook.longRead) }], tag: `seis-b${bi + 1}-f${fr.label}` })));
     for (const b of books) {
       const src = fs.readFileSync(path.join(WB, b.file));

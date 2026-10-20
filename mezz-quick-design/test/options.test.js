@@ -34,22 +34,28 @@ const pick = (m, k) => (m.options.find(o => o.key === k) || {}).pick;
     assert.strictEqual(new Set(mb1.options.map(o => o.pick.desc)).size, 3);
     assert.ok(mb1.options.every(o => o.pick.CSR <= 0.99 && o.pick.SRv <= 0.99 && o.pick.rLL >= 360 && o.pick.rTL >= 240));
   }
-  // W1S-26062: the clearance leaves 15" — one design there; the other two cards are 16" and 17", each with the C it needs
+  // W1S-26062 as quoted (the frame column setback, 22'-8" clear span): 15" of room under C for the beam and its total-load
+  // sag — one design for MB1 there (BU14x94, 14" + 0.98"); the other two cards are 15" and 16", each with the C it needs
   {
-    const { job } = await loadJob(path.join(dir, 'PCS_job3.pdf'));
+    const { inps } = await loadJob(path.join(dir, 'PCS_job3.pdf'));
+    const job = require('../src/run.js').runJob(inps.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } })));
     const mb1 = job.marks.find(m => m.mark === 'MB1');
-    assert.strictEqual(pick(mb1, 'lightest').desc, 'BU15x95');
-    assert.strictEqual(pick(mb1, 'econ').desc, 'BU15x95');
+    assert.strictEqual(pick(mb1, 'lightest').desc, 'BU14x94');
+    assert.strictEqual(pick(mb1, 'econ').desc, 'BU14x94');
     // the method lands on the lightest and nothing shallower passes: best fit is that section (one card, two roles)
     const fit1 = mb1.options.find(o => o.key === 'fit');
-    assert.strictEqual(fit1.pick.desc, 'BU15x95');
+    assert.strictEqual(fit1.pick.desc, 'BU14x94');
     assert.ok(fit1.sameAs.includes('lightest') && /nothing shallower passes/.test(fit1.steps[fit1.steps.length - 1].text));
+    assert.ok(/^Start as deep as the clearance allows: 14" — the 15" of room under C has to take the beam and its total-load sag, and at 15" nothing fits with its sag\.$/.test(fit1.steps[0].text), fit1.steps[0].text);
     const deep = mb1.options.filter(o => /^deeper/.test(o.key));
-    assert.deepStrictEqual(deep.map(o => o.pick.desc), ['BU16x77', 'BU17x71']);
-    assert.ok(Math.abs(deep[0].needC - (11.5 - (4 + 5) / 12 - 16 / 12)) < 1e-9, 'C = A − slab − seat − d');
-    assert.deepStrictEqual(mb1.deeper.map(z => z.d), [16, 17, 18, 19, 20, 21]);
+    assert.deepStrictEqual(deep.map(o => o.pick.desc), ['BU15x73', 'BU16x64']);
+    // C = A − slab − seat − (depth + sag), on the 1/8" grid and never more than that leaves
+    const z = mb1.deeper[0], exact = 11.5 - (4 + 5 + z.need) / 12;
+    assert.ok(z.need > 15 && Math.abs(deep[0].needC - z.needC) < 1e-9 && z.needC <= exact + 1e-9 && exact - z.needC < 1 / 96 && Math.abs(z.needC * 96 - Math.round(z.needC * 96)) < 1e-6, 'C = A − slab − seat − depth − sag');
+    assert.deepStrictEqual(mb1.deeper.map(z => z.d), [15, 16, 17, 18, 19, 20, 21]);
     const mb2 = job.marks.find(m => m.mark === 'MB2');
     assert.strictEqual(new Set(mb2.options.map(o => o.pick.desc)).size, 3);
+    assert.ok(mb1.options.concat(mb2.options).filter(o => !/^deeper/.test(o.key)).every(o => o.pick.need <= 15 + 1e-3), 'every card that needs no new C fits the 15" with its sag');
   }
   // W0S-26160 MB2: the lightest uses a somewhat-economical (yellow) flange; the most economical is green
   {
@@ -59,5 +65,5 @@ const pick = (m, k) => (m.options.find(o => o.key === k) || {}).pick;
     assert.strictEqual(pick(mb2, 'econ').tier, 'G');
     assert.ok(pick(mb2, 'econ').wt > pick(mb2, 'lightest').wt);
   }
-  console.log('options tests passed (three different designs a mark: W2H-26018 lightest = economical BU24x30, best fit 23" BU23x32 by the method\'s lesser-depth step; W1S-26062 BU15x95 at the 15" cap with 16" / 17" options and the C each needs; W0S-26160 MB2 green over yellow)');
+  console.log('options tests passed (three different designs a mark: W2H-26018 lightest = economical BU24x30, best fit 23" BU23x32 by the method\'s lesser-depth step; W1S-26062 as quoted BU14x94, 14" + 0.98" sag in 15" of room, with 15" / 16" options and the C each needs; W0S-26160 MB2 green over yellow)');
 })().catch(e => { console.error(e); process.exit(1); });

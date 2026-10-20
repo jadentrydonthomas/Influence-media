@@ -50,16 +50,17 @@ const r4 = a => a.map(v => +v.toFixed(4));
   assert.ok(stops.length && stops.every(t => /no stocked BU section|not sized/.test(t)), stops.join('\n'));
   // what next: the beams that run into the LEW end at its columns, held in from the grid by the girts — 1'-4" at the
   // rigid end frame (1/B on line B for MB1; 1/A and 1/C for MB2). The longest beams left are the 30'-0" ones, and
-  // nothing passes there either, so the clear height: 19" (MB1) at the clear span, C 8'-1"
+  // nothing fits the 14" there either, so the clear height: at the clear span MB1 takes the least room as BU19x111,
+  // 19" + 1.47" sag = 20.47" — C 7'-11 1/2" (on the 1/8" grid, never more than that leaves) or the floor at 11'-0 1/2"
   const F = require('../src/pcs.js').fmtFtIn, [k1, k2] = job.marks;
   assert.ok(k1.rescue.setback.state === 'offer' && k1.rescue.setback.span === 30 && !k1.rescue.setback.best && k1.rescue.setback.ends.map(e => `${e.label} ${e.wall} ${e.kind} ${F(e.ft)}`).join() === `1/B LEW rigid 1'-4"`);
-  assert.ok(k1.rescue.clear.d === 19 && F(k1.rescue.clear.needC) === `8'-1"` && F(k1.rescue.clear.needA) === `10'-11"` && /^Mezzanine 1: MB1 /.test(k1.rescue.clear.request), k1.rescue.clear.request);
+  assert.ok(r.roomIn === 14 && k1.rescue.clear.d === 19 && k1.rescue.clear.best.desc === 'BU19x111' && Math.abs(k1.rescue.clear.needIn - 20.469) < 5e-4 && F(k1.rescue.clear.needC) === `7'-11 1/2"` && F(k1.rescue.clear.needA) === `11'-0 1/2"` && /^Mezzanine 1: MB1 .* a 19" beam \(BU19x111, 1\.47" sag\) then works\.$/.test(k1.rescue.clear.request), k1.rescue.clear.request);
   assert.deepStrictEqual(k2.rescue.setback.ends.map(e => `${e.label} ${e.kind} ${F(e.ft)}`).sort(), [`1/A rigid 1'-4"`, `1/C rigid 1'-4"`]);
-  assert.ok(k2.rescue.setback.state === 'offer' && k2.rescue.setback.span === 30 && !k2.rescue.setback.best && k2.rescue.clear.withSetback && k2.rescue.clear.grid.d === 16, JSON.stringify([k2.rescue.setback.state, k2.rescue.clear.d]));
+  assert.ok(k2.rescue.setback.state === 'offer' && k2.rescue.setback.span === 30 && !k2.rescue.setback.best && k2.rescue.clear.withSetback && k2.rescue.clear.d === 15 && F(k2.rescue.clear.needC) === `8'-3 1/2"` && k2.rescue.clear.grid.d === 16 && F(k2.rescue.clear.grid.needC) === `8'-2 1/2"`, JSON.stringify([k2.rescue.setback.state, k2.rescue.clear.d]));
   assert.ok(k2.beamsAll.some(x => x.ends.some(e => e.why === 'interior column, on its grid line')) && k2.beamsAll.some(x => x.ends.some(e => e.why === 'the beam runs along the wall')));
   // the notes a missing section brings are tagged, so the page asks for the decision in their place
   assert.ok(r.warn.filter(w => w.level === 'stop').every(w => w.tag === 'nosec'));
-  assert.ok(stops.some(t => /^MB1: .* What next \(the card at the top of the Design page\): the frame column setback \(30'-0" clear span\) does not do it on its own; or more clear height — a 19" beam needs C 8'-1"/.test(t)));
+  assert.ok(stops.some(t => /^MB1: .* What next \(the card at the top of the Design page\): the frame column setback \(30'-0" clear span\) does not do it on its own; or more clear height with the setback — a 19" beam \(1\.47" sag\) needs C 7'-11 1\/2" \(now 8'-6"\)/.test(t)));
   // C entered as no requirement: every beam sized, and line 4 takes the 1'-3" overhang the end beams cantilever to it
   const c2 = JSON.parse(JSON.stringify(inps));
   c2[0].geom.C = { value: null, source: 'none' };
