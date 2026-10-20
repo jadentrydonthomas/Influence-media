@@ -69,6 +69,12 @@ const PLAN = require('../src/plan.js');
     assert.deepStrictEqual(why(n2), [`Mezz 1 1/A 1'-4"`, `Mezz 1 1/B 0'-0"`, `Mezz 1 6/A 1'-4"`, `Mezz 1 6/B 0'-0"`, `Mezz 2 1/B 0'-0"`, `Mezz 2 1/C 0'-0"`, `Mezz 2 1/E 0'-0"`]);
     assert.ok(n1.beamsAll.some(x => x.ends.some(e => e.label === '2/E' && e.ft === 0 && e.why === 'interior column, on its grid line')));
     assert.ok(cl.d === 15 && cl.best.desc === 'BU15x73' && F(cl.needC) === `9'-5"` && F(cl.needA) === `11'-7"` && cl.withSetback && cl.grid.d === 15 && cl.grid.best.desc === 'BU15x95', JSON.stringify([cl.d, cl.best && cl.best.desc, F(cl.needC), F(cl.needA)]));
+    // the room for the beam, term by term, as the card spells it out: A 11'-6" − C 9'-6" − slab 4" − seat 6" = 14"; with the
+    // 5" LH seat it is 15" and the 15" beam fits (no decision at all)
+    assert.ok(cl.stack && cl.stack.id === 'Mezz 1' && cl.stack.A === 11.5 && cl.stack.C === 9.5 && cl.stack.slabIn === 4 && cl.stack.seatIn === 6 && Math.abs(cl.stack.room - 14) < 1e-9 && cl.per.every(p => p.slabIn === 4 && p.seatIn === 6), JSON.stringify(cl.stack));
+    const five = JSON.parse(JSON.stringify(inps)); five.forEach(inp => { inp.geom.seat = { value: 5 / 12, source: 'manual' }; });
+    const fj = RUN.runJob(five.map(inp => ({ inp, settings: {} })));
+    assert.ok(fj.mezz[0].maxDepthByC === 15 && fj.marks.map(m => m.desc).join(' / ') === 'BU15x95 / BU15x42' && fj.marks.every(m => !m.rescue), fj.marks.map(m => m.desc).join(' / '));
     assert.ok(/^Mezz 1 \/ Mezz 2: MB1 \(6 beams, 22'-8" clear span with the frame column setback × 28'-0" trib\) has no beam section within the 14" of depth .* Requesting C 9'-5" clear under the beams, or the floor raised to 11'-7": a 15" beam \(BU15x73\) then works\.$/.test(cl.request), cl.request);
     assert.ok(nj.mezz[0].warn.some(w => w.level === 'stop' && /^MB1: no stocked BU section .* What next \(the card at the top of the Design page\): the frame column setback — at the 22'-8" clear span BU14x94 passes; or more clear height — a 15" beam needs C 9'-5" \(now 9'-6"\) or the floor at 11'-7"\./.test(w.text)));
     // picked: each member length less its own setback — Mezz 2's 20'-0" and 16'-0" MB1 beams end on 2/E (interior) and

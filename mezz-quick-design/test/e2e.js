@@ -56,9 +56,9 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
     const d = await page.evaluate(() => ({ title: document.querySelector('#resTitle').innerText.replace(/\s+/g, ' '), status: document.querySelector('#statusText').textContent, card: document.querySelector('#decideCard').innerText.replace(/\s+/g, ' '), metrics: document.querySelectorAll('#metrics .metric').length, quote: document.querySelectorAll('#quoteSheet table').length, stops: [...document.querySelectorAll('#warnings .note.stop')].map(n => n.textContent) }));
     console.log('decision', d.title, '|', d.status, '|', d.card.slice(0, 220));
     if (!/one decision to make/.test(d.title) || d.status !== 'One decision to make' || d.metrics || d.quote || d.stops.some(t => /no stocked BU section|not sized/.test(t))) fail('a mark with no section should ask for the decision, not show a failing design');
-    if (!/Set the beams back at the wall columns/.test(d.card) || !/Request more clear height|Shorten the span/.test(d.card)) fail('the decision should offer the setback and the clear height');
+    if (!/Set the beams back at the wall columns/.test(d.card) || !/Make room for a deeper beam|Shorten the span/.test(d.card)) fail('the decision should offer the setback and the clear height');
     const cp = await page.$('#decideCard [data-dc="copy"]');
-    if (cp) { await cp.click(); await page.waitForTimeout(120); const r = await clip(); console.log('clear-height request', r); if (r != null && !/Requesting C \d+'-\d/.test(r)) fail('the request should name the clear height to ask for'); }
+    if (cp) { await cp.click(); await page.waitForTimeout(120); const r = await clip(); console.log('clear-height request', r); if (r != null && !/Lower the clear height under the beams to \d+'-\d/.test(r)) fail('the request should name the clear height to ask for'); }
     const pick = (await page.$('#decideCard [data-dc="setC"][data-sb="1"]')) || (await page.$('#decideCard [data-dc="setC"]')) || (await page.$('#decideCard [data-dc="setback"]'));
     if (pick) { await pick.click(); await page.waitForTimeout(1500); console.log('decided', await page.$eval('#toast', e => e.textContent)); }
     if (await page.$('#decideCard')) fail('the clear height the card offers should design every mark');

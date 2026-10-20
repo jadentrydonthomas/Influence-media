@@ -62,7 +62,7 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - **Beams:** a row per mark and member length, ordered by mezzanine. SPAN is the member as laid out. A mark designed at a shorter span (a setback or a design span, Beam calc) keeps the layout length on the quote, as quoted by hand.
    - **Columns:** a row per section and height over the job.
    - **More rows than the sheet holds:** the table says how many rows to insert first.
-   - W1S-26062 with a 6" seat and the setback gives the rows quoted by hand for that job (17–22). The one difference is BU14x94 for BU14x92. The Production Guidelines' tw / tf ≥ 0.30 rules out a 1/4" web under 1" flanges; with the guidelines off, it is BU14x92.
+   - W1S-26062 with a 6" joist seat (14" of room) and the setback gives the rows quoted by hand for that job (17–22). The one difference is BU14x94 for BU14x92. The Production Guidelines' tw / tf ≥ 0.30 rules out a 1/4" web under 1" flanges; with the guidelines off, it is BU14x92.
 6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit, scroll to zoom, click a member for its calc.
 
 ### Buildings attached to each other
@@ -229,24 +229,25 @@ Each mark has a **design span** and a **design trib**. They change only the beam
 
 When a beam mark has no passing section once the open values are in, the Design page does not show a failing design. It asks for one decision, the way it asks for a value the PCS leaves open: the same card at the top of the page, with the inputs on it.
 
-- **What stops it, in a line.** *Clear height not met — MB1 needs a 15" beam, C 9'-6" leaves 14"*, with the arithmetic: A 11'-6" − C 9'-6" − slab 4" − seat 6" = 14". The other causes are *Clear height below the minimum beam depth* and *No beam section in the depth range* (no clearance limit; nothing passes up to the deepest).
+- **What stops it, with the room for the beam spelled out.** *Clear height not met — MB1 needs a 15" beam, there is 14" of room*, and under it the room term by term: top of mezzanine A 11'-6" − clear under the beams C 9'-6" (= 24") − slab & deck 4" − joist seat 6" = 14". This is the MB sheet's own clearance check (A − slab − seat − d ≥ C), so every number on the card is one you can find on the sheet. The joist seat is the value most often typed by hand, so the card says where it came from (typed, from the PCS, a blue note). The other causes are *Clear height below the minimum beam depth* and *No beam section in the depth range* (no clearance limit; nothing passes up to the deepest).
 - **Nothing failing on screen while it waits.** The title reads *one decision to make*, and so do the status and the mezzanine tabs. The metric cards, the 3D model, the options, the quote sheet and the calc package come back once it is made; the sidebar keeps the layout turning in 3D meanwhile, the beams to decide in amber. The stop notes the missing section brings (*no stocked section*, *columns not sized*) are left to the card.
-- **Two ways forward, with their inputs:**
+- **Three ways forward, with their inputs:**
   1. **Set the beams back at the wall columns.** A beam that runs into a wall ends at that wall's column, and the girts hold the column in from the grid (steel) line. So the beam is shorter by 1'-4" at a rigid frame and 1'-0" at a post-and-beam frame (or a soldier column).
      - The card names the columns and their frame. On W1S-26062 MB1 ends at the BSW columns 2/A–5/A (rigid frame, 1'-4"): 24'-0" → 22'-8", and BU14x94 passes.
      - The amount is on the card, and in Settings.
      - *Use the setback* applies it to every mark whose beams end there (MB2 → BU14x41 too). Each member length is less its own setback.
      - A beam running along a wall, an interior column (on its grid line) and a mezzanine column take none.
      - The plan, the columns and the loads to the frame keep the grid spans, which is the conservative side for them.
-  2. **Request more clear height.** The card gives the shallowest beam that passes and the clear height it needs: C = A − (slab + seat + d) / 12, or the floor raised to A = C + (slab + seat + d) / 12.
-     - Type the clear height the estimator gives into the card, or click the value it needs (*C 9'-5"*). *Floor to 11'-7"* raises A instead.
-     - When the setback is offered but not enough, the card shows both: *C 8'-1" + setback* and the C without it.
-     - *Copy request* gives the note for the estimator.
+  2. **Make room for a deeper beam.** The card names the shallowest beam that passes and what it takes: *Use the 15" beam* (clear 9'-5" under the beams, 1" less than the PCS asks: C = A − (slab + seat + d) / 12), or *Raise the floor to 11'-7"* (keeps 9'-6" clear: A = C + (slab + seat + d) / 12).
+     - Or type the clear height the estimator gives into the card.
+     - When the setback is offered but not enough, the card shows both: *19" beam + setback* and the deeper beam without it, each with its clear height.
+     - *Copy request* gives a short note for the estimator in plain words: the room there is and why (floor, clear height, slab, seat), what the beams need, and the two asks (the clear height lowered, or the floor raised, by how much).
      - With no clearance limit, this row is *Shorten the span or the trib*: the Plan page, or the long beam on its own mark when the rest pass.
+  3. **Check the joist seat.** The room is measured down from the joist seat, so a shallower seat gives the beam that much more room. The card offers the standard seats below the one in use, K-series 2 1/2" and LH-series 5", each with the room it leaves and whether the beam then fits, and an input for any other seat. It is a check of the input, not a way around the clearance: pick a seat only if the joists on the job have it.
 - **The design runs as soon as one is picked**, and the page shows the full design. Beam calc shows the same card for the mark, above its depth table.
 - Examples:
-  - W1S-26062 with a 6" seat: setback → BU14x94 / BU14x41; or C 9'-5" → BU15x95 / BU15x42.
-  - W2R-26047 as read: the setback leaves both marks short (30'-0" still needs 19"), so *C 8'-1" + setback* → BU19x100 / BU19x54.
+  - W1S-26062 (A 11'-6", C 9'-6", slab 4"): with the 5" LH seat there is 15" of room, the 15" beam fits and nothing is flagged (BU15x95 / BU15x42); with a 2 1/2" K seat, 17 1/2" (BU17x71 / BU17x36). With a 6" seat there is 14": the card offers the setback → BU14x94 / BU14x41, the 15" beam with C 9'-5" → BU15x95 / BU15x42, or the 5" seat.
+  - W2R-26047 as read (A 10'-6", C 8'-6", slab 5", 5" seat from the blue note: 14" of room): the setback leaves both marks short (30'-0" still needs 19"), so *19" beam + setback* (clear 8'-1") → BU19x100 / BU19x54. The 2 1/2" seat gives 16 1/2", still short.
 
 Don't shorten the mezzanine footprint for this. On W1S-26062, cutting Mezz 1 to 22'-4" moves its edge 1'-8" off the BSW column line. That puts six new mezzanine columns along 118'-4", and frame line A loses its loads. Now that case is flagged: a footprint edge between 1'-0" and 3'-0" short of a line of building columns gets a warning on the Design page.
 

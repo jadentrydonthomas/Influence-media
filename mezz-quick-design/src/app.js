@@ -1092,7 +1092,11 @@
     return [...by.values()];
   }
   const oneVal = (xs, k) => { const v = [...new Set(xs.map(x => +x[k].toFixed(4)))]; return v.length === 1 ? ft(v[0]) : xs.map(x => `${esc(x.id)} ${ft(x[k])}`).join(', '); };
-  function decideCard(ms) {
+  // inches as the drawings write them: 14", 2 1/2", 17 1/2"
+  const inch = x => { const r = Math.round(x * 8) / 8, w = Math.floor(r + 1e-9), fr = Math.round((r - w) * 8), F = ['', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8'][fr]; return `${w || !F ? w : ''}${F ? (w ? ' ' : '') + F : ''}"`; };
+  // the room for the beam at a joist seat (in): the least over the mezzanines of a clear-height result
+  const roomAt = (q, seatIn) => Math.min(...(q.per || []).map(p => (p.A - p.C) * 12 - p.slabIn - (seatIn ?? p.seatIn)));
+  function decideCard(ms, id = 'decideCard') {
     if (!ms.length) return '';
     const s = state.settings, names = ms.map(m => m.mark).join(' and ');
     const now = m => { const rs = m.rescue; return rs.clear ? (rs.setback.state === 'offer' ? rs.clear.grid : rs.clear) : null; };   // at the span as it is
@@ -1103,10 +1107,25 @@
     const needD = m => { const q = now(m); return q && !q.none ? q.d : null; };
     // what stops it, in a line
     const eyebrow = { clear: 'Clear height not met', min: 'Clear height below the minimum beam depth', range: 'No beam section in the depth range' }[cause];
+    // the room for the beam, term by term: the top of the mezzanine less the clear height under the beams, the slab and
+    // deck, and the joist seat (the MB sheet's own check: A − slab − seat − d ≥ C)
+    const st = cl0 && cl0.stack, room = st ? st.room : cap;
+    const needTxt = m => (needD(m) ? `${needD(m)}"` : `more than ${s.dMax}"`);
     const h3 = cause === 'range' ? `${names}: no section up to ${s.dMax}" deep`
-      : ms.length === 1 && needD(ms[0]) ? `${names} needs a ${needD(ms[0])}" beam — C ${ft(cl0.C)} leaves ${cap}"` : `${names} need more depth than C ${ft(cl0 ? cl0.C : g.C.value)} leaves (${cap}")`;
+      : ms.length === 1 ? `${names} needs ${needD(ms[0]) ? `a ${needD(ms[0])}" beam` : `more than ${s.dMax}"`} — there is ${inch(room)} of room`
+      : `${ms.map(m => `${m.mark} needs ${needTxt(m)}`).join(', ')} — there is ${inch(room)} of room`;
+    const SRC = { manual: 'typed', pcs: 'from the PCS', annotation: 'blue note', default: 'default', estimate: 'estimate' };
+    const seatSrc = st ? (inputsOf(st.mi).geom.seat || {}).source : null;
+    const others = st ? [...new Map(ms.flatMap(m => (m.rescue.clear && m.rescue.clear.per) || []).filter(p => p.mi !== st.mi).map(p => [p.mi, p])).values()].filter(p => Math.abs(roomAt({ per: [p] }) - st.room) > 1e-6) : [];
+    const stackHtml = cause === 'range' || !st ? '' : `<div class="dc-stack" aria-label="Room for the beam">
+        <span class="dc-t"><b>${ft(st.A)}</b><small>top of mezzanine (A)</small></span><i>−</i>
+        <span class="dc-t"><b>${ft(st.C)}</b><small>clear under the beams (C)</small></span><i class="dc-mid">= ${inch((st.A - st.C) * 12)}</i><i>−</i>
+        <span class="dc-t"><b>${inch(st.slabIn)}</b><small>slab &amp; deck</small></span><i>−</i>
+        <span class="dc-t dc-seat"><b>${inch(st.seatIn)}</b><small>joist seat${SRC[seatSrc] ? ' · ' + SRC[seatSrc] : ''}</small></span><i>=</i>
+        <span class="dc-t dc-room"><b>${inch(st.room)}</b><small>room for the beam${manyMezz() ? ' · ' + esc(st.id) : ''}</small></span>
+        ${others.length ? `<span class="dc-others">${others.map(p => `${esc(p.id)}: ${inch(roomAt({ per: [p] }))} of room`).join(' · ')}</span>` : ''}</div>`;
     const why = cause === 'range' ? `${ms.map(m => `${m.mark}: ${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib`).join('; ')}. Nothing stocked passes at that span and trib within the ${s.dMin}"–${s.dMax}" range (Settings).`
-      : `A ${ft(cl0.A)} − C ${ft(cl0.C)} − slab ${+(g.slab.value * 12).toFixed(2)}" − seat ${+(g.seat.value * 12).toFixed(2)}" = ${cap}" for the beam. ${ms.map(m => `${m.mark} (${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib) needs ${needD(m) ? needD(m) + '"' : 'more'}`).join('; ')}. Two ways to make it work — the design runs as soon as you pick one.`;
+      : `${ms.map(m => `${m.mark}: ${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(mkDz(m).span)} × ${ft(mkDz(m).trib)} trib — needs ${needTxt(m)}`).join('; ')}. A beam is only as deep as the room between the joist seat and the clear height under it. Pick a way below — the design runs as soon as you do.`;
     // 1 · the setback at the wall columns
     const offer = ms.filter(m => m.rescue.setback.state === 'offer'), applied = ms.filter(m => m.rescue.setback.state === 'applied');
     const also = jobMarks().filter(o => !ms.includes(o) && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback);
@@ -1133,39 +1152,82 @@
       const fixed = m => m.rescue.setback.state === 'offer' && m.rescue.setback.best;
       const plain = needBy(ms.map(now)), both = offer.length && ms.some(m => !fixed(m)) ? needBy(ms.filter(m => !fixed(m)).map(m => withSb(m) || now(m))) : [];
       const none = !plain.length;
-      const chip = (q, sb, small) => `<button class="chip" data-dc="setC" data-sb="${sb ? 1 : 0}" data-v='${esc(JSON.stringify(q.map(x => [x.mi, x.needC])))}'>C ${oneVal(q, 'needC')}${sb ? ' + setback' : ''}<small>${small}</small></button>`;
-      const primary = both.length ? both : plain;
-      row2 = none ? `<div class="need-row dc-row is-na"><label>Request more clear height<small>No stocked section passes up to ${s.dMax}" deep either — shorten the span or the trib (Plan page).</small></label><div></div><div class="chips"><button class="chip" data-dc="plan">Edit the layout<small>Plan page</small></button></div></div>`
-        : `<div class="need-row dc-row"><label>Request more clear height<small>${both.length ? `With the setback a ${Math.max(...both.map(x => x.d))}" beam needs C ${oneVal(both, 'needC')}; without it a ${Math.max(...plain.map(x => x.d))}" beam needs C ${oneVal(plain, 'needC')}` : `A ${Math.max(...plain.map(x => x.d))}" beam needs C ${oneVal(plain, 'needC')} or less`} — the PCS asks ${ft(cl0.C)}. Type the clear height the estimator gives, or raise the floor.</small></label>
-          <input data-dc="C" placeholder="new C, e.g. ${esc(ft(primary[0].needC))}" autocomplete="off">
-          <div class="chips">${both.length ? chip(both, true, 'with the setback') + chip(plain, false, 'without') : chip(plain, false, `${Math.max(...plain.map(x => x.d))}" beam`)}<button class="chip" data-dc="setA" data-sb="${both.length ? 1 : 0}" data-v='${esc(JSON.stringify(primary.map(x => [x.mi, x.needA])))}'>Floor to ${oneVal(primary, 'needA')}<small>raise A instead</small></button><button class="chip" data-dc="copy">Copy request<small>for the estimator</small></button></div></div>`;
+      const chip = (q, sb, label) => `<button class="chip" data-dc="setC" data-sb="${sb ? 1 : 0}" data-v='${esc(JSON.stringify(q.map(x => [x.mi, x.needC])))}'>${label}<small>clear ${oneVal(q, 'needC')}</small></button>`;
+      const primary = both.length ? both : plain, dOf = q => Math.max(...q.map(x => x.d));
+      // how much less clear height (or how much higher a floor) the beam needs, when it is the same on every mezzanine
+      const by = (q, k) => { const v = [...new Set(q.map(x => +((k === 'needC' ? x.C - x.needC : x.needA - x.A) * 12).toFixed(3)))]; return v.length === 1 ? inch(v[0]) : null; };
+      const less = q => (by(q, 'needC') ? ` — ${by(q, 'needC')} less than the ${ft(cl0.C)} the PCS asks` : '');
+      row2 = none ? `<div class="need-row dc-row is-na"><label>Make room for a deeper beam<small>No stocked section passes up to ${s.dMax}" deep either — shorten the span or the trib (Plan page).</small></label><div></div><div class="chips"><button class="chip" data-dc="plan">Edit the layout<small>Plan page</small></button></div></div>`
+        : `<div class="need-row dc-row"><label>Make room for a deeper beam<small>${both.length ? `With the setback a ${dOf(both)}" beam fits with ${oneVal(both, 'needC')} clear under the beams${less(both)}; without the setback a ${dOf(plain)}" beam needs ${oneVal(plain, 'needC')}.` : `A ${dOf(plain)}" beam fits with ${oneVal(plain, 'needC')} clear under the beams${less(plain)} — or with the floor ${by(plain, 'needA') || 'raised'}${by(plain, 'needA') ? ' higher' : ''}.`} Ask the estimator, then type the clear height they give.</small></label>
+          <input data-dc="C" placeholder="clear, e.g. ${esc(ft(primary[0].needC))}" aria-label="New clear height under the beams" autocomplete="off">
+          <div class="chips">${both.length ? chip(both, true, `${dOf(both)}" beam + setback`) + chip(plain, false, `${dOf(plain)}" beam`) : chip(plain, false, `Use the ${dOf(plain)}" beam`)}<button class="chip" data-dc="setA" data-sb="${both.length ? 1 : 0}" data-v='${esc(JSON.stringify(primary.map(x => [x.mi, x.needA])))}'>Raise the floor to ${oneVal(primary, 'needA')}<small>keeps ${ft(cl0.C)} clear</small></button><button class="chip" data-dc="copy">Copy request<small>for the estimator</small></button></div></div>`;
+    }
+    // 3 · the joist seat: the room for the beam is measured down from the joist seat, so a shallower seat (when the joists
+    // allow it) gives the beam that much more room — the standard seats, what each leaves and whether the beam then fits
+    let row3 = '';
+    if (cause !== 'range' && st && ms.some(m => needD(m))) {
+      const fit = seatIn => ms.every(m => needD(m) && Math.floor(roomAt(now(m), seatIn) + 1e-6) >= needD(m));
+      const std = [[2.5, 'K-series'], [5, 'LH-series']].filter(([v]) => v < st.seatIn - 1e-6);
+      const seatChip = ([v, series]) => { const r = (st.A - st.C) * 12 - st.slabIn - v, ok = fit(v); return `<button class="chip${ok ? ' chip-fit' : ''}" data-dc="seat" data-v="${v / 12}">${inch(v)} seat · ${series}<small>${inch(r)} of room — ${ok ? `the ${Math.max(...ms.map(needD).filter(Boolean))}" beam fits` : 'still short'}</small></button>`; };
+      row3 = std.length
+        ? `<div class="need-row dc-row"><label>Check the joist seat<small>The room is measured down from the joist seat, ${inch(st.seatIn)} here${SRC[seatSrc] ? ` (${SRC[seatSrc]})` : ''}. K-series joists sit on a 2 1/2" seat and LH-series on 5"; if the joists on this job have a shallower seat, the beam gets that much more room.</small></label>
+            <input data-dc="seatIn" placeholder="seat, e.g. ${std[std.length - 1][0]}&quot;" aria-label="Joist seat depth" autocomplete="off">
+            <div class="chips">${std.slice().reverse().map(seatChip).join('')}</div></div>`
+        : `<div class="need-row dc-row is-na"><label>Check the joist seat<small>The joist seat is ${inch(st.seatIn)} — the shallowest standard seat (K-series), so it gives no more room.</small></label><div></div><div></div></div>`;
     }
     const sh = cause !== 'range' ? ms.find(m => m.splitHelps) : null;
     const foot = `${sh ? `<span>${sh.mark}'s ${ft(sh.splitHelps.span)} beam${sh.splitHelps.n > 1 ? 's set' : ' sets'} it; the other ${sh.splitHelps.rest} pass on their own (${esc(sh.splitHelps.restDesc)}). <button class="chip" data-dc="own" data-mark="${sh.mark}">Own mark for the ${ft(sh.splitHelps.span)} beam${sh.splitHelps.n > 1 ? 's' : ''}</button></span>` : ''}<span>Other ways: put a column back or add a beam line on the Plan page, or pick a section by hand (Design your own). ${ms.length === 1 ? `Beam calc shows ${ms[0].mark} at every depth.` : 'Beam calc shows each mark at every depth.'}</span>`;
-    return `<section class="need decide" id="decideCard"><div class="need-head"><div><div class="eyebrow">${eyebrow}</div><h3>${h3}</h3></div><p>${why}</p></div>
-      <div class="need-rows">${row1}${row2}</div><div class="need-foot dc-foot">${foot}</div></section>`;
+    return `<section class="need decide" id="${id}"><div class="need-head"><div><div class="eyebrow">${eyebrow}</div><h3>${h3}</h3></div><p>${why}</p></div>
+      ${stackHtml}<div class="need-rows">${row1}${row2}${row3}</div><div class="need-foot dc-foot">${foot}</div></section>`;
   }
-  // the request for the estimator, from the card's numbers
+  // the request for the estimator, from the card's numbers: a short note in plain words — what is tight, by how much,
+  // and the two things that would fix it
   function decideRequest(ms) {
     const fixed = m => m.rescue.setback.state === 'offer' && m.rescue.setback.best;
     const offer = ms.some(m => m.rescue.setback.state === 'offer'), useSb = offer && ms.some(m => !fixed(m));
     const q = m => { const rs = m.rescue; return rs.clear ? (rs.setback.state === 'offer' ? (useSb && !fixed(m) ? rs.clear : rs.clear.grid) : rs.clear) : null; };
-    const list = ms.filter(m => !(useSb && fixed(m))), by = needBy(list.map(q)), cl0 = ms.map(m => m.rescue.clear).find(Boolean), job = state.inputs.job;
-    const mz = [...new Set(ms.flatMap(m => (m.mezzIds || []).map(i => { const id = inputsOf(i).mezz.id; return !id ? 'Mezzanine ' + (i + 1) : /^\d+$/.test(id) ? 'Mezzanine ' + id : id; })))].join(' / ');
-    return `${job.quote ? job.quote + ' · ' : ''}${mz}: ${list.map(m => `${m.mark} (${m.qtyAll} beam${m.qtyAll > 1 ? 's' : ''}, ${ft(useSb && m.rescue.setback.state === 'offer' ? m.rescue.setback.span : mkDz(m).span)} span${useSb && m.rescue.setback.state === 'offer' ? ' with the beams set back at the wall columns' : ''}, ${ft(mkDz(m).trib)} trib) needs a ${q(m).d}" beam`).join('; ')}. The clear height under the mezzanine beams leaves ${cl0.cap}" (C ${ft(cl0.C)}, floor at ${ft(cl0.A)}). Requesting C ${oneVal(by, 'needC')} clear under the beams, or the floor raised to ${oneVal(by, 'needA')}.`;
+    const list = ms.filter(m => !(useSb && fixed(m)) && q(m) && !q(m).none), by = needBy(list.map(q)), st = ms.map(m => m.rescue.clear).find(Boolean).stack, job = state.inputs.job;
+    if (!list.length || !st) return `${job.quote ? job.quote + ': ' : ''}the mezzanine beams need more depth than the clear height under them leaves — the span or the trib has to come down (Plan page).`;
+    const name = i => { const id = inputsOf(i).mezz.id; return !id ? 'Mezzanine ' + (i + 1) : /^\d+$/.test(id) ? 'Mezzanine ' + id : id; };
+    const mz = [...new Set(ms.flatMap(m => (m.mezzIds || []).map(name)))].join(' and ');
+    const deep = list.reduce((a, m) => (q(m).d > q(a).d ? m : a), list[0]), d = q(deep).d;
+    const span = ft(useSb && deep.rescue.setback.state === 'offer' ? deep.rescue.setback.span : mkDz(deep).span), several = list.length > 1;
+    // the same change on every mezzanine reads as one value; otherwise each mezzanine's own
+    const ask = (k, verb, word) => { const v = [...new Set(by.map(x => +x[k].toFixed(4)))], dv = [...new Set(by.map(x => +((k === 'needC' ? x.C - x.needC : x.needA - x.A) * 12).toFixed(3)))];
+      return v.length === 1 ? `${verb} to ${ft(v[0])}${dv.length === 1 ? ` (${inch(dv[0])} ${word})` : ''}` : `${verb}: ${by.map(x => `${name(x.mi)} to ${ft(x[k])}`).join(', ')}`; };
+    const beams = useSb ? `Even with the beams shortened to a ${span} span at the wall columns, they need ${several ? 'up to ' : ''}${d}".`
+      : several ? `The beams span up to ${span} and need up to ${d}".` : `The beams span ${span} and need ${d}".`;
+    return [
+      'Hi,',
+      '',
+      `On ${job.quote || 'this job'}${mz ? ` (${mz})` : ''}, the mezzanine beams need a little more depth than the current clear height allows.`,
+      '',
+      `With the top of the mezzanine at ${ft(st.A)} and ${ft(st.C)} clear under the beams, there is ${inch(st.room)} left for the beam once the ${inch(st.slabIn)} slab and the ${inch(st.seatIn)} joist seat are taken out. ${beams}`,
+      '',
+      'Could we do one of the following?',
+      `  - ${ask('needC', 'Lower the clear height under the beams', 'less')}, or`,
+      `  - ${ask('needA', 'Raise the top of the mezzanine', 'higher')}.`,
+      '',
+      `Either one lets us use a ${d}" beam. Let me know which works best for the customer and I'll finish the design.`,
+      '',
+      'Thanks,',
+    ].join('\n');
   }
   function wireDecide(root, ms) {
     if (!root) return;
     const applySetback = list => list.forEach(m => { const { span, ...rest } = (state.settings.markInput || {})[m.mark] || {}; setMarkInput(m.mark, { ...rest, setback: true }); });
     const sbMarks = () => [...ms.filter(m => m.rescue.setback.state === 'offer'), ...jobMarks().filter(o => !ms.includes(o) && o.design && o.design.sbSpan < o.span - 1e-6 && !o.design.setback)];
     const after = what => { const out = jobMarks().map(o => `${o.mark} ${o.desc || 'no section yet'}`).join(' · '); toast(`${what} → ${out}`); };
+    const seatMis = () => [...new Set(ms.flatMap(m => ((m.rescue.clear && m.rescue.clear.per) || []).map(p => p.mi)))];
     root.querySelectorAll('[data-dc]').forEach(el => {
       const k = el.dataset.dc;
       if (el.tagName === 'INPUT') {
-        el.onchange = () => { if (el.dataset.used) return; const v = parseKind('ftin', el.value); if (v == null || !(v > 0)) { toast(`Could not read "${el.value}" — e.g. 9'-5"`); return; }
+        // the clear height C (ft-in), or the joist seat (in) — on the mezzanines the marks are in
+        const seat = k === 'seatIn';
+        el.onchange = () => { if (el.dataset.used) return; const v = parseKind(seat ? 'in' : 'ftin', el.value);
+          if (v == null || !(seat ? v >= 0 && v < 2 : v > 0)) { toast(`Could not read "${el.value}" — e.g. ${seat ? '5"' : `9'-5"`}`); return; }
           el.dataset.used = '1';
-          const mis = [...new Set(ms.flatMap(m => (m.rescue.clear ? m.rescue.clear.per : []).map(p => p.mi)))];
-          mis.forEach(i => { inputsOf(i).geom.C = { value: v, source: 'manual' }; }); recompute(); after(`C ${ft(v)}`); };
+          seatMis().forEach(i => { inputsOf(i).geom[seat ? 'seat' : 'C'] = { value: v, source: 'manual' }; }); recompute(); after(seat ? `Joist seat ${inch(v * 12)}` : `C ${ft(v)}`); };
         el.onkeydown = e => { if (e.key === 'Enter') el.blur(); };
         return;
       }
@@ -1178,7 +1240,8 @@
           if (el.dataset.sb === '1') applySetback(ms.filter(m => m.rescue.setback.state === 'offer'));
           recompute(); after(`${key} ${[...new Set(vals.map(x => ft(x[1])))].join(' / ')}${el.dataset.sb === '1' ? ' + setback' : ''} (Inputs page) — confirm it with the estimator`);
         }
-        else if (k === 'copy') copyText(decideRequest(ms), 'Clear-height request copied — paste it to the estimator');
+        else if (k === 'seat') { const v = +el.dataset.v; seatMis().forEach(i => { inputsOf(i).geom.seat = { value: v, source: 'manual' }; }); recompute(); after(`Joist seat ${inch(v * 12)}`); }
+        else if (k === 'copy') copyText(decideRequest(ms), 'Request copied — paste it into your note to the estimator');
         else if (k === 'plan') { go('plan'); if (!state.planEdit) { const b = $('#layEdit'); if (b) b.click(); } }
         else if (k === 'own') { const m = ms.find(x => x.mark === el.dataset.mark), v = +m.splitHelps.span.toFixed(4); allSettings().forEach(st => { st.ownSpan = [...new Set([...(st.ownSpan || []), v])]; }); recompute(); after(`The ${ft(m.splitHelps.span)} beam on its own mark`); }
       };
@@ -2647,7 +2710,7 @@
     if (!c) {
       // offered only when the shorter beams would pass on their own (run.js designs them): only the long beam(s) leave the mark
       const sh = mk.splitHelps, nL = sh ? sh.n : 0;
-      $('#mbSheet').innerHTML = (mk.rescue ? decideCard([mk]) : `<div class="empty">No stocked section passes for ${esc(mk.mark)} in the depth range — the table below gives the closest at each depth. Add a column, or design one by hand (Design your own).</div>`)
+      $('#mbSheet').innerHTML = (mk.rescue ? decideCard([mk], 'decideCardBeam') : `<div class="empty">No stocked section passes for ${esc(mk.mark)} in the depth range — the table below gives the closest at each depth. Add a column, or design one by hand (Design your own).</div>`)
         + (sh && !mk.rescue ? `<div class="split-wrap"><button class="btn-soft" id="splitMarks" type="button">Give the ${ft(sh.span)} beam${nL > 1 ? 's' : ''} ${nL > 1 ? 'their' : 'its'} own mark</button><small class="split-why">the other ${sh.rest} pass on their own (${esc(sh.restDesc)}); no other mark changes</small></div>` : '');
       if (mk.rescue) wireDecide($('#mbSheet'), [mk]);
       const sm = $('#splitMarks');

@@ -81,7 +81,7 @@ if (pdfArgs.length > 1) {
   // the decision — why, then the setback and the clear height; to drive the rest of the page it is opened the way an
   // engineer would — C cleared on the Inputs page, then "No requirement"
   if (await page.$('#decideCard')) {
-    const why = await page.$eval('#decideCard', e => /Clear height not met/i.test(e.innerText) && /Set the beams back at the wall columns/.test(e.innerText) && /Request more clear height/.test(e.innerText));
+    const why = await page.$eval('#decideCard', e => /Clear height not met/i.test(e.innerText) && /Set the beams back at the wall columns/.test(e.innerText) && /Make room for a deeper beam/.test(e.innerText) && /Check the joist seat/.test(e.innerText));
     console.log('no section at the PCS clearance'.padEnd(30), why ? 'the page asks: clear height not met — setback or clear height; C opened to go on' : 'no reason given');
     if (!why) fail('a mark with no section should say why and offer the setback and the clear height');
     await page.click('#nav button[data-view="inputs"]'); await page.waitForTimeout(150);

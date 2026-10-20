@@ -648,7 +648,7 @@
     const capped = members.filter(c => c.Cq != null && c.A != null);
     if (maxDepth != null && maxDepth < s.dMax && capped.length) {
       const L = state === 'offer' ? sbSpan : dSpan, need = d => {
-        const per = capped.map(c => ({ mi: c.index, id: c.id, A: c.A, C: c.Cq, needC: c.A - (c.slabIn + c.seatIn + d) / 12, needA: c.Cq + (c.slabIn + c.seatIn + d) / 12 }));
+        const per = capped.map(c => ({ mi: c.index, id: c.id, A: c.A, C: c.Cq, slabIn: c.slabIn, seatIn: c.seatIn, needC: c.A - (c.slabIn + c.seatIn + d) / 12, needA: c.Cq + (c.slabIn + c.seatIn + d) / 12 }));
         return { needC: Math.min(...per.map(q => q.needC)), needA: Math.max(...per.map(q => q.needA)), per };
       };
       // the shallowest that passes (the least clear height to give up); a lighter one up to 6" deeper is named with it
@@ -660,7 +660,10 @@
         const light = dz.best && dz.best.d !== first.d && dz.best.wt < first.wt - 1e-9 ? { ...dz.best, ...need(dz.best.d) } : null;
         return { span: Lx, d: first.d, best: first, ...need(first.d), light };
       };
-      clear = { withSetback: withSb, A: Math.min(...capped.map(c => c.A)), C: Math.min(...capped.map(c => c.Cq)), cap: maxDepth, ...at(L) };
+      // the room for the beam, term by term, on the mezzanine that has the least: A − C − slab & deck − joist seat
+      const room = c => (c.A - c.Cq) * 12 - c.slabIn - c.seatIn, tight = capped.reduce((a, c) => (room(c) < room(a) - 1e-9 ? c : a));
+      const stack = { mi: tight.index, id: tight.id, A: tight.A, C: tight.Cq, slabIn: tight.slabIn, seatIn: tight.seatIn, room: room(tight) };
+      clear = { withSetback: withSb, A: Math.min(...capped.map(c => c.A)), C: Math.min(...capped.map(c => c.Cq)), cap: maxDepth, stack, ...at(L) };
       if (state === 'offer') clear.grid = at(dSpan);
       // the request, ready to send
       const span = F(L), mezz = [...new Set(capped.map(c => (/^\d+$/.test(c.id) ? 'Mezzanine ' + c.id : c.id)))].join(' / ');
