@@ -231,9 +231,11 @@ tr.muted td { color: var(--ink-faint); }
 .model-stage::before { content: ""; position: absolute; inset: 0; background-size: 44px 44px; background-image: linear-gradient(#83c9e207 1px, transparent 1px), linear-gradient(90deg, #83c9e207 1px, transparent 1px); pointer-events: none; }
 .model-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .model-stage canvas:active { cursor: grabbing; }
-.model-meta { position: absolute; z-index: 2; top: 14px; left: 18px; right: 18px; display: flex; justify-content: space-between; gap: 12px; color: #8fb2c7; font: 11.5px var(--mono); pointer-events: none; }
-.model-meta span:last-child { text-align: right; }
-.model-focus { position: absolute; z-index: 2; top: 44px; left: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; max-width: calc(100% - 28px); padding: 4px; border: 1px solid #b0d2ed2a; border-radius: 12px; background: #0e1c2ce6; backdrop-filter: blur(10px); }
+/* the caption and, with several mezzanines, the View chips under it: stacked, so a long caption never runs under the chips */
+.model-top { position: absolute; z-index: 2; top: 14px; left: 18px; right: 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none; }
+.model-meta { display: flex; justify-content: space-between; gap: 12px; width: 100%; color: #8fb2c7; font: 11.5px var(--mono); }
+.model-meta span:last-child { flex: 0 0 auto; max-width: 42%; text-align: right; }
+.model-focus { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; max-width: 100%; margin-left: -4px; padding: 4px; border: 1px solid #b0d2ed2a; border-radius: 12px; background: #0e1c2ce6; backdrop-filter: blur(10px); pointer-events: auto; }
 .model-focus[hidden] { display: none; }
 .model-focus > span { padding: 0 6px 0 4px; color: #8fb2c7; font: 11px var(--mono); }
 .model-focus button { min-height: 28px; padding: 4px 11px; border: 0; border-radius: 8px; color: #9fb7ca; background: transparent; font-size: 12.5px; }

@@ -490,9 +490,10 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
       const seen = [];
       for (const g of groups) {
         await page.click(`#modelFocus button[data-f="${g.id}"]`); await page.waitForTimeout(650);
-        const v = await view(), cx = (g.box.x0 + g.box.x1) / 2, cy = (g.box.y0 + g.box.y1) / 2;
+        const v = await view(), cx = (g.box.x0 + g.box.x1) / 2, cy = (g.box.y0 + g.box.y1) / 2, diag = Math.hypot(g.box.x1 - g.box.x0, g.box.y1 - g.box.y0);
         seen.push(`${g.id} x${v.zoom.toFixed(1)}`);
-        if (v.moving || Math.hypot(v.target[0] - cx, v.target[1] - cy) > 0.5) fail(`View ${g.id}: the camera should come to the mezzanine's middle`);
+        // at the mezzanine's middle (moved a little to frame it below the caption and chips laid over the canvas)
+        if (v.moving || Math.hypot(v.target[0] - cx, v.target[1] - cy) > Math.max(1, 0.25 * diag)) fail(`View ${g.id}: the camera should come to the mezzanine's middle`);
         if (!(await page.$eval(`#modelFocus button[data-f="${g.id}"]`, b => b.classList.contains('is-on')))) fail(`View ${g.id}: its chip should be lit`);
       }
       await page.click('#modelFocus button[data-f=""]'); await page.waitForTimeout(650);

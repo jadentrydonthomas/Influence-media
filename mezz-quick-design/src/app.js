@@ -1589,6 +1589,8 @@
         // panning, zooming or flying to a mezzanine stops the turn (it would swing the mezzanine away)
         onAuto: on => { $('#m3Pause').textContent = on ? 'Pause rotation' : 'Resume rotation'; },
         onFocus: id => markFocus(id),
+        // a mezzanine flown to is framed below the caption and the View chips laid over the canvas's top
+        overlay: () => { const t = $('#modelSec .model-top'), cv = $('#model3d'); return t && cv ? t.getBoundingClientRect().bottom - cv.getBoundingClientRect().top + 6 : 0; },
       });
       $('#m3Pause').onclick = () => { const on = model.auto; model.pause(on); $('#m3Pause').textContent = on ? 'Resume rotation' : 'Pause rotation'; };
       $('#m3Reset').onclick = () => { model.reset(); markFocus(null); };

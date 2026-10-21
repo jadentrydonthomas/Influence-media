@@ -114,8 +114,10 @@
         </div>
         <div class="model-body">
           <div class="model-stage">
-            <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · right-drag or Shift-drag to pan · scroll to zoom where you point · double-click a mezzanine to fly to it</span></div>
-            <div class="model-focus" id="modelFocus" hidden></div>
+            <div class="model-top">
+              <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · right-drag to pan · scroll to zoom at the pointer · double-click a mezzanine to fly to it</span></div>
+              <div class="model-focus" id="modelFocus" hidden></div>
+            </div>
             <canvas id="model3d" aria-label="3D model of the mezzanine framing"></canvas>
             <div class="model-controls"><button id="m3Pause">Pause rotation</button><button id="m3Reset">Reset view</button><button id="m3Out" aria-label="Zoom out">−</button><button id="m3In" aria-label="Zoom in">+</button></div>
           </div>

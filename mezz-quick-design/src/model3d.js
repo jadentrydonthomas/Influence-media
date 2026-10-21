@@ -101,10 +101,14 @@
     // fly the target and zoom to frame a box (a mezzanine) over ~0.4 s
     function focus(b, ms = 420) {
       if (!scene || !b) return;
-      // framed the way the whole job is (it stays in view as it turns), with a little of the floor around it
+      // framed the way the whole job is (it stays in view as it turns), with a little of the floor around it, in the
+      // part of the canvas below whatever the page lays over its top (opts.overlay: that edge, in px)
+      const top = Math.max(PAD_T, opts.overlay ? opts.overlay() || 0 : 0), room = (H - top - PAD_B) / (H - PAD_T - PAD_B);
       const c = [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, ((b.z0 || 0) + (b.z1 || 0)) / 2];
-      const z = Math.max(ZMIN, Math.min(ZMAX, fitOf(b, c, view.pitch, 0.82) / fit));
-      anim = { t0: performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c, zoom: z } };
+      const z = Math.max(ZMIN, Math.min(ZMAX, fitOf(b, c, view.pitch, 0.82) * Math.min(1, Math.max(0.4, room)) / fit));
+      // the middle of that part, not of the canvas: the box sits lower by half the overlay
+      const { U } = axes(), dy = (top - PAD_T) / 2 / (fit * z);
+      anim = { t0: performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c.map((v, i) => v + U[i] * dy), zoom: z } };
     }
     function stopAuto() { if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); } }
 

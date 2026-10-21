@@ -240,9 +240,11 @@ tr.muted td { color: var(--ink-faint); }
 .model-stage::before { content: ""; position: absolute; inset: 0; background-size: 44px 44px; background-image: linear-gradient(#83c9e207 1px, transparent 1px), linear-gradient(90deg, #83c9e207 1px, transparent 1px); pointer-events: none; }
 .model-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .model-stage canvas:active { cursor: grabbing; }
-.model-meta { position: absolute; z-index: 2; top: 14px; left: 18px; right: 18px; display: flex; justify-content: space-between; gap: 12px; color: #8fb2c7; font: 11.5px var(--mono); pointer-events: none; }
-.model-meta span:last-child { text-align: right; }
-.model-focus { position: absolute; z-index: 2; top: 44px; left: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; max-width: calc(100% - 28px); padding: 4px; border: 1px solid #b0d2ed2a; border-radius: 12px; background: #0e1c2ce6; backdrop-filter: blur(10px); }
+/* the caption and, with several mezzanines, the View chips under it: stacked, so a long caption never runs under the chips */
+.model-top { position: absolute; z-index: 2; top: 14px; left: 18px; right: 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none; }
+.model-meta { display: flex; justify-content: space-between; gap: 12px; width: 100%; color: #8fb2c7; font: 11.5px var(--mono); }
+.model-meta span:last-child { flex: 0 0 auto; max-width: 42%; text-align: right; }
+.model-focus { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; max-width: 100%; margin-left: -4px; padding: 4px; border: 1px solid #b0d2ed2a; border-radius: 12px; background: #0e1c2ce6; backdrop-filter: blur(10px); pointer-events: auto; }
 .model-focus[hidden] { display: none; }
 .model-focus > span { padding: 0 6px 0 4px; color: #8fb2c7; font: 11px var(--mono); }
 .model-focus button { min-height: 28px; padding: 4px 11px; border: 0; border-radius: 8px; color: #9fb7ca; background: transparent; font-size: 12.5px; }
@@ -1430,8 +1432,10 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         </div>
         <div class="model-body">
           <div class="model-stage">
-            <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · right-drag or Shift-drag to pan · scroll to zoom where you point · double-click a mezzanine to fly to it</span></div>
-            <div class="model-focus" id="modelFocus" hidden></div>
+            <div class="model-top">
+              <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · right-drag to pan · scroll to zoom at the pointer · double-click a mezzanine to fly to it</span></div>
+              <div class="model-focus" id="modelFocus" hidden></div>
+            </div>
             <canvas id="model3d" aria-label="3D model of the mezzanine framing"></canvas>
             <div class="model-controls"><button id="m3Pause">Pause rotation</button><button id="m3Reset">Reset view</button><button id="m3Out" aria-label="Zoom out">−</button><button id="m3In" aria-label="Zoom in">+</button></div>
           </div>
@@ -5131,10 +5135,14 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     // fly the target and zoom to frame a box (a mezzanine) over ~0.4 s
     function focus(b, ms = 420) {
       if (!scene || !b) return;
-      // framed the way the whole job is (it stays in view as it turns), with a little of the floor around it
+      // framed the way the whole job is (it stays in view as it turns), with a little of the floor around it, in the
+      // part of the canvas below whatever the page lays over its top (opts.overlay: that edge, in px)
+      const top = Math.max(PAD_T, opts.overlay ? opts.overlay() || 0 : 0), room = (H - top - PAD_B) / (H - PAD_T - PAD_B);
       const c = [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, ((b.z0 || 0) + (b.z1 || 0)) / 2];
-      const z = Math.max(ZMIN, Math.min(ZMAX, fitOf(b, c, view.pitch, 0.82) / fit));
-      anim = { t0: performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c, zoom: z } };
+      const z = Math.max(ZMIN, Math.min(ZMAX, fitOf(b, c, view.pitch, 0.82) * Math.min(1, Math.max(0.4, room)) / fit));
+      // the middle of that part, not of the canvas: the box sits lower by half the overlay
+      const { U } = axes(), dy = (top - PAD_T) / 2 / (fit * z);
+      anim = { t0: performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c.map((v, i) => v + U[i] * dy), zoom: z } };
     }
     function stopAuto() { if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); } }
 
@@ -9907,6 +9915,8 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         // panning, zooming or flying to a mezzanine stops the turn (it would swing the mezzanine away)
         onAuto: on => { $('#m3Pause').textContent = on ? 'Pause rotation' : 'Resume rotation'; },
         onFocus: id => markFocus(id),
+        // a mezzanine flown to is framed below the caption and the View chips laid over the canvas's top
+        overlay: () => { const t = $('#modelSec .model-top'), cv = $('#model3d'); return t && cv ? t.getBoundingClientRect().bottom - cv.getBoundingClientRect().top + 6 : 0; },
       });
       $('#m3Pause').onclick = () => { const on = model.auto; model.pause(on); $('#m3Pause').textContent = on ? 'Resume rotation' : 'Pause rotation'; };
       $('#m3Reset').onclick = () => { model.reset(); markFocus(null); };
