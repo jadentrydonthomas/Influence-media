@@ -1,7 +1,9 @@
 /* 3D framing model — a small canvas renderer (no libraries).
    Members are boxes (I-shapes = 3 boxes) and polylines in building feet (x along length from LEW,
    y across width from FSW, z up from finish floor). Painter's algorithm with back-face culling,
-   Lambert shading, drag to orbit, wheel / buttons to zoom, click to select, slow auto-rotate. */
+   Lambert shading, click to select, slow auto-rotate. The camera orbits a target point: drag to orbit it,
+   right-drag / Shift-drag / two fingers to pan it, the wheel or a pinch zooms toward the pointer, a double-click
+   (or focus(box)) flies to a mezzanine — so one of several far apart in a long building fills the view. */
 (function (root) {
   'use strict';
 
@@ -26,9 +28,11 @@
   /* scene: { center:[x,y,z], radius, members:[{ id, kind, color, boxes:[], lines:[[p,q],...], alpha, info }], labels:[{p:[x,y,z], text, kind}] } */
   function mount(canvas, opts = {}) {
     const ctx = canvas.getContext('2d');
-    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
+    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, target: [0, 0, 0], auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
-    let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1;
+    const ZMIN = 0.5, ZMAX = 40;
+    let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1, anim = null;
+    const pointers = new Map();
     const [PAD_T, PAD_B] = opts.pad || [34, 70];   // header text above, control bar below
     const [MIN_W, MIN_H] = opts.min || [300, 260];
     const light = (() => { const v = [-0.45, -0.6, 0.66]; const l = Math.hypot(...v); return v.map(c => c / l); })();
@@ -46,21 +50,25 @@
     // bounding box is swept through a full turn), so orbiting never clips and tilting never pumps the zoom.
     function fitScale() {
       if (!scene || !W) return;
-      const b = scene.box, [cx, cy, cz] = scene.center, cp = Math.cos(home.pitch), sp = Math.sin(home.pitch);
-      if (!b) { fit = Math.min(W, H) / (scene.radius * 2.4); return; }
+      if (!scene.box) { fit = Math.min(W, H) / (scene.radius * 2.4); return; }
+      fit = fitOf(scene.box, scene.center, home.pitch, opts.fitScale || 0.93);
+    }
+    // the scale that keeps box b (about c) in frame at every yaw for a pitch: its corners swept through a full turn
+    function fitOf(b, [cx, cy, cz], pitch, k0) {
+      const cp = Math.cos(pitch), sp = Math.sin(pitch);
       let mx = 1e-6, my = 1e-6;
       for (let k = 0; k < 48; k++) {
         const yaw = k * Math.PI / 24, c = Math.cos(yaw), s2 = Math.sin(yaw);
-        for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1]) for (const z of [b.z0, b.z1]) {
+        for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1]) for (const z of [b.z0 || 0, b.z1 || 0]) {
           const dx = x - cx, dy = y - cy, dz = z - cz;
           mx = Math.max(mx, Math.abs(dx * c - dy * s2));
           my = Math.max(my, Math.abs(dz * cp + (dx * s2 + dy * c) * sp));
         }
       }
-      fit = (opts.fitScale || 0.93) * Math.min((W / 2 - 14) / mx, ((H - PAD_T - PAD_B) / 2) / my);
+      return k0 * Math.min((W / 2 - 14) / mx, ((H - PAD_T - PAD_B) / 2) / my);
     }
     function project(p) {
-      const [cx, cy, cz] = scene.center;
+      const [cx, cy, cz] = view.target;
       const dx = p[0] - cx, dy = p[1] - cy, dz = p[2] - cz;
       const cyw = Math.cos(view.yaw), syw = Math.sin(view.yaw);
       const x1 = dx * cyw - dy * syw, y1 = dx * syw + dy * cyw;
@@ -70,6 +78,36 @@
       const persp = 1 / (1 + depth / (scene.radius * 7));
       return [W / 2 + x1 * sc * persp, PAD_T + (H - PAD_T - PAD_B) / 2 - (dz * cp + y1 * sp) * sc * persp, depth];
     }
+    // the screen's right and up directions in the world (for panning and zooming at the pointer), and its middle
+    const axes = () => { const c = Math.cos(view.yaw), s2 = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch); return { R: [c, -s2, 0], U: [s2 * sp, c * sp, cp] }; };
+    const mid = () => [W / 2, PAD_T + (H - PAD_T - PAD_B) / 2];
+    // the world point under a canvas point, on the plane through the target facing the camera
+    function under(x, y) {
+      const { R, U } = axes(), sc = fit * view.zoom, [mx, my] = mid(), a = (x - mx) / sc, b = (my - y) / sc;
+      return view.target.map((t, i) => t + R[i] * a + U[i] * b);
+    }
+    function pan(dx, dy) {
+      const { R, U } = axes(), sc = fit * view.zoom;
+      view.target = view.target.map((t, i) => t - R[i] * dx / sc + U[i] * dy / sc);
+    }
+    // zoom by k keeping the point under (x, y) where it is on the screen
+    function zoomAt(k, x, y) {
+      const z = Math.max(ZMIN, Math.min(ZMAX, view.zoom * k));
+      if (x == null) { view.zoom = z; return; }
+      const P = under(x, y), { R, U } = axes(), sc = fit * z, [mx, my] = mid(), a = (x - mx) / sc, b = (my - y) / sc;
+      view.zoom = z;
+      view.target = P.map((p, i) => p - R[i] * a - U[i] * b);
+    }
+    // fly the target and zoom to frame a box (a mezzanine) over ~0.4 s
+    function focus(b, ms = 420) {
+      if (!scene || !b) return;
+      // framed the way the whole job is (it stays in view as it turns), with a little of the floor around it
+      const c = [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, ((b.z0 || 0) + (b.z1 || 0)) / 2];
+      const z = Math.max(ZMIN, Math.min(ZMAX, fitOf(b, c, view.pitch, 0.82) / fit));
+      anim = { t0: performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c, zoom: z } };
+    }
+    function stopAuto() { if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); } }
+
     function viewDir() { // direction from the scene toward the camera, in world coords
       const cp = Math.cos(view.pitch), sp = Math.sin(view.pitch), cyw = Math.cos(view.yaw), syw = Math.sin(view.yaw);
       // camera looks along +depth; depth = y1*cp - z*sp, y1 = x*syw + y*cyw
@@ -196,41 +234,94 @@
     function tick(t) {
       raf = requestAnimationFrame(tick);
       const dt = Math.min(64, t - (last || t)); last = t;
-      if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * (opts.speed || 0.00012); draw(); }
+      if (anim) {
+        const k = Math.min(1, (t - anim.t0) / anim.ms), e = 1 - Math.pow(1 - k, 3);
+        view.target = anim.from.target.map((a, i) => a + (anim.to.target[i] - a) * e);
+        view.zoom = anim.from.zoom * Math.pow(anim.to.zoom / anim.from.zoom, e);
+        if (k >= 1) anim = null;
+        draw();
+      } else if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * (opts.speed || 0.00012); draw(); }
     }
 
     const pos = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    canvas.addEventListener('pointerdown', e => { dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false }; canvas.setPointerCapture(e.pointerId); });
+    // one pointer: orbit (left), pan (right / middle button, or Shift); two pointers: pinch to zoom, move to pan
+    const pinch = () => { const [a, b] = [...pointers.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+    canvas.addEventListener('pointerdown', e => {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      canvas.setPointerCapture(e.pointerId);
+      anim = null;
+      if (pointers.size === 2) { dragging = { two: pinch(), moved: true }; stopAuto(); return; }
+      const panning = e.button === 1 || e.button === 2 || e.shiftKey;
+      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY };
+      if (panning) { e.preventDefault(); canvas.style.cursor = 'move'; }
+    });
     canvas.addEventListener('pointermove', e => {
-      if (dragging) {
+      if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (dragging && dragging.two && pointers.size === 2) {
+        const p = pinch(), r = canvas.getBoundingClientRect();
+        pan(p.x - dragging.two.x, p.y - dragging.two.y);
+        if (dragging.two.d > 0) zoomAt(p.d / dragging.two.d, p.x - r.left, p.y - r.top);
+        dragging.two = p; draw();
+      } else if (dragging && !dragging.two) {
         const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
-        if (Math.abs(dx) + Math.abs(dy) > 3) dragging.moved = true;
-        view.yaw = dragging.yaw + dx * 0.008;
-        view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.006));
+        if (Math.abs(dx) + Math.abs(dy) > 3) { dragging.moved = true; stopAuto(); }
+        if (dragging.pan) { pan(e.clientX - dragging.lx, e.clientY - dragging.ly); dragging.lx = e.clientX; dragging.ly = e.clientY; }
+        else {
+          view.yaw = dragging.yaw + dx * 0.008;
+          view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.006));
+        }
         draw();
-      } else {
+      } else if (!dragging) {
         const [x, y] = pos(e), id = hit(x, y);
         if (id !== view.hover) { view.hover = id; canvas.style.cursor = id ? 'pointer' : 'grab'; draw(); if (opts.onHover) opts.onHover(id); }
       }
     });
-    canvas.addEventListener('pointerup', e => {
-      if (dragging && !dragging.moved) { const [x, y] = pos(e); view.selected = hit(x, y); draw(); if (opts.onSelect) opts.onSelect(view.selected); }
-      dragging = null;
-    });
+    const release = e => {
+      pointers.delete(e.pointerId);
+      if (dragging && !dragging.two && !dragging.moved && !dragging.pan && e.type === 'pointerup') { const [x, y] = pos(e); view.selected = hit(x, y); draw(); if (opts.onSelect) opts.onSelect(view.selected); }
+      if (dragging && dragging.two && pointers.size === 1) { const [q] = [...pointers.values()]; dragging = { x: q.x, y: q.y, yaw: view.yaw, pitch: view.pitch, moved: true, pan: true, lx: q.x, ly: q.y }; return; }
+      if (!pointers.size) { dragging = null; canvas.style.cursor = view.hover ? 'pointer' : 'grab'; }
+    };
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+    canvas.addEventListener('contextmenu', e => e.preventDefault());   // the right button pans
     canvas.addEventListener('pointerleave', () => { if (view.hover) { view.hover = null; draw(); if (opts.onHover) opts.onHover(null); } });
-    canvas.addEventListener('wheel', e => { e.preventDefault(); view.zoom = Math.max(0.5, Math.min(3.2, view.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08))); draw(); }, { passive: false });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault(); anim = null; stopAuto();
+      const [x, y] = pos(e), k = Math.pow(1.0018, -Math.max(-240, Math.min(240, e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY)));
+      zoomAt(k, x, y); draw();
+    }, { passive: false });
+    // double-click: fly to the mezzanine under the pointer (its box from scene.groups), else zoom in there
+    canvas.addEventListener('dblclick', e => {
+      if (!scene) return;
+      const [x, y] = pos(e), id = hit(x, y), m = id && scene.members.find(q => q.id === id), b = m && m.boxes && m.boxes[0];
+      const at = b ? [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2] : (() => { const P = under(x, y); return [P[0], P[1]]; })();
+      const g = (scene.groups || []).find(q => at[0] >= q.box.x0 - 1 && at[0] <= q.box.x1 + 1 && at[1] >= q.box.y0 - 1 && at[1] <= q.box.y1 + 1);
+      stopAuto();
+      if (g) { focus(g.box); if (opts.onFocus) opts.onFocus(g.id); } else { zoomAt(2, x, y); draw(); }
+    });
     if (typeof IntersectionObserver !== 'undefined') new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }).observe(canvas);
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resize).observe(canvas); else window.addEventListener('resize', resize);
     raf = requestAnimationFrame(tick);
 
     return {
-      set(s) { scene = s; resize(); },
+      // a new scene keeps the view when it is the same job redrawn (an edit); a different extent starts whole again
+      set(s) {
+        const same = scene && s && scene.box && s.box && ['x0', 'x1', 'y0', 'y1'].every(k => Math.abs(scene.box[k] - s.box[k]) < 0.5);
+        scene = s;
+        if (!same) { view.target = s.center.slice(); view.zoom = 1; anim = null; }
+        resize();
+      },
       select(id) { view.selected = id; draw(); },
       toggle(k, v) { view.toggles[k] = v; draw(); },
       toggles: view.toggles,
-      zoom(k) { view.zoom = Math.max(0.5, Math.min(3.2, view.zoom * k)); draw(); },
-      reset() { Object.assign(view, home); draw(); },
+      zoom(k) { anim = null; zoomAt(k); draw(); },
+      // frame a box (a mezzanine), or the whole scene with no box
+      focus(b) { stopAuto(); if (b) focus(b); else if (scene) anim = { t0: performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; },
+      reset() { anim = null; Object.assign(view, home); if (scene) view.target = scene.center.slice(); draw(); },
       pause(on) { view.auto = !on; return view.auto; },
+      // the camera, for a test: what it looks at and how close
+      state() { return { target: view.target.slice(), zoom: view.zoom, yaw: view.yaw, pitch: view.pitch, moving: !!anim }; },
       get auto() { return view.auto; },
       redraw: draw,
       // where a member's top face sits on the canvas (CSS px) — lets a test or a caller point at it

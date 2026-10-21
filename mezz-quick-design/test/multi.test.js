@@ -56,6 +56,17 @@ function inputs(id, geom, loads = {}) {
   assert.strictEqual(q.columns.reduce((a, r) => a + r.QTY, 0), job.columns.length);
 }
 
+// 1b. side by side as read: sharing the line, nothing said; overlapping 2", or stopping 1" short, a stop note on both
+{
+  const flags = r => r.warn.filter(w => w.level === 'stop' && /overlap by|short of each other/.test(w.text)).map(w => w.text);
+  const at = lewB => RUN.runJob([{ inp: inputs('A', { width: 60, length: 40, joists: 'y' }) }, { inp: inputs('B', { width: 60, length: 24, lew: lewB, joists: 'y' }) }]).mezz;
+  assert.deepStrictEqual(at(40).map(flags), [[], []], 'meeting on one line: no note');
+  const over = at(40 - 2 / 12).map(flags);
+  assert.ok(over.every(f => f.length === 1 && /A and B overlap by 0'-2": A runs to 40'-0" from the LEW \(0'-0" \+ 40'-0"\), B starts at 39'-10"/.test(f[0])), JSON.stringify(over));
+  const gap = at(40 + 1 / 12).map(flags);
+  assert.ok(gap.every(f => f.length === 1 && /A and B stop 0'-1" short of each other/.test(f[0])), JSON.stringify(gap));
+}
+
 // 2. stacked across the width, sharing the beam line at y = 40: one beam, both tribs; B's edge beams drop out
 {
   const A = inputs('A', { width: 40, length: 40, joists: 'y' }), B = inputs('B', { width: 20, length: 40, fsw: 40, joists: 'y' });

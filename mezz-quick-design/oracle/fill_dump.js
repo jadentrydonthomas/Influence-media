@@ -11,7 +11,9 @@ const WB = process.env.MZ_WORKBOOKS || path.join(__dirname, '..', 'private', 'wo
   const out = process.argv[2], list = [];
   fs.mkdirSync(out, { recursive: true });
   for (const pdf of process.argv.slice(3)) {
-    const ld = await loadJob(pdf), { pcs, inps } = ld, q = pcs.job.quote;
+    const ld = await loadJob(pdf);
+    if (!ld) { console.log(path.basename(pdf), 'no text layer — skipped (set OCR_TOOLS to read it by OCR)'); continue; }
+    const { pcs, inps } = ld, q = pcs.job.quote;
     // MZ_SETTINGS: settings for every mezzanine (JSON); colOverride "alt" takes the job's lighter built-up column
     let job = ld.job, used = {};
     if (process.env.MZ_SETTINGS) {

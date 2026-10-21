@@ -22,8 +22,12 @@ const near = (a, b, t = 0.01) => Math.abs(a - b) < t;
   inps.forEach(inp => {
     assert.ok(inp.loads.dead.value === 62.5 && inp.loads.dead.source === 'annotation');
     assert.strictEqual(inp.mezz.deck, '1.5VL');
-    assert.ok(near(inp.geom.A.value, 16) && near(inp.geom.B.value, 12.5) && near(inp.geom.C.value, 13.5) && near(inp.geom.joistSpacing.value, 2.5));
+    assert.ok(near(inp.geom.A.value, 16) && near(inp.geom.C.value, 13.5) && near(inp.geom.joistSpacing.value, 2.5));
   });
+  // B is a requirement: TBD on the PCS, so it is asked — the quote's Provided 12'-6" offered, never taken as the limit;
+  // A and the joist spacing are the quoted design's own dimensions, taken from the Provided column and labelled so
+  pcs.mezzanines.forEach(m => assert.ok(m.dims.B.value == null && m.dims.B.provided === `12'-6"` && m.dims.A.source === 'provided' && m.dims.joistSpacing.source === 'provided', JSON.stringify(m.dims.B)));
+  assert.ok(RUN.inputsFromPCS(pcs, 0).geom.B.source === 'missing' && near(RUN.inputsFromPCS(pcs, 0).geom.B.provided, 12.5) && /Provided column/.test(RUN.inputsFromPCS(pcs, 0).geom.A.note));
   // Box 2 / Box 5 per building: single slope (no ridge line), the lean-to's own frames
   assert.strictEqual(pcs.buildings.Sanctuary.building.ridge, null);
   assert.deepStrictEqual(pcs.buildings.Sanctuary.frames.map(f => [f.from, f.to, /Post/.test(f.type) ? 'P&B' : 'RF']), [[1, 1, 'P&B'], [2, 8, 'RF'], [9, 9, 'P&B']]);

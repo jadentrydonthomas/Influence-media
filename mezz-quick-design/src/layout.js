@@ -8,7 +8,7 @@
   const EPS = 0.01;
   const near = (a, b) => Math.abs(a - b) < EPS;
   const uniq = a => a.slice().sort((p, q) => p - q).filter((v, i, s) => i === 0 || !near(v, s[i - 1]));
-  const cum = spacings => spacings.reduce((acc, s) => (acc.push(acc[acc.length - 1] + s), acc), [0]);
+  const cum = spacings => (spacings || []).reduce((acc, s) => (acc.push(acc[acc.length - 1] + s), acc), [0]);
   const r3 = v => Math.round(v * 1000) / 1000;
   // off-grid positions read as ft-in in labels (40'-4"/D)
   const ftin = v => { const t = Math.round(Math.abs(v) * 12 * 2) / 2, f = Math.floor(t / 12), i = t - f * 12; return (v < 0 ? '-' : '') + f + "'-" + (i % 1 ? Math.floor(i) + ' 1/2' : i) + '"'; };
@@ -29,11 +29,11 @@
     const xs = cum(b.bays);
     // a short bay list: the length closes the last bay. Within 2'-0" it is a dimension convention (Box 2 measured to a
     // different line than the bays), not a bay: the frames stay on the bay lines and the gap is reported
-    const gap = b.length - xs[xs.length - 1];
+    const gap = b.length > 0 ? b.length - xs[xs.length - 1] : 0;   // no length read (Box 2 unread): the bays as they are
     let lengthGap = 0;
     if (!near(gap, 0) && Math.abs(gap) <= 2 + EPS) lengthGap = gap;
     else if (!near(gap, 0)) xs.push(b.length);
-    const length = lengthGap ? xs[xs.length - 1] : b.length;
+    const length = lengthGap || !(b.length > 0) ? xs[xs.length - 1] : b.length;
     const lewY = b.lewCols && b.lewCols.length ? cum(b.lewCols) : [0, b.width];
     const rewY = b.rewCols && b.rewCols.length ? cum(b.rewCols) : [0, b.width];
     // interior (multi-span) frame columns per frame line

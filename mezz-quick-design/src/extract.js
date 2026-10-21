@@ -29,19 +29,64 @@
     return { width: vp.width, height: H, vt: Array.from(T), items, annots };
   }
 
-  async function extractDoc(pdf) {
+  /* Every page, text layer first. With an OCR engine (src/ocr.js), a page with no text layer whose words are drawn
+     as outlines, or a scan, is then read from its picture: its items are the recognised words (each with .conf),
+     page.ocr says how it went, page.boxes holds its checkboxes and page.struck the words struck out on it.
+     opts: { ocr: engine or () => Promise<engine> (started only when a page needs it), OPS: pdfjsLib.OPS,
+             onPage(n, total), onOcr(done, total, pageNum) — done 0 when the reader starts } */
+  async function extractDoc(pdf, opts = {}) {
     const pages = [];
     for (let n = 1; n <= pdf.numPages; n++) {
       const page = await pdf.getPage(n);
       pages.push({ num: n, ...(await extractPage(page)), _page: page });
+      if (opts.onPage) opts.onPage(n, pdf.numPages);
     }
+    pages.ocr = await ocrPages(pages, opts);
     return pages;
+  }
+
+  // the pages that need reading from their picture, then each read (in parallel up to the engine's workers)
+  async function ocrPages(pages, opts) {
+    const OCR = typeof module !== 'undefined' && module.exports ? require('./ocr.js') : root.MZ_OCR;
+    const todo = [];
+    for (const p of pages) {
+      const chars = p.items.reduce((a, i) => a + String(i.str).replace(/\s/g, '').length, 0);
+      p.kind = chars >= 200 || !opts.OPS || !p._page ? 'text' : OCR.pageKind(chars, await p._page.getOperatorList(), opts.OPS);
+      if (p.kind === 'outlined' || p.kind === 'scan') todo.push(p);
+    }
+    if (!todo.length || !opts.ocr) return { pages: todo.map(p => p.num), read: false };
+    if (opts.onOcr) opts.onOcr(0, todo.length, todo[0].num);
+    let engine;
+    try { engine = typeof opts.ocr === 'function' ? await opts.ocr() : opts.ocr; } catch (e) { return { pages: todo.map(p => p.num), read: false, error: e.message || String(e) }; }
+    let done = 0;
+    const one = async p => {
+      const r = await OCR.readPage(p._page, engine);
+      p.nativeItems = p.items.length;
+      p.items = p.items.concat(r.items);
+      p.struck = r.struck; p.boxes = r.boxes; p.ocr = r.ocr;
+      if (opts.onOcr) opts.onOcr(++done, todo.length, p.num);
+    };
+    const queue = todo.slice(), n = Math.max(1, engine.workers || 1);
+    await Promise.all(Array.from({ length: Math.min(n, queue.length) }, async () => { while (queue.length) await one(queue.shift()); }));
+    const confs = todo.map(p => p.ocr.conf);
+    return { pages: todo.map(p => p.num), read: true, conf: Math.round(confs.reduce((a, b) => a + b, 0) / confs.length) };
   }
 
   /* Checkbox states on a rendered page: the eQuote draws checkboxes as vector glyphs just left of each
      label. Render the page, then compare the ink inside the box with the ink of an unchecked box. */
   async function detectChecks(page, targets, pdfPage, scale = 3) {
-    if (!targets.length || typeof document === 'undefined') return {};
+    if (!targets.length) return {};
+    // a page read by OCR already found its boxes: the one just left of each label, on its line
+    if (page.boxes) {
+      const out = {};
+      targets.forEach(t => {
+        const b = page.boxes.filter(b => b.x2 <= t.x + 1 && t.x - b.x2 < 3 * t.h && Math.abs((b.y1 + b.y2) / 2 - (t.y - 0.35 * t.h)) < t.h)
+          .sort((a, b) => b.x2 - a.x2)[0];
+        out[t.key || t.label] = b ? b.checked : null;
+      });
+      return { states: out, raw: [] };
+    }
+    if (typeof document === 'undefined') return {};
     const vp = pdfPage.getViewport({ scale });
     const cv = document.createElement('canvas');
     cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
@@ -65,6 +110,6 @@
     return { states: out, raw: dark };
   }
 
-  const api = { extractPage, extractDoc, detectChecks };
+  const api = { extractPage, extractDoc, ocrPages, detectChecks };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_EXTRACT = api;
 })(typeof self !== 'undefined' ? self : this);

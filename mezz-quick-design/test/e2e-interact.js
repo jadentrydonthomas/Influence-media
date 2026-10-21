@@ -31,7 +31,7 @@ if (pdfArgs.length > 1) {
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await page.setInputFiles('#file', pdf);
-  await page.waitForSelector('#v-results.is-active', { timeout: 60000 });
+  await page.waitForSelector('#v-results.is-active', { timeout: 300000 });   // a PCS with no text layer is read by OCR first
   // values the PCS leaves open: type them into the prompt (B 9'-0", seat 5", joists @ 4'-0")
   const typed = { 'geom.B': `9'-0"`, 'geom.seat': '5', 'geom.joistSpacing': `4'-0"` };
   for (let k = 0; k < 8 && await page.$('#needCard'); k++) {
@@ -117,7 +117,20 @@ if (pdfArgs.length > 1) {
   console.log('trib band on hover'.padEnd(30), tribOn);
   if (!tribOn) fail('trib band did not light on hover');
   // hover cards: every mezzanine column shows its Column-sheet left / right D and L; building columns their load to the frame
-  const tipAt = async sel => { const el = await page.$(sel); if (!el) return null; await el.scrollIntoViewIfNeeded(); await page.waitForTimeout(60); const b = await el.boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(80); return page.$eval('.hover-tip', e => (e.hidden ? '' : e.textContent.replace(/\s+/g, ' ').trim())); };
+  // the pointer goes to a spot of the element that is the element (on a dense plan another symbol can sit over its middle)
+  const tipAt = async sel => {
+    const el = await page.$(sel); if (!el) return null; await el.scrollIntoViewIfNeeded(); await page.waitForTimeout(60);
+    const pt = await page.$eval(sel, (e, s) => {
+      const r = e.getBoundingClientRect(), long = r.width >= r.height;
+      for (const f of [0.5, 0.35, 0.65, 0.2, 0.8, 0.1, 0.9]) {
+        const x = long ? r.left + r.width * f : r.left + r.width / 2, y = long ? r.top + r.height / 2 : r.top + r.height * f, h = document.elementFromPoint(x, y);
+        if (h && h.closest(s) === e) return { x, y };
+      }
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, sel);
+    await page.mouse.move(pt.x, pt.y); await page.waitForTimeout(80);
+    return page.$eval('.hover-tip', e => (e.hidden ? '' : e.textContent.replace(/\s+/g, ' ').trim()));
+  };
   const colTip = await tipAt('#planSvg .mcol');
   console.log('hover mezz column'.padEnd(30), (colTip || '').slice(0, 150));
   if (!/Column sheet input/.test(colTip || '') || !/Left\s*D \d+\.\d\d\s*L \d+\.\d\d/.test(colTip) || !/Right\s*D \d+\.\d\d/.test(colTip)) fail('hovering a mezzanine column should show its left / right dead and live');
@@ -379,7 +392,12 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   await page.click('#nav button[data-view="inputs"]');
   const fillIn = async (p, v) => { await page.fill(`#inputsGrid input[data-path="${p}"]`, v); await page.press(`#inputsGrid input[data-path="${p}"]`, 'Tab'); await page.waitForTimeout(150); };
   const dead = () => page.$eval('#inputsGrid input[data-path="loads.dead"]', e => e.value);
+  // several mezzanines: the round trip edits the one on screen only (their C can differ: an edit of every mezzanine
+  // would type this one's C on the others)
+  const linked = await page.$('#linkSeg button[data-l="0"]');
+  if (linked) await linked.click();
   const c0 = await page.$eval('#inputsGrid input[data-path="geom.C"]', e => e.value);   // the PCS value, or empty for "no requirement"
+  const live0 = await page.$eval('#inputsGrid input[data-path="loads.live"]', e => e.value);   // the job's own live load
   await fillIn('loads.live', '150'); await log('live 150 psf');
   await fillIn('geom.C', `10'-6"`); await log('C = 10\'-6" requested');
   await fillIn('geom.C', '');
@@ -389,7 +407,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   else { await page.click('#needCard .chip[data-need="geom.C"][data-v="none"]'); await page.waitForTimeout(200); }
   await page.click('#nav button[data-view="inputs"]');
   if (c0) await fillIn('geom.C', c0);
-  await fillIn('loads.live', '125');
+  await fillIn('loads.live', live0);
   const d0 = await dead();
   // the deck and concrete as read off the PCS, to come back to; a dead load given on the PCS (a number or a blue note)
   // stays put, only the deck-guide value follows deck and concrete
@@ -408,6 +426,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   if (!guide && (dLW !== d0 || dLW2 !== d0)) fail('a dead load given on the PCS should not follow the deck / concrete');
   if (await dead() !== d0) fail('dead load did not return to the deck guide value');
   if (await quote() !== base) fail('inputs round-trip did not return to the default answer');
+  if (linked) await page.click('#linkSeg button[data-l="1"]');
 
   // 3D model: controls, then find and click a beam by sweeping the canvas
   await page.click('#nav button[data-view="results"]');
@@ -443,6 +462,45 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   }
   for (const t of ['slab', 'joists']) await page.click(`#modelToggles button[data-t="${t}"]`);
   await page.screenshot({ path: path.join(shots, 'model-selected.png'), fullPage: false });
+
+  // 3D camera: zoom toward the pointer (the point under it stays put), pan with the right button, and — several
+  // mezzanines — the View chips fly to each one and frame it (a mezzanine far down a long building fills the view)
+  {
+    const box3 = await page.$eval('#model3d', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+    const id0 = (await page.evaluate(() => window.MZ_DEBUG.beams()))[0];
+    const at = () => page.evaluate(i => window.MZ_DEBUG.modelPoint(i), id0), view = () => page.evaluate(() => window.MZ_DEBUG.view());
+    const p0 = await at(), z0 = (await view()).zoom;
+    await page.mouse.move(box3.x + p0[0], box3.y + p0[1]); await page.mouse.wheel(0, -240); await page.waitForTimeout(250);
+    const p1 = await at(), z1 = (await view()).zoom, drift = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+    const off = Math.hypot(p0[0] - box3.w / 2, p0[1] - box3.h / 2);   // how far a zoom about the middle would have moved it
+    console.log('3D zoom at the pointer'.padEnd(30), `x${(z1 / z0).toFixed(2)}, the beam under it moved ${drift.toFixed(1)} px (${(off * (z1 / z0 - 1)).toFixed(0)} px about the middle)`);
+    if (!(z1 > z0 * 1.3)) fail('the wheel did not zoom the 3D model');
+    if (drift > Math.max(12, 0.2 * off * (z1 / z0 - 1))) fail(`zooming should keep the point under the pointer in place (moved ${drift.toFixed(1)} px)`);
+    const t0 = (await view()).target;
+    await page.mouse.move(box3.x + box3.w / 2, box3.y + box3.h / 2); await page.mouse.down({ button: 'right' });
+    await page.mouse.move(box3.x + box3.w / 2 + 90, box3.y + box3.h / 2 + 40, { steps: 6 }); await page.mouse.up({ button: 'right' }); await page.waitForTimeout(150);
+    const p2 = await at(), t1 = (await view()).target;
+    console.log('3D pan (right-drag 90, 40)'.padEnd(30), `the beam moved ${(p2[0] - p1[0]).toFixed(0)}, ${(p2[1] - p1[1]).toFixed(0)} px`);
+    // with the pointer: exactly on the plane through the target, a little less or more off it (perspective)
+    if (Math.hypot(t1[0] - t0[0], t1[1] - t0[1], t1[2] - t0[2]) < 0.1 || Math.abs(p2[0] - p1[0] - 90) > 13 || Math.abs(p2[1] - p1[1] - 40) > 7) fail('a right-drag should pan the 3D model with the pointer');
+    const groups = await page.evaluate(() => window.MZ_DEBUG.groups());
+    if (groups.length > 1) {
+      const chips = await page.$$eval('#modelFocus button', bs => bs.map(b => b.textContent));
+      if (chips.length !== groups.length + 1 || chips[0] !== 'Whole job') fail('the View chips should be "Whole job" and each mezzanine: ' + chips.join(', '));
+      const seen = [];
+      for (const g of groups) {
+        await page.click(`#modelFocus button[data-f="${g.id}"]`); await page.waitForTimeout(650);
+        const v = await view(), cx = (g.box.x0 + g.box.x1) / 2, cy = (g.box.y0 + g.box.y1) / 2;
+        seen.push(`${g.id} x${v.zoom.toFixed(1)}`);
+        if (v.moving || Math.hypot(v.target[0] - cx, v.target[1] - cy) > 0.5) fail(`View ${g.id}: the camera should come to the mezzanine's middle`);
+        if (!(await page.$eval(`#modelFocus button[data-f="${g.id}"]`, b => b.classList.contains('is-on')))) fail(`View ${g.id}: its chip should be lit`);
+      }
+      await page.click('#modelFocus button[data-f=""]'); await page.waitForTimeout(650);
+      console.log('3D view chips'.padEnd(30), seen.join(' · '), `· whole job x${(await view()).zoom.toFixed(1)}`);
+      if (Math.abs((await view()).zoom - 1) > 1e-6) fail('"Whole job" should frame the whole job again');
+    } else if (!(await page.$eval('#modelFocus', e => e.hidden))) fail('one mezzanine: no View chips');
+    await page.click('#m3Reset'); await page.waitForTimeout(100);
+  }
 
   // layout edits on the Plan page: a mezzanine column made a frame column, a column line added on the floor, undo, reset
   {
@@ -492,14 +550,15 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
       // drag a mezzanine column along its beam: the bar reads where it is going, it lands there (one column, moved); undo
       const colKeys = () => page.$$eval('#planSvg g.mcol[data-col]:not(.dropped)', es => es.map(e => e.dataset.col).sort());
       const along = /across the width/.test(await page.$eval('#layWhy', e => e.textContent)) ? 'x' : 'y';
-      let dragged = false;
-      for (const k of keys.slice(0, 12)) {
+      let dragged = false, ends = 0;
+      for (const k of keys.slice(0, 24)) {
         const before = await colKeys();
         const at = await page.$eval(`#planSvg g.mcol[data-col="${k}"] circle.hit`, e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
         const d = along === 'x' ? [24, 0] : [0, -24];
         await page.mouse.move(at.x, at.y); await page.mouse.down();
         await page.mouse.move(at.x + d[0] / 2, at.y + d[1] / 2, { steps: 3 }); await page.mouse.move(at.x + d[0], at.y + d[1], { steps: 3 });
         const rd = await page.$eval('#layCoord', e => e.textContent);
+        if (/and its column line/.test(rd)) { ends++; await page.keyboard.press('Escape'); await page.mouse.up(); await page.waitForTimeout(300); continue; }   // an end column moves its line: the next
         await page.mouse.up(); await page.waitForTimeout(450);
         const after = await colKeys();
         if (JSON.stringify(after) === JSON.stringify(before)) { await page.keyboard.press('Escape'); continue; }   // too close to a line: the next
@@ -510,7 +569,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
         if (JSON.stringify(await colKeys()) !== JSON.stringify(before)) fail('undo should put the dragged column back');
         dragged = true; break;
       }
-      if (!dragged && c0 >= 3) fail('no mezzanine column could be dragged along its beam');
+      if (!dragged && c0 >= 3 && ends < Math.min(24, keys.length)) fail('no mezzanine column could be dragged along its beam');
       // a typed spot: "Move this column to" — x from the LEW, y from the FSW or the BSW
       for (const k of keys.slice(0, 12)) {
         await page.click(`#planSvg .mcol[data-col="${k}"]`, { force: true }); await page.waitForTimeout(120);
@@ -637,13 +696,14 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
     }
     // one mezzanine only: the Inputs page can limit an edit to the mezzanine on screen
     await pick(ids[1]); await page.click('#nav button[data-view="inputs"]'); await page.click('#linkSeg button[data-l="0"]');
-    await page.fill('#inputsGrid input[data-path="loads.live"]', '150'); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
+    const qPre = await quote(), liveB = await page.$eval('#inputsGrid input[data-path="loads.live"]', e => e.value), liveNew = String(+liveB + 25);
+    await page.fill('#inputsGrid input[data-path="loads.live"]', liveNew); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
     await pick(ids[0]);
     const q2 = await quote();
-    console.log('mezz 2 live 150, back on 1'.padEnd(30), q2);
-    if (!/\b15[05]\b/.test(q2)) fail("the other mezzanine's edit should show in the job quote");
+    console.log(`mezz 2 live ${liveNew}, back on 1`.padEnd(30), q2);
+    if (q2 === qPre) fail("the other mezzanine's edit should show in the job quote");
     await pick(ids[1]); await page.click('#nav button[data-view="inputs"]');
-    await page.fill('#inputsGrid input[data-path="loads.live"]', '125'); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
+    await page.fill('#inputsGrid input[data-path="loads.live"]', liveB); await page.press('#inputsGrid input[data-path="loads.live"]', 'Tab'); await page.waitForTimeout(200);
     // every mezzanine (the default): one edit reaches both
     await page.click('#linkSeg button[data-l="1"]');
     await page.fill('#inputsGrid input[data-path="loads.partition"]', '10'); await page.press('#inputsGrid input[data-path="loads.partition"]', 'Tab'); await page.waitForTimeout(250);

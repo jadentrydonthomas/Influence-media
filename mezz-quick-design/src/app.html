@@ -114,7 +114,8 @@
         </div>
         <div class="model-body">
           <div class="model-stage">
-            <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · scroll to zoom · click a member</span></div>
+            <div class="model-meta"><span id="modelCount"></span><span>Drag to orbit · right-drag or Shift-drag to pan · scroll to zoom where you point · double-click a mezzanine to fly to it</span></div>
+            <div class="model-focus" id="modelFocus" hidden></div>
             <canvas id="model3d" aria-label="3D model of the mezzanine framing"></canvas>
             <div class="model-controls"><button id="m3Pause">Pause rotation</button><button id="m3Reset">Reset view</button><button id="m3Out" aria-label="Zoom out">−</button><button id="m3In" aria-label="Zoom in">+</button></div>
           </div>
@@ -288,6 +289,7 @@
 <script>/*@INLINE_JS wf-db.js*/</script>
 <script>/*@INLINE_JS layout.js*/</script>
 <script>/*@INLINE_JS pcs.js*/</script>
+<script>/*@INLINE_JS ocr.js*/</script>
 <script>/*@INLINE_JS extract.js*/</script>
 <script>/*@INLINE_JS plan.js*/</script>
 <script>/*@INLINE_JS framefile.js*/</script>
@@ -299,5 +301,6 @@
 <script>/*@INLINE_JS seismic.js*/</script>
 <script>/*@INLINE_JS run.js*/</script>
 <script>/*@INLINE_JS app.js*/</script>
+<!--@OCR_ASSETS-->
 </body>
 </html>

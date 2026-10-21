@@ -4,8 +4,10 @@
 const M = require('path').join(__dirname, '..');
 const RUN = require(M + '/src/run.js'), PCS = require(M + '/src/pcs.js'), PLAN = require(M + '/src/plan.js'), LAYOUT = require(M + '/src/layout.js');
 const { readPcs, loadPdfjs } = require(M + '/test/pdf-node.js');
+// null when the PDF has no mezzanine to read (pages drawn as outlines and no OCR_TOOLS to read them: test/ocr-node.js)
 async function loadJob(pdf, settings = {}) {
   const pages = await readPcs(pdf), pcs = PCS.parse(pages);
+  if (!pcs.mezzanines.length) return null;
   const g = LAYOUT.buildingGrid({ ...pcs.building, frames: pcs.frames });
   // the floor plan as the app finds it: the drawing page whose grid bubbles register to the frame lines
   const plan = await PLAN.findPlan(pages, PLAN.gridOf(g), p => p._page.getOperatorList(), loadPdfjs().OPS);

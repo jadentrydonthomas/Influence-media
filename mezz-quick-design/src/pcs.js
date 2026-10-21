@@ -30,6 +30,9 @@
     if (!t || /^(TBD|N\/?A|--|Per Seller)$/i.test(t)) return null;
     let m = t.match(/^(-?\d+(?:\.\d+)?)'(?:-?(\d+(?:\.\d+)?)?(?:[ -](\d+)\/(\d+))?"?)?$/);
     if (m) return +m[1] + ((+m[2] || 0) + (m[3] ? +m[3] / +m[4] : 0)) / 12;
+    // the foot mark lost to OCR: 8-4 1/2" is 8'-4 1/2" (2-3/4" stays inches)
+    m = t.match(/^(\d+)-(\d+(?:\.\d+)?)(?: (\d+)\/(\d+))?"$/);
+    if (m) return +m[1] + (+m[2] + (m[3] ? +m[3] / +m[4] : 0)) / 12;
     m = t.match(/^(\d+(?:\.\d+)?)(?:[ -](\d+)\/(\d+))?"$/);
     if (m) return (+m[1] + (m[2] ? +m[2] / +m[3] : 0)) / 12;
     m = t.match(/^(\d+)\/(\d+)"$/);
@@ -38,7 +41,8 @@
     if (m) return +m[1];
     return null;
   }
-  const DIM = String.raw`-?\d+'(?:\s*-\s*\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?")?|\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?"`;
+  // 12'-0", 0'-3 1/2", 5", 2-3/4" — and 8-4 1/2" (8'-4 1/2" with the foot mark lost to OCR)
+  const DIM = String.raw`-?\d+'(?:\s*-\s*\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?")?|\d+-\d+(?:\.\d+)?(?: \d+\/\d+)?"|\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?"`;
   const reDimAll = new RegExp(DIM, 'g');
   // "2@20'-0", 3@24'-0"" -> [20,20,24,24,24]
   function spacingList(s) {
@@ -83,10 +87,14 @@
         if (cur && gap < 1.6 * em && gap > -0.5 * em) {
           cur.str += (gap > 0.15 * em && !/\s$/.test(cur.str) ? ' ' : '') + it.str;
           cur.xEnd = Math.max(cur.xEnd, it.x + (it.w || 0));
+          if (it.conf != null) cur.conf = Math.min(cur.conf ?? 100, it.conf);
+          if (it.color === 'red') cur.red = true;
         } else if (cur && gap <= -0.5 * em) {
           // overlap (second strike of a double-struck run): ignore
         } else {
           cur = { str: it.str, x: it.x, y: it.y, h: it.h, xEnd: it.x + (it.w || 0) };
+          if (it.conf != null) cur.conf = it.conf;     // read by OCR: the least sure word of the phrase
+          if (it.color === 'red') cur.red = true;      // written in red over the print
           items.push(cur);
         }
       });
@@ -190,21 +198,31 @@
   }
 
   // ---------- header / job facts ----------
+  /* The Quote and Order Document's first page. A contract puts the order acknowledgement letter ahead of it (and a
+     project summary sheet can come first), so the header and Box 3 are read from there, not from page 1. */
+  function qoStart(pages) {
+    const i = pages.findIndex(p => lines(p).some(l => /QUOTE AND ORDER DOCUMENT/i.test(l.text)));
+    return i < 0 ? 0 : i;
+  }
+  const PLANT = String.raw`(?:Nucor Building Systems|Nucor Buildings Group)\s*[-–—]?\s*[A-Z]{2}\b`;   // OCR can drop the dash
   function jobFacts(pages) {
-    const ls = allLines(pages.slice(0, 4));
-    const txt = ls.map(l => l.text).join('\n');
+    const at = qoStart(pages), head = allLines(pages.slice(at, at + 4)).map(l => l.text).join('\n');
+    const txt = head + '\n' + allLines(pages.slice(0, 4)).map(l => l.text).join('\n');
     const quote = grab(txt, /QUOTE #:\s*([A-Z0-9][A-Z0-9-]+)/);
     const project = grab(txt, /Project Name:\s*(.+?)(?:\s{2,}|\n|$)/);
     const date = grab(txt, /DATE:\s*([\d/]+)/);
-    const divText = grab(txt, /(Nucor Building Systems\s*-\s*[A-Z]{2}|American Buildings|Kirby Building Systems|CBC Steel Buildings|Gulf States Manufacturers|Nucor Buildings Group[^\n]*)/i) || '';
+    // the plant on the order form's own header ("Nucor Buildings Group – SC"), else its address, else a sister brand
+    const divText = grab(head, new RegExp('(' + PLANT + ')', 'i')) || grab(txt, new RegExp('(' + PLANT + '|American Buildings|Kirby Building Systems|CBC Steel Buildings|Gulf States Manufacturers)', 'i'))
+      || grab(head, /((?:Swansea|Waterloo|Terrell|Brigham City),?\s*[A-Z]{2})\b/i) || '';
     return { quote, project, date, divisionText: divText, division: divisionFrom(divText) };
   }
   function divisionFrom(t) {
     t = t.toLowerCase();
-    if (/nucor building systems\s*-\s*in/.test(t)) return 'NBS-IN';
-    if (/nucor building systems\s*-\s*sc/.test(t)) return 'NBG-SC';
-    if (/nucor building systems\s*-\s*tx/.test(t)) return 'NBG-TX';
-    if (/nucor building systems\s*-\s*(ut|ca)/.test(t) || /cbc/.test(t)) return 'West';
+    const st = (t.match(/nucor building(?:s)?\s+(?:systems|group)\s*[-–—]\s*([a-z]{2})\b/) || [])[1];
+    if (st === 'in' || /waterloo,?\s*in/.test(t)) return 'NBS-IN';
+    if (st === 'sc' || /swansea,?\s*sc/.test(t)) return 'NBG-SC';
+    if (st === 'tx' || /terrell,?\s*tx/.test(t)) return 'NBG-TX';
+    if (st === 'ut' || st === 'ca' || /brigham city,?\s*ut/.test(t) || /cbc/.test(t)) return 'West';
     if (/american buildings/.test(t)) return 'ABC-IL';
     if (/kirby/.test(t)) return 'KBS-TN';
     return 'NBS-IN';
@@ -256,13 +274,14 @@
      "Occupancy Classification: II - Standard Buildings", "Seismic Information: Ss: 0.169", "S1: 0.058",
      "Site Class: D Soils Report", "Ground Snow Load: 30 psf" */
   function seismicFacts(pages) {
-    const txt = allLines(pages.slice(0, 8)).map(l => l.text).join('\n');
+    const at = qoStart(pages), txt = allLines(pages.slice(at, at + 8)).map(l => l.text).join('\n');
     const occ = grab(txt, /Occupancy Classification:\s*(.+?)(?:\s{2,}|\n|$)/);
     const risk = occ && (occ.match(/^\s*(IV|III|II|I)\b/) || [])[1];
     const num = re => { const v = grab(txt, re); return v != null && isFinite(parseFloat(v)) ? parseFloat(v) : null; };
     const site = grab(txt, /Site Class:\s*(.+?)(?:\s{2,}|\n|$)/);
     return {
-      occupancy: occ, risk: risk || null, Ss: num(/\bSs:\s*([\d.]+)/), S1: num(/\bS1:\s*([\d.]+)/),
+      // S1 sits on the line under Ss; OCR can lose its S ("1: 0.058")
+      occupancy: occ, risk: risk || null, Ss: num(/\bSs:\s*([\d.]+)/), S1: num(/\bS1:\s*([\d.]+)/) ?? num(/\bSs:\s*[\d.]+[^\n]*\n(?:[^\n]*\s)?[S$5]?1:\s*(0?\.\d+)/),
       siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
       groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
     };
@@ -394,8 +413,10 @@
   }
 
   // ---------- Box 22: mezzanines ----------
+  // each row by its letter, or by its words when OCR lost the letter
   const DIM_ROWS = [
-    ['A', /^\(A\)/], ['B', /^\(B\)/], ['C', /^\(C\)/], ['D', /^\(D\)/], ['E', /^\(E\)/], ['F', /^\(F\)/],
+    ['A', /^\(A\)|^Finished Floor to Top/i], ['B', /^\(B\)|Clearance Under Joist/i], ['C', /^\(C\)|Clearance Under Floor Beams/i],
+    ['D', /^\(D\)|Minimum Required Clearance Under Frame/i], ['E', /^\(E\)|^Edge of Slab/i], ['F', /^\(F\)|^Clearance Under Frame/i],
     ['joistSpacing', /^Mezzanine Joist Spacing/i], ['seat', /^Joist Seat Depth/i],
   ];
   const CHECK_LABELS = {
@@ -460,6 +481,9 @@
       deckFinish: grab(txt, /Deck Finish:\s*(.+?)(?:\s{2,}|\n|$)/),
       primer: grab(txt, /Joist Primer Colou?r:?\s*(.+?)(?:\s{2,}|\n|$)/),
       openings: grab(txt, /Floor Openings[^\n]*\n([^\n]*)/),
+      // who supplies the deck and the bar joists ("Deck: Not by Seller", "Bar Joist and Bridging: Not by Seller")
+      deckBy: /(?:^|\n)\s*Deck:\s*Not by Seller/i.test(txt) ? 'others' : null,
+      joistsBy: /Bar Joist and Bridging:\s*Not by Seller/i.test(txt) ? 'others' : null,
       dims: {}, checks: {}, sources: {}, page: ls[0] && ls[0].page,
     };
     if (m.openings && /Materials Provided|Deck Type/i.test(m.openings)) m.openings = null;
@@ -481,19 +505,24 @@
       if (!row) return;
       const lab = row.items.findIndex(it => re.test(it.str));
       const vals = row.items.slice(lab + 1).filter(it => !/^Joist Primer/i.test(it.str));
-      let req = null, prov = null;
+      let req = null, prov = null, reqIt = null, provIt = null;
       vals.forEach(it => {
-        if (xReq != null && xProv != null) (Math.abs(it.x - xReq) < Math.abs(it.x - xProv) ? (req = req ?? it.str) : (prov = prov ?? it.str));
-        else req == null ? (req = it.str) : (prov = prov ?? it.str);
+        const toReq = xReq != null && xProv != null ? Math.abs(it.x - xReq) < Math.abs(it.x - xProv) : req == null;
+        if (toReq) { if (req == null) { req = it.str; reqIt = it; } } else if (prov == null) { prov = it.str; provIt = it; }
       });
       const ann = annots.find(a => row.y >= a.y1 - 2 && row.y <= a.y2 + 4 && (xProv == null || a.x1 > xProv - 30));
       const annTxt = ann ? clean(ann.text) : null;
       let value = null, src = null;
       if (ftin(req) != null) { value = ftin(req); src = 'requested'; }
       else if (ftin(annTxt) != null) { value = ftin(annTxt); src = 'annotation'; }
-      else if (ftin(prov) != null) { value = ftin(prov); src = 'provided'; }
+      // the Provided column is the quoted design's own number: a fair value for a dimension of that design (A, the joist
+      // spacing and seat, E), but never a minimum clearance (B, C, D) — a TBD requirement is asked, the Provided offered
+      else if (ftin(prov) != null && !/^[BCD]$/.test(key)) { value = ftin(prov); src = 'provided'; }
       m.dims[key] = { requested: req, provided: prov, annotation: annTxt, value, source: src };
+      const from = src === 'requested' ? reqIt : src === 'provided' ? provIt : null;
+      if (from && from.conf != null) m.dims[key].read = { conf: from.conf, red: !!from.red };
     });
+    readByOcr(m, ls);
     // checkboxes (only available when the page was rendered): each label read off this mezzanine's own row, so two
     // mezzanines on one page keep their own ticks
     if (ls.some(l => l.pageRef && l.pageRef.checks)) {
@@ -507,6 +536,36 @@
       });
     }
     return m;
+  }
+
+  /* A Box 22 read by OCR (src/ocr.js): how sure each value is — the least sure word of its phrase — and what the
+     engineer wrote over the print: a value struck out with the new one written in red beside it ("Width: 26'-6""
+     struck through, "26'-8"" in red). The struck word never reaches the text, so the red one is the value read. */
+  const READ_FIELDS = [['width', /^Width:/i], ['length', /^Length:/i], ['slab', /^Slab\/Deck Thickness:/i], ['startLEW', /^Start Location from LEW/i],
+    ['startFSW', /^Start Location from FSW/i], ['dead', /^Dead Load:/i], ['live', /^Live Load:/i], ['collateral', /^Collateral/i], ['partition', /^Partition Loads?:/i]];
+  function readByOcr(m, ls) {
+    if (!ls.some(l => l.items.some(it => it.conf != null))) return;
+    m.read = {};
+    READ_FIELDS.forEach(([k, re]) => {
+      const l = ls.find(l => l.items.some(it => re.test(it.str)));
+      if (!l) return;
+      const i = l.items.findIndex(it => re.test(it.str)), lab = l.items[i];
+      const it = lab.str.replace(re, '').trim() ? lab : l.items[i + 1];   // "Length: 46'-6"" is one phrase, "Width:" and "26'-8"" two
+      if (it && it.conf != null) m.read[k] = { conf: it.conf, red: !!it.red };
+    });
+    Object.entries(m.dims).forEach(([k, d]) => { if (d.read) m.read[k] = d.read; });
+    m.markups = [];
+    const pages = [...new Set(ls.map(l => l.pageRef).filter(Boolean))];
+    pages.forEach(p => (p.struck || []).forEach(st => {
+      const l = ls.find(l => l.pageRef === p && Math.abs(l.y - st.y) < 3);
+      if (!l) return;
+      const lab = l.items.filter(it => it.x + it.w <= st.x + 2).pop(), now = l.items.find(it => it.x >= st.x + st.w - 2);
+      const field = lab ? ((READ_FIELDS.find(([, re]) => re.test(lab.str)) || DIM_ROWS.find(([, re]) => re.test(lab.str)) || [])[0] || null) : null;
+      // a line through a drawing's words (the sidewall sketch) is no markup: keep a struck field or one with a red value
+      // the struck figures as OCR saw them through the line, a lost foot and inch mark put back (25-3 → 25'-3")
+      const was = /^\d+-\d+(?: \d+\/\d+)?$/.test(st.str) ? st.str.replace(/^(\d+)-(.*)$/, `$1'-$2"`) : st.str;
+      if (field || (now && now.red)) m.markups.push({ field, label: lab ? lab.str.replace(/:$/, '') : null, was, now: now && now.red ? now.str : null, page: p.num });
+    }));
   }
 
   // positions of checkbox labels on a page (for the renderer to sample just left of them): every mezzanine's rows,
@@ -527,6 +586,58 @@
     return pages.filter(p => lines(p).some(l => isBox22(l.text) || /Mezzanine ID:/i.test(l.text)));
   }
 
+  /* ---------- Box 27 special user notes, Box 28 qualifications ----------
+     Numbered items, each joined over its wrapped lines and page breaks. The notes are where a quote says what Box 22
+     cannot: a mezzanine with no floor (MEP support grids), cantilever or hot-rolled framing, loads given as point loads. */
+  function numbered(pages, startRe, endRe) {
+    const out = [];
+    let on = false, cur = null;
+    pages.forEach(p => {
+      const ls = lines(p);
+      let from = 0;
+      if (!on) { const i = findLine(ls, startRe); if (i < 0) return; on = true; from = i + 1; }
+      else { const i = findLine(ls, /CONTROL #/i); from = i >= 0 ? i + 1 : 0; }
+      for (let k = from; k < ls.length && on; k++) {
+        const t = ls[k].text;
+        if (endRe.test(t)) { on = false; break; }
+        if (startRe.test(t) || /^See next page/i.test(t) || /^Page \d+ of \d+/i.test(t) || /^[A-Z]\d{2}[A-Z]\d{4}$/.test(t.trim())) continue;
+        const m = t.match(/^\s*(\d{1,2})\.\s+(.*)$/);
+        if (m) out.push(cur = { n: +m[1], text: clean(m[2]), page: p.num });
+        else if (cur && t.trim() && !/^[*y•]$/i.test(t.trim())) cur.text = clean(cur.text + ' ' + t);
+      }
+    });
+    return out;
+  }
+  const specialNotes = pages => numbered(pages, /^27\)\s*SPECIAL USER NOTES/i, /^28\)\s/);
+  const qualifications = pages => numbered(pages, /^28\)\s*EQUOTE QUALIFICATIONS/i, /^29\)\s|^NBG Qualifications/i);
+  /* the notes that bear on one mezzanine: a note naming a mezzanine — its ID, or its leading word ("AUX 2-4" ↔
+     "auxiliary mezzanines", "ROOF ACCESS" ↔ "roof access mezzanine") — goes to that one only; a note about
+     mezzanines that names none goes to every one. Each carries the qualification it points to ("qualification
+     number 40 in Box 28"). */
+  const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function namesMezz(m, t) {
+    const id = String(m.id || '').toLowerCase().trim();
+    if (!id) return false;
+    // "1", "2": only as "mezzanine 1" — a bare digit is everywhere
+    if (/^\d+$/.test(id) || id.length < 3) return new RegExp('mezz(?:anine)?s?\\s*(?:#|no\\.?|number)?\\s*' + reEsc(id) + '\\b').test(t);
+    const word = (id.match(/^[a-z]{3,}/) || [])[0], two = id.split(/\s+/).slice(0, 2).join(' ');
+    return new RegExp('\\b' + reEsc(id) + '\\b').test(t) || (/^[a-z]{3,}\s+[a-z]{3,}$/.test(two) && t.includes(two)) || (!!word && new RegExp('\\b' + word + '[a-z]*\\b[^.]{0,40}mezz').test(t));
+  }
+  function notesFor(m, all, notes, quals) {
+    const seen = new Set();
+    return notes.filter(n => {
+      const t = n.text.toLowerCase(), about = t.replace(/mezzanines? (?:stairs|handrails)[^,.;]*/g, '');
+      if (!/mezz/.test(about) || seen.has(t)) return false;   // about a mezzanine, not only its stairs; once
+      seen.add(t);
+      const named = all.filter(x => namesMezz(x, t));
+      return named.length ? named.includes(m) : true;
+    }).map(n => {
+      const ref = (n.text.match(/qualification (?:number |#\s*)?(\d{1,2})/i) || [])[1];
+      const q = ref ? quals.find(x => x.n === +ref) : null;
+      return { ...n, qual: q ? q.text : null, qualN: q ? q.n : null };
+    });
+  }
+
   // ---------- building attachments: "The Back Sidewall (BSW) of the building Bldg 2 attaches to the Front Sidewall (FSW) of the building Bldg 1 at …" ----------
   function attachments(pages) {
     const text = allLines(pages).map(l => l.text).join(' ').replace(/\s+/g, ' ');
@@ -542,6 +653,8 @@
     const job = jobFacts(pages);
     const code = buildingCode(pages);
     const mezz = mezzanines(pages);
+    const notes = specialNotes(pages), quals = qualifications(pages);
+    mezz.forEach(m => { m.notes = notesFor(m, mezz, notes, quals); });
     // geometry per building the mezzanines sit in (a job can have a main building plus a lean-to, etc.)
     const buildings = {};
     [...new Set(mezz.map(m => m.building || ''))].forEach(n => { buildings[n] = { building: building(pages, n || null), frames: frames(pages, n || null), roof: roofLoads(pages, n || null) }; });
@@ -551,9 +664,9 @@
     const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
     // a request for tube / HSS / pipe columns (the Column sheet sizes W / BU only): the word next to "column"
     const colReq = allLines(pages).map(l => l.text).find(t => /\b(?:tube|tubular|hss|pipe)\b[^.\n]{0,30}\bcol(?:umn)?s?\b|\bcol(?:umn)?s?\b[^.\n]{0,30}\b(?:tube|tubular|hss|pipe)\b/i.test(t));
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), columnRequest: colReq ? clean(colReq) : null };
+    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, notes, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), columnRequest: colReq ? clean(colReq) : null };
   }
 
-  const api = { parse, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads };
+  const api = { parse, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);

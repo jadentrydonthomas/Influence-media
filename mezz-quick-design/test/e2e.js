@@ -37,7 +37,7 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   await page.screenshot({ path: path.join(out, '01-upload.png') });
   const t0 = Date.now();
   await page.setInputFiles('#file', pdf);
-  await page.waitForSelector('#v-results.is-active', { timeout: 60000 });
+  await page.waitForSelector('#v-results.is-active', { timeout: 300000 });   // a PCS with no text layer is read by OCR first
   const ms = Date.now() - t0;
   // values the PCS leaves open are asked for on the Design page: take the first typical value offered for each
   for (let k = 0; k < 8 && await page.$('#needCard'); k++) {

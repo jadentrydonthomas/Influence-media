@@ -117,25 +117,33 @@
       return { ...v(d.psf, d.estimate ? 'estimate' : 'deckGuide', d.note), auto: true };   // follows slab / deck / concrete edits
     })();
     const dim = k => (m.dims && m.dims[k]) || {};
+    // a value the engineer changed on the PCS: struck through, the new one written in red beside it
+    // and a value read by OCR at under 85 %: said beside the field, to check against the PDF
+    const mkNote = k => {
+      const x = (m.markups || []).find(q => q.field === k && q.now), r = m.read && m.read[k];
+      const ocr = r && r.conf < 85 ? `read by OCR, ${r.conf}% sure — check it against the PDF` : null;
+      return x ? `PCS markup: ${x.was} struck through, ${x.now} written in red — the red value is used${ocr ? `; ${ocr}` : ''}` : ocr ? ocr[0].toUpperCase() + ocr.slice(1) : null;
+    };
     const dimV = (k, def, defNote) => {
-      const d = dim(k);
-      if (d.value != null) return v(d.value, d.source === 'annotation' ? 'annotation' : 'pcs', d.source === 'annotation' ? `PCS "${d.requested}"; blue note ${d.annotation}` : null);
-      return def != null ? v(def, 'default', defNote) : v(null, 'missing');
+      const d = dim(k), prov = PCS.ftin(d.provided);
+      if (d.value != null) return v(d.value, d.source === 'annotation' ? 'annotation' : 'pcs', mkNote(k) || (d.source === 'annotation' ? `PCS "${d.requested}"; blue note ${d.annotation}` : d.source === 'provided' ? `PCS Requested "${d.requested || 'blank'}"; the Provided column's ${d.provided}` : null));
+      // a TBD minimum clearance: asked, with the quote's Provided number offered
+      return def != null ? v(def, 'default', defNote) : { ...v(null, 'missing'), ...(prov != null ? { provided: prov } : {}) };
     };
     const provided = (m.checks && m.checks.provided) || {};
     return {
       job: { ...pcs.job, code: pcs.code },
       // Box 3: seismic site data and risk category (the seismic loads to the frames and the bracing)
       seismic: { ...(pcs.seismic || {}) },
-      mezz: { id: m.id, building: m.building, page: m.page, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null },
+      mezz: { id: m.id, building: m.building, page: m.page, notes: m.notes || [], read: m.read || null, markups: m.markups || [], ocr: pcs.ocr || null, deckBy: m.deckBy || null, joistsBy: m.joistsBy || null, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null },
       loads: {
-        dead: dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default'),
-        live: v(m.live, m.live != null ? 'pcs' : 'missing'), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default'),
+        dead: dl.source === 'pcs' && mkNote('dead') ? { ...dl, note: mkNote('dead') } : dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default', mkNote('collateral')),
+        live: v(m.live, m.live != null ? 'pcs' : 'missing', mkNote('live')), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default', mkNote('partition')),
         joistWt: v(DEFAULTS.joistWt, 'default', 'Standard estimate (8 psf)'),
       },
       geom: {
-        width: v(m.width, 'pcs'), length: v(m.length, 'pcs'), startLEW: v(m.startLEW ?? 0, 'pcs'), startFSW: v(m.startFSW ?? 0, 'pcs'),
-        slab: v(m.slab, m.slab != null ? 'pcs' : 'missing'),
+        width: v(m.width, 'pcs', mkNote('width')), length: v(m.length, 'pcs', mkNote('length')), startLEW: v(m.startLEW ?? 0, 'pcs', mkNote('startLEW')), startFSW: v(m.startFSW ?? 0, 'pcs', mkNote('startFSW')),
+        slab: v(m.slab, m.slab != null ? 'pcs' : 'missing', mkNote('slab')),
         A: dimV('A'), B: dimV('B'), C: dimV('C'),
         // no silent defaults: TBD with no blue note means the quote engineer enters it (the Design page asks)
         joistSpacing: dimV('joistSpacing'), seat: dimV('seat'),
@@ -249,6 +257,42 @@
     inp.loads.dead = { value: r.psf, source: r.estimate ? 'estimate' : 'deckGuide', note: r.note, auto: true };
   }
 
+  /* What the PCS says around Box 22 that changes the job: the special notes (Box 27) about this mezzanine — with the
+     qualification a note points to — and who supplies the deck and the joists. A note that describes framing this
+     tool does not lay out (no floor / MEP support only, a hanging grid, cantilever or hot-rolled beams under grating)
+     is a must-fix: the beams and columns here are then the Box 22 loads on a floor layout, a check only. */
+  const OTHER_FRAMING = /not have any floor|\bno floor\b|mep support|hanging grid|cantilever|hot[- ]rolled|grating/i;
+  function scopeNotes(inp) {
+    const out = [], mz = inp.mezz || {}, id = mz.id || 'This mezzanine';
+    (mz.notes || []).forEach(n => {
+      const q = n.qual ? ` Qualification ${n.qualN} (Box 28): "${n.qual}"` : '';
+      if (OTHER_FRAMING.test(n.text)) out.push({ level: 'stop', tag: 'note', text: `${id}: the PCS special notes describe framing this tool does not lay out — the beams, joists and columns here are the Box 22 loads on a floor layout, a check of those loads only; design the framing as the note says. Special note ${n.n} (page ${n.page}): "${n.text}"${q}` });
+      else out.push({ level: 'warn', tag: 'note', text: `PCS special note ${n.n} (page ${n.page}): "${n.text}"${q}` });
+    });
+    if (mz.joistsBy === 'others' || mz.deckBy === 'others') {
+      const what = [mz.deckBy === 'others' ? 'the deck' : null, mz.joistsBy === 'others' ? 'the bar joists and bridging' : null].filter(Boolean).join(' and ');
+      out.push({ level: 'warn', text: `${id}: ${what} ${mz.deckBy === 'others' && mz.joistsBy === 'others' ? 'are' : 'is'} not by the seller (Box 22).${mz.joistsBy === 'others' ? ` The beams still carry the joists' weight — ${val(inp.loads.joistWt) ?? DEFAULTS.joistWt} psf, an estimate — and are braced at the joist spacing: confirm both with whoever supplies the floor members.` : ''}` });
+    }
+    return out;
+  }
+
+  /* A Box 22 read by OCR (the PCS pages carry no text layer): the values Tesseract was less than 85 % sure of, still as
+     they stand in the inputs, to check against the PDF; and each value changed by a markup on the PCS. */
+  const READ_LABEL = { width: 'Width', length: 'Length', slab: 'Slab/deck', startLEW: 'Start from LEW', startFSW: 'Start from FSW', dead: 'Dead load', live: 'Live load', collateral: 'Collateral', partition: 'Partition',
+    A: '(A)', B: '(B)', C: '(C)', D: '(D)', E: '(E)', F: '(F)', joistSpacing: 'Joist spacing', seat: 'Joist seat' };
+  function ocrNotes(inp) {
+    const out = [], mz = inp.mezz || {}, id = mz.id || 'This mezzanine';
+    (mz.markups || []).filter(x => x.now).forEach(x => out.push({ level: 'warn', text: `${id}: PCS markup on page ${x.page} — ${x.label || READ_LABEL[x.field] || 'a value'} ${x.was} struck through, ${x.now} written in red. The red value is used.` }));
+    if (!mz.read) return out;
+    const node = k => ({ dead: inp.loads.dead, live: inp.loads.live, collateral: inp.loads.coll, partition: inp.loads.partition })[k] || inp.geom[k];
+    const shown = k => { const n = node(k), x = val(n); return x == null ? 'not read' : /^(dead|live|collateral|partition)$/.test(k) ? `${+x.toFixed(2)} psf` : PCS.fmtFtIn(x); };
+    // still the PCS value (not typed over since) and read at under 85 %
+    const low = Object.entries(mz.read).filter(([k, r]) => r.conf < 85 && READ_LABEL[k] && node(k) && !/manual|none/.test(node(k).source || ''));
+    if (low.length) out.push({ level: 'warn', text: `${id}: this PCS has no text layer — Box 22 was read by OCR. Check these against the PDF (how sure the reader was): ${low.map(([k, r]) => `${READ_LABEL[k]} ${shown(k)} (${r.conf}%)`).join(', ')}.` });
+    else out.push({ level: 'info', text: `${id}: Box 22 was read by OCR (the PCS pages carry no text layer); every value read at 85% or better.` });
+    return out;
+  }
+
   /* ---------- one mezzanine: inputs → loads → layout (no section sizes yet) ---------- */
   function prepare(inp, settings = {}, index = 0) {
     const s = { ...SETTINGS, ...settings };
@@ -256,6 +300,8 @@
     refreshDeadLoad(inp);
     const chk = validate(inp);
     chk.soft.forEach(t => warn.push(typeof t === 'string' ? { level: 'warn', text: t } : t));
+    scopeNotes(inp).forEach(w => warn.push(w));
+    ocrNotes(inp).forEach(w => warn.push(w));
     if (chk.miss.length) {
       warn.unshift({ level: 'stop', text: `Needs input: ${chk.miss.join(', ')} — not on the PCS (TBD, no blue note). Enter ${chk.miss.length > 1 ? 'them' : 'it'} above to run the design.` });
       const ed0 = resolveEdition(inp, s);
@@ -1558,6 +1604,40 @@
   }
 
   /* Design every mezzanine of a job together. items: [{ inp, settings }] (one per mezzanine). */
+  /* Two mezzanines of one building that overlap, or stop just short of each other, as read (Box 22 start locations and
+     sizes): a misread or a markup on one of them that the other did not get. Laid out as read they give two beam lines
+     a few inches apart. (S1B-26002: A's width marked up 26'-6" -> 26'-8" runs it to 27'-4" from the FSW; B starts at
+     27'-2".) */
+  function footprintCheck(ctxs, mezz) {
+    const box = c => { const g = c.inp.geom, n = k => val(g[k]); const b = { x0: n('startLEW'), y0: n('startFSW') }; b.x1 = b.x0 + n('length'); b.y1 = b.y0 + n('width'); return [b.x0, b.y0, b.x1, b.y1].every(Number.isFinite) ? b : null; };
+    const mk = c => (c.inp.mezz.markups || []).filter(x => x.now && /^(width|length|startLEW|startFSW)$/.test(x.field));
+    const live = ctxs.filter(c => !c.incomplete);
+    for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) {
+      const a = live[i], b = live[j];
+      if (bkeyName(a.inp.mezz.building) !== bkeyName(b.inp.mezz.building)) continue;
+      const p = box(a), q = box(b);
+      if (!p || !q) continue;
+      const ox = Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0), oy = Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0), f = PCS.fmtFtIn;
+      // a red markup on what places the edge where they meet (the first one's size or start, the second one's start)
+      const why = (m1, m2, ax) => {
+        const near = ax === 'y' ? ['width', 'startFSW'] : ['length', 'startLEW'], far = ax === 'y' ? ['startFSW'] : ['startLEW'];
+        const ms = [...mk(m1).filter(x => near.includes(x.field)).map(x => [m1, x]), ...mk(m2).filter(x => far.includes(x.field)).map(x => [m2, x])];
+        return ms.length ? ` ${ms.map(([m, x]) => `${m.id}'s ${READ_LABEL[x.field].toLowerCase()} is a red markup on the PCS (${x.was} → ${x.now})`).join('; ')} — the other mezzanine's start location may not have been changed with it.` : '';
+      };
+      const order = ax => ((ax === 'y' ? p.y0 <= q.y0 : p.x0 <= q.x0) ? [a, p, b, q] : [b, q, a, p]);
+      let text = null;
+      if (ox > 0.04 && oy > 0.04) {
+        // the thin way is where they meet: across the width (y) or along the length (x)
+        const ax = oy <= ox ? 'y' : 'x', [m1, b1, m2, b2] = order(ax), wall = ax === 'y' ? 'FSW' : 'LEW';
+        text = `${m1.id} and ${m2.id} overlap by ${f(ax === 'y' ? oy : ox)}: ${m1.id} runs to ${f(ax === 'y' ? b1.y1 : b1.x1)} from the ${wall} (${f(ax === 'y' ? b1.y0 : b1.x0)} + ${f(ax === 'y' ? b1.y1 - b1.y0 : b1.x1 - b1.x0)}), ${m2.id} starts at ${f(ax === 'y' ? b2.y0 : b2.x0)}. Laid out as read, that is two beam lines ${f(ax === 'y' ? oy : ox)} apart. Check the Box 22 sizes and start locations.${why(m1, m2, ax)}`;
+      } else if (ox > 0.04 && oy <= 0 && -oy < 0.5 && -oy > 0.004 || oy > 0.04 && ox <= 0 && -ox < 0.5 && -ox > 0.004) {
+        const ax = ox > 0.04 ? 'y' : 'x', [m1, , m2] = order(ax);
+        text = `${m1.id} and ${m2.id} stop ${f(ax === 'y' ? -oy : -ox)} short of each other — a sliver of floor between two beam lines. Check the Box 22 sizes and start locations: next to each other they share one line.${why(m1, m2, ax)}`;
+      }
+      if (text) [a, b].forEach(c => { const r = mezz[c.index]; if (r && r.warn) r.warn.push({ level: 'stop', text }); });
+    }
+  }
+
   function runJob(items, opts = {}) {
     const ctxs = items.map((it, i) => prepare(it.inp, it.settings || {}, i));
     // beams numbered once over the job (B1..), like the columns: each mezzanine's numbers follow the one before
@@ -1590,6 +1670,7 @@
     const mezz = ctxs.map(c => c.incomplete ? c.result : finish(c, cols.filter(q => q.owner === c.index), cols.filter(q => q.owner !== c.index && q.seenIn.includes(c.index)), merges, jobName));
     mezz.forEach((r, i) => { r.bkey = ctxs[i].bkey; r.bOff = ctxs[i].bOff; if (!r.incomplete) r.frameLoads = cols.frame.filter(q => q.seenIn.includes(r.index)); });
     drawingCheck(ctxs, mezz, cols);
+    footprintCheck(ctxs, mezz);
     // a column picked by hand replaces the guide's job-wide column: say which is on the quote
     if (jobName) mezz.forEach(r => { if (!r.incomplete && r.columns.length) { const q = DESIGN.COMMON_COLUMNS.includes(jobName) || jobName === 'W8X18' ? '' : ` (quoted ${jobName.replace(/^W(\d+)X/, 'BU$1x')})`, pk = r.colFinal && r.colFinal.picked ? r.colFinal.quoteAs : null;
       const nUn = mezz.reduce((a, z) => a + (!z || z.incomplete ? 0 : z.colFinal ? (z.colFinal.unsized || []).length : z.columns.length), 0);

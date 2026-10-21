@@ -80,7 +80,9 @@ const { loadJob } = require('../oracle/job_load.js');
 const cellText = c => (c != null && typeof c === 'object' ? c.v : c);
 (async () => {
   for (const f of fs.readdirSync(dir).filter(n => /\.pdf$/i.test(n))) {
-    const { job, inps } = await loadJob(path.join(dir, f));
+    const loaded = await loadJob(path.join(dir, f));
+    if (!loaded) { console.log(`  ${f}: no text layer — skipped (set OCR_TOOLS to read it by OCR)`); continue; }
+    const { job, inps } = loaded;
     const sheets = CP.sheets(job, { inputs: inps, settings: {}, generated: '2026-01-01' });
     const names = sheets.map(s => s.name);
     ['Summary', 'Inputs', 'MB sheets', 'Beam options', 'Shop rules', 'Columns', 'Frame loads', 'Sources'].forEach(n => assert.ok(names.includes(n), `${f}: sheet ${n}`));

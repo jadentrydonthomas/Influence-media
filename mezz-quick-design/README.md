@@ -15,6 +15,15 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
      - They are read on every Box 22 page, each mezzanine from its own rows, including an alternate's pages.
      - The floor use is checked against the code minimum live load (IBC 1607.1 / ASCE 7 Table 4.3-1; 15 psf partition on an office floor at 80 psf or less).
    - Deck attachment, deck finish and joist primer go to the checklist note for the joist and deck order.
+   - **Requested and Provided (rows A–F, joist spacing, seat).** B, C and D are minimum clearances the customer asks for: a TBD there is asked on the Design page, with the quote's Provided number offered as one click (*Provided on the quote*, or *each its Provided value* when the mezzanines differ) — never taken silently. A, E, the joist spacing and the seat are dimensions of the quoted design itself: a TBD there takes the Provided column, and the field says so (*PCS Requested "TBD"; the Provided column's 0'-2 1/2"*).
+   - **Box 27 special user notes and Box 28 qualifications**, each joined over its wrapped lines and page breaks and matched to the mezzanine it names (by ID, or "mezzanine 2"); a note that names none goes to every mezzanine. A note describing framing the tool does not lay out — no floor (MEP support only), a hanging grid, cantilever or hot-rolled beams under grating — is a must-fix: what the page designs is then a check of the Box 22 loads on a floor layout, and the note (with the qualification it cites) is quoted in full. *Deck* or *Bar Joist and Bridging: Not by Seller* is flagged, with the joist weight the beams carry as an estimate to confirm.
+   - **Any wrapper, either plant.** A signed contract — an order acknowledgement letter first, the QUOTE AND ORDER DOCUMENT after, as the SC plant sends them — is read from the order document's own pages: quote, project, date and the plant in its header (*Nucor Building Systems – IN* → NBS-IN, *Nucor Buildings Group – SC* → NBG-SC, Terrell → NBG-TX, …).
+   - **Pages with no text layer are read by OCR.** A PDF printed through a driver that draws every glyph as a vector outline (DocuWare Printer on some SC contracts: the text "looks like an image" and cannot be selected), or a scan, has no text for pdf.js. Those pages are found by what they are drawn with (thousands of curved paths, or a page-size image — a floor plan's line work is left to the plan reader), rendered at 300 dpi and read by Tesseract inside the tool: no network, nothing uploaded, about 1–2 s a page on three workers (S1B-26002, 18 such pages: under 30 s). On the way:
+     - **Checkboxes** are found in the picture (a square frame 6–14 pt, alone), their tick read, and blanked before the words are read, so a box never reads as a letter.
+     - **Figures read again.** A dimension alone in a table cell is where OCR is least sure (25'-8" came back as "25-8"" at 1 %): each such word is read a second time as one line of figures only, and the reading that makes a well-formed figure is kept. Tesseract's usual slips on a PCS are put right — a lost foot mark (9-10" → 9'-10"), the space before a fraction (0-21/2" → 0'-2 1/2"), O / l / T for 0 / 1, "(©)" for (C), "Ill" for III, "$1:" for S1.
+     - **Pen markups.** A value struck through with a new one written in red beside it (S1B mezzanine A: Width ~~26'-6"~~ 26'-8"; B: ~~25'-3"~~ 25'-1", a slanted stroke over black print) is read as the red value, and both the Inputs field and the notes say so.
+     - **How sure.** Each Box 22 value keeps the confidence of its least sure word. The Design page lists any value read under 85 % with its number, to check against the PDF; the intake line says which pages were read by OCR and how sure on average. The reading checks (bays against the length, endwall columns against the width, frame modules against Box 2) catch a misread number there as they would a typo.
+     - **Measured.** Read entirely by OCR (text layer ignored) and compared field by field with the text-layer read: an SC contract (43 pages, 4 mezzanines, notes and qualifications) 320 of 323 fields identical — the 3 are a dash's style, a foot mark in a Provided string, and three punctuation-heavy words in a note; W0S-26160 (IN) 194 of 197 — the quote number in a double-struck header, and a few note words. S1B, which has no text layer at all, is checked value by value against its pages (`test/ocr.test.js`).
    - Box 2: bays, endwall column spacing and soldier columns, per building. On a single slope or a lean-to the "Distance to Ridge" is N/A, so there is no ridge line.
    - Box 3: building code, which picks the workbook edition.
    - Box 5: frame interior modules.
@@ -64,7 +73,7 @@ Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **b
    - **Columns:** a row per section and height over the job.
    - **More rows than the sheet holds:** the table says how many rows to insert first.
    - W1S-26062 as the practice inputs leave it (4" slab, 5" joist seat: 15" of room) with the setback gives the rows quoted by hand for that job (17–22), with two differences. MB1 is BU14x94 for BU14x92: the Production Guidelines' tw / tf ≥ 0.30 rules out a 1/4" web under 1" flanges; with the guidelines off, it is BU14x92. MB2 is BU13x48 for BU14x41: 14" + 1.07" sag is 15.07", 1/16" over the room, so BU14x41 is listed as lighter but needing C 9'-5 7/8" (Beam calc → *How it was designed*, and the calc package's Beam options sheet).
-6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit, scroll to zoom, click a member for its calc.
+6. **3D framing model.** Beams as I-shapes at the T/beam elevation, W columns with cap and base plates, building-column stubs, open-web joists at the spacing and a translucent slab. Drag to orbit; right-drag, Shift-drag or two fingers to pan; scroll or pinch to zoom toward the pointer (in up to 40×); click a member for its calc. With several mezzanines, the **View** chips (*Whole job · A · B · …*) or a double-click on one fly the camera to it and frame it, so a mezzanine at the far end of a long building fills the view; orbiting then turns around it. Panning, zooming or flying stops the slow turn; *Reset view* goes back to the whole job.
 
 ### Buildings attached to each other
 
@@ -134,7 +143,8 @@ A misread moves every beam and column, so each check below is a **stop** on the 
 
 - **Box 2:** bays not read, or adding to more than 2'-0" off the building length (part of a wrapped list lost); an endwall's column spacing not read, or not adding to the width.
 - **Box 5:** no frame rows for the building; a frame line with no row, or a row past the last frame line; interior modules not adding to the width; a post-and-beam end frame whose columns disagree with Box 2's endwall spacing.
-- **Box 22:** a footprint past the building's ends or sidewalls. A Box 22 building name matched to Box 2 only loosely is noted.
+- **Box 22:** a footprint past the building's ends or sidewalls. A Box 22 building name matched to Box 2 only loosely is noted. Two mezzanines of one building that **overlap**, or stop just short of each other (under 6"), as read: laid out that way they would give two beam lines inches apart. The note names the edge and a red markup that moved it — S1B-26002: A's width marked up 26'-6" → 26'-8" runs it to 27'-4" from the FSW while B still starts at 27'-2", a 2" overlap (as printed, 26'-6", they meet on one line).
+- **Read by OCR:** any Box 22 value read under 85 % sure is listed to check against the PDF, and said beside its field on Inputs.
 - **The floor plan:** not matched to the grid (the reason is given); ✱ interior columns where Box 5 has none; mezzanine columns on the drawing and in the layout that differ. No joist arrow inside a mezzanine, or arrows both ways, is a warning (the rule's direction is used); no drawing at all is a warning to check the layout by eye.
 - When everything agrees, the Design page says so: *Floor plan check: the drawing shows 3 ⊘ mezzanine columns in mezzanine 1, at 2/B, 3/B, 4/B — the same as the layout.*
 
@@ -487,8 +497,10 @@ Every beam must pass SR ≤ 0.99 with L/360 and L/240, *lightest* must be the li
 ## Develop
 
 ```bash
-npm install            # pdfjs-dist 3.11.174 (inlined into the build)
-npm run build          # -> index.html
+npm install            # pdfjs-dist 3.11.174, tesseract.js 5.1.1 + its English model (all inlined into the build)
+npm run build          # -> index.html; PDFJS_DIST / OCR_DIST point at other installs. Without tesseract.js the
+                       #    build warns and leaves the OCR reader out (a PCS with no text layer is then not read)
+OCR_TOOLS=node_modules npm test   # also read the S1B contract by OCR in Node (needs @napi-rs/canvas too)
 npm test               # guide examples, layout cases (layout edits, drawn overhangs too), parser (wrapped building
                        # names, boxes over a page break), plan symbols (⊗ ⊘ ✱ I, a rotated sheet, the plan page
                        # picked by registration), the reading checks fed deliberate misreads, frame-file writer,

@@ -325,19 +325,32 @@
     try {
       const data = new Uint8Array(await file.arrayBuffer());
       const pdf = await window.pdfjsLib.getDocument({ data, isEvalSupported: false }).promise;
-      const pages = [];
-      for (let n = 1; n <= pdf.numPages; n++) {
-        const page = await pdf.getPage(n);
-        pages.push({ num: n, ...(await EX.extractPage(page)), _page: page });
-        prog(0.1 + 0.6 * n / pdf.numPages);
-      }
-      for (const p of PCS.box22Pages(pages)) {           // checkboxes are vector glyphs: render and look
+      // the text layer of every page; a page with none (its words drawn as outlines by a print driver, or a scan) is
+      // then read by OCR, in the browser, a few seconds a page
+      const t0 = Date.now();
+      const pages = await EX.extractDoc(pdf, {
+        OPS: window.pdfjsLib.OPS, ocr: () => window.MZ_OCR.webEngine(),
+        onPage: (n, N) => prog(0.1 + 0.25 * n / N),
+        onOcr: (done, total) => {
+          const left = done ? Math.max(1, Math.round((Date.now() - t0) / 1000 / done * (total - done))) : null;
+          $('#dropSub').textContent = done ? `Reading by OCR · page ${done} of ${total}${done < total ? ` · about ${left} s left` : ''}` : `${total} page${total > 1 ? 's carry' : ' carries'} no text layer — starting the OCR reader…`;
+          status(`Reading ${total} page${total > 1 ? 's' : ''} by OCR`, 'warn');
+          prog(0.35 + 0.45 * done / total);
+        },
+      });
+      const ocr = pages.ocr || { pages: [] };
+      if (ocr.read) window.MZ_OCR.webEngine().then(e => e.end()).catch(() => {});   // free the workers' memory
+      for (const p of PCS.box22Pages(pages)) {           // checkboxes are vector glyphs: render and look (OCR found them already)
         const det = await EX.detectChecks(p, PCS.checkboxTargets(p), p._page);
         p.checks = det.states || {};
       }
       prog(0.8);
       const pcs = PCS.parse(pages);
-      if (!pcs.mezzanines.length) throw new Error('No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
+      pcs.ocr = ocr.read ? { pages: ocr.pages, conf: ocr.conf } : null;
+      const span = ns => ns.length > 2 && ns[ns.length - 1] - ns[0] === ns.length - 1 ? `${ns[0]}–${ns[ns.length - 1]}` : ns.join(', ');
+      if (!pcs.mezzanines.length) throw new Error(ocr.pages.length && !ocr.read
+        ? `Page${ocr.pages.length > 1 ? 's' : ''} ${span(ocr.pages)} carr${ocr.pages.length > 1 ? 'y' : 'ies'} no text layer (the words are drawn as outlines) and the OCR reader could not run: ${ocr.error || 'unknown error'}.`
+        : 'No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
       // floor plan: the drawing page (no text, hundreds of vector paths) whose grid bubbles register to the frame lines
       // of the first mezzanine's building — not just the last drawing (a wind-pressure table can be one too)
       state.planPaths = null; state.planReg = null; state.planPage = null; state.planAnnots = [];
@@ -350,8 +363,10 @@
       const keep = keepSettings();
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
       state.inputs = state.all[0].inputs; state.settings = state.all[0].settings;
-      $('#dropSub').textContent = `${pdf.numPages} pages · ${pcs.mezzanines.length} mezzanine${pcs.mezzanines.length > 1 ? 's' : ''} found`;
-      $('#intakeMsg').textContent = 'Parsed. Review the sections, then check the plan against the drawing.';
+      $('#dropSub').textContent = `${pdf.numPages} pages · ${pcs.mezzanines.length} mezzanine${pcs.mezzanines.length > 1 ? 's' : ''} found${pcs.ocr ? ` · ${pcs.ocr.pages.length} read by OCR` : ''}`;
+      $('#intakeMsg').textContent = pcs.ocr
+        ? `Parsed. Page${pcs.ocr.pages.length > 1 ? 's' : ''} ${span(pcs.ocr.pages)} had no text layer and ${pcs.ocr.pages.length > 1 ? 'were' : 'was'} read by OCR (${pcs.ocr.conf}% sure on average, ${Math.round((Date.now() - t0) / 1000)} s) — the Design page lists any Box 22 value read with less certainty; check those against the PDF.`
+        : 'Parsed. Review the sections, then check the plan against the drawing.';
       prog(1);
       recompute();
       go('results');                                        // open values are asked for at the top of the Design page
@@ -392,6 +407,9 @@
     state.all[state.mi] = { inputs: state.inputs, settings: state.settings };
     state.mi = i; state.inputs = state.all[i].inputs; state.settings = state.all[i].settings; state.colGroup = 0;
     recompute();
+    // the 3D view on one mezzanine follows the one picked (the whole job stays the whole job)
+    const bar = $('#modelFocus'), g = bar && bar.dataset.on && state.scene && (state.scene.groups || []).find(q => q.id === state.inputs.mezz.id);
+    if (g && model) { model.focus(g.box); markFocus(g.id); }
   }
   function renderMezzTabs() {
     const nav = $('#mezzTabs'), many = state.all && state.all.length > 1 && state.job;
@@ -532,7 +550,11 @@
     if (r.incomplete) { $('#rsSub').textContent = 'Needs input — see Design'; renderMiniPlan(); return; }
     if (decideMarks().length) { $('#rsSub').textContent = 'One decision to make — see Design'; renderMiniPlan(); return; }
     const jt = many ? jobTotals() : t;
-    $('#rsSub').textContent = many ? `${state.job.mezz.filter(m => !m.incomplete).map(m => m.id).join(' + ')} · ${jt.nB} beams · ${jt.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
+    // the names when they are short ("1 + 2"); else the count, the names on hover — a long list would wrap and take
+    // the 3D square's room on a short screen
+    const ids = state.job.mezz.filter(m => !m.incomplete).map(m => m.id), names = ids.join(' + ');
+    $('#rsSub').textContent = many ? `${names.length <= 18 ? names : `${ids.length} mezzanines`} · ${jt.nB} beams · ${jt.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
+    $('#rsSub').title = many ? names : '';
     $('#navPlanCount').hidden = false;
     $('#navPlanCount').textContent = `${jt.nB}·${jt.nC}`;
   }
@@ -716,6 +738,12 @@
       const bs = [...new Set(q.mezz.map(i => inputsOf(i).geom.B.value).filter(v => v != null).map(v => +v.toFixed(4)))];
       base = [...(bs.length === 1 ? [[bs[0], ft(bs[0]), 'same as B']] : []), ['none', 'No requirement', 'depth limited by Settings only']];
     }
+    // the quote's Provided column for a TBD requirement: one value, or each mezzanine its own
+    const [g, k] = q.path.split('.'), pv = q.mezz.map(i => (inputsOf(i)[g][k] || {}).provided).filter(v => v != null);
+    if (pv.length) {
+      const one = [...new Set(pv.map(v => +v.toFixed(4)))];
+      base = [one.length === 1 && pv.length === q.mezz.length ? [one[0], q.kind === 'ftin' ? ft(one[0]) : `${+(one[0] * 12).toFixed(3)}"`, 'Provided on the quote'] : ['provided', 'Each its Provided value', q.mezz.map(i => `${inputsOf(i).mezz.id || 'Mezzanine'} ${(inputsOf(i)[g][k] || {}).provided != null ? ft(inputsOf(i)[g][k].provided) : '—'}`).join(' · ')]].concat(base);
+    }
     const show = v => (v === 'none' ? 'No requirement' : q.kind === 'ftin' ? ft(v) : q.kind === 'in' ? `${+(v * 12).toFixed(3)}"` : String(v));
     const mine = usual(q.path).map(u => [u.v, show(u.v), `your usual · ${u.n} job${u.n > 1 ? 's' : ''}`, 'usual']);
     const same = (a, b) => String(a) === String(b) || (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) < 1e-4);
@@ -723,12 +751,16 @@
   }
   function setNeed(path, value) {
     const [g, k] = path.split('.'), row = needRows().find(q => q.path === path);
-    (row ? row.mezz : [state.mi]).forEach(i => { inputsOf(i)[g][k] = value === 'none' ? { value: null, source: 'none' } : { value, source: 'manual' }; });
+    (row ? row.mezz : [state.mi]).forEach(i => {
+      const was = inputsOf(i)[g][k] || {}, mine = value === 'provided' ? was.provided : value;
+      if (value === 'provided' && mine == null) return;   // no Provided number on this one: left open
+      inputsOf(i)[g][k] = mine === 'none' ? { value: null, source: 'none' } : { value: mine, source: 'manual', ...(value === 'provided' ? { note: 'the quote\'s Provided column' } : {}) };
+    });
     recompute();
   }
   function wireNeed() {
     $$('#needCard input[data-need]').forEach(el => { el.onchange = () => { if (el.dataset.used) return; const v = parseKind(el.dataset.kind, el.value); if (v == null || !isFinite(v)) { toast('Could not read "' + el.value + '"'); return; } el.dataset.used = '1'; setNeed(el.dataset.need, v); }; });
-    $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, b.dataset.v === 'none' ? 'none' : +b.dataset.v); });
+    $$('#needCard .chip').forEach(b => { b.onclick = () => setNeed(b.dataset.need, b.dataset.v === 'none' || b.dataset.v === 'provided' ? b.dataset.v : +b.dataset.v); });
     const ag = $('#needAgain'); if (ag) ag.onclick = useAgain;
   }
   // notes, grouped: what to check, what was confirmed against the PCS, the design decisions, then how it was read
@@ -1412,7 +1444,9 @@
       floor.push([[xLo, y, 0], [xHi, y, 0], 'rgba(240,190,110,.22)', true]); labels.push({ p: [xLo - 2.2, y, 0], text: og.yLabel(v), kind: 'bubble' }); }); });
     const Z = Atop + 2.5;
     const box = { x0: xLo - 3.4, x1: xHi, y0: yLo - 3.4, y1: yHi + (att3.length ? 3.4 : 0), z0: 0, z1: Z };   // bubbles sit 2.2' outside the grid ends
-    return { center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, Z / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2, box, members, labels, floor };
+    // each mezzanine's own box, for the view to fly to (far apart in a long building, the whole job shows them small)
+    const groups = ms.map(m => { const fp = m.layout.footprint; return { id: m.id, box: { x0: fp.x0, x1: fp.x1, y0: fp.y0, y1: fp.y1, z0: 0, z1: inpOf(m).geom.A.value ?? 12 } }; });
+    return { center: [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, Z / 2], radius: Math.hypot(box.x1 - box.x0, box.y1 - box.y0) / 2, box, members, labels, floor, groups };
   }
   // the sidebar orb: the same scene, small, turning; click it to jump to the framing model
   let mini = null;
@@ -1550,16 +1584,22 @@
     const canvas = $('#model3d');
     if (!canvas || !M3) return;
     if (!model) {
-      model = M3.mount(canvas, { onSelect: id => showMember(id), onHover: id => { if (!model.pinned) showMember(id, true); } });
+      model = M3.mount(canvas, {
+        onSelect: id => showMember(id), onHover: id => { if (!model.pinned) showMember(id, true); },
+        // panning, zooming or flying to a mezzanine stops the turn (it would swing the mezzanine away)
+        onAuto: on => { $('#m3Pause').textContent = on ? 'Pause rotation' : 'Resume rotation'; },
+        onFocus: id => markFocus(id),
+      });
       $('#m3Pause').onclick = () => { const on = model.auto; model.pause(on); $('#m3Pause').textContent = on ? 'Resume rotation' : 'Pause rotation'; };
-      $('#m3Reset').onclick = () => model.reset();
+      $('#m3Reset').onclick = () => { model.reset(); markFocus(null); };
       $('#m3In').onclick = () => model.zoom(1.15); $('#m3Out').onclick = () => model.zoom(1 / 1.15);
       $$('#modelToggles button').forEach(b => { b.onclick = () => { const on = !b.classList.contains('is-on'); b.classList.toggle('is-on', on); model.toggle(b.dataset.t, on); }; });
     }
     state.scene = buildScene();
     model.set(state.scene);
+    renderFocus(state.scene);
     renderMini(state.scene);
-    window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null), beams: () => state.scene.members.filter(x => x.kind === 'beam').map(x => x.id) };
+    window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null), beams: () => state.scene.members.filter(x => x.kind === 'beam').map(x => x.id), view: () => (model ? model.state() : null), groups: () => state.scene.groups };
     const ms = jobView(), many = ms.length > 1, t = many ? jobTotals() : totals(), marks = jobMarks();
     const cols = [...new Set(ms.filter(m => m.colFinal && m.columns.length).map(m => m.colFinal.quoteAs))].join(' / ');
     const nUnC = ms.reduce((a, m) => a + (!m.columns.length ? 0 : m.colFinal ? (m.colFinal.unsized || []).length : m.columns.length), 0);
@@ -1569,6 +1609,20 @@
       `<span><i style="background:#ff9f7a"></i>Mezzanine column ${cols && t.nC > nUnC ? `${esc(cols)} × ${t.nC - nUnC}` : ''}${nUnC ? `${cols && t.nC > nUnC ? ' · ' : ''}<b class="ng">${nUnC} not sized</b>` : ''}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${[...new Set(ms.map(m => ft(m.beamBase.Lb)))].join(' / ')}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${[...new Set(ms.map(m => f((inpOf(m).geom.slab.value || 0) * 12, 1) + '"'))].join(' / ')}</span>`;
     model.pinned = null;
     showMember(null);
+  }
+  // the view chips: the whole job, or one mezzanine framed on its own (several mezzanines only)
+  function renderFocus(scene) {
+    const bar = $('#modelFocus'), gs = (scene && scene.groups) || [];
+    bar.hidden = gs.length < 2;
+    if (gs.length < 2) { bar.innerHTML = ''; return; }
+    const on = bar.dataset.on && gs.some(g => g.id === bar.dataset.on) ? bar.dataset.on : '';
+    bar.innerHTML = `<span>View</span><button data-f="" class="${on ? '' : 'is-on'}">Whole job</button>` + gs.map(g => `<button data-f="${esc(g.id)}" class="${on === g.id ? 'is-on' : ''}" title="Fly to ${esc(g.id)}">${esc(g.id)}</button>`).join('');
+    bar.querySelectorAll('button').forEach(b => { b.onclick = () => { const g = gs.find(q => q.id === b.dataset.f); model.focus(g ? g.box : null); markFocus(g ? g.id : null); }; });
+  }
+  function markFocus(id) {
+    const bar = $('#modelFocus');
+    bar.dataset.on = id || '';
+    bar.querySelectorAll('button').forEach(b => b.classList.toggle('is-on', b.dataset.f === (id || '')));
   }
   function showMember(id, hover) {
     const r = state.res, m = id && state.scene ? state.scene.members.find(x => x.id === id) : null;
@@ -1719,6 +1773,10 @@
     const VW = 1100, M = 78, s = Math.min((VW - 2 * M) / (xb - xa), 600 / (yb - ya)), VH = (yb - ya) * s + 2 * M + 24;
     const X = x => M + (x - xa) * s, Y = y => M + 12 + (yb - y) * s;
     state.planXf = { xa, xb, ya, yb, s, M };   // the edit mode maps a click back to feet
+    // the columns' hover / click targets shrink on a long job drawn small (490 ft across), so the beam between two
+    // columns keeps a middle to point at: at most a third of the shortest beam each, never under 5
+    const minBeam = Math.min(...ms.flatMap(m => m.layout.beams.filter(b => !b.absorbed).map(b => Math.abs(b.to - b.from))).filter(v => v > 0.5), Infinity);
+    const hitR = r0 => Math.max(5, Math.min(r0, isFinite(minBeam) ? minBeam * s / 3 : r0));
     const inX = x => x >= xa - 0.01 && x <= xb + 0.01, inY = y => y >= ya - 0.01 && y <= yb + 0.01;
     const o = [];
     o.push(`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--hatch)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--green)" stroke-width=".7" opacity=".3"/></pattern>
@@ -1825,32 +1883,34 @@
     (g.fswX || []).filter(inX).forEach(x => bcols.push([x, 0])); (g.bswX || []).filter(inX).forEach(x => bcols.push([x, W]));
     fls.forEach(q => { if (inX(q.x) && !bcols.some(([x, y]) => atPt({ x, y }, q))) bcols.push([q.x, q.y]); });
     bcols.filter(([, y]) => inY(y)).forEach(([x, y]) => { const ld = fls.some(q => atPt(q, { x, y }));
-      o.push(`<g class="bcol-g ${ld ? 'ld' : ''}" data-tip="bcol|${x}|${y}"><circle class="hit" cx="${X(x)}" cy="${Y(y)}" r="11"/><rect class="bcol" x="${X(x) - (ld ? 5 : 4)}" y="${Y(y) - (ld ? 5 : 4)}" width="${ld ? 10 : 8}" height="${ld ? 10 : 8}"/></g>`); });
+      o.push(`<g class="bcol-g ${ld ? 'ld' : ''}" data-tip="bcol|${x}|${y}"><circle class="hit" cx="${X(x)}" cy="${Y(y)}" r="${hitR(11)}"/><rect class="bcol" x="${X(x) - (ld ? 5 : 4)}" y="${Y(y) - (ld ? 5 : 4)}" width="${ld ? 10 : 8}" height="${ld ? 10 : 8}"/></g>`); });
     // the attached building's columns the beams frame into, with its own loads to its frames (tips by its own coordinates)
     att.forEach(m => {
       const own = ((state.job && state.job.frameLoads) || []).filter(q => q.bkey === m.bkey);
       m.layout.supports.filter(sp => sp.building).forEach(sp => {
         if (bcols.some(([x, y]) => atPt({ x, y }, sp))) return;
         const ld = own.some(q => atPt(q, { x: sp.ox, y: sp.oy }));
-        o.push(`<g class="bcol-g ${ld ? 'ld' : ''}" data-tip="bcol|${sp.ox}|${sp.oy}|${m.index}"><circle class="hit" cx="${X(sp.x)}" cy="${Y(sp.y)}" r="11"/><rect class="bcol" x="${X(sp.x) - (ld ? 5 : 4)}" y="${Y(sp.y) - (ld ? 5 : 4)}" width="${ld ? 10 : 8}" height="${ld ? 10 : 8}"/></g>`);
+        o.push(`<g class="bcol-g ${ld ? 'ld' : ''}" data-tip="bcol|${sp.ox}|${sp.oy}|${m.index}"><circle class="hit" cx="${X(sp.x)}" cy="${Y(sp.y)}" r="${hitR(11)}"/><rect class="bcol" x="${X(sp.x) - (ld ? 5 : 4)}" y="${Y(sp.y) - (ld ? 5 : 4)}" width="${ld ? 10 : 8}" height="${ld ? 10 : 8}"/></g>`);
       });
     });
-    // beam number tags (B1..) at mid-span, in the mark's colour
+    // beam number tags (B1..) at mid-span, in the mark's colour — not on a beam drawn too short to carry one (a long job
+    // drawn small): the tag would cover the columns at its ends; its number is in the beam's hover card
     ms.forEach(m => m.layout.beams.filter(b => !b.absorbed).forEach(b => {
       const [p, q] = b.ends, mk = mkOf(m, b.id), mc = mkVar(mk);
       const mx = (X(p.x) + X(q.x)) / 2, my = (Y(p.y) + Y(q.y)) / 2, lab = bNo(m, b.id), w = 12 + lab.length * 6.5;
+      if (Math.hypot(X(q.x) - X(p.x), Y(q.y) - Y(p.y)) < w + 2 * hitR(13) + 4) return;
       o.push(`<g class="tag b ${mk && mk.kind === 'interior' ? 'int' : ''}" data-tip="beam|${m.index}|${b.id}" data-beam="${m.index}:${b.id}"><rect x="${mx - w / 2}" y="${my - 9}" width="${w}" height="18" rx="9" style="stroke:${mc}${mk && mk.kind === 'interior' ? ';fill:' + mc : ''}"/><text x="${mx}" y="${my + .5}" style="fill:${mk && mk.kind === 'interior' ? 'var(--surface)' : mc}">${lab}</text></g>`);
     }));
     // mezzanine columns, numbered once over the job (C1..) — hover for the Column-sheet left / right D and L
     ms.forEach(m => m.layout.mezzCols.forEach(c => {
       const cx = X(c.x), cy = Y(c.y), R = 8, d = R * 0.7, lab = 'C' + cno.get(c.label);
       const cd = `${c.ox ?? c.x}|${c.oy ?? c.y}|${m.index}`;
-      o.push(`<g class="mcol" data-col="${cd}" data-tip="col|${cd}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/></g>`);
+      o.push(`<g class="mcol" data-col="${cd}" data-tip="col|${cd}"><circle class="hit" cx="${cx}" cy="${cy}" r="${hitR(13)}"/><circle cx="${cx}" cy="${cy}" r="${R}"/><path d="M${cx - d},${cy - d} L${cx + d},${cy + d} M${cx - d},${cy + d} L${cx + d},${cy - d}"/></g>`);
       o.push(`<g class="tag c" data-col="${cd}" data-tip="col|${cd}"><rect x="${cx + 11}" y="${cy + 7}" width="26" height="16" rx="8"/><text x="${cx + 24}" y="${cy + 15.5}">${lab}</text></g><text class="lbl" x="${cx + 41}" y="${cy + 19}">${c.label}</text>`);
     }));
     // columns taken out on the Plan page: a ghost, click it (edit mode) to put it back
     ms.forEach(m => (m.layout.dropped || []).forEach(d => { const cx = X(d.x), cy = Y(d.y), dd = 5.6;
-      o.push(`<g class="mcol dropped" data-dropped="${m.index}|${d.ox ?? d.x}|${d.oy ?? d.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="13"/><circle cx="${cx}" cy="${cy}" r="8"/><path d="M${cx - dd},${cy - dd} L${cx + dd},${cy + dd} M${cx - dd},${cy + dd} L${cx + dd},${cy - dd}"/><title>${esc(d.label)} taken out — the beam spans through</title></g>`); }));
+      o.push(`<g class="mcol dropped" data-dropped="${m.index}|${d.ox ?? d.x}|${d.oy ?? d.y}"><circle class="hit" cx="${cx}" cy="${cy}" r="${hitR(13)}"/><circle cx="${cx}" cy="${cy}" r="8"/><path d="M${cx - dd},${cy - dd} L${cx + dd},${cy + dd} M${cx - dd},${cy + dd} L${cx + dd},${cy - dd}"/><title>${esc(d.label)} taken out — the beam spans through</title></g>`); }));
     if (r.planCheck && r.planCheck.ok) r.planCheck.cols.forEach(c => o.push(`<circle class="seen" cx="${X(c.x)}" cy="${Y(c.y)}" r="14"><title>Mezzanine column on the PCS floor plan</title></circle>`));
     // joist direction, and the mezzanine's name in its first joist bay (click it to edit that mezzanine)
     ms.forEach(m => {

@@ -350,7 +350,8 @@
 
   // registerAndRead's grid from LAYOUT.buildingGrid: the frame lines, every column line (sidewalls, endwall columns,
   // interior frame columns), the endwall column lines, and the lettered lines (column lines + ridge)
-  const gridOf = g => ({ xs: g.xs, colY: [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()].map(v => +v.toFixed(3)))], lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY });
+  // (null when Box 2 gave no building size: nothing to register a drawing to)
+  const gridOf = g => (g && g.width > 0 ? { xs: g.xs, colY: [...new Set([0, g.width, ...g.lewY, ...g.rewY, ...g.interior.flat()].filter(Number.isFinite).map(v => +v.toFixed(3)))], lewY: g.lewY, rewY: g.rewY, width: g.width, letterLines: g.allY } : null);
 
   /* The floor plan among a PCS's pages: a drawing (no text layer, hundreds of vector paths) whose grid bubbles register
      to the building's frame lines. A quote can carry other vector-only sheets — the components-and-cladding wind
@@ -360,7 +361,8 @@
   async function findPlan(pages, grid, opsOf, OPS) {
     let fit = null, best = null;
     for (const p of pages.slice().reverse()) {
-      if (p.items.length > 40) continue;
+      // a page with text is no drawing — nor is a form whose words are drawn as outlines (read by OCR: src/ocr.js)
+      if ((p.nativeItems ?? p.items.length) > 40 || p.kind === 'outlined' || p.kind === 'scan') continue;
       const paths = subpaths(await opsOf(p), OPS, p.vt || p.height);
       if (paths.length < 800) continue;
       const reg = grid ? registerAndRead(paths, grid, p.annots || []) : { ok: false, reason: 'no building grid to register the drawing to', bubbles: 0 };
