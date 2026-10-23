@@ -286,6 +286,8 @@
       Sms: num(/\bSms:\s*([\d.]+)/), Sm1: num(/\bSm1:\s*([\d.]+)/), sdc: grab(txt, /\bSDC:\s*([A-F])\b/),
       siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
       groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
+      Ce: num(/Snow Exposure (?:Coefficient|Factor)\s*\(Ce\):\s*([\d.]+)/i), ceText: grab(txt, /Snow Exposure (?:Coefficient|Factor)\s*\(Ce\):\s*[\d.]+\s*-?\s*(.+?)(?:\s{2,}|\n|$)/i),
+      W2: num(/Winter Wind (?:Parameter|Factor)[^:\n]*:\s*([\d.]+)/i),
     };
   }
   /* ---------- Box 4: roof loads per building ----------
@@ -307,11 +309,51 @@
     pick.row.lines[0].items.forEach(it => { if (it.name) return; let m; PSF.lastIndex = 0; while ((m = PSF.exec(it.str))) toks.push({ x: it.x, v: m[1] != null ? { value: +m[1], override: !!m[2] } : { value: null, perSeller: true } }); });
     const bin = x => [[xPrim, 'coll1'], [xSec, 'coll2'], [xDue, 'due']].filter(c => c[0] != null).sort((a, b) => Math.abs(a[0] - x) - Math.abs(b[0] - x))[0];
     const out = { building: pick.row.name, matched: pick.matched, dead: toks[0] ? toks[0].v : null, snow: toks[1] ? toks[1].v : null, coll1: null, coll2: null };
+    // the thermal factor Ct in brackets ("Heated" / "Structure(1)", "Unheated Structure(1.2)", "Held Just Above
+    // Freezing(1.1)") and the last column, roof insulation R < 30 and/or a roof obstruction (Yes: not a slippery roof)
+    const rowText = pick.row.lines.map(l => l.items.filter(it => !it.name).map(it => it.str).join('  ')).join('  ');
+    const ct = rowText.match(/\(\s*(0?\.85|1(?:\.[0-3]\d*)?)\s*\)/);
+    out.Ct = ct ? +ct[1] : null;
+    const th = rowText.match(/\b(Unheated|Heated|Held\s+Just\s+Above|Freezer|Greenhouse|Open\s+Air)\b/i);
+    out.thermal = th ? (/held/i.test(th[1]) ? 'Held just above freezing' : th[1][0].toUpperCase() + th[1].slice(1).toLowerCase()) : null;
+    const yn = pick.row.lines[0].items.filter(it => !it.name).map(it => it.str.trim()).filter(Boolean).pop();
+    out.obstruction = /^yes$/i.test(yn || '') ? true : /^no$/i.test(yn || '') ? false : null;
     toks.slice(2).forEach(t => { const b = t.v.value != null && bin(t.x); if (b && (b[1] === 'coll1' || b[1] === 'coll2') && out[b[1]] == null) out[b[1]] = t.v.value; });
     return out;
   }
 
+  /* Box 4's additional building components: an existing building or natural obstruction the quote does not draw, whether
+     it causes snow drift, solar panels, other loads — per building. "No Additional Obstruction" rows say nothing more. */
+  function extraComponents(pages) {
+    const ls = boxLines(pages, 4), h = findLine(ls, /ADDITIONAL BUILDING COMPONENTS/i);
+    if (h < 0) return [];
+    const end = findLine(ls, /Project Architect|Engineer of Record/i, h + 1);
+    const head = findLine(ls, /Building Name/i, h);
+    const body = ls.slice(head < 0 ? h + 1 : head + 1, end < 0 ? h + 12 : end).filter(l => !/^\s*(?:or Natural|cause Snow|Defined in Box)/i.test(l.text));
+    const names = knownNames(pages, null), out = [];
+    body.forEach(l => {
+      const t = clean(l.text), nm = names.slice().sort((a, b) => b.length - a.length).find(n => nkey(t).startsWith(nkey(n)));
+      if (!nm) return;
+      const rest = clean(t.slice(t.toUpperCase().indexOf(String(nm).toUpperCase()) + String(nm).length));
+      const none = /^No Additional Obstruction\b/i.test(rest), cells = rest.replace(/^No Additional Obstruction\s*/i, '').split(/\s{2,}|\s(?=N\/A\b)/).map(clean).filter(Boolean);
+      out.push({ building: nm, text: rest, none, drift: cells[0] && !/^N\/A$/i.test(cells[0]) ? cells[0] : null, solar: cells[1] && !/^N\/A$/i.test(cells[1]) ? cells[1] : null, other: cells[2] && !/^N\/A$/i.test(cells[2]) ? cells[2] : null });
+    });
+    return out;
+  }
+
   // ---------- Box 2: building geometry ----------
+  // every building the quote lists in Box 2's building information table, in its order (a lean-to or canopy with no
+  // mezzanine too): the snow on one roof and the drift a higher one puts on it need all of them
+  function buildingNames(pages) {
+    const ls = boxLines(pages, 2), hi = findLine(ls, /BUILDING INFORMATION/i);
+    if (hi < 0) return [];
+    const end = findLine(ls, /^\*|ROOF SECONDARY|SIDEWALL AND ENDWALL/i, hi + 1);
+    const region = ls.slice(hi + 1, end < 0 ? ls.length : end);
+    const first = region.findIndex(l => (l.text.match(reDimAll) || []).map(ftin).filter(v => v != null).length >= 3);
+    if (first < 0) return [];
+    const prof = region.slice(0, first).flatMap(l => l.items).find(it => /^Building Profile/i.test(it.str));
+    return nameRows(region.slice(first), prof ? prof.x : 87, knownNames(pages, null), /\s(?:Gable|Single\s*Slope|Lean[- ]?To|Multi[- ]?Gable|Mono[- ]?Slope)\b/i).map(r => r.name).filter(Boolean);
+  }
   function building(pages, name) {
     const ls = boxLines(pages, 2);
     if (!ls.length) return null;
@@ -327,7 +369,13 @@
       const pick = first < 0 ? null : pickRow(nameRows(region.slice(first), prof ? prof.x : 87, known, /\s(?:Gable|Single\s*Slope|Lean[- ]?To|Multi[- ]?Gable|Mono[- ]?Slope)\b/i), name);
       if (pick) {
         // the row's own line, without the name piece; the profile can wrap ("Gable" / "Symmetrical")
-        const own = pick.row.lines[0].items.filter(it => !it.name).map(it => it.str).join('  ');
+        // a dimension the cell wrapped ("20'-7" over "11/16"" on the line under it) is joined back before reading
+        const under = pick.row.lines.slice(1).flatMap(l => l.items.filter(it => !it.name));
+        const own = pick.row.lines[0].items.filter(it => !it.name).map(it => {
+          if (!/\d+'\s*-\s*\d+$/.test(it.str.trim())) return it.str;
+          const tail = under.find(u => Math.abs(u.x - it.x) < 30 && /^\d+\/\d+"$|^\d+"$/.test(u.str.trim()));
+          return tail ? it.str.trim() + ' ' + tail.str.trim() : it.str.trim() + '"';
+        }).join('  ');
         const all = pick.row.lines.flatMap(l => l.items.filter(it => !it.name).map(it => it.str)).join('  ');
         const dims = (own.match(reDimAll) || []).map(ftin).filter(v => v != null);
         // width, length, distance to ridge (N/A on a single slope or a lean-to), eave heights: N/A keeps its place
@@ -666,9 +714,12 @@
     const eco = words.match(/[^\n]{0,60}(ecospan|e-series joist)[^\n]{0,60}/i);
     // a request for tube / HSS / pipe columns (the Column sheet sizes W / BU only): the word next to "column"
     const colReq = allLines(pages).map(l => l.text).find(t => /\b(?:tube|tubular|hss|pipe)\b[^.\n]{0,30}\bcol(?:umn)?s?\b|\bcol(?:umn)?s?\b[^.\n]{0,30}\b(?:tube|tubular|hss|pipe)\b/i.test(t));
-    return { job, code, building: first.building, frames: first.frames, buildings, mezzanines: mezz, notes, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), columnRequest: colReq ? clean(colReq) : null };
+    // every building of the quote (lean-tos and canopies with no mezzanine too), for the roof snow and the drifts
+    const site = {};
+    buildingNames(pages).forEach(n => { site[n] = buildings[n] || { building: building(pages, n), frames: frames(pages, n), roof: roofLoads(pages, n) }; });
+    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), columnRequest: colReq ? clean(colReq) : null };
   }
 
-  const api = { parse, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads };
+  const api = { parse, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);
