@@ -395,6 +395,13 @@
       return yy;
     };
     const tw = t => 6.9 * String(t).length + 12;
+    // a label's baseline from y, stepped by dy until it clears the labels already placed; then it is placed
+    const spot = (x, y, w, dy) => {
+      let yy = y;
+      for (let k = 0; k < 8 && labels.some(b => x - w / 2 < b[2] && x + w / 2 > b[0] && yy - 12 < b[3] && yy + 4 > b[1]); k++) yy += dy;
+      labels.push([x - w / 2, yy - 12, x + w / 2, yy + 4]);
+      return yy;
+    };
     const pill = (x, y, text, cls = '') => { const w = tw(text); return `<rect class="fe-pill" x="${f(x - w / 2)}" y="${f(y - 11.5)}" width="${f(w)}" height="15.5" rx="4"/><text class="fe-val ${cls}" x="${f(x)}" y="${f(y)}" text-anchor="middle">${esc(text)}</text>`; };
     let s = `<svg viewBox="0 0 ${Wpx} ${Hpx.toFixed(0)}" class="frame-elev" role="img" aria-label="${esc(F.name)} frame line ${F.frame} with its loads"><defs>
       <marker id="feArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker>
@@ -403,6 +410,7 @@
       <marker id="feArrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fe-mezzhead"/></marker>
       <marker id="feArrE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fe-eqhead"/></marker>
       <marker id="feArrW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fe-waithead"/></marker>
+      <marker id="feArrL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fe-leanhead"/></marker>
       <linearGradient id="feSnow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".96"/><stop offset="1" stop-color="#cfe6f7" stop-opacity=".8"/></linearGradient>
       <linearGradient id="feSteel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--steel)" stop-opacity=".95"/><stop offset="1" stop-color="var(--steel)" stop-opacity=".7"/></linearGradient>
       <clipPath id="feSky"><rect x="0" y="0" width="${Wpx}" height="${f(Y(0))}"/></clipPath></defs>`;
@@ -440,7 +448,12 @@
     // dimensions: the width and the frame type under the frame, the eave heights at the columns, the wall names
     frame += `<g class="fe-dims"><line x1="${f(X(0))}" y1="${f(Y(0) + 30)}" x2="${f(X(W))}" y2="${f(Y(0) + 30)}"/><line x1="${f(X(0))}" y1="${f(Y(0) + 24)}" x2="${f(X(0))}" y2="${f(Y(0) + 36)}"/><line x1="${f(X(W))}" y1="${f(Y(0) + 24)}" x2="${f(X(W))}" y2="${f(Y(0) + 36)}"/><text x="${f((X(0) + X(W)) / 2)}" y="${f(Y(0) + 48)}">${ftin(W)}${F.type ? ' · ' + esc(F.type) : ''}</text>`;
     // the eave heights outside each column top — inside, under the rafter, on a side a higher building stands against
-    const eaveLab = (y, out) => { const stepHere = F.step && (F.step.side === 'FSW' ? y === 0 : y === W), inward = stepHere ? -out : out; return `<text class="fe-eave" x="${f(X(y) + inward * (stepHere ? dK * sc + 6 : 8))}" y="${f(Y(Zr(y)) + (stepHere ? dK * sc + 14 : -6))}" style="text-anchor:${inward < 0 ? 'end' : 'start'}">${ftin(Zr(y))}</text>`; };
+    const eaveLab = (y, out) => {
+      const stepHere = F.step && (F.step.side === 'FSW' ? y === 0 : y === W), inward = stepHere ? -out : out, t = ftin(Zr(y)), w = 7.2 * t.length;
+      const x = X(y) + inward * (stepHere ? dK * sc + 6 : 8), yy = Y(Zr(y)) + (stepHere ? dK * sc + 14 : -6);
+      labels.push(inward < 0 ? [x - w, yy - 12, x, yy + 3] : [x, yy - 12, x + w, yy + 3]);   // the load labels keep clear of it
+      return `<text class="fe-eave" x="${f(x)}" y="${f(yy)}" style="text-anchor:${inward < 0 ? 'end' : 'start'}">${t}</text>`;
+    };
     frame += eaveLab(0, -1) + eaveLab(W, 1);
     frame += `<text class="fe-wall" x="${f(X(0))}" y="${f(Y(0) + 16)}">FSW</text><text class="fe-wall" x="${f(X(W))}" y="${f(Y(0) + 16)}">BSW</text></g>`;
     s += `<g class="fe-frame">${frame}</g>`;
@@ -507,29 +520,44 @@
     if ((ld.mezz || []).length) {
       let m = '';
       ld.mezz.forEach(q => {
-        const x = X(q.y), z = Y(q.elev), dir = q.y < W / 2 ? 1 : -1, a = dir > 0 ? 'start' : 'end';
+        const x = X(q.y), z = Y(q.elev), dir = q.y < W / 2 ? 1 : -1;
         m += `<line class="fe-floor" x1="${f(x + dir * 4)}" y1="${f(z)}" x2="${f(x + dir * 52)}" y2="${f(z)}"/>`;
         m += `<line x1="${f(x + dir * 15)}" y1="${f(z - 40)}" x2="${f(x + dir * 15)}" y2="${f(z - 3)}" marker-end="url(#feArrM)"/>`;
-        m += `<text class="fe-val" x="${f(x + dir * 22)}" y="${f(z - 27)}" text-anchor="${a}">${esc(q.member || q.label || '')} · FDL ${k2(q.D)} · FLL ${k2(q.L)} k</text><text class="fe-sub" x="${f(x + dir * 22)}" y="${f(z - 13)}" text-anchor="${a}">at ${ftin(q.elev)}</text>`;
+        // one pill, inside the drawing, clear of the other labels
+        const tx = `${q.member || q.label || ''} · FDL ${k2(q.D)} · FLL ${k2(q.L)} k @ ${ftin(q.elev)}`, w = tw(tx);
+        // under the floor line, inside the frame where it is open; stepped down past another label
+        const px = Math.min(Math.max(x + dir * (w / 2 + 8), w / 2 + 6), Wpx - w / 2 - 6);
+        m += pill(px, spot(px, z + 24, w, 19), tx, 'fe-mzv');
       });
       s += layer('mezz', 'Mezzanine dead / live', `<g class="fe-mezz">${m}</g>`);
     }
     if ((ld.eq || []).length) {
       let e = '';
       ld.eq.forEach(q => {
-        const x = X(q.y), z = Y(q.at), dir = q.y < W / 2 ? -1 : 1, a = dir > 0 ? 'start' : 'end', wait = q.F == null;
+        const x = X(q.y), z = Y(q.at), dir = q.y < W / 2 ? -1 : 1, wait = q.F == null;
         const x0 = x + dir * 62, x1 = x + dir * 5;
         e += `<line class="${wait ? 'fe-waitline' : ''}" x1="${f(x0)}" y1="${f(z)}" x2="${f(x1)}" y2="${f(z)}" marker-end="url(#${wait ? 'feArrW' : 'feArrE'})"/>`;
-        e += wait ? `<text class="fe-val fe-wait" x="${f(x + dir * 8)}" y="${f(z - 8)}" text-anchor="${a}">EQR / EQL</text><text class="fe-sub" x="${f(x + dir * 8)}" y="${f(z + 15)}" text-anchor="${a}">waiting on the Seismic page</text>`
-          : `<text class="fe-val" x="${f(x + dir * 8)}" y="${f(z - 8)}" text-anchor="${a}">EQR +${k2(q.F)} · EQL −${k2(q.F)} k</text><text class="fe-sub" x="${f(x + dir * 8)}" y="${f(z + 15)}" text-anchor="${a}">${esc(q.member || '')} at ${ftin(q.at)}</text>`;
+        // under the arrow, outside the column, held inside the drawing
+        const tx = wait ? `${q.member || ''} · EQR / EQL waiting on the Seismic page` : `${q.member || ''} · EQR +${k2(q.F)} · EQL −${k2(q.F)} k`, w = tw(tx);
+        const px = Math.min(Math.max(x + dir * (w / 2 + 6), w / 2 + 6), Wpx - w / 2 - 6);
+        e += pill(px, spot(px, z - 12, w, -19), tx, wait ? 'fe-wait' : 'fe-eqv');
       });
       s += layer('eq', 'Seismic EQR / EQL', `<g class="fe-eq">${e}</g>`);
     }
+    /* a lean-to's reactions (NBG Frame's Add Frame Reactions): each on its host column at its location — the vertical
+       down onto the column, the horizontal along the frame, the case and values in a pill clear of the rest. A lean-to
+       against this end frame stands behind it: drawn ghosted between the columns its frame lines land on. */
     if ((ld.leanTo || []).length) {
       let e = '';
+      const g = ld.leanGhost;
+      if (g && g.y1 > g.y0) e += `<g class="fe-leanghost"><rect x="${f(X(g.y0))}" y="${f(Y(g.at))}" width="${f((g.y1 - g.y0) * sc)}" height="${f(Y(0) - Y(g.at))}" rx="2"/><text x="${f((X(g.y0) + X(g.y1)) / 2)}" y="${f((Y(g.at) + Y(0)) / 2)}">${esc(g.name)}</text><text class="fe-sub" x="${f((X(g.y0) + X(g.y1)) / 2)}" y="${f((Y(g.at) + Y(0)) / 2 + 15)}">lean-to behind this frame</text></g>`;
       ld.leanTo.forEach(q => {
-        const x = X(q.y), z = Y(q.at), dir = q.y < W / 2 ? -1 : 1;
-        e += `<line x1="${f(x + dir * 8)}" y1="${f(z - 44)}" x2="${f(x + dir * 8)}" y2="${f(z - 3)}" marker-end="url(#feArrD)"/><text class="fe-val" x="${f(x + dir * 12)}" y="${f(z - 30)}" text-anchor="${dir > 0 ? 'start' : 'end'}">Lean-to ${esc(q.text || '')}</text>`;
+        const x = X(q.y), z = Y(q.at), sx = q.X > 0 ? 1 : -1, hasH = Math.abs(q.X) > 0.0005;
+        e += `<circle cx="${f(x)}" cy="${f(z)}" r="3.2"/><line x1="${f(x)}" y1="${f(z - 50)}" x2="${f(x)}" y2="${f(z - 5)}" marker-end="url(#feArrL)"/>`;
+        if (hasH) e += `<line x1="${f(x - sx * 46)}" y1="${f(z)}" x2="${f(x - sx * 6)}" y2="${f(z)}" marker-end="url(#feArrL)"/>`;
+        const tx = `${q.member} · ${q.caseName}  Y −${k2(q.V)}${hasH ? `  X ${q.X >= 0 ? '+' : '−'}${k2(Math.abs(q.X))}` : ''} k`, w = tw(tx);
+        const px = Math.min(Math.max(x, w / 2 + 6), Wpx - w / 2 - 6);
+        e += pill(px, place(px, z - 58, w), tx, 'fe-leanv');
       });
       s += layer('leanto', 'Lean-to reactions', `<g class="fe-lean">${e}</g>`);
     }

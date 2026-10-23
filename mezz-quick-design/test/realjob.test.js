@@ -94,7 +94,9 @@ const near = (a, b, t = 1e-9) => Math.abs(a - b) <= t * Math.max(1, Math.abs(b))
   const pl = FF.addPanelLoads(lean.xml, [{ name: 'Snow Drift', caseId: 'SL', panel: 'RP1', from: 15.710487, to: 33, start: -1.24, end: -1.938 }]);
   assert.ok(pl.replaced === 1 && pl.added === 1);
   const back = await FF.read(await FF.write(lean, pl.xml, io), io, 'x.frame');
-  assert.deepStrictEqual(back.info.ploads.map(p => [p.name, p.loadCaseID, p.dir, +p.startLoc, +p.endMag]), [['Snow Drift', 'SL', 'GY', 15.7105, -1.938]]);
+  // the direction: PY (snow on the horizontal projection, as the engineer confirmed); GY when a row asks for it
+  assert.deepStrictEqual(back.info.ploads.map(p => [p.name, p.loadCaseID, p.dir, +p.startLoc, +p.endMag]), [['Snow Drift', 'SL', 'PY', 15.7105, -1.938]]);
+  assert.strictEqual(FF.ploadsOf(FF.addPanelLoads(lean.xml, [{ name: 'Snow Drift', caseId: 'SL', panel: 'RP1', from: 15, to: 33, start: -1, end: -2, dir: 'GY' }]).xml)[0].fields.dir, 'GY');
   assert.strictEqual(FF.addPanelLoads(FF.addPanelLoads(host.xml, [{ name: 'Snow Drift', caseId: 'SL', panel: 'RP1', from: 0, to: 9, start: -1, end: 0 }]).xml, []).xml, host.xml);
   // ---- the reviewed version: a PDF holding the current label and an earlier one; NBG's own drift row ----
   let msgB = '';

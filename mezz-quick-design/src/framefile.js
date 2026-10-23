@@ -72,7 +72,8 @@
   const num = v => (v == null ? null : +v);
   // which frame lines a file designs: from its name (…_Bldg_1_3-5.frame → 3, 4, 5), else its title (…-Bldg 1-2)
   function frameLinesOf(fileName, title) {
-    const base = String(fileName || '').replace(/(?:\s*\(\d+\))+(?=\.frame$)/i, '').replace(/[-_ ]mezz(?=\.frame$)/i, '');
+    // the tool's own downloads keep the lines: …_3-5_mz.frame, …_12_loads.frame (and a browser's " (1)")
+    const base = String(fileName || '').replace(/(?:\s*\(\d+\))+(?=\.frame$)/i, '').replace(/[-_ ](?:mezz|mz|loads)(?=\.frame$)/i, '').replace(/(?:\s*\(\d+\))+(?=\.frame$)/i, '');
     const m = /_([0-9]+(?:\s*-\s*[0-9]+)?)\.frame$/i.exec(base) || /-\s*([0-9]+(?:\s*-\s*[0-9]+)?)\s*$/.exec(title || '');
     if (!m) return [];
     const [a, b] = m[1].split('-').map(s => +s.trim());
@@ -161,8 +162,9 @@
   }
   /* Panel loads into <SpecialLoads><PLoads>, the way an engineer types a Snow Drift row in NBG Frame (Tools →
      Concentrated (Panel) Loads, panel tab): loadGroup 0, Global, start / end magnitude (k/ft, down negative) at start /
-     end location (ft along the frame from the FSW column), the roof panel (RP1 …), the load case, direction GY (NBG
-     Frame's own roof loads are GY), the name. rows: [{ name, caseId, panel, from, to, start, end, dir }]. Every drift or
+     end location (ft along the frame from the FSW column), the roof panel (RP1 …), the load case, direction PY (snow on
+     the horizontal projection, as the engineer enters it — NBG Frame's own automatic drift row is GY; a row may say
+     which), the name. rows: [{ name, caseId, panel, from, to, start, end, dir }]. Every drift or
      sliding row already there is replaced — the tool's own from an earlier write, an engineer's typed "Snow Drift", and
      NBG's generated "BackSidewall Drift" (worked with the adjacent roof's fetch alone): left in, it would add to the new
      rows. Writing twice gives the same file. */
@@ -190,7 +192,7 @@
       `${i1}<PLoad>`,
       `${i2}<loadGroup>0</loadGroup>`, `${i2}<status>Global</status>`, `${i2}<startMag>${fmt(r.start)}</startMag>`, `${i2}<endMag>${fmt(r.end)}</endMag>`,
       `${i2}<startLoc>${fmt(r.from)}</startLoc>`, `${i2}<endLoc>${fmt(r.to)}</endLoc>`, `${i2}<panelID>${r.panel}</panelID>`, `${i2}<loadCaseID>${r.caseId}</loadCaseID>`,
-      `${i2}<dir>${r.dir || 'GY'}</dir>`, `${i2}<name>${r.name}</name>`,
+      `${i2}<dir>${r.dir || 'PY'}</dir>`, `${i2}<name>${r.name}</name>`,
       `${i1}</PLoad>`,
     ].join(nl) + nl).join('');
     if (rows.length) {

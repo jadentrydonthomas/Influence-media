@@ -98,7 +98,7 @@ window.MZ_APP_BUILDING = function (C) {
     const fr = b ? (b.frames || []).find(x => String(x.label) === String(no)) : null;
     let eq = fr ? fr.eqs.map(q => { const e = fe && fe.entries.find(z => z.label === q.label); return { y: e ? e.y : 0, at: q.at, F: q.F, member: q.member }; }) : [];
     if (!eq.length && sj && !sj.ok && mezz.length) eq = mezz.map(e => ({ y: e.y, at: e.elev, F: null, member: e.member }));
-    const lean = (state.leanTo && state.leanTo.applied || []).filter(q => sameName(q.building, name) && String(q.frame) === String(no)).map(q => ({ y: q.y, at: q.at, text: `${q.cases.length} cases · SL ${F2(q.SL)} k` }));
+    const lean = [];   // a lean-to's reactions are put on in the Frames page (its import, its location and columns)
     return { deadPsf: b ? b.roof.RDL.value : null, collPsf: b ? b.roof.CDL.value : null, mezz, eq, leanTo: lean };
   }
   const frameData = (name, no) => (state.snowJob && state.snowJob.site.buildings.length ? B.frameData(state.snowJob, name, no, ext(name, no)) : null);
@@ -259,15 +259,15 @@ window.MZ_APP_BUILDING = function (C) {
       <label><span class="lab">Risk category <small class="src src-${F.riskSrc}">${F.riskSrc}</small></span><select data-snow="risk">${['I', 'II', 'III', 'IV'].map(r => `<option ${r === F.risk ? 'selected' : ''}>${r}</option>`).join('')}</select><small class="sub-n">Is ${F.ed === '7-22' ? '1.0 (ASCE 7-22: pg is risk-targeted)' : SNOW.IS[F.risk]}</small></label>
       <label><span class="lab">Code</span><b class="seis-echo-v">ASCE ${esc(F.ed)}</b><small class="sub-n">follows the Seismic page's building code</small></label>
       ${F.ed === '7-22' ? `<label><span class="lab">Winter wind parameter, W2 ${tag(F.W2)}</span>${num('W2', F.W2.value)}<small class="sub-n">ASCE 7-22 drifts need it (PCS Box 3 or the hazard tool)</small></label>` : ''}
-    </div>` + (J ? `<div class="seis-grid snow-bldgs">${J.roofs.map(r => { const pr = (pcsB(r.name) || {}).roof || {}; return `<div class="snow-bldg"><b>${esc(r.name)}</b><label><span class="lab">Thermal factor, Ct <small class="src src-${esc(r.CtSrc)}">${esc(r.CtSrc)}</small></span>${num(`b.${r.name}.Ct`, r.Ct)}${r.thermal ? `<small class="sub-n">PCS Box 4: ${esc(r.thermal)}</small>` : ''}</label>${chk(`b.${r.name}.slippery`, r.slippery, `Unobstructed slippery roof <small class="sub-n">Box 4 "R &lt; 30 and/or obstruction": ${pr.obstruction === false ? 'No → slippery' : pr.obstruction === true ? 'Yes → not slippery' : 'not read'}</small>`)}</div>`; }).join('')}</div>` : '');
+    </div>` + (J ? `<div class="table-wrap"><table class="fl-t snow-bt"><thead><tr><th>Building</th><th>Thermal factor, Ct</th><th>PCS Box 4 · thermal</th><th>Unobstructed slippery roof <small class="sub-n">Box 4 "R &lt; 30 and/or obstruction": No → slippery</small></th></tr></thead><tbody>${J.roofs.map(r => { const pr = (pcsB(r.name) || {}).roof || {}; return `<tr><td><b>${esc(r.name)}</b></td><td><div class="snow-ct">${num(`b.${r.name}.Ct`, r.Ct)} <small class="src src-${esc(r.CtSrc)}">${esc(r.CtSrc)}</small></div></td><td>${r.thermal ? esc(r.thermal) : '<span class="sub-n">—</span>'}</td><td>${chk(`b.${r.name}.slippery`, r.slippery, `${r.slippery ? 'slippery' : 'not slippery'} <small class="sub-n">Box 4: ${pr.obstruction === false ? 'No' : pr.obstruction === true ? 'Yes' : 'not read'}</small>`)}</td></tr>`; }).join('')}</tbody></table></div>` : '');
     if (!J) { $('#snowRoofs').innerHTML = '<div class="seis-msg warn">Type the ground snow load to work the roofs.</div>'; $('#snowSteps').innerHTML = ''; $('#snowFrames').innerHTML = ''; }
     else {
-      $('#snowRoofs').innerHTML = `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Building</th><th>Roof</th><th class="num">Ct</th><th class="num">Is</th><th class="num">pf</th><th class="num">Cs</th><th class="num">ps</th><th class="num">pm</th><th>Unbalanced (gable)</th><th>PCS Box 4</th></tr></thead><tbody>${J.roofs.map(r => {
+      $('#snowRoofs').innerHTML = `<div class="table-wrap"><table class="fl-t snow-roofs"><thead><tr><th>Building</th><th>Roof</th><th class="num">Ct</th><th class="num">pf</th><th class="num">Cs</th><th class="num">ps <small class="sub-n">balanced</small></th><th class="num">pm <small class="sub-n">minimum</small></th><th class="num">On the frames</th><th>Unbalanced (gable)</th><th>PCS Box 4</th></tr></thead><tbody>${J.roofs.map(r => {
         const u = r.unbalanced, ut = !u ? '—' : !u.applies ? esc(u.why) : u.simple ? `windward 0 · leeward ${F1(u.leeward)} psf (W ≤ 20 ft)` : u.need ? 'needs W2' : `windward ${F1(u.windward)} · leeward ${F1(u.leeward)} + ${F1(u.surcharge)} psf over ${ft(u.length)} from the ridge`;
-        const pm = r.pm != null ? `${F1(r.pm)}${r.pm > r.ps ? ' <b>governs</b>' : ''}` : '—';
-        const pcsT = r.pcsSnow ? `${F1(r.pcsSnow.value)} psf${r.pcsSnow.override ? ' <small class="sub-n">user override — applied as a uniform load with dead and collateral</small>' : r.pcsMatch ? ' <small class="src src-ok">matches</small>' : ' <small class="src src-bad">differs</small>'}` : '—';
-        return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.building.g.profile || '')} ${F2(r.slope)}:12<small class="sub-n">${F1(r.slopeDeg)}°${r.slippery ? ' · slippery' : ''}</small></td><td class="num mono">${F2(r.Ct)}</td><td class="num mono">${F2(r.Is)}</td><td class="num mono">${F1(r.pf)}</td><td class="num mono">${F2(r.Cs)}</td><td class="num mono"><b>${F1(r.ps)}</b></td><td class="num mono">${pm}</td><td>${ut}</td><td>${pcsT}</td></tr>`; }).join('')}</tbody></table></div>
-        <small class="sub-n">pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf · the roof's balanced snow is the larger of ps and pm; the PCS's user override, where it has one, is what NBG Frame applies.</small>`;
+        const pm = r.pm != null ? F1(r.pm) : '—';
+        const pcsT = r.pcsSnow ? `<span class="mono">${F1(r.pcsSnow.value)} psf</span> ${r.pcsSnow.override ? '<small class="src src-typed">user override</small>' : r.pcsMatch ? '<small class="src src-ok">matches</small>' : '<small class="src src-bad">differs</small>'}` : '—';
+        return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.building.g.profile || '')} ${F2(r.slope)}:12<small class="sub-n">${F1(r.slopeDeg)}°${r.slippery ? ' · slippery' : ''}</small></td><td class="num mono">${F2(r.Ct)}</td><td class="num mono">${F1(r.pf)}</td><td class="num mono">${F2(r.Cs)}</td><td class="num mono">${F1(r.ps)}</td><td class="num mono">${pm}</td><td class="num mono"><b>${F1(r.applied ?? r.design)} psf</b><small class="sub-n">${esc(r.appliedSrc || '')}</small></td><td>${ut}</td><td>${pcsT}</td></tr>`; }).join('')}</tbody></table></div>
+        <small class="sub-n">Is ${J.roofs.length ? F2(J.roofs[0].Is) : '1.00'} · pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf. <b>On the frames</b> is the uniform snow NBG Frame applies — the PCS's user override where it has one, else the larger of ps and pm; a drift always sits on ps.</small>`;
       const sp = (state.snow && state.snow.purlin) || DEFAULT_PURLIN;
       const level = J.drifts.filter(d => d.level), steps = J.drifts.filter(d => !d.level);
       const levelT = level.length ? `<div class="snow-level">${level.map(d => `<span><b>${esc(d.lower)}</b> ${d.lowerWall} meets <b>${esc(d.upper)}</b> ${d.upperWall} level — one roof, no drift; a fetch toward a step runs on through both</span>`).join('')}</div>` : '';
@@ -287,11 +287,13 @@ window.MZ_APP_BUILDING = function (C) {
         }
         const upperG = d.step.upper && d.step.upper.g;
         return `<div class="snow-step ${d.off ? 'is-off' : ''}"><div class="snow-step-h"><div><b>${esc(d.lower)}</b> ${d.lowerWall} <span class="sub-n">below</span> <b>${esc(d.upper)}</b> ${d.upperWall || ''}${d.typed ? ' <small class="src src-typed">typed</small>' : ''} <small class="sub-n">· ${d.kind === 'side' ? 'drift across the lower frames (side wall)' : 'drift along the lower building (end wall)'} · shared ${ft(d.length)} · step ${ft(d.hMin)}${d.hMax - d.hMin > 0.05 ? ` to ${ft(d.hMax)} at the rake` : ''}</small></div>${chk(`s.${d.key}.off`, d.off, 'leave this step out')}</div>
-          <div class="seis-grid"><label><span class="lab">Upper roof fetch, lu <small class="src src-${esc(d.luUpperSrc.replace(/\s+/g, '-'))}">${esc(d.luUpperSrc)}</small></span>${num(`s.${d.key}.luUpper`, d.luUpper)}<small class="sub-n">${d.luUpperParts && d.luUpperParts.length > 1 ? `${d.luUpperParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} — the roofs meet level, the snow blows the whole way` : d.upperWall === 'FSW' || d.upperWall === 'BSW' ? 'its width' : d.upperWall ? 'its length' : 'as typed'}</small></label>
-            <label><span class="lab">Lower roof fetch, lu <small class="src src-${esc(d.luLowerSrc.replace(/\s+/g, '-'))}">${esc(d.luLowerSrc)}</small></span>${num(`s.${d.key}.luLower`, d.luLower)}${d.luLowerParts && d.luLowerParts.length > 1 ? `<small class="sub-n">${d.luLowerParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')}</small>` : ''}</label>
-            <label><span class="lab">Gap to a separate building, s (ft)</span>${num(`s.${d.key}.s`, d.s || 0)}<small class="sub-n">0 when they touch (7.7.2)</small></label>
-            <label><span class="lab">Sliding snow (7.9)</span><select data-snow="s.${esc(d.key)}.sliding">${[['', 'By the code: only if the upper roof drains toward this step'], ['calcs', 'Include, as NBG Design Calcs works it (slippery upper roof)'], ['off', 'Leave out']].map(([v, t]) => `<option value="${v}" ${(d.sliding.mode === 'asce' ? '' : d.sliding.mode) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>${d.sliding.mode !== 'off' && d.step.upper ? `<small class="sub-n">pf upper ${F1(d.sliding.pfUpper)} psf · W upper ${ft(d.sliding.W)}</small>` : ''}</label>
+          <div class="snow-sub">Your inputs <small class="sub-n">filled in from the site; type over any</small></div>
+          <div class="seis-grid"><label><span class="lab">Higher roof's fetch, lu (ft) <small class="src src-${esc(d.luUpperSrc.replace(/\s+/g, '-'))}">${esc(d.luUpperSrc)}</small></span>${num(`s.${d.key}.luUpper`, d.luUpper)}<small class="sub-n">${d.luUpperParts && d.luUpperParts.length > 1 ? `${d.luUpperParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} — the roofs meet level, the snow blows the whole way` : d.upperWall === 'FSW' || d.upperWall === 'BSW' ? 'its width' : d.upperWall ? 'its length' : 'as typed'}</small></label>
+            <label><span class="lab">Lower roof's fetch (ft) <small class="src src-${esc(d.luLowerSrc.replace(/\s+/g, '-'))}">${esc(d.luLowerSrc)}</small></span>${num(`s.${d.key}.luLower`, d.luLower)}<small class="sub-n">${d.luLowerParts && d.luLowerParts.length > 1 ? `${d.luLowerParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} · ` : ''}for the windward drift (¾ hd)</small></label>
+            <label><span class="lab">Gap between the buildings, s (ft)</span>${num(`s.${d.key}.s`, d.s || 0)}<small class="sub-n">0 when they touch (7.7.2)</small></label>
+            <label><span class="lab">Sliding snow off the higher roof (7.9)</span><select data-snow="s.${esc(d.key)}.sliding">${[['', 'Code: only if it drains onto this roof'], ['calcs', 'Include, as NBG Design Calcs does'], ['off', 'Leave out']].map(([v, t]) => `<option value="${v}" ${(d.sliding.mode === 'asce' ? '' : d.sliding.mode) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>${d.sliding.mode !== 'off' && d.step.upper ? `<small class="sub-n">pf upper ${F1(d.sliding.pfUpper)} psf · W upper ${ft(d.sliding.W)}</small>` : ''}</label>
             ${d.sliding.mode === 'calcs' ? `<label><span class="lab">W, upper roof eave to ridge (ft) <small class="src src-${esc(d.sliding.Wsrc)}">${esc(d.sliding.Wsrc)}</small></span>${num(`s.${d.key}.W`, d.sliding.W)}<small class="sub-n">0.4 pf W per foot of eave, over 15 ft</small></label>` : ''}</div>
+          <div class="snow-sub">Result <small class="sub-n">the drift worked from those, drawn to scale across</small></div>
           ${dr.none ? `<div class="seis-msg info">No drift: ${esc(dr.why)}</div>` : `${B.stepSvg(d, { marks })}${marks.length ? `<div class="snow-marks">${marks.map(m => `<span>${esc(m.label)}</span>`).join('')}</div>` : ''}<div class="seis-sum">${line('γ', F2(dr.gamma) + ' pcf')}${line('hb = ps / γ', ft(dr.hb))}${line('hc = h − hb', ft(dr.hc))}${line('leeward hd', ft(dr.leeward.hd) + (dr.leeward.why ? ' (' + esc(dr.leeward.why) + ')' : ''))}${line('windward ¾ hd', ft(dr.windward.hd))}${line('governs', dr.gov)}${line('hd', ft(dr.hd) + (dr.capped ? ' = hc' : ''))}${line('w', ft(dr.w) + (dr.truncated ? ` → cut off at ${ft(d.lowerWidth)}, ${F1(dr.end)} psf there` : ''))}${line('pd = hd γ', `<b>${F1(dr.pd)} psf</b>`)}</div>`}
           ${d.sliding.applies ? `<div class="seis-msg info">Sliding snow (7.9)${d.sliding.mode === 'calcs' ? ', as NBG Design Calcs works it' : ''}: 0.4 pf W = 0.4 × ${F1(d.sliding.pfUpper)} × ${ft(d.sliding.W)} = ${n0(d.sliding.perFt)} lb/ft over ${ft(d.sliding.extent)} → <b>${F2(d.sliding.psf)} psf</b>, with the balanced snow. It is not added to the drift: 7.9 says sliding "need not be used in combination with drift" — the frames take the larger of the two at each point (NBG Design Calcs' Total Snow).${d.envelope && d.envelope.length > 1 ? ` Envelope from the wall: ${d.envelope.map(e => `${F1(e.va)}${Math.abs(e.va - e.vb) > 0.05 ? '→' + F1(e.vb) : ''} psf to ${ft(e.b)} (${e.by})`).join(' · ')}.` : ''}</div>` : `<small class="sub-n">Sliding snow: ${esc(d.sliding.why)}.</small>`}</div>`;
       }).join('') + stepAdder();
@@ -336,11 +338,21 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   // ---------- Frames ----------
+  /* One frame line: every load it takes, drawn, and its .frame file written. The working part is at the top — the
+     line's own file and the download, a lean-to's frame reactions to import (as NBG Frame's Tools → Concentrated Loads →
+     Add Frame Reactions: the file, the location, the column) — and the drawing shows each load the moment it is in. The
+     tables under the drawing are the record of what goes into the file.
+     A lean-to is a loop: its frames get the drift (write, download), it is redesigned in NBG Frame, the redesigned file
+     comes back, and its reactions go on the host frame. The steps strip follows the job through it. */
+  const DIR_KEY = 'mz.frame.driftDir';
+  const driftDir = () => { try { return localStorage.getItem(DIR_KEY) === 'GY' ? 'GY' : 'PY'; } catch (e) { return 'PY'; } };
+  const outName = file => file.name.replace(/\.frame$/i, '').replace(/_loads$/i, '') + '_loads.frame';
   function renderFrames() {
     const pick = $('#framePick');
     if (!pick) return;
     const J = state.snowJob;
-    if (!J || !J.site.buildings.length) { pick.innerHTML = state.pcs ? '<div class="seis-msg warn">The frames wait for the ground snow load (Snow & drift page).</div>' : '<div class="empty">Load a PCS first.</div>'; $('#framePlan').innerHTML = ''; $('#frameView').innerHTML = ''; $('#frameRows').innerHTML = ''; $('#frameToggles').innerHTML = ''; return; }
+    const clear = () => ['#framePlan', '#frameView', '#frameRows', '#frameToggles', '#frameActs', '#frameWork', '#frameSteps', '#frameSys'].forEach(q => { const e = $(q); if (e) e.innerHTML = ''; });
+    if (!J || !J.site.buildings.length) { clear(); pick.innerHTML = state.pcs ? '<div class="seis-msg warn">The frames wait for the ground snow load (Snow & drift page).</div>' : '<div class="empty">Load a PCS first.</div>'; return; }
     if (!state.frameSel || !siteB(state.frameSel.building)) {
       // start on the frame with the most on it: a drift, else a mezzanine
       const d = J.drifts.find(x => x.frames.length);
@@ -351,49 +363,31 @@ window.MZ_APP_BUILDING = function (C) {
     const sel = state.frameSel, mz = mezzBoxes();
     $('#framePlan').innerHTML = B.planSvg(J, { mezz: mz, selected: sel, bracing: bracingAll(), compact: true });
     wirePlan('#framePlan', false);
-    pick.innerHTML = J.site.buildings.map(b => `<div class="fp-bldg"><span class="fp-name">${esc(b.name)}</span><div class="fp-chips">${B.frameLines(b).map(fl => { const Fd = frameData(b.name, fl.no), ld = Fd ? Fd.loads : {}, has = (ld.drift || []).length ? 'd' : (ld.mezz || []).length ? 'm' : ''; return `<button class="fp-chip ${sameName(sel.building, b.name) && sel.frame === fl.no ? 'is-on' : ''} ${has ? 'has-' + has : ''}" data-bldg="${esc(b.name)}" data-frame="${fl.no}" title="${esc(fl.type || '')}">${fl.no}</button>`; }).join('')}</div></div>`).join('') + `<div class="fp-key"><i class="has-d"></i>drift <i class="has-m"></i>mezzanine</div>`;
+    // a chip per frame line: amber, it carries drift; green, a mezzanine; violet, a lean-to bears on it
+    pick.innerHTML = J.site.buildings.map(b => `<div class="fp-bldg"><span class="fp-name">${esc(b.name)}</span><div class="fp-chips">${B.frameLines(b).map(fl => { const Fd = frameData(b.name, fl.no), ld = Fd ? Fd.loads : {}, has = (ld.drift || []).length ? 'd' : (ld.mezz || []).length ? 'm' : Fd && leanHere(Fd).length ? 'l' : ''; return `<button class="fp-chip ${sameName(sel.building, b.name) && sel.frame === fl.no ? 'is-on' : ''} ${has ? 'has-' + has : ''}" data-bldg="${esc(b.name)}" data-frame="${fl.no}" title="${esc(fl.type || '')}">${fl.no}</button>`; }).join('')}</div></div>`).join('') + `<div class="fp-key"><i class="has-d"></i>drift <i class="has-m"></i>mezzanine <i class="has-l"></i>a lean-to bears on it</div>`;
     $$('#framePick .fp-chip').forEach(x => { x.onclick = () => selectFrame(x.dataset.bldg, +x.dataset.frame); });
+    renderLeanSteps();
     const Fd = frameData(sel.building, sel.frame);
     if (!Fd) { $('#frameView').innerHTML = ''; return; }
+    const file = chosenFile(Fd), LI = leanImport(Fd), plan = framePlan(Fd, file, LI);
+    if (plan.leanDraw.length) { Fd.loads.leanTo = plan.leanDraw; Fd.loads.leanGhost = plan.leanGhost; }
     const out = B.frameSvg(Fd), ld = Fd.loads;
-    // the frame line's lateral system (its R for the seismic): PCS Box 5's framing, or the one picked here
-    const bS = sb(Fd.name), lineS = bS ? (bS.lines || []).find(l => String(l.label) === String(Fd.frame)) : null;
-    const picked = bS && (((state.seis.buildings || {})[bS.bkey] || {}).lines || {})[String(Fd.frame)];
-    const curSys = picked || (lineS ? lineS.type : /post|beam/i.test(Fd.type || '') ? 'Post & Beam' : 'Rigid Frame');
-    const sysSel = bS ? `<label class="fv-sys"><span>Lateral system</span><select data-fsys="${esc(bS.bkey)}|${esc(String(Fd.frame))}">${(C.LINE_SYSTEMS || []).map(t => `<option ${t === curSys ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select><small class="sub-n">${picked ? 'picked here' : 'PCS Box 5'}${lineS && lineS.lat && lineS.lat.R != null ? ` · R ${+lineS.lat.R.toFixed(2)}` : ''}</small></label>` : '';
-    $('#frameViewTitle').innerHTML = `${esc(Fd.name)} · frame line <b>${Fd.frame}</b> <small class="sub-n">${esc(Fd.type || '')} · trib ${ft(Fd.trib)} · ${Fd.end ? Fd.end + ' end frame' : 'interior'}${Fd.posts.length ? ` · ${Fd.posts.length} endwall posts` : ''}</small>${sysSel}`;
-    const fs = $('#frameViewTitle [data-fsys]');
-    if (fs) fs.onchange = () => { const [bk, lab] = fs.dataset.fsys.split('|'); state.seis.buildings = state.seis.buildings || {}; const bo = state.seis.buildings[bk] = state.seis.buildings[bk] || {}; bo.lines = bo.lines || {}; bo.lines[lab] = fs.value; C.seisSave && C.seisSave(); recompute(); toast(`Frame line ${lab}: ${fs.value} — the seismic is reworked with its R`); };
+    $('#frameViewTitle').innerHTML = `<span>${esc(Fd.name)} · frame line <b>${Fd.frame}</b></span><small class="sub-n">${esc(Fd.type || '')} · trib ${ft(Fd.trib)} · ${Fd.end ? Fd.end + ' end frame' : 'interior'}${Fd.posts.length ? ` · ${Fd.posts.length} endwall posts` : ''}</small>`;
+    $('#frameActs').innerHTML = dlBlock(Fd, file, plan);
+    $('#frameWork').innerHTML = workStrip(Fd, file, plan, LI);
     const on = state.frameLayers = state.frameLayers || {};
     $('#frameToggles').innerHTML = out.legend.map(l => `<button data-layer="${esc(l.key)}" class="${on[l.key] === false ? '' : 'is-on'}" aria-pressed="${on[l.key] !== false}">${esc(l.label)}</button>`).join('');
     $('#frameView').innerHTML = out.svg;
     const apply = () => $$('#frameView .fl-layer').forEach(g => g.classList.toggle('is-off', on[g.dataset.layer] === false));
     apply();
     $$('#frameToggles button').forEach(b => { b.onclick = () => { on[b.dataset.layer] = on[b.dataset.layer] === false; b.classList.toggle('is-on', on[b.dataset.layer] !== false); b.setAttribute('aria-pressed', on[b.dataset.layer] !== false); apply(); }; });
-    // the rows for NBG Frame
-    const sj = state.job && state.job.seismic, b = sb(Fd.name), lat = b ? (b.lines || []).find(l => String(l.label) === String(Fd.frame)) : null;
-    const con = [];
-    (ld.mezz || []).forEach(q => { con.push({ name: 'FDL', cs: 'FDL', member: q.member, at: q.elev, x: 0, y: -q.D }); con.push({ name: 'FLL', cs: 'FLL', member: q.member, at: q.elev, x: 0, y: -q.L }); });
-    (ld.eq || []).filter(q => q.F != null).forEach(q => { con.push({ name: 'EQR', cs: 'EQR', member: q.member, at: q.at, x: q.F, y: 0 }); con.push({ name: 'EQL', cs: 'EQL', member: q.member, at: q.at, x: -q.F, y: 0 }); });
-    const eqWait = (ld.eq || []).some(q => q.F == null);
-    const file = chosenFile(Fd), plan = framePlan(Fd, file);
-    const roofT = lat ? `<div class="seis-sum"><span>Roof seismic weight <b>${F2(lat.lat.frame.roofPsf)} psf</b></span><span>Seismic factor Cs <b>${F3(lat.lat.Cs)}</b></span><span>Frame base shear <b>${F2(lat.lat.V)} k</b></span><span>${esc(lat.lat.sys.label)} · R <b>${+lat.lat.R.toFixed(2)}</b></span><a href="#" data-go="seismic">Seismic page</a></div>` : '';
-    const snowT = ld.snow ? `<div class="seis-sum"><span>Roof snow <b>${F1(ld.snow.applied)} psf</b> (${esc(ld.snow.src)}) → <b>${kft(ld.snow.kft)}</b> on the roof</span>${ld.snow.applied !== ld.snow.ps ? `<span>balanced ps <b>${F1(ld.snow.ps)} psf</b>: the drift sits on it (hb = ps / γ)</span>` : ''}<span>Roof dead + collateral <b>${kft(ld.dead + ld.coll)}</b></span><a href="#" data-go="snow">Snow page</a></div>` : '';
-    const panT = plan.pan.length ? `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Name</th><th>Case</th><th>Panel</th><th>Dir.</th><th class="num">Start (ft)</th><th class="num">End (ft)</th><th class="num">Start (k/ft)</th><th class="num">End (k/ft)</th><th>From</th></tr></thead><tbody>${plan.pan.map(r => `<tr><td>${esc(r.name)}</td><td class="mono"><b>${r.caseId}</b></td><td class="mono">${r.panel}</td><td class="mono">${r.dir}</td><td class="num mono">${F3(r.from)}</td><td class="num mono">${F3(r.to)}</td><td class="num mono"><b>${F3(r.start)}</b></td><td class="num mono"><b>${F3(r.end)}</b></td><td><small class="sub-n">${esc(r.by || '')}</small></td></tr>`).join('')}</tbody></table></div><small class="sub-n">${plan.scaleNote ? esc(plan.scaleNote) + ' ' : ''}The larger of the drift and any sliding snow at each point (7.9: not added together), × ${plan.scale !== 1 ? `the file's ${ft(plan.bay)} bay` : `the ${ft(Fd.trib)} tributary width`}. Under SL${plan.extraCases.length ? ` and ${plan.extraCases.join(', ')}` : ''}; GY, as NBG Frame's own roof loads and the engineer's typed Snow Drift rows are.</small>` : '<small class="sub-n">No drift or sliding snow on this frame line.</small>';
-    $('#frameRows').innerHTML = `${snowT}${roofT}
-      <div class="fr-rows"><div class="panel-sub"><h4>Panel loads · Snow Drift <small class="sub-n">Tools → Concentrated (Panel) Loads, the panel tab: k/ft, down negative, positions along the frame from the FSW</small></h4>${panT}</div>
-      <div class="panel-sub"><h4>Concentrated loads <small class="sub-n">the mezzanine's dead and live on the frame columns it bears on, its seismic EQR / EQL, a designed lean-to's reactions</small></h4>
-        ${con.length ? `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Name</th><th>Case</th><th>Member</th><th class="num">Location (ft)</th><th class="num">X (k)</th><th class="num">Y (k)</th></tr></thead><tbody>${con.map(r => `<tr><td>${esc(r.name)}</td><td class="mono"><b>${r.cs}</b></td><td class="mono">${esc(r.member || '—')}</td><td class="num mono">${F3(r.at)}</td><td class="num mono">${r.x ? F3(r.x) : '—'}</td><td class="num mono">${r.y ? F3(r.y) : '—'}</td></tr>`).join('')}</tbody></table></div>${eqWait ? `<div class="seis-msg warn">EQR / EQL on ${(ld.eq || []).map(q => esc(q.member || '')).join(', ')} come once the <a href="#" data-go="seismic">Seismic page</a> is complete${sj && sj.need && sj.need.length ? `: ${esc(sj.need[0])}` : ''}.</div>` : ''}` : `<small class="sub-n">No mezzanine bears on this frame line.</small>`}</div></div>
-      ${leanToPanel(Fd, file)}
-      ${fileWriter(Fd, file, plan)}`;
-    wireFrameFile(Fd);
+    $('#frameRows').innerHTML = recordRows(Fd, file, plan);
+    wireFrame(Fd);
   }
 
   // ---------- the frame files: this frame line's own, and everything the tool writes into it ----------
   const frameFiles = () => (state.nbg.files || []).filter(x => x.ff);
   const fKey = Fd => `${Fd.name}|${Fd.frame}`;
-  /* the dropped file that is this frame line's: one NBG made for this building and line; else a frame saved on its own
-     (no building in its title) as wide as this building; else none */
   // a file's frame lines: from its name and title; "_12" on a building of fewer lines is lines 1 and 2
   function fileLines(x, nLines) {
     const out = new Set(x.ff.info.lines.map(Number));
@@ -402,9 +396,11 @@ window.MZ_APP_BUILDING = function (C) {
     [...out].forEach(n => { if (nLines && n > nLines && String(n).split('').every(d => +d >= 1 && +d <= nLines)) { out.delete(n); String(n).split('').forEach(d => out.add(+d)); } });
     return [...out].sort((a, b) => a - b);
   }
+  // the dropped file that is this frame line's: the latest one NBG made for this building and line; else a frame saved
+  // on its own (no building in its title) as wide as this building; else none
   function fileFor(Fd) {
     const nL = (siteB(Fd.name) || { xs: [] }).xs.length;
-    const fs = frameFiles(), inB = x => x.ff.info.building && sameName(x.ff.info.building, Fd.name), lines = x => fileLines(x, nL).map(String);
+    const fs = frameFiles().slice().sort((a, b) => (b.at || 0) - (a.at || 0)), inB = x => x.ff.info.building && sameName(x.ff.info.building, Fd.name), lines = x => fileLines(x, nL).map(String);
     return fs.find(x => inB(x) && lines(x).includes(String(Fd.frame)))
       || fs.find(x => !x.ff.info.building && Math.abs((x.ff.info.width || 0) - Fd.g.width) < 0.6 && (!x.ff.info.lines.length || lines(x).includes(String(Fd.frame))))
       || (J0().site.buildings.length === 1 ? fs.find(x => lines(x).includes(String(Fd.frame))) : null) || null;
@@ -414,106 +410,240 @@ window.MZ_APP_BUILDING = function (C) {
     const pick = (state.frameFile || {})[fKey(Fd)], fs = frameFiles();
     return (pick && fs.find(x => x.name === pick)) || fileFor(Fd);
   }
-  /* a designed lean-to whose frames bear on this frame line: each of its frame lines meets the shared wall; those that
-     land on this frame line put their column's reactions on the host column there, at the lean-to's eave. A lean-to
-     against a sidewall: one of its lines on each host frame, on the host's sidewall column; against an endwall: all of
-     its lines on the end frame, each on the endwall column it lands on. */
-  function leanTargets(Fd, it) {
-    const J = J0(), host = siteB(Fd.name);
-    if (!J || !host || !it || !it.ff) return null;
-    const fW = it.ff.info.width;
-    const steps = J.drifts.filter(d => !d.level && d.step.upper && sameName(d.upper, Fd.name) && (d.lowerWall === 'FSW' || d.lowerWall === 'BSW'))
-      .filter(d => (it.ff.info.building ? sameName(it.ff.info.building, d.lower) : Math.abs(d.step.lower.g.width - fW) < 0.6));
-    const d = steps[0];
-    if (!d) return null;
-    const low = d.step.lower, yw = d.lowerWall === 'FSW' ? 0 : low.g.width, hostCols = (chosenFile(Fd) || {}).ff ? chosenFile(Fd).ff.info.columns.slice().sort((a, b) => a.x - b.x) : null;
-    const lines = B.frameLines(low), out = [];
-    lines.forEach(fl => {
-      const p = host.toLocal(low.toSite([fl.x, yw]));
-      if (Math.abs(p[0] - Fd.x) > 0.6) return;
-      const hy = p[1];
-      let member;
-      if (hostCols && hostCols.length) { const c = hostCols.reduce((m, q) => (Math.abs(q.x - hy) < Math.abs(m.x - hy) ? q : m), hostCols[0]); member = Math.abs(c.x - hy) < 3.5 ? c.id : null; }
-      else { const k = Fd.cols.findIndex(y => Math.abs(y - hy) < 0.6); member = k >= 0 ? 'COL' + String(k + 1).padStart(2, '0') : null; }
-      out.push({ line: fl.no, trib: fl.trib, hy, at: SITE.roofZ(low.g, fl.x, yw), member });
-    });
-    const ltCols = it.ff.info.columns.slice().sort((a, b) => a.x - b.x), col = (d.lowerWall === 'BSW' ? ltCols[ltCols.length - 1] : ltCols[0] || {}).id;
-    return { step: d, lower: low.name, wall: d.lowerWall, targets: out, col, bay: it.ff.info.bayWidth };
+  // the host frame's columns: the line's file, else the PCS (COL01 at the FSW, Box 5's columns, the BSW column last)
+  function hostMembers(Fd) {
+    const f = chosenFile(Fd);
+    if (f && f.ff && f.ff.info.columns.length) return f.ff.info.columns.slice().sort((a, b) => a.x - b.x).map(c => ({ id: c.id, x: c.x }));
+    return Fd.cols.map((y, k) => ({ id: 'COL' + String(k + 1).padStart(2, '0'), x: y }));
   }
-  const leanFiles = Fd => frameFiles().filter(x => x.ff.info.reactions && x.ff.info.reactions.length && !sameName(x.ff.info.building || '\u0000', Fd.name) && leanTargets(Fd, x) && leanTargets(Fd, x).targets.length);
-  // everything this frame line's file gets: the Snow Drift panel rows (scaled to the file's own bay width), the lean-to
-  // rows when ticked, the mezzanine FDL / FLL / EQ rows the NBG block makes for it
-  function framePlan(Fd, file) {
+  /* the lower buildings whose frame lines land on this frame line: a lean-to against this building's wall. Against a
+     sidewall, one of its lines on each host frame; against an endwall, all of its lines on the end frame. */
+  function leanHere(Fd) {
+    const J = J0(), host = siteB(Fd.name);
+    if (!J || !host) return [];
+    return J.drifts.filter(d => !d.level && d.step.upper && sameName(d.upper, Fd.name) && (d.lowerWall === 'FSW' || d.lowerWall === 'BSW')).map(d => {
+      const low = d.step.lower, yw = d.lowerWall === 'FSW' ? 0 : low.g.width;
+      const lines = B.frameLines(low).map(fl => ({ fl, p: host.toLocal(low.toSite([fl.x, yw])) })).filter(q => Math.abs(q.p[0] - Fd.x) <= 0.6);
+      return lines.length ? { d, low, yw, lines } : null;
+    }).filter(Boolean);
+  }
+  function leanTargets(Fd, it) {
+    if (!it || !it.ff) return null;
+    const fW = it.ff.info.width, here = leanHere(Fd).filter(q => (it.ff.info.building ? sameName(it.ff.info.building, q.d.lower) : Math.abs(q.low.g.width - fW) < 0.6));
+    const h = here[0];
+    if (!h) return null;
+    const hm = hostMembers(Fd), targets = h.lines.map(({ fl, p }) => {
+      const hy = p[1], c = hm.length ? hm.reduce((m, q) => (Math.abs(q.x - hy) < Math.abs(m.x - hy) ? q : m), hm[0]) : null;
+      return { line: fl.no, trib: fl.trib, hy, at: SITE.roofZ(h.low.g, fl.x, h.yw), member: c ? c.id : null, off: c ? Math.abs(c.x - hy) : null };
+    });
+    const ltCols = it.ff.info.columns.slice().sort((a, b) => a.x - b.x), col = ((h.d.lowerWall === 'BSW' ? ltCols[ltCols.length - 1] : ltCols[0]) || {}).id;
+    return { step: h.d, lower: h.low.name, wall: h.d.lowerWall, upperWall: h.d.upperWall, targets, col, bay: it.ff.info.bayWidth };
+  }
+  // the designed lean-to files that fit this frame, latest dropped first
+  const leanFiles = Fd => frameFiles().filter(x => x.ff.info.reactions && x.ff.info.reactions.length && !sameName(x.ff.info.building || '\u0000', Fd.name) && (leanTargets(Fd, x) || { targets: [] }).targets.length).sort((a, b) => (b.at || 0) - (a.at || 0));
+  // the lean-to file whose reactions go on this frame line: the one imported here, else the latest that fits (removed
+  // by hand: none)
+  function leanImport(Fd) {
+    const imp = ((state.leanTo = state.leanTo || {}).imp = state.leanTo.imp || {}), k = fKey(Fd);
+    if (imp[k] === null) return null;
+    const cands = leanFiles(Fd);
+    let rec = imp[k], it = rec && frameFiles().find(x => x.name === rec.file);
+    if (!it) { if (!cands.length) return null; it = cands[0]; rec = { file: it.name, auto: true }; }
+    const T = leanTargets(Fd, it);
+    return T && T.targets.length ? { rec, it, T, others: cands.filter(x => x !== it) } : null;
+  }
+  const editRec = Fd => { const imp = state.leanTo.imp, k = fKey(Fd), LI = leanImport(Fd); if (!imp[k] && LI) imp[k] = { file: LI.it.name }; return imp[k]; };
+  // the drift a frame file carries against the drift the tool works for those frame lines: the tool's, NBG's own, none
+  function driftStatus(it, FdLow) {
+    const had = (it.ff.info.ploads || []).filter(q => /drift|sliding/i.test(q.name || ''));
+    const crc = it.crc != null ? it.crc : (it.crc = it.bytes ? FF.crc32(it.bytes) : null);
+    const asWritten = !!(state.written && crc != null && state.written.has(crc));
+    if (!had.length) return { kind: 'none', had, asWritten };
+    const mine = FdLow ? framePlan(FdLow, it, null).pan.filter(r => r.caseId === 'SL') : [];
+    const sl = had.filter(q => q.loadCaseID === 'SL'), pk = a => Math.max(...a.map(q => Math.max(Math.abs(+q.startMag || +q.start || 0), Math.abs(+q.endMag || +q.end || 0))));
+    const same = mine.length && sl.length === mine.length && Math.abs(pk(sl) - pk(mine.map(r => ({ start: r.start, end: r.end })))) <= 0.005 * Math.max(1, pk(sl));
+    return { kind: same ? 'tool' : /backsidewall|frontsidewall|leftendwall|rightendwall/i.test(sl.map(q => q.name).join(' ')) ? 'nbg' : 'other', had, asWritten, peak: sl.length ? pk(sl) : 0 };
+  }
+  // everything this frame line's file gets: the Snow Drift panel rows (scaled to the file's own bay width), a lean-to's
+  // reactions, the mezzanine FDL / FLL / EQ rows the NBG block makes for it
+  function framePlan(Fd, file, LI) {
     const ld = Fd.loads, bay = file && file.ff.info.bayWidth > 0 ? file.ff.info.bayWidth : Fd.trib;
     const scale = Fd.trib > 0 && Math.abs(bay / Fd.trib - 1) > 0.005 ? bay / Fd.trib : 1;
     const cases = file && file.ff.info.cases.length ? file.ff.info.cases : [];
-    const extraCases = ['LRD', 'RRD'].filter(c => cases.includes(c));
+    const extraCases = ['LRD', 'RRD'].filter(c => cases.includes(c)), dir = driftDir();
     const pan = [];
-    (ld.drift || []).forEach(sg => ['SL', ...extraCases].forEach(cs => pan.push({ name: 'Snow Drift', caseId: cs, panel: 'RP' + sg.panel, dir: 'GY', from: sg.from, to: sg.to, start: sg.start * scale, end: sg.end * scale, by: sg.by })));
+    (ld.drift || []).forEach(sg => ['SL', ...extraCases].forEach(cs => pan.push({ name: 'Snow Drift', caseId: cs, panel: 'RP' + sg.panel, dir, from: sg.from, to: sg.to, start: sg.start * scale, end: sg.end * scale, by: sg.by })));
     const scaleNote = scale !== 1 ? `${file.name} is set to a ${ft(bay)} bay; this frame line's tributary width is ${ft(Fd.trib)} — the rows are × ${F3(scale)} to match the file (its own roof loads use the same bay).` : '';
-    const lt = state.leanTo || {}, crows = [], ltOn = file && lt.on && lt.on[fKey(Fd)];
-    let ltInfo = null;
-    if (ltOn) {
-      const it = frameFiles().find(x => x.name === ltOn), T = it && leanTargets(Fd, it);
-      if (T) {
-        const hostCases = new Set(cases), rx = it.ff.info.reactions.filter(r => r.col === T.col);
-        T.targets.filter(t => t.member).forEach(t => {
-          const k = lt.scale ? t.trib / (T.bay || t.trib) : 1;
-          rx.filter(r => !hostCases.size || hostCases.has(r.caseName)).forEach(r => crows.push({ name: `Lean to - ${T.col} - Reaction`, caseId: r.caseName, member: t.member, x: -(r.Htop != null ? r.Htop : 0) * k, y: -r.V * k, location: +t.at.toFixed(4), toFlange: '3', leanTo: true }));
-        });
-        ltInfo = { file: it.name, T, skipped: [...new Set(rx.map(r => r.caseName))].filter(c => hostCases.size && !hostCases.has(c)) };
-      }
+    const crows = [], leanDraw = [];
+    let ltInfo = null, leanGhost = null;
+    if (LI) {
+      const { it, T, rec } = LI, hostCases = new Set(cases), rx = it.ff.info.reactions.filter(r => r.col === T.col);
+      const use = rx.filter(r => !hostCases.size || hostCases.has(r.caseName));
+      // named as NBG Frame's Add Frame Reactions names them: the source file, then its column
+      const base = it.name.replace(/\.frame$/i, '').replace(/(?:\s*\(\d+\))+$/, '').replace(/[-_ ](?:loads|mz|mezz)$/i, '').replace(/_/g, ' ').trim();
+      const at = rec.at != null && isFinite(rec.at) ? +rec.at : T.targets[0].at;
+      const show = rec.show && use.some(r => r.caseName === rec.show) ? rec.show : ((use.find(r => r.caseName === 'SL') || use[0] || {}).caseName);
+      const hm = hostMembers(Fd);
+      T.targets.forEach(t => {
+        const member = (rec.members || {})[t.line] || t.member;
+        if (!member) return;
+        const k = rec.scale ? t.trib / (T.bay || t.trib) : 1, mc = hm.find(m => m.id === member);
+        use.forEach(r => crows.push({ name: `${base} - ${T.col} - Reaction`, caseId: r.caseName, member, x: -(r.Htop != null ? r.Htop : 0) * k, y: -r.V * k, location: +at.toFixed(4), toFlange: '3', leanTo: true }));
+        const r = use.find(q => q.caseName === show);
+        if (r) leanDraw.push({ y: mc ? mc.x : t.hy, at, V: r.V * k, X: -(r.Htop || 0) * k, member, caseName: show });
+      });
+      if (T.targets.length > 1) { const ys = T.targets.map(t => t.hy); leanGhost = { y0: Math.min(...ys), y1: Math.max(...ys), at, name: T.lower }; }
+      ltInfo = { file: it.name, T, rx, use, show, at, base, skipped: [...new Set(rx.map(r => r.caseName))].filter(c => hostCases.size && !hostCases.has(c)) };
     }
     let mezz = [];
     try { mezz = file && C.nbgRows && state.res && !state.res.incomplete ? C.nbgRows(file) : []; } catch (e) { mezz = []; }
-    return { pan, scale, bay, scaleNote, extraCases, crows, ltInfo, mezz, cases };
+    return { pan, scale, bay, scaleNote, extraCases, crows, ltInfo, leanDraw, leanGhost, mezz, cases, dir };
   }
-  function fileWriter(Fd, file, plan) {
-    const fs = frameFiles();
-    if (!fs.length) return `<div class="panel-sub ff-write"><h4>Into the frame file</h4><small class="sub-n">Drop this frame line's .frame file on the <a href="#" data-go="upload">Project page</a>: the Snow Drift rows${(Fd.loads.mezz || []).length ? ', the mezzanine rows' : ''}${leanFiles(Fd).length ? ' and the lean-to reactions' : ''} go into it and it downloads, ready for NBG Frame.</small></div>`;
-    const what = [plan.pan.length && `${plan.pan.length} Snow Drift panel row${plan.pan.length > 1 ? 's' : ''}`, plan.crows.length && `${plan.crows.length} lean-to rows`, plan.mezz.length && `${plan.mezz.length} mezzanine rows (FDL / FLL / EQ)`].filter(Boolean);
-    // the drift already in the file (NBG's own, or typed earlier): what it implies, beside what replaces it
+  // the download, top right: one file with everything the tool puts on this frame line
+  function dlBlock(Fd, file, plan) {
+    const what = [plan.pan.length && `${plan.pan.length} Snow Drift row${plan.pan.length > 1 ? 's' : ''}`, plan.crows.length && `${plan.crows.length} lean-to reaction rows`, plan.mezz.length && `${plan.mezz.length} mezzanine rows`].filter(Boolean);
+    const ok = !!file && what.length > 0;
+    return `<div class="fv-dl"><button class="btn-mint" data-ffdl ${ok ? '' : 'disabled'}><svg><use href="#i-file"/></svg>${file ? `Download ${esc(outName(file))}` : 'Download .frame'}</button><small>${!file ? 'drop this line\'s .frame below first' : what.length ? esc(what.join(' · ')) : 'nothing from the tool on this line'}</small></div>`;
+  }
+  // the working strip under the title: the line's file, a lean-to's reactions, the lateral system
+  function workStrip(Fd, file, plan, LI) {
+    const fs = frameFiles(), matched = file && fileFor(Fd) === file;
+    const lowStatus = file && (Fd.loads.drift || []).length ? driftStatus(file, Fd) : null;
+    const stT = !lowStatus ? '' : lowStatus.asWritten ? `<span class="fv-st warn">as the tool wrote it — run it in NBG Frame, then drop it back</span>`
+      : lowStatus.kind === 'tool' ? `<span class="fv-st ok">carries the tool's drift</span>`
+      : lowStatus.kind === 'nbg' ? `<span class="fv-st warn">carries NBG's own drift (${F3(lowStatus.peak)} k/ft) — the download replaces it</span>`
+      : lowStatus.kind === 'other' ? `<span class="fv-st warn">carries a different drift (${F3(lowStatus.peak)} k/ft) — the download replaces it</span>` : `<span class="fv-st">no drift row yet</span>`;
+    const fileCard = `<div class="fv-card"><span class="fv-k">This line's .frame</span>
+      ${file ? `<div class="fv-file"><b class="mono" title="${esc(file.name)}">${esc(file.name)}</b><small>${esc(file.ff.info.building || 'no building in its title')} · ${fileLines(file, (siteB(Fd.name) || { xs: [] }).xs.length).length ? 'line ' + fileLines(file, (siteB(Fd.name) || { xs: [] }).xs.length).join(', ') + ' · ' : ''}bay ${ft(file.ff.info.bayWidth)} · ${matched ? 'matched' : 'picked'}</small>${stT}</div>
+      <div class="fv-row"><label class="fv-drop"><input type="file" accept=".frame" data-fvdrop="line" multiple><svg><use href="#i-file"/></svg><span>Replace</span></label>` : `<label class="fv-drop wide"><input type="file" accept=".frame" data-fvdrop="line" multiple><svg><use href="#i-file"/></svg><span><b>Drop this line's .frame</b><small>the one NBG made for ${esc(Fd.name)} line ${Fd.frame}: everything the tool puts on this line goes into it</small></span></label>
+      <div class="fv-row">`}${fs.length > 1 || (fs.length && !file) ? `<select data-ffile title="Pick another loaded file"><option value="">${file ? 'another file…' : 'or pick a loaded file…'}</option>${fs.filter(x => x !== file).map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('')}</select>` : ''}</div>
+      ${plan.pan.length ? `<label class="fv-mini">Snow Drift direction <select data-fdir><option ${plan.dir === 'PY' ? 'selected' : ''}>PY</option><option ${plan.dir === 'GY' ? 'selected' : ''}>GY</option></select><small>PY: on the horizontal projection</small></label>` : ''}</div>`;
+    const here = leanHere(Fd);
+    let leanCard = '';
+    if (here.length) {
+      const h = here[0], cands = leanFiles(Fd), hm = hostMembers(Fd);
+      if (LI) {
+        const { it, T, rec } = LI, st = driftStatus(it, frameData(T.lower, T.targets[0] ? T.targets[0].line : 1));
+        const stLean = st.asWritten ? `<span class="fv-st warn">as the tool wrote it — not run in NBG Frame yet: its reactions are from before the drift</span>`
+          : st.kind === 'tool' ? `<span class="fv-st ok">designed with the tool's drift</span>`
+          : st.kind === 'nbg' ? `<span class="fv-st warn">designed with NBG's own drift, not the tool's — write the drift on ${esc(T.lower)}'s lines and redesign</span>`
+          : st.kind === 'other' ? `<span class="fv-st warn">its drift differs from the tool's</span>` : `<span class="fv-st warn">no drift in it</span>`;
+        const cases = LI ? [...new Set(plan.ltInfo ? plan.ltInfo.use.map(r => r.caseName) : [])] : [];
+        const doubles = T.bay > 0 && T.targets.length > 1 && T.targets.some(t => Math.abs(t.trib - T.bay) > 0.05);
+        leanCard = `<div class="fv-card fv-lean"><span class="fv-k">Lean-to reactions · ${esc(T.lower)} against its ${T.wall}</span>
+          <div class="fv-file"><b class="mono" title="${esc(it.name)}">${esc(it.name)}</b><small>${esc(T.lower)}'s ${esc(T.col)} · ${plan.ltInfo ? plan.ltInfo.use.length : 0} load cases${plan.ltInfo && plan.ltInfo.skipped.length ? ` · ${plan.ltInfo.skipped.join(', ')} not in this frame` : ''}${rec.auto ? ' · the latest loaded' : ''}</small>${stLean}${LI.others.length ? `<small class="sub-n">replaces ${LI.others.map(x => esc(x.name)).join(', ')} (earlier)</small>` : ''}</div>
+          <div class="fv-lt">${T.targets.map(t => { const m = (rec.members || {})[t.line] || t.member; return `<label><span>${esc(T.lower)} line ${t.line} → column</span><select data-ltmem="${t.line}">${hm.map(c => `<option ${c.id === m ? 'selected' : ''}>${esc(c.id)}</option>`).join('')}</select>${t.off > 1 ? `<small class="bad">lands ${ft(t.off)} from ${esc(t.member)}</small>` : ''}</label>`; }).join('')}
+            <label><span>Location (ft)</span><input class="seis-in" data-ltat value="${F3(plan.ltInfo ? plan.ltInfo.at : T.targets[0].at)}" inputmode="decimal"><small>${esc(T.lower)}'s eave at the wall ${ft(T.targets[0].at)}</small></label></div>
+          <div class="fv-cases"><span>Drawn:</span>${cases.map(c => `<button class="chip ${plan.ltInfo && plan.ltInfo.show === c ? 'is-on' : ''}" data-ltcase="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+          ${doubles ? `<label class="seis-chk sm"><input type="checkbox" data-ltscale ${rec.scale ? 'checked' : ''}> <span>${esc(it.name)} is set to a ${ft(T.bay)} bay; ${esc(T.lower)}'s lines here carry ${T.targets.map(t => ft(t.trib)).join(' and ')} — scale each column's reactions to its line</span></label>` : ''}
+          <div class="fv-row"><label class="fv-drop"><input type="file" accept=".frame" data-fvdrop="lean"><svg><use href="#i-file"/></svg><span>Import the redesigned one</span></label><button class="btn-ghost sm" data-ltrm>Remove</button></div></div>`;
+      } else {
+        leanCard = `<div class="fv-card fv-lean"><span class="fv-k">Lean-to reactions · ${esc(h.low.name)} against its ${h.d.lowerWall}</span>
+          <label class="fv-drop wide"><input type="file" accept=".frame" data-fvdrop="lean"><svg><use href="#i-file"/></svg><span><b>Import frame reactions</b><small>drop ${esc(h.low.name)}'s designed .frame — its ${h.d.lowerWall === 'BSW' ? 'BSW' : 'FSW'} column's reactions go on this frame's column${h.lines.length > 1 ? 's' : ''} at its eave</small></span></label>
+          ${cands.length ? `<div class="fv-row">${cands.map(x => `<button class="chip" data-ltuse="${esc(x.name)}">Use ${esc(x.name)}</button>`).join('')}</div>` : ''}</div>`;
+      }
+    }
+    const bS = sb(Fd.name), lineS = bS ? (bS.lines || []).find(l => String(l.label) === String(Fd.frame)) : null;
+    const picked = bS && (((state.seis.buildings || {})[bS.bkey] || {}).lines || {})[String(Fd.frame)];
+    const curSys = picked || (lineS ? lineS.type : /post|beam/i.test(Fd.type || '') ? 'Post & Beam' : 'Rigid Frame');
+    const sys = $('#frameSys');
+    if (sys) sys.innerHTML = bS ? `<span class="fv-k">Lateral system</span><select data-fsys="${esc(bS.bkey)}|${esc(String(Fd.frame))}">${(C.LINE_SYSTEMS || []).map(t => `<option ${t === curSys ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select><small class="sub-n">${picked ? 'picked here' : 'PCS Box 5'}${lineS && lineS.lat && lineS.lat.R != null ? ` · R ${+lineS.lat.R.toFixed(2)}` : ''}</small>` : '';
+    return fileCard + leanCard;
+  }
+  /* The lean-to loop, job-wide, at the top of the page: 1 the lean-to's lines get the drift (download), 2 it is
+     redesigned in NBG Frame and dropped back, 3 the host line takes its reactions (download). Each step a link. */
+  function renderLeanSteps() {
+    const box = $('#frameSteps');
+    if (!box) return;
+    const J = J0(), steps = J ? J.drifts.filter(d => !d.level && !d.off && d.frames.length && (d.lowerWall === 'FSW' || d.lowerWall === 'BSW')) : [];
+    if (!steps.length) { box.innerHTML = ''; box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = steps.map(d => {
+      const low = d.lower, lines = d.frames.map(f => f.frame), fs = frameFiles();
+      const lowFiles = fs.filter(x => x.ff.info.building ? sameName(x.ff.info.building, low) : Math.abs((x.ff.info.width || 0) - d.step.lower.g.width) < 0.6).sort((a, b) => (b.at || 0) - (a.at || 0));
+      const latest = lowFiles[0], st = latest ? driftStatus(latest, frameData(low, lines[0])) : null;
+      const s1 = st && (st.kind === 'tool' || st.asWritten), s2 = st && st.kind === 'tool' && !st.asWritten && latest.ff.info.reactions && latest.ff.info.reactions.length;
+      const host = siteB(d.upper), hostLine = host ? B.frameLines(host).find(fl => { const Fd = frameData(d.upper, fl.no); return Fd && leanHere(Fd).some(q => sameName(q.d.lower, low)); }) : null;
+      const hostFd = hostLine ? frameData(d.upper, hostLine.no) : null, hLI = hostFd ? leanImport(hostFd) : null, s3 = !!(hLI && s2 && hLI.it === latest);
+      const stp = (n, done, now, title, sub, go) => `<button class="ls-step ${done ? 'is-done' : now ? 'is-now' : ''}" ${go ? `data-lsgo="${esc(go)}"` : ''}><i>${done ? '✓' : n}</i><span><b>${title}</b><small>${sub}</small></span></button>`;
+      return `<div class="ls"><span class="ls-k">Lean-to · ${esc(low)} against ${esc(d.upper)}</span>
+        ${stp(1, s1 || s2, !s1 && !s2, `Drift onto ${esc(low)}`, `write it on line${lines.length > 1 ? 's' : ''} ${lines.join(', ')} and download`, `${low}|${lines[0]}`)}
+        ${stp(2, s2, s1 && !s2, 'Redesign in NBG Frame', s2 ? `${esc(latest.name)} is back` : 'then drop the designed file back', `${low}|${lines[0]}`)}
+        ${stp(3, s3, s2 && !s3, `Reactions onto ${esc(d.upper)}`, hostLine ? `line ${hostLine.no}: check the columns, download` : 'its frame line', hostLine ? `${d.upper}|${hostLine.no}` : '')}</div>`;
+    }).join('');
+    $$('#frameSteps [data-lsgo]').forEach(b => { b.onclick = () => { const [bn, no] = b.dataset.lsgo.split('|'); selectFrame(bn, +no); }; });
+  }
+  // the record under the drawing: what this line takes and what goes into its file
+  function recordRows(Fd, file, plan) {
+    const ld = Fd.loads, sj = state.job && state.job.seismic, b = sb(Fd.name), lat = b ? (b.lines || []).find(l => String(l.label) === String(Fd.frame)) : null;
+    const con = [];
+    (ld.mezz || []).forEach(q => { con.push({ name: 'FDL', cs: 'FDL', member: q.member, at: q.elev, x: 0, y: -q.D }); con.push({ name: 'FLL', cs: 'FLL', member: q.member, at: q.elev, x: 0, y: -q.L }); });
+    (ld.eq || []).filter(q => q.F != null).forEach(q => { con.push({ name: 'EQR', cs: 'EQR', member: q.member, at: q.at, x: q.F, y: 0 }); con.push({ name: 'EQL', cs: 'EQL', member: q.member, at: q.at, x: -q.F, y: 0 }); });
+    plan.crows.forEach(r => con.push({ name: r.name, cs: r.caseId, member: r.member, at: r.location, x: r.x, y: r.y, lean: true }));
+    const eqWait = (ld.eq || []).some(q => q.F == null);
+    const sum = [ld.snow ? `<span>Roof snow <b>${F1(ld.snow.applied)} psf</b> (${esc(ld.snow.src)}) → <b>${kft(ld.snow.kft)}</b></span>${ld.snow.applied !== ld.snow.ps ? `<span>balanced ps <b>${F1(ld.snow.ps)} psf</b> under the drift</span>` : ''}` : '', `<span>Roof dead + collateral <b>${kft(ld.dead + ld.coll)}</b></span>`,
+      lat ? `<span>Roof seismic <b>${F2(lat.lat.frame.roofPsf)} psf</b> · Cs <b>${F3(lat.lat.Cs)}</b> · base shear <b>${F2(lat.lat.V)} k</b> · ${esc(lat.lat.sys.label)} R <b>${+lat.lat.R.toFixed(2)}</b></span>` : ''].filter(Boolean).join('');
+    const panT = plan.pan.length ? `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Name</th><th>Case</th><th>Panel</th><th>Dir.</th><th class="num">Start (ft)</th><th class="num">End (ft)</th><th class="num">Start (k/ft)</th><th class="num">End (k/ft)</th><th>From</th></tr></thead><tbody>${plan.pan.map(r => `<tr><td>${esc(r.name)}</td><td class="mono"><b>${r.caseId}</b></td><td class="mono">${r.panel}</td><td class="mono">${r.dir}</td><td class="num mono">${F3(r.from)}</td><td class="num mono">${F3(r.to)}</td><td class="num mono"><b>${F3(r.start)}</b></td><td class="num mono"><b>${F3(r.end)}</b></td><td><small class="sub-n">${esc(r.by || '')}</small></td></tr>`).join('')}</tbody></table></div><small class="sub-n">${plan.scaleNote ? esc(plan.scaleNote) + ' ' : ''}The larger of the drift and any sliding snow at each point (7.9: not added together), × ${plan.scale !== 1 ? `the file's ${ft(plan.bay)} bay` : `the ${ft(Fd.trib)} tributary width`}. Under SL${plan.extraCases.length ? ` and ${plan.extraCases.join(', ')}` : ''}, direction ${plan.dir}${plan.dir === 'PY' ? ' (on the horizontal projection — NBG Frame\'s own automatic drift row is GY)' : ''}.</small>` : '<small class="sub-n">No drift or sliding snow on this frame line.</small>';
     const had = file ? (file.ff.info.ploads || []).filter(q => /drift|sliding/i.test(q.name || '')) : [];
     const bayF = file && file.ff.info.bayWidth > 0 ? file.ff.info.bayWidth : Fd.trib;
-    const hadT = had.length ? `<div class="seis-msg ${plan.pan.length ? 'warn' : 'info'}">${esc(file.name)} already carries ${had.map(q => { const a = Math.abs(+q.startMag), b = Math.abs(+q.endMag), pk = Math.max(a, b), run = Math.abs(+q.endLoc - +q.startLoc); return `<b>${esc(String(q.name).trim())}</b> (${q.loadCaseID}) ${F3(+q.startMag)} → ${F3(+q.endMag)} k/ft over ${ft(Math.min(+q.startLoc, +q.endLoc))} – ${ft(Math.max(+q.startLoc, +q.endLoc))}: ${F1(pk * 1000 / bayF)} psf on its ${ft(bayF)} bay, ${ft(run)} long`; }).join(' · ')}.${plan.pan.length ? ` The tool's rows replace ${had.length > 1 ? 'them' : 'it'} — left in, ${had.length > 1 ? 'they' : 'it'} would add to the new drift. Compare first: ${(() => { const pk = Math.max(...plan.pan.filter(r => r.caseId === 'SL').map(r => Math.max(-r.start, -r.end))); return `the tool's peak is ${F3(pk)} k/ft (${F1(pk * 1000 / bayF)} psf)`; })()}${state.snowJob && state.snowJob.drifts.some(d => d.luUpperParts && d.luUpperParts.length > 1 && sameName(d.lower, Fd.name)) ? ' — its fetch runs through the roofs in line (Snow & drift page), where NBG Frame\'s own drift takes the adjacent roof alone' : ''}.` : ''}</div>` : '';
-    return `<div class="panel-sub ff-write"><h4>Into the frame file <small class="sub-n">one file with everything this frame line takes from the tool</small></h4>
-      <div class="seis-grid"><label><span class="lab">Frame file</span><select data-ffile="${esc(fKey(Fd))}"><option value="">—</option>${fs.map(x => `<option value="${esc(x.name)}" ${file && file.name === x.name ? 'selected' : ''}>${esc(x.name)} · ${esc(x.ff.info.building || 'no building')} · ${x.ff.info.lines.length ? 'line ' + x.ff.info.lines.join(', ') + ' · ' : ''}${ft(x.ff.info.width)} wide · bay ${ft(x.ff.info.bayWidth)}</option>`).join('')}</select><small class="sub-n">${file ? (fileFor(Fd) === file ? 'matched to this frame line' : 'picked here') : 'none matches this frame line — pick one'}</small></label></div>
- ${hadT}
-      ${file ? `<div class="seis-bfile-a"><button class="btn-soft" data-ffwrite="${esc(fKey(Fd))}" ${what.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Write ${what.length ? what.join(', ') : 'nothing to write'}</button><small class="sub-n">${esc(file.name)} → ${esc(file.name.replace(/\.frame$/i, ''))}_loads.frame · earlier rows of the same names are replaced; nothing else in the model changes</small></div>` : ''}</div>`;
+    const hadT = had.length ? `<div class="seis-msg ${plan.pan.length ? 'warn' : 'info'}">${esc(file.name)} carries ${had.map(q => { const a = Math.abs(+q.startMag), c = Math.abs(+q.endMag), pk = Math.max(a, c); return `<b>${esc(String(q.name).trim())}</b> (${q.loadCaseID}, ${esc(q.dir || '')}) ${F3(+q.startMag)} → ${F3(+q.endMag)} k/ft, ${F1(pk * 1000 / bayF)} psf on its ${ft(bayF)} bay`; }).join(' · ')}.${plan.pan.length ? ` The download replaces ${had.length > 1 ? 'them' : 'it'} with the tool's rows (peak ${F3(Math.max(...plan.pan.filter(r => r.caseId === 'SL').map(r => Math.max(-r.start, -r.end))))} k/ft)${state.snowJob && state.snowJob.drifts.some(d => d.luUpperParts && d.luUpperParts.length > 1 && sameName(d.lower, Fd.name)) ? ' — its fetch runs through the roofs in line, where NBG Frame\'s own drift takes the adjacent roof alone' : ''}.` : ''}</div>` : '';
+    const lt = plan.ltInfo, ltT = lt ? `<div class="panel-sub"><h4>Lean-to reactions · ${esc(lt.file)} <small class="sub-n">${esc(lt.T.lower)}'s ${esc(lt.T.col)}, every case this frame has; Y = − vertical at its base, X = − horizontal at its top, at ${ft(lt.at)} — as NBG Frame's Add Frame Reactions puts them</small></h4>
+      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Case</th><th class="num">Vertical (k)</th><th class="num">Horizontal at the top (k)</th><th>On ${lt.T.targets.map(t => esc((((state.leanTo.imp || {})[fKey(Fd)] || {}).members || {})[t.line] || t.member || '?')).join(' and ')}</th></tr></thead><tbody>${lt.rx.map(r => `<tr class="${lt.use.includes(r) ? '' : 'is-off'}"><td class="mono"><b>${esc(r.caseName)}</b>${lt.use.includes(r) ? '' : ' <small class="sub-n">not a case of this frame</small>'}</td><td class="num mono">${F3(r.V)}</td><td class="num mono">${r.Htop != null ? F3(r.Htop) : '—'}</td><td class="mono">Y ${F3(-r.V)} · X ${F3(-(r.Htop || 0))}</td></tr>`).join('')}</tbody></table></div>
+      ${lt.T.upperWall === 'LEW' || lt.T.upperWall === 'REW' ? `<small class="sub-n">${esc(lt.T.lower)} stands against this building's ${lt.T.upperWall}: its frames run across this end frame, so their horizontal reaction acts out of this frame's plane. NBG Frame's Add Frame Reactions still enters it as X, as the engineer did — check the endwall for it.</small>` : ''}</div>` : '';
+    const steps = `<div class="panel-sub nbg-steps"><h4>In NBG Frame</h4><ol><li>Open the downloaded file.</li><li>Tools → Concentrated (Panel) Loads: the <b>panel</b> tab has the Snow Drift rows (${plan.dir}), the <b>concentrated</b> tab the lean-to reactions and the mezzanine rows — check them against the tables here.</li><li>Save and Gen Loads, then run the frame.</li>${(Fd.loads.drift || []).length ? '<li>A lean-to: drop the redesigned file back here; its reactions go on the host frame.</li>' : ''}</ol></div>`;
+    return `<div class="fv-sum">${sum}<a href="#" data-go="snow">Snow page</a>${lat ? '<a href="#" data-go="seismic">Seismic page</a>' : ''}</div>${hadT}
+      <div class="fr-rows"><div class="panel-sub"><h4>Panel loads · Snow Drift <small class="sub-n">the panel tab: k/ft, down negative, positions along the frame from the FSW</small></h4>${panT}</div>
+      <div class="panel-sub"><h4>Concentrated loads <small class="sub-n">the mezzanine's dead and live and its seismic, a lean-to's reactions</small></h4>
+        ${con.length ? `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Name</th><th>Case</th><th>Member</th><th class="num">Location (ft)</th><th class="num">X (k)</th><th class="num">Y (k)</th></tr></thead><tbody>${con.map(r => `<tr class="${r.lean ? 'is-lean' : ''}"><td>${esc(r.name)}</td><td class="mono"><b>${r.cs}</b></td><td class="mono">${esc(r.member || '—')}</td><td class="num mono">${F3(r.at)}</td><td class="num mono">${r.x ? F3(r.x) : '—'}</td><td class="num mono">${r.y ? F3(r.y) : '—'}</td></tr>`).join('')}</tbody></table></div>${eqWait ? `<div class="seis-msg warn">EQR / EQL on ${(ld.eq || []).map(q => esc(q.member || '')).join(', ')} come once the <a href="#" data-go="seismic">Seismic page</a> is complete${sj && sj.need && sj.need.length ? `: ${esc(sj.need[0])}` : ''}.</div>` : ''}` : `<small class="sub-n">No concentrated loads from the tool on this frame line.</small>`}</div></div>
+      ${ltT}${steps}`;
   }
-  function leanToPanel(Fd, file) {
-    const lts = leanFiles(Fd), lt = state.leanTo || {};
-    const steps = state.snowJob ? state.snowJob.drifts.filter(d => !d.level && d.step.upper && sameName(d.upper, Fd.name)) : [];
-    if (!lts.length && !steps.length) return '';
-    const guide = `<ol class="lt-steps"><li><b>Design the lower building first</b> — pick its frame lines on the plan: the drift from this roof is on them; write its Snow Drift rows into its .frame file below and design it in NBG Frame.</li><li><b>Drop the designed lean-to .frame back</b> on the Project page.</li><li><b>Its reactions land here</b> — the column against this wall, case by case, on each column of this frame its lines bear on, at its eave: "Lean to – COL – Reaction" rows, Y = −vertical at its base, X = −horizontal at its top (as the engineer types them).</li></ol>`;
-    const on = (lt.on || {})[fKey(Fd)];
-    return `<div class="panel-sub lean-to"><h4>Lean-to onto this frame <small class="sub-n">${steps.map(d => `${esc(d.lower)} against its ${d.upperWall}`).join(' · ') || 'a lower building against this frame'}</small></h4>${guide}
-      ${lts.length ? lts.map(it => { const T = leanTargets(Fd, it), rx = it.ff.info.reactions.filter(r => r.col === T.col), totLen = T.targets.reduce((a, t) => a + (T.bay || t.trib), 0), lowLen = T.step.step.lower.g.length;
-        const doubles = T.bay > 0 && T.targets.length > 1 && T.targets.some(t => Math.abs(t.trib - T.bay) > 0.05);
-        return `<div class="lt-file"><label class="seis-chk"><input type="checkbox" data-lton="${esc(it.name)}" ${on === it.name ? 'checked' : ''}> <span><b class="mono">${esc(it.name)}</b> — ${esc(T.lower)}'s ${esc(T.col)} (against the ${T.wall}) onto ${T.targets.map(t => `<b>${esc(t.member || '?')}</b> (its line ${t.line}, at ${ft(t.at)})`).join(' and ')}</span></label>
-        ${doubles ? `<div class="seis-msg warn">Check: ${esc(it.name)} is set to a ${ft(T.bay)} bay, but ${esc(T.lower)}'s frame lines here carry ${T.targets.map(t => ft(t.trib)).join(' and ')}. The same reactions on ${T.targets.length} columns put ${ft(totLen)} of lean-to on this frame for a ${ft(lowLen)} building. <label class="seis-chk sm"><input type="checkbox" data-ltscale="1" ${lt.scale ? 'checked' : ''}> <span>scale each column's reactions to its line's tributary width (× ${T.targets.map(t => F3(t.trib / T.bay)).join(' / ')})</span></label></div>` : ''}
-        <div class="table-wrap"><table class="fl-t"><thead><tr><th>Case</th><th class="num">Vertical at the base (k)</th><th class="num">Horizontal at the top (k)</th><th>On the host${lt.scale && doubles ? ' (scaled)' : ''}</th></tr></thead><tbody>${rx.map(r => `<tr><td class="mono"><b>${esc(r.caseName)}</b>${(file && file.ff.info.cases.length && !file.ff.info.cases.includes(r.caseName)) ? ' <small class="sub-n">not a case of this frame — left out</small>' : ''}</td><td class="num mono">${F3(r.V)}</td><td class="num mono">${r.Htop != null ? F3(r.Htop) : '—'}</td><td class="mono">Y ${F3(-r.V)} · X ${F3(-(r.Htop || 0))}</td></tr>`).join('')}</tbody></table></div></div>`; }).join('')
-      : `<small class="sub-n">No designed lean-to frame file loaded yet.</small>`}</div>`;
-  }
-  function wireFrameFile(Fd) {
-    const sel = $(`#frameRows [data-ffile]`);
-    if (sel) sel.onchange = () => { state.frameFile = state.frameFile || {}; if (sel.value) state.frameFile[fKey(Fd)] = sel.value; else delete state.frameFile[fKey(Fd)]; renderFrames(); };
-    $$('#frameRows [data-lton]').forEach(el => { el.onchange = () => { state.leanTo = state.leanTo || {}; state.leanTo.on = state.leanTo.on || {}; if (el.checked) state.leanTo.on[fKey(Fd)] = el.dataset.lton; else delete state.leanTo.on[fKey(Fd)]; renderFrames(); }; });
-    $$('#frameRows [data-ltscale]').forEach(el => { el.onchange = () => { state.leanTo = state.leanTo || {}; state.leanTo.scale = el.checked; renderFrames(); }; });
-    const btn = $('#frameRows [data-ffwrite]');
+  function wireFrame(Fd) {
+    const k = fKey(Fd), rerender = () => { renderFrames(); if (C.renderNbg) C.renderNbg(); };
+    // a file dropped here: added to the job's files, then made this line's file or this line's lean-to
+    $$('#frameWork [data-fvdrop]').forEach(inp => {
+      const lab = inp.closest('.fv-drop');
+      if (lab) { ['dragenter', 'dragover'].forEach(ev => lab.addEventListener(ev, () => lab.classList.add('is-over'))); ['dragleave', 'drop'].forEach(ev => lab.addEventListener(ev, () => lab.classList.remove('is-over'))); }
+      inp.onchange = async () => {
+        const list = Array.from(inp.files || []).filter(x => /\.frame$/i.test(x.name));
+        if (!list.length) { toast('Drop a .frame file'); return; }
+        await addFrameFiles(list);
+        const name = list[list.length - 1].name;
+        if (inp.dataset.fvdrop === 'line') { state.frameFile = state.frameFile || {}; state.frameFile[k] = name; toast(`${name} — this line's file`); }
+        else { const it = frameFiles().find(x => x.name === name); if (!it || !leanTargets(Fd, it)) { toast(`${name} does not fit a lean-to on this frame`); } else if (!(it.ff.info.reactions || []).length) { toast(`${name} has no reactions — run it in NBG Frame first`); } else { state.leanTo.imp[k] = { file: name }; toast(`${name} — its reactions are on ${Fd.name} line ${Fd.frame}`); } }
+        rerender();
+      };
+    });
+    const sel = $('#frameWork [data-ffile]');
+    if (sel) sel.onchange = () => { if (!sel.value) return; state.frameFile = state.frameFile || {}; state.frameFile[k] = sel.value; rerender(); };
+    const dir = $('#frameWork [data-fdir]');
+    if (dir) dir.onchange = () => { try { localStorage.setItem(DIR_KEY, dir.value); } catch (e) { /* session */ } renderFrames(); };
+    $$('#frameWork [data-ltmem]').forEach(el => { el.onchange = () => { const r = editRec(Fd); r.members = r.members || {}; r.members[el.dataset.ltmem] = el.value; renderFrames(); }; });
+    const at = $('#frameWork [data-ltat]');
+    if (at) at.onchange = () => { const r = editRec(Fd), v = parseFloat(at.value); if (isFinite(v) && v > 0) r.at = v; else delete r.at; renderFrames(); };
+    $$('#frameWork [data-ltcase]').forEach(el => { el.onclick = () => { const r = editRec(Fd); r.show = el.dataset.ltcase; renderFrames(); }; });
+    const sc = $('#frameWork [data-ltscale]');
+    if (sc) sc.onchange = () => { const r = editRec(Fd); r.scale = sc.checked; renderFrames(); };
+    const rm = $('#frameWork [data-ltrm]');
+    if (rm) rm.onclick = () => { state.leanTo.imp[k] = null; renderFrames(); toast('Lean-to reactions taken off this line'); };
+    $$('#frameWork [data-ltuse]').forEach(el => { el.onclick = () => { state.leanTo.imp[k] = { file: el.dataset.ltuse }; renderFrames(); }; });
+    const fsys = $('#frameSys [data-fsys]');
+    if (fsys) fsys.onchange = () => { const [bk, lab] = fsys.dataset.fsys.split('|'); state.seis.buildings = state.seis.buildings || {}; const bo = state.seis.buildings[bk] = state.seis.buildings[bk] || {}; bo.lines = bo.lines || {}; bo.lines[lab] = fsys.value; C.seisSave && C.seisSave(); recompute(); toast(`Frame line ${lab}: ${fsys.value} — the seismic is reworked with its R`); };
+    const btn = $('#frameActs [data-ffdl]');
     if (btn) btn.onclick = async () => {
       const file = chosenFile(Fd);
-      if (!file) { toast('Pick the frame file first'); return; }
-      const plan = framePlan(Fd, file);
+      if (!file) { toast('Drop this line\'s .frame first'); return; }
+      const plan = framePlan(Fd, file, leanImport(Fd));
       try {
-        let xml = file.ff.xml, conv = null;
+        let xml = file.ff.xml;
         const crows = plan.mezz.concat(plan.crows);
-        if (crows.length) { const add = FF.addLoads(xml, crows, { toFlange: C.webCode ? C.webCode() : undefined, floors: plan.mezz.length > 0 }); xml = add.xml; conv = add; }
+        if (crows.length) xml = FF.addLoads(xml, crows, { toFlange: C.webCode ? C.webCode() : undefined, floors: plan.mezz.length > 0 }).xml;
         const pl = FF.addPanelLoads(xml, plan.pan.map(r => ({ name: r.name, caseId: r.caseId, panel: r.panel, from: r.from, to: r.to, start: r.start, end: r.end, dir: r.dir })));
         xml = pl.xml;
-        const bytes = await FF.write(file.ff, xml, zipIO), name = file.name.replace(/\.frame$/i, '') + '_loads.frame';
+        const bytes = await FF.write(file.ff, xml, zipIO), name = outName(file);
+        (state.written = state.written || new Set()).add(FF.crc32(bytes));
         cpSave(bytes, name, 'application/octet-stream');
-        toast(`${name} — ${[plan.pan.length && `${pl.added} Snow Drift rows${pl.replaced ? ` (in place of ${pl.replaced})` : ''}`, plan.crows.length && `${plan.crows.length} lean-to rows`, plan.mezz.length && `${plan.mezz.length} mezzanine rows`].filter(Boolean).join(', ')}${plan.ltInfo && plan.ltInfo.skipped.length ? ` · ${plan.ltInfo.skipped.join(', ')} left out (not cases of this frame)` : ''}`);
+        toast(`${name} — ${[plan.pan.length && `${pl.added} Snow Drift rows (${plan.dir})${pl.replaced ? `, in place of ${pl.replaced}` : ''}`, plan.crows.length && `${plan.crows.length} lean-to reaction rows`, plan.mezz.length && `${plan.mezz.length} mezzanine rows`].filter(Boolean).join(', ')}${plan.ltInfo && plan.ltInfo.skipped.length ? ` · ${plan.ltInfo.skipped.join(', ')} left out (not cases of this frame)` : ''}`);
+        renderFrames();
       } catch (e) { console.error(e); toast('Frame file: ' + e.message); }
     };
   }
@@ -524,7 +654,30 @@ window.MZ_APP_BUILDING = function (C) {
      mezzanine does not stand on gets nothing; the X-bracing in a bay inside the run is tiered at the mezzanine level
      with a strut there; an edge not on a wall needs a wall of its own — a portal frame or X-bracing on that line. */
   const nearestLine = (lines, x) => { let k = 0; lines.forEach((l, i) => { if (Math.abs(l.x - x) < Math.abs(lines[k].x - x)) k = i; }); return k; };
+  /* the top of the Bracing page: drop the bracing files, see what each will get, download — one row a building */
+  function renderBraceTop() {
+    const top = $('#braceTop');
+    if (!top) return;
+    const sj = state.job && state.job.seismic, J = state.snowJob;
+    if (!state.pcs || !J || !J.site.buildings.length) { top.innerHTML = '<small class="sub-n">Load a PCS first.</small>'; return; }
+    const rows = J.site.buildings.map(b => {
+      const bS = sb(b.name), bf = bS && (state.bracing || {})[bS.bkey], plan = bf && bS && sj && sj.ok ? bracingPlan(bS) : null;
+      const cnt = plan ? plan.loads.length : 0, st = plan && state.seis.strutLine !== false ? plan.struts.length : 0;
+      const what = !bf ? '' : !sj || !sj.ok ? 'the loads come once the Seismic page is complete' : cnt ? `${cnt} Mezz. Seismic load${cnt > 1 ? 's' : ''} (EQB / EQF)${st ? ` · ${st} strut line${st > 1 ? 's' : ''}` : ''}` : 'no mezzanine on it — nothing for the tool to add';
+      const sides = bf ? ['FSW', 'BSW'].filter(w => bf.file.info.walls[w]).map(w => `${w} ${bf.file.info.walls[w].bays.filter(x => x.braced).map(x => x.from + 1).join(', ') || '—'}`).join(' · ') : '';
+      return `<div class="bt-row ${bf ? 'has-file' : ''}"><div class="bt-b"><b>${esc(b.name)}</b><small>${ft(b.g.width)} × ${ft(b.g.length)}</small></div>
+        <div class="bt-f">${bf ? `<b class="mono" title="${esc(bf.name)}">${esc(bf.name)}</b><small>braced bays ${esc(sides)} · ${esc(what)}</small>` : `<small class="sub-n">no bracing file — the walls below are drawn from ${bracingOf(b.name).src || 'nothing yet'}</small>`}</div>
+        <div class="bt-a">${bf ? `<button class="btn-soft sm" data-brdl2="${esc(bS.bkey)}" ${cnt ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download ${esc(C.bracingOutName ? C.bracingOutName(bf) : bf.name)}</button><button class="btn-ghost sm" data-brrm2="${esc(bS.bkey)}">Remove</button>` : ''}</div></div>`;
+    }).join('');
+    top.innerHTML = `<label class="fv-drop wide bt-drop"><input type="file" accept=".bracing,.nbgscope" multiple id="braceDrop"><svg><use href="#i-file"/></svg><span><b>Drop the .bracing files</b><small>each is matched to its building by size; the eScope (.nbgscope) is taken too</small></span></label><div class="bt-list">${rows}</div>`;
+    const inp = $('#braceDrop'), lab = inp && inp.closest('.fv-drop');
+    if (lab) { ['dragenter', 'dragover'].forEach(ev => lab.addEventListener(ev, () => lab.classList.add('is-over'))); ['dragleave', 'drop'].forEach(ev => lab.addEventListener(ev, () => lab.classList.remove('is-over'))); }
+    if (inp) inp.onchange = () => { const list = Array.from(inp.files || []).filter(x => /\.(bracing|nbgscope)$/i.test(x.name)); if (!list.length) { toast('Drop .bracing or .nbgscope files'); return; } addSeisFiles(list); };
+    $$('#braceTop [data-brdl2]').forEach(btn => { btn.onclick = () => C.bracingDownload && C.bracingDownload(btn.dataset.brdl2); });
+    $$('#braceTop [data-brrm2]').forEach(btn => { btn.onclick = () => { delete state.bracing[btn.dataset.brrm2]; recompute(); }; });
+  }
   function renderBracing() {
+    renderBraceTop();
     const box = $('#braceWalls');
     if (!box) return;
     const sj = state.job && state.job.seismic, J = state.snowJob;
@@ -590,7 +743,7 @@ window.MZ_APP_BUILDING = function (C) {
     });
     box.innerHTML = walls;
     $('#braceWallsSub').textContent = Object.keys(state.bracing || {}).length ? 'bays, X-bracing, tiers and strut lines from the bracing file · EQB / EQF as written into it' : state.scope ? 'braced bays from the eScope · the bracing file (Project page) adds its tiers and takes the loads' : 'frame lines from PCS Box 2, bracing from PCS Box 12 · the bracing file (Project page) adds its tiers and takes the loads';
-    $('#braceFlags').innerHTML = (live ? '' : `<div class="seis-msg warn">The Seismic page is not complete yet${sj && sj.need && sj.need.length ? ` (${esc(sj.need[0])})` : ''} — the forces come once it is; where they go is known from the layout:</div>`) + (flags.length ? flags.map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('') : (live ? '<div class="seis-msg ok">Every mezzanine edge that takes longitudinal seismic sits on a braced sidewall.</div>' : ''));
+    $('#braceFlags').innerHTML = (live ? '' : `<div class="seis-msg warn">The Seismic page is not complete yet${sj && sj.need && sj.need.length ? ` (${esc(sj.need[0])})` : ''} — the forces come once it is; where they go is known from the layout:</div>`) + (flags.length ? flags.map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('') : (live ? (mzAll.length ? '<div class="seis-msg ok">Every mezzanine edge that takes longitudinal seismic sits on a braced sidewall.</div>' : '<div class="seis-msg info">No mezzanine on this job: the walls carry the building\'s own longitudinal seismic, as NBG Bracing designs it.</div>') : ''));
   }
 
   // ---------- Purlins ----------

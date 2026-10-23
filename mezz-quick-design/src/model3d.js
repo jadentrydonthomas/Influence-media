@@ -244,10 +244,15 @@
           ctx.fillStyle = '#d9ecfa'; ctx.fillText(l.text, p[0], p[1] + 0.5);
         } else {
           ctx.font = '11px "Cascadia Code", Consolas, monospace';
-          // to the right of its point, or to the left where the right would run off the canvas (T/beam at the near corner)
-          const tw = ctx.measureText(l.text).width, x = Math.max(6, p[0] + 8 + tw > W - 6 ? p[0] - 8 - tw : p[0] + 8);
-          ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, x, p[1] + (l.dy || 0));
-          placed.push([x, p[1] + (l.dy || 0) - 7, x + tw, p[1] + (l.dy || 0) + 7]);   // the tags keep clear of it
+          // to the right of its point, else to the left, else a line up or down — the first spot clear of the bubbles and the
+          // labels already drawn; with no clear spot it is left out rather than written over another
+          const tw = ctx.measureText(l.text).width, xs = [p[0] + 8, p[0] - 8 - tw].filter(x => x >= 4 && x + tw <= W - 4);
+          if (!xs.length) xs.push(Math.max(6, Math.min(W - 6 - tw, p[0] + 8)));
+          let spot = null;
+          for (const dy of [0, -14, 14, -28, 28]) { for (const x of xs) { const y = p[1] + (l.dy || 0) + dy; if (!hits(x - 2, y - 7, x + tw + 2, y + 7)) { spot = [x, y]; break; } } if (spot) break; }
+          if (!spot) { ctx.textAlign = 'center'; ctx.font = '600 11px "Segoe UI", Arial, sans-serif'; continue; }
+          ctx.fillStyle = l.color || 'rgba(190,220,240,.8)'; ctx.textAlign = 'left'; ctx.fillText(l.text, spot[0], spot[1]);
+          placed.push([spot[0] - 2, spot[1] - 7, spot[0] + tw + 2, spot[1] + 7]);   // the tags and later labels keep clear of it
           ctx.textAlign = 'center'; ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
         }
       }

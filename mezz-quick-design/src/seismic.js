@@ -382,7 +382,7 @@
     const V = equivRoof + conc.reduce((a, c) => a + c.F, 0);
     return { kind: 'longitudinal', types, systems: sy, sys, factors: f, Ta: f.Ta, k: f.k, cs: f.cs, Cs: f.Cs, R: sys.R, hn,
       rows, totals: { W: dist.W, num: dist.num, Fx: dist.Fx, Mx: dist.Mx },
-      bracing: { snow: roof.Pf || 0, deadPsf: totalPsf - snowPart, totalPsf, altTotalPsf, factor, equivRoof, conc, V, torsionRoof: torRoof, torsionMezz: torMezz },
+      bracing: { snow: roof.Pf || 0, snowInW: snowPart, deadPsf: totalPsf - snowPart, totalPsf, altTotalPsf, factor, equivRoof, conc, V, torsionRoof: torRoof, torsionMezz: torMezz },
       mezzLoads: conc.filter(c => c.key === 'mezz'), wallLoads: conc.filter(c => c.key === 'FSW' || c.key === 'BSW'), V,
       roofPsf: totalPsf, bracingV: V, torsion: torMezz };
   }

@@ -203,11 +203,14 @@
     <section class="screen" id="v-frames">
       <div class="screen-heading">
         <div><div class="eyebrow">NBG Frame</div><h2>Loads on each <em>frame</em></h2></div>
-        <p class="lede">Pick a frame line: every load it takes, drawn — snow, drift, a lean-to's reactions, the mezzanine's dead, live and seismic — and written into its .frame file.</p>
+        <p class="lede">Pick a frame line, drop its .frame, download it with every load in — snow drift, a lean-to's reactions, the mezzanine's dead, live and seismic — each one drawn on the frame as it goes in.</p>
       </div>
-      <div class="panel frame-pickp"><div class="panel-head"><h3>Pick a frame line</h3><span class="sub">click a line on the plan or a chip · amber dot: it carries drift · green dot: a mezzanine bears on it</span></div><div class="panel-body"><div id="framePlan" class="bld-plan frame-plan"></div><div class="frame-pick" id="framePick"></div></div></div>
-      <div class="panel frame-view"><div class="panel-head"><h3 id="frameViewTitle">Frame line</h3><div class="seg fl-toggles" id="frameToggles" role="group" aria-label="Loads shown"></div></div>
-        <div class="panel-body"><div id="frameView" class="frame-stage"></div><div id="frameRows"></div></div></div>
+      <div class="lean-steps" id="frameSteps" hidden></div>
+      <div class="panel frame-pickp"><div class="panel-head"><h3>Pick a frame line</h3><span class="sub">click a line on the plan or a chip · amber: it carries drift · green: a mezzanine bears on it · violet: a lean-to bears on it</span></div><div class="panel-body"><div id="framePlan" class="bld-plan frame-plan"></div><div class="frame-pick" id="framePick"></div></div></div>
+      <div class="panel frame-view"><div class="panel-head fv-head"><h3 id="frameViewTitle">Frame line</h3><div id="frameActs"></div></div>
+        <div class="fv-work" id="frameWork"></div>
+        <div class="fv-tools"><span class="fv-k">Shown</span><div class="seg fl-toggles" id="frameToggles" role="group" aria-label="Loads shown"></div><div class="fv-sysbar" id="frameSys"></div></div>
+        <div class="panel-body"><div id="frameView" class="frame-stage"></div><div id="frameRows" class="fv-record"></div></div></div>
       <details class="panel fold" id="frameLoadsPanel">
         <summary class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">every frame line's mezzanine dead and live on its own columns, as typed into NBG Frame, and the job's .frame files with those loads written in</span></summary>
         <div class="panel-body"><div id="frameLoads"></div>
@@ -227,9 +230,10 @@
         <div><div class="eyebrow">NBG Bracing</div><h2>The <em>bracing</em> &amp; where the seismic goes</h2></div>
         <p class="lede">Each sidewall in elevation: its X-bracing, strut lines and the mezzanine's EQB / EQF — and every edge of a mezzanine whose force has nowhere to go yet.</p>
       </div>
+      <div class="panel brace-top"><div class="panel-head"><h3>Bracing files</h3><span class="sub">drop a building's .bracing here (or on the Project page) · each downloads with the mezzanine's EQB / EQF and strut line written in</span></div><div class="panel-body" id="braceTop"></div></div>
       <div id="braceFlags"></div>
       <div class="panel"><div class="panel-head"><h3>Sidewalls</h3><span class="sub" id="braceWallsSub">from the bracing file when it is dropped, else the eScope, else PCS Box 12</span></div><div class="panel-body" id="braceWalls"></div></div>
-      <div class="panel" id="braceFilePanel"><div class="panel-head"><h3>Into the bracing file</h3><span class="sub">the EQB / EQF and the wall strut line, written into the job's .bracing file (dropped on the Project page) · the numbers behind them are step 9 of the Seismic page</span></div><div class="panel-body" id="braceFile"></div></div>
+      <div class="panel" id="braceFilePanel"><div class="panel-head"><h3>Into the bracing file</h3><span class="sub">the rows each file gets, as Tools → Add Loads and Add Wall Strut Line take them · the numbers behind them are step 9 of the Seismic page</span></div><div class="panel-body" id="braceFile"></div></div>
     </section>
 
     <!-- PURLINS -->
@@ -280,8 +284,12 @@
       </div>
       <div class="seis-status" id="seisStatus"></div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">1–6</span>NBG Design Calcs input</h3><span class="sub">building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · from the PCS, the job's NBG files and the design · type over any value</span></div>
+        <div class="panel-head"><h3><span class="step-no">1–6</span>Inputs</h3><span class="sub">as NBG Design Calcs takes them: building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · each filled from the PCS, the job's NBG files or the design, its source tagged · type over any value</span></div>
         <div class="panel-body" id="seisInputs"></div>
+      </div>
+      <div class="panel seis-step seis-results-p">
+        <div class="panel-head"><h3><span class="step-no">=</span>Results</h3><span class="sub">what the inputs above give, building by building — the frame and bracing loads follow in 7–9</span></div>
+        <div class="panel-body" id="seisResults"></div>
       </div>
       <div class="panel seis-step">
         <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
