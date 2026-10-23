@@ -8264,8 +8264,9 @@ table.seis-bvals td[rowspan] { vertical-align: top; }
         const inStrip = mz.map(m => ({ m, a: Math.max(0, Math.min(hi, m.x1) - Math.max(lo, m.x0)) * (m.y1 - m.y0) })).filter(o => o.a > 0.5);
         const at = i === 0 ? 'lew' : i === nF - 1 ? 'rew' : 'interior';
         const bayType = { lew: 'Left Endwall', rew: 'Right Endwall', interior: 'Interior' }[at];
-        const lat = SEIS.frameLine(J, { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: hi - lo, bayType, roofConc: 0, fswTrib: hi - lo, bswTrib: hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: 0 })) });
-        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
+        const lineIn = { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: hi - lo, bayType, roofConc: 0, fswTrib: hi - lo, bswTrib: hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: 0 })) };
+        const lat = SEIS.frameLine(J, lineIn);
+        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, lineIn, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
         if (!inStrip.length) return;
         if (lat.limit) notes.push({ level: 'warn', text: `Frame ${grid.xLabel(x)} (${name}): ${lat.limit}` });
         // the frame columns each mezzanine frames into on this line, and its share of the frame's mezzanine load
@@ -8300,12 +8301,13 @@ table.seis-bvals td[rowspan] { vertical-align: top; }
         });
         eqs.length = 0;
         (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
-        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, lineIn, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
         if (fe) fe.seismic = { roofPsf: lat.frame.roofPsf, altRoofPsf: lat.frame.altRoofPsf, Cs: lat.Cs, R: lat.R, V: lat.V, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
       });
       // 7. longitudinal: the bracing
-      const long = SEIS.bracing(J, { roofConc: 0, fswTrib: Lg, bswTrib: Lg, partQty: 0, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0 })) });
+      const longIn = { roofConc: 0, fswTrib: Lg, bswTrib: Lg, partQty: 0, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0 })) };
+      const long = SEIS.bracing(J, longIn);
       bOut.long = long;
       // each mezzanine's longitudinal force to the lines along the length that hold it. The floor is a flexible
       // diaphragm spanning across the building between its edges; where mezzanines meet at one level it spans across
@@ -8353,7 +8355,7 @@ table.seis-bvals td[rowspan] { vertical-align: top; }
           element: onWall ? `${onWall} sidewall bracing — EQB / EQF at the mezzanine level, wall strut line at ${F(L.at)}` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
           independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
-      bOut.workbook = seismicSteps({ inp, d, ed, code, g, bd, roof, walls, mz, significant, flags, sfrs, name, quote: (c0.inp.job || {}).quote }, bOut);
+      bOut.workbook = seismicSteps({ inp, d, ed, code, g, bd, roof, walls, mz, significant, flags, sfrs, name, quote: (c0.inp.job || {}).quote, J, longIn }, bOut);
     });
     out.ok = !need.length && !!d && d.ok;
     return out;
@@ -8369,8 +8371,11 @@ table.seis-bvals td[rowspan] { vertical-align: top; }
     const choice = q.code && q.code.ed === q.ed && q.code.choice ? q.code.choice : ({ '7-05': 2, '7-10': 5, '7-16': 7 })[q.ed] || null;
     const notes = [];
     if (!choice) notes.push(`ASCE ${q.ed}: the workbook (rev. 2021.01.20) has no such code — not typed.`);
-    if (q.mz.length > 2) notes.push(`${q.mz.length} mezzanines in ${q.name}: the workbook takes two — only ${q.mz[0].id} and ${q.mz[1].id} are typed.`);
+    if (q.mz.length > 2) notes.push(`${q.mz.length} mezzanines in ${q.name}: the workbook takes two — only ${q.mz[0].id} and ${q.mz[1].id} are typed, so its base shears leave out ${q.mz.slice(2).map(m => m.id).join(', ')} (the tool's frame and bracing loads carry every mezzanine).`);
     const slot = q.mz.slice(0, 2), w = q.walls;
+    // what the workbook shows is worked out from what is typed into it: the first two mezzanines
+    const typed = new Set(slot.map(m => String(m.id)));
+    const asTyped = (fn, input, all) => (q.mz.length > 2 && q.J && input ? fn(q.J, { ...input, mezz: (input.mezz || []).filter(o => typed.has(String(o.id))) }) : all);
     const S = (sheet, cell, label, value, show) => ({ sheet, cell, label, value, show: show != null ? show : value == null ? '(blank)' : typeof value === 'boolean' ? (value ? 'checked' : 'unchecked') : String(value) });
     const I = 'Input Data', LAT = 'Lateral Calcs. (1)', LNG = 'Longitudinal Calcs.';
     const input = [
@@ -8405,11 +8410,11 @@ table.seis-bvals td[rowspan] { vertical-align: top; }
       S(LNG, 'B8', 'Low SW (FSW) Force Resisting System', q.sfrs.FSW), S(LNG, 'B9', 'High SW (BSW) Force Resisting System', q.sfrs.BSW),
       ...slot.flatMap((m, k) => [S(LNG, k ? 'B30' : 'B27', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(m.area) : 0), S(LNG, k ? 'B31' : 'B28', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
     ];
-    const G = bOut.long, gm = id => (G && G.mezzLoads.find(x => x.id === id)) || null;
+    const G = bOut.long && asTyped(SEIS.bracing, q.longIn, bOut.long), gm = id => (G && G.mezzLoads.find(x => x.id === id)) || null;
     const longRead = G ? [{ sheet: LNG, cell: 'C58', label: 'Cs', expect: n3(G.Cs) }, { sheet: LNG, cell: 'H79', label: 'Bracing base shear (kips)', expect: n3(G.V) }, { sheet: LNG, cell: 'H66', label: 'Roof seismic dead load for the bracing (psf)', expect: n3(G.bracing.totalPsf) }]
       .concat(slot.map((m, k) => m && gm(m.id) ? { sheet: LNG, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load (kips)`, expect: n3(gm(m.id).F) } : null).filter(Boolean)) : [];
     const frames = bOut.frames.map(fr => {
-      const L = fr.lat, ml = id => L.mezzLoads.find(x => x.id === id);
+      const L = asTyped(SEIS.frameLine, fr.lineIn, fr.lat), ml = id => L.mezzLoads.find(x => x.id === id);
       const steps = [
         S(LAT, 'B9', 'Seismic Force Resisting System', fr.type || 'Rigid Frame'),
         S(LAT, 'B18', 'Bay Width — this frame\'s strip (ft)', n3(fr.bay)),
