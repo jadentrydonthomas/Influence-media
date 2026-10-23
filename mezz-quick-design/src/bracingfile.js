@@ -117,7 +117,8 @@
   function indentOf(xml, at) { const ls = xml.lastIndexOf('\n', at - 1); return xml.slice(ls + 1, at).replace(/\S[\s\S]*$/, ''); }
 
   /* plan: { loads: [{ wall: 'FSW' | 'BSW', line (0-based frame line), elev, F (kips, signed), caseId: 'EQB' | 'EQF' }],
-             struts: [{ wall, from, to (0-based frame lines), elev }] } (struts: [] to leave the strut lines to the program)
+             struts: [{ wall, from, to (0-based frame lines), elev, skip: [bay from] (braced bays left untiered) }] }
+           (struts: [] to leave the strut lines to the program)
      returns { bytes, xml, added: { loads, struts }, kept: { struts }, replaced } */
   async function write(file, plan, io) {
     let xml = file.xml;
@@ -127,7 +128,7 @@
       const w = walls[s.wall];
       if (!w) return;
       const lo = Math.min(s.from, s.to), hi = Math.max(s.from, s.to);
-      w.bays.filter(b => Math.min(b.from, b.to) >= lo && Math.max(b.from, b.to) <= hi).forEach(b => {
+      w.bays.filter(b => Math.min(b.from, b.to) >= lo && Math.max(b.from, b.to) <= hi && !(s.skip || []).includes(Math.min(b.from, b.to))).forEach(b => {
         if (b.struts.some(t => Math.abs(t.elev - s.elev) < 0.01)) { kept.struts++; return; }
         if (!b.strutsAt) return;
         const ind = indentOf(xml, b.strutsAt.start), ci = ind + '  ', fi = ci + '  ';

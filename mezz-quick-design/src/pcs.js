@@ -24,6 +24,13 @@
   const clean = s => undouble(String(s || '').replace(/[‘’′]/g, "'").replace(/[“”″]/g, '"').replace(/\s+/g, ' ').trim());
 
   // ft-in text -> feet. Accepts 12'-0", 0'-3 1/2", 10'-2", 5", 4', 3.5", 12.5
+  // a value typed in a note, where the marks are often left off: "10-6 5/8", "2-8", "0-0" are feet-inches
+  function ftinTyped(s) {
+    const v = ftin(s);
+    if (v != null || s == null) return v;
+    const m = clean(s).replace(/\s*-\s*/g, '-').match(/^(\d+)-(\d+(?:\.\d+)?)(?: (\d+)\/(\d+))?$/);
+    return m ? +m[1] + (+m[2] + (m[3] ? +m[3] / +m[4] : 0)) / 12 : null;
+  }
   function ftin(s) {
     if (s == null) return null;
     const t = clean(s).replace(/\s*-\s*/g, '-');
@@ -68,9 +75,48 @@
   // x-gaps: < ~0.15 em joins letters, < ~1.6 em is a word space, anything wider is a new column.
   // Double-struck headers arrive as the same string drawn twice on top of itself; keep one copy.
   const cache = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+  /* The quote engineer's corrections typed over the print as PDF markup: a value struck through with a line annotation
+     and the new one typed just past the line's end on its row (a FreeText) — "1@20'-6"," struck, "14'-8"" beside it.
+     The struck words leave the text and the typed value takes their place, keeping the struck token's "n@" count and
+     its comma, so every table reads the corrected value. page.edits keeps each change for the report. */
+  function markupItems(page) {
+    if (page.edits) return page.editedItems || page.items;
+    page.edits = [];
+    const an = page.annots || [];
+    const strikes = an.filter(a => /^Line$/i.test(a.subtype) && a.line && Math.abs(a.line[0][1] - a.line[1][1]) < 2.5 && Math.abs(a.line[1][0] - a.line[0][0]) > 8);
+    if (!strikes.length) return page.items;
+    const typed = an.filter(a => /FreeText/i.test(a.subtype) && clean(a.text)), gone = new Set(), added = [];
+    // the items as words (kerning fragments touching each other: "P" "er" → Per), so a stroke through most of a word
+    // strikes all of it; a unit after the value (PSF) stays
+    const words = [];
+    page.items.slice().sort((a, b) => a.y - b.y || a.x - b.x).forEach(it => {
+      const w = words.find(q => Math.abs(q.y - it.y) < 1.5 && Math.abs(it.x - q.xEnd) < 0.25 * (it.h || 8));
+      if (w) { w.its.push(it); w.xEnd = Math.max(w.xEnd, it.x + (it.w || 0)); } else words.push({ y: it.y, h: it.h || 8, x: it.x, xEnd: it.x + (it.w || 0), its: [it] });
+    });
+    const UNIT = /^(?:psf|plf|lbs?|ksi|kips?|k|ft|in)\.?$/i;
+    strikes.forEach(st => {
+      const y = (st.line[0][1] + st.line[1][1]) / 2, x0 = Math.min(st.line[0][0], st.line[1][0]), x1 = Math.max(st.line[0][0], st.line[1][0]);
+      const ws = words.filter(w => y < w.y + 0.5 && y > w.y - w.h && Math.min(x1, w.xEnd) - Math.max(x0, w.x) > 0.4 * Math.min(w.xEnd - w.x || 1, x1 - x0) && !UNIT.test(w.its.map(i => i.str).join('').trim()));
+      const hit = ws.flatMap(w => w.its).filter(it => !gone.has(it)).sort((a, b) => a.x - b.x);
+      if (!hit.length) return;
+      const rep = typed.find(n => n.x1 >= x1 - 12 && n.x1 <= x1 + 30 && Math.min(n.y2, y + 5) - Math.max(n.y1, y - 5) > 2);
+      const was = clean(hit.map(i => i.str).join(''));
+      hit.forEach(i => gone.add(i));
+      const now = rep ? clean(rep.text) : null;
+      if (now) {
+        const cnt = (was.match(/^(\d+\s*@)/) || [])[1] || '', comma = /,\s*$/.test(was) ? ',' : '';
+        const str = /^\d+\s*@/.test(now) ? now + comma : cnt + now + comma;
+        added.push({ str, x: hit[0].x, y: hit[0].y, h: hit[0].h, w: Math.max(hit[hit.length - 1].x + (hit[hit.length - 1].w || 0) - hit[0].x, 6 * str.length * 0.5), markup: true });
+      }
+      if (rep) (page.editReps = page.editReps || new Set()).add(rep);
+      page.edits.push({ was, now, x: hit[0].x, y: hit[0].y, page: page.num });
+    });
+    page.editedItems = page.items.filter(i => !gone.has(i)).concat(added);
+    return page.editedItems;
+  }
   function lines(page, tol = 2.2) {
     if (cache && cache.has(page)) return cache.get(page);
-    const its = page.items.map(i => ({ ...i, str: String(i.str || '').replace(/\s+/g, ' ') })).filter(i => i.str.trim());
+    const its = markupItems(page).map(i => ({ ...i, str: String(i.str || '').replace(/\s+/g, ' ') })).filter(i => i.str.trim());
     its.sort((a, b) => a.y - b.y || a.x - b.x);
     const rows = [];
     its.forEach(it => {
@@ -560,6 +606,10 @@
       const note = annots.find(a => loadRow.y >= a.y1 - 4 && loadRow.y <= a.y2 + 6 && a.x1 < xLive && /^\s*\d+(?:\.\d+)?\s*(?:psf|#)?\s*$/i.test(clean(a.text)));
       if (note) m.deadNote = parseFloat(clean(note.text));
     }
+    // each line of a typed note on its own row: a note's lines stack from the top of its box (12 pt: the first line's
+    // baseline about 12 below the top, the next 14 lower), so a box drawn tall over several rows — "8'-0"⏎7'-10"" on
+    // C and D, or one value in a box reaching the row below (a practice job: 17'-10" for F over the seat row) — reads row by row
+    const annLines = annots.flatMap(a => { const fs = a.fs || 12; return String(a.text).split(/\r\n|\r|\n/).map(t => clean(t)).map((t, i) => ({ text: t, y: a.y1 + fs + i * fs * 1.2, x1: a.x1, a })).filter(q => q.text); });
     const hdr = ls.find(l => /Requested/.test(l.text) && /Provided/.test(l.text));
     const xReq = hdr ? hdr.items.find(i => /Requested/.test(i.str)).x : null;
     const xProv = hdr ? hdr.items.find(i => /Provided/.test(i.str)).x : null;
@@ -573,11 +623,11 @@
         const toReq = xReq != null && xProv != null ? Math.abs(it.x - xReq) < Math.abs(it.x - xProv) : req == null;
         if (toReq) { if (req == null) { req = it.str; reqIt = it; } } else if (prov == null) { prov = it.str; provIt = it; }
       });
-      const ann = annots.find(a => row.y >= a.y1 - 2 && row.y <= a.y2 + 4 && (xProv == null || a.x1 > xProv - 30));
-      const annTxt = ann ? clean(ann.text) : null;
+      const ann = annLines.filter(q => (xProv == null || q.x1 > xProv - 30) && Math.abs(q.y - row.y) <= 7).sort((p, q) => Math.abs(p.y - row.y) - Math.abs(q.y - row.y))[0];
+      const annTxt = ann ? ann.text : null, annVal = ftinTyped(annTxt);
       let value = null, src = null;
       if (ftin(req) != null) { value = ftin(req); src = 'requested'; }
-      else if (ftin(annTxt) != null) { value = ftin(annTxt); src = 'annotation'; }
+      else if (annVal != null) { value = annVal; src = 'annotation'; }
       // the Provided column is the quoted design's own number: a fair value for a dimension of that design (A, the joist
       // spacing and seat, E), but never a minimum clearance (B, C, D) — a TBD requirement is asked, the Provided offered
       else if (ftin(prov) != null && !/^[BCD]$/.test(key)) { value = ftin(prov); src = 'provided'; }
@@ -586,6 +636,7 @@
       if (from && from.conf != null) m.dims[key].read = { conf: from.conf, red: !!from.red };
     });
     readByOcr(m, ls);
+    typedMarkups(m, ls);
     // checkboxes (only available when the page was rendered): each label read off this mezzanine's own row, so two
     // mezzanines on one page keep their own ticks
     if (ls.some(l => l.pageRef && l.pageRef.checks)) {
@@ -628,6 +679,23 @@
       // the struck figures as OCR saw them through the line, a lost foot and inch mark put back (25-3 → 25'-3")
       const was = /^\d+-\d+(?: \d+\/\d+)?$/.test(st.str) ? st.str.replace(/^(\d+)-(.*)$/, `$1'-$2"`) : st.str;
       if (field || (now && now.red)) m.markups.push({ field, label: lab ? lab.str.replace(/:$/, '') : null, was, now: now && now.red ? now.str : null, page: p.num });
+    }));
+  }
+
+  /* The corrections typed over this mezzanine's Box 22 (a value struck with a line annotation, the new one typed beside it:
+     markupItems has already put it in the text): each listed as a markup of its field, so the field's source says so */
+  function typedMarkups(m, ls) {
+    m.markups = m.markups || [];
+    const pages = [...new Set(ls.map(l => l.pageRef).filter(Boolean))];
+    pages.forEach(p => (p.edits || []).filter(e => e.now).forEach(e => {
+      const l = ls.find(q => q.pageRef === p && Math.abs(q.y - e.y) < 3);
+      if (!l) return;
+      const lab = l.items.filter(it => it.x < e.x - 1);
+      const hit = lab.map(it => (READ_FIELDS.find(([, re]) => re.test(it.str)) || DIM_ROWS.find(([, re]) => re.test(it.str)) || (/^Deck Type:?/i.test(it.str) ? ['deck'] : null))).filter(Boolean).pop();
+      if (!hit) return;
+      const field = hit[0];
+      if (m.markups.some(q => q.field === field && q.now === e.now)) return;
+      m.markups.push({ field, label: (lab.find(it => (READ_FIELDS.concat(DIM_ROWS)).some(([k, re]) => k === field && re.test(it.str))) || {}).str || field, was: e.was, now: e.now, page: p.num, typed: true });
     }));
   }
 
@@ -721,7 +789,7 @@
     const ls = boxLines(pages, 12), out = [];
     for (const l of ls) {
       if (/^Sketch must show|^Building Name|^Requested/i.test(l.text)) continue;
-      const it = l.items.map(i => i.str), wi = it.findIndex(s => WALL_LIST.test(s.trim()));
+      const it = l.items.map(i => i.str.replace(/\s*,\s*$/, '')), wi = it.findIndex(s => WALL_LIST.test(s.trim()));
       if (wi < 0) {
         // a continuation line of the building name ("MAINTENANCE" / "BUILDING")
         const last = out[out.length - 1];
@@ -741,6 +809,7 @@
     }
     return out.map(({ y, ...r }) => r);
   }
+  const bracingKind = type => (/portal/i.test(type) ? 'portal' : /roof/i.test(type) && /x/i.test(type) ? 'roofx' : /x[- ]?brac|rod|cable/i.test(type) ? 'x' : /^none$/i.test(type) ? 'none' : type ? 'other' : 'none');
   // the options of one building, wall by wall: { FSW: { type, kind, bays, baysText, clearHeight, userBay }, … }
   function bracingByWall(options, name, known = []) {
     // the building's own rows; a cut-off name only when it is no other building's whole name ("Main" ≠ "Main Extension")
@@ -766,6 +835,35 @@
     return { pages, cut: null };
   }
 
+  /* Everything the quote engineer wrote on the PCS as PDF markup, page by page: the corrections applied to the text
+     (struck and retyped, see markupItems) and every other typed note, with the box it sits in and the printed words
+     its callout line — or its row — points at. A note on a drawing page (no text there) is placed on the floor plan by
+     src/plan.js. Highlights (yellow boxes) are left out. */
+  function penNotes(pages) {
+    const out = [];
+    pages.forEach(p => {
+      const ls = lines(p), used = p.editReps || new Set(), an = p.annots || [];
+      const boxAt = y => { let b = null; ls.forEach(l => { if (l.y <= y + 2 && /^\d{1,2}\)\s+[A-Z]/.test(l.text)) b = clean(l.text.split(/\s{2,}/)[0]); }); return b; };
+      (p.edits || []).forEach(e => { const box = boxAt(e.y); if (box || e.now) out.push({ kind: 'correction', page: p.num, box, was: e.was, now: e.now, at: rowWords(ls, e.x, e.y) }); });
+      const callouts = an.filter(a => /^Line$/i.test(a.subtype) && a.line && !(Math.abs(a.line[0][1] - a.line[1][1]) < 2.5));
+      an.filter(a => /FreeText/i.test(a.subtype) && clean(a.text) && !used.has(a)).forEach(a => {
+        const cx = (a.x1 + a.x2) / 2, cy = (a.y1 + a.y2) / 2;
+        const touch = callouts.find(l => l.line.some(q => q[0] > a.x1 - 8 && q[0] < a.x2 + 8 && q[1] > a.y1 - 8 && q[1] < a.y2 + 8));
+        // the arrow: the note's own callout (its tip), else a line drawn from the note — its far end
+        const far = a.callout ? a.callout : touch ? touch.line.slice().sort((q, r) => Math.hypot(r[0] - cx, r[1] - cy) - Math.hypot(q[0] - cx, q[1] - cy))[0] : null;
+        out.push({ kind: 'note', page: p.num, box: ls.length ? boxAt(a.y1) : null, text: clean(a.text), at: ls.length ? rowWords(ls, far ? far[0] : a.x1, far ? far[1] + 3 : a.y2) : null, drawing: !ls.length, rect: [a.x1, a.y1, a.x2, a.y2], to: far });
+      });
+    });
+    return out;
+  }
+  // the printed words a point sits on: the row at that height, its words up to the point (a label and its value)
+  function rowWords(ls, x, y) {
+    const row = ls.filter(l => Math.abs(l.y - y) < 7).sort((a, b) => Math.abs(a.y - y) - Math.abs(b.y - y))[0];
+    if (!row) return null;
+    const its = row.items.filter(it => it.x <= x + 4).slice(-2);
+    return its.length ? clean(its.map(it => it.str).join(' ')) : clean(row.items[0].str);
+  }
+
   function parse(pagesIn) {
     const prim = primaryPages(pagesIn), pages = prim.pages;
     const job = jobFacts(pages);
@@ -788,7 +886,27 @@
     // Box 12: where the quote puts its bracing (and of what kind), per building and wall
     const brOpts = bracingOptions(pages);
     Object.keys(site).forEach(n => { site[n].bracing = bracingByWall(brOpts, n, Object.keys(site)); });
-    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
+    const pen = penNotes(pages);
+    // a note in Box 12 that gives a wall other bracing ("REW > ROOF X-BRACING", the wall struck from its row): that wall
+    // takes it (the only building's, or every building's whose row lost the wall)
+    pen.filter(q => q.kind === 'note' && /^12\)/.test(q.box || '')).forEach(q => {
+      const m = q.text.match(/^((?:LEW|REW|FSW|BSW)(?:\s*(?:,|&|AND)\s*(?:LEW|REW|FSW|BSW))*)\s*(?:>|→|-+>|=+>|TO:?)\s*(.+)$/i);
+      if (!m) return;
+      const walls = m[1].toUpperCase().split(/\s*(?:,|&|AND)\s*/), type = clean(m[2]).toLowerCase().replace(/(^|[\s-])\w/g, c => c.toUpperCase());
+      Object.keys(site).forEach(n => { if (Object.keys(site).length === 1 || walls.some(w => !site[n].bracing[w])) walls.forEach(w => { site[n].bracing[w] = { type, kind: bracingKind(type), bays: [], baysText: 'TBD', clearHeight: null, userBay: false, markup: q.text }; }); });
+    });
+    // Box 2's endwall column spacing corrected by markup while Box 5 still lists the old spacing for a multi-span endwall
+    // frame: the endwall frame's columns are those endwall columns, so they follow the correction
+    const box2Fixed = pen.some(q => q.kind === 'correction' && /^2\)/.test(q.box || '') && q.now);
+    if (box2Fixed) Object.keys(site).forEach(n => {
+      const b = site[n].building, fr = site[n].frames || [], last = Math.max(0, ...fr.map(f => f.to));
+      [['lewCols', 1], ['rewCols', last]].forEach(([k, no]) => {
+        const f = fr.find(q => q.from === no && q.to === no), sp = b[k] || [];
+        const sum = a => a.reduce((x, y) => x + y, 0);
+        if (f && f.interior && f.interior.length === sp.length && sp.length > 1 && Math.abs(sum(f.interior) - sum(sp)) < 0.1 && f.interior.some((v, i) => Math.abs(v - sp[i]) > 0.05)) { f.box5 = f.interior; f.interior = sp.slice(); f.fromMarkup = true; }
+      });
+    });
+    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, pen, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
   }
 
   const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall };

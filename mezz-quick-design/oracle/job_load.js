@@ -11,6 +11,7 @@ async function loadJob(pdf, settings = {}) {
   const g = LAYOUT.buildingGrid({ ...pcs.building, frames: pcs.frames });
   // the floor plan as the app finds it: the drawing page whose grid bubbles register to the frame lines
   const plan = await PLAN.findPlan(pages, PLAN.gridOf(g), p => p._page.getOperatorList(), loadPdfjs().OPS);
+  pcs.planNotes = await PLAN.notesOnPlan(pages, pcs.pen, PLAN.gridOf(g), p => p._page.getOperatorList(), loadPdfjs().OPS, plan);
   RUN.applyPlan(pcs, plan ? { ...plan.reg, page: plan.page } : null);
   const inps = pcs.mezzanines.map((m, i) => RUN.inputsFromPCS(pcs, i));
   const miss = n => !n || n.value == null || n.source === 'missing';

@@ -400,6 +400,31 @@
     return fit || best;
   }
 
+  /* The notes written over a drawing page (the plan marked up: "8x13 opening", "ok to move", "this column has to stay";
+     pcs.pen's drawing notes): that page registered to the building grid like the plan, each note, its callout's end and
+     any box drawn round it placed in building feet. Returns [{ text, page, at, rect, to, area }] */
+  async function notesOnPlan(pages, pen, grid, opsOf, OPS, plan) {
+    const out = [], byPage = [...new Set((pen || []).filter(q => q.drawing).map(q => q.page))];
+    for (const pn of byPage) {
+      const pg = pages.find(q => q.num === pn);
+      if (!pg || !grid) continue;
+      try {
+        const reg = registerAndRead(plan && plan.page === pn ? plan.paths : subpaths(await opsOf(pg), OPS, pg.vt || pg.height), grid, pg.annots || []);
+        if (!reg.ok || !reg.map) continue;
+        const B = (x, y) => ({ x: reg.map.fx.a * x + reg.map.fx.b, y: reg.map.fy.a * y + reg.map.fy.b });
+        const box = (x1, y1, x2, y2) => { const a = B(x1, y1), c = B(x2, y2); return { x0: Math.min(a.x, c.x), x1: Math.max(a.x, c.x), y0: Math.min(a.y, c.y), y1: Math.max(a.y, c.y) }; };
+        // boxes drawn round something (a highlighter's yellow is no box)
+        const squares = (pg.annots || []).filter(a => /^Square$/i.test(a.subtype) && !(a.color && a.color[0] > 200 && a.color[1] > 200));
+        pen.filter(q => q.drawing && q.page === pn).forEach(q => {
+          const [x1, y1, x2, y2] = q.rect, cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+          const sq = squares.find(a => cx > a.x1 && cx < a.x2 && cy > a.y1 && cy < a.y2);
+          out.push({ text: q.text, page: pn, at: B(cx, cy), rect: box(x1, y1, x2, y2), to: q.to ? B(q.to[0], q.to[1]) : null, area: sq ? box(sq.x1, sq.y1, sq.x2, sq.y2) : null });
+        });
+      } catch (e) { /* a page that does not register: its notes stay in the list, unplaced */ }
+    }
+    return out;
+  }
+
   // Compare detected ⊗ with the derived layout's mezzanine columns (tolerance in ft)
   function compare(detected, mezzCols, tol = 1.5) {
     const used = new Set();
@@ -412,6 +437,6 @@
     return { matched, extra, missing, agree: !extra.length && !missing.length };
   }
 
-  const api = { readMarkup, subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters, gridOf, findPlan };
+  const api = { readMarkup, subpaths, readSymbols, readArrows, readJoistSymbols, chains, registerAndRead, compare, gridLetters, gridOf, findPlan, notesOnPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PLAN = api;
 })(typeof self !== 'undefined' ? self : this);

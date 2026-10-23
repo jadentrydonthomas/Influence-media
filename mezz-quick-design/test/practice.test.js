@@ -1,0 +1,95 @@
+// The practice contracts (private/jobs/k01…k10, when present): what the quote engineer typed or drew over the print is
+// read the way they meant it — a note's lines each on their own row, values typed without their foot marks, an opening
+// boxed on the marked-up plan framed and left out of the seismic loading area, notes with arrows to columns, the
+// drawing's hand-drawn X marks on their grid lines.
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const dir = path.join(__dirname, '..', 'private', 'jobs'), job = k => path.join(dir, k, 'PCS.pdf');
+let ok = fs.existsSync(job('k01'));
+try { require('./pdf-node.js').loadPdfjs(); } catch (e) { ok = false; }
+if (!ok) { console.log('practice tests passed (practice contracts not present, skipped)'); process.exit(0); }
+const { readPcs } = require('./pdf-node.js');
+const { loadJob } = require('../oracle/job_load.js');
+const PCS = require('../src/pcs.js');
+const RUN = require('../src/run.js');
+const near = (a, b, t = 1e-6) => Math.abs(a - b) < t;
+const geo = async (k, mi = 0) => { const p = PCS.parse(await readPcs(job(k))), g = RUN.inputsFromPCS(p, mi).geom; return k2 => g[k2]; };
+(async () => {
+  const seen = [];
+  // k02: red notes in the Provided column — "8'-0"⏎7'-10"" in one box over C and D, "17'-10"" for F in a box reaching
+  // the seat row; the seat and the joist spacing stay the printed 0'-5" and 3'-11"
+  if (fs.existsSync(job('k02'))) {
+    const g = await geo('k02');
+    assert.ok(near(g('C').value, 8) && g('C').source === 'annotation', 'C 8\'-0" from the first line of the note');
+    assert.ok(near(g('D').value, 7 + 10 / 12) && g('D').source === 'annotation', 'D 7\'-10" from its second line');
+    assert.ok(near(g('F').value, 17 + 10 / 12) && g('F').source === 'annotation');
+    assert.ok(near(g('seat').value, 5 / 12) && g('seat').source !== 'annotation', 'the seat is the printed 0\'-5", not the 17\'-10" note');
+    assert.ok(near(g('joistSpacing').value, 3 + 11 / 12) && g('joistSpacing').source !== 'annotation');
+    seen.push('k02 C / D / F from the notes, seat 5"');
+  }
+  // k02 seismic against the engineer's own Design Calcs file: its inputs typed (code, Ss / S1, roof, the mezzanine's
+  // loads with no framing added, the 2 k it puts on line 4) give its base shear on every frame line and the bracing
+  const calcs = path.join(dir, 'k02', 'NewFile.nbgcalcs');
+  if (fs.existsSync(job('k02')) && fs.existsSync(calcs)) {
+    const { pcs, inps } = await loadJob(job('k02'));
+    const items = inps.map(inp => ({ inp, settings: {} }));
+    const d = JSON.parse(fs.readFileSync(calcs, 'utf8').replace(/^\uFEFF/, '')), doc = d.Folders[0].Documents.find(x => /^Seismic/.test(x.Name));
+    const li = doc.BuildingLoadInputs, si = doc.SeismicDataInputs, m0 = li.MezzanineLoads[0];
+    const sj0 = RUN.runJob(items, { pcs }).seismic, bk = sj0.buildings[0].bkey, id = sj0.buildings[0].mezz[0].id;
+    const lat = doc.LateralCalculations.map(l => l.FramingInputs), concAt = lat.findIndex(l => (l.Mezzanines[0] || {}).ConcentratedLoadTotalInKips > 0);
+    const cfg = { ed: '7-16', Ss: si.Ss, S1: si.S1, siteClass: si.SiteClass, risk: 'II', buildings: { [bk]: { RDL: li.RoofDeadLoadInPSF, CDL: li.RoofCollateralLoadInPSF, SW: li.LateralFrameSelfWeightInPSF, RSW: li.RoofSelfWeightInPSF, Pf: li.RoofSnowInPSF } },
+      mezz: { [id]: { FDL: m0.FloorDeadInPSF, FLC: m0.FloorCollateralInPSF, FLJ: m0.JoistDeadInPSF, FLL: m0.FloorLiveInPSF, storage: m0.ApplyStorageLoading } },
+      concLat: concAt >= 0 ? { [`${bk}|${concAt + 1}|${id}`]: lat[concAt].Mezzanines[0].ConcentratedLoadTotalInKips } : {} };
+    const b = RUN.runJob(items, { pcs, seis: cfg }).seismic.buildings[0];
+    doc.LateralCalculations.forEach((l, i) => assert.ok(near(b.lines[i].lat.V, l.BaseShearResults.BaseShear, 1e-9), `line ${i + 1}: ${b.lines[i].lat.V} vs ${l.BaseShearResults.BaseShear}`));
+    lat.forEach((l, i) => (l.Mezzanines || []).forEach(q => assert.ok(near(b.lines[i].areas[id], q.LoadingAreaInSquareFeet, 1e-6), `line ${i + 1} loading area`)));
+    assert.ok(near(b.long.V, doc.LongitudinalCalculations.BaseShearResults.BaseShear, 1e-9));
+    seen.push(`k02 seismic = its Design Calcs file on ${lat.length} frame lines and the bracing`);
+  }
+  // k06: a column of single-value notes, each box taller than its row
+  if (fs.existsSync(job('k06'))) {
+    const g = await geo('k06');
+    assert.deepStrictEqual(['B', 'C', 'D', 'E', 'F', 'joistSpacing'].map(k => +g(k).value.toFixed(4)), [9, 9, 9.5, 0, 21, +(4 + 11 / 12).toFixed(4)]);
+    assert.ok(near(g('seat').value, 5 / 12), 'seat 0\'-5", not 21\'-0"');
+    seen.push('k06 B–F, 4\'-11", 5"');
+  }
+  // k08: "2-8⏎⏎2.5"" in 7 pt — the spacing typed with no foot mark, the seat two lines down
+  if (fs.existsSync(job('k08'))) {
+    const g = await geo('k08');
+    assert.ok(near(g('joistSpacing').value, 2 + 8 / 12) && g('joistSpacing').source === 'annotation');
+    assert.ok(near(g('seat').value, 2.5 / 12) && g('seat').source === 'annotation');
+    seen.push('k08 2\'-8" / 2.5"');
+  }
+  // k09: "0-0" for E
+  if (fs.existsSync(job('k09'))) {
+    const g = await geo('k09');
+    assert.ok(g('E').value === 0 && g('E').source === 'annotation');
+    assert.ok(near(g('D').value, 9 + 1 / 12) && near(g('F').value, 21 + 5 / 12));
+    seen.push('k09 E 0\'-0"');
+  }
+  // k01: the drawing followed (no column the drawing lacks), the 13'-0" × 8'-0" opening boxed on the marked-up plan framed
+  // in mezzanine 1 and left out of its seismic loading area, the four column notes read against Box 2 as corrected
+  {
+    const { inps, job: J } = await loadJob(job('k01'));
+    assert.deepStrictEqual(J.columns.map(c => c.label), ['2/D', '2/B', '3/D', '3/B', '68\'-0"/F', '68\'-0"/23\'-8"', '68\'-0"/B', '81\'-0"/23\'-8"', '81\'-0"/C']);
+    const m1 = J.mezz[1], op = m1.layout.openings[0];
+    assert.ok(near(op.x0, 68) && near(op.x1, 81) && near(op.y0, 23 + 8 / 12, 1e-3) && near(op.y1, 31 + 8 / 12, 1e-3), JSON.stringify(op));   // layout keeps 0.001 ft
+    const hdr = m1.layout.beams.find(b => b.opening === 'header'), trm = m1.layout.beams.find(b => b.opening === 'trimmer');
+    assert.ok(hdr && near(hdr.line, 81) && near(hdr.trib, 9.5) && trm && near(trm.span, 13) && near(trm.trib, 29, 0.001), 'header on 81\'-0", trib 9\'-6"; trimmer 13\'-0" at the cut beam\'s end');
+    // the trimmer's equivalent trib: the line-4 beam's end (16 ft trib × 23'-8" / 2) 7 ft along a 13 ft span → 8M/L²
+    const P = 16 * (23 + 8 / 12) / 2, M = P * 7 * 6 / 13;
+    assert.ok(near(trm.trib, Math.ceil(8 * M / 169 * 12) / 12, 1e-3), `trimmer trib ${trm.trib} vs 8M/L² ${8 * M / 169}`);
+    const sm = J.seismic.buildings[0].mezz.find(m => m.id === '1');
+    assert.ok(near(sm.gross, 31 * (31 + 4 / 12), 1e-6) && near(sm.openArea, 104, 0.01) && near(sm.area, sm.gross - sm.openArea) && sm.areaSrc === 'less openings', JSON.stringify({ gross: sm.gross, open: sm.openArea, area: sm.area }));
+    const notes = J.mezz.flatMap(r => r.warn.filter(w => /marked-up plan, page 13/.test(w.text)).map(w => w.text));
+    assert.strictEqual(notes.length, 4, notes.join('\n'));
+    assert.ok(notes.some(t => /"ok to move".*LEW column drawn 42'-6" from the FSW — Box 2, as corrected, has it at 36'-8" \(line B\)/.test(t)));
+    assert.ok(notes.some(t => /"this column has to stay".*LEW column on line D, 22'-0" from the FSW — kept there/.test(t)));
+    assert.ok(notes.some(t => /"ok to move".*REW column drawn 36'-0" from the FSW — Box 2, as corrected, has it at 31'-8" \(line C\)/.test(t)));
+    assert.ok(notes.some(t => /"this column has to stay".*REW column on line E, 15'-0" from the FSW — kept there/.test(t)));
+    assert.ok(inps[1].mezz.openingsAt[0].placed && !/@\s*lbs/.test(inps[1].mezz.openingsAt[0].from), 'no blank "@ lbs" in the opening\'s source');
+    seen.push('k01 drawing followed, opening framed, 867 sq ft loading area, 4 column notes');
+  }
+  console.log(`practice tests passed (${seen.join('; ')})`);
+})().catch(e => { console.error(e); process.exit(1); });

@@ -4,7 +4,26 @@
 (function (root) {
   'use strict';
 
-  async function extractPage(page) {
+  /* A callout note's arrow (a FreeText /CL: the tip first, then the knee and the end at the text box) is not in pdf.js's
+     annotation data: read off the file's bytes, each with its note's /Rect to match it by. Objects packed in compressed
+     object streams are not seen — those notes keep no arrow, as before. */
+  function calloutsOf(raw) {
+    const out = [];
+    if (!raw || !raw.length) return out;
+    let s = '';
+    for (let i = 0; i < raw.length; i += 0x8000) s += String.fromCharCode.apply(null, raw.subarray(i, Math.min(raw.length, i + 0x8000)));
+    const nums = t => (t.match(/-?\d*\.?\d+/g) || []).map(Number);
+    for (let i = s.indexOf('/CL'); i >= 0; i = s.indexOf('/CL', i + 3)) {
+      const m = /^\/CL\s*\[([^\]]*)\]/.exec(s.slice(i, i + 200));
+      if (!m) continue;
+      const a = s.lastIndexOf(' obj', i), b = s.indexOf('endobj', i), body = s.slice(Math.max(0, a), b > 0 ? b : i + 2000);
+      const r = /\/Rect\s*\[([^\]]*)\]/.exec(body), cl = nums(m[1]);
+      if (r && cl.length >= 4) out.push({ rect: nums(r[1]), cl });
+    }
+    return out;
+  }
+
+  async function extractPage(page, callouts) {
     const vp = page.getViewport({ scale: 1 });
     const H = vp.height, T = vp.transform;
     const P = (x, y) => [T[0] * x + T[2] * y + T[4], T[1] * x + T[3] * y + T[5]];
@@ -22,7 +41,12 @@
         const o = { subtype: a.subtype, text, x1: Math.min(c[0][0], c[1][0]), x2: Math.max(c[0][0], c[1][0]), y1: Math.min(c[0][1], c[1][1]), y2: Math.max(c[0][1], c[1][1]) };
         // markup drawn over the floor plan: its colour and, for a line, its two ends (top-origin like the rest)
         if (a.color && a.color.length >= 3) o.color = [a.color[0], a.color[1], a.color[2]];
+        // a typed note's font size: its lines stack from the top of its box at about 1.2 × this (a tall box spans rows)
+        if (a.defaultAppearanceData && a.defaultAppearanceData.fontSize > 0) o.fs = a.defaultAppearanceData.fontSize;
         if (a.lineCoordinates && a.lineCoordinates.length === 4) { const L = a.lineCoordinates; o.line = [P(L[0], L[1]), P(L[2], L[3])]; }
+        // a callout note: where its arrow points
+        const co = /FreeText/i.test(a.subtype || '') && (callouts || []).find(q => q.rect.length === 4 && q.rect.every((v, k) => Math.abs(v - a.rect[k]) < 0.05));
+        if (co) o.callout = P(co.cl[0], co.cl[1]);
         return o;
       });
     } catch (e) { annots = []; }
@@ -36,9 +60,11 @@
              onPage(n, total), onOcr(done, total, pageNum) — done 0 when the reader starts } */
   async function extractDoc(pdf, opts = {}) {
     const pages = [];
+    let callouts = [];
+    try { callouts = calloutsOf(await pdf.getData()); } catch (e) { callouts = []; }
     for (let n = 1; n <= pdf.numPages; n++) {
       const page = await pdf.getPage(n);
-      pages.push({ num: n, ...(await extractPage(page)), _page: page });
+      pages.push({ num: n, ...(await extractPage(page, callouts)), _page: page });
       if (opts.onPage) opts.onPage(n, pdf.numPages);
     }
     pages.ocr = await ocrPages(pages, opts);
@@ -110,6 +136,6 @@
     return { states: out, raw: dark };
   }
 
-  const api = { extractPage, extractDoc, ocrPages, detectChecks };
+  const api = { extractPage, extractDoc, ocrPages, detectChecks, calloutsOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_EXTRACT = api;
 })(typeof self !== 'undefined' ? self : this);

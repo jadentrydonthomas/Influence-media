@@ -215,8 +215,8 @@
     }
     return out;
   }
-  // rows this tool writes (and the same rows typed by hand): case FDL / FLL, description "FDL 1", "FLL1", "FDL" …, and the
-  // mezzanine seismic rows, case EQR / EQL, "EQR 2", "EQL 2b" — never NBG's own "Lean-To" seismic rows
+  // rows this tool writes — named by the column, "FDL2", "FLL3", "EQR2", "EQL2b" — and the same rows typed by hand ("FDL 1",
+  // "FDL" …): case FDL / FLL / EQR / EQL; never NBG's own "Lean-To" seismic rows
   const isGravity = f => (f.loadCaseID === 'FDL' || f.loadCaseID === 'FLL') && /^F[DL]L\s*\d*$/i.test(String(f.name || '').trim());
   const isSeismic = f => (f.loadCaseID === 'EQR' || f.loadCaseID === 'EQL') && /^EQ[RL]\s*\d*[a-z]?$/i.test(String(f.name || '').trim());
   const isOurs = f => isGravity(f) || isSeismic(f);
@@ -377,8 +377,8 @@
     const rows = [];
     members.forEach(m => {
       const n = +(/(\d+)\s*$/.exec(m.member) || [0, 0])[1];
-      if (m.D > 0) rows.push({ name: `FDL ${n}`, caseId: 'FDL', member: m.member, y: -m.D, location: m.elev });
-      if (m.L > 0) rows.push({ name: `FLL ${n}`, caseId: 'FLL', member: m.member, y: -m.L, location: m.elev });
+      if (m.D > 0) rows.push({ name: `FDL${n}`, caseId: 'FDL', member: m.member, y: -m.D, location: m.elev });
+      if (m.L > 0) rows.push({ name: `FLL${n}`, caseId: 'FLL', member: m.member, y: -m.L, location: m.elev });
     });
     // EQR +X, EQL −X at the mezzanine level (Ecc. Loc.: EQR Bottom/Right once that code is known, else Top/Left; EQL Top/Left)
     members.forEach(m => {
@@ -386,8 +386,8 @@
       [...(m.eq || new Map())].sort((a, b) => +a[0] - +b[0]).forEach(([h, F], i) => {
         if (!(F > 0)) return;
         const suf = i ? String.fromCharCode(97 + i) : '';
-        rows.push({ name: `EQR ${n}${suf}`, caseId: 'EQR', member: m.member, x: F, y: 0, location: +h, toFlange: opt.bottomRight || ECC_TOP_LEFT, seismic: true });
-        rows.push({ name: `EQL ${n}${suf}`, caseId: 'EQL', member: m.member, x: -F, y: 0, location: +h, toFlange: ECC_TOP_LEFT, seismic: true });
+        rows.push({ name: `EQR${n}${suf}`, caseId: 'EQR', member: m.member, x: F, y: 0, location: +h, toFlange: opt.bottomRight || ECC_TOP_LEFT, seismic: true });
+        rows.push({ name: `EQL${n}${suf}`, caseId: 'EQL', member: m.member, x: -F, y: 0, location: +h, toFlange: ECC_TOP_LEFT, seismic: true });
       });
       m.eq = [...(m.eq || new Map())].map(([h, F]) => ({ at: +h, F }));
     });

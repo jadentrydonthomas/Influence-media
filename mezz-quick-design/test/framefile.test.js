@@ -62,47 +62,47 @@ const lines = [
   const r = FF.rowsFor(f.info, lines);
   assert.deepStrictEqual(r.used, ['3', '4']);
   assert.deepStrictEqual(r.rows.map(x => [x.name, x.caseId, x.member, x.y, x.location]), [
-    ['FDL 2', 'FDL', 'COL02', -7, 11.5], ['FLL 2', 'FLL', 'COL02', -14, 11.5], ['FDL 3', 'FDL', 'COL03', -12, 11.5], ['FLL 3', 'FLL', 'COL03', -20, 11.5]]);
+    ['FDL2', 'FDL', 'COL02', -7, 11.5], ['FLL2', 'FLL', 'COL02', -14, 11.5], ['FDL3', 'FDL', 'COL03', -12, 11.5], ['FLL3', 'FLL', 'COL03', -20, 11.5]]);
   assert.deepStrictEqual(r.unplaced.map(u => u.label), ['3/C']);
   assert.strictEqual(FF.rowsFor(f.info, lines, { height: 'beam' }).rows[0].location, 10.75);
   // seismic: EQR +X / EQL −X at the mezzanine level, the largest of the lines per column; Top/Left until Bottom/Right is known
   {
     const eqLines = lines.map(fl => ({ ...fl, entries: fl.entries.map(e => ({ ...e, eq: e.label === '3/A' ? [{ mezz: 'M', F: 2.5, at: 11.5, share: 1, frameF: 2.5 }] : e.label === '4/A' ? [{ mezz: 'M', F: 3.1, at: 11.5, share: 1, frameF: 3.1 }] : [] })) }));
     const er = FF.rowsFor(f.info, eqLines).rows.filter(x => /^EQ/.test(x.caseId));
-    assert.deepStrictEqual(er.map(x => [x.name, x.caseId, x.member, x.x, x.y, x.location, x.toFlange]), [['EQR 3', 'EQR', 'COL03', 3.1, 0, 11.5, '1'], ['EQL 3', 'EQL', 'COL03', -3.1, 0, 11.5, '1']]);
+    assert.deepStrictEqual(er.map(x => [x.name, x.caseId, x.member, x.x, x.y, x.location, x.toFlange]), [['EQR3', 'EQR', 'COL03', 3.1, 0, 11.5, '1'], ['EQL3', 'EQL', 'COL03', -3.1, 0, 11.5, '1']]);
     assert.strictEqual(FF.rowsFor(f.info, eqLines, { bottomRight: '2' }).rows.find(x => x.caseId === 'EQR').toFlange, '2');
     assert.strictEqual(FF.rowsFor(f.info, eqLines, { seismic: false }).rows.filter(x => /^EQ/.test(x.caseId)).length, 0);
     // rows named EQR / EQL n are ours (and hand-typed ones), NBG's "Lean-To" seismic rows never
-    assert.ok(FF.isOurs({ loadCaseID: 'EQR', name: 'EQR 1' }) && FF.isOurs({ loadCaseID: 'EQL', name: 'EQL2b' }) && !FF.isOurs({ loadCaseID: 'EQR', name: 'Lean-To' }));
-    assert.deepStrictEqual(FF.learnBottomRight([{ loadCaseID: 'EQR', name: 'EQR 1', toFlange: '1' }, { loadCaseID: 'EQR', name: 'EQR 2', toFlange: '4' }], '3'), { code: '4', rows: 1 });
+    assert.ok(FF.isOurs({ loadCaseID: 'EQR', name: 'EQR1' }) && FF.isOurs({ loadCaseID: 'EQL', name: 'EQL2b' }) && !FF.isOurs({ loadCaseID: 'EQR', name: 'Lean-To' }));
+    assert.deepStrictEqual(FF.learnBottomRight([{ loadCaseID: 'EQR', name: 'EQR1', toFlange: '1' }, { loadCaseID: 'EQR', name: 'EQR2', toFlange: '4' }], '3'), { code: '4', rows: 1 });
     assert.strictEqual(FF.learnBottomRight([{ loadCaseID: 'EQR', name: 'Lean-To', toFlange: '4' }], '3'), null);
   }
   // mirrored: the BSW loads go on COL01
   assert.deepStrictEqual(FF.rowsFor(f.info, lines, { mirrored: true }).rows.map(x => x.member), ['COL01', 'COL01', 'COL02', 'COL02']);
   assert.strictEqual(FF.rowsFor(f.info, lines, { building: 'Bldg 2' }).rows.length, 0, 'another building’s loads never go in');
 
-  // add: CRLF and indentation kept, floors to 1 psf, a second export replaces the first, hand-typed "FDL 1" rows too
+  // add: CRLF and indentation kept, floors to 1 psf, a second export replaces the first, hand-typed "FDL 2" rows too
   const a1 = FF.addLoads(f.xml, r.rows);
   assert.strictEqual(a1.added, 4);
   assert.ok(!/[^\r]\n/.test(a1.xml), 'CRLF only');
   assert.ok(a1.xml.includes('            <CLoad>\r\n              <loadGroup>0</loadGroup>'));
-  assert.ok(a1.xml.includes('<name>FDL 2</name>') && a1.xml.includes(`<toFlange>${FF.WEB_GUESS}</toFlange>`) && a1.xml.includes('<yMag>-7</yMag>'));
+  assert.ok(a1.xml.includes('<name>FDL2</name>') && a1.xml.includes(`<toFlange>${FF.WEB_GUESS}</toFlange>`) && a1.xml.includes('<yMag>-7</yMag>'));
   assert.ok(!/<toFlange>0<\/toFlange>/.test(a1.xml), 'never the code NBG Frame rejects (blank Ecc. Loc., "Invalid data")');
   assert.throws(() => FF.addLoads(f.xml, r.rows, { toFlange: '0' }));
   assert.ok(FF.addLoads(f.xml, r.rows, { toFlange: '3' }).xml.includes('<toFlange>3</toFlange>'));
   // the WebCenterline code from a saved file: rows fixed by hand in NBG Frame, not the code written, not 0 / Top/Left
-  const fixed = FF.cloadsOf(a1.xml.replace(/<toFlange>2<\/toFlange>(\r\n\s*<name>FDL 2<)/, '<toFlange>3</toFlange>$1')).map(c => c.fields);
+  const fixed = FF.cloadsOf(a1.xml.replace(/<toFlange>2<\/toFlange>(\r\n\s*<name>FDL2<)/, '<toFlange>3</toFlange>$1')).map(c => c.fields);
   assert.deepStrictEqual(FF.learnWebCode(fixed, '2'), { code: '3', rows: 1 });
   assert.strictEqual(FF.learnWebCode(FF.cloadsOf(a1.xml).map(c => c.fields), '2'), null, 'nothing changed by hand, nothing learned');
-  assert.deepStrictEqual(FF.learnWebCode([{ loadCaseID: 'FDL', name: 'FDL 2', toFlange: '0' }, { loadCaseID: 'FLL', name: 'FLL 2', toFlange: '3' }, { loadCaseID: 'FDL', name: 'FDL 3', toFlange: '1' }], '2'), { code: '3', rows: 1 });
+  assert.deepStrictEqual(FF.learnWebCode([{ loadCaseID: 'FDL', name: 'FDL2', toFlange: '0' }, { loadCaseID: 'FLL', name: 'FLL2', toFlange: '3' }, { loadCaseID: 'FDL', name: 'FDL3', toFlange: '1' }], '2'), { code: '3', rows: 1 });
   assert.ok(a1.xml.includes('<FloorDead>1</FloorDead>') && a1.xml.includes('<FloorLive>1</FloorLive>'));
   const back = FF.cloadsOf(a1.xml).map(c => c.fields);
-  assert.deepStrictEqual(back.map(c => c.name), ['Lean-To', 'FDL 2', 'FLL 2', 'FDL 3', 'FLL 3'], 'after the rows already there');
+  assert.deepStrictEqual(back.map(c => c.name), ['Lean-To', 'FDL2', 'FLL2', 'FDL3', 'FLL3'], 'after the rows already there');
   assert.strictEqual(back[1].locSys, '1');
   const a2 = FF.addLoads(a1.xml, r.rows);
   assert.strictEqual(a2.replaced, 4);
   assert.strictEqual(a2.xml, a1.xml, 'same input, same file');
-  const hand = a1.xml.replace('<name>FDL 2</name>', '<name>FDL2</name>');
+  const hand = a1.xml.replace('<name>FDL2</name>', '<name>FDL 2</name>');
   assert.strictEqual(FF.addLoads(hand, r.rows).xml, a1.xml);
   // removing the rows gives back the original text but for the floor values
   assert.strictEqual(FF.addLoads(a1.xml, []).xml, f.xml.replace('<FloorDead>0<', '<FloorDead>1<').replace('<FloorLive>0<', '<FloorLive>1<'));
@@ -111,7 +111,7 @@ const lines = [
   // <CLoads /> and no <CLoads> at all
   for (const m of [model({ cloads: '          <CLoads />' }), model()]) {
     const a = FF.addLoads(m, r.rows);
-    assert.deepStrictEqual(FF.cloadsOf(a.xml).map(c => c.fields.name), ['FDL 2', 'FLL 2', 'FDL 3', 'FLL 3']);
+    assert.deepStrictEqual(FF.cloadsOf(a.xml).map(c => c.fields.name), ['FDL2', 'FLL2', 'FDL3', 'FLL3']);
     assert.ok(/<PLoads \/>\r\n          <CLoads>\r\n            <CLoad>/.test(a.xml), 'list right after <PLoads>, indented');
     assert.ok(a.xml.indexOf('</CLoads>') < a.xml.indexOf('<SnowDriftLoads'));
   }
@@ -150,10 +150,10 @@ const lines = [
   const leanTo = (pcs.attachments || []).find(a => a.to === 'Bldg 1' && /^(FSW|BSW)$/.test(a.toWall));
   assert.deepStrictEqual(leanTo, { building: 'Bldg 2', wall: 'BSW', to: 'Bldg 1', toWall: 'FSW', at: 0 });
   const want = {
-    '1': { rows: [['FDL 2', 'COL02', 7.9], ['FLL 2', 'COL02', 17.5], ['FDL 3', 'COL03', 9.47], ['FLL 3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
-    '2': { rows: [['FDL 2', 'COL02', 11.54], ['FLL 2', 'COL02', 25], ['FDL 3', 'COL03', 18.94], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '3-5': { rows: [['FDL 3', 'COL03', 18.94], ['FLL 3', 'COL03', 42]], unplaced: [] },
-    '6': { rows: [['FDL 3', 'COL03', 9.47], ['FLL 3', 'COL03', 21]], unplaced: ['6/B'] },
+    '1': { rows: [['FDL2', 'COL02', 7.9], ['FLL2', 'COL02', 17.5], ['FDL3', 'COL03', 9.47], ['FLL3', 'COL03', 21]], unplaced: ['1/C', '1/B'] },
+    '2': { rows: [['FDL2', 'COL02', 11.54], ['FLL2', 'COL02', 25], ['FDL3', 'COL03', 18.94], ['FLL3', 'COL03', 42]], unplaced: [] },
+    '3-5': { rows: [['FDL3', 'COL03', 18.94], ['FLL3', 'COL03', 42]], unplaced: [] },
+    '6': { rows: [['FDL3', 'COL03', 9.47], ['FLL3', 'COL03', 21]], unplaced: ['6/B'] },
   };
   const outDir = process.env.MZ_FRAME_OUT;
   for (const name of fs.readdirSync(dir).filter(n => /^Frame_\d+_Bldg_1_[\d-]+\.frame$/.test(n)).sort()) {

@@ -179,13 +179,13 @@ if (!ok) { console.log(`seismic tests passed (the rules worked by hand; ${nbg}; 
     const fe = job.frameEntries.filter(x => ls.includes(x.frame)), cols = [...new Map(fe.flatMap(x => x.entries.filter(e => e.member)).map(e => [e.member, { id: e.member, x: e.y }])).values()];
     return FF.rowsFor({ lines: ls, columns: cols, width: 120 }, job.frameEntries, { lines: ls }).rows.filter(x => /^EQ/.test(x.caseId)).map(x => `${x.name} ${x.member} ${x.x.toFixed(2)}`);
   };
-  assert.deepStrictEqual(rowsOf(ed, ['2']), ['EQR 2 COL02 5.00', 'EQL 2 COL02 -5.00', 'EQR 3 COL03 4.81', 'EQL 3 COL03 -4.81']);
+  assert.deepStrictEqual(rowsOf(ed, ['2']), ['EQR2 COL02 5.00', 'EQL2 COL02 -5.00', 'EQR3 COL03 4.81', 'EQL3 COL03 -4.81']);
   // a file for lines 3-5: one typed value for every line at that column (what the card does) is what goes in
   const keys = ['3', '4', '5'].map(l => eb.frames.find(f => f.label === l).eqs[0].key);
   const ed2 = RUN.runJob(items, { seis: { ...base, eqOverride: Object.fromEntries(keys.map(k => [k, 2.75])) } });
-  assert.deepStrictEqual(rowsOf(ed2, ['3', '4', '5']), ['EQR 3 COL03 2.75', 'EQL 3 COL03 -2.75']);
-  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: base }), ['3', '4', '5']), ['EQR 3 COL03 4.01', 'EQL 3 COL03 -4.01'], 'no edits: the calculated loads');
-  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: { ...base, eqOverride: { [c2.key]: 0 } } }), ['2']), ['EQR 3 COL03 4.01', 'EQL 3 COL03 -4.01'], '0 typed: no EQ rows for that column');
+  assert.deepStrictEqual(rowsOf(ed2, ['3', '4', '5']), ['EQR3 COL03 2.75', 'EQL3 COL03 -2.75']);
+  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: base }), ['3', '4', '5']), ['EQR3 COL03 4.01', 'EQL3 COL03 -4.01'], 'no edits: the calculated loads');
+  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: { ...base, eqOverride: { [c2.key]: 0 } } }), ['2']), ['EQR3 COL03 4.01', 'EQL3 COL03 -4.01'], '0 typed: no EQ rows for that column');
   // the code chosen on the page over the PCS's: the PCS's Ss / S1 belong to its own edition, so they are asked for
   const sw = RUN.runJob(items, { seis: { ...base, ed: '7-22' } }).seismic;
   assert.ok(!sw.ok && /SMS and SM1|Ss and S1 for ASCE 7-22/.test(sw.need.join(' ')));
