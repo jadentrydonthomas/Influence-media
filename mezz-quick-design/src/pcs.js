@@ -282,6 +282,8 @@
     return {
       // S1 sits on the line under Ss; OCR can lose its S ("1: 0.058")
       occupancy: occ, risk: risk || null, Ss: num(/\bSs:\s*([\d.]+)/), S1: num(/\bS1:\s*([\d.]+)/) ?? num(/\bSs:\s*[\d.]+[^\n]*\n(?:[^\n]*\s)?[S$5]?1:\s*(0?\.\d+)/),
+      // ASCE 7-22 jobs list SMS and SM1 (from the hazard tool) and the SDC on the same lines
+      Sms: num(/\bSms:\s*([\d.]+)/), Sm1: num(/\bSm1:\s*([\d.]+)/), sdc: grab(txt, /\bSDC:\s*([A-F])\b/),
       siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
       groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
     };

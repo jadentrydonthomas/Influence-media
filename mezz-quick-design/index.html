@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mezzanine Design</title>
-<meta name="generator" content="mezz-quick-design build 2026-10-21; pdf.js 3.11.174; OCR reader tesseract.js 5.1.1">
+<meta name="generator" content="mezz-quick-design build 2026-10-23; pdf.js 3.11.174; OCR reader tesseract.js 5.1.1">
 <meta name="description" content="Upload a PCS and get the NBG mezzanine beam and column sections, spans, tribs and quantities.">
 <style>
 /* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
@@ -1325,6 +1325,38 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 .dz-tiles.four { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .cv-table td.num { white-space: nowrap; }
 
+/* Seismic page: NBG Design Calcs' sections, the job's NBG files, the bracing file */
+.seis-files { margin: 0 0 18px; display: grid; gap: 8px; }
+.seis-drop { padding: 12px 14px; }
+.seis-drop span { display: flex; flex-direction: column; gap: 2px; }
+.seis-drop small { color: var(--ink-muted); font-size: 12px; }
+.seis-filelist { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
+.seis-filelist button { margin-left: 6px; }
+.btn-ghost.sm, .btn-soft.sm { padding: 3px 9px; font-size: 11.5px; }
+.seis-checks { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.seis-checks .seis-chk { grid-column: auto; }
+.seis-checks .seis-chk small { display: block; }
+table.seis-wall-t select, table.seis-wall-t input.seis-in, table.seis-lines select { font: 600 12.5px var(--mono); padding: 5px 7px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+table.seis-wall-t input.seis-in { width: 76px; }
+table.seis-wall-t .seis-chk { grid-column: auto; }
+.seis-mz td .seis-chk { display: inline-flex; margin-right: 6px; vertical-align: middle; }
+.seis-mz input:disabled { opacity: .45; }
+.seis-factors { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 9px 12px; border-radius: 10px; background: var(--surface-soft); font-size: 12.5px; }
+.seis-factors b { font-family: var(--mono); }
+.seis-factors small { flex-basis: 100%; }
+.seis-concs { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.seis-conc { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-soft); font-size: 11.5px; white-space: nowrap; }
+.seis-conc.mz { background: var(--green-soft); }
+.seis-conc b { font-family: var(--mono); }
+.seis-frames tr.has-mz td:first-child b { color: var(--green); }
+table.seis-bvals td[rowspan] { vertical-align: top; }
+.seis-bfile { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 10px; }
+.seis-bfile-h small { display: block; }
+.seis-bfile-a { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.seis-strut { display: grid; gap: 4px; font-size: 12.5px; }
+.seis-strut .seis-chk { grid-column: auto; }
+.seis-pick { margin-left: 8px; cursor: pointer; }
+
 </style>
 </head>
 <body>
@@ -1502,28 +1534,28 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     <!-- SEISMIC -->
     <section class="screen" id="v-seismic">
       <div class="screen-heading">
-        <div><div class="eyebrow">NBG IBC Seismic workbook · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
-        <p class="lede">In the IBC Seismic workbook's order: Input Data, each frame on Lateral Calcs. (1), EQR / EQL into NBG Frame, the bracing.</p>
+        <div><div class="eyebrow">NBG Design Calcs · Seismic · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
+        <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
       </div>
       <div class="seis-status" id="seisStatus"></div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">1–3</span>Input Data</h3><span class="sub">code &amp; site, building, roof &amp; walls, mezzanine loads · from the PCS and the design · type over any value</span></div>
+        <div class="panel-head"><h3><span class="step-no">1–6</span>NBG Design Calcs input</h3><span class="sub">building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · from the PCS, the job's NBG files and the design · type over any value</span></div>
         <div class="panel-body" id="seisInputs"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">4</span>Each frame · Lateral Calcs. (1)</h3><span class="sub">frame type, bay width (its strip), where it is, the loading area of each mezzanine → the mezzanine's seismic force at that frame · click a row for the full distribution</span></div>
+        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
         <div class="panel-body" id="seisFrames"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">5</span>Into NBG Frame · EQR / EQL</h3><span class="sub">the frame's mezzanine force on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
+        <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
         <div class="panel-body" id="seisApply"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">6</span>Bracing · Longitudinal Calcs.</h3><span class="sub">the whole building · the mezzanine's seismic force for the bracing</span></div>
+        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF and the wall strut line, written into the .bracing file</span></div>
         <div class="panel-body" id="seisBracing"></div>
       </div>
       <div class="panel seis-step" id="seisFlagsPanel">
-        <div class="panel-head"><h3>What the tool does beyond your procedure</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
+        <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
         <div class="panel-body" id="seisFlags"></div>
       </div>
       <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
@@ -2909,6 +2941,8 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     return {
       // S1 sits on the line under Ss; OCR can lose its S ("1: 0.058")
       occupancy: occ, risk: risk || null, Ss: num(/\bSs:\s*([\d.]+)/), S1: num(/\bS1:\s*([\d.]+)/) ?? num(/\bSs:\s*[\d.]+[^\n]*\n(?:[^\n]*\s)?[S$5]?1:\s*(0?\.\d+)/),
+      // ASCE 7-22 jobs list SMS and SM1 (from the hazard tool) and the SDC on the same lines
+      Sms: num(/\bSms:\s*([\d.]+)/), Sm1: num(/\bSm1:\s*([\d.]+)/), sdc: grab(txt, /\bSDC:\s*([A-F])\b/),
       siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
       groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
     };
@@ -4471,6 +4505,221 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 
   const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+/* ---- bracingfile.js ---- */
+/* NBG Bracing files (.bracing): a zip holding .bracingX (the bracing model, XML) and .pfrx (the purlin force report).
+
+   The mezzanine's longitudinal seismic goes in the way it is entered by hand. Tools → Add Loads, one "Mezz. Seismic"
+   concentrated load per wall and direction:
+     · Load Case EQB (seismic one way): +F at the mezzanine's first frame line.
+     · Load Case EQF (the other way): −F at its last frame line.
+     · Panel: the wall (Wall 1 = FSW, Wall 2 = BSW), Grid Line the wall's own, Elevation the mezzanine's, X - Longitudinal.
+   Those rows are <BracingLoads><SpecialConcentratedLoads>.
+
+   A load acts only where the wall has a joint at that height. Tools → Add Wall Strut Line (To Wall, From / To Frame Line,
+   At Elevation) puts a strut in each bay from the mezzanine to the wall's braced bay at the mezzanine's elevation. That
+   strut is a <Strut> (MemberType WallStrut, Real) in each bay's <Struts>; the program numbers its joints and members
+   and tiers the bracing when the bracing is designed.
+
+   Everything else in the file is left byte for byte: the .pfrx entry is copied as it is, and the model text only gains
+   the new rows (earlier "Mezz. Seismic" rows are replaced, a strut already at that height is kept).
+   inflate / deflate: (Uint8Array) → Promise<Uint8Array> of raw DEFLATE data (Node zlib or the browser's streams). */
+(function (root) {
+  'use strict';
+  const FF = root.MZ_FRAMEFILE || (typeof require !== 'undefined' ? require('./framefile.js') : null);
+  const MODEL = '.bracingX', LOAD_NAME = 'Mezz. Seismic';
+  const utf8 = s => new TextEncoder().encode(s), unutf8 = u => new TextDecoder('utf-8').decode(u);
+  const num = v => (v == null || v === '' ? null : +v);
+
+  // ---------- XML, as text: the direct children of an element, so offsets stay exact for the edits ----------
+  const TAG = /<(\/?)([A-Za-z_][\w.:-]*)(?:\s[^>]*?)?(\/?)>/g;
+  function kids(xml, scope) {
+    const out = [];
+    let depth = 0, cur = null, m;
+    TAG.lastIndex = scope.innerStart;
+    while ((m = TAG.exec(xml)) && m.index < scope.innerEnd) {
+      const [all, close, name, self] = m;
+      if (close) { depth--; if (depth === 0 && cur) { cur.end = m.index + all.length; cur.innerEnd = m.index; out.push(cur); cur = null; } }
+      else if (self) { if (depth === 0) out.push({ name, start: m.index, end: m.index + all.length, innerStart: m.index + all.length, innerEnd: m.index + all.length, empty: true }); }
+      else { if (depth === 0) cur = { name, start: m.index, innerStart: m.index + all.length }; depth++; }
+    }
+    return out;
+  }
+  const kid = (xml, scope, name) => (scope ? kids(xml, scope).find(k => k.name === name) || null : null);
+  const all = (xml, scope, name) => (scope ? kids(xml, scope).filter(k => k.name === name) : []);
+  const path = (xml, scope, ...names) => names.reduce((s, n) => kid(xml, s, n), scope);
+  const text = (xml, scope, name) => { const k = kid(xml, scope, name); return k && !k.empty ? xml.slice(k.innerStart, k.innerEnd) : null; };
+  const rootOf = xml => ({ innerStart: 0, innerEnd: xml.length });
+
+  async function read(bytes, io, fileName) {
+    const entries = FF.unzip(bytes), model = entries.find(e => e.name === MODEL || /\.bracingX$/i.test(e.name));
+    if (!model) throw new Error('no bracing model (.bracingX) in this file');
+    const raw = model.method === 0 ? model.data : await io.inflate(model.data);
+    if (FF.crc32(raw) !== model.crc) throw new Error('the bracing model does not match its checksum');
+    const bom = raw[0] === 0xEF && raw[1] === 0xBB && raw[2] === 0xBF;
+    const xml = unutf8(raw);
+    const C = kid(xml, rootOf(xml), 'Container'), pd = kid(xml, C, 'ProjectData'), bl = kid(xml, pd, 'BracingLoads');
+    if (!pd || !bl) throw new Error('not an NBG Bracing model');
+    const nl = xml.includes('\r\n') ? '\r\n' : '\n';
+    const info = {
+      fileName: fileName || null, job: text(xml, pd, 'JobNumber'), jobName: text(xml, pd, 'JobName'), run: text(xml, pd, 'BracingRun'), version: text(xml, pd, 'ApplicationVersion'),
+      roofDead: num(text(xml, pd, 'RoofDeadLoad')), collateral: num(text(xml, pd, 'CollateralDeadLoad')), roofLive: num(text(xml, pd, 'RoofLiveLoad')),
+    };
+    const code = kid(xml, bl, 'BuildingCode'), snow = kid(xml, bl, 'Snow'), sz = kid(xml, bl, 'Seismic');
+    info.code = text(xml, code, 'DesignCodeString'); info.risk = text(xml, code, 'MBMAImportanceCategoryString');
+    info.snow = num(text(xml, snow, 'RoofSnowLoad'));
+    const sv = n => num(text(xml, sz, n));
+    info.seismic = sz ? { code: text(xml, sz, 'DesignCode'), siteClass: text(xml, sz, 'SiteClassString'), Ss: sv('Ss'), S1: sv('S1'), Sms: sv('Sms'), Sm1: sv('Sm1'), Sds: sv('Sds'), Sd1: sv('Sd1'),
+      R: sv('R'), mrh: sv('MeanRoofHeight'), roofTotal: sv('RoofTotalSeismic'), roofDead: sv('RoofSeismicDead'), factor: sv('RoofSeismicFactor'),
+      customFactor: text(xml, sz, 'CustomRoofSeismicFactor') === 'true', bracingType: text(xml, sz, 'BracingType'), roofDiaphragm: text(xml, sz, 'RoofDiaphragm') } : null;
+    // the building: frame lines (0-based index, the name shown, the distance from line 1) and the two sidewalls
+    const lay = path(xml, pd, 'Buildings', 'BuildingLayout');
+    if (!lay) throw new Error('no building layout in this bracing model');
+    info.width = num(text(xml, lay, 'WidthInFeet')); info.length = num(text(xml, lay, 'LengthInFeet'));
+    info.eaveFSW = num(text(xml, lay, 'FSWEaveHeight')); info.eaveBSW = num(text(xml, lay, 'BSWEaveHeight'));
+    const wd = kid(xml, lay, 'WallData'), lines = new Map(), walls = {};
+    [['FSW', 'FrontSidewall'], ['BSW', 'BackSidewall']].forEach(([key, t], plane) => {
+      const w = kid(xml, wd, t);
+      if (!w) return;
+      const bays = all(xml, kid(xml, w, 'Bays'), 'SidewallBay');
+      walls[key] = { key, plane: num(text(xml, w, 'Index')) ?? plane, grid: num(text(xml, w, 'AtGrid')), top: num(text(xml, w, 'WallTop')),
+        bays: bays.map(b => {
+          const ln = e => ({ index: num(text(xml, e, 'Index')), name: text(xml, e, 'Name'), x: num(text(xml, e, 'DistanceFromOne')) });
+          const from = ln(kid(xml, b, 'FromLine')), to = ln(kid(xml, b, 'ToLine'));
+          [from, to].forEach(l => { if (l.index != null) lines.set(l.index, l); });
+          const st = kid(xml, b, 'Struts'), br = kid(xml, b, 'Braces');
+          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType') }));
+          const braces = all(xml, br, 'Brace').map(s => ({ top: num(text(xml, s, 'TopElevation')), bottom: num(text(xml, s, 'BottomElevation')), member: text(xml, s, 'MemberDescription') }));
+          return { index: num(text(xml, b, 'Index')), from: from.index, to: to.index, braced: braces.length > 0, braces, struts, strutsAt: st ? { start: st.start, end: st.end, innerEnd: st.innerEnd, empty: !!st.empty } : null };
+        }) };
+    });
+    info.lines = [...lines.values()].sort((a, b) => a.index - b.index);
+    info.walls = walls;
+    // the special concentrated loads already in the file ("Mezz. Seismic" rows from an earlier run or by hand)
+    const sl = kid(xml, bl, 'SpecialConcentratedLoads');
+    info.loads = all(xml, sl, 'ConcentratedLoad').map(c => ({ name: text(xml, c, 'Name'), caseId: text(xml, c, 'LoadCaseId'), plane: num(text(xml, c, 'PlaneNbr')), line: num(text(xml, c, 'Frameline')),
+      grid: num(text(xml, c, 'Gridline')), elev: num(text(xml, c, 'Elevation')), F: num(text(xml, c, 'Magnitude')), dir: num(text(xml, c, 'Direction')), panel: num(text(xml, c, 'Plane')) }));
+    return { entries, model, xml, bom, nl, info };
+  }
+
+  // a value as the program writes it: the float32 it keeps, printed to read back exactly
+  const f32 = v => { const x = Math.fround(+v); return Number.isInteger(x) ? String(x) : String(+x.toPrecision(17)); };
+  function indentOf(xml, at) { const ls = xml.lastIndexOf('\n', at - 1); return xml.slice(ls + 1, at).replace(/\S[\s\S]*$/, ''); }
+
+  /* plan: { loads: [{ wall: 'FSW' | 'BSW', line (0-based frame line), elev, F (kips, signed), caseId: 'EQB' | 'EQF' }],
+             struts: [{ wall, from, to (0-based frame lines), elev }] } (struts: [] to leave the strut lines to the program)
+     returns { bytes, xml, added: { loads, struts }, kept: { struts }, replaced } */
+  async function write(file, plan, io) {
+    let xml = file.xml;
+    const nl = file.nl, walls = file.info.walls, added = { loads: 0, struts: 0 }, kept = { struts: 0 }, edits = [];
+    // 1. a wall strut in each bay of each strut line (a strut already at that height stays as it is)
+    (plan.struts || []).forEach(s => {
+      const w = walls[s.wall];
+      if (!w) return;
+      const lo = Math.min(s.from, s.to), hi = Math.max(s.from, s.to);
+      w.bays.filter(b => Math.min(b.from, b.to) >= lo && Math.max(b.from, b.to) <= hi).forEach(b => {
+        if (b.struts.some(t => Math.abs(t.elev - s.elev) < 0.01)) { kept.struts++; return; }
+        if (!b.strutsAt) return;
+        const ind = indentOf(xml, b.strutsAt.start), ci = ind + '  ', fi = ci + '  ';
+        const strut = [`<Strut>`, `${fi}<AppliedForces />`, `${fi}<Index>${b.struts.length}</Index>`, `${fi}<StrutType>Eave</StrutType>`, `${fi}<DistanceFromA>0</DistanceFromA>`,
+          `${fi}<FromJoint>0</FromJoint>`, `${fi}<ToJoint>0</ToJoint>`, `${fi}<AtRoof>-1</AtRoof>`, `${fi}<Elevation>${f32(s.elev)}</Elevation>`, `${fi}<MemberNbr>0</MemberNbr>`,
+          `${fi}<LoadCombination>0</LoadCombination>`, `${fi}<Axial>0</Axial>`, `${fi}<AxialAllowed>0</AxialAllowed>`, `${fi}<OmegaRdApplied>false</OmegaRdApplied>`,
+          `${fi}<BogusStrut>false</BogusStrut>`, `${fi}<Real>true</Real>`, `${fi}<ID />`, `${fi}<MemberType>WallStrut</MemberType>`, `${fi}<CompositeMember>false</CompositeMember>`, `${ci}</Strut>`].join(nl);
+        if (b.strutsAt.empty) edits.push({ at: b.strutsAt.start, del: b.strutsAt.end - b.strutsAt.start, text: `<Struts>${nl}${ci}${strut}${nl}${ind}</Struts>` });
+        else edits.push({ at: b.strutsAt.innerEnd, del: 0, text: `  ${strut}${nl}${ind}` });
+        b.struts.push({ elev: s.elev, real: true, type: 'Eave' });
+        added.struts++;
+      });
+    });
+    // 2. the special concentrated loads: earlier "Mezz. Seismic" rows out, ours in
+    const C = kid(xml, rootOf(xml), 'Container'), bl = kid(xml, kid(xml, C, 'ProjectData'), 'BracingLoads'), sl = kid(xml, bl, 'SpecialConcentratedLoads');
+    if (!sl) throw new Error('no <SpecialConcentratedLoads> in this bracing model');
+    const ind = indentOf(xml, sl.start), ci = ind + '  ', fi = ci + '  ';
+    const others = all(xml, sl, 'ConcentratedLoad').filter(c => text(xml, c, 'Name') !== LOAD_NAME);
+    const replaced = all(xml, sl, 'ConcentratedLoad').length - others.length;
+    const rows = others.map((c, i) => xml.slice(c.start, c.end).replace(/<Index>\d+<\/Index>/, `<Index>${i}</Index>`));
+    (plan.loads || []).forEach(l => {
+      const w = walls[l.wall];
+      if (!w) return;
+      rows.push([`<ConcentratedLoad>`, `${fi}<Index>${rows.length}</Index>`, `${fi}<Name>${LOAD_NAME}</Name>`, `${fi}<Elevation>${f32(l.elev)}</Elevation>`, `${fi}<Gridline>${w.grid}</Gridline>`,
+        `${fi}<Magnitude>${f32(l.F)}</Magnitude>`, `${fi}<PlaneNbr>${w.plane}</PlaneNbr>`, `${fi}<Frameline>${l.line}</Frameline>`, `${fi}<FromConcLoad>0</FromConcLoad>`,
+        `${fi}<LoadCase>0</LoadCase>`, `${fi}<LoadCaseId>${l.caseId}</LoadCaseId>`, `${fi}<Joint>0</Joint>`, `${fi}<Direction>120</Direction>`, `${fi}<Plane>119</Plane>`, `${fi}<Status>71</Status>`, `${ci}</ConcentratedLoad>`].join(nl));
+      added.loads++;
+    });
+    const block = rows.length ? `<SpecialConcentratedLoads>${nl}${rows.map(r => ci + r).join(nl)}${nl}${ind}</SpecialConcentratedLoads>` : '<SpecialConcentratedLoads />';
+    edits.push({ at: sl.start, del: sl.end - sl.start, text: block });
+    edits.sort((a, b) => b.at - a.at).forEach(e => { xml = xml.slice(0, e.at) + e.text + xml.slice(e.at + e.del); });
+    const body = utf8(xml), rawOut = file.bom ? new Uint8Array([0xEF, 0xBB, 0xBF, ...body]) : body, data = await io.deflate(rawOut);
+    const entries = file.entries.map(en => (en === file.model ? { ...en, method: 8, crc: FF.crc32(rawOut), usize: rawOut.length, data } : en));
+    return { bytes: FF.zip(entries), xml, added, kept, replaced };
+  }
+
+  /* What goes into the file for the mezzanines, from the Seismic page's bracing lines:
+     lines: [{ wall: 'FSW' | 'BSW', F (kips), at (elevation), x0, x1 (the mezzanine's extent along the length, ft from the LEW), mezz }]
+     returns { loads, struts, notes }: EQB +F at the first frame line of the mezzanine's extent, EQF −F at the last;
+     a strut line at its elevation from the mezzanine to the wall's nearest braced bay. */
+  function planFor(file, lines) {
+    const info = file.info, L = info.lines, notes = [], loads = [], struts = [];
+    if (!L.length) return { loads, struts, notes: ['No frame lines read from the bracing file.'] };
+    const byIndex = i => L.find(l => l.index === i) || {};
+    lines.forEach(bl => {
+      const w = info.walls[bl.wall];
+      if (!w) { notes.push(`${bl.wall}: no such wall in the bracing file.`); return; }
+      if (!(Math.abs(bl.F) > 0)) return;
+      // the frame lines at the mezzanine's ends: the first and last at or inside it, or the bay it sits in
+      const inside = L.filter(l => l.x >= bl.x0 - 0.6 && l.x <= bl.x1 + 0.6);
+      let a = inside[0], b = inside[inside.length - 1];
+      if (!a || a === b) {
+        a = L.filter(l => l.x <= bl.x0 + 0.6).pop() || L[0];
+        b = L.find(l => l.x >= bl.x1 - 0.6 && l.index > a.index) || L[Math.min(L.length - 1, L.indexOf(a) + 1)];
+      }
+      loads.push({ wall: bl.wall, line: a.index, lineName: a.name, elev: bl.at, F: Math.abs(bl.F), caseId: 'EQB', mezz: bl.mezz });
+      loads.push({ wall: bl.wall, line: b.index, lineName: b.name, elev: bl.at, F: -Math.abs(bl.F), caseId: 'EQF', mezz: bl.mezz });
+      // the strut line: from the mezzanine to the braced bay nearest it (the bay it sits in, when that one is braced)
+      const braced = w.bays.filter(x => x.braced);
+      let from = a.index, to = b.index, bay = null;
+      if (braced.length) {
+        const mid = (a.index + b.index) / 2;
+        bay = braced.reduce((p, q) => (Math.abs((q.from + q.to) / 2 - mid) < Math.abs((p.from + p.to) / 2 - mid) ? q : p));
+        from = Math.min(from, bay.from, bay.to); to = Math.max(to, bay.from, bay.to);
+      } else notes.push(`${bl.wall}: no braced bay in the file yet — the strut line runs along the mezzanine (lines ${a.name}–${b.name}); carry it to the bracing once it is placed.`);
+      struts.push({ wall: bl.wall, from, to, elev: bl.at, fromName: byIndex(from).name, toName: byIndex(to).name, bay: bay ? `${byIndex(bay.from).name}–${byIndex(bay.to).name}` : null });
+    });
+    // one strut line per wall and height
+    const seen = new Map();
+    struts.forEach(s => { const k = `${s.wall}|${s.elev.toFixed(3)}`, o = seen.get(k); if (!o) seen.set(k, s); else { o.from = Math.min(o.from, s.from); o.to = Math.max(o.to, s.to); o.fromName = byIndex(o.from).name; o.toName = byIndex(o.to).name; } });
+    return { loads, struts: [...seen.values()], notes };
+  }
+
+  /* An eQuote project (.nbgscope, JSON): the project loads (building code, Ss, S1, SMS, SM1, site class, risk category)
+     and each building's size, roof loads (dead, collateral, snow) and wall bracing. The code is eQuote's id; the ones
+     known here are those its bracing runs name (code 168 → IBC2021). */
+  const SCOPE_CODES = { 168: 'IBC 2021' };
+  function readScope(textIn) {
+    const d = JSON.parse(String(textIn).replace(/^﻿/, ''));
+    const p = d.Project;
+    if (!p || !p.ProjectLoads) throw new Error('not an eQuote project file');
+    const L = p.ProjectLoads, s = L.SeismicLoad || {};
+    const planes = p.Planes || [];
+    return {
+      job: p.NucorQuoterNumber || null, name: p.Name || null, codeId: L.BuildingCodeId ?? null, code: SCOPE_CODES[L.BuildingCodeId] || null,
+      risk: L.MBMAImportanceCategory || null, Ss: s.Ss ?? null, S1: s.S1 ?? null, Sms: s.Sms ?? null, Sm1: s.Sm1 ?? null, siteClass: s.SiteClass || null, Ie: s.SeismicImportanceFactor ?? null,
+      buildings: (p.Buildings || []).map(b => {
+        const g = b.Geometry || {}, bl = b.BuildingLoads || {};
+        const wall = re => planes.filter(pl => pl.BuildingId === b.Id && re.test(pl.Name || '')).flatMap(pl => (pl.Bracing || []).map(x => ({ type: x.BracingType, bays: x.Bays || [] })));
+        return { name: b.Name, id: b.eQuoteBuildingId ?? null, width: g.BuildingWidth / 12, length: g.BuildingLength / 12, eaveFSW: g.FSWEaveHeightInches / 12, eaveBSW: g.BSWEaveHeightInches / 12,
+          roofDead: bl.RoofDeadLoad ?? null, collateral: bl.PrimaryCollateralPSF ?? null, snow: bl.RoofSnowLoadPSF ?? null,
+          bracing: { FSW: wall(/\(FSW\)/), BSW: wall(/\(BSW\)/), LEW: wall(/\(LEW\)/), REW: wall(/\(REW\)/) },
+          mezz: (b.Mezzanines || []).map(m => ({ name: m.Name, width: m.WidthInches / 12, length: m.LengthInches / 12, dead: m.DeadLoadPSF, live: m.LiveLoadPSF, collateral: m.CollateralLoadPSF, use: m.OccupancyClassifications || null })) };
+      }),
+    };
+  }
+
+  const api = { read, write, planFor, readScope, kids, LOAD_NAME, SCOPE_CODES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_BRACING = api;
 })(typeof self !== 'undefined' ? self : this);
 
 </script>
@@ -6133,39 +6382,46 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 </script>
 <script>
 /* ---- seismic.js ---- */
-/* Seismic loads for a metal building with mezzanines — ASCE 7 equivalent lateral force procedure (12.8), done the
-   way NBG's "IBC Seismic" workbook (rev. 2021.01.20) does it:
-     · one LATERAL calculation per frame: the frame's bay of roof, its sidewalls (an end frame also its endwall) and
-       the mezzanine area tributary to it, distributed over height (12.8.3). The mezzanine row is the concentrated
-       seismic load the frame gets at the mezzanine level (EQR / EQL in NBG Frame).
-     · one LONGITUDINAL calculation for the bracing: the whole building.
-   ASCE 7-05 / 7-10 / 7-16 by the building code (IBC 2006–2021). Site class E / F, ASCE 7-22 and anything the
-   workbook would send to "See ASCE 7" come back flagged, not guessed.
-   Units: ft, psf, lb for weights, kips for forces, ft-kips for moments. */
+/* Seismic loads for a metal building with mezzanines — ASCE 7 equivalent lateral force procedure (12.8), done the way
+   NBG Design Calcs (the Seismic module) does it, section by section as it is typed in:
+     1. Building data: code (ASCE 7-05 / 7-10 / 7-16 / 7-22), gable or single slope, width, length, ridge, slopes, eaves.
+     2. Seismic data: risk category, Ss, S1 (7-22: SMS and SM1 from the hazard tool), site class, roof and mezzanine
+        diaphragms, "not detailed for seismic" in SDC A–C, "significant mezzanine exists" (the vertical distribution,
+        12.8.3), irregularities, accidental torsion (12.8.4.2).
+     3. Roof loading, walls (full height or partial height hardwall, parapet, self-supporting shear wall), partitions.
+     4. Mezzanine loads (elevation, floor dead, collateral, joist weight, 25 % of the floor live for storage, partitions)
+        and crane loads.
+     5. Force resisting systems: each lateral frame line (its tributary roof, sidewalls, an endwall at an end frame, a
+        partition, its share of each mezzanine and crane) and the longitudinal calculation for the bracing.
+   What NBG Frame and NBG Bracing take comes out of each calculation: the roof seismic weight (psf) and seismic factor,
+   and the concentrated seismic loads (sidewalls, mezzanines, cranes). Verified against NBG's validation examples
+   (oracle/nbg_seismic.js) value by value. Units: ft, psf, lb for weights, kips for forces, ft-kips for moments. */
 (function (root) {
   'use strict';
 
-  // ---------- site coefficients (ASCE 7 Tables 11.4-1 / 11.4-2; 7-16 as amended by Supplement 1) ----------
+  // ---------- site coefficients (ASCE 7 Tables 11.4-1 / 11.4-2) ----------
   // columns: Ss 0.25 0.5 0.75 1.0 1.25 1.5  /  S1 0.1 0.2 0.3 0.4 0.5 0.6 ; null = site-specific ("*")
+  // 7-16: Site Class D as amended by Supplement 1; Site Class E as first published, its Fa at Ss ≥ 1.0 taken equal to
+  // Site Class C's (11.4.8 exception 1) — as NBG Design Calcs takes them
   const SS_COLS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5], S1_COLS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
   const FA = {
     old: { A: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], B: [1, 1, 1, 1, 1, 1], C: [1.2, 1.2, 1.1, 1, 1, 1], D: [1.6, 1.4, 1.2, 1.1, 1, 1], E: [2.5, 1.7, 1.2, 0.9, 0.9, 0.9], F: [null, null, null, null, null, null] },
-    16: { A: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], B: [0.9, 0.9, 0.9, 0.9, 0.9, 0.9], C: [1.3, 1.3, 1.2, 1.2, 1.2, 1.2], D: [1.6, 1.4, 1.2, 1.2, 1.2, 1.2], E: [2.4, 1.7, 1.3, null, null, null], F: [null, null, null, null, null, null] },
+    16: { A: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], B: [0.9, 0.9, 0.9, 0.9, 0.9, 0.9], C: [1.3, 1.3, 1.2, 1.2, 1.2, 1.2], D: [1.6, 1.4, 1.2, 1.2, 1.2, 1.2], E: [2.4, 1.7, 1.3, 1.2, 1.2, 1.2], F: [null, null, null, null, null, null] },
   };
   const FV = {
     old: { A: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], B: [1, 1, 1, 1, 1, 1], C: [1.7, 1.6, 1.5, 1.4, 1.3, 1.3], D: [2.4, 2, 1.8, 1.6, 1.5, 1.5], E: [3.5, 3.2, 2.8, 2.4, 2.4, 2.4], F: [null, null, null, null, null, null] },
-    16: { A: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], B: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], C: [1.5, 1.5, 1.5, 1.5, 1.5, 1.4], D: [2.4, 2.2, 2.0, 1.9, 1.8, 1.7], E: [4.2, null, null, null, null, null], F: [null, null, null, null, null, null] },
+    16: { A: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], B: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8], C: [1.5, 1.5, 1.5, 1.5, 1.5, 1.4], D: [2.4, 2.2, 2.0, 1.9, 1.8, 1.7], E: [4.2, 3.3, 2.8, 2.4, 2.2, 2.0], F: [null, null, null, null, null, null] },
   };
-  // the workbook's bracket columns (0-based): lower / upper; equal at the ends, so no extrapolation
-  const ssLo = s => (s <= 0.25 ? 0 : s < 0.5 ? 0 : s < 0.75 ? 1 : s < 1 ? 2 : s < 1.25 ? 3 : s < 1.5 ? 4 : 5);
-  const ssHi = s => (s <= 0.25 ? 0 : s < 0.5 ? 1 : s < 0.75 ? 2 : s < 1 ? 3 : s < 1.25 ? 4 : 5);
-  const s1Lo = s => (s <= 0.1 ? 0 : s < 0.2 ? 0 : s < 0.3 ? 1 : s < 0.4 ? 2 : s < 0.5 ? 3 : s < 0.6 ? 4 : 5);
-  const s1Hi = s => (s <= 0.1 ? 0 : s < 0.2 ? 1 : s < 0.3 ? 2 : s < 0.4 ? 3 : s < 0.5 ? 4 : 5);
-  function interp(row, cols, v, lo, hi) {
+  // linear interpolation between the bracketing columns, flat beyond the ends
+  function interp(row, cols, v) {
+    if (v <= cols[0]) return row[0];
+    if (v >= cols[cols.length - 1]) return row[row.length - 1];
+    const i = cols.findIndex(c => c >= v), lo = v === cols[i] ? i : i - 1, hi = i;
     const a = row[lo], b = row[hi];
     if (a == null || b == null) return null;
-    return a === b ? a : a - (a - b) * ((v - cols[lo]) / (cols[hi] - cols[lo]));
+    return lo === hi ? a : a + (b - a) * ((v - cols[lo]) / (cols[hi] - cols[lo]));
   }
+  const TWO_THIRDS = 0.6667;   // NBG Design Calcs: SDS = 0.6667 SMS, SD1 = 0.6667 SM1
 
   // building code → ASCE 7 edition and the workbook's code number (1 IBC 2006 … 7 IBC 2021)
   function editionOf(codeText) {
@@ -6175,7 +6431,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     let ed = asce ? `7-${asce[1]}` : yr >= 2024 ? '7-22' : yr >= 2018 ? '7-16' : yr >= 2012 ? '7-10' : yr ? '7-05' : null;
     if (!ed) return { ed: '7-16', choice: 7, assumed: true, note: 'No ASCE 7 edition or IBC year on the code line — ASCE 7-16 assumed.' };
     const choice = ed === '7-05' ? (yr === 2006 ? 1 : 2) : ed === '7-10' ? (yr === 2012 ? 3 : 5) : ed === '7-16' ? (yr === 2018 ? 6 : 7) : null;
-    return { ed, choice, note: ed === '7-22' ? 'ASCE 7-22: SDS and SD1 come from the ASCE Hazard Tool (multi-period spectrum, no Fa / Fv); the NBG workbook (rev. 2021.01.20) stops at IBC 2021 — enter SDS / SD1 and confirm.' : null };
+    return { ed, choice, note: ed === '7-22' ? 'ASCE 7-22: SMS and SM1 come from the ASCE Hazard Tool (multi-period spectrum, no Fa / Fv) — from the PCS when it lists them; SDS = 0.6667 SMS, SD1 = 0.6667 SM1.' : null };
   }
 
   const IE = { I: 1, II: 1, III: 1.25, IV: 1.5 };
@@ -6183,20 +6439,25 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   const catSd1 = (sd1, rc) => (rc === 'IV' ? (sd1 < 0.067 ? 'A' : sd1 < 0.133 ? 'C' : 'D') : sd1 < 0.067 ? 'A' : sd1 < 0.133 ? 'B' : sd1 < 0.2 ? 'C' : 'D');
 
   /* Design spectral values and the seismic design category.
-     s: { ed, Ss, S1, siteClass, risk ('I'…'IV'), SDS?, SD1? (7-22, or to override) } */
+     s: { ed, Ss, S1, siteClass, risk ('I'…'IV'), SMS?, SM1? (7-22, from the hazard tool), SDS?, SD1? (to override) } */
   function design(s) {
     const ed = s.ed || '7-16', rc = s.risk || 'II', sc = String(s.siteClass || 'D').toUpperCase();
     const out = { ed, risk: rc, siteClass: sc, Ie: IE[rc] ?? 1, Ss: s.Ss, S1: s.S1, flags: [] };
-    if (ed === '7-22' || (s.SDS != null && s.SD1 != null)) {
-      if (s.SDS == null || s.SD1 == null) { out.flags.push('ASCE 7-22: enter SDS and SD1 from the ASCE Hazard Tool.'); return { ...out, ok: false }; }
-      Object.assign(out, { Fa: null, Fv: null, SMS: 1.5 * s.SDS, SM1: 1.5 * s.SD1, SDS: s.SDS, SD1: s.SD1, given: true });
+    if (s.SDS != null && s.SD1 != null) {
+      Object.assign(out, { Fa: null, Fv: null, SMS: s.SDS / TWO_THIRDS, SM1: s.SD1 / TWO_THIRDS, SDS: s.SDS, SD1: s.SD1, given: 'SDS' });
+    } else if (ed === '7-22') {
+      if (s.SMS == null || s.SM1 == null) { out.flags.push('ASCE 7-22: enter SMS and SM1 from the ASCE Hazard Tool (the PCS lists them in Box 3).'); return { ...out, ok: false }; }
+      Object.assign(out, { Fa: null, Fv: null, SMS: s.SMS, SM1: s.SM1, SDS: TWO_THIRDS * s.SMS, SD1: TWO_THIRDS * s.SM1, given: 'SMS' });
     } else {
       const tbl = ed === '7-16' ? 16 : 'old';
-      const Fa = FA[tbl][sc] ? interp(FA[tbl][sc], SS_COLS, s.Ss, ssLo(s.Ss), ssHi(s.Ss)) : null;
-      const Fv = FV[tbl][sc] ? interp(FV[tbl][sc], S1_COLS, s.S1, s1Lo(s.S1), s1Hi(s.S1)) : null;
-      if (Fa == null || Fv == null) { out.flags.push(`Site Class ${sc} at Ss ${s.Ss} / S1 ${s.S1}: site-specific ground motion (ASCE 7 11.4.8) — "See ASCE 7" in the workbook.`); return { ...out, Fa, Fv, ok: false }; }
+      // interpolated; NBG Design Calcs carries Fa as interpolated (1.592 at Ss 0.26 → SMS 0.414) and Fv to two decimals
+      // (2.835 at S1 0.293 → 2.84, SM1 0.832) — its validation examples 1 and 2
+      const r2 = v => (v == null ? null : Math.round(v * 100 + 1e-7) / 100);
+      const Fa = FA[tbl][sc] ? interp(FA[tbl][sc], SS_COLS, s.Ss) : null;
+      const Fv = FV[tbl][sc] ? r2(interp(FV[tbl][sc], S1_COLS, s.S1)) : null;
+      if (Fa == null || Fv == null) { out.flags.push(`Site Class ${sc} at Ss ${s.Ss} / S1 ${s.S1}: site-specific ground motion (ASCE 7 11.4.8).`); return { ...out, Fa, Fv, ok: false }; }
       Object.assign(out, { Fa, Fv, SMS: s.Ss * Fa, SM1: s.S1 * Fv });
-      out.SDS = (2 / 3) * out.SMS; out.SD1 = (2 / 3) * out.SM1;
+      out.SDS = TWO_THIRDS * out.SMS; out.SD1 = TWO_THIRDS * out.SM1;
     }
     out.sdsCat = catSds(out.SDS, rc); out.sd1Cat = catSd1(out.SD1, rc);
     out.SDC = s.S1 >= 0.75 ? (rc === 'IV' ? 'F' : 'E') : out.sdsCat > out.sd1Cat ? out.sdsCat : out.sd1Cat;
@@ -6207,35 +6468,41 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 
   // ---------- seismic force-resisting systems (ASCE 7 Table 12.2-1) and period parameters (Table 12.8-2) ----------
   const SFRS = {
-    'Steel Systems Not Detailed for Seismic': [3, 3, 3],
-    'Ordinary Steel Moment Frames': [3.5, 3, 3],
-    'Intermediate Steel Moment Frames': [4.5, 3, 4],
-    'Special Steel Moment Frames': [8, 3, 5.5],
-    'Ordinary Steel Concentrically Braced Frames': [3.25, 2, 3.25],
-    'Special Steel Concentrically Braced Frames': [6, 2, 5],
-    'Steel Buckling Restrained Braced Frames': [8, 2.5, 5],
-    'Steel Eccentrically Braced Frames': [8, 2, 4],
-    'Cantilevered Column Systems Conforming to OMF': [1.25, 1.25, 1.25],
+    'Steel Systems Not Detailed for Seismic': { R: 3, Omega: 3, Cd: 3, label: 'Not Detailed For Seismic' },
+    'Ordinary Steel Moment Frames': { R: 3.5, Omega: 3, Cd: 3, label: 'Ord. Moment Frame' },
+    'Intermediate Steel Moment Frames': { R: 4.5, Omega: 3, Cd: 4, label: 'Intermediate Moment Frame' },
+    'Special Steel Moment Frames': { R: 8, Omega: 3, Cd: 5.5, label: 'Special Moment Frame' },
+    'Ordinary Steel Concentrically Braced Frames': { R: 3.25, Omega: 2, Cd: 3.25, label: 'Ord. Concentrically Braced Frame' },
+    'Special Steel Concentrically Braced Frames': { R: 6, Omega: 2, Cd: 5, label: 'Special Concentrically Braced Frame' },
+    'Steel Buckling Restrained Braced Frames': { R: 8, Omega: 2.5, Cd: 5, label: 'Buckling Restrained Braced Frame' },
+    'Steel Eccentrically Braced Frames': { R: 8, Omega: 2, Cd: 4, label: 'Eccentrically Braced Frame' },
+    'Cantilevered Column Systems Conforming to OMF': { R: 1.25, Omega: 1.25, Cd: 1.25, label: 'Cantilever Column (OMF)' },
   };
   const PERIOD = { moment: [0.028, 0.8], other: [0.02, 0.75], ebf: [0.03, 0.75], brbf: [0.03, 0.75] };
-  const TYPES = ['Rigid Frame', 'Portal Frame', 'Post & Beam', 'X-Bracing', 'Fixed Base', 'Rigid Frame (IMF)', 'Rigid Frame (SMF)', 'Post & Beam (SCBF)', 'X-Bracing (SCBF)', 'BRBF', 'EBF'];
-  /* type: NBG framing type; "not detailed for seismic" is used in SDC A–C unless ignoreNDFS */
-  function system(type, SDC, ignoreNDFS = false) {
-    const low = /[ABC]/.test(SDC) && !ignoreNDFS;
+  // NBG framing systems: a lateral frame line (Post & Beam, Rigid Frame, …) or a sidewall (X-Bracing, Portal Frame, …)
+  const TYPES = ['Rigid Frame', 'Portal Frame', 'Post & Beam', 'X-Bracing', 'Fixed Base', 'Rigid Frame (IMF)', 'Portal Frame (IMF)', 'Rigid Frame (SMF)', 'Portal Frame (SMF)', 'Post & Beam (SCBF)', 'X-Bracing (SCBF)', 'BRBF', 'EBF'];
+  const normType = t => String(t || '').replace(/\s*-\s*Bracing/i, '-Bracing').replace(/^X\s*-\s*Bracing/i, 'X-Bracing').trim();
+  /* type: NBG framing type; "not detailed for seismic" in SDC A–C unless ndfs === false.
+     opts.flexible: every diaphragm flexible — Ω0 less 0.5, not under 2.0 (Table 12.2-1 note g) */
+  function system(type, SDC, opts = {}) {
+    if (typeof opts === 'boolean') opts = { ndfs: !opts };
+    const low = /[ABC]/.test(SDC) && opts.ndfs !== false;
     let name, per;
-    switch (type) {
+    switch (normType(type)) {
       case 'Post & Beam': case 'X-Bracing': name = low ? 'Steel Systems Not Detailed for Seismic' : 'Ordinary Steel Concentrically Braced Frames'; per = 'other'; break;
       case 'Rigid Frame': case 'Portal Frame': name = low ? 'Steel Systems Not Detailed for Seismic' : 'Ordinary Steel Moment Frames'; per = 'moment'; break;
       case 'Fixed Base': name = 'Cantilevered Column Systems Conforming to OMF'; per = 'other'; break;
       case 'Post & Beam (SCBF)': case 'X-Bracing (SCBF)': name = 'Special Steel Concentrically Braced Frames'; per = 'other'; break;
       case 'BRBF': name = 'Steel Buckling Restrained Braced Frames'; per = 'brbf'; break;
       case 'EBF': name = 'Steel Eccentrically Braced Frames'; per = 'ebf'; break;
-      case 'Rigid Frame (IMF)': case 'Portal Frame (IMF)': name = 'Intermediate Steel Moment Frames'; per = 'moment'; break;
-      case 'Rigid Frame (SMF)': case 'Portal Frame (SMF)': name = 'Special Steel Moment Frames'; per = 'moment'; break;
+      case 'Rigid Frame (IMF)': case 'Portal Frame (IMF)': name = low ? 'Steel Systems Not Detailed for Seismic' : 'Intermediate Steel Moment Frames'; per = 'moment'; break;
+      case 'Rigid Frame (SMF)': case 'Portal Frame (SMF)': name = low ? 'Steel Systems Not Detailed for Seismic' : 'Special Steel Moment Frames'; per = 'moment'; break;
       default: return null;
     }
-    const [R, Omega, Cd] = SFRS[name], [Ct, x] = PERIOD[per];
-    return { type, name, R, Omega, Cd, Ct, x, ndfs: name === 'Steel Systems Not Detailed for Seismic' };
+    const s = SFRS[name], [Ct, x] = PERIOD[per];
+    const cant = name === 'Cantilevered Column Systems Conforming to OMF';
+    const Omega = opts.flexible && !cant ? Math.max(2, s.Omega - 0.5) : s.Omega;
+    return { type: normType(type), name, label: s.label, R: s.R, Omega, Om: Omega, Cd: s.Cd, Ct, x, ndfs: name === 'Steel Systems Not Detailed for Seismic' };
   }
   // Box 5 frame type → NBG framing type for the lateral sheet
   // ("Post and Beam Multi Span - EMS", "Post & Beam", "P&B"; rigid, clear span, multi span, lean-to frames are moment frames)
@@ -6244,106 +6511,132 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   const Ta = (Ct, x, hn) => Ct * Math.pow(hn, x);                                     // Eq. 12.8-7
   const kExp = (T, vertical) => (!vertical ? 0 : T <= 0.5 ? 1 : T >= 2.5 ? 2 : 1 + (T - 0.5) / 2);   // 12.8.3
 
-  /* Seismic response coefficient Cs (12.8.1.1), as the workbook's calcCs: TL = 4 s.
-     d: design(); R, Ie, T; irregular */
-  function Cs(d, R, T, irregular = false, TL = 4) {
-    const Ie = d.Ie, ed = d.ed, RI = R / Ie;
-    let Sds = d.given ? d.SDS : (2 / 3) * d.Fa * d.Ss;
-    const Sd1 = d.given ? d.SD1 : (2 / 3) * d.Fv * d.S1;
+  /* Seismic response coefficient Cs (12.8.1.1), TL = 4 s.
+     d: design(); R, T; o: { irregular, rho } */
+  function Cs(d, R, T, o = {}, TL = 4) {
+    if (typeof o === 'boolean') o = { irregular: o };
+    const Ie = d.Ie, ed = d.ed, RI = R / Ie, rho = o.rho ?? d.rho, irregular = !!o.irregular;
+    let Sds = d.SDS;
+    const Sd1 = d.SD1;
     let note = null;
     if (ed === '7-05' || ed === '7-10') {
-      if (d.Ss > 1.5 && T <= 0.5 && (ed === '7-05' || !irregular)) { Sds = (2 / 3) * d.Fa * 1.5; note = 'Ss capped at 1.5 for T ≤ 0.5 s (12.8.1.3)'; }
-    } else if (!irregular && T < 0.5 && d.rho === 1 && d.siteClass !== 'E' && d.siteClass !== 'F' && Ie <= 1) {
+      if (d.Ss > 1.5 && T <= 0.5 && (ed === '7-05' || !irregular) && d.Fa != null) { Sds = TWO_THIRDS * d.Fa * 1.5; note = 'Ss capped at 1.5 for T ≤ 0.5 s (12.8.1.3)'; }
+    } else if (!irregular && T <= 0.5 && rho === 1 && d.siteClass !== 'E' && d.siteClass !== 'F' && Ie <= 1) {
+      // 12.8.1.3: regular, T ≤ 0.5 s, ρ = 1.0, not Site Class E / F, Risk Category I / II — SDS need not exceed max(1.0, 0.7 SDS)
       const cap = Math.min(Sds, Math.max(1, 0.7 * Sds));
-      if (cap < Sds) note = 'SDS capped at max(1.0, 0.7 SDS) for regular, T < 0.5 s (12.8.1.3)';
+      if (cap < Sds) note = 'SDS capped at max(1.0, 0.7 SDS) (12.8.1.3)';
       Sds = cap;
     }
     const basic = Sds / RI;                                                            // 12.8-2
-    const max = T <= TL ? Sd1 / (T * RI) : (Sd1 * TL) / (T * T * RI);                  // 12.8-3 / -4
+    let max = T <= TL ? Sd1 / (T * RI) : (Sd1 * TL) / (T * T * RI);                    // 12.8-3 / -4
+    // 7-16 11.4.8 exception 2: Site Class D with S1 ≥ 0.2 — for T > 1.5 Ts, 1.5 × Eq. 12.8-3 (12.8-4)
+    let exc = false;
+    if (ed === '7-16' && d.siteClass === 'D' && d.S1 >= 0.2 && T > 1.5 * (Sd1 / d.SDS)) { max *= 1.5; exc = true; }
     const min = ed === '7-05' ? (d.S1 >= 0.6 ? Math.max(0.01, (0.5 * d.S1) / RI) : 0.01)
-      : d.S1 >= 0.6 ? Math.max(0.01, 0.044 * Sds * Ie, (0.5 * d.S1) / RI) : Math.max(0.01, 0.044 * Sds * Ie);   // 12.8-5 / -6
-    let cs = d.SDC === 'A' ? 0.01 : Math.min(Math.max(min, basic), max);
-    let governs = d.SDC === 'A' ? 'SDC A: 0.01 (11.7)' : cs === max ? 'Eq. 12.8-3 (maximum)' : cs === min && min > basic ? 'Eq. 12.8-5 / -6 (minimum)' : 'Eq. 12.8-2';
-    // 7-16 11.4.8 exception: Site Class D, T > 1.5 Ts → Cs not less than 1.5 × the 12.8-3 value
-    if (ed === '7-16' && d.siteClass === 'D' && T > 1.5 * (Sd1 / Sds)) {
-      const v = Math.max(1.5 * max, cs);
-      if (v > cs) governs = '11.4.8 exception: 1.5 × Eq. 12.8-3';
-      cs = v;
-    }
-    return { Cs: cs, basic, max, min, SdsUsed: Sds, Sd1, governs, note };
+      : d.S1 >= 0.6 ? Math.max(0.01, 0.044 * d.SDS * Ie, (0.5 * d.S1) / RI) : Math.max(0.01, 0.044 * d.SDS * Ie);   // 12.8-5 / -6
+    const cs = d.SDC === 'A' ? 0.01 : Math.min(Math.max(min, basic), Math.max(min, max));
+    const governs = d.SDC === 'A' ? 'SDC A: 0.01 (11.7)' : cs === basic ? 'Eq. 12.8-2 (SDS / (R / Ie))' : cs === max ? (exc ? '11.4.8 exception: 1.5 × Eq. 12.8-3' : 'Eq. 12.8-3 (SD1 / (T R / Ie))') : 'Eq. 12.8-5 / -6 (minimum)';
+    return { Cs: cs, basic, max, min, SdsUsed: Sds, Sd1, governs, note, exception1148: exc };
   }
 
-  // ---------- geometry (workbook convention: the BSW is the "left" / high eave; slope and ridge from the BSW) ----------
-  /* g: { width, length, rooftype ('Gable' | 'Single Slope'), dtr (from BSW), slope (s:12 to BSW), leh (FSW eave), heh (BSW eave) } */
-  function meanRoofHeight(g) {
-    if (g.rooftype === 'Gable' && g.dtr > 0 && g.dtr < g.width) {
-      const th = Math.atan(g.slope / 12), peak = g.heh + g.dtr * Math.tan(th);
-      const la = (peak + g.heh) / 2, lA = g.dtr / Math.cos(th);
-      const ra = (peak + g.leh) / 2, rA = (g.width - g.dtr) / Math.cos(Math.atan((peak - g.leh) / (g.width - g.dtr)));
-      return (la * lA + ra * rA) / (lA + rA);
-    }
-    return (g.leh + g.heh) / 2;
-  }
-  const ridgeHeight = g => (g.dtr < g.width ? g.heh + (g.slope / 12) * g.dtr : g.heh);
-  const oppSlope = g => (g.dtr < g.width ? ((g.heh + (g.slope / 12) * g.dtr) - g.leh) * 12 / (g.width - g.dtr) : g.slope);
-  function widthOnSlope(g) {
-    return g.dtr / Math.cos(Math.atan(g.slope / 12)) + (g.width - g.dtr) / Math.cos(Math.atan(oppSlope(g) / 12));
-  }
-  /* roof seismic weight of a strip L long (lb): (SW + RDL + CDL [+ 0.2 Pf when Pf > 30]) on the sloped area + point loads */
-  function roofWeight(g, L, roof) {
-    const wos = widthOnSlope(g), q = roof.SW + roof.RSW + roof.RDL + roof.CDL;
-    const uni = roof.Pf > 30 ? q + 0.2 * roof.Pf * (g.width / wos) : q;
-    return { W: L * wos * uni + (roof.P || 0) * 1000, wos, q: uni, snow: roof.Pf > 30 };
-  }
-  // endwall area (full height, no parapet)
-  function endwallArea(g) {
-    const rh = ridgeHeight(g);
-    return g.dtr < g.width ? g.leh * g.width + (rh - g.leh) / 2 * (g.width - g.dtr) + (g.heh - g.leh) * g.dtr + (rh - g.heh) / 2 * g.dtr
-      : g.leh * g.width + (rh - g.leh) / 2 * g.width;
-  }
-  // centre of mass of an endwall (bottom at bot), as the workbook's ftnWall_CenterOfMass
-  function endwallCOM(g, bot = 0) {
-    const W = g.width, D = g.dtr, s = g.slope;
-    let a1, a2, a3, a4, d1, d2, d3, d4;
-    if (D < W) {
-      const os = oppSlope(g);
-      a1 = (s * D * D) / 24; a2 = (g.heh - bot) * D; a3 = (os * (W - D) * (W - D)) / 24; a4 = (g.leh - bot) * (W - D);
-      d1 = (s * D) / 36 + g.heh; d2 = (g.heh - bot) / 2 + bot; d3 = (os * (W - D)) / 36 + g.leh; d4 = (g.leh - bot) / 2 + bot;
+  // ---------- geometry (the BSW is the "high" eave of the workbook; ridge and slope measured from the BSW) ----------
+  /* b: { type: 'Gable' | 'Single Slope', width, length, dtr (BSW to ridge), slope (BSW side, s:12), eaveFSW, eaveBSW } */
+  function geometry(b) {
+    const W = b.width, L = b.length, eF = b.eaveFSW, eB = b.eaveBSW ?? b.eaveFSW;
+    const gable = /gable/i.test(b.type || 'Gable') && b.dtr > 0 && b.dtr < W;
+    let ridge, sB, sF, D;
+    if (gable) {
+      D = b.dtr; sB = b.slope; ridge = eB + (sB / 12) * D; sF = ((ridge - eF) * 12) / (W - D);
     } else {
-      a1 = (s * W * W) / 24; a2 = 0; a3 = 0; a4 = (g.leh - bot) * W;
-      d1 = (s * W) / 36 + g.leh; d2 = 0; d3 = 0; d4 = (g.leh - bot) / 2 + bot;
+      // single slope: the roof from the FSW eave to the BSW eave
+      D = 0; sF = ((eB - eF) * 12) / W; sB = -sF; ridge = Math.max(eF, eB);
     }
-    return (a1 * d1 + a2 * d2 + a3 * d3 + a4 * d4) / (a1 + a2 + a3 + a4);
+    // the roof's mean height: each plane's mid height weighted by its sloped length (NBG's "MRH" for the roof mass)
+    let mrh, wos;
+    if (gable) {
+      const lA = D / Math.cos(Math.atan(sB / 12)), rA = (W - D) / Math.cos(Math.atan(sF / 12));
+      mrh = (((ridge + eB) / 2) * lA + ((ridge + eF) / 2) * rA) / (lA + rA);
+      wos = lA + rA;
+    } else {
+      mrh = (eF + eB) / 2; wos = Math.hypot(W, eB - eF);
+    }
+    // the endwall outline: heights along the width from the FSW (x = 0) to the BSW (x = W)
+    const pts = gable ? [[0, eF], [W - D, ridge], [W, eB]] : [[0, eF], [W, eB]];
+    return { W, L, eF, eB, gable, ridge, slopeBSW: sB, slopeFSW: sF, dtr: D, mrh, wos, pts };
   }
-
-  /* effective seismic weight of a mezzanine strip (lb): conc kips + area × (FDL + FLC + FLJ + 25 % FLL if storage + FLP),
-     ASCE 7 12.7.2 (storage: 25 % of the floor live; partitions: the partition load) */
-  function mezzWeight(m, area) {
-    const psf = m.FDL + m.FLC + m.FLJ + (m.storage ? 0.25 * m.FLL : 0) + (m.FLP || 0) + (m.framing || 0);
-    return { W: (m.conc || 0) * 1000 + area * psf, psf };
+  // area and centroid height of the endwall between z0 and the roof (polygon clipped below z0)
+  function wallPart(g, z0 = 0) {
+    let A = 0, Az = 0;
+    for (let i = 0; i + 1 < g.pts.length; i++) {
+      const [x1, h1] = g.pts[i], [x2, h2] = g.pts[i + 1], w = x2 - x1;
+      if (w <= 0) continue;
+      // the part of the strip between z0 and the roof line (h linear in x): a trapezoid, or a triangle where the
+      // roof line crosses z0
+      const a = h1 - z0, b = h2 - z0;
+      let area, zc;
+      if (a >= 0 && b >= 0) {
+        if (a + b <= 0) continue;
+        // centroid of a trapezoid with parallel sides a, b over width w: z̄ = (a² + ab + b²) / (3 (a + b))
+        area = ((a + b) / 2) * w; zc = z0 + (a * a + a * b + b * b) / (3 * (a + b));
+      } else if (a > 0 || b > 0) {
+        const t = Math.max(a, b), wt = w * (t / (t - Math.min(a, b)));
+        area = (t * wt) / 2; zc = z0 + t / 3;
+      } else continue;
+      A += area; Az += area * zc;
+    }
+    return { A, z: A > 0 ? Az / A : z0 };
   }
+  const meanRoofHeight = b => geometry(b.width != null && b.eaveFSW != null ? b : fromOld(b)).mrh;
+  // the earlier geometry object ({ width, length, rooftype, dtr, slope, leh, heh }) → building data
+  const fromOld = g => ({ type: g.rooftype || 'Gable', width: g.width, length: g.length, dtr: g.dtr, slope: g.slope, eaveFSW: g.leh, eaveBSW: g.heh });
 
-  // vertical distribution (12.8.3): Fx = Cvx V; SDC A: 1 % of each weight (11.7)
+  // ---------- the parts of the seismic weight ----------
+  /* a wall as NBG takes it: wall { kind: 'full' | 'partial', shear, parapet, top, weight, upperWeight, masonryTop, lowerWeight }.
+     len: its length (a sidewall's tributary length, an endwall's or a partition's width); end: an endwall / partition
+     (its outline follows the roof unless it has a parapet); excluded: the wall is a self-supporting shear wall in this
+     direction (its hardwall — the whole wall when full height — carries itself). Returns rows [{ part, W, h }]. */
+  function wallRows(g, wall, len, end, excluded, defTop) {
+    if (!wall) return [];
+    const partial = wall.kind === 'partial' || (wall.kind == null && wall.masonryTop != null);
+    // full height, no top typed: a sidewall to its eave (an endwall follows the roof line)
+    const top = wall.top != null && isFinite(wall.top) ? wall.top : defTop ?? g.mrh;
+    const piece = (z0, w) => {
+      if (end && !wall.parapet) { const p = wallPart(g, z0); return { W: (p.A * len / g.W) * w, h: p.z }; }
+      return { W: len * (top - z0) * w, h: (top + z0) / 2 };
+    };
+    if (!partial) {
+      const p = piece(0, wall.weight || 0);
+      return [{ part: null, W: excluded ? 0 : p.W, h: p.h, excluded }];
+    }
+    const mt = wall.masonryTop || 0, up = piece(mt, wall.upperWeight || 0);
+    return [{ part: 'Upper', W: up.W, h: up.h }, { part: 'Lower', W: excluded ? 0 : len * mt * (wall.lowerWeight || 0), h: mt / 2, excluded }];
+  }
+  // a mezzanine's seismic weight per sq ft (12.7.2): floor dead, collateral, joists, 25 % of the floor live where it is
+  // storage, the partition load where partitions are loaded
+  const mezzPsf = m => (m.FDL || 0) + (m.FLC || 0) + (m.FLJ || 0) + (m.storage ? 0.25 * (m.FLL || 0) : 0) + ((m.partition ?? m.FLP > 0) ? m.FLP || 0 : 0);
+  // a crane's seismic weight on a line: runway beams + rails both sides of each aisle, the bridges and hoists, the
+  // independent crane columns to half their height
+  const craneWeight = (c, at) => ((c.beam || 0) + (c.rail || 0)) * at.runway * 2 * (at.aisles || 1) + ((c.bridge || 0) + (c.hoist || 0)) * (at.perAisle || 0) * (at.aisles || 1) + (at.indCols || 0) * (c.indCol || 0) * (c.elev || 0) / 2;
+
+  // vertical distribution (12.8.3): Fx = Cvx V with Cvx = wx hx^k / Σ wi hi^k; SDC A: 1 % of each weight (11.7.2)
   function distribute(rows, cs, k, SDC) {
-    const live = rows.filter(r => r.W > 0);
-    live.forEach(r => { r.D = r.W * Math.pow(r.h, k); });
-    const Wt = live.reduce((a, r) => a + r.W, 0), Dt = live.reduce((a, r) => a + r.D, 0);
-    live.forEach(r => { r.Cvx = r.D / Dt; r.Fx = SDC === 'A' ? (0.01 * r.W) / 1000 : (cs * Wt * r.Cvx) / 1000; r.M = r.Fx * r.h; });
-    const V = live.reduce((a, r) => a + r.Fx, 0);
-    return { rows: live, W: Wt, Dt, V, M: live.reduce((a, r) => a + r.M, 0) };
+    rows.forEach(r => { r.num = r.W * Math.pow(r.h, k); });
+    const Wt = rows.reduce((a, r) => a + r.W, 0), Dt = rows.reduce((a, r) => a + r.num, 0);
+    rows.forEach(r => { r.Cvx = Dt > 0 ? r.num / Dt : 0; r.Fx = SDC === 'A' ? (0.01 * r.W) / 1000 : (cs * Wt * r.Cvx) / 1000; r.Mx = r.Fx * r.h; });
+    return { rows, W: Wt, num: Dt, Fx: rows.reduce((a, r) => a + r.Fx, 0), Mx: rows.reduce((a, r) => a + r.Mx, 0) };
   }
 
-  /* Building limits for the system (ASCE 7 Table 12.2-1, 12.2.5.6 / 12.2.5.7), as the workbook flags them.
+  /* Building limits for the system (ASCE 7 Table 12.2-1, 12.2.5.6 / 12.2.5.7), as warnings.
      deadPsf: roof SW+RDL+CDL (+ point loads over the plan); story: a mezzanine counted as a story */
   function limits(type, SDC, ed, hn, deadPsf, story, walls = {}) {
     const code = `ASCE ${ed}`, high = walls.above35over20, any = walls.over20;
     const msg = sec => `Building height / weight exceeds the limits of ${code} ${sec} for the ${type} system.`;
-    if (/^(Post & Beam|X-Bracing)$/.test(type)) {
+    if (/^(Post & Beam|X-Bracing)$/.test(normType(type))) {
       if (/[ABC]/.test(SDC)) return null;
       if (/[DE]/.test(SDC)) return (deadPsf <= 20 && hn <= 60 && !story) || hn <= 35 ? null : msg('Table 12.2-1');
       return deadPsf <= 20 && hn <= 60 && !story ? null : msg('Table 12.2-1');
     }
-    if (/^(Rigid Frame|Portal Frame)$/.test(type)) {
+    if (/^(Rigid Frame|Portal Frame)$/.test(normType(type))) {
       if (/[ABC]/.test(SDC)) return null;
       if (/[DE]/.test(SDC)) return deadPsf <= 20 && hn <= 65 && !high && !story ? null : msg('12.2.5.6.1');
       return deadPsf <= 20 && hn <= 65 && !any && !story ? null : msg('12.2.5.6.2');
@@ -6351,67 +6644,135 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     return null;
   }
 
-  /* ---------- LATERAL: one frame ----------
-     j: { d: design(), g: geometry, roof: {SW, RSW, RDL, CDL, Pf, P}, walls: {fsw, bsw, lew, rew (psf)},
-          vertical (12.8.3 on), irregular, ignoreNDFS, story }
-     f: { label, type (NBG framing type), bay (tributary width), at: 'lew' | 'rew' | 'interior',
-          mezz: [{ id, area, conc, elev, FDL, FLC, FLJ, FLL, storage, FLP, framing }] } */
-  function lateral(j, f) {
-    const { d, g } = j, sys = system(f.type, d.SDC, j.ignoreNDFS), hn = meanRoofHeight(g);
-    // Risk Category III / IV or a rigid diaphragm: the least R of the building's lateral systems (12.2.3.3)
-    const R = (d.risk === 'III' || d.risk === 'IV' || j.rigid) && j.Rmin ? j.Rmin : sys.R;
-    const T = j.Ta ?? Ta(sys.Ct, sys.x, hn), k = kExp(T, j.vertical !== false), c = Cs(d, R, T, j.irregular);
-    const rw = roofWeight(g, f.bay, j.roof);
-    const rows = [{ key: 'roof', name: 'Roof', W: rw.W, h: hn }];
-    if (f.at === 'lew' || f.at === 'rew') {
-      const wt = f.at === 'lew' ? j.walls.lew : j.walls.rew;
-      rows.push({ key: 'endwall', name: f.at === 'lew' ? 'Left endwall' : 'Right endwall', W: endwallArea(g) * wt, h: endwallCOM(g) });
+  /* ---------- the project (NBG Design Calcs' input, section by section) ----------
+     P: { building, seismic: { ed, risk, Ss, S1, SMS, SM1, SDS, SD1, siteClass, roofDiaphragm ('Flexible' | 'Rigid'),
+            mezzDiaphragm ('None' | 'Flexible' | 'Rigid'), ndfs (true), significant (false), irregular (false),
+            torsionLong (true), torsionLat (false) },
+          roof: { SW, RDL, CDL, RSW, Pf }, walls: { LEW, REW, FSW, BSW, Partition },
+          mezz: [{ id, elev, FDL, FLC, FLJ, storage, FLL, partition, FLP }], cranes: [{ id, beam, indCol, rail, bridge, hoist, elev }],
+          sfrs: { FSW, BSW, lines: [framing of every lateral frame line] } } */
+  function project(P) {
+    const g = geometry(P.building), s = P.seismic || {};
+    const d = design({ ed: s.ed || P.building.ed, Ss: s.Ss, S1: s.S1, siteClass: s.siteClass, risk: s.risk, SMS: s.SMS, SM1: s.SM1, SDS: s.SDS, SD1: s.SD1 });
+    const rigidRoof = /rigid/i.test(s.roofDiaphragm || ''), rigidMezz = /rigid/i.test(s.mezzDiaphragm || '');
+    const flexible = !rigidRoof && !rigidMezz;
+    return { P, g, d, s, flexible, rigidRoof, rigidMezz, ndfs: s.ndfs !== false, significant: !!s.significant,
+      torsionLong: s.torsionLong !== false, torsionLat: !!s.torsionLat };
+  }
+  // the system a calculation uses: its own, or (12.2.3.3) the least R of the systems in that direction when the risk
+  // category is III / IV or a diaphragm is not flexible
+  function governing(J, own, all) {
+    const opt = { ndfs: J.ndfs, flexible: J.flexible };
+    const sys = system(own, J.d.SDC, opt);
+    if (!sys) return null;
+    const least = (J.d.risk === 'III' || J.d.risk === 'IV' || !J.flexible) && all && all.length
+      ? all.map(t => system(t, J.d.SDC, opt)).filter(Boolean).reduce((a, b) => (b.R < a.R ? b : a), sys) : sys;
+    return least.R < sys.R ? { ...least, type: sys.type, Ct: sys.Ct, x: sys.x, via: '12.2.3.3' } : sys;
+  }
+
+  function seismicFactors(J, sys, over, hn) {
+    const T = over && over.Ta > 0 ? over.Ta : Ta(sys.Ct, sys.x, hn);
+    const k = over && over.k != null && over.k !== '' && isFinite(over.k) ? +over.k : kExp(T, J.significant);
+    const rho = over && over.rho > 0 ? +over.rho : J.d.rho;
+    const c = Cs(J.d, sys.R, T, { irregular: !!J.s.irregular, rho });
+    return { Ie: J.d.Ie, Fa: J.d.Fa, Fv: J.d.Fv, Sms: J.d.SMS, Sm1: J.d.SM1, Sds: J.d.SDS, Sd1: J.d.SD1, SDC: J.d.SDC, R: sys.R, Om: sys.Omega, Cd: sys.Cd,
+      Ct: over && over.Ta > 0 ? 0 : sys.Ct, x: sys.x, Ta: T, rho, k, Cs: c.Cs, cs: c, sfrs: sys };
+  }
+
+  // the roof snow in the seismic weight (12.7.2 item 4): 20 % of Pf where Pf exceeds 30 psf; ASCE 7-22 (strength-level
+  // snow): 15 % of Pf where it exceeds 45 psf
+  const snowPsf = (J, Pf) => (J.d.ed === '7-22' ? (Pf > 45 ? 0.15 * Pf : 0) : Pf > 30 ? 0.2 * Pf : 0);
+  const rowName = (base, part) => (part ? `${base} - ${part}` : base);
+  function addWall(rows, key, name, g, wall, len, end, excluded) {
+    wallRows(g, wall, len, end, excluded, key === 'FSW' ? g.eF : key === 'BSW' ? g.eB : g.mrh).forEach(r => rows.push({ key, name: rowName(name, r.part), W: r.W, h: r.h, part: r.part, excluded: r.excluded }));
+  }
+
+  /* ---------- LATERAL: one frame line (NBG Frame) ----------
+     line: { desc, framing, bay, bayType ('Left Endwall' | 'Interior' | 'Right Endwall' | 'Interior w/ Partition'), roofConc (kips),
+             fswTrib, bswTrib, partLen, mezz: [{ id, area, conc }], cranes: [{ id, aisles, runway, indCols, perAisle }], over: { Ta, k, rho } } */
+  function frameLine(J, line) {
+    const { g, P } = J, sys = governing(J, line.framing, (P.sfrs && P.sfrs.lines) || []);
+    const f = seismicFactors(J, sys, line.over, g.mrh);
+    const roof = P.roof, bay = line.bay;
+    const q = roof.SW + roof.RDL + roof.CDL + (roof.RSW || 0);
+    const rows = [{ key: 'roof', name: 'Roof Loads', W: bay * (q * g.wos + snowPsf(J, roof.Pf) * g.W) + (line.roofConc || 0) * 1000, h: g.mrh }];
+    const bt = String(line.bayType || 'Interior');
+    if (/left/i.test(bt)) addWall(rows, 'LEW', 'Left EW Loads', g, P.walls.LEW, g.W, true, !!(P.walls.LEW || {}).shear);
+    if (/right/i.test(bt)) addWall(rows, 'REW', 'Right EW Loads', g, P.walls.REW, g.W, true, !!(P.walls.REW || {}).shear);
+    if (/partition/i.test(bt)) addWall(rows, 'Partition', 'Partition Wall Loads', g, P.walls.Partition, line.partLen ?? g.W, true, !!(P.walls.Partition || {}).shear);
+    addWall(rows, 'FSW', 'Front SW Loads', g, P.walls.FSW, line.fswTrib ?? bay, false, false);
+    addWall(rows, 'BSW', 'Back SW Loads', g, P.walls.BSW, line.bswTrib ?? bay, false, false);
+    (line.cranes || []).forEach(at => { const c = (P.cranes || []).find(x => x.id === at.id); if (c) rows.push({ key: 'crane', id: c.id, name: `Crane ${c.id} Loads`, W: craneWeight(c, at), h: c.elev }); });
+    (line.mezz || []).forEach(a => { const m = (P.mezz || []).find(x => String(x.id) === String(a.id)); if (m) rows.push({ key: 'mezz', id: m.id, name: `Mezzanine ${m.id} Loads`, W: a.area * mezzPsf(m) + (a.conc || 0) * 1000, h: m.elev, area: a.area, psf: mezzPsf(m) }); });
+    const dist = distribute(rows, f.Cs, f.k, J.d.SDC);
+    const M = keys => rows.filter(r => keys.includes(r.key)).reduce((a, r) => a + r.Mx, 0);
+    const base = g.W * bay * f.Cs, hn = g.mrh;
+    const roofPsf = (M(['roof', 'LEW', 'REW', 'Partition']) * 1000) / (hn * base);
+    const altRoofPsf = (M(['roof', 'LEW', 'REW', 'Partition', 'FSW', 'BSW']) * 1000) / (hn * base);
+    const tor = J.torsionLat && J.rigidMezz ? 1.1 : 1;
+    const conc = [];
+    [['FSW', g.eF], ['BSW', g.eB]].forEach(([key, e]) => { if (rows.some(r => r.key === key)) conc.push({ key, name: key, F: M([key]) / (e - 16 / 12), at: e - 16 / 12 }); });
+    rows.filter(r => r.key === 'crane').forEach(r => conc.push({ key: 'crane', id: r.id, name: r.name, F: r.Fx, at: r.h }));
+    rows.filter(r => r.key === 'mezz').forEach(r => conc.push({ key: 'mezz', id: r.id, name: r.name, F: r.Fx * tor, at: r.h, W: r.W, area: r.area, psf: r.psf }));
+    const factor = f.Cs * (J.torsionLat && J.rigidRoof ? 1.1 : 1);
+    const equivRoof = (roofPsf * g.W * bay * factor) / 1000;
+    const V = equivRoof + conc.reduce((a, c) => a + c.F, 0);
+    const deadPsf = q + snowPsf(J, roof.Pf);
+    return { kind: 'lateral', desc: line.desc, framing: line.framing, bay, bayType: bt, sys, factors: f, Ta: f.Ta, k: f.k, cs: f.cs, Cs: f.Cs, R: sys.R, hn,
+      rows, totals: { W: dist.W, num: dist.num, Fx: dist.Fx, Mx: dist.Mx },
+      frame: { roofPsf, altRoofPsf, panel: (roofPsf * bay * factor) / 1000, altPanel: (altRoofPsf * bay * factor) / 1000, factor, equivRoof, conc, V },
+      mezzLoads: conc.filter(c => c.key === 'mezz'), wallLoads: conc.filter(c => c.key === 'FSW' || c.key === 'BSW'), V,
+      limit: limits(line.framing, J.d.SDC, J.d.ed, hn, deadPsf, J.significant) };
+  }
+
+  /* ---------- LONGITUDINAL: the bracing (NBG Bracing) ----------
+     lg: { roofConc, fswTrib, bswTrib, partTrib, partQty, mezz: [{ id, area, conc }], cranes: [...], over } */
+  function bracing(J, lg = {}) {
+    const { g, P } = J;
+    const types = [P.sfrs && P.sfrs.FSW || 'X-Bracing', P.sfrs && P.sfrs.BSW || 'X-Bracing'];
+    const opt = { ndfs: J.ndfs, flexible: J.flexible };
+    const sy = types.map(t => system(t, J.d.SDC, opt));
+    // the least R of the two sidewalls governs (12.2.3.3); with equal R, the shorter period
+    let sys = sy[0].R <= sy[1].R ? sy[0] : sy[1];
+    if (sy[0].R === sy[1].R) sys = Ta(sy[0].Ct, sy[0].x, g.mrh) <= Ta(sy[1].Ct, sy[1].x, g.mrh) ? sy[0] : sy[1];
+    const f = seismicFactors(J, sys, lg.over, g.mrh);
+    const roof = P.roof, L = g.L;
+    const q = roof.SW + roof.RDL + roof.CDL + (roof.RSW || 0);
+    const rows = [{ key: 'roof', name: 'Roof Loads', W: L * (q * g.wos + snowPsf(J, roof.Pf) * g.W) + (lg.roofConc || 0) * 1000, h: g.mrh }];
+    addWall(rows, 'LEW', 'Left EW Loads', g, P.walls.LEW, g.W, true, false);
+    addWall(rows, 'REW', 'Right EW Loads', g, P.walls.REW, g.W, true, false);
+    if (lg.partQty > 0) {
+      const pr = wallRows(g, P.walls.Partition, lg.partTrib ?? g.W, true, false);
+      pr.forEach(r => rows.push({ key: 'Partition', name: rowName('Partition Wall Loads', r.part), W: r.W * lg.partQty, h: r.h, part: r.part }));
     }
-    rows.push({ key: 'fsw', name: 'Front sidewall', W: g.leh * j.walls.fsw * f.bay, h: g.leh / 2 });
-    rows.push({ key: 'bsw', name: 'Back sidewall', W: g.heh * j.walls.bsw * f.bay, h: g.heh / 2 });
-    (f.mezz || []).forEach(m => { const mw = mezzWeight(m, m.area); rows.push({ key: 'mezz', id: m.id, name: m.id, W: mw.W, psf: mw.psf, area: m.area, h: m.elev }); });
-    const dist = distribute(rows, c.Cs, k, d.SDC);
-    const sum = keys => dist.rows.filter(r => keys.includes(r.key)).reduce((a, r) => a + r.M, 0);
-    // what NBG Frame takes: the roof seismic weight that reproduces the roof (+ endwall) moment with factor Cs, the
-    // sidewalls as concentrated loads at eave − 16", the mezzanine as concentrated loads at its elevation; or
-    // ("alt.") everything but the mezzanine lumped into the roof weight
-    const base = g.width * f.bay * c.Cs;
-    const roofOverride = (sum(['roof', 'endwall']) * 1000) / (hn * base);
-    const altRoof = (sum(['roof', 'endwall', 'fsw', 'bsw']) * 1000) / (hn * base);
-    const wallLoads = [['fsw', g.leh], ['bsw', g.heh]].map(([key, e]) => ({ key, F: sum([key]) / (e - 16 / 12), at: e - 16 / 12 }));
-    const mezzLoads = dist.rows.filter(r => r.key === 'mezz').map(r => ({ id: r.id, F: r.Fx, at: r.h, W: r.W, area: r.area, psf: r.psf }));
-    const frameV = wallLoads.reduce((a, w) => a + w.F, 0) + mezzLoads.reduce((a, m) => a + m.F, 0) + (roofOverride * base) / 1000;
-    const deadPsf = j.roof.SW + j.roof.RSW + j.roof.RDL + j.roof.CDL + ((j.roof.P || 0) * 1000) / (g.length * g.width);
-    return { label: f.label, sys, R, hn, Ta: T, k, cs: c, rows: dist.rows, W: dist.W, V: dist.V, M: dist.M, roof: rw, roofOverride, altRoof, wallLoads, mezzLoads, frameV,
-      limit: limits(f.type, d.SDC, d.ed, hn, deadPsf, j.story, j.wallLimits) };
+    addWall(rows, 'FSW', 'Front SW Loads', g, P.walls.FSW, lg.fswTrib ?? L, false, !!(P.walls.FSW || {}).shear);
+    addWall(rows, 'BSW', 'Back SW Loads', g, P.walls.BSW, lg.bswTrib ?? L, false, !!(P.walls.BSW || {}).shear);
+    (lg.cranes || []).forEach(at => { const c = (P.cranes || []).find(x => x.id === at.id); if (c) rows.push({ key: 'crane', id: c.id, name: `Crane ${c.id} Loads`, W: craneWeight(c, at), h: c.elev }); });
+    (lg.mezz || []).forEach(a => { const m = (P.mezz || []).find(x => String(x.id) === String(a.id)); if (m) rows.push({ key: 'mezz', id: m.id, name: `Mezzanine ${m.id} Loads`, W: a.area * mezzPsf(m) + (a.conc || 0) * 1000, h: m.elev, area: a.area, psf: mezzPsf(m) }); });
+    const dist = distribute(rows, f.Cs, f.k, J.d.SDC);
+    const M = keys => rows.filter(r => keys.includes(r.key)).reduce((a, r) => a + r.Mx, 0);
+    const base = g.W * L * f.Cs, hn = g.mrh;
+    const totalPsf = (M(['roof', 'LEW', 'REW', 'Partition']) * 1000) / (hn * base);
+    const altTotalPsf = (M(['roof', 'LEW', 'REW', 'Partition', 'FSW', 'BSW']) * 1000) / (hn * base);
+    const snowPart = snowPsf(J, roof.Pf);
+    // accidental torsion (12.8.4.2) on the bracing: 5 % eccentricity at a rigid diaphragm, taken as 1.1 × its force
+    const torRoof = J.torsionLong && J.rigidRoof ? 1.1 : 1, torMezz = J.torsionLong && J.rigidMezz ? 1.1 : 1;
+    const factor = f.Cs * torRoof;
+    const conc = [];
+    [['FSW', g.eF], ['BSW', g.eB]].forEach(([key, e]) => { if (rows.some(r => r.key === key)) conc.push({ key, name: key, F: M([key]) / e, at: e }); });
+    rows.filter(r => r.key === 'crane').forEach(r => conc.push({ key: 'crane', id: r.id, name: r.name, F: r.Fx, at: r.h }));
+    rows.filter(r => r.key === 'mezz').forEach(r => conc.push({ key: 'mezz', id: r.id, name: r.name, F: r.Fx * torMezz, at: r.h, W: r.W, area: r.area, psf: r.psf, Fx: r.Fx }));
+    const equivRoof = (totalPsf * g.W * L * factor) / 1000;
+    const V = equivRoof + conc.reduce((a, c) => a + c.F, 0);
+    return { kind: 'longitudinal', types, systems: sy, sys, factors: f, Ta: f.Ta, k: f.k, cs: f.cs, Cs: f.Cs, R: sys.R, hn,
+      rows, totals: { W: dist.W, num: dist.num, Fx: dist.Fx, Mx: dist.Mx },
+      bracing: { snow: roof.Pf || 0, deadPsf: totalPsf - snowPart, totalPsf, altTotalPsf, factor, equivRoof, conc, V, torsionRoof: torRoof, torsionMezz: torMezz },
+      mezzLoads: conc.filter(c => c.key === 'mezz'), wallLoads: conc.filter(c => c.key === 'FSW' || c.key === 'BSW'), V,
+      roofPsf: totalPsf, bracingV: V, torsion: torMezz };
   }
 
-  /* ---------- LONGITUDINAL: the bracing (whole building) ----------
-     j as lateral; b: { types: [FSW type, BSW type] ('X-Bracing' | 'Portal Frame' …), mezz: [{ …, area = full area }],
-     torsion: 1 (flexible / none) or 1.1 (rigid mezzanine diaphragm) } */
-  function longitudinal(j, b) {
-    const { d, g } = j, hn = meanRoofHeight(g);
-    const sy = (b.types || ['X-Bracing', 'X-Bracing']).map(t => system(t, d.SDC, j.ignoreNDFS));
-    // the least R governs (12.2.3.3); its period, or the least of the two when R ties
-    const sys = sy[0].R <= sy[1].R ? sy[0] : sy[1];
-    const T = j.TaLong ?? (sy[0].R === sy[1].R ? Math.min(Ta(sy[0].Ct, sy[0].x, hn), Ta(sy[1].Ct, sy[1].x, hn)) : Ta(sys.Ct, sys.x, hn));
-    const k = kExp(T, j.vertical !== false), c = Cs(d, sys.R, T, j.irregular);
-    const rows = [{ key: 'roof', name: 'Roof', W: roofWeight(g, g.length, j.roof).W, h: hn },
-      { key: 'lew', name: 'Left endwall', W: endwallArea(g) * j.walls.lew, h: endwallCOM(g) },
-      { key: 'rew', name: 'Right endwall', W: endwallArea(g) * j.walls.rew, h: endwallCOM(g) },
-      { key: 'fsw', name: 'Front sidewall', W: g.leh * j.walls.fsw * g.length, h: g.leh / 2 },
-      { key: 'bsw', name: 'Back sidewall', W: g.heh * j.walls.bsw * g.length, h: g.heh / 2 }];
-    (b.mezz || []).forEach(m => { const mw = mezzWeight(m, m.area); rows.push({ key: 'mezz', id: m.id, name: m.id, W: mw.W, psf: mw.psf, area: m.area, h: m.elev }); });
-    const dist = distribute(rows, c.Cs, k, d.SDC), tor = b.torsion || 1;
-    const fx = key => dist.rows.filter(r => r.key === key).reduce((a, r) => a + r.M, 0);
-    const wallLoads = [['fsw', g.leh], ['bsw', g.heh]].map(([key, e]) => ({ key, F: fx(key) / e, at: e }));
-    const mezzLoads = dist.rows.filter(r => r.key === 'mezz').map(r => ({ id: r.id, F: r.Fx * tor, at: r.h, W: r.W, area: r.area, psf: r.psf }));
-    const roofPsf = (fx('roof') + fx('lew') + fx('rew')) * 1000 / (hn * g.width * g.length * c.Cs);
-    return { sys, systems: sy, hn, Ta: T, k, cs: c, rows: dist.rows, W: dist.W, V: dist.V, M: dist.M, wallLoads, mezzLoads, roofPsf, torsion: tor,
-      bracingV: wallLoads.reduce((a, w) => a + w.F, 0) + mezzLoads.reduce((a, m) => a + m.F, 0) + (roofPsf * g.width * g.length * c.Cs / 1000) * (j.roofTorsion || 1) };
-  }
-
-  const api = { editionOf, design, system, frameType, Ta, kExp, Cs, meanRoofHeight, widthOnSlope, roofWeight, endwallArea, endwallCOM, mezzWeight, distribute, limits, lateral, longitudinal, TYPES, SFRS, IE };
+  const api = { editionOf, design, system, frameType, Ta, kExp, Cs, geometry, wallPart, wallRows, meanRoofHeight, mezzPsf, craneWeight, distribute, limits,
+    project, governing, frameLine, bracing, TYPES, SFRS, IE, TWO_THIRDS, FA, FV };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_SEISMIC = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -7755,116 +8116,158 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     return out.sort((a, b) => a.x - b.x);
   }
 
-  /* ---------- seismic: the mezzanine's share of each frame (EQR / EQL) and of the bracing ----------
-     NBG's IBC Seismic workbook, case for case (src/seismic.js is tied to it value by value):
-       LATERAL — every frame line with mezzanine area in its strip (half the bay each side; an end frame half the end
-         bay): that strip of roof and sidewalls, the endwall at an end frame, and each mezzanine's slab area in the strip,
-         distributed over height (12.8.3, k from Ta). The mezzanine row is the frame's concentrated seismic load at the
-         mezzanine level. It goes on the frame columns that mezzanine's beams frame into (DM 15.1.3: a side on a rigid
-         frame is held by the frame), in proportion to the dead load each column takes from it, or equally. The roof and
-         wall rows, lumped into the roof ("alt. roof weight"), are the roof seismic dead load NBG Frame needs in place of
-         its own, with the seismic factor Cs: NBG Frame leaves the walls and the mezzanine out of its roof seismic, and
-         with a mezzanine the vertical distribution puts more of the base shear at the roof.
-       LONGITUDINAL — the whole building, for the bracing: roof psf and Cs for the bracing software, the sidewall loads
-         at the eave, and each mezzanine's force at its level. A mezzanine's force goes to its two long edges as a simply
-         supported flexible diaphragm (mezzanines that meet at one level act as one floor): an edge on a sidewall is held
-         by the building's sidewall bracing, tiered at the mezzanine level (DM 15.1.3); any other edge needs independent
-         X-bracing, designed for the larger of that force and 1 % of the (FDL + FLL) tributary to it.
-     cfg (Seismic page): { ed, Ss, S1, siteClass, risk, SDS, SD1, vertical, ignoreNDFS, split: 'dead' | 'equal',
-       types: [FSW, BSW], buildings: { [bkey]: { SW, RSW, RDL, CDL, Pf, walls: {fsw, bsw, lew, rew}, story } },
-       mezz: { [mezzanine id]: { FDL, framing: false, storage } } } — anything left out comes from the PCS / defaults. */
-  const SEIS_DEFAULTS = { SW: 2, RSW: 1, wall: 3, split: 'dead', types: ['X-Bracing', 'X-Bracing'] };
+  /* ---------- seismic: NBG Design Calcs (Seismic), section by section, then the loads into the frames and the bracing ----------
+     src/seismic.js is NBG Design Calcs' Seismic module, tied to NBG's validation examples and to a .nbgcalcs file value by
+     value (oracle/nbg_seismic.js). Here the job is typed into it as the engineer does, in its order:
+       1. Building data — PCS Box 2; the code: the PCS's, or the one chosen here, or read from the job's bracing / eScope file.
+       2. Seismic data — risk category, Ss and S1 (ASCE 7-22: SMS and SM1 from the hazard tool, on the PCS), site class,
+          roof and mezzanine diaphragms, "not detailed for seismic" in SDC A–C, "significant mezzanine exists" (the
+          vertical distribution of 12.8.3; unchecked, each weight takes Cs × W — NBG Design Calcs' default),
+          irregularities, accidental torsion.
+       3. Roof loading — frame self weight 2 psf, roof dead / collateral / snow from the PCS or the files; walls 3 psf
+          metal panel, full height.
+       4. Mezzanine loads — each mezzanine's floor dead (the design's dead load with its own beams and half its columns),
+          collateral, joists, 25 % of the live where it is storage, partitions.
+       5. Force resisting systems — the sidewalls (X-bracing unless set) and each frame line's framing (PCS Box 5).
+       6. Lateral calculations — every frame line: its tributary width, an endwall at an end frame, each mezzanine's floor
+          area in its strip. NBG Frame takes the roof seismic weight and factor, the sidewall loads at eave − 16", and each
+          mezzanine's load at its elevation, which goes on the frame columns its beams frame into (DM 15.1.3), shared by
+          the dead load each takes, or equally: EQR = +F, EQL = −F.
+       7. Longitudinal calculation — NBG Bracing takes the roof total seismic weight and factor, the sidewall loads at the
+          eave, and each mezzanine's force (× 1.1 accidental torsion on a rigid floor). That force goes to the mezzanine's
+          two long edges as a simply supported flexible diaphragm: an edge on a sidewall is that wall's bracing (EQB + / EQF −
+          at the mezzanine's frame lines, with a wall strut line at its elevation); any other edge needs independent X-bracing.
+     cfg (the Seismic page): { ed, risk, Ss, S1, SMS, SM1, siteClass, roofDiaphragm, mezzDiaphragm, ndfs, significant,
+       irregular, torsionLong, torsionLat, files: { [bkey]: { from, code, risk, Ss, S1, SMS, SM1, siteClass, roofDead,
+       collateral, snow } } (read from a dropped bracing / eScope file), buildings: { [bkey]: { SW, RDL, CDL, RSW, Pf,
+       walls: { LEW | REW | FSW | BSW: { kind, parapet, shear, top, weight, masonryTop, lowerWeight, upperWeight } },
+       sfrs: { FSW, BSW }, lines: { [label]: framing }, frameFile } }, mezz: { [id]: { FDL, FLC, FLJ, FLL, storage,
+       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride } — anything left out comes from
+       the files, the PCS, the design or NBG's defaults. */
+  const SEIS_DEFAULTS = { SW: 2, RSW: 0, wall: 3, split: 'dead', sfrs: ['X-Bracing', 'X-Bracing'] };
+  const SEIS_SYSTEMS = ['X-Bracing', 'Portal Frame', 'Portal Frame (IMF)', 'Portal Frame (SMF)', 'X-Bracing (SCBF)'];
+  const LINE_SYSTEMS = ['Rigid Frame', 'Post & Beam', 'Rigid Frame (IMF)', 'Rigid Frame (SMF)', 'Post & Beam (SCBF)', 'Fixed Base'];
   // one EQ value: building | frame line | column (grid point) | elevation
   const eqKey = (bk, frame, label, at) => `${bk}|${frame}|${label}|${(+at).toFixed(2)}`;
   const secWt = sec => (!sec ? 0 : sec.type === 'WF' ? (WF[sec.name] || {}).W || 0 : (sec.bof * sec.tof + sec.bif * sec.tif + (sec.d - sec.tof - sec.tif) * sec.tw) * 490 / 144);
+  // a value with where it came from: typed on the page, a dropped file, the PCS, the design, or NBG's default
+  const srcOf = (...tries) => { for (const [v, source] of tries) if (v != null && v !== '' && (typeof v !== 'number' || isFinite(v))) return { value: typeof v === 'string' && isFinite(+v) && source !== 'typed-text' ? +v : v, source: source === 'typed-text' ? 'typed' : source }; return { value: null, source: 'missing' }; };
   function seismicJob(ctxs, mezz, frames, cfg = {}) {
     const live = ctxs.filter(c => !c.incomplete);
     if (!live.length || !SEIS) return null;
     const F = PCS.fmtFtIn, c0 = live[0], px = c0.inp.seismic || {}, need = [], notes = [];
-    const src = (typed, pcs, def, pcsLabel = 'PCS') => (typed != null && typed !== '' ? { value: +typed, source: 'typed' } : pcs != null ? { value: pcs, source: pcsLabel } : def != null ? { value: def, source: 'default' } : { value: null, source: 'missing' });
+    const files = cfg.files || {}, bkeys = [...new Set(live.map(c => c.bkey))];
+    // a dropped bracing / eScope file belongs to one building; its project values (code, site) stand for the job
+    const fx = files[bkeys.find(k => files[k])] || {};
+    const fromFile = fx.from || 'file';
     const code = SEIS.editionOf(((c0.inp.job || {}).code || {}).text);
-    const ed = cfg.ed || code.ed;
-    if (code.note) notes.push({ level: 'warn', text: code.note });
+    const fileEd = fx.code ? SEIS.editionOf(fx.code) : null;
+    const ed = cfg.ed || (fileEd && !fileEd.assumed ? fileEd.ed : null) || code.ed;
     const inp = {
-      ed, Ss: src(cfg.Ss, px.Ss), S1: src(cfg.S1, px.S1),
-      siteClass: cfg.siteClass ? { value: cfg.siteClass, source: 'typed' } : { value: px.siteClass || 'D', source: px.siteClass ? 'PCS' : 'default' },
-      risk: cfg.risk ? { value: cfg.risk, source: 'typed' } : { value: px.risk || 'II', source: px.risk ? 'PCS' : 'default' },
-      SDS: src(cfg.SDS, null), SD1: src(cfg.SD1, null),
+      ed: { value: ed, source: cfg.ed ? 'typed' : fileEd && !fileEd.assumed ? fromFile : code.assumed ? 'default' : 'PCS' },
+      code: { pcs: ((c0.inp.job || {}).code || {}).text || null, pcsEd: code.ed, file: fx.code || null },
+      risk: srcOf([cfg.risk, 'typed-text'], [fx.risk, fromFile], [px.risk, 'PCS'], ['II', 'default']),
+      siteClass: srcOf([cfg.siteClass, 'typed-text'], [fx.siteClass, fromFile], [px.siteClass, 'PCS'], ['D', 'default']),
     };
-    if (px.siteNote && /assumed/i.test(px.siteNote) && !cfg.siteClass) notes.push({ level: 'info', text: `Site Class ${inp.siteClass.value} is "${px.siteNote}" on the PCS — ASCE 7 11.4.2: Site Class D where soil properties are not known.` });
-    if (inp.Ss.value == null || inp.S1.value == null) need.push('Ss and S1 (PCS Box 3)');
-    const d = need.length ? null : SEIS.design({ ed, Ss: inp.Ss.value, S1: inp.S1.value, siteClass: inp.siteClass.value, risk: inp.risk.value, SDS: inp.SDS.value, SD1: inp.SD1.value });
+    // Ss / S1 (and SMS / SM1 for 7-22) belong to the edition they were looked up for: the PCS's are for its own code
+    const pcsHere = code.ed === ed;
+    inp.Ss = srcOf([cfg.Ss, 'typed'], [fx.Ss, fromFile], [pcsHere ? px.Ss : null, 'PCS']);
+    inp.S1 = srcOf([cfg.S1, 'typed'], [fx.S1, fromFile], [pcsHere ? px.S1 : null, 'PCS']);
+    inp.SMS = srcOf([cfg.SMS, 'typed'], [ed === '7-22' ? fx.SMS : null, fromFile], [pcsHere ? px.Sms : null, 'PCS']);
+    inp.SM1 = srcOf([cfg.SM1, 'typed'], [ed === '7-22' ? fx.SM1 : null, fromFile], [pcsHere ? px.Sm1 : null, 'PCS']);
+    if (code.note && ed === code.ed) notes.push({ level: 'info', text: code.note });
+    if (!pcsHere && (inp.Ss.value == null || inp.S1.value == null)) need.push(`Ss and S1 for ASCE ${ed} — the PCS lists them for ASCE ${code.ed} (${px.Ss ?? '—'} / ${px.S1 ?? '—'}); drop the job's bracing or eScope file, or type them`);
+    else if (inp.Ss.value == null || inp.S1.value == null) need.push('Ss and S1 (PCS Box 3)');
+    if (ed === '7-22' && (inp.SMS.value == null || inp.SM1.value == null)) need.push('SMS and SM1 from the ASCE Hazard Tool (ASCE 7-22)');
+    if (px.siteNote && /assumed/i.test(px.siteNote) && inp.siteClass.source === 'PCS') notes.push({ level: 'info', text: `Site Class ${inp.siteClass.value} is "${px.siteNote}" on the PCS — ASCE 7 11.4.2: Site Class D where soil properties are not known.` });
+    const flags = {
+      roofDiaphragm: cfg.roofDiaphragm || 'Flexible', mezzDiaphragm: cfg.mezzDiaphragm || 'None', ndfs: cfg.ndfs !== false,
+      irregular: !!cfg.irregular, torsionLong: cfg.torsionLong !== false, torsionLat: !!cfg.torsionLat,
+    };
+    const d = need.length ? null : SEIS.design({ ed, Ss: inp.Ss.value, S1: inp.S1.value, siteClass: inp.siteClass.value, risk: inp.risk.value, SMS: inp.SMS.value, SM1: inp.SM1.value });
     if (d && !d.ok) d.flags.forEach(t => need.push(t));
-    // the seismic weight (framing) and each frame column's share of the EQ load come from the sized members: a mark with
-    // no section leaves both unknown, so the page waits rather than send a frame's whole load to one column
+    // the seismic weight of each mezzanine's framing and each frame column's share of the EQ load come from the sized
+    // members: a mark with no section leaves both unknown, so the page waits rather than send a frame's load to one column
     const noSec = [...new Set(mezz.filter(r => r && !r.incomplete).flatMap(r => (r.marks || []).filter(mk => !mk.check).map(mk => mk.mark)))];
     const nanF = (frames || []).some(f => (f.entries || []).some(e => (e.parts || []).some(p => !isFinite(p.D))));
     if (noSec.length || nanF) need.push(`${noSec.length ? noSec.join(', ') : 'every beam'} sized on the Design page — with no section the framing weight and each frame column's share of the mezzanine EQ load are unknown`);
-    const out = { ok: false, need, notes, inputs: inp, design: d, buildings: [], cfg };
-    // per building
-    [...new Set(live.map(c => c.bkey))].forEach(bk => {
-      const cs = live.filter(c => c.bkey === bk), b = cs[0].inp.building, geo = b.geo || {}, rl = b.roofLoads || {}, bo = (cfg.buildings || {})[bk] || {};
+    const out = { ok: false, need, notes, inputs: inp, flags, design: d, buildings: [], cfg };
+    bkeys.forEach(bk => {
+      const cs = live.filter(c => c.bkey === bk), b = cs[0].inp.building, geo = b.geo || {}, rl = b.roofLoads || {}, bo = (cfg.buildings || {})[bk] || {}, bf = files[bk] || {};
       const name = cs[0].inp.mezz.building || 'Building', W = b.width, Lg = b.length;
       const eF = geo.eaveFSW ?? b.eave, eB = geo.eaveBSW ?? eF;
-      // the workbook's convention: the BSW is the high / "left" eave, slope and ridge measured from it
-      let g, geoNote = null;
-      if ((geo.profile === 'Gable' || (!geo.profile && b.ridge > 0)) && b.ridge > 0 && b.ridge < W) g = { width: W, length: Lg, rooftype: 'Gable', dtr: W - b.ridge, slope: geo.slopeBSW ?? geo.slopeFSW ?? 1, leh: eF, heh: eB };
-      else {
-        const lo = Math.min(eF, eB), hi = Math.max(eF, eB);
-        g = { width: W, length: Lg, rooftype: 'Single Slope', dtr: 0, slope: geo.slopeFSW ?? geo.slopeBSW ?? ((hi - lo) * 12 / W), leh: lo, heh: hi };
-        if (eF > eB) geoNote = 'High eave on the FSW side: the sidewall rows are labelled by low / high eave.';
-      }
-      if (g.rooftype === 'Gable' && Math.abs(b.ridge - W / 2) > 0.5) geoNote = `Unequal gable: ridge ${F(b.ridge)} on the PCS taken from the FSW (${F(g.dtr)} from the BSW) — confirm the side.`;
+      // 1. building data as NBG takes it: the ridge measured from the BSW, the slope on the BSW side
+      let bd, geoNote = null;
+      if ((geo.profile === 'Gable' || (!geo.profile && b.ridge > 0)) && b.ridge > 0 && b.ridge < W) bd = { ed, type: 'Gable', width: W, length: Lg, dtr: W - b.ridge, slope: geo.slopeBSW ?? geo.slopeFSW ?? 1, eaveFSW: eF, eaveBSW: eB };
+      else bd = { ed, type: 'Single Slope', width: W, length: Lg, dtr: 0, slope: 0, eaveFSW: eF, eaveBSW: eB };
+      if (bd.type === 'Gable' && Math.abs(b.ridge - W / 2) > 0.5) geoNote = `Unequal gable: ridge ${F(b.ridge)} from the FSW on the PCS (${F(bd.dtr)} from the BSW) — confirm the side.`;
       if (!(eF > 0)) need.push(`${name}: eave height (PCS Box 2)`);
-      const ff = bo.frameFile || {};   // roof loads NBG Frame uses, read off a dropped frame file
+      const g = eF > 0 ? SEIS.geometry(bd) : null;
+      // 3. roof loading
+      const ff = bo.frameFile || {}, bff = bf.from ? bf : fx;
       const roof = {
-        SW: src(bo.SW, null, SEIS_DEFAULTS.SW), RSW: src(bo.RSW, null, SEIS_DEFAULTS.RSW),
-        RDL: src(bo.RDL, rl.dead && rl.dead.value != null ? rl.dead.value : ff.roofDead ?? null, null, rl.dead && rl.dead.value != null ? 'PCS' : 'frame file'),
-        CDL: src(bo.CDL, rl.coll1 ?? ff.roofCollateral ?? null, 0, rl.coll1 != null ? 'PCS' : 'frame file'),
-        Pf: src(bo.Pf, rl.snow && rl.snow.value != null ? rl.snow.value : null, 0),
+        SW: srcOf([bo.SW, 'typed'], [SEIS_DEFAULTS.SW, 'default']),
+        RDL: srcOf([bo.RDL, 'typed'], [bff.roofDead, bff.from || fromFile], [rl.dead && rl.dead.value, 'PCS'], [ff.roofDead, 'frame file']),
+        CDL: srcOf([bo.CDL, 'typed'], [bff.collateral, bff.from || fromFile], [rl.coll1, 'PCS'], [ff.roofCollateral, 'frame file'], [0, 'default']),
+        RSW: srcOf([bo.RSW, 'typed'], [SEIS_DEFAULTS.RSW, 'default']),
+        Pf: srcOf([bo.Pf, 'typed'], [bff.snow, bff.from || fromFile], [rl.snow && rl.snow.value, 'PCS'], [0, 'default']),
       };
-      if (roof.RDL.value == null) need.push(`${name}: roof dead load — "Per Seller" on the PCS; drop the frame files (NBG Frame's roof dead is read from them) or type it`);
-      if (rl.snow && rl.snow.override && roof.Pf.value > 30 && roof.Pf.source === 'PCS') notes.push({ level: 'warn', text: `${name}: roof snow ${roof.Pf.value} psf* (user override on the PCS) is taken as the flat-roof snow — over 30 psf, 20 % of it is in the seismic weight (ASCE 7 12.7.2). Confirm.` });
-      const walls = {}; ['fsw', 'bsw', 'lew', 'rew'].forEach(k => { walls[k] = src((bo.walls || {})[k], null, SEIS_DEFAULTS.wall); });
-      // mezzanines in this building: seismic weight per sq ft (12.7.2) and slab footprint
+      if (roof.RDL.value == null) need.push(`${name}: roof dead load — "Per Seller" on the PCS; drop the bracing or frame files (their roof dead is read) or type it`);
+      if (rl.snow && rl.snow.override && roof.Pf.source === 'PCS' && roof.Pf.value > 30) notes.push({ level: 'warn', text: `${name}: roof snow ${roof.Pf.value} psf* (user override on the PCS) is taken as the flat-roof snow. Confirm.` });
+      // walls: full height metal panel unless set (an endwall's outline follows the roof; a sidewall runs to its eave)
+      const wallIn = (k, top) => { const t = (bo.walls || {})[k] || {}, n = (v, dflt) => (v != null && v !== '' && isFinite(+v) ? +v : dflt);
+        return { kind: t.kind === 'partial' ? 'partial' : 'full', parapet: !!t.parapet, shear: !!t.shear, top: t.parapet || t.kind === 'partial' ? n(t.top, top) : top, weight: n(t.weight, SEIS_DEFAULTS.wall),
+          masonryTop: n(t.masonryTop, null), lowerWeight: n(t.lowerWeight, null), upperWeight: n(t.upperWeight, SEIS_DEFAULTS.wall), typed: Object.keys(t).length > 0 }; };
+      const walls = g ? { LEW: wallIn('LEW', g.mrh), REW: wallIn('REW', g.mrh), FSW: wallIn('FSW', g.eF), BSW: wallIn('BSW', g.eB) } : {};
+      Object.entries(walls).forEach(([k, w]) => { if (w.kind === 'partial' && (w.masonryTop == null || w.lowerWeight == null)) need.push(`${name}: ${k} partial height hardwall — top of masonry and its weight`); });
+      // 4. mezzanine loads
       const mz = cs.map(c => {
         const r = mezz[c.index], mo = (cfg.mezz || {})[c.id] || {};
         const area = c.mz.length * c.mz.width;
         // framing self weight from the design: every beam of this mezzanine, and half its columns
         const bw = c.lay.beams.filter(bm => !bm.absorbed).reduce((a, bm) => { const mk = c.markOf(bm.id); return a + (mk && mk.sec ? secWt(mk.sec) * bm.span : 0); }, 0);
         const cw = r && r.colFinal && r.colLen ? (r.colFinal.props || {}).W * r.colLen * r.columns.length / 2 : 0;
-        // a mark with no section or a column not sized: the framing weight is not known — not the half that is
         const unk = r && ((r.marks || []).filter(mk => !mk.check).map(mk => mk.mark));
         const framing = mo.framing === false ? 0 : unk && unk.length ? null : (bw + cw) / area;
-        const FDL = src(mo.FDL, val(c.inp.loads.dead), null, 'design');
-        const storage = mo.storage != null ? !!mo.storage : c.inp.mezz.use === 'Storage';
-        const m = { id: c.id, index: c.index, elev: c.A, FDL: FDL.value, FDLsrc: FDL.source, FLC: val(c.inp.loads.coll) || 0, FLJ: val(c.inp.loads.joistWt) ?? DEFAULTS.joistWt,
-          FLL: val(c.inp.loads.live) || 0, storage, FLP: val(c.inp.loads.partition) || 0, framing, framingLb: framing == null ? null : bw + cw, framingWaits: framing == null ? unk : null, area,
-          x0: c.mz.startLEW, x1: c.mz.startLEW + c.mz.length, y0: c.mz.startFSW, y1: c.mz.startFSW + c.mz.width, useText: c.inp.mezz.use || null };
-        m.psf = m.framing == null ? null : m.FDL + m.FLC + m.FLJ + (storage ? 0.25 * m.FLL : 0) + m.FLP + m.framing;
+        const dead = val(c.inp.loads.dead);
+        const FDL = mo.FDL != null && mo.FDL !== '' ? { value: +mo.FDL, source: 'typed' } : framing == null ? { value: null, source: 'missing' } : { value: dead + framing, source: 'design' };
+        const n = (v, dflt) => (v != null && v !== '' && isFinite(+v) ? +v : dflt);
+        const FLP0 = val(c.inp.loads.partition) || 0;
+        const m = { id: c.id, index: c.index, elev: c.A, FDL: FDL.value, FDLsrc: FDL.source, dead, framing, framingLb: framing == null ? null : bw + cw, framingWaits: framing == null ? unk : null,
+          FLC: n(mo.FLC, val(c.inp.loads.coll) || 0), FLJ: n(mo.FLJ, val(c.inp.loads.joistWt) ?? DEFAULTS.joistWt), FLL: n(mo.FLL, val(c.inp.loads.live) || 0),
+          storage: mo.storage != null ? !!mo.storage : c.inp.mezz.use === 'Storage', partition: mo.partition != null ? !!mo.partition : FLP0 > 0, FLP: n(mo.FLP, FLP0), area,
+          x0: c.mz.startLEW, x1: c.mz.startLEW + c.mz.length, y0: c.mz.startFSW, y1: c.mz.startFSW + c.mz.width, useText: c.inp.mezz.use || null,
+          typed: Object.keys(mo).filter(k => k !== 'framing') };
+        m.psf = m.FDL == null ? null : SEIS.mezzPsf(m);
         return m;
       });
-      const story = bo.story != null ? !!bo.story : mz.reduce((a, m) => a + m.area, 0) > (W * Lg) / 3;
-      const bOut = { bkey: bk, name, g, geoNote, roof, walls, mezz: mz, story, frames: [], long: null, braceLines: [] };
-      out.buildings.push(bOut);
-      if (need.length || !d || !d.ok) return;
-      // the mezzanine floor as a diaphragm: flexible (the workbook's default; loads by tributary area) or rigid (ASCE 7
-      // 12.3.1 — a concrete-filled deck with span / depth ≤ 3 may be): accidental torsion 1.10 on the bracing's
-      // mezzanine loads, and the least R of the frames
-      const rigid = cfg.diaphragm === 'rigid';
-      const j = { d, g, roof: { SW: roof.SW.value, RSW: roof.RSW.value, RDL: roof.RDL.value, CDL: roof.CDL.value, Pf: roof.Pf.value, P: 0 },
-        walls: { fsw: walls.fsw.value, bsw: walls.bsw.value, lew: walls.lew.value, rew: walls.rew.value }, vertical: cfg.vertical !== false, ignoreNDFS: !!cfg.ignoreNDFS, story, rigid };
-      // least R of the building's frames (Risk Category III / IV)
+      // "significant mezzanine exists": the vertical distribution (12.8.3). Unchecked unless set, as in NBG Design Calcs —
+      // each weight then takes Cs × W; a floor over a third of the building is a story (IBC 505.2.1): said, not set
+      const mzArea = mz.reduce((a, m) => a + m.area, 0), sigHint = mzArea > (W * Lg) / 3;
+      const significant = !!cfg.significant;
+      // 5. force resisting systems
       const grid = cs[0].grid, xs = grid.xs, nF = xs.length;
-      const typeAt = i => SEIS.frameType(((b.frames || []).find(fr => i + 1 >= fr.from && i + 1 <= fr.to) || {}).type);
-      j.Rmin = Math.min(...xs.map((x, i) => SEIS.system(typeAt(i), d.SDC, j.ignoreNDFS).R));
+      const pcsType = i => SEIS.frameType(((b.frames || []).find(fr => i + 1 >= fr.from && i + 1 <= fr.to) || {}).type);
+      const lineSys = i => ((bo.lines || {})[grid.xLabel(xs[i])]) || pcsType(i);
+      const sfrs = { FSW: (bo.sfrs || {}).FSW || SEIS_DEFAULTS.sfrs[0], BSW: (bo.sfrs || {}).BSW || SEIS_DEFAULTS.sfrs[1], lines: xs.map((x, i) => lineSys(i)) };
+      const bOut = { bkey: bk, name, bd, g, geoNote, roof, walls, mezz: mz, significant, sigHint, mzArea, sfrs, frames: [], lines: [], long: null, braceLines: [], file: bf.from ? bf : null };
+      out.buildings.push(bOut);
+      if (need.length || !d || !d.ok || !g) return;
+      const P = { building: bd, seismic: { ed, risk: inp.risk.value, Ss: inp.Ss.value, S1: inp.S1.value, SMS: inp.SMS.value, SM1: inp.SM1.value, siteClass: inp.siteClass.value, ...flags, significant },
+        roof: { SW: roof.SW.value, RDL: roof.RDL.value, CDL: roof.CDL.value, RSW: roof.RSW.value, Pf: roof.Pf.value }, walls,
+        mezz: mz.map(m => ({ id: m.id, elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, partition: m.partition, FLP: m.FLP })), cranes: [], sfrs };
+      const J = SEIS.project(P);
+      bOut.P = P;
+      // 6. lateral calculations: every frame line (its strip: half the bay each side, an end frame half the end bay)
       xs.forEach((x, i) => {
         const lo = i === 0 ? xs[0] : (xs[i - 1] + x) / 2, hi = i === nF - 1 ? xs[nF - 1] : (x + xs[i + 1]) / 2;
         const inStrip = mz.map(m => ({ m, a: Math.max(0, Math.min(hi, m.x1) - Math.max(lo, m.x0)) * (m.y1 - m.y0) })).filter(o => o.a > 0.5);
-        if (!inStrip.length) return;
         const at = i === 0 ? 'lew' : i === nF - 1 ? 'rew' : 'interior';
-        const lat = SEIS.lateral(j, { label: grid.xLabel(x), type: typeAt(i), bay: hi - lo, at, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: 0, elev: o.m.elev, FDL: o.m.FDL, FLC: o.m.FLC, FLJ: o.m.FLJ, FLL: o.m.FLL, storage: o.m.storage, FLP: o.m.FLP, framing: o.m.framing })) });
-        if (lat.limit) notes.push({ level: 'stop', text: `Frame ${grid.xLabel(x)} (${name}): ${lat.limit}` });
+        const bayType = { lew: 'Left Endwall', rew: 'Right Endwall', interior: 'Interior' }[at];
+        const lat = SEIS.frameLine(J, { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: hi - lo, bayType, roofConc: 0, fswTrib: hi - lo, bswTrib: hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: 0 })) });
+        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
+        if (!inStrip.length) return;
+        if (lat.limit) notes.push({ level: 'warn', text: `Frame ${grid.xLabel(x)} (${name}): ${lat.limit}` });
         // the frame columns each mezzanine frames into on this line, and its share of the frame's mezzanine load
         const fe = frames.find(f => f.bkey === bk && Math.abs(f.x - x) < 0.05);
         const eqs = [], loose = [];
@@ -7897,13 +8300,12 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         });
         eqs.length = 0;
         (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
-        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, type: typeAt(i), lat, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
-        if (fe) fe.seismic = { roofPsf: lat.altRoof, roofPsfSplit: lat.roofOverride, Cs: lat.cs.Cs, R: lat.R, V: lat.frameV, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
+        if (fe) fe.seismic = { roofPsf: lat.frame.roofPsf, altRoofPsf: lat.frame.altRoofPsf, Cs: lat.Cs, R: lat.R, V: lat.V, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
       });
-      // longitudinal: the bracing
-      const types = cfg.types || SEIS_DEFAULTS.types;
-      const long = SEIS.longitudinal(j, { types, torsion: rigid ? 1.1 : 1, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0, elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, FLP: m.FLP, framing: m.framing })) });
+      // 7. longitudinal: the bracing
+      const long = SEIS.bracing(J, { roofConc: 0, fswTrib: Lg, bswTrib: Lg, partQty: 0, mezz: mz.map(m => ({ id: m.id, area: m.area, conc: 0 })) });
       bOut.long = long;
       // each mezzanine's longitudinal force to the lines along the length that hold it. The floor is a flexible
       // diaphragm spanning across the building between its edges; where mezzanines meet at one level it spans across
@@ -7919,7 +8321,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         lines.set(k, L);
       };
       const force = id => (long.mezzLoads.find(q => q.id === id) || { F: 0 }).F;
-      const gravity = m => ((m.FDL + m.FLC + m.FLJ + m.FLP + m.framing) + m.FLL) * m.area / 1000;   // FDL + FLL, kips
+      const gravity = m => ((m.FDL + m.FLC + m.FLJ + (m.partition ? m.FLP : 0)) + m.FLL) * m.area / 1000;   // FDL + FLL, kips
       for (let i = 0; i + 1 < xsCut.length; i++) {
         const xa = xsCut[i], xb = xsCut[i + 1], here = mz.filter(m => m.x0 <= xa + 0.01 && m.x1 >= xb - 0.01);
         // floors in this piece: mezzanines at one level whose long edges touch
@@ -7947,11 +8349,11 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
       [...lines.values()].sort((a, b) => a.y - b.y).forEach(L => {
         const onWall = L.y < 0.6 ? 'FSW' : L.y > W - 0.6 ? 'BSW' : null;
         const lab = onWall ? `${onWall} sidewall` : `${grid.yLabel(L.y) ? 'line ' + grid.yLabel(L.y) + ', ' : ''}${F(L.y)} from the FSW`;
-        bOut.braceLines.push({ mezz: [...L.mezz], y: L.y, segs: L.segs, edge: lab, at: L.at,
-          element: onWall ? `${onWall} sidewall bracing, tiered at the mezzanine level (DM 15.1.3)` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
+        bOut.braceLines.push({ mezz: [...L.mezz], y: L.y, segs: L.segs, edge: lab, at: L.at, wall: onWall, x0: Math.min(...L.segs.map(s => s[0])), x1: Math.max(...L.segs.map(s => s[1])),
+          element: onWall ? `${onWall} sidewall bracing — EQB / EQF at the mezzanine level, wall strut line at ${F(L.at)}` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
           independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
-      bOut.workbook = seismicSteps({ inp, d, ed, code, j, g, roof, walls, mz, story, rigid, types, name, quote: (c0.inp.job || {}).quote }, bOut);
+      bOut.workbook = seismicSteps({ inp, d, ed, code, g, bd, roof, walls, mz, significant, flags, sfrs, name, quote: (c0.inp.job || {}).quote }, bOut);
     });
     out.ok = !need.length && !!d && d.ok;
     return out;
@@ -7959,7 +8361,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 
   /* ---------- the IBC Seismic workbook, typed in: one copy per frame line (its lateral sheet) with the building's
      longitudinal sheet. Every entry is a workbook input cell, as the engineer types them; `read` is what the workbook
-     then shows, which the tool's own numbers must equal (oracle/fill_check.py). ---------- */
+     then shows, which the tool's own numbers must equal (oracle/fill_check.py). The workbook stops at IBC 2021. ---------- */
   const OCC = { I: 'Low Hazard', II: 'Standard Buildings', III: 'Substantial Hazard', IV: 'Essential Facilities' };
   const AT = { lew: 1, rew: 2, interior: 3 };
   function seismicSteps(q, bOut) {
@@ -7968,55 +8370,55 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const notes = [];
     if (!choice) notes.push(`ASCE ${q.ed}: the workbook (rev. 2021.01.20) has no such code — not typed.`);
     if (q.mz.length > 2) notes.push(`${q.mz.length} mezzanines in ${q.name}: the workbook takes two — only ${q.mz[0].id} and ${q.mz[1].id} are typed.`);
-    const slot = q.mz.slice(0, 2);
+    const slot = q.mz.slice(0, 2), w = q.walls;
     const S = (sheet, cell, label, value, show) => ({ sheet, cell, label, value, show: show != null ? show : value == null ? '(blank)' : typeof value === 'boolean' ? (value ? 'checked' : 'unchecked') : String(value) });
     const I = 'Input Data', LAT = 'Lateral Calcs. (1)', LNG = 'Longitudinal Calcs.';
     const input = [
       S(I, 'B5', 'Building', q.name),
       S(I, 'B7', 'Nature of Occupancy', OCC[q.d.risk] || 'Standard Buildings'),
-      S(I, 'B8', 'Gable/Single Slope', q.g.rooftype),
-      S(I, 'B9', 'Building Width (ft)', n3(q.g.width)), S(I, 'B10', 'Building Length (ft)', n3(q.g.length)),
-      S(I, 'B11', 'Distance to Ridge, from BSW (ft)', n3(q.g.dtr)), S(I, 'B12', 'Roof Slope, s:12', n3(q.g.slope)),
-      S(I, 'B13', 'Low Eave Height, FSW (ft)', n3(q.g.leh)), S(I, 'B14', 'High Eave Height, BSW (ft)', n3(q.g.heh)),
-      S(I, 'B18', 'Roof Level Diaphragm', 'Flexible'),
-      S(I, 'B19', 'Mezzanine Level Diaphragm (None and Flexible give the same results)', q.rigid ? 'Rigid' : 'None'),
-      S(I, 'B21', 'Vertical Distribution Required', q.j.vertical !== false),
-      S(I, 'B22', 'Seismic Irregularities Exist', false),
-      S(I, 'F16', 'Ignore "Steel Systems Not Detailed for Seismic"', !!q.j.ignoreNDFS),
+      S(I, 'B8', 'Gable/Single Slope', q.bd.type),
+      S(I, 'B9', 'Building Width (ft)', n3(q.bd.width)), S(I, 'B10', 'Building Length (ft)', n3(q.bd.length)),
+      S(I, 'B11', 'Distance to Ridge, from BSW (ft)', n3(q.bd.dtr)), S(I, 'B12', 'Roof Slope, s:12', n3(q.g.slopeBSW)),
+      S(I, 'B13', 'Low Eave Height, FSW (ft)', n3(q.bd.eaveFSW)), S(I, 'B14', 'High Eave Height, BSW (ft)', n3(q.bd.eaveBSW)),
+      S(I, 'B18', 'Roof Level Diaphragm', q.flags.roofDiaphragm),
+      S(I, 'B19', 'Mezzanine Level Diaphragm', q.flags.mezzDiaphragm),
+      S(I, 'B21', 'Vertical Distribution Required (NBG Design Calcs: Significant mezzanine exists)', !!q.significant),
+      S(I, 'B22', 'Seismic Irregularities Exist', !!q.flags.irregular),
+      S(I, 'F16', 'Ignore "Steel Systems Not Detailed for Seismic"', !q.flags.ndfs),
       S(I, 'B26', 'Ss', n3(q.d.Ss)), S(I, 'B27', 'S1', n3(q.d.S1)), S(I, 'B29', 'Site Classification', q.d.siteClass),
       S(I, 'B33', 'Lateral Frame Self weight, SW (psf)', n3(q.roof.SW.value)), S(I, 'B34', 'Roof Dead Load, RDL (psf)', n3(q.roof.RDL.value)),
       S(I, 'B35', 'Roof Collateral Load, CDL (psf)', n3(q.roof.CDL.value)), S(I, 'B36', 'Roof Self Weight — bracing, beams etc. (psf)', n3(q.roof.RSW.value)),
       S(I, 'B37', 'Roof Snow, Pf (psf)', n3(q.roof.Pf.value)),
-      S(I, 'B47', 'Left EW Wall Weight (psf)', n3(q.walls.lew.value)), S(I, 'F47', 'Right EW Wall Weight (psf)', n3(q.walls.rew.value)),
-      S(I, 'B59', 'Front SW Wall Weight (psf)', n3(q.walls.fsw.value)), S(I, 'F59', 'Back SW Wall Weight (psf)', n3(q.walls.bsw.value)),
+      S(I, 'B47', 'Left EW Wall Weight (psf)', n3(w.LEW.weight)), S(I, 'F47', 'Right EW Wall Weight (psf)', n3(w.REW.weight)),
+      S(I, 'B59', 'Front SW Wall Weight (psf)', n3(w.FSW.weight)), S(I, 'F59', 'Back SW Wall Weight (psf)', n3(w.BSW.weight)),
     ];
-    [['B', 'Misc. B36'], ['F', 'Misc. B38']].forEach(([col], k) => {
+    [['B'], ['F']].forEach(([col], k) => {
       const m = slot[k], tag = `Mezzanine #${k + 1}${m ? ' (' + m.id + ')' : ''}`;
       input.push(S(I, col + '89', `${tag} Elevation (ft)`, m ? n3(m.elev) : null),
-        S(I, col + '90', `${tag} Floor Dead (psf)${m && m.framing ? ` — ${n3(m.FDL)} + ${n3(m.framing)} framing` : ''}`, m ? n3(m.FDL + m.framing) : null),
+        S(I, col + '90', `${tag} Floor Dead (psf)${m && m.framing && m.FDLsrc === 'design' ? ` — ${n3(m.dead)} + ${n3(m.framing)} framing` : ''}`, m ? n3(m.FDL) : null),
         S(I, col + '91', `${tag} Floor Collateral (psf)`, m ? n3(m.FLC) : null), S(I, col + '92', `${tag} Estimated Joist weight (psf)`, m ? n3(m.FLJ) : null),
-        S(I, col + '94', `${tag} Floor Live (psf)`, m ? n3(m.FLL) : null), S(I, col + '95', `${tag} Partition (psf)`, m ? n3(m.FLP) : null),
+        S(I, col + '94', `${tag} Floor Live (psf)`, m ? n3(m.FLL) : null), S(I, col + '95', `${tag} Partition (psf)`, m && m.partition ? n3(m.FLP) : 0),
         S('Miscellaneous', k ? 'B38' : 'B36', `${tag} designed for storage (check box)`, !!(m && m.storage)));
     });
     if (choice) input.push(S('Seismic Design Calcs.', 'D11', 'Building code (drop-down)', choice, `${choice} — ASCE ${q.ed}`));
     const long = [
-      S(LNG, 'B8', 'Low SW (FSW) Force Resisting System', q.types[0]), S(LNG, 'B9', 'High SW (BSW) Force Resisting System', q.types[1]),
+      S(LNG, 'B8', 'Low SW (FSW) Force Resisting System', q.sfrs.FSW), S(LNG, 'B9', 'High SW (BSW) Force Resisting System', q.sfrs.BSW),
       ...slot.flatMap((m, k) => [S(LNG, k ? 'B30' : 'B27', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(m.area) : 0), S(LNG, k ? 'B31' : 'B28', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
     ];
     const G = bOut.long, gm = id => (G && G.mezzLoads.find(x => x.id === id)) || null;
-    const longRead = G ? [{ sheet: LNG, cell: 'C58', label: 'Cs', expect: n3(G.cs.Cs) }, { sheet: LNG, cell: 'H79', label: 'Bracing base shear (kips)', expect: n3(G.bracingV) }, { sheet: LNG, cell: 'H66', label: 'Roof seismic dead load for the bracing (psf)', expect: n3(G.roofPsf) }]
+    const longRead = G ? [{ sheet: LNG, cell: 'C58', label: 'Cs', expect: n3(G.Cs) }, { sheet: LNG, cell: 'H79', label: 'Bracing base shear (kips)', expect: n3(G.V) }, { sheet: LNG, cell: 'H66', label: 'Roof seismic dead load for the bracing (psf)', expect: n3(G.bracing.totalPsf) }]
       .concat(slot.map((m, k) => m && gm(m.id) ? { sheet: LNG, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load (kips)`, expect: n3(gm(m.id).F) } : null).filter(Boolean)) : [];
     const frames = bOut.frames.map(fr => {
       const L = fr.lat, ml = id => L.mezzLoads.find(x => x.id === id);
       const steps = [
-        S(LAT, 'B9', 'Seismic Force Resisting System', SEIS.frameType(fr.type) || 'Rigid Frame'),
+        S(LAT, 'B9', 'Seismic Force Resisting System', fr.type || 'Rigid Frame'),
         S(LAT, 'B18', 'Bay Width — this frame\'s strip (ft)', n3(fr.bay)),
         S(LAT, 'Q1', 'Frame Located at Bay (option buttons)', AT[fr.at], ({ lew: '1 — Left Endwall', rew: '2 — Right Endwall', interior: '3 — Interior Frame' })[fr.at]),
-        S(LAT, 'B30', 'Is Mez #1 or #2 Considered a Story?', q.story ? 'YES' : 'NO'),
+        S(LAT, 'B30', 'Is Mez #1 or #2 Considered a Story?', q.significant ? 'YES' : 'NO'),
         ...slot.flatMap((m, k) => [S(LAT, k ? 'B34' : 'B31', `Loading Area — Mezzanine #${k + 1} (sq ft)`, m ? n3(fr.areas[m.id] || 0) : 0), S(LAT, k ? 'B35' : 'B32', `Concentrated Loads — Mezzanine #${k + 1} (kips)`, 0)]),
       ];
-      const read = [{ sheet: LAT, cell: 'C62', label: 'Cs', expect: n3(L.cs.Cs) }, { sheet: LAT, cell: 'H79', label: 'Frame base shear (kips)', expect: n3(L.frameV) },
-        { sheet: LAT, cell: 'G64', label: 'Alt. roof seismic weight (psf)', expect: n3(L.altRoof) }]
+      const read = [{ sheet: LAT, cell: 'C62', label: 'Cs', expect: n3(L.Cs) }, { sheet: LAT, cell: 'H79', label: 'Frame base shear (kips)', expect: n3(L.V) },
+        { sheet: LAT, cell: 'G64', label: 'Alt. roof seismic weight (psf)', expect: n3(L.frame.altRoofPsf) }]
         .concat(slot.map((m, k) => m && ml(m.id) ? { sheet: LAT, cell: k ? 'G78' : 'G77', label: `Mezzanine #${k + 1} seismic load at this frame (kips)`, expect: n3(ml(m.id).F) } : null).filter(Boolean));
       return { label: fr.label, at: fr.at, steps, read };
     });
@@ -8317,7 +8719,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, seismicJob, eqKey, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, seismicJob, eqKey, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -8327,7 +8729,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 /* Mezzanine Quick-Design — browser UI (Astra skin). */
 (function () {
   'use strict';
-  const PCS = window.MZ_PCS, FF = window.MZ_FRAMEFILE, XLS = window.MZ_XLS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
+  const PCS = window.MZ_PCS, FF = window.MZ_FRAMEFILE, BRF = window.MZ_BRACING, XLS = window.MZ_XLS, RUN = window.MZ_RUN, EX = window.MZ_EXTRACT, DESIGN = window.MZ_DESIGN, WF = window.MZ_WF, PLAN = window.MZ_PLAN, M3 = window.MZ_3D, LAYOUT = window.MZ_LAYOUT;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -8644,7 +9046,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 
   async function loadFile(file) {
     $('#dropTitle').textContent = file.name; state.fileName = file.name;
-    state.nbg.files = [];
+    state.nbg.files = []; state.bracing = {};
     $('#dropSub').textContent = 'Reading…';
     status('Reading PCS', 'warn');
     prog(0.1);
@@ -10576,82 +10978,103 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
 
   // ---------- seismic: the mezzanine on the frames (EQR / EQL) and the bracing, as the IBC Seismic workbook ----------
   const SEIS_TYPE = t => (window.MZ_SEISMIC && window.MZ_SEISMIC.frameType(t)) || 'Rigid Frame';
+  // ---------- the Seismic page: NBG Design Calcs (Seismic), section by section, then the loads into the files ----------
+  const CODE_OPTS = [['7-16', 'ASCE 7-16 — IBC 2018 / 2021'], ['7-22', 'ASCE 7-22 — IBC 2024'], ['7-10', 'ASCE 7-10 — IBC 2012 / 2015'], ['7-05', 'ASCE 7-05 — IBC 2006 / 2009']];
+  const RISK_OPTS = [['I', 'I-Low Hazard'], ['II', 'II-Standard Buildings'], ['III', 'III-Substantial Hazard'], ['IV', 'IV-Essential Facilities']];
+  const WALLS = [['LEW', 'Left EW'], ['REW', 'Right EW'], ['FSW', 'Front SW'], ['BSW', 'Back SW']];
   function renderSeismic() {
     const sj = state.job && state.job.seismic, box = $('#seisInputs');
     if (!box) return;
     const clear = () => ['#seisFrames', '#seisApply', '#seisBracing', '#seisFlags', '#seisHow'].forEach(q => { $(q).innerHTML = ''; });
     if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; clear(); return; }
-    const cfg = state.seis, d = sj.design, F2 = v => f(v, 2), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
-    const num = (key, o, step = 'any', w = '') => `<input class="seis-in ${o.value == null ? 'need' : ''}" data-seis="${esc(key)}" value="${o.value == null ? '' : +(+o.value).toFixed(4)}" inputmode="decimal" step="${step}" ${w}>`;
+    const cfg = state.seis, d = sj.design, F2 = v => f(v, 2), F3 = v => f(v, 3), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
+    const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-seis="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
     const sel = (key, val, opts) => `<select data-seis="${esc(key)}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
-    const chk = (key, on, label) => `<label class="seis-chk"><input type="checkbox" data-seis="${esc(key)}" ${on ? 'checked' : ''}> ${label}</label>`;
-    const cell = c => `<small class="wb-cell">${esc(c)}</small>`;
-    const I = sj.inputs, live = sj.ok, many = sj.buildings.length > 1;
-    // status
+    const chk = (key, on, label, dis) => `<label class="seis-chk"><input type="checkbox" data-seis="${esc(key)}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}> <span>${label}</span></label>`;
+    const I = sj.inputs, FL = sj.flags, live = sj.ok, many = sj.buildings.length > 1;
     const notes = (sj.notes || []).filter(n => n.level !== 'info').map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('');
     const infos = (sj.notes || []).filter(n => n.level === 'info');
-    // entries kept for this quote from before: said, with a way to start over
-    const back = state.seisRestored ? `<div class="seis-msg info">Your Seismic entries for this quote from ${esc(String(state.seisRestored))} are back (typed values, EQ scale and typed EQ loads). <button class="btn-ghost" id="seisForget" type="button">Clear them</button></div>` : '';
+    const back = state.seisRestored ? `<div class="seis-msg info">Your Seismic entries for this quote from ${esc(String(state.seisRestored))} are back. <button class="btn-ghost" id="seisForget" type="button">Clear them</button></div>` : '';
     $('#seisStatus').innerHTML = back + (sj.need.length ? `<div class="seis-msg warn"><b>Needs input:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
-      + (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span><span>SDS <b>${f(d.SDS, 4)}</b></span><span>SD1 <b>${f(d.SD1, 4)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${f(d.Ie, 2)}</b></span><span>Risk Category <b>${esc(d.risk)}</b></span>${d.Fa != null ? `<span>Fa ${f(d.Fa, 3)} · Fv ${f(d.Fv, 3)}</span>` : ''}</div>` : '') + notes;
+      + (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span>${d.Fa != null ? `<span>Fa <b>${F3(d.Fa)}</b> · Fv <b>${F2(d.Fv)}</b></span>` : ''}<span>SMS <b>${F3(d.SMS)}</b> · SM1 <b>${F3(d.SM1)}</b></span><span>SDS <b>${F3(d.SDS)}</b> · SD1 <b>${F3(d.SD1)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${F2(d.Ie)}</b></span><span>ρ <b>${F2(d.rho)}</b></span></div>` : '') + notes;
 
-    // ---- steps 1–3: Input Data ----
-    const site = `<div class="seis-group"><h4><span class="step-no sm">1</span>Code and site <small class="sub-n">Input Data B26–B29 · Seismic Design Calcs. D11</small></h4><div class="seis-grid">
-        <label><span class="lab">ASCE 7 ${cell('code drop-down')}</span>${sel('ed', I.ed, [['7-05', '7-05 (IBC 2006/09)'], ['7-10', '7-10 (IBC 2012/15)'], ['7-16', '7-16 (IBC 2018/21)'], ['7-22', '7-22 (IBC 2024)']])}</label>
-        <label><span class="lab">Ss ${srcTag(I.Ss)} ${cell('B26')}</span>${num('Ss', I.Ss)}</label><label><span class="lab">S1 ${srcTag(I.S1)} ${cell('B27')}</span>${num('S1', I.S1)}</label>
-        <label><span class="lab">Site class ${srcTag(I.siteClass)} ${cell('B29')}</span>${sel('siteClass', I.siteClass.value, ['A', 'B', 'C', 'D', 'E', 'F'].map(x => [x, x]))}</label>
-        <label><span class="lab">Risk category ${srcTag(I.risk)} ${cell('B7')}</span>${sel('risk', I.risk.value, [['I', 'I — Low Hazard'], ['II', 'II — Standard Buildings'], ['III', 'III — Substantial Hazard'], ['IV', 'IV — Essential Facilities']])}</label>
-        ${I.ed === '7-22' ? `<label>SDS ${srcTag(I.SDS)}${num('SDS', I.SDS)}</label><label>SD1 ${srcTag(I.SD1)}${num('SD1', I.SD1)}</label>` : ''}
+    // ---- the job's NBG files: a bracing run (per building) and the eScope — their code, site and roof loads ----
+    const fileRows = sj.buildings.map(b => { const fx = (cfg.files || {})[b.bkey]; return fx ? `<li><b>${esc(fx.from)}</b>${many ? ` · ${esc(b.name)}` : ''}: ${esc([fx.code && `code ${fx.code}`, fx.Ss != null && `Ss ${fx.Ss} / S1 ${fx.S1}`, fx.siteClass && `site ${fx.siteClass}`, fx.roofDead != null && `roof dead ${F2(fx.roofDead)}`, fx.collateral != null && `collateral ${F2(fx.collateral)}`, fx.snow != null && `snow ${F2(fx.snow)} psf`].filter(Boolean).join(' · '))} <button class="btn-ghost sm" data-seisfile-rm="${esc(b.bkey)}">Remove</button></li>` : ''; }).join('');
+    const filesBox = `<div class="seis-files"><label class="nbg-drop seis-drop" id="seisDrop"><input type="file" id="seisFile" accept=".bracing,.nbgscope" multiple><svg><use href="#i-file"/></svg><span><strong>Drop the job's bracing (.bracing) or eScope (.nbgscope) file</strong><small>the building code, Ss / S1, site class, roof dead, collateral and snow are taken from it — the bracing file also gets the mezzanine loads in step 9</small></span></label>${fileRows ? `<ul class="seis-filelist">${fileRows}</ul>` : ''}</div>`;
+
+    // ---- 1–2: building data and seismic data (job-wide) ----
+    const sig = sj.buildings.map(b => `${many ? esc(b.name) + ': ' : ''}${n0(b.mzArea)} sq ft of mezzanine in ${n0(b.bd.width * b.bd.length)} sq ft (${Math.round(100 * b.mzArea / (b.bd.width * b.bd.length))} %)${b.sigHint ? ' — over ⅓: a story under IBC 505.2.1' : ''}`).join(' · ');
+    const sigOn = sj.buildings.some(b => b.significant), rigidAny = FL.roofDiaphragm === 'Rigid' || FL.mezzDiaphragm === 'Rigid';
+    const seisData = `<div class="seis-group"><h4><span class="step-no sm">1</span>Building data</h4>
+      <div class="seis-grid"><label><span class="lab">Building code ${srcTag(I.ed)}</span>${sel('ed', I.ed.value, CODE_OPTS)}${I.code.pcs ? `<small class="sub-n">PCS: ${esc(I.code.pcs)}${I.code.file ? ` · file: ${esc(I.code.file)}` : ''}</small>` : ''}</label></div>
+      ${sj.buildings.map(b => { const bd = b.bd, g = b.g; return `<div class="seis-echo">${many ? `<b>${esc(b.name)}</b>` : ''}<span>${esc(bd.type)}</span><span>Width <b>${ft(bd.width)}</b></span><span>Length <b>${ft(bd.length)}</b></span>${bd.type === 'Gable' ? `<span>BSW distance to ridge <b>${ft(bd.dtr)}</b></span><span>BSW slope <b>${F2(g ? g.slopeBSW : bd.slope)}:12</b> · FSW <b>${g ? F2(g.slopeFSW) : '—'}:12</b></span>` : ''}<span>Eaves FSW <b>${ft(bd.eaveFSW)}</b> · BSW <b>${ft(bd.eaveBSW)}</b></span><span>Mean roof height <b>${g ? ft(g.mrh) : '—'}</b></span><small class="sub-n">PCS Box 2</small></div>${b.geoNote ? `<div class="seis-msg info">${esc(b.geoNote)}</div>` : ''}`; }).join('')}</div>
+      <div class="seis-group"><h4><span class="step-no sm">2</span>Seismic data</h4><div class="seis-grid">
+        <label><span class="lab">Nature of occupancy ${srcTag(I.risk)}</span>${sel('risk', I.risk.value, RISK_OPTS)}</label>
+        <label><span class="lab">Site classification ${srcTag(I.siteClass)}</span>${sel('siteClass', I.siteClass.value, ['A', 'B', 'C', 'D', 'E', 'F'].map(x => [x, x]))}</label>
+        <label><span class="lab">Roof level diaphragm</span>${sel('roofDiaphragm', FL.roofDiaphragm, [['Flexible', 'Flexible'], ['Rigid', 'Rigid']])}</label>
+        <label><span class="lab">Mezzanine level diaphragm</span>${sel('mezzDiaphragm', FL.mezzDiaphragm, [['None', 'None'], ['Flexible', 'Flexible'], ['Rigid', 'Rigid']])}</label>
+        <label><span class="lab">Short period, Ss ${srcTag(I.Ss)}</span>${num('Ss', I.Ss.value)}</label>
+        <label><span class="lab">1-sec period, S1 ${srcTag(I.S1)}</span>${num('S1', I.S1.value)}</label>
+        ${I.ed.value === '7-22' ? `<label><span class="lab">SMS (hazard tool) ${srcTag(I.SMS)}</span>${num('SMS', I.SMS.value)}</label><label><span class="lab">SM1 (hazard tool) ${srcTag(I.SM1)}</span>${num('SM1', I.SM1.value)}</label>` : ''}
+      </div><div class="seis-grid seis-checks">
+        ${chk('ndfs', FL.ndfs, `Default to use "Not Detailed for Seismic" SFRS <small class="sub-n">R = 3 in SDC A–C</small>`)}
+        ${chk('significant', sigOn, `Significant mezzanine exists <small class="sub-n">${esc(sig)}. Checked: the vertical distribution, k from Ta (12.8.3); unchecked (NBG Design Calcs' default): each weight takes Cs × W, k = 0</small>`)}
+        ${chk('irregular', FL.irregular, 'Seismic irregularities exist')}
+        ${chk('torsionLong', FL.torsionLong, `Use accidental torsion in long. direction <small class="sub-n">1.1 on the bracing's ${rigidAny ? 'rigid' : ''} diaphragm force — only with a rigid roof or mezzanine diaphragm</small>`)}
+        ${chk('torsionLat', FL.torsionLat, 'Use accidental torsion in lateral direction')}
       </div></div>`;
+    // ---- 3–6 per building: roof loading, walls, mezzanine loads, force resisting systems ----
     const bldg = sj.buildings.map(b => {
-      const k = 'b.' + b.bkey, g = b.g, ffl = ((cfg.buildings || {})[b.bkey] || {}).frameFile;
-      const mz = b.mezz.map((m, i) => `<tr><td><b>${esc(m.id)}</b>${i < 2 ? `<small class="sub-n">Mezzanine #${i + 1} · ${n0(m.area)} sq ft</small>` : '<small class="bad">the workbook takes two mezzanines</small>'}</td>
-          <td class="num mono">${ft(m.elev)}</td>
-          <td>${num('m.' + m.id + '.FDL', { value: m.FDL })}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc)}</small>${m.framing == null && m.framingWaits ? `<small class="sub-n ng">framing not known — ${esc(m.framingWaits.join(', '))} ${m.framingWaits.length > 1 ? 'have' : 'has'} no section</small>` : m.framing ? `<small class="sub-n">+ ${F2(m.framing)} framing (the design's beams, and half the columns' height) = <b>${F2(m.FDL + m.framing)}</b></small>` : ''}</td>
-          <td class="num mono">${F2(m.FLC)}</td><td class="num mono">${F2(m.FLJ)}</td>
-          <td>${chk('m.' + m.id + '.storage', m.storage, m.storage ? `storage: 25 % of ${F2(m.FLL)} included` : '<span class="sub-n">storage — not included (tick for 25 % of live)</span>')}</td><td class="num mono">${F2(m.FLP)}</td>
-          <td class="num mono"><b>${m.psf == null ? '—' : F2(m.psf)}</b></td><td class="num mono">${m.psf == null ? '—' : lb(m.psf * m.area)}</td></tr>`).join('');
-      return `<div class="seis-group"><h4><span class="step-no sm">2</span>${esc(b.name)} <small class="sub-n">Input Data B7–B22 · B33–B37 · walls</small></h4>
-        <div class="seis-echo"><span>${esc(g.rooftype)}</span><span>Width <b>${ft(g.width)}</b></span><span>Length <b>${ft(g.length)}</b></span>${g.rooftype === 'Gable' ? `<span>Ridge <b>${ft(g.dtr)}</b> from the BSW</span>` : ''}<span>Slope <b>${f(g.slope, 2)}:12</b></span><span>Eaves <b>${ft(g.leh)}</b> FSW · <b>${ft(g.heh)}</b> BSW</span><span>Mean roof height <b>${b.long ? ft(b.long.hn) : '—'}</b></span><small class="sub-n">PCS Box 2</small></div>
-        ${b.geoNote ? `<div class="seis-msg info">${esc(b.geoNote)}</div>` : ''}
-        <div class="seis-grid">
-          <label><span class="lab">Lateral frame self weight, SW (psf) ${srcTag(b.roof.SW)} ${cell('B33')}</span>${num(k + '.SW', b.roof.SW)}</label>
-          <label><span class="lab">Roof self weight — bracing, beams (psf) ${srcTag(b.roof.RSW)} ${cell('B36')}</span>${num(k + '.RSW', b.roof.RSW)}</label>
-          <label><span class="lab">Roof dead, RDL (psf) ${srcTag(b.roof.RDL)} ${cell('B34')}</span>${num(k + '.RDL', b.roof.RDL)}${ffl ? `<small class="sub-n">from ${esc(ffl.from)}</small>` : '<small class="sub-n">"Per Seller" on the PCS — read from a dropped frame file, or type it</small>'}</label>
-          <label><span class="lab">Roof collateral, CDL (psf) ${srcTag(b.roof.CDL)} ${cell('B35')}</span>${num(k + '.CDL', b.roof.CDL)}</label>
-          <label><span class="lab">Roof snow, Pf (psf) ${srcTag(b.roof.Pf)} ${cell('B37')}</span>${num(k + '.Pf', b.roof.Pf)}<small class="sub-n">20 % in the weight when over 30 psf</small></label>
-          <label><span class="lab">Wall weight FSW / BSW / LEW / REW (psf) ${cell('B59 F59 B47 F47')}</span><span class="seis-walls">${['fsw', 'bsw', 'lew', 'rew'].map(w => num(k + '.walls.' + w, b.walls[w])).join('')}</span><small class="sub-n">3 psf metal panel (the workbook's default)</small></label>
-        </div>
-        <div class="seis-grid">
-          ${chk('vertical', cfg.vertical !== false, `Vertical distribution required ${cell('B21')}`)}
-          ${chk('ndfs', cfg.ignoreNDFS !== true, `"Steel systems not detailed for seismic" in SDC A–C — R = 3 (the workbook's default) ${cell('F16')}`)}
-          ${chk(k + '.story', b.story, `Mezzanine considered a story ${cell('Lateral B30')}<small class="sub-n">mezzanine floor ${n0(b.mezz.reduce((a, m) => a + m.area, 0))} sq ft against the building's ${n0(g.width * g.length)} sq ft: ${b.mezz.reduce((a, m) => a + m.area, 0) > g.width * g.length / 3 ? 'more' : 'less'} than ⅓</small>`)}
-          <label><span class="lab">Mezzanine level diaphragm ${cell('B19')}</span>${sel('diaphragm', cfg.diaphragm || 'flexible', [['flexible', 'None / flexible (the workbook\u2019s default "None" is typed)'], ['rigid', 'Rigid (torsion on the bracing)']])}</label>
-        </div>
-        <h4 class="seis-h-mz"><span class="step-no sm">3</span>Mezzanine loads <small class="sub-n">Input Data B89–B95 / F89–F95 · storage check box</small></h4>
-        <div class="table-wrap"><table class="fl-t seis-mz"><thead><tr><th>Mezzanine</th><th class="num">Elevation</th><th>Floor dead (psf)</th><th class="num">Collateral</th><th class="num">Joists</th><th>Floor live</th><th class="num">Partition</th><th class="num">Seismic psf</th><th class="num">W (lb)</th></tr></thead><tbody>${mz}</tbody></table></div>
-        <small class="sub-n">Floor dead is the design's dead load unless you type it (e.g. 55). The workbook takes 25 % of the floor live where the mezzanine is storage, and the partition load.</small></div>`;
+      const k = 'b.' + b.bkey, ffl = ((cfg.buildings || {})[b.bkey] || {}).frameFile, bw = ((cfg.buildings || {})[b.bkey] || {}).walls || {};
+      const roofT = `<div class="seis-group"><h4><span class="step-no sm">3</span>Roof loading${many ? ` — ${esc(b.name)}` : ''}</h4><div class="seis-grid">
+          <label><span class="lab">Lateral frame self-weight, SW (psf) ${srcTag(b.roof.SW)}</span>${num(k + '.SW', b.roof.SW.value)}</label>
+          <label><span class="lab">Roof dead load, RDL (psf) ${srcTag(b.roof.RDL)}</span>${num(k + '.RDL', b.roof.RDL.value)}${b.roof.RDL.source === 'frame file' && ffl ? `<small class="sub-n">from ${esc(ffl.from)}</small>` : b.roof.RDL.value == null ? '<small class="sub-n">"Per Seller" on the PCS — drop the bracing or frame files, or type it</small>' : ''}</label>
+          <label><span class="lab">Roof collateral load, CDL (psf) ${srcTag(b.roof.CDL)}</span>${num(k + '.CDL', b.roof.CDL.value)}</label>
+          <label><span class="lab">Roof self-weight — bracing, beams (psf) ${srcTag(b.roof.RSW)}</span>${num(k + '.RSW', b.roof.RSW.value)}</label>
+          <label><span class="lab">Roof snow, Pf (psf) ${srcTag(b.roof.Pf)}</span>${num(k + '.Pf', b.roof.Pf.value)}<small class="sub-n">${I.ed.value === '7-22' ? '15 % in the weight when over 45 psf (ASCE 7-22)' : '20 % in the weight when over 30 psf'}</small></label>
+        </div></div>`;
+      const wallT = `<div class="seis-group"><h4><span class="step-no sm">4</span>Walls${many ? ` — ${esc(b.name)}` : ''}</h4><div class="table-wrap"><table class="fl-t seis-wall-t"><thead><tr><th>Wall</th><th>Height</th><th>Self supporting shear wall</th><th>Parapet</th><th class="num">Top elevation</th><th class="num">Wall weight (psf)</th><th class="num">Top of masonry</th><th class="num">Lower wall weight (psf)</th></tr></thead><tbody>${WALLS.map(([key, lab]) => {
+          const w = b.walls[key] || {}, t = bw[key] || {}, part = w.kind === 'partial', end = key === 'LEW' || key === 'REW';
+          return `<tr><td><b>${esc(lab)}</b></td><td>${sel(`${k}.walls.${key}.kind`, w.kind || 'full', [['full', 'Full height wall'], ['partial', 'Partial height hardwall']])}</td>
+            <td>${chk(`${k}.walls.${key}.shear`, w.shear, `<small class="sub-n">${end ? 'left out of the end frame' : 'left out of the bracing'}</small>`)}</td><td>${chk(`${k}.walls.${key}.parapet`, w.parapet, '')}</td>
+            <td class="num">${w.parapet || part ? num(`${k}.walls.${key}.top`, t.top != null ? t.top : w.top) : `<span class="mono">${ft(w.top)}</span><small class="sub-n">${end ? 'the roof line' : 'the eave'}</small>`}</td>
+            <td class="num">${num(`${k}.walls.${key}.${part ? 'upperWeight' : 'weight'}`, part ? w.upperWeight : w.weight)}</td>
+            <td class="num">${part ? num(`${k}.walls.${key}.masonryTop`, w.masonryTop) : '—'}</td><td class="num">${part ? num(`${k}.walls.${key}.lowerWeight`, w.lowerWeight) : '—'}</td></tr>`; }).join('')}</tbody></table></div>
+          <small class="sub-n">3 psf metal panel, full height: an endwall to the roof line, a sidewall to its eave. A parapet runs the wall to the top elevation typed; a partial height hardwall is masonry to its top with the panel above.</small></div>`;
+      const mzT = `<div class="seis-group"><h4><span class="step-no sm">5</span>Mezzanine loads${many ? ` — ${esc(b.name)}` : ''}</h4><div class="table-wrap"><table class="fl-t seis-mz"><thead><tr><th>Mezzanine</th><th class="num">Elevation</th><th>Floor dead (psf)</th><th class="num">Floor collateral</th><th class="num">Est. joist weight</th><th>Storage loading · floor live</th><th>Partition loading</th><th class="num">Seismic psf</th><th class="num">W (lb)</th></tr></thead><tbody>${b.mezz.map(m => `<tr>
+          <td><b>${esc(m.id)}</b><small class="sub-n">${n0(m.area)} sq ft${m.useText ? ' · ' + esc(m.useText) : ''}</small></td><td class="num mono">${ft(m.elev)}</td>
+          <td>${num('m.' + m.id + '.FDL', m.FDL)}<small class="src src-${esc(m.FDLsrc)}">${esc(m.FDLsrc === 'missing' ? 'needed' : m.FDLsrc)}</small>${m.FDLsrc === 'design' && m.framing ? `<small class="sub-n">${F2(m.dead)} floor + ${F2(m.framing)} beams and columns</small>` : m.framing == null && m.framingWaits ? `<small class="sub-n ng">framing not known — ${esc(m.framingWaits.join(', '))} ${m.framingWaits.length > 1 ? 'have' : 'has'} no section</small>` : ''}</td>
+          <td class="num">${num('m.' + m.id + '.FLC', m.FLC)}</td><td class="num">${num('m.' + m.id + '.FLJ', m.FLJ)}</td>
+          <td>${chk('m.' + m.id + '.storage', m.storage, '')}${num('m.' + m.id + '.FLL', m.FLL, m.storage ? '' : 'disabled')}<small class="sub-n">${m.storage ? `25 % = ${F2(0.25 * m.FLL)} psf in the weight` : 'not storage: no live in the weight'}</small></td>
+          <td>${chk('m.' + m.id + '.partition', m.partition, '')}${num('m.' + m.id + '.FLP', m.FLP, m.partition ? '' : 'disabled')}</td>
+          <td class="num mono"><b>${m.psf == null ? '—' : F2(m.psf)}</b></td><td class="num mono">${m.psf == null ? '—' : lb(m.psf * m.area)}</td></tr>`).join('')}</tbody></table></div>
+          <small class="sub-n">Floor dead is the design's dead load with this design's beams and half its columns; type your own (e.g. 10) to use it as it is.</small></div>`;
+      const sysT = `<div class="seis-group"><h4><span class="step-no sm">6</span>Seismic force resisting systems${many ? ` — ${esc(b.name)}` : ''}</h4><div class="seis-grid">
+          <label><span class="lab">FSW force resisting system <small class="sub-n">longitudinal</small></span>${sel(k + '.sfrs.FSW', b.sfrs.FSW, RUN.SEIS_SYSTEMS.map(x => [x, x.replace('X-Bracing', 'X - Bracing')]))}</label>
+          <label><span class="lab">BSW force resisting system <small class="sub-n">longitudinal</small></span>${sel(k + '.sfrs.BSW', b.sfrs.BSW, RUN.SEIS_SYSTEMS.map(x => [x, x.replace('X-Bracing', 'X - Bracing')]))}</label></div>
+          <div class="table-wrap"><table class="fl-t seis-lines"><thead><tr><th>Frameline</th><th>Seismic force resisting system <small class="sub-n">lateral · PCS Box 5</small></th><th class="num">Tributary width</th></tr></thead><tbody>${b.lines.length ? b.lines.map(l => `<tr><td><b class="mono">Line ${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${sel(`${k}.lines.${l.label}`, l.type, RUN.LINE_SYSTEMS.map(x => [x, x]))}</td><td class="num mono">${ft(l.bay)}</td></tr>`).join('') : '<tr><td colspan="3" class="sub-n">The frame lines follow once the inputs above are complete.</td></tr>'}</tbody></table></div></div>`;
+      return roofT + wallT + mzT + sysT;
     }).join('');
-    box.innerHTML = site + bldg;
+    box.innerHTML = filesBox + seisData + bldg;
 
-    // ---- step 4: each frame (Lateral Calcs. (1)) ----
-    const distT = rows => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight W (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">W·hx^k</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-k)</th></tr></thead><tbody>${rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.D)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.M)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(rows.reduce((a, r) => a + r.W, 0))}</td><td></td><td class="num mono">${lb(rows.reduce((a, r) => a + r.D, 0))}</td><td class="num mono"><b>${F2(rows.reduce((a, r) => a + r.Fx, 0))}</b></td><td class="num mono">${F2(rows.reduce((a, r) => a + r.M, 0))}</td></tr></tfoot></table>`;
-    const AT = { lew: 'Left Endwall', rew: 'Right Endwall', interior: 'Interior Frame' };
+    // ---- 7: lateral calculations — NBG Frame, every frame line ----
+    const factorsT = (fa, R) => `<div class="seis-factors">${[['Ie', F2(fa.Ie)], fa.Fa != null && ['Fa', F2(fa.Fa)], fa.Fv != null && ['Fv', F2(fa.Fv)], ['Sms', F3(fa.Sms)], ['Sm1', F3(fa.Sm1)], ['Sds', F3(fa.Sds)], ['Sd1', F3(fa.Sd1)], ['SDC', esc(fa.SDC)], ['R', +fa.R.toFixed(2)], ['Ω0', +fa.Om.toFixed(2)], ['Cd', +fa.Cd.toFixed(2)], ['Ct', fa.Ct ? f(fa.Ct, 3) : '—'], ['Ta', F3(fa.Ta)], ['ρ', F3(fa.rho)], ['k', F3(fa.k)], ['Cs', `<b>${F3(R.Cs)}</b>`]].filter(Boolean).map(([a, v]) => `<span>${a} <b>${v}</b></span>`).join('')}<small class="sub-n">Cs by ${esc(R.cs.governs)}${R.cs.note ? ' · ' + esc(R.cs.note) : ''} · ${esc(R.sys.label)}${R.sys.via ? ' (the least R of the lines, 12.2.3.3)' : ''}</small></div>`;
+    const distT = R => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">Vertical dist. factor</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-kips)</th></tr></thead><tbody>${R.rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : r.excluded ? ' <small class="sub-n">shear wall — left out</small>' : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.num)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.Mx)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(R.totals.W)}</td><td></td><td class="num mono">${lb(R.totals.num)}</td><td class="num mono"><b>${F2(R.totals.Fx)}</b></td><td class="num mono">${F2(R.totals.Mx)}</td></tr></tfoot></table>`;
+    const concT = cs => cs.map(c => `<span class="seis-conc ${c.key === 'mezz' ? 'mz' : ''}">${esc(c.key === 'mezz' || c.key === 'crane' ? c.name.replace(' Loads', '') : c.name)} <b>${F2(c.F)} k</b> at ${ft(c.at)}</span>`).join('');
     $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
-      if (!b.frames.length) return '';
-      const slot = b.mezz.slice(0, 2);
-      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frame line</th><th>System ${cell('B9')}</th><th class="num">Bay width ${cell('B18')}</th><th>Located at ${cell('Q1')}</th>${slot.map((m, k) => `<th class="num">${esc(m.id)} area ${cell(k ? 'B34' : 'B31')}</th>`).join('')}<th class="num">Cs</th>${slot.map((m, k) => `<th class="num">${esc(m.id)} load ${cell(k ? 'G78' : 'G77')}</th>`).join('')}<th class="num">Frame V ${cell('H79')}</th><th></th></tr></thead><tbody>${b.frames.map(fr => { const L = fr.lat, ml = id => L.mezzLoads.find(x => x.id === id); return `<tr class="seis-fr" data-fr="${esc(b.bkey + '|' + fr.label)}">
-        <td><b class="mono">${esc(fr.label)}</b></td><td>${esc(SEIS_TYPE(fr.type))}<small class="sub-n">${esc(L.sys.name)} · R ${f(L.R, 2)}</small></td><td class="num mono">${ft(fr.bay)}<small class="sub-n">${fr.at === 'interior' ? 'half the bay each side' : 'half the end bay'}</small></td><td>${AT[fr.at]}</td>
-        ${slot.map(m => `<td class="num mono">${n0(fr.areas[m.id] || 0)}</td>`).join('')}<td class="num mono">${f(L.cs.Cs, 4)}</td>
-        ${slot.map(m => `<td class="num mono">${ml(m.id) ? `<b>${F2(ml(m.id).F)}</b> k` : '—'}</td>`).join('')}<td class="num mono">${F2(L.frameV)}</td>
-        <td>${wbBtn(`seismic|${b.bkey}|${fr.label}`, 'Workbook')}</td></tr>
-        <tr class="seis-dist-row" hidden><td colspan="${7 + 2 * slot.length}"><div class="seis-dist-wrap">${distT(L.rows)}
-          ${(() => { const w = b.workbook && b.workbook.frames.find(x => x.label === fr.label); return w ? `<details class="seis-d"><summary>What goes into the workbook for frame ${esc(fr.label)} — ${b.workbook.input.length + b.workbook.long.length + w.steps.length} cells</summary><div class="xl-cols"><div><h4><span>1</span>Input Data <small>the building and the mezzanines</small></h4>${xlTable(b.workbook.input, [])}</div><div><h4><span>2</span>Lateral Calcs. (1) <small>this frame</small></h4>${xlTable(w.steps, w.read, 'The workbook then shows')}<h4><span>3</span>Longitudinal Calcs. <small>the bracing</small></h4>${xlTable(b.workbook.long, b.workbook.longRead, 'The workbook then shows')}</div></div></details>` : ''; })()}
-          <div class="seis-out">Ta = ${f(L.sys.Ct, 3)} × ${F2(L.hn)}<sup>${L.sys.x}</sup> = ${f(L.Ta, 3)} s → k = ${f(L.k, 2)} · Cs ${f(L.cs.Cs, 4)} by ${esc(L.cs.governs)}${L.cs.note ? ' · ' + esc(L.cs.note) : ''} · ${esc(L.sys.name)} (R ${f(L.R, 2)}, Ω ${f(L.sys.Omega, 1)}, Cd ${f(L.sys.Cd, 1)})${fr.loose.length ? `<div class="bad">${fr.loose.map(l => `${esc(l.id)} ${F2(l.F)} k has no frame column on this line — ${esc(l.why)}`).join('<br>')}</div>` : ''}</div></div></td></tr>`; }).join('')}</tbody></table></div>`;
+      if (!b.lines.length) return '';
+      const ids = b.mezz.map(m => m.id);
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num">${esc(id)} loading area</th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th><th></th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
+        <td><b class="mono">${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${esc(l.type)}<small class="sub-n">${esc(L.sys.label)} · R ${+L.R.toFixed(2)}</small></td><td class="num mono">${ft(l.bay)}</td>
+        ${ids.map(id => `<td class="num mono">${l.areas[id] ? n0(l.areas[id]) : '—'}</td>`).join('')}<td class="num mono">${F3(L.Cs)}</td>
+        <td class="num mono">${F2(u.roofPsf)} psf<small class="sub-n">${F2(u.altRoofPsf)} psf</small></td><td class="seis-concs">${concT(u.conc)}</td><td class="num mono"><b>${F2(L.V)}</b> k</td>
+        <td>${fr ? wbBtn(`seismic|${b.bkey}|${l.label}`, 'Workbook') : ''}</td></tr>
+        <tr class="seis-dist-row" hidden><td colspan="${8 + ids.length}"><div class="seis-dist-wrap">${factorsT(L.factors, L)}${distT(L)}
+          <div class="seis-out"><b>For NBG Frame</b> — roof seismic weight <b>${F2(u.roofPsf)} psf</b> (alt. ${F2(u.altRoofPsf)} psf with the sidewalls) with seismic factor <b>${F3(u.factor)}</b>; panel load ${f(u.panel, 4)} klf (alt. ${f(u.altPanel, 4)}); equivalent roof force ${F2(u.equivRoof)} k. Concentrated: ${u.conc.map(c => `${esc(c.name.replace(' Loads', ''))} ${F2(c.F)} k at ${ft(c.at)}`).join(' · ')}.${fr && fr.loose.length ? `<div class="bad">${fr.loose.map(x => `${esc(x.id)} ${F2(x.F)} k has no frame column on this line — ${esc(x.why)}`).join('<br>')}</div>` : ''}</div></div></td></tr>`; }).join('')}</tbody></table></div>`;
     }).join('') + (live && infos.length ? `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>` : '');
     $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('button')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
 
-    // ---- step 5: into NBG Frame — one row per frame line × column × level; Applied is what the files get ----
+    // ---- 8: into NBG Frame — one row per frame line × column × level; Applied is what the files get ----
     const nEdit = Object.keys(cfg.eqOverride || {}).length, scale = cfg.eqScale > 0 ? +cfg.eqScale : 1;
     const usedKeys = new Set(live ? sj.buildings.flatMap(b => b.frames.flatMap(fr => fr.eqs.map(e => e.key))) : []);
     const stale = Object.keys(cfg.eqOverride || {}).filter(k => !usedKeys.has(k)).length;
@@ -10669,7 +11092,7 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
         if (r.loose) return `<tr class="bad-row"><td class="mono"><b>${esc(r.fr.label)}</b></td><td colspan="7"><span class="bad">${esc(r.loose.id)} ${F2(r.loose.F)} k — no frame column on this line: ${esc(r.loose.why)}. Brace the mezzanine here (independent X-bracing) or carry it to the next frames.</span></td></tr>`;
         const e = r.e, it = fileFor(b, r.fr), from = r.mezz.map((m, i) => `${m} ${Math.round(r.shares[i] * 100)} %`).join(' + ') + (r.edited === 'typed' ? ' · typed' : '');
         return `<tr class="${r.edited ? 'is-' + r.edited : ''}" data-fr="${esc(b.bkey + '|' + r.fr.label)}" data-member="${esc(e.member)}"><td class="mono"><b>${esc(r.fr.label)}</b></td><td class="mono">${esc(e.label)}</td><td class="mono"><b>${esc(e.member)}</b></td><td class="num mono">${ft(e.at)}</td>
-          <td class="sub-n">${esc(from)}${r.edited !== 'typed' && r.shares.some(x => x < 0.999) ? ` <small>of the frame's ${esc(r.mezz.join(' / '))} load (by dead load)</small>` : ''}</td>
+          <td class="sub-n">${esc(from)}${r.edited !== 'typed' && r.shares.some(x => x < 0.999) ? ` <small>of the frame's ${esc(r.mezz.join(' / '))} load (${cfg.split === 'equal' ? 'equally' : 'by dead load'})</small>` : ''}</td>
           <td class="num mono">${F2(r.calc)}</td>
           <td class="num"><span class="eq-edit ${r.edited ? 'is-' + r.edited : ''}">± <input class="seis-in eq-in" data-eqkey="${esc(e.key)}" value="${f(r.F, 3)}" inputmode="decimal" title="kips — EQR +, EQL −">${r.edited === 'typed' ? `<button class="eq-x" data-eqclear="${esc(e.key)}" title="back to the calculated load">↺</button>` : ''}</span>${r.edited ? `<small class="sub-n eq-tag">${r.edited === 'typed' ? 'typed' : '× ' + scale}</small>` : ''}</td>
           <td>${it ? `<small class="mono">${esc(outName(it, parseLines(it.lines)))}</small><small class="sub-n">EQR +${F2(r.F)} / EQL −${F2(r.F)}</small>` : '<small class="sub-n">drop its .frame file on the Plan page</small>'}</td></tr>`;
@@ -10680,64 +11103,126 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     const ra = $('#eqResetAll');
     if (ra) ra.onclick = () => { delete state.seis.eqOverride; delete state.seis.eqScale; seisSave(); recompute(); toast('EQ loads back to the calculated values'); };
 
-    // ---- step 6: bracing (Longitudinal Calcs.) ----
-    $('#seisBracing').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => { const G = b.long; if (!G) return ''; const slot = b.mezz.slice(0, 2), first = b.frames[0];
+    // ---- 9: longitudinal — NBG Bracing, and the loads into the bracing file ----
+    $('#seisBracing').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
+      const G = b.long;
+      if (!G) return '';
+      const u = G.bracing, bf = (state.bracing || {})[b.bkey], plan = bracingPlan(b);
+      const tor = u.torsionMezz > 1 || u.torsionRoof > 1;
+      const fileUI = !zipIO.ok ? '<div class="seis-msg warn">This browser cannot open .bracing files — use a current Chrome or Edge.</div>'
+        : !bf ? `<div class="seis-msg info">Drop this building's <b>.bracing</b> file in step 1 (or here) to have the mezzanine loads and the strut line written into it. <label class="btn-soft sm seis-pick">Choose the .bracing file<input type="file" class="seis-file-in" accept=".bracing" hidden></label></div>`
+          : `<div class="seis-bfile"><div class="seis-bfile-h"><b class="mono">${esc(bf.name)}</b> <small class="sub-n">${esc(bf.file.info.run || '')} · NBG Bracing ${esc(bf.file.info.version || '')} · ${bf.file.info.lines.length} frame lines · braced bays: ${['FSW', 'BSW'].map(w => `${w} ${(bf.file.info.walls[w] ? bf.file.info.walls[w].bays.filter(x => x.braced).map(x => `${lineName(bf, x.from)}–${lineName(bf, x.to)}`).join(', ') : '') || 'none'}`).join(' · ')}</small>${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).length ? `<small class="sub-n">${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).length} "Mezz. Seismic" loads in it now (${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).map(x => `${x.caseId} ${x.F > 0 ? '+' : ''}${f(x.F, 3)} line ${lineName(bf, x.line)} @ ${f(x.elev, 2)}'`).join(' · ')}) — replaced by these</small>` : ''}</div>
+            <div class="table-wrap"><table class="fl-t seis-bload"><thead><tr><th>Load name</th><th>Load case</th><th>Panel</th><th>Frame line</th><th>Grid line</th><th class="num">Elevation</th><th class="num">Magnitude (kips)</th><th>Direction</th></tr></thead><tbody>${plan.loads.map(l => `<tr><td>${esc(BRF.LOAD_NAME)}</td><td class="mono"><b>${l.caseId}</b></td><td>Wall ${bf.file.info.walls[l.wall].plane + 1} <small class="sub-n">${l.wall}</small></td><td class="mono">${esc(l.lineName)}</td><td class="mono">${String.fromCharCode(65 + (bf.file.info.walls[l.wall].grid || 0))}</td><td class="num mono">${f(l.elev, 3)}</td><td class="num mono"><b>${f(l.F, 3)}</b></td><td>X - Longitudinal</td></tr>`).join('')}</tbody></table></div>
+            <div class="seis-strut">${chk('strutLine', cfg.strutLine !== false, `<b>Add the wall strut line${plan.struts.length > 1 ? 's' : ''}</b> — ${plan.struts.map(s => `Wall ${bf.file.info.walls[s.wall].plane + 1} (${s.wall}), frame line ${esc(s.fromName)} to ${esc(s.toName)}, at ${f(s.elev, 3)} ft${s.bay ? ` <small class="sub-n">to the braced bay ${esc(s.bay)}</small>` : ''}`).join(' · ') || 'none needed'}`)}<small class="sub-n">As Tools → Add Wall Strut Line does, so the loads have joints at the mezzanine level. New: if NBG Bracing does not take it, untick it and add the strut line there by hand.</small></div>
+            ${plan.notes.map(t => `<div class="seis-msg warn">${esc(t)}</div>`).join('')}
+            <div class="seis-bfile-a"><button class="btn-soft" data-brdl="${esc(b.bkey)}" ${plan.loads.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download ${esc(bracingOutName(bf))}</button><button class="btn-ghost" data-brrm="${esc(b.bkey)}">Remove the file</button><small class="sub-n">The model is left as it is apart from these loads and the strut line; open it in NBG Bracing and design.</small></div></div>`;
       return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
-      <div class="seis-sum"><span>${esc(G.sys.name)} · R ${f(G.sys.R, 2)}</span><span>Ta ${f(G.Ta, 3)} s · k ${f(G.k, 2)}</span><span>Cs <b>${f(G.cs.Cs, 4)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span><span>FSW ${esc((cfg.types || RUN.SEIS_DEFAULTS.types)[0])} ${cell('B8')} · BSW ${esc((cfg.types || RUN.SEIS_DEFAULTS.types)[1])} ${cell('B9')}</span>${first ? wbBtn(`seismic|${b.bkey}|${first.label}`, 'Workbook') : ''}</div>
-      <div class="table-wrap"><table class="fl-t seis-brace"><thead><tr><th>Mezzanine</th><th class="num">Loading area ${cell('B27 / B30')}</th><th class="num">At</th><th class="num">Seismic force for the bracing ${cell('G77 / G78')}</th></tr></thead><tbody>${G.mezzLoads.map((m, k) => `<tr><td><b>${esc(m.id)}</b></td><td class="num mono">${n0((slot[k] || {}).area || 0)}</td><td class="num mono">${ft(m.at)}</td><td class="num mono"><b>${F2(m.F)} k</b></td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3">Mezzanine total</td><td class="num mono"><b>${F2(G.mezzLoads.reduce((a, m) => a + m.F, 0))} k</b></td></tr></tfoot></table></div>
-      <div class="seis-out"><b>For the bracing software</b> — roof seismic dead weight <b>${F2(G.roofPsf)} psf</b> ${cell('H66')} with factor <b>${f(G.cs.Cs, 4)}</b>; sidewalls ${G.wallLoads.map(w => `${w.key.toUpperCase()} ${F2(w.F)} k at ${ft(w.at)}`).join(' · ')}; the mezzanine loads above at their level.</div>
-      <details class="seis-d"><summary>Multistory distribution (the workbook's Longitudinal sheet)</summary>${distT(G.rows)}</details>
-      <details class="seis-d"><summary>Which bracing lines take it (DM 15.1.3) — the tool's own step</summary>
-        <div class="table-wrap"><table class="fl-t"><thead><tr><th>Bracing line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
-        <small class="sub-n">The floor spans across the building between these lines (lever rule, piece by piece along the length). A sidewall line is the building's bracing, tiered at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force.</small></details>`; }).join('');
+      <div class="seis-sum"><span>${esc(G.sys.label)} · R <b>${+G.R.toFixed(2)}</b></span><span>Ta <b>${F3(G.Ta)}</b> s · k <b>${F3(G.k)}</b></span><span>Cs <b>${F3(G.Cs)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span><span>FSW ${esc(b.sfrs.FSW)} · BSW ${esc(b.sfrs.BSW)}</span></div>
+      <div class="table-wrap"><table class="fl-t seis-bvals"><thead><tr><th colspan="2">For NBG Bracing — bracing uniform loads</th><th colspan="2">Bracing concentrated loads</th></tr></thead><tbody>
+        <tr><td>Roof snow</td><td class="num mono">${F2(u.snow)} psf</td><td rowspan="5" colspan="2"><div class="seis-concs">${concT(u.conc)}</div>${tor ? `<small class="sub-n">${u.torsionMezz > 1 ? 'mezzanine force × 1.1 (accidental torsion, rigid mezzanine diaphragm)' : ''}${u.torsionRoof > 1 ? ' · seismic factor × 1.1 (rigid roof diaphragm)' : ''}</small>` : ''}</td></tr>
+        <tr><td>Roof dead</td><td class="num mono">${F2(u.deadPsf)} psf</td></tr><tr><td>Roof total</td><td class="num mono"><b>${F2(u.totalPsf)} psf</b></td></tr><tr><td>Alt. roof total <small class="sub-n">with the sidewalls</small></td><td class="num mono">${F2(u.altTotalPsf)} psf</td></tr><tr><td>Seismic factor</td><td class="num mono"><b>${F3(u.factor)}</b></td></tr></tbody></table></div>
+      <details class="seis-d"><summary>Seismic factors and the multistory distribution</summary>${factorsT(G.factors, G)}${distT(G)}</details>
+      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
+      <small class="sub-n">The mezzanine floor spans across the building between these lines (lever rule): a sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force.</small>
+      ${fileUI}`;
+    }).join('');
+    $$('#seisBracing [data-brdl]').forEach(btn => { btn.onclick = async () => { const b = sj.buildings.find(x => x.bkey === btn.dataset.brdl), bf = state.bracing[b.bkey], plan = bracingPlan(b); try { const o = await BRF.write(bf.file, { loads: plan.loads, struts: cfg.strutLine === false ? [] : plan.struts }, zipIO); cpSave(o.bytes, bracingOutName(bf), 'application/octet-stream'); toast(`${bracingOutName(bf)} — ${o.added.loads} Mezz. Seismic loads${o.replaced ? ` (in place of ${o.replaced})` : ''}${cfg.strutLine === false ? '' : `, ${o.added.struts} strut${o.added.struts === 1 ? '' : 's'} added${o.kept.struts ? `, ${o.kept.struts} already there` : ''}`}`); } catch (e) { console.error(e); toast('Bracing file: ' + e.message, 'bad'); } }; });
+    $$('#seisBracing [data-brrm]').forEach(btn => { btn.onclick = () => { delete state.bracing[btn.dataset.brrm]; renderSeismic(); }; });
+    $$('#v-seismic .seis-file-in, #seisFile').forEach(inp => { inp.onchange = () => { addSeisFiles(Array.from(inp.files || [])); inp.value = ''; }; });
+    const sd = $('#seisDrop');
+    if (sd && !sd.dataset.wired) {
+      sd.dataset.wired = '1';
+      ['dragenter', 'dragover'].forEach(ev => sd.addEventListener(ev, e => { e.preventDefault(); sd.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach(ev => sd.addEventListener(ev, e => { e.preventDefault(); sd.classList.remove('is-over'); }));
+      sd.addEventListener('drop', e => addSeisFiles(Array.from(e.dataTransfer.files || [])));
+    }
+    $$('[data-seisfile-rm]').forEach(btn => { btn.onclick = () => { const k = btn.dataset.seisfileRm; if (state.seis.files) delete state.seis.files[k]; if (state.bracing) delete state.bracing[k]; seisSave(); recompute(); }; });
 
-    // ---- what the tool adds beyond the procedure ----
+    // ---- what the tool does beyond NBG Design Calcs ----
     const flags = [];
     if (live) {
-      const b0 = sj.buildings[0];
-      const fOn = sj.buildings.some(b => b.mezz.some(m => m.framing > 0));
-      flags.push(`<b>Framing weight in the floor dead.</b> ${fOn ? `${sj.buildings.flatMap(b => b.mezz.filter(m => m.framing > 0).map(m => `${esc(m.id)} + ${F2(m.framing)} psf (this design's beams and half its columns)`)).join(' · ')}, so the workbook's Floor Dead gets ${sj.buildings.flatMap(b => b.mezz.map(m => `${F2(m.FDL + m.framing)}`)).join(' / ')} psf.` : 'Off — the Floor Dead is typed as it is.'} ${chk('framingAll', fOn, 'add the framing weight')} — untick when your floor dead already includes it (e.g. 55).`);
-      flags.push(`<b>Self weight.</b> Lateral frame self weight ${F2(b0.roof.SW.value)} psf (B33, the workbook's default) and roof self weight ${F2(b0.roof.RSW.value)} psf (B36), as the workbook has them. If the job gives the frame's own self weight (a note such as "self weight 1 psf"), type it in B33 and B36 = 0 in step 2.`);
-      flags.push(`<b>Each frame's mezzanine load split between its columns</b> ${sel('split', cfg.split || 'dead', [['dead', 'by the dead load each column takes'], ['equal', 'equally']])} — or type each column's load in step 5.`);
-      flags.push(`<b>R.</b> The workbook takes "steel systems not detailed for seismic" (R 3) in SDC A–C; NBG Frame's own seismic uses OMF R 3.5. The EQ loads here are the workbook's (R ${f((b0.frames[0] || { lat: { R: 3 } }).lat.R, 2)}). Untick the check box in step 2 for OMF.`);
-      const roofT = sj.buildings.map(b => b.frames.map(fr => `${esc(fr.label)}: ${F2(fr.lat.altRoof)} psf`).join(' · ')).join(' | ');
-      flags.push(`<b>Roof seismic for NBG Frame (not in your procedure, not written).</b> The workbook also gives an alternate roof seismic weight (Lateral G64) that lumps the roof, the walls and, with the mezzanine in the building, the extra share the vertical distribution puts at the roof: ${roofT}, with factor Cs. NBG Frame's own roof seismic leaves the mezzanine out. Shown for information; the frame files keep NBG Frame's.`);
-      flags.push(`<b>Bracing lines.</b> Step 6's split of the bracing force to the lines that hold the floor, and the DM 15.1.3 1 % check for independent bracing, are the tool's own — the workbook gives the total.`);
+      const fOn = sj.buildings.some(b => b.mezz.some(m => m.framing > 0 && m.FDLsrc === 'design'));
+      flags.push(`<b>Framing weight in the floor dead.</b> ${fOn ? `${sj.buildings.flatMap(b => b.mezz.filter(m => m.framing > 0 && m.FDLsrc === 'design').map(m => `${esc(m.id)}: ${F2(m.dead)} + ${F2(m.framing)} psf for this design's beams and half its columns = ${F2(m.FDL)}`)).join(' · ')}.` : 'Off — the floor dead is used as typed.'} ${chk('framingAll', fOn, 'add the framing weight')} — untick, or type the floor dead in step 5, when yours already includes it.`);
+      if (sj.buildings.some(b => b.sigHint && !b.significant)) flags.push(`<b>Significant mezzanine?</b> ${sj.buildings.filter(b => b.sigHint && !b.significant).map(b => `${esc(b.name)}: ${n0(b.mzArea)} sq ft of mezzanine is over a third of the building's ${n0(b.bd.width * b.bd.length)} sq ft — a story under IBC 505.2.1`).join(' · ')}. Left unchecked as NBG Design Calcs leaves it; check it in step 2 for the vertical distribution.`);
+      flags.push(`<b>Loading areas.</b> Each frame line's mezzanine loading area is the floor inside its strip (half the bay each side, an end frame half the end bay), from the layout.`);
+      flags.push(`<b>Each frame's mezzanine load split between its columns</b> ${sel('split', cfg.split || 'dead', [['dead', 'by the dead load each column takes'], ['equal', 'equally']])} — or type each column's load in step 8.`);
+      flags.push(`<b>Bracing lines.</b> The split of the bracing force to the lines that hold the floor, the EQB / EQF rows and the strut line, and the DM 15.1.3 1 % check for independent bracing, are the tool's own — NBG Design Calcs gives the total.`);
       flags.push(`<b>EQR Ecc. Loc.</b> ${brCode().code ? `Bottom/Right = code ${esc(brCode().code)} (${brCode().how}).` : 'Written Top/Left (as NBG Frame writes its own lean-to seismic rows) until the Bottom/Right code is confirmed on the Plan page — an X force with no offset takes no moment from the flange it is drawn at.'}`);
     }
     $('#seisFlags').innerHTML = flags.length ? `<ol class="seis-flags">${flags.map(t => `<li>${t}</li>`).join('')}</ol>` : '';
     $('#seisFlagsPanel').hidden = !flags.length;
-
-    // how
     $('#seisHow').innerHTML = `<ol>
-      <li><b>Input Data</b> — the code from the PCS code line (the workbook's drop-down), Ss, S1, site class and occupancy from Box 3; the building from Box 2; roof dead from NBG Frame (the frame file) since the PCS says "Per Seller"; collateral and snow from Box 4; walls at 3 psf; each mezzanine's elevation (A), floor dead, collateral, joists, live (storage) and partition.</li>
-      <li><b>Lateral Calcs. (1), one frame at a time</b> — the frame's system, its bay width (the strip it carries: half the bay each side, an end frame half the end bay), where it is (left endwall / interior / right endwall), and each mezzanine's floor area inside that strip. The sheet's mezzanine row (G77 / G78) is that frame's mezzanine seismic force.</li>
-      <li><b>Into the frame</b> — that force goes on the frame columns the mezzanine's beams frame into, shared by the dead load each takes (DM 15.1.3: a side on a rigid frame is held by the frame): EQR = +F, EQL = −F as X forces at the mezzanine elevation.</li>
-      <li><b>Longitudinal Calcs.</b> — the whole building; the mezzanine rows are the seismic forces the bracing takes at the mezzanine level.</li>
-      <li><b>Load level.</b> The workbook's values are Q<sub>E</sub> (12.8), before ρ and the ASD 0.7 — NBG Frame's load combinations apply them.</li>
-      <li><b>Checked</b> — the tool's engine against the workbook: 1,386 of 1,386 values over 15 cases; and every frame of the four sample jobs typed into the real workbook and recalculated: the same numbers (oracle/fill_check.py).</li></ol>`;
-    // input handlers
+      <li><b>NBG Design Calcs, section by section</b> — building data from PCS Box 2 and the code (the PCS's, or the bracing / eScope file's, or yours); seismic data from Box 3 (ASCE 7-22: SMS and SM1 as listed); roof dead, collateral and snow from Box 4 or the files; walls 3 psf full height; each mezzanine's elevation (A), floor dead, collateral, joists, 25 % of the live where it is storage, partitions; the sidewalls' and each frame line's system.</li>
+      <li><b>As NBG Design Calcs works it</b> — Fa as interpolated and Fv to two decimals, SDS = 0.6667 SMS, SD1 = 0.6667 SM1; "not detailed for seismic" in SDC A–C; the least R of a direction (12.2.3.3) for Risk Category III / IV or a rigid diaphragm; Ω0 less 0.5 with flexible diaphragms; ASCE 7-16's 11.4.8 exception (1.5 × Eq. 12.8-3) for Site Class D with S1 ≥ 0.2 when T > 1.5 Ts; k = 0 unless a significant mezzanine exists; the roof on its sloped length with the snow on plan; an endwall to the roof line, a parapet or partial hardwall to its top; NBG Frame's sidewall loads at eave − 16", NBG Bracing's at the eave; 1.1 accidental torsion on a rigid diaphragm.</li>
+      <li><b>Checked</b> against NBG's own validation examples — 22 of them (ASCE 7-16 and 7-22: walls, parapets, hardwalls, shear walls, partitions, cranes, mezzanines, overrides, site classes D and E, SDC B to D, Risk Category III): 4,985 of 4,985 printed values; and a .nbgcalcs file to full precision (oracle/nbg_seismic.js).</li>
+      <li><b>Into the frame</b> — each frame line's mezzanine load on the frame columns its beams frame into (DM 15.1.3), shared by the dead load each takes: EQR = +F, EQL = −F as X forces at the mezzanine elevation.</li>
+      <li><b>Into the bracing</b> — the longitudinal mezzanine force to the floor's two long edges; on a sidewall, "Mezz. Seismic" EQB +F at the mezzanine's first frame line and EQF −F at its last, at its elevation, with a wall strut line from it to the braced bay.</li>
+      <li><b>Load level.</b> These are Q<sub>E</sub> (12.8), before ρ and the ASD 0.7 — NBG Frame's and NBG Bracing's load combinations apply them.</li></ol>`;
+    // input handlers: a check box is true / false, a drop-down text, a box a number ('' takes the value back)
     const sfg = $('#seisForget');
     if (sfg) sfg.onclick = () => { const k = seisKey(); try { if (k) { localStorage.removeItem(k); localStorage.removeItem(k + '.t'); } } catch (e) { /* nothing kept */ } state.seis = {}; state.seisRestored = null; recompute(); toast('Seismic entries cleared — back to the PCS values'); };
     $$('#v-seismic [data-seis]').forEach(el => {
       el.onchange = () => {
-        const k = el.dataset.seis, v = el.type === 'checkbox' ? el.checked : el.value.trim();
-        const c = state.seis;
-        const setPath = (obj, path, val) => { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); if (val === '' || val == null) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = val; };
-        if (k === 'ndfs') c.ignoreNDFS = !v;
-        else if (k === 'vertical') c.vertical = v;
-        else if (k === 'split') c.split = v;
-        else if (k === 'diaphragm') c.diaphragm = v;
-        else if (k.startsWith('types.')) { c.types = (c.types || RUN.SEIS_DEFAULTS.types).slice(); c.types[+k.slice(6)] = v; }
-        else if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); const path = rest.slice(bk.length + 1); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], path, typeof v === 'boolean' ? v : v === '' ? '' : +v); }
-        else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); const path = k.slice(2 + id.length + 1); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; c.mezz[id][path] = typeof v === 'boolean' ? v : v === '' ? undefined : +v; if (c.mezz[id][path] === undefined) delete c.mezz[id][path]; }
-        else if (k === 'ed' || k === 'siteClass' || k === 'risk') c[k] = v;
+        const k = el.dataset.seis, raw = el.type === 'checkbox' ? el.checked : el.value.trim(), c = state.seis;
+        const v = el.type === 'checkbox' || el.tagName === 'SELECT' ? raw : raw === '' ? '' : +raw;
+        const setPath = (obj, path, val) => { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); if (val === '' || val == null || (typeof val === 'number' && !isFinite(val))) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = val; };
+        if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], rest.slice(bk.length + 1), v); }
+        else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; setPath(c.mezz[id], k.slice(2 + id.length + 1), v); }
         else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
         else if (k === 'framingAll') { c.mezz = c.mezz || {}; sj.buildings.forEach(b => b.mezz.forEach(m => { c.mezz[m.id] = { ...(c.mezz[m.id] || {}), framing: !!v }; if (v) delete c.mezz[m.id].framing; })); }
-        else c[k] = v === '' ? undefined : +v;
+        else if (k === 'significant') { if (v) c.significant = true; else delete c.significant; }
+        else if (k === 'strutLine') { if (v) delete c.strutLine; else c.strutLine = false; seisSave(); renderSeismic(); return; }
+        else if (v === '' || v == null) delete c[k];
+        else c[k] = v;
         seisSave(); recompute();
       };
     });
+  }
+  // the bracing file's frame line name (shown 1-based in NBG Bracing) for a 0-based index
+  const lineName = (bf, i) => ((bf.file.info.lines.find(l => l.index === i) || {}).name) ?? String(i + 1);
+  const bracingOutName = bf => bf.name.replace(/\.bracing$/i, '') + '_mz.bracing';
+  // what goes into a building's bracing file: its sidewall lines at the mezzanine level
+  function bracingPlan(b) {
+    const bf = (state.bracing || {})[b.bkey];
+    if (!bf) return { loads: [], struts: [], notes: [] };
+    return BRF.planFor(bf.file, b.braceLines.filter(l => l.wall).map(l => ({ wall: l.wall, F: l.F, at: l.at, x0: l.x0, x1: l.x1, mezz: l.mezz.join(' + ') })));
+  }
+  // a dropped .bracing (one building's run: its frame lines, walls, bracing, code and roof loads) or .nbgscope (the
+  // job's eScope: the project loads and each building's roof loads)
+  async function addSeisFiles(list) {
+    const sj = state.job && state.job.seismic;
+    if (!sj || !sj.buildings.length) { toast('Load a PCS first', 'bad'); return; }
+    const bOf = (w, l, name) => sj.buildings.find(b => name && sameName(b.name, name)) || sj.buildings.find(b => Math.abs(b.bd.width - w) < 0.6 && Math.abs(b.bd.length - l) < 0.6) || (sj.buildings.length === 1 ? sj.buildings[0] : null);
+    const risk = t => (String(t || '').match(/^(IV|III|II|I)\b/) || [])[1] || null;
+    state.seis.files = state.seis.files || {};
+    state.bracing = state.bracing || {};
+    for (const file of list) {
+      try {
+        if (/\.bracing$/i.test(file.name)) {
+          if (!zipIO.ok) { toast('This browser cannot open .bracing files — use a current Chrome or Edge', 'bad'); continue; }
+          const br = await BRF.read(new Uint8Array(await file.arrayBuffer()), zipIO, file.name), i = br.info, b = bOf(i.width, i.length);
+          if (!b) { toast(`${file.name}: no building of ${ft(i.width)} × ${ft(i.length)} in this job`, 'bad'); continue; }
+          if (i.job && state.pcs && state.pcs.job && state.pcs.job.quote && i.job !== state.pcs.job.quote) toast(`${file.name} is for ${i.job}, this PCS is ${state.pcs.job.quote}`, 'warn');
+          state.bracing[b.bkey] = { name: file.name, file: br };
+          const s = i.seismic || {}, ed722 = /2024|7-?22/.test(i.code || '');
+          state.seis.files[b.bkey] = { ...(state.seis.files[b.bkey] || {}), from: 'bracing file', code: i.code, risk: risk(i.risk), Ss: s.Ss != null ? +s.Ss.toFixed(4) : null, S1: s.S1 != null ? +s.S1.toFixed(4) : null,
+            SMS: ed722 && s.Sms != null ? +s.Sms.toFixed(4) : null, SM1: ed722 && s.Sm1 != null ? +s.Sm1.toFixed(4) : null, siteClass: s.siteClass || null,
+            roofDead: i.roofDead != null ? +i.roofDead.toFixed(4) : null, collateral: i.collateral, snow: i.snow != null ? +i.snow.toFixed(4) : null };
+          toast(`${file.name} — ${i.code || 'code ?'}, Ss ${s.Ss != null ? +s.Ss.toFixed(3) : '?'} / S1 ${s.S1 != null ? +s.S1.toFixed(3) : '?'}, roof dead ${i.roofDead != null ? +i.roofDead.toFixed(3) : '?'} psf; the mezzanine loads are ready in step 9`);
+        } else if (/\.nbgscope$/i.test(file.name)) {
+          const sc = BRF.readScope(await file.text());
+          sc.buildings.forEach(bs => {
+            const b = bOf(bs.width, bs.length, bs.name);
+            if (!b) return;
+            const ed722 = /2024/.test(sc.code || '');
+            state.seis.files[b.bkey] = { from: 'eScope', code: sc.code, risk: risk(sc.risk), Ss: sc.Ss, S1: sc.S1, SMS: ed722 ? sc.Sms : null, SM1: ed722 ? sc.Sm1 : null, siteClass: sc.siteClass,
+              roofDead: bs.roofDead, collateral: bs.collateral, snow: bs.snow, ...(state.seis.files[b.bkey] && state.seis.files[b.bkey].from === 'bracing file' ? state.seis.files[b.bkey] : {}) };
+          });
+          toast(`${file.name} — eScope: ${sc.code || `code id ${sc.codeId}`}, Ss ${sc.Ss} / S1 ${sc.S1}, site ${sc.siteClass}`);
+        }
+      } catch (e) { console.error(e); toast(`${file.name}: ${e.message}`, 'bad'); }
+    }
+    seisSave(); recompute();
   }
   // a typed EQ load (kips) for one or more frame line × column × elevation keys; '' goes back to the calculated load
   function setEq(keys, val) {
@@ -10760,7 +11245,17 @@ em.flag { font-style: normal; font-weight: 600; color: var(--amber); }
     } catch (e) { /* private window: kept for this session */ }
   }
   const seisSavedAt = () => { const k = seisKey(); try { return k ? localStorage.getItem(k + '.t') : null; } catch (e) { return null; } };
-  function seisLoad() { const k = seisKey(); try { return (k && JSON.parse(localStorage.getItem(k) || 'null')) || {}; } catch (e) { return {}; } }
+  function seisLoad() {
+    const k = seisKey();
+    let c = {};
+    try { c = (k && JSON.parse(localStorage.getItem(k) || 'null')) || {}; } catch (e) { return {}; }
+    // entries kept by the workbook-based page: its switches in NBG Design Calcs' terms
+    if (c.ignoreNDFS != null) { c.ndfs = !c.ignoreNDFS; delete c.ignoreNDFS; }
+    if (c.diaphragm) { if (c.diaphragm === 'rigid') c.mezzDiaphragm = 'Rigid'; delete c.diaphragm; }
+    ['vertical', 'types', 'SDS', 'SD1'].forEach(x => delete c[x]);
+    Object.values(c.buildings || {}).forEach(b => { delete b.story; if (b.walls && ('fsw' in b.walls || 'lew' in b.walls)) delete b.walls; });
+    return c;
+  }
 
   // ---------- frame loads for NBG Frame: by frame line, on the frame's own members ----------
   function renderFrameLoads() {

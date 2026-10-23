@@ -1,70 +1,132 @@
-// Seismic (src/seismic.js): the ASCE 7 equivalent lateral force the way NBG's IBC Seismic workbook does it. The expected
-// values are what the workbook gives for the same inputs (oracle/seismic_check.js runs the full set against it: 1,386 of
-// 1,386 values tie across 15 cases). Then the job-level step: each frame's mezzanine load to the frame columns it
-// frames into, the roof seismic override, the bracing lines.
+// Seismic (src/seismic.js): ASCE 7's equivalent lateral force the way NBG Design Calcs works it. NBG's validation
+// examples and a .nbgcalcs file are checked against the engine value by value in oracle/nbg_seismic.js when they are
+// present (private); here each of its rules on cases worked by hand, then the job: each frame's mezzanine load on the
+// columns it frames into, the bracing lines.
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const S = require('../src/seismic.js');
-const near = (a, b, t = 2e-5) => Math.abs(a - b) <= t * Math.max(1, Math.abs(b));
+const near = (a, b, t = 1e-9) => Math.abs(a - b) <= t * Math.max(1, Math.abs(b));
 
-const g = { width: 120, length: 140, rooftype: 'Gable', dtr: 60, slope: 1, leh: 25, heh: 25 };
-const roof = { SW: 2, RSW: 1, RDL: 4.66, CDL: 6, Pf: 30, P: 0 }, walls = { fsw: 3, bsw: 3, lew: 3, rew: 3 };
-const mz = (a1, a2) => [{ id: 'Mezz 1', area: a1, conc: 0, elev: 11.5, FDL: 55, FLC: 5, FLJ: 8, FLL: 125, storage: true, FLP: 0 }, { id: 'Mezz 2', area: a2, conc: 0, elev: 11.5, FDL: 55, FLC: 5, FLJ: 8, FLL: 125, storage: true, FLP: 0 }].filter(m => m.area);
-const job = (site, over = {}) => ({ d: S.design(site), g, roof, walls, vertical: true, ...over });
-
-// 1. ASCE 7-16, Site D, RC II, SDC B: the longitudinal (bracing) table of a 120' × 140' building with two storage mezzanines
+// 1. spectral values: SDS = 0.6667 SMS, SD1 = 0.6667 SM1; Fa as interpolated, Fv to two decimals; Site Class E at
+//    Ss ≥ 1.0 takes Site Class C's Fa; ASCE 7-22 takes SMS / SM1 from the hazard tool
 {
-  const j = job({ ed: '7-16', Ss: 0.169, S1: 0.058, siteClass: 'D', risk: 'II' });
-  assert.ok(near(j.d.Fa, 1.6) && near(j.d.Fv, 2.4) && near(j.d.SDS, 0.1802666666666667) && near(j.d.SD1, 0.0928) && j.d.SDC === 'B');
-  assert.strictEqual(S.meanRoofHeight(g), 27.5);
-  const L = S.longitudinal(j, { types: ['X-Bracing', 'X-Bracing'], mezz: mz(3360, 1440) });
-  assert.ok(near(L.cs.Cs, 0.06008888781070709) && L.k === 1);
-  assert.deepStrictEqual(L.rows.map(r => [r.name, Math.round(r.W), +r.h.toFixed(2), Math.round(r.D), +r.Fx.toFixed(2)]), [
-    ['Roof', 230283, 27.5, 6332795, 23.04], ['Left endwall', 9900, 13.79, 136500, 0.5], ['Right endwall', 9900, 13.79, 136500, 0.5],
-    ['Front sidewall', 10500, 12.5, 131250, 0.48], ['Back sidewall', 10500, 12.5, 131250, 0.48], ['Mezz 1', 333480, 11.5, 3835020, 13.95], ['Mezz 2', 142920, 11.5, 1643580, 5.98]]);
-  assert.ok(near(L.V, 44.91544935518806) && near(L.mezzLoads[0].F, 13.951009312956385) && near(L.bracingV, 43.94279818182991));
-  // the lateral sheet for an interior frame (28 ft strip, 672 + 936 sq ft of mezzanine) and the left end frame
-  const F2 = S.lateral(j, { type: 'Rigid Frame', bay: 28, at: 'interior', mezz: mz(672, 936) });
-  assert.ok(near(F2.Ta, 0.3968479912997342) && near(F2.mezzLoads[0].F, 3.0661034924789874) && near(F2.mezzLoads[1].F, 4.2706441502385895));
-  assert.ok(near(F2.altRoof, 25.549812376234737) && near(F2.frameV, 12.510671912124284));
-  const F1 = S.lateral(j, { type: 'Rigid Frame', bay: 14, at: 'lew', mezz: mz(336, 504) });
-  assert.ok(near(F1.mezzLoads[0].F, 1.5548326144581421) && near(F1.mezzLoads[1].F, 2.332248921687213) && near(F1.altRoof, 28.66140201332184) && near(F1.frameV, 6.788266327103182));
-  // the roof's share with a mezzanine low in the building: well over Cs × roof weight (NBG Frame's single-level value)
-  assert.ok(F2.rows[0].Fx > 1.8 * F2.cs.Cs * F2.rows[0].W / 1000);
-}
-// 2. SDC D with the 7-16 11.4.8 exception (Site D, T > 1.5 Ts), 7-10 interpolation at RC IV, 7-05 Ss cap + S1 ≥ 0.6 minimum, SDC A
-{
-  const D = job({ ed: '7-16', Ss: 1.5, S1: 0.15, siteClass: 'D', risk: 'II' });
-  assert.ok(near(D.d.Fv, 2.3) && D.d.SDC === 'D');
-  assert.ok(near(S.lateral(D, { type: 'Rigid Frame', bay: 28, at: 'interior', mezz: mz(672, 936) }).cs.Cs, 0.24838584661483765));
-  assert.ok(near(S.longitudinal(D, { mezz: mz(3360, 1440) }).cs.Cs, 0.29465577006340027));
-  const C = job({ ed: '7-10', Ss: 0.6, S1: 0.25, siteClass: 'C', risk: 'IV' });
-  assert.ok(near(C.d.Fa, 1.16) && near(C.d.Fv, 1.55) && C.d.SDC === 'D' && C.d.Ie === 1.5);
-  assert.ok(near(S.lateral(C, { type: 'Rigid Frame', bay: 28, at: 'interior', mezz: mz(672, 936) }).cs.Cs, 0.1988571435213089));
-  const B = job({ ed: '7-05', Ss: 1.8, S1: 0.7, siteClass: 'B', risk: 'III' });
-  assert.ok(near(S.lateral(B, { type: 'Rigid Frame', bay: 28, at: 'interior', mezz: mz(672, 936) }).cs.Cs, 0.3571428656578064));
-  const A = job({ ed: '7-16', Ss: 0.1, S1: 0.04, siteClass: 'B', risk: 'II' });
-  assert.strictEqual(A.d.SDC, 'A');
-  assert.ok(near(S.lateral(A, { type: 'Rigid Frame', bay: 28, at: 'interior', mezz: mz(672, 936) }).mezzLoads[0].F, 0.66696));
-  // a mezzanine counted as a story in SDC D: the moment frame is over its limits (12.2.5.6.1)
-  const st = job({ ed: '7-16', Ss: 1.0, S1: 0.4, siteClass: 'D', risk: 'II' }, { story: true });
-  assert.ok(/12\.2\.5\.6\.1/.test(S.lateral(st, { type: 'Rigid Frame', bay: 28, at: 'interior', mezz: mz(672, 936) }).limit || ''));
-  // Site Class E at Ss 1.0: site-specific — flagged, not guessed
-  const E = S.design({ ed: '7-16', Ss: 1.0, S1: 0.2, siteClass: 'E', risk: 'II' });
-  assert.ok(!E.ok && /site-specific/.test(E.flags[0]));
-  assert.deepStrictEqual(['Post and Beam Multi Span - EMS', 'Post & Beam', 'Rigid Frame Clear Span - RCS', 'Lean-To Clear Span - LCS', 'Rigid Frame Multi Span (Non-Exp) -'].map(S.frameType), ['Post & Beam', 'Post & Beam', 'Rigid Frame', 'Rigid Frame', 'Rigid Frame']);
-  assert.strictEqual(S.editionOf('Massachusetts (MASS 10th Ed.) ASCE 7-16').ed, '7-16');
+  const d = S.design({ ed: '7-16', Ss: 0.26, S1: 0.075, siteClass: 'D', risk: 'II' });
+  assert.ok(near(d.Fa, 1.592) && near(d.Fv, 2.4) && near(d.SMS, 0.41392) && near(d.SDS, 0.6667 * 0.41392) && near(d.SD1, 0.6667 * 0.18) && d.SDC === 'B' && d.rho === 1);
+  const e = S.design({ ed: '7-16', Ss: 1.048, S1: 0.293, siteClass: 'E', risk: 'II' });
+  assert.ok(near(e.Fa, 1.2) && near(e.Fv, 2.84) && near(e.SM1, 2.84 * 0.293) && e.SDC === 'D' && e.rho === 1.3, '2.835 → 2.84');
+  const t = S.design({ ed: '7-22', Ss: 0.15, S1: 0.041, SMS: 0.19, SM1: 0.087, siteClass: 'D', risk: 'II' });
+  assert.ok(t.ok && t.Fa == null && near(t.SDS, 0.6667 * 0.19) && near(t.SD1, 0.6667 * 0.087) && t.SDC === 'A');
+  assert.ok(!S.design({ ed: '7-22', Ss: 0.15, S1: 0.041, siteClass: 'D' }).ok, '7-22 without SMS / SM1');
+  assert.ok(!S.design({ ed: '7-16', Ss: 0.2, S1: 0.1, siteClass: 'F' }).ok, 'Site Class F is site-specific');
+  assert.strictEqual(S.design({ ed: '7-16', Ss: 0.6, S1: 0.2, siteClass: 'D', risk: 'IV' }).SDC, 'D');
+  assert.strictEqual(S.design({ ed: '7-16', Ss: 2, S1: 0.8, siteClass: 'D', risk: 'II' }).SDC, 'E');
   assert.strictEqual(S.editionOf('Ohio 2024 (IBC 2021) ASCE 7-16').ed, '7-16');
-  assert.ok(/Hazard Tool/.test(S.editionOf('IBC 2024').note || ''));
+  assert.strictEqual(S.editionOf('IBC2021').ed, '7-16');
+  assert.strictEqual(S.editionOf('IBC 2024 ASCE 7-22').ed, '7-22');
+}
+// 2. force resisting systems: "not detailed for seismic" in SDC A–C; Ω0 less 0.5, not under 2, with flexible diaphragms
+{
+  const pick = s => ({ label: s.label, R: s.R, Om: s.Om, Cd: s.Cd, Ct: s.Ct, x: s.x });
+  assert.deepStrictEqual(pick(S.system('Rigid Frame', 'B', { flexible: true })), { label: 'Not Detailed For Seismic', R: 3, Om: 2.5, Cd: 3, Ct: 0.028, x: 0.8 });
+  assert.deepStrictEqual(pick(S.system('X-Bracing', 'C', {})), { label: 'Not Detailed For Seismic', R: 3, Om: 3, Cd: 3, Ct: 0.02, x: 0.75 });
+  assert.deepStrictEqual(pick(S.system('Portal Frame', 'D', { flexible: true })), { label: 'Ord. Moment Frame', R: 3.5, Om: 2.5, Cd: 3, Ct: 0.028, x: 0.8 });
+  assert.deepStrictEqual(pick(S.system('Post & Beam', 'D', { flexible: true })), { label: 'Ord. Concentrically Braced Frame', R: 3.25, Om: 2, Cd: 3.25, Ct: 0.02, x: 0.75 });
+  assert.deepStrictEqual(pick(S.system('Portal Frame (IMF)', 'D', {})), { label: 'Intermediate Moment Frame', R: 4.5, Om: 3, Cd: 4, Ct: 0.028, x: 0.8 });
+  assert.strictEqual(S.system('Rigid Frame', 'B', { ndfs: false }).label, 'Ord. Moment Frame');
+  assert.deepStrictEqual(['Post and Beam Multi Span - EMS', 'Post & Beam', 'Rigid Frame Clear Span - RCS', 'Lean-To Clear Span - LCS'].map(S.frameType), ['Post & Beam', 'Post & Beam', 'Rigid Frame', 'Rigid Frame']);
+}
+// 3. Cs: 12.8-2 / -3 / -5 / -6; ASCE 7-16's 11.4.8 exception (1.5 × Eq. 12.8-3 past 1.5 Ts) for Site Class D only with S1 ≥ 0.2
+{
+  const d = S.design({ ed: '7-16', Ss: 0.6, S1: 0.21, siteClass: 'D', risk: 'II' }), T = 1.0, Ts = d.SD1 / d.SDS;
+  assert.ok(T > 1.5 * Ts);
+  assert.ok(near(S.Cs(d, 3.5, T).Cs, 1.5 * d.SD1 / (T * 3.5)) && S.Cs(d, 3.5, T).exception1148);
+  const d2 = S.design({ ed: '7-16', Ss: 0.6, S1: 0.19, siteClass: 'D', risk: 'II' });
+  assert.ok(near(S.Cs(d2, 3.5, T).Cs, d2.SD1 / (T * 3.5)), 'S1 under 0.2: no exception');
+  const d3 = S.design({ ed: '7-22', Ss: 0.6, S1: 0.21, SMS: 0.79, SM1: 0.46, siteClass: 'D', risk: 'II' });
+  assert.ok(near(S.Cs(d3, 3.5, T).Cs, d3.SD1 / (T * 3.5)), 'ASCE 7-22: none');
+  assert.ok(near(S.Cs(d, 3.5, 0.3).Cs, d.SDS / 3.5), 'short period: SDS / R');
+  const III = S.design({ ed: '7-16', Ss: 0.225, S1: 0.06, siteClass: 'D', risk: 'III' });
+  assert.ok(near(S.Cs(III, 3, 0.3).Cs, III.SDS / (3 / 1.25)), 'Ie 1.25');
+}
+// 4. one building worked by hand: 80' × 120' gable 1:12, eaves 18', a 30' × 40' storage mezzanine at 12'
+const building = { ed: '7-16', type: 'Gable', width: 80, length: 120, dtr: 40, slope: 1, eaveFSW: 18, eaveBSW: 18 };
+const full = w => ({ kind: 'full', weight: w });
+const project = (seis = {}, extra = {}) => S.project({
+  building, seismic: { ed: '7-16', risk: 'II', Ss: 0.3, S1: 0.1, siteClass: 'D', roofDiaphragm: 'Flexible', mezzDiaphragm: 'None', ...seis },
+  roof: { SW: 2, RDL: 3, CDL: 2, RSW: 0, Pf: 25 }, walls: { LEW: full(3), REW: full(3), FSW: full(3), BSW: full(3) },
+  mezz: [{ id: 'M1', elev: 12, FDL: 50, FLC: 5, FLJ: 5, storage: true, FLL: 125 }], cranes: [], sfrs: { FSW: 'X-Bracing', BSW: 'X-Bracing', lines: ['Post & Beam', 'Rigid Frame', 'Rigid Frame'] }, ...extra });
+{
+  const J = project(), g = J.g;
+  assert.ok(near(g.mrh, 18 + 40 / 12 / 2) && near(g.wos, 80 / Math.cos(Math.atan(1 / 12))) && near(g.ridge, 18 + 40 / 12));
+  assert.ok(near(S.mezzPsf(J.P.mezz[0]), 50 + 5 + 5 + 0.25 * 125));
+  // an interior frame line, 24' strip, 30' × 24' of the mezzanine in it: no significant mezzanine, so each weight takes Cs × W
+  const L = S.frameLine(J, { framing: 'Rigid Frame', bay: 24, bayType: 'Interior', fswTrib: 24, bswTrib: 24, mezz: [{ id: 'M1', area: 720, conc: 0 }] });
+  const T = 0.028 * Math.pow(g.mrh, 0.8), Cs = Math.min(J.d.SDS / 3, J.d.SD1 / (T * 3));
+  assert.ok(near(L.Ta, T) && near(L.Cs, Cs) && L.k === 0 && L.sys.label === 'Not Detailed For Seismic' && L.factors.Om === 2.5);
+  const row = k => L.rows.find(r => r.key === k);
+  assert.ok(near(row('roof').W, 24 * 7 * g.wos) && near(row('roof').h, g.mrh), 'Pf 25: no snow in the weight');
+  assert.ok(near(row('FSW').W, 24 * 18 * 3) && near(row('FSW').h, 9) && near(row('mezz').W, 720 * 91.25) && near(row('mezz').h, 12));
+  L.rows.forEach(r => assert.ok(near(r.Fx, Cs * r.W / 1000) && near(r.Mx, r.Fx * r.h)));
+  assert.ok(near(L.frame.roofPsf, row('roof').W / (80 * 24)), 'k = 0, no endwall: the roof weight over the plan');
+  const fswF = row('FSW').Mx / (18 - 16 / 12);
+  assert.ok(near(L.frame.conc.find(c => c.key === 'FSW').F, fswF) && near(L.frame.conc.find(c => c.key === 'FSW').at, 18 - 16 / 12));
+  assert.ok(near(L.V, L.frame.roofPsf * 80 * 24 * Cs / 1000 + 2 * fswF + row('mezz').Fx));
+  // the left end frame: its endwall to the roof line — 80 × 18 + the gable, at the outline's centroid
+  const E = S.frameLine(J, { framing: 'Post & Beam', bay: 12, bayType: 'Left Endwall', fswTrib: 12, bswTrib: 12, mezz: [] });
+  const A = 80 * 18 + 80 * (40 / 12) / 2, z = (80 * 18 * 9 + 80 * (40 / 12) / 2 * (18 + 40 / 12 / 3)) / A;
+  const ew = E.rows.find(r => r.key === 'LEW');
+  assert.ok(near(ew.W, 3 * A) && near(ew.h, z) && near(E.frame.roofPsf, (E.rows[0].Mx + ew.Mx) * 1000 / (g.mrh * 80 * 12 * E.Cs)));
+  // significant mezzanine: the vertical distribution, k from Ta (12.8.3)
+  const K = S.frameLine(project({ significant: true }), { framing: 'Rigid Frame', bay: 24, bayType: 'Interior', fswTrib: 24, bswTrib: 24, mezz: [{ id: 'M1', area: 720, conc: 0 }] });
+  const Wt = K.rows.reduce((a, r) => a + r.W, 0), Dt = K.rows.reduce((a, r) => a + r.W * r.h, 0);
+  assert.ok(K.k === 1 && near(K.rows.find(r => r.key === 'mezz').Fx, K.Cs * Wt * (720 * 91.25 * 12) / Dt / 1000));
+  // the longitudinal: the whole building, both endwalls; sidewall loads at the eave; the bracing's roof weights
+  const B = S.bracing(J, { fswTrib: 120, bswTrib: 120, mezz: [{ id: 'M1', area: 1200, conc: 0 }] });
+  const brow = k => B.rows.find(r => r.key === k);
+  assert.ok(near(brow('roof').W, 120 * 7 * g.wos) && near(brow('LEW').W, 3 * A) && near(brow('mezz').W, 1200 * 91.25));
+  assert.ok(near(B.bracing.totalPsf, (brow('roof').Mx + brow('LEW').Mx + brow('REW').Mx) * 1000 / (g.mrh * 80 * 120 * B.Cs)) && near(B.bracing.deadPsf, B.bracing.totalPsf));
+  assert.ok(near(B.bracing.conc.find(c => c.key === 'FSW').F, brow('FSW').Mx / 18) && near(B.bracing.conc.find(c => c.key === 'mezz').F, brow('mezz').Fx), 'flexible floor: no torsion');
+  // a rigid mezzanine diaphragm with accidental torsion: 1.1 on its force, Ω0 not reduced; a rigid roof: 1.1 on the factor
+  const R = S.bracing(project({ mezzDiaphragm: 'Rigid', roofDiaphragm: 'Rigid' }), { fswTrib: 120, bswTrib: 120, mezz: [{ id: 'M1', area: 1200, conc: 0 }] });
+  assert.ok(near(R.bracing.conc.find(c => c.key === 'mezz').F, 1.1 * R.rows.find(r => r.key === 'mezz').Fx) && near(R.bracing.factor, 1.1 * R.Cs) && R.factors.Om === 3);
+  const R0 = S.bracing(project({ mezzDiaphragm: 'Rigid', torsionLong: false }), { fswTrib: 120, bswTrib: 120, mezz: [{ id: 'M1', area: 1200, conc: 0 }] });
+  assert.ok(near(R0.bracing.conc.find(c => c.key === 'mezz').F, R0.rows.find(r => r.key === 'mezz').Fx), 'torsion off');
+  // snow in the weight: 20 % of Pf over 30 psf; ASCE 7-22 15 % over 45 psf; on plan
+  const snow = (ed, Pf, extra = {}) => { const Jx = S.project({ ...J.P, building: { ...building, ed }, seismic: { ...J.P.seismic, ed, SMS: 0.47, SM1: 0.24, ...extra }, roof: { ...J.P.roof, Pf } }); return S.bracing(Jx, { fswTrib: 120, bswTrib: 120 }).rows[0].W - 120 * 7 * g.wos; };
+  assert.ok(near(snow('7-16', 40), 0.2 * 40 * 80 * 120) && near(snow('7-16', 30), 0) && near(snow('7-22', 40), 0) && near(snow('7-22', 50), 0.15 * 50 * 80 * 120));
+  // walls: a partial height hardwall (masonry 8' at 40 psf, panel above), a parapet to 22', a shear wall left out in its own plane
+  const W2 = { LEW: { kind: 'full', weight: 3, parapet: true, top: 22 }, REW: full(3), FSW: { kind: 'partial', masonryTop: 8, lowerWeight: 40, upperWeight: 3, top: 18, shear: true }, BSW: full(3) };
+  const J2 = S.project({ ...J.P, walls: W2 });
+  const B2 = S.bracing(J2, { fswTrib: 120, bswTrib: 120 }), up = B2.rows.find(r => r.name === 'Front SW Loads - Upper'), lo = B2.rows.find(r => r.name === 'Front SW Loads - Lower');
+  assert.ok(near(up.W, 120 * 10 * 3) && near(up.h, 13) && lo.W === 0 && lo.excluded, 'the sidewall\'s masonry carries itself along its own plane');
+  assert.ok(near(B2.rows.find(r => r.key === 'LEW').W, 80 * 22 * 3) && near(B2.rows.find(r => r.key === 'LEW').h, 11), 'a parapet: the wall to its top');
+  const L2 = S.frameLine(J2, { framing: 'Rigid Frame', bay: 24, bayType: 'Interior', fswTrib: 24, bswTrib: 24, mezz: [] });
+  assert.ok(near(L2.rows.find(r => r.name === 'Front SW Loads - Lower').W, 24 * 8 * 40), 'across the building it loads the frame');
+  // 12.2.3.3: with a rigid diaphragm the least R of the lateral lines governs each line (its own period)
+  const J3 = project({ ed: '7-16', Ss: 1.0, S1: 0.4, mezzDiaphragm: 'Rigid' }, { sfrs: { FSW: 'X-Bracing', BSW: 'X-Bracing', lines: ['Post & Beam', 'Rigid Frame (IMF)'] } });
+  const L3 = S.frameLine(J3, { framing: 'Rigid Frame (IMF)', bay: 24, bayType: 'Interior', fswTrib: 24, bswTrib: 24, mezz: [] });
+  assert.ok(L3.sys.label === 'Ord. Concentrically Braced Frame' && L3.R === 3.25 && near(L3.Ta, 0.028 * Math.pow(J3.g.mrh, 0.8)));
+  const L4 = S.frameLine(project({ ed: '7-16', Ss: 1.0, S1: 0.4 }, { sfrs: J3.P.sfrs }), { framing: 'Rigid Frame (IMF)', bay: 24, bayType: 'Interior', fswTrib: 24, bswTrib: 24, mezz: [] });
+  assert.ok(L4.sys.label === 'Intermediate Moment Frame' && L4.R === 4.5, 'flexible, Risk Category II: each line its own');
 }
 
-// 3. the job (W1S-26062, when present): every frame line with mezzanine gets its share on the columns it frames into;
+// 5. NBG's validation examples and .nbgcalcs files, when present (private): every value ties
+const fixtures = path.join(__dirname, '..', 'private', 'nbg-calcs', 'validation', 'fixtures');
+let nbg = 'NBG validation examples not present';
+if (fs.existsSync(fixtures)) {
+  const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, '..', 'oracle', 'nbg_seismic.js')], { encoding: 'utf8' });
+  const m = /(\d+) values: (\d+) exact, (\d+) within 1 in the last printed digit, (\d+) differ/.exec(r.stdout);
+  assert.ok(m && m[4] === '0' && r.status === 0, 'NBG validation: ' + (r.stdout || '').split('\n').filter(l => /✗|differ|values/.test(l)).slice(0, 12).join('\n'));
+  nbg = `NBG validation ${m[2]}/${m[1]} printed values${/nbgcalcs: .* all tie/.test(r.stdout) ? ' and the .nbgcalcs file to 1e-9' : ''}`;
+}
+
+// 6. the job (W1S-26062, when present): every frame line with mezzanine gets its share on the columns it frames into;
 //    the bracing lines hold the whole longitudinal mezzanine force
 const pdf = process.env.MZ_PCS3 || path.join(__dirname, '..', 'private', 'pcs', 'PCS_job3.pdf');
 let ok = fs.existsSync(pdf);
 try { require('./pdf-node.js').loadPdfjs(); } catch (e) { ok = false; }
-if (!ok) { console.log('seismic tests passed (engine vs the workbook; W1S-26062 not present, job step skipped)'); process.exit(0); }
+if (!ok) { console.log(`seismic tests passed (the rules worked by hand; ${nbg}; W1S-26062 not present, job step skipped)`); process.exit(0); }
 (async () => {
   const { loadJob } = require('../oracle/job_load.js');
   const RUN = require('../src/run.js');
@@ -77,41 +139,55 @@ if (!ok) { console.log('seismic tests passed (engine vs the workbook; W1S-26062 
   let sj = RUN.runJob(items).seismic;
   assert.ok(!sj.ok && /roof dead load/.test(sj.need.join(' ')));
   const bk = sj.buildings[0].bkey;
-  sj = RUN.runJob(items, { seis: { buildings: { [bk]: { RDL: 4.66 } }, mezz: { 'Mezz 1': { FDL: 55, framing: false, storage: true }, 'Mezz 2': { FDL: 55, framing: false, storage: true } } } }).seismic;
+  const base = { buildings: { [bk]: { RDL: 4.66 } }, mezz: { 'Mezz 1': { FDL: 55, framing: false, storage: true }, 'Mezz 2': { FDL: 55, framing: false, storage: true } } };
+  sj = RUN.runJob(items, { seis: base }).seismic;
   assert.ok(sj.ok, sj.need.join('; '));
   const b = sj.buildings[0];
   assert.deepStrictEqual(b.mezz.map(m => +m.psf.toFixed(2)), [99.25, 99.25], '55 + 5 + 8 + 25 % of 125');
+  // "significant mezzanine exists" unchecked, as NBG Design Calcs has it: each weight takes Cs × W (4,800 sq ft of
+  // mezzanine in 16,800 is under a third: no hint either)
+  assert.ok(!b.significant && !b.sigHint && b.lines.length === 6 && b.lines.every(l => l.lat.k === 0));
+  const sig = RUN.runJob(items, { seis: { ...base, significant: true } }).seismic.buildings[0];
+  assert.ok(sig.significant && sig.lines.every(l => l.lat.k === 1) && sig.long.mezzLoads[0].F < b.long.mezzLoads[0].F, 'checked: k from Ta, the mezzanine (below the roof) takes less');
+  const Cs = b.long.Cs;
+  assert.ok(near(Cs, sj.design.SDS / 3) && near(sj.design.SDS, 0.6667 * sj.design.SMS));
   assert.deepStrictEqual(b.frames.map(f => [f.label, f.at, f.bay, f.eqs.map(e => `${e.member} ${e.F.toFixed(2)}`).join(' ')]), [
-    ['1', 'lew', 14, 'COL02 2.33 COL03 1.55'], ['2', 'interior', 28, 'COL02 4.27 COL03 3.07'], ['3', 'interior', 28, 'COL03 2.58'],
-    ['4', 'interior', 28, 'COL03 2.58'], ['5', 'interior', 28, 'COL03 2.58'], ['6', 'rew', 14, 'COL03 1.34']]);
+    ['1', 'lew', 14, 'COL02 3.01 COL03 2.00'], ['2', 'interior', 28, 'COL02 5.58 COL03 4.01'], ['3', 'interior', 28, 'COL03 4.01'],
+    ['4', 'interior', 28, 'COL03 4.01'], ['5', 'interior', 28, 'COL03 4.01'], ['6', 'rew', 14, 'COL03 2.00']]);
+  // a frame's mezzanine load is Cs × its floor in the strip
+  b.frames.forEach(f => f.lat.mezzLoads.forEach(ml => assert.ok(near(ml.F, Cs * f.areas[ml.id] * 99.25 / 1000, 1e-9))));
   assert.ok(b.frames.every(f => !f.loose.length));
-  assert.ok(near(b.long.mezzLoads[0].F, 13.951009312956385, 1e-4) && near(b.long.mezzLoads[1].F, 5.98, 2e-3));
-  const lines = b.braceLines.map(l => [l.edge.replace(/,.*$/, ''), l.segs.map(s => s.join('-')).join(' '), +l.F.toFixed(2), l.independent]);
-  assert.deepStrictEqual(lines, [['line E', '0-40', 4.98, true], ['line B', '40-140', 4.98, true], ['BSW sidewall', '0-140', 9.97, false]]);
+  assert.ok(near(b.long.mezzLoads[0].F, Cs * 333480 / 1000) && near(b.long.mezzLoads[1].F, Cs * 142920 / 1000));
+  const lines = b.braceLines.map(l => [l.edge.replace(/,.*$/, ''), l.segs.map(s => s.join('-')).join(' '), +l.F.toFixed(2), l.independent, l.wall]);
+  assert.deepStrictEqual(lines, [['line E', '0-40', 7.16, true, null], ['line B', '40-140', 7.16, true, null], ['BSW sidewall', '0-140', 14.31, false, 'BSW']]);
   assert.ok(near(b.braceLines.reduce((a, l) => a + l.F, 0), b.long.mezzLoads.reduce((a, m) => a + m.F, 0), 1e-9), 'the lines hold all of it');
   // the engineer's edits: × 1.2 on every computed load, 5 k typed on frame 2 COL02 (Mezz 1 + Mezz 2 at that column, one
   // value), and the frame-file rows carry exactly what is shown — EQR +, EQL −
   const FF = require('../src/framefile.js');
-  const base = { buildings: { [bk]: { RDL: 4.66 } }, mezz: { 'Mezz 1': { FDL: 55, framing: false, storage: true }, 'Mezz 2': { FDL: 55, framing: false, storage: true } } };
   const f2 = b.frames.find(f => f.label === '2'), c2 = f2.eqs.find(e => e.member === 'COL02');
   assert.strictEqual(c2.key, RUN.eqKey(bk, '2', c2.label, c2.at));
   const ed = RUN.runJob(items, { seis: { ...base, eqScale: 1.2, eqOverride: { [c2.key]: 5 } } });
   const eb = ed.seismic.buildings[0];
   assert.deepStrictEqual(eb.frames.map(f => [f.label, f.eqs.map(e => `${e.member} ${e.F.toFixed(2)} ${e.edited}`).join(' ')]), [
-    ['1', 'COL02 2.80 scaled COL03 1.87 scaled'], ['2', 'COL02 5.00 typed COL03 3.68 scaled'], ['3', 'COL03 3.10 scaled'],
-    ['4', 'COL03 3.10 scaled'], ['5', 'COL03 3.10 scaled'], ['6', 'COL03 1.60 scaled']]);
-  assert.ok(near(eb.frames[1].eqs.find(e => e.member === 'COL02').calc, 4.2706441502385895, 1e-4), 'the calculated value is kept beside the typed one');
-  const rowsOf = (job, lines) => {
-    const fe = job.frameEntries.filter(x => lines.includes(x.frame)), cols = [...new Map(fe.flatMap(x => x.entries.filter(e => e.member)).map(e => [e.member, { id: e.member, x: e.y }])).values()];
-    return FF.rowsFor({ lines, columns: cols, width: b.geo ? b.geo.width : 120 }, job.frameEntries, { lines }).rows.filter(x => /^EQ/.test(x.caseId)).map(x => `${x.name} ${x.member} ${x.x.toFixed(2)}`);
+    ['1', 'COL02 3.61 scaled COL03 2.40 scaled'], ['2', 'COL02 5.00 typed COL03 4.81 scaled'], ['3', 'COL03 4.81 scaled'],
+    ['4', 'COL03 4.81 scaled'], ['5', 'COL03 4.81 scaled'], ['6', 'COL03 2.40 scaled']]);
+  assert.ok(near(eb.frames[1].eqs.find(e => e.member === 'COL02').calc, f2.lat.mezzLoads.find(m => m.id === 'Mezz 2').F), 'the calculated value is kept beside the typed one');
+  const rowsOf = (job, ls) => {
+    const fe = job.frameEntries.filter(x => ls.includes(x.frame)), cols = [...new Map(fe.flatMap(x => x.entries.filter(e => e.member)).map(e => [e.member, { id: e.member, x: e.y }])).values()];
+    return FF.rowsFor({ lines: ls, columns: cols, width: 120 }, job.frameEntries, { lines: ls }).rows.filter(x => /^EQ/.test(x.caseId)).map(x => `${x.name} ${x.member} ${x.x.toFixed(2)}`);
   };
-  assert.deepStrictEqual(rowsOf(ed, ['2']), ['EQR 2 COL02 5.00', 'EQL 2 COL02 -5.00', 'EQR 3 COL03 3.68', 'EQL 3 COL03 -3.68']);
+  assert.deepStrictEqual(rowsOf(ed, ['2']), ['EQR 2 COL02 5.00', 'EQL 2 COL02 -5.00', 'EQR 3 COL03 4.81', 'EQL 3 COL03 -4.81']);
   // a file for lines 3-5: one typed value for every line at that column (what the card does) is what goes in
   const keys = ['3', '4', '5'].map(l => eb.frames.find(f => f.label === l).eqs[0].key);
   const ed2 = RUN.runJob(items, { seis: { ...base, eqOverride: Object.fromEntries(keys.map(k => [k, 2.75])) } });
   assert.deepStrictEqual(rowsOf(ed2, ['3', '4', '5']), ['EQR 3 COL03 2.75', 'EQL 3 COL03 -2.75']);
-  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: base }), ['3', '4', '5']), ['EQR 3 COL03 2.58', 'EQL 3 COL03 -2.58'], 'no edits: the calculated loads');
-  // 0 typed: no EQ rows for that column
-  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: { ...base, eqOverride: { [c2.key]: 0 } } }), ['2']), ['EQR 3 COL03 3.07', 'EQL 3 COL03 -3.07']);
-  console.log('seismic tests passed (ASCE 7-05 / 7-10 / 7-16 against the IBC Seismic workbook; W1S-26062: 99.25 psf, frames 1–6 EQ on COL02 / COL03, bracing 13.95 + 5.98 k to line E, line B and the BSW; EQ edits × scale / typed per column into the frame-file rows)');
+  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: base }), ['3', '4', '5']), ['EQR 3 COL03 4.01', 'EQL 3 COL03 -4.01'], 'no edits: the calculated loads');
+  assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: { ...base, eqOverride: { [c2.key]: 0 } } }), ['2']), ['EQR 3 COL03 4.01', 'EQL 3 COL03 -4.01'], '0 typed: no EQ rows for that column');
+  // the code chosen on the page over the PCS's: the PCS's Ss / S1 belong to its own edition, so they are asked for
+  const sw = RUN.runJob(items, { seis: { ...base, ed: '7-22' } }).seismic;
+  assert.ok(!sw.ok && /SMS and SM1|Ss and S1 for ASCE 7-22/.test(sw.need.join(' ')));
+  // a bracing file's code, site and roof loads stand in for the PCS's (typed values still win)
+  const fromFile = RUN.runJob(items, { seis: { mezz: base.mezz, files: { [bk]: { from: 'bracing file', code: 'IBC2021', Ss: 0.2, S1: 0.07, siteClass: 'D', roofDead: 3.1 } } } }).seismic;
+  assert.ok(fromFile.ok && fromFile.inputs.Ss.value === 0.2 && fromFile.inputs.Ss.source === 'bracing file' && fromFile.buildings[0].roof.RDL.value === 3.1);
+  console.log(`seismic tests passed (the rules worked by hand; ${nbg}; W1S-26062: 99.25 psf, k = 0 unless a significant mezzanine, frames 1–6 EQ on COL02 / COL03, bracing ${b.long.mezzLoads.map(m => m.F.toFixed(2)).join(' + ')} k to line E, line B and the BSW; EQ edits × scale / typed per column into the frame-file rows)`);
 })().catch(e => { console.error(e); process.exit(1); });

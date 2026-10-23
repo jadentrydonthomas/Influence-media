@@ -53,7 +53,7 @@ def main():
             drop_modules(doc, DROP)
         patch_pi(doc)
         if 'Seismic' in it['book']:
-            # LibreOffice reads the hidden lateral sheets' "" as 0 in the least-R min (see seismic_oracle.py)
+            # LibreOffice reads the hidden lateral sheets' "" as 0 in the least-R min (the workbook's own behaviour)
             misc = doc.Sheets.getByName('Miscellaneous')
             for a, f in [('L8', '=L3'), ('M8', '=M3'), ('N8', '=N3')]:
                 misc.getCellRangeByName(a).setFormula(f)

@@ -184,28 +184,28 @@
     <!-- SEISMIC -->
     <section class="screen" id="v-seismic">
       <div class="screen-heading">
-        <div><div class="eyebrow">NBG IBC Seismic workbook · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
-        <p class="lede">In the IBC Seismic workbook's order: Input Data, each frame on Lateral Calcs. (1), EQR / EQL into NBG Frame, the bracing.</p>
+        <div><div class="eyebrow">NBG Design Calcs · Seismic · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
+        <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
       </div>
       <div class="seis-status" id="seisStatus"></div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">1–3</span>Input Data</h3><span class="sub">code &amp; site, building, roof &amp; walls, mezzanine loads · from the PCS and the design · type over any value</span></div>
+        <div class="panel-head"><h3><span class="step-no">1–6</span>NBG Design Calcs input</h3><span class="sub">building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · from the PCS, the job's NBG files and the design · type over any value</span></div>
         <div class="panel-body" id="seisInputs"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">4</span>Each frame · Lateral Calcs. (1)</h3><span class="sub">frame type, bay width (its strip), where it is, the loading area of each mezzanine → the mezzanine's seismic force at that frame · click a row for the full distribution</span></div>
+        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
         <div class="panel-body" id="seisFrames"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">5</span>Into NBG Frame · EQR / EQL</h3><span class="sub">the frame's mezzanine force on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
+        <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
         <div class="panel-body" id="seisApply"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">6</span>Bracing · Longitudinal Calcs.</h3><span class="sub">the whole building · the mezzanine's seismic force for the bracing</span></div>
+        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF and the wall strut line, written into the .bracing file</span></div>
         <div class="panel-body" id="seisBracing"></div>
       </div>
       <div class="panel seis-step" id="seisFlagsPanel">
-        <div class="panel-head"><h3>What the tool does beyond your procedure</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
+        <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
         <div class="panel-body" id="seisFlags"></div>
       </div>
       <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
@@ -295,6 +295,7 @@
 <script>/*@INLINE_JS extract.js*/</script>
 <script>/*@INLINE_JS plan.js*/</script>
 <script>/*@INLINE_JS framefile.js*/</script>
+<script>/*@INLINE_JS bracingfile.js*/</script>
 <script>/*@INLINE_JS xls.js*/</script>
 <script>/*@INLINE_JS xlsx.js*/</script>
 <script>/*@INLINE_JS model3d.js*/</script>
