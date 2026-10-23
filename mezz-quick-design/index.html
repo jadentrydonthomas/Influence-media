@@ -1550,6 +1550,9 @@ body[data-ws="job"] #mezzTabs { display: none; }
 .lt-steps { margin: 4px 0 10px; padding-left: 20px; font-size: 12.5px; color: var(--ink-muted); }
 .lt-steps li { margin: 3px 0; }
 .lt-steps b { color: var(--ink); }
+.site-plan .sp-outline, .site-plan .sp-ridge, .site-plan .sp-name, .site-plan .sp-dim { pointer-events: none; }
+.fv-sys { display: inline-flex; align-items: center; gap: 8px; margin-left: 14px; font-size: 12px; color: var(--ink-muted); vertical-align: middle; }
+.fv-sys select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 12.5px; }
 
 </style>
 </head>
@@ -10308,7 +10311,15 @@ window.MZ_APP_BUILDING = function (C) {
     const Fd = frameData(sel.building, sel.frame);
     if (!Fd) { $('#frameView').innerHTML = ''; return; }
     const out = B.frameSvg(Fd), ld = Fd.loads;
-    $('#frameViewTitle').innerHTML = `${esc(Fd.name)} · frame line <b>${Fd.frame}</b> <small class="sub-n">${esc(Fd.type || '')} · trib ${ft(Fd.trib)} · ${Fd.end ? Fd.end + ' end frame' : 'interior'}</small>`;
+    // the frame line's lateral system (its R for the seismic): PCS Box 5's framing, or the one picked here (kept with
+    // the Seismic page's entries for this job)
+    const bS = sb(Fd.name), lineS = bS ? (bS.lines || []).find(l => String(l.label) === String(Fd.frame)) : null;
+    const picked = bS && (((state.seis.buildings || {})[bS.bkey] || {}).lines || {})[String(Fd.frame)];
+    const curSys = picked || (lineS ? lineS.type : /post|beam/i.test(Fd.type || '') ? 'Post & Beam' : 'Rigid Frame');
+    const sysSel = bS ? `<label class="fv-sys"><span>Lateral system</span><select data-fsys="${esc(bS.bkey)}|${esc(String(Fd.frame))}">${(C.LINE_SYSTEMS || []).map(t => `<option ${t === curSys ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select><small class="sub-n">${picked ? 'picked here' : 'PCS Box 5'}${lineS && lineS.lat && lineS.lat.R != null ? ` · R ${+lineS.lat.R.toFixed(2)}` : ''}</small></label>` : '';
+    $('#frameViewTitle').innerHTML = `${esc(Fd.name)} · frame line <b>${Fd.frame}</b> <small class="sub-n">${esc(Fd.type || '')} · trib ${ft(Fd.trib)} · ${Fd.end ? Fd.end + ' end frame' : 'interior'}</small>${sysSel}`;
+    const fs = $('#frameViewTitle [data-fsys]');
+    if (fs) fs.onchange = () => { const [bk, lab] = fs.dataset.fsys.split('|'); state.seis.buildings = state.seis.buildings || {}; const bo = state.seis.buildings[bk] = state.seis.buildings[bk] || {}; bo.lines = bo.lines || {}; bo.lines[lab] = fs.value; C.seisSave && C.seisSave(); recompute(); toast(`Frame line ${lab}: ${fs.value} — the seismic is reworked with its R`); };
     const on = state.frameLayers = state.frameLayers || {};
     $('#frameToggles').innerHTML = out.legend.map(l => `<button data-layer="${esc(l.key)}" class="${on[l.key] === false ? '' : 'is-on'}">${esc(l.label)}</button>`).join('');
     $('#frameView').innerHTML = out.svg;
@@ -14030,7 +14041,7 @@ window.MZ_APP_BUILDING = function (C) {
   }
   const BLD = window.MZ_APP_BUILDING ? window.MZ_APP_BUILDING({ state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B: window.MZ_BUILDING, SITE: window.MZ_SITE, SNOW: window.MZ_SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, cpDownload, bracingPlan, zipIO, cpSave,
     // the mezzanine rows a dropped frame file gets (so a lean-to's rows are added to them, not in their place)
-    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }) }) : null;
+    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave }) : null;
   renderSettings();
   renderDesigner();
   wbLoadAll().then(() => renderWorkbooks());

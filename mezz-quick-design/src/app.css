@@ -1541,3 +1541,6 @@ body[data-ws="job"] #mezzTabs { display: none; }
 .lt-steps { margin: 4px 0 10px; padding-left: 20px; font-size: 12.5px; color: var(--ink-muted); }
 .lt-steps li { margin: 3px 0; }
 .lt-steps b { color: var(--ink); }
+.site-plan .sp-outline, .site-plan .sp-ridge, .site-plan .sp-name, .site-plan .sp-dim { pointer-events: none; }
+.fv-sys { display: inline-flex; align-items: center; gap: 8px; margin-left: 14px; font-size: 12px; color: var(--ink-muted); vertical-align: middle; }
+.fv-sys select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 12.5px; }

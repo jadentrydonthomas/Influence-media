@@ -282,7 +282,15 @@ window.MZ_APP_BUILDING = function (C) {
     const Fd = frameData(sel.building, sel.frame);
     if (!Fd) { $('#frameView').innerHTML = ''; return; }
     const out = B.frameSvg(Fd), ld = Fd.loads;
-    $('#frameViewTitle').innerHTML = `${esc(Fd.name)} · frame line <b>${Fd.frame}</b> <small class="sub-n">${esc(Fd.type || '')} · trib ${ft(Fd.trib)} · ${Fd.end ? Fd.end + ' end frame' : 'interior'}</small>`;
+    // the frame line's lateral system (its R for the seismic): PCS Box 5's framing, or the one picked here (kept with
+    // the Seismic page's entries for this job)
+    const bS = sb(Fd.name), lineS = bS ? (bS.lines || []).find(l => String(l.label) === String(Fd.frame)) : null;
+    const picked = bS && (((state.seis.buildings || {})[bS.bkey] || {}).lines || {})[String(Fd.frame)];
+    const curSys = picked || (lineS ? lineS.type : /post|beam/i.test(Fd.type || '') ? 'Post & Beam' : 'Rigid Frame');
+    const sysSel = bS ? `<label class="fv-sys"><span>Lateral system</span><select data-fsys="${esc(bS.bkey)}|${esc(String(Fd.frame))}">${(C.LINE_SYSTEMS || []).map(t => `<option ${t === curSys ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select><small class="sub-n">${picked ? 'picked here' : 'PCS Box 5'}${lineS && lineS.lat && lineS.lat.R != null ? ` · R ${+lineS.lat.R.toFixed(2)}` : ''}</small></label>` : '';
+    $('#frameViewTitle').innerHTML = `${esc(Fd.name)} · frame line <b>${Fd.frame}</b> <small class="sub-n">${esc(Fd.type || '')} · trib ${ft(Fd.trib)} · ${Fd.end ? Fd.end + ' end frame' : 'interior'}</small>${sysSel}`;
+    const fs = $('#frameViewTitle [data-fsys]');
+    if (fs) fs.onchange = () => { const [bk, lab] = fs.dataset.fsys.split('|'); state.seis.buildings = state.seis.buildings || {}; const bo = state.seis.buildings[bk] = state.seis.buildings[bk] || {}; bo.lines = bo.lines || {}; bo.lines[lab] = fs.value; C.seisSave && C.seisSave(); recompute(); toast(`Frame line ${lab}: ${fs.value} — the seismic is reworked with its R`); };
     const on = state.frameLayers = state.frameLayers || {};
     $('#frameToggles').innerHTML = out.legend.map(l => `<button data-layer="${esc(l.key)}" class="${on[l.key] === false ? '' : 'is-on'}">${esc(l.label)}</button>`).join('');
     $('#frameView').innerHTML = out.svg;
