@@ -17,7 +17,7 @@
   // all: one { inputs, settings } per mezzanine of the job — they are designed together (shared beams / columns);
   // inputs / settings / res are the mezzanine on screen
   let railView = '3d';   // sidebar view: '3d' turning model | 'plan' labelled floor plan
-  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'A', web: null, br: null }, seis: {} };
+  const state = { pages: null, pcs: null, mi: 0, all: null, job: null, inputs: null, settings: { ...RUN.SETTINGS }, res: null, view: 'upload', mark: 0, markSpan: 0, colGroup: 0, planPaths: null, planReg: null, planKey: null, planPage: null, nbg: { files: [], height: 'A', web: null, br: null }, seis: {}, snow: {}, ws: 'job', frameSel: null, snowJob: null, scope: null };
 
   // Beam marks run over the whole job: MB1 is one section, one colour and one MB-sheet run in every mezzanine.
   // state.job.marks is the job's list; r.marks is one mezzanine's share of it (its beams and its count).
@@ -253,6 +253,7 @@
   // ---------- navigation ----------
   function go(view) {
     state.view = view;
+    if (BLD) { const ws = BLD.wsOf(view); if (ws) BLD.setWs(ws); }
     if (railView === 'plan' || !$('#planPop').hidden) renderMiniPlan();
     $$('.screen').forEach(s => s.classList.toggle('is-active', s.id === 'v-' + view));
     $$('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
@@ -358,7 +359,7 @@
       const plan = await PLAN.findPlan(pages, g0 ? PLAN.gridOf(g0) : null, p => p._page.getOperatorList(), window.pdfjsLib.OPS);
       if (plan) { state.planPaths = plan.paths; state.planAnnots = plan.annots; state.planPage = plan.page; }
       prog(0.9);
-      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.colBase = null; state.colBaseN = null; state.seis = seisLoad(); state.seisRestored = Object.keys(state.seis).length ? seisSavedAt() || 'an earlier session' : null;
+      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.colBase = null; state.colBaseN = null; state.seis = seisLoad(); state.seisRestored = Object.keys(state.seis).length ? seisSavedAt() || 'an earlier session' : null; state.snow = BLD ? BLD.snowLoad() : {}; state.frameSel = null; state.scope = null; state.leanTo = null;
       readPlan();                                           // grid letters + joist arrows off the drawing
       const keep = keepSettings();
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
@@ -369,7 +370,7 @@
         : 'Parsed. Review the sections, then check the plan against the drawing.';
       prog(1);
       recompute();
-      go('results');                                        // open values are asked for at the top of the Design page
+      go(pcs.mezzanines.some(m => true) && state.res && state.res.incomplete ? 'results' : 'building');   // the building first; open values are asked for on the Design page
     } catch (err) {
       console.error(err);
       status('Could not read PCS', 'bad');
@@ -462,10 +463,12 @@
     if (state.all) { state.all[state.mi] = { inputs: state.inputs, settings: state.settings }; readPlan(); }
     const items = (state.all || [{ inputs: state.inputs, settings: state.settings }]).map(a => ({ inp: a.inputs, settings: a.settings }));
     try { state.job = RUN.runJob(items, { seis: state.seis }); state.res = state.job.mezz[state.all ? state.mi : 0]; } catch (err) { console.error(err); status('Design error: ' + err.message, 'bad'); return false; }
+    if (BLD) BLD.compute();
     planCheck();
     if (state.mark >= jobMarks().length) { state.mark = 0; state.markSpan = 0; }
     if (state.colGroup >= state.res.colGroups.length) state.colGroup = 0;
-    $$('#nav button').forEach(b => { b.disabled = false; });
+    $$('#nav button').forEach(b => { if (!b.classList.contains('is-soon')) b.disabled = false; });
+    $('#navMezzGroup').hidden = false;
     $('#copyQuote').disabled = !!state.res.incomplete || decideMarks().length > 0; $('#printBtn').disabled = false;
     const bad = (state.job.mezz || [state.res]).some(m => (m.warn || []).some(w => w.level === 'stop'));
     const ok = !state.res.incomplete && state.res.marks.length && state.res.marks.every(m => m.sec) && (!state.res.columns.length || state.res.colFinal);
@@ -534,7 +537,7 @@
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); }
+  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); if (BLD) BLD.render(); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -936,7 +939,7 @@
      the filled NBG workbooks — at the bottom of the Beam and Column pages, and on the Design page ---------- */
   const cpName = () => ((state.pcs && state.pcs.job.quote) || 'mezzanine').replace(/[^A-Za-z0-9-]+/g, '');
   function cpXlsx() {
-    const sheets = window.MZ_CALCPACK.sheets(state.job, { cno: colNos(), inputs: state.all ? state.all.map(a => a.inputs) : [state.inputs], settings: state.settings, codeText: state.inputs && state.inputs.job && state.inputs.job.code ? state.inputs.job.code.text : '', generated: new Date().toISOString().slice(0, 10) });
+    const sheets = window.MZ_CALCPACK.sheets(state.job, { cno: colNos(), inputs: state.all ? state.all.map(a => a.inputs) : [state.inputs], settings: state.settings, codeText: state.inputs && state.inputs.job && state.inputs.job.code ? state.inputs.job.code.text : '', generated: new Date().toISOString().slice(0, 10), snow: state.snowJob });
     return window.MZ_XLSX.book(sheets, { title: `${cpName()} calc package` });
   }
   const cpSave = (bytes, name, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
@@ -1472,14 +1475,14 @@
     if (!rail || !score || !view) return;
     if (getComputedStyle(score).display === 'none') { delete rail.dataset.fit; view.style.removeProperty('--rv'); return; }
     let size = 0;
-    for (const lv of [0, 1, 2, 3]) {
-      if (lv) rail.dataset.fit = [1, 2, 3].slice(0, lv).join(' '); else delete rail.dataset.fit;
+    for (const lv of [0, 1, 2, 3, 4]) {
+      if (lv) rail.dataset.fit = [1, 2, 3, 4].slice(0, lv).join(' '); else delete rail.dataset.fit;
       const cs = getComputedStyle(score), full = Math.floor(score.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
       view.style.setProperty('--rv', full + 'px');
       const over = rail.scrollHeight - rail.clientHeight;
       size = Math.max(128, full - Math.max(0, over));
       // fits; or a little short, and a slightly smaller square (not under 128 px) takes it before the next step
-      if (over <= 0 || (lv < 3 && over <= full * (lv ? 0.25 : 0.1) && full - over >= 128)) break;
+      if (over <= 0 || (lv < 4 && over <= full * (lv ? 0.25 : 0.1) && full - over >= 150)) break;
     }
     view.style.setProperty('--rv', size + 'px');
   }
@@ -2483,6 +2486,7 @@
           toast(`${file.name} — ${i.code || 'code ?'}, Ss ${s.Ss != null ? +s.Ss.toFixed(3) : '?'} / S1 ${s.S1 != null ? +s.S1.toFixed(3) : '?'}, roof dead ${i.roofDead != null ? +i.roofDead.toFixed(3) : '?'} psf; the mezzanine loads are ready in step 9`);
         } else if (/\.nbgscope$/i.test(file.name)) {
           const sc = BRF.readScope(await file.text());
+          state.scope = { ...sc, name: file.name };
           sc.buildings.forEach(bs => {
             const b = bOf(bs.width, bs.length, bs.name);
             if (!b) return;
@@ -3583,6 +3587,9 @@
       };
     });
   }
+  const BLD = window.MZ_APP_BUILDING ? window.MZ_APP_BUILDING({ state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B: window.MZ_BUILDING, SITE: window.MZ_SITE, SNOW: window.MZ_SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, cpDownload, bracingPlan, zipIO, cpSave,
+    // the mezzanine rows a dropped frame file gets (so a lean-to's rows are added to them, not in their place)
+    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }) }) : null;
   renderSettings();
   renderDesigner();
   wbLoadAll().then(() => renderWorkbooks());

@@ -31,7 +31,25 @@
     const view = { yaw: -0.72, pitch: 0.52, zoom: 1, target: [0, 0, 0], auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
     const ZMIN = 0.5, ZMAX = 40;
-    let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1, anim = null;
+    let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1, anim = null, flakes = [];
+    // falling snow over the scene (scene.flakes = { box, n, wind: [vx, vy] ft/s }): points that fall through the box and start over at the top
+    function seedFlakes() {
+      const f = scene && scene.flakes;
+      flakes = [];
+      if (!f || !f.box) return;
+      const b = f.box;
+      for (let i = 0; i < (f.n || 120); i++) flakes.push({ x: b.x0 + Math.random() * (b.x1 - b.x0), y: b.y0 + Math.random() * (b.y1 - b.y0), z: b.z0 + Math.random() * (b.z1 - b.z0), v: 2.2 + Math.random() * 2.6, r: 0.9 + Math.random() * 1.3, ph: Math.random() * 6.28 });
+    }
+    function stepFlakes(dt) {
+      const f = scene && scene.flakes, b = f && f.box, k = dt / 1000;
+      if (!b) return;
+      const wx = (f.wind || [0, 0])[0], wy = (f.wind || [0, 0])[1];
+      for (const q of flakes) {
+        q.ph += k * 1.7;
+        q.z -= q.v * k; q.x += (wx + Math.sin(q.ph) * 0.6) * k; q.y += (wy + Math.cos(q.ph * 0.8) * 0.6) * k;
+        if (q.z < b.z0 || q.x < b.x0 - 2 || q.x > b.x1 + 2 || q.y < b.y0 - 2 || q.y > b.y1 + 2) { q.z = b.z1; q.x = b.x0 + Math.random() * (b.x1 - b.x0); q.y = b.y0 + Math.random() * (b.y1 - b.y0); }
+      }
+    }
     const pointers = new Map();
     const [PAD_T, PAD_B] = opts.pad || [34, 70];   // header text above, control bar below
     const [MIN_W, MIN_H] = opts.min || [300, 260];
@@ -124,6 +142,7 @@
       const vd = viewDir();
       for (const m of scene.members) {
         if ((m.kind === 'slab' && !view.toggles.slab) || (m.kind === 'joist' && !view.toggles.joists) || (m.kind === 'bcol' && !view.toggles.building)) continue;
+        if (view.toggles[m.kind] === false) continue;   // any other kind a page switches off (roof, snow, drift …)
         const rgb = hexToRgb(m.color);
         const hl = view.hover === m.id || view.selected === m.id;
         for (const b of m.boxes || []) {
@@ -135,6 +154,21 @@
             const lam = 0.5 + 0.55 * Math.max(0, f.n[0] * light[0] + f.n[1] * light[1] + f.n[2] * light[2]);
             polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgb, lam * (hl ? 1.25 : 1), m.alpha ?? 1), stroke: m.kind === 'slab' ? shade(rgb, 1.4, 0.35) : shade(rgb, 0.55, 0.9), hl, kind: m.kind });
           }
+        }
+        // free polygons (roof planes, snow, drift wedges): lit from either side, never culled
+        for (const fc of m.faces || []) {
+          const v = fc.pts || fc;
+          if (v.length < 3) continue;
+          const u = [v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]], w = [v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]];
+          let n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
+          const ln = Math.hypot(...n) || 1;
+          n = n.map(c => c / ln);
+          if (n[0] * vd[0] + n[1] * vd[1] + n[2] * vd[2] < 0) n = n.map(c => -c);
+          const pts = v.map(project);
+          const depth = pts.reduce((a, q) => a + q[2], 0) / pts.length;
+          const lam = 0.62 + 0.45 * Math.max(0, n[0] * light[0] + n[1] * light[1] + n[2] * light[2]);
+          const rgbF = fc.color ? hexToRgb(fc.color) : rgb;
+          polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgbF, lam * (hl ? 1.2 : 1), fc.alpha ?? m.alpha ?? 1), stroke: shade(rgbF, 1.15, Math.min(0.5, (m.alpha ?? 1) * 0.8)), hl, kind: m.kind });
         }
         for (const [a, c] of m.lines || []) {
           const pa = project(a), pc = project(c);
@@ -171,6 +205,12 @@
         } else {
           ctx.strokeStyle = p.stroke; ctx.lineWidth = p.width * (p.hl ? 1.8 : 1); ctx.stroke();
         }
+      }
+      // snow in the air: the far flakes first, small and faint, the near ones last
+      if (flakes.length && view.toggles.flakes !== false) {
+        const pts = flakes.map(q => { const p = project([q.x, q.y, q.z]); return { x: p[0], y: p[1], d: p[2], r: q.r }; }).sort((a, b) => b.d - a.d);
+        const dMin = Math.min(...pts.map(p => p.d)), dMax = Math.max(...pts.map(p => p.d)), span = Math.max(1e-6, dMax - dMin);
+        for (const p of pts) { const near = 1 - (p.d - dMin) / span; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.6 + near * 0.9), 0, Math.PI * 2); ctx.fillStyle = `rgba(240,248,255,${(0.35 + near * 0.55).toFixed(2)})`; ctx.fill(); }
       }
       // labels (grid bubbles, elevations)
       ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
@@ -216,7 +256,7 @@
     function hit(x, y) {
       for (let i = polys.length - 1; i >= 0; i--) {
         const p = polys[i];
-        if (p.kind === 'slab' || p.kind === 'floor') continue;
+        if (p.kind === 'slab' || p.kind === 'floor' || p.kind === 'roof' || p.kind === 'snow') continue;
         if (p.type === 'poly') { if (inside(x, y, p.pts)) return p.id; }
         else if (segDist(x, y, p.pts[0], p.pts[1]) < 4) return p.id;
       }
@@ -244,7 +284,8 @@
         view.zoom = anim.from.zoom * Math.pow(anim.to.zoom / anim.from.zoom, e);
         if (k >= 1) anim = null;
         draw();
-      } else if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * (opts.speed || 0.00012); draw(); }
+      } else if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * (opts.speed || 0.00012); if (flakes.length && view.toggles.flakes !== false) stepFlakes(dt); draw(); }
+      else if (flakes.length && view.toggles.flakes !== false && visible && !document.hidden && !dragging) { stepFlakes(dt); draw(); }
     }
 
     const pos = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -314,6 +355,7 @@
         const same = scene && s && scene.box && s.box && ['x0', 'x1', 'y0', 'y1'].every(k => Math.abs(scene.box[k] - s.box[k]) < 0.5);
         scene = s;
         if (!same) { view.target = s.center.slice(); view.zoom = 1; anim = null; }
+        seedFlakes();
         resize();
       },
       select(id) { view.selected = id; draw(); },

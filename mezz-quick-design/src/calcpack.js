@@ -296,6 +296,24 @@
         H(['Still needed', '']), ...(need.length ? need.map(t => spanRow(0, [t])) : [spanRow(0, ['the Seismic page has not been run for this job'])])] });
     }
 
+    // ---------------- Snow & drift (ctx.snow: the Snow page's job) ----------------
+    const sn = ctx.snow;
+    if (sn && sn.site && sn.site.buildings.length) {
+      const F = sn.F || {}, fx = o => (o && o.value != null ? `${o.value} (${o.source})` : '—');
+      const rows = [[{ v: 'Snow & drift — ASCE 7 chapter 7 as NBG Design Calcs works it', s: 't' }],
+        note('Balanced roof snow on every building of the PCS (Box 2 / 3 / 4), the drift a higher roof puts on a lower one at each roof step (Box 2 attachments), and that drift frame line by frame line as PY panel loads for NBG Frame. The unbalanced-snow document of NBG Design Calcs is reproduced to float precision (test/snow.test.js).'), [],
+        H(['Input', 'Value (source)']), ['Code', `ASCE ${F.ed || ''}`], ['Ground snow pg (psf)', fx(F.pg)], ['Exposure factor Ce', fx(F.Ce)], ['Risk category', F.risk || ''], ...(F.ed === '7-22' ? [['Winter wind parameter W2', fx(F.W2)]] : []), [],
+        band('Roof snow, each building', 10), H(['Building', 'Profile', 'Slope (on 12)', 'Ct', 'Is', 'pf (psf)', 'Cs', 'ps (psf)', 'pm (psf)', 'PCS Box 4 (psf)'])];
+      sn.roofs.forEach(r => rows.push([r.name, r.building.g.profile || '', num(r.slope, 'n2'), num(r.Ct, 'n2'), num(r.Is, 'n2'), num(r.pf, 'n2'), num(r.Cs, 'n2'), num(r.ps, 'n2'), r.pm != null ? num(r.pm, 'n2') : '', r.pcsSnow ? `${r.pcsSnow.value}${r.pcsSnow.override ? ' override' : r.pcsMatch ? ' matches' : ' differs'}` : '']));
+      sn.roofs.filter(r => r.unbalanced && r.unbalanced.applies && !r.unbalanced.need).forEach(r => { const u = r.unbalanced; rows.push([`${r.name} unbalanced`, u.simple ? 'W ≤ 20 ft, prismatic' : `surcharge ${u.surcharge.toFixed(2)} psf over ${u.length.toFixed(2)} ft from the ridge`, '', '', '', '', '', `windward ${u.windward.toFixed(2)}`, `leeward ${u.leeward.toFixed(2)}`, '']); });
+      rows.push([], band('Roof steps — drift (7.7) and sliding snow (7.9)', 10), H(['Lower roof · wall', 'Upper roof · wall', 'Step h (ft)', 'lu upper / lower (ft)', 'hb / hc (ft)', 'hd leeward / windward (ft)', 'Governs', 'hd / w (ft)', 'pd (psf)', 'Notes']));
+      sn.drifts.forEach(d => { const dr = d.drift; rows.push([`${d.lower} ${d.lowerWall}`, `${d.upper} ${d.upperWall}`, `${d.hMin.toFixed(2)}${d.hMax - d.hMin > 0.05 ? ' to ' + d.hMax.toFixed(2) : ''}`, `${d.luUpper.toFixed(2)} / ${d.luLower.toFixed(2)}${d.luUpperSrc === 'typed' || d.luLowerSrc === 'typed' ? ' (typed)' : ''}`, dr.none ? '' : `${dr.hb.toFixed(2)} / ${dr.hc.toFixed(2)}`, dr.none ? '' : `${dr.leeward.hd.toFixed(2)} / ${dr.windward.hd.toFixed(2)}`, dr.none ? 'none' : dr.gov, dr.none ? '' : `${dr.hd.toFixed(2)}${dr.capped ? ' (= hc)' : ''} / ${dr.w.toFixed(2)}${dr.truncated ? ` cut at ${d.lowerWidth.toFixed(2)}` : ''}`, dr.none ? '' : num(dr.pd, 'n2'), [dr.none ? dr.why : '', d.off ? 'left out' : '', d.s ? `gap ${d.s} ft` : '', d.sliding.applies ? `sliding ${d.sliding.psf.toFixed(2)} psf over ${d.sliding.extent.toFixed(2)} ft` : ''].filter(Boolean).join('; ')]); });
+      rows.push([], band('Onto the frames — PY panel loads (k/ft, down negative; positions ft from the FSW)', 10), H(['Lower roof', 'Frame line', 'x (ft)', 'Trib (ft)', 'Step h (ft)', 'Load', 'Panel', 'Start (ft)', 'End (ft)', 'Start → end (k/ft)']));
+      sn.drifts.filter(d => !d.off).forEach(d => d.frames.forEach(fl => fl.segs.forEach(sg => rows.push([d.lower, fl.frame, num(fl.x, 'n2'), num(fl.tribAt || (fl.trib[1] - fl.trib[0]), 'n2'), num(fl.h, 'n2'), sg.name, `RP${sg.panel}`, num(sg.from, 'n2'), num(sg.to, 'n2'), `${sg.start.toFixed(3)} → ${sg.end.toFixed(3)}`]))));
+      (sn.notes || []).forEach(n => rows.push(note(n.text)));
+      out.push({ name: 'Snow & drift', cols: [24, 24, 14, 20, 14, 22, 10, 22, 10, 40], wrap: [9], rows });
+    }
+
     // ---------------- Sources ----------------
     out.push({ name: 'Sources', cols: [30, 22, 46, 40], wrap: [0, 1, 2, 3], freeze: 3, rows: [
       [{ v: 'Sources — where each number comes from', s: 't' }], [],
@@ -303,6 +321,9 @@
       [BOOKS[ed.beamEd] || 'Mezzanine Beam Design', ed.beamEd ? `Mezzanine_Beam_Design_${ed.beamEd}th.xls` : '', 'INPUT sheet (loads, heights, clearances); MB1–MB4 (member length, Lb, trib, section → end shears H6 / H10, deflections, combined / shear, joist bearing L7)', 'cell-for-cell port; the real workbook run on every option and every job (oracle) — the filled copy reads the same'],
       [COLBOOKS[ed.colEd] || 'Mezzanine Column', ed.colEd ? `Mezzanine_Column_${ed.colEd}th_S16-*.xls` : '', 'Column sheet (L, section, left / right reactions → three combinations, CSR)', 'the real workbook on every column case'],
       ['IBC Seismic', 'rev. 2021.01.20 (IBC_Seismic.xls)', `Input Data, Lateral Calcs. (1) per frame line, Longitudinal Calcs. → mezzanine seismic force per frame and for the bracing${sj && sj.ok ? '' : ' — not used in this package yet (the Seismic page is not finished)'}`, '1,386 of 1,386 values over 15 cases; every frame of the sample jobs recalculated in the workbook'],
+      ['NBG Design Calcs — Seismic', 'v1.6 (.nbgcalcs)', 'the seismic engine the Seismic page follows: Fa / Fv, SDC, R, Cs, the roof seismic weight and factor NBG Frame and NBG Bracing take, each frame line\'s and the bracing\'s mezzanine force', '22 validation prints, 4,985 of 4,985 printed values; a .nbgcalcs file to 1e-9 (oracle/nbg_seismic.js)'],
+      ['NBG Design Calcs — Snow · ASCE 7 ch. 7', 'v1.6 (.nbgcalcs)', 'balanced and unbalanced roof snow; roof step drift (7.7), separate buildings (7.7.2), sliding snow (7.9) as worked on sheet Snow & drift', 'NBG\'s unbalanced snow document to float precision; drift cases by hand (test/snow.test.js)'],
+      ['NBG Frame / NBG Bracing files', '.frame / .bracing', 'FDL / FLL / EQR / EQL concentrated loads and the Snow Drift panel loads per frame line; EQB / EQF and the wall strut line per sidewall', 'files read back and compared row for row (test/framefile.test.js, test/bracing.test.js)'],
       ['NBG Production Guidelines', 'rev. 2026.01.15 (Primary & Secondary Steel, built-up)', 'part depth / width / thickness / length / weight by division; web / flange rules (sheet Shop rules)', 'every section searched is held to them'],
       ['DPM — Production Limitations', '', 'shop limitations behind the guidelines', ''],
       ['NBG Economical Flange Sections', '', 'G / Y / R flange plates; 8" then 10" then 12" (sheet Shop rules)', 'the "most economical" option and the economy column'],

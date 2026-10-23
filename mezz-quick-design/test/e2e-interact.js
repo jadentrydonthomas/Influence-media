@@ -31,7 +31,8 @@ if (pdfArgs.length > 1) {
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await page.setInputFiles('#file', pdf);
-  await page.waitForSelector('#v-results.is-active', { timeout: 300000 });   // a PCS with no text layer is read by OCR first
+  await page.waitForSelector('#v-results.is-active, #v-building.is-active', { timeout: 300000 });   // a PCS with no text layer is read by OCR first
+  await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);   // the Building page opens first on a complete job
   // values the PCS leaves open: type them into the prompt (B 9'-0", seat 5", joists @ 4'-0")
   const typed = { 'geom.B': `9'-0"`, 'geom.seat': '5', 'geom.joistSpacing': `4'-0"` };
   for (let k = 0; k < 8 && await page.$('#needCard'); k++) {
@@ -157,11 +158,11 @@ if (pdfArgs.length > 1) {
   if (!xlC.some(x => /Column!C27=/.test(x)) || !xlC.some(x => /Fy/.test(x) || /K8/.test(x))) fail('the Column page should list the Column-sheet cells to type');
 
   // NBG Frame files: drop the job's .frame files on the Plan page; the FDL / FLL rows go on the frame's own columns
-  await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+  await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
   const frDir = path.join(__dirname, '..', 'private', 'frame');
   const mast = await page.$eval('#mastContext', e => e.textContent);
   const frames = /W1S-26062/.test(mast) && fs.existsSync(frDir) ? fs.readdirSync(frDir).filter(n => /^Frame_\d+_Bldg_1_[\d-]+\.frame$/.test(n)).map(n => path.join(frDir, n)) : [];
-  if (!(await page.$('#nbgFrame'))) fail('the Plan page should have the NBG Frame files block');
+  if (!(await page.$('#nbgFrame'))) fail('the Frames page should have the NBG Frame files block');
   else if (frames.length) {
     await page.setInputFiles('#nbgFile', frames);
     await page.waitForSelector('#nbgList .nbg-file', { timeout: 20000 }); await page.waitForTimeout(300);
@@ -181,7 +182,7 @@ if (pdfArgs.length > 1) {
     if (!/FRAME FILE/i.test(seisTxt) || (await page.$$('#seisFrames .seis-fr')).length !== 6 || /Needs input:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
     await page.click('#seisFrames .seis-fr'); await page.waitForTimeout(120);
     if (await page.$eval('#seisFrames .seis-dist-row', e => e.hidden)) fail('a frame row should open its distribution');
-    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+    await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
     if (!one || one[2].join() !== '1/C,1/B' || one[1].some(r => /COL01/.test(r))) fail('frame 1: 1/E and 1/A on the frame, 1/B and 1/C listed apart, nothing on the FSW column');
     if (!/Every frame line/.test(await page.$eval('#nbgList .nbg-cover', e => e.textContent))) fail('all frame lines with load should be covered');
     // nothing is made with an unconfirmed Ecc. Loc. code: the check file first, then the row that reads WebCenterline
@@ -210,7 +211,7 @@ if (pdfArgs.length > 1) {
     await setVal(`#seisApply [data-eqkey="${k2}"]`, '5');
     const seisEq = await page.$$eval('#seisApply tr[data-member]', trs => trs.map(tr => tr.dataset.fr.split('|').pop() + ' ' + tr.dataset.member + ' ' + tr.querySelector('input').value + (tr.classList.contains('is-typed') ? ' typed' : tr.classList.contains('is-scaled') ? ' scaled' : '')));
     console.log('EQ edits, Seismic page'.padEnd(30), seisEq.join(' | '));
-    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+    await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
     const card35 = await page.$$eval('#nbgList .nbg-file', fs_ => fs_.findIndex(f => /_1_3-5\.frame$/.test(f.querySelector('.nbg-fh b').textContent)));
     // a card's data-cardeq starts with its file index (the order of the .nbg-file cards)
     await setVal(`#nbgList [data-cardeq^="${card35}|"][data-cardeq*="|COL03|"]`, '2.75');
@@ -224,7 +225,7 @@ if (pdfArgs.length > 1) {
     const seis35 = await page.$$eval('#seisApply tr[data-member]', trs => trs.filter(tr => /\|[345]$/.test(tr.dataset.fr)).map(tr => +tr.querySelector('input').value));
     console.log('EQ edits, frames 3-5'.padEnd(30), seis35.join(' '));
     if (seis35.join() !== '2.75,2.75,2.75') fail('a value typed on the 3-5 card should go to frames 3, 4 and 5');
-    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+    await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#nbgAll')]);
     const zp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(zp);
     console.log('NBG download'.padEnd(30), dl.suggestedFilename(), fs.statSync(zp).size, 'bytes');
@@ -248,7 +249,7 @@ if (pdfArgs.length > 1) {
     // back to the calculated loads
     await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
     await page.click('#eqResetAll'); await page.waitForTimeout(250);
-    await page.click('#nav button[data-view="plan"]'); await page.waitForTimeout(150);
+    await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
     const reset = await cardRows(), b2 = eqOf(reset.find(g => /_1_2\.frame$/.test(g[0]))[1]), b35 = eqOf(reset.find(g => /_1_3-5\.frame$/.test(g[0]))[1]);
     if (JSON.stringify(b2) !== JSON.stringify(calc2) || JSON.stringify(b35) !== JSON.stringify(calc35)) fail('"Back to the calculated loads" should restore every EQ load');
     await page.click('#nbgEccReset'); await page.waitForTimeout(150);

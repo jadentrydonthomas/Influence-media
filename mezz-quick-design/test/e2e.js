@@ -37,7 +37,8 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   await page.screenshot({ path: path.join(out, '01-upload.png') });
   const t0 = Date.now();
   await page.setInputFiles('#file', pdf);
-  await page.waitForSelector('#v-results.is-active', { timeout: 300000 });   // a PCS with no text layer is read by OCR first
+  await page.waitForSelector('#v-results.is-active, #v-building.is-active', { timeout: 300000 });   // a PCS with no text layer is read by OCR first
+  await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);   // the Building page opens first on a complete job
   const ms = Date.now() - t0;
   // values the PCS leaves open are asked for on the Design page: take the first typical value offered for each
   for (let k = 0; k < 8 && await page.$('#needCard'); k++) {
@@ -93,8 +94,17 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   // the 3D model drew something: count non-transparent pixels in the canvas
   const inked = await page.$eval('#model3d', c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return n; });
   console.log('3D model inked pixels', inked);
+  await page.click('#nav button[data-view="building"]'); await page.waitForTimeout(600);
+  const bldInk = await page.$eval('#bldCanvas', c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return n; });
+  const bldPlan = await page.$$eval('#bldPlan .sp-fl', g => g.length), bldFrames = await page.$$eval('#bldFrames tbody tr', r => r.length);
+  console.log('Building page'.padEnd(30), 'site 3D inked', bldInk, '· plan frame lines', bldPlan, '· frame rows', bldFrames);
+  if (bldInk < 1500 || !bldPlan || bldPlan !== bldFrames) fail('the Building page should draw the site in 3D and list every frame line on the plan and in the table');
+  await page.click('#bldPlan .sp-fl'); await page.waitForTimeout(300);
+  if (!(await page.$('#v-frames.is-active')) || !(await page.$('#frameView svg'))) fail('clicking a frame line on the site plan should open it on the Frames page');
+  console.log('Frames page'.padEnd(30), await page.$eval('#frameViewTitle', e => e.textContent.trim()), '· layers', await page.$$eval('#frameToggles button', b => b.map(x => x.textContent).join(', ')));
+  await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
   if (inked < 2000) fail('3D model looks empty');
-  for (const v of ['results', 'plan', 'beam', 'column', 'inputs', 'settings']) {
+  for (const v of ['building', 'snow', 'frames', 'bracing', 'purlins', 'results', 'plan', 'beam', 'column', 'inputs', 'settings']) {
     await page.click(`#nav button[data-view="${v}"]`);
     await page.waitForTimeout(300);
     const active = await page.$eval(`#nav button[data-view="${v}"]`, b => b.getAttribute('aria-current'));

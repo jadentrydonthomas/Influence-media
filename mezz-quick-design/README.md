@@ -1,8 +1,20 @@
-# Mezzanine Design
+# Building Design
 
-Upload a Project Confirmation Summary (eQuote PCS) PDF and get the mezzanine **beam sections**, **column sections**, spans, tribs and quantities for the quote. The tool does the input side of the NBG *Mezzanine Beam Design* and *Mezzanine Column* workbooks with the same math, so the numbers can be typed into Excel to confirm.
+Upload a Project Confirmation Summary (eQuote PCS) PDF and get the **whole building loaded** — every building of the job on one site, its roof snow, the drift a higher roof puts on a lower one, and the seismic, frame line by frame line and on the bracing, as NBG Frame and NBG Bracing take them — and the mezzanines sized: **beam sections**, **column sections**, spans, tribs and quantities for the quote. The snow and seismic follow NBG Design Calcs; the beams and columns are the input side of the NBG *Mezzanine Beam Design* and *Mezzanine Column* workbooks with the same math, so every number can be confirmed in the real workbook.
 
 **Use it:** open `index.html` in Chrome or Edge. It is one self-contained file: it works offline, and the PDF is read locally and never uploaded.
+
+## The pages
+
+The rail is in two groups. **Project · building loads** holds the job as a whole; **Systems → Mezzanines** holds the mezzanine design (every page that was the whole tool before). Cranes come next.
+
+- **Project & files** — drop the PCS. Then the job's NBG files in one place: `.frame` files (their loads go in on the Frames page), the `.bracing` file (EQB / EQF on the Bracing page), the `.nbgscope` eScope (the code, Ss / S1, roof loads). A summary of the project: every building (Box 2 / 4), the attachments, the snow and seismic data, and the hand-off downloads — the real NBG workbooks filled for this job with the design basis, in one zip.
+- **Building** — the site in 3D: every building's frames, roofs and the snow on them (the drift wedge where a roof steps), the mezzanines; a site plan with each frame line clickable and the drift zones with the wind that builds them; a table of every frame line and what it carries; the flags (a mezzanine edge with no wall to take its seismic, a roof snow that does not tie to Box 4, an obstruction Box 4 lists).
+- **Snow & drift** — NBG Design Calcs' snow, ASCE 7 chapter 7: the snow data (Box 3 / 4, type over any value), each roof's pf / Cs / ps / pm and unbalanced snow (checked against Box 4), each roof step's drift (leeward and windward, hc, w, pd; the fetch and a gap to a separate building typed where another roof continues in line; a step the PCS does not draw can be added), and the drift frame line by frame line as PY panel loads for NBG Frame.
+- **Seismic** — NBG Design Calcs' seismic (below).
+- **Frames** — pick a frame line: it is drawn in elevation with every load on it — roof dead + collateral, the balanced snow, the drift and sliding snow at true depth on the roof and as PY bands, the mezzanine's FDL / FLL on the columns it bears on, EQR / EQL, a lean-to's reactions — each a layer to switch on and off, with snow falling; the higher building beside it ghosted. Under it the rows for NBG Frame (panel loads and concentrated loads), and the frame-file block that writes the concentrated loads into the `.frame` files.
+- **Bracing** — each sidewall in elevation: its X-bracing and strut lines (from the bracing file, else the eScope's braced bays), the mezzanine floor, the EQB / EQF at its frame lines, and the new strut line; every mezzanine edge that is not on a wall flagged with what it needs (a wall with a portal frame, or X-bracing from the mezzanine level to the floor). Under it the NBG Bracing section with the `.bracing` download.
+- **Purlins** — a reminder page: the drift as purlin line loads (the purlin program is not here).
 
 ## What it does
 
@@ -368,6 +380,21 @@ The Beam calc and Column calc pages list the exact cells to type into the NBG wo
     3. Click the ECC row that reads *WebCenterline*.
   - Alternatively, drop a frame saved from NBG Frame with FDL / FLL rows set to WebCenterline by hand; the code is read from it.
   - The code is kept in the browser; *Reset* starts over.
+
+### Snow and drift (Snow & drift page, Building page, Frames page)
+
+`src/snow.js` works snow as NBG Design Calcs does (ASCE 7-16 chapter 7; 7-10 alike; 7-22 with its winter wind parameter W2 and no Is): pf = 0.7 Ce Ct Is pg; ps = Cs pf with Cs from Fig. 7.4-1; the low-slope minimum pm; rain-on-snow; gable unbalanced snow (7.6.1); roof step drift (7.7: hb = ps / γ, hc = h − hb, leeward hd from the upper roof's fetch, windward ¾ hd from the lower roof's, hd ≤ hc → w = 4 hd else w = 4 hd² / hc ≤ 8 hc with hd = hc, pd = hd γ; a separate building per 7.7.2; a drift wider than the lower roof cut off at its far edge); sliding snow (7.9).
+
+`src/site.js` places every building of the PCS on one site through Box 2's attachment notes (a sidewall or an endwall; back to back turned 180°), gives each roof's height anywhere on it, finds the roof steps along each shared wall (an endwall rake raises the step toward the ridge), and puts each step's drift on the lower building's frame lines:
+- a **side-wall step** (the lower building's sidewall against the higher wall): the drift runs across the lower frames — each frame line takes pd × its tributary width at the wall, falling to 0 at w (or to the drift's value at the far eave): a triangle, PY, "Snow Drift";
+- an **end-wall step** (the lower building's endwall against the higher wall): the drift runs along the length — each frame near that end takes the drift over its own tributary strip, uniform across the frame: the frame's total snow less the base snow;
+- cut where the roof panels change (RP1 / RP2); negative = down; positions from the FSW, in the frame's own coordinates. The same rows go under SL, LRD and RRD, as NBG Frame enters its own lean-to drift.
+
+The PCS reader lists every building of Box 2 (a lean-to or canopy with no mezzanine too), Ct and the roof-obstruction column of Box 4 (No → an unobstructed slippery roof), Ce and W2 from Box 3, Box 4's additional obstructions, and joins a dimension the table wrapped onto the next line.
+
+**Checked:** NBG Design Calcs' own unbalanced-snow document to float precision; every drift case by hand (leeward / windward, capped at hc, cut off, a separate building, sliding); the sample jobs' roof snow against Box 4 wherever the PCS has no override; the lean-to and canopy steps of the sample jobs (`test/snow.test.js`).
+
+**Not written into the frame file yet:** the Snow Drift panel loads. A frame file saved with one Snow Drift panel load typed by hand in NBG Frame teaches the tool the row format (the concentrated-load rows were learned the same way); until then the Frames page lists the rows to type.
 
 ### Seismic to the frames and the bracing (Seismic page)
 

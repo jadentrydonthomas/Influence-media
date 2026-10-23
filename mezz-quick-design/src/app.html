@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mezzanine Design</title>
-<meta name="description" content="Upload a PCS and get the NBG mezzanine beam and column sections, spans, tribs and quantities.">
+<title>Building Design</title>
+<meta name="description" content="Upload a PCS: the building's snow, drift and seismic loads on every frame and the bracing, and the NBG mezzanine beam and column sections.">
 <style>
 /*@INLINE_CSS app.css*/
 </style>
@@ -21,14 +21,21 @@
   <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 5.5l4 4M4 20l4.5-1 10-10-3.5-3.5-10 10z"/><path d="M13 7l4 4"/></symbol>
   <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-bldg" viewBox="0 0 24 24"><path d="M3 21V10l9-6 9 6v11"/><path d="M3 21h18M8 21v-6h8v6M12 4v6"/></symbol>
+  <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5L4.2 17.5"/><path d="M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5"/></symbol>
+  <symbol id="i-frame" viewBox="0 0 24 24"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 9h16"/></symbol>
+  <symbol id="i-brace" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="1"/><path d="M3 5l18 15M21 5L3 20"/></symbol>
+  <symbol id="i-purlin" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/><path d="M6 4v16M18 4v16"/></symbol>
+  <symbol id="i-crane" viewBox="0 0 24 24"><path d="M3 6h18M7 6v14M17 6v14M12 6v5M10 11h4v3h-4z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></symbol>
 </svg>
 <div class="plan-pop" id="planPop" hidden role="dialog" aria-label="Floor plan"><div class="pp-head"><b id="ppTitle">Floor plan</b><span>hover a column for its dead / live · click to open its calc · Esc closes</span><button id="ppClose" aria-label="Close">✕</button></div><svg id="planPopSvg" role="img" aria-label="Floor plan, large"></svg></div>
 <div class="app">
-  <aside class="rail" aria-label="Mezzanine design navigation">
+  <aside class="rail" aria-label="Building design navigation">
     <div class="brand"><span class="wordmark">NUCOR</span></div>
     <div class="rail-label">Building systems<br>Quote engineering</div>
-    <h1 class="rail-title">Mezzanine design</h1>
+    <h1 class="rail-title" id="railTitle">Building design</h1>
     <section class="rail-score" aria-label="This job">
       <div class="rail-view" id="railView">
         <canvas id="miniModel" aria-label="The mezzanine, turning"></canvas>
@@ -39,27 +46,41 @@
       <small id="rsSub"></small>
     </section>
     <nav class="rail-nav" id="nav">
-      <button data-view="upload" aria-current="page"><svg><use href="#i-upload"/></svg>Upload PCS</button>
-      <button data-view="results" disabled><svg><use href="#i-design"/></svg>Design</button>
-      <button data-view="inputs" disabled><svg><use href="#i-inputs"/></svg>Inputs</button>
-      <button data-view="plan" disabled><svg><use href="#i-plan"/></svg>Plan &amp; layout<span class="count" id="navPlanCount" hidden></span></button>
-      <button data-view="seismic" disabled><svg><use href="#i-seismic"/></svg>Seismic</button>
-      <button data-view="beam" disabled><svg><use href="#i-beam"/></svg>Beam calc</button>
-      <button data-view="column" disabled><svg><use href="#i-column"/></svg>Column calc</button>
-      <button data-view="designer"><svg><use href="#i-tool"/></svg>Design your own</button>
+      <div class="nav-group" id="navJob">
+        <span class="nav-head">Project</span>
+        <button data-view="upload" aria-current="page"><svg><use href="#i-upload"/></svg>Project &amp; files</button>
+        <span class="nav-head">Building · loads</span>
+        <button data-view="building" disabled><svg><use href="#i-bldg"/></svg>Building</button>
+        <button data-view="snow" disabled><svg><use href="#i-snow"/></svg>Snow &amp; drift<span class="count" id="navSnowCount" hidden></span></button>
+        <button data-view="seismic" disabled><svg><use href="#i-seismic"/></svg>Seismic</button>
+        <button data-view="frames" disabled><svg><use href="#i-frame"/></svg>Frames<span class="count" id="navFramesCount" hidden></span></button>
+        <button data-view="bracing" disabled><svg><use href="#i-brace"/></svg>Bracing</button>
+        <button data-view="purlins" disabled><svg><use href="#i-purlin"/></svg>Purlins<span class="count soon">later</span></button>
+        <span class="nav-head">Systems</span>
+        <button id="navMezz" class="nav-sys" disabled><svg><use href="#i-design"/></svg>Mezzanines<span class="count" id="navPlanCount" hidden></span></button>
+      </div>
+      <div class="nav-group nav-sub" id="navMezzGroup" hidden>
+        <button data-view="results" disabled><svg><use href="#i-design"/></svg>Design</button>
+        <button data-view="inputs" disabled><svg><use href="#i-inputs"/></svg>Inputs</button>
+        <button data-view="plan" disabled><svg><use href="#i-plan"/></svg>Plan</button>
+        <button data-view="beam" disabled><svg><use href="#i-beam"/></svg>Beam calc</button>
+        <button data-view="column" disabled><svg><use href="#i-column"/></svg>Column calc</button>
+        <button data-view="designer"><svg><use href="#i-tool"/></svg>Custom</button>
+      </div>
+      <button class="is-soon" disabled title="Cranes come next"><svg><use href="#i-crane"/></svg>Cranes<span class="count soon">later</span></button>
       <button data-view="settings"><svg><use href="#i-settings"/></svg>Settings</button>
     </nav>
     <div class="rail-bottom">
       <button class="btn-mint" id="copyQuote" disabled><svg><use href="#i-copy"/></svg>Quote sheet rows</button>
       <button class="btn-rail" id="printBtn" disabled>Print calc summary</button>
-      <p>Math ported cell for cell from the NBG Mezzanine Beam Design and Mezzanine Column workbooks, and verified against them.</p>
+      <p>Snow, drift and seismic as NBG Design Calcs works them; beams and columns cell for cell from the NBG workbooks — each verified against them.</p>
     </div>
   </aside>
 
   <main class="main">
     <div class="print-head" id="printHead" aria-hidden="true"></div>
     <header class="masthead">
-      <div class="masthead-context"><strong>Mezzanine design</strong><span id="mastContext">Beam and column sections from the PCS</span></div>
+      <div class="masthead-context"><strong id="mastTitle">Building design</strong><span id="mastContext">Loads on every frame and the bracing, and the mezzanines, from the PCS</span></div>
       <div class="mast-right">
         <span class="stamp-cell" id="stampMezz" hidden><span>Mezzanine</span><strong><select id="fMezz"></select></strong></span>
         <span class="stamp-cell"><span>Code → sheets</span><strong id="fCode">—</strong></span>
@@ -73,8 +94,8 @@
     <!-- UPLOAD -->
     <section class="screen is-active" id="v-upload">
       <div class="screen-heading">
-        <div><div class="eyebrow">Source intake</div><h1>Drop the PCS.<br><em>Get the sections.</em></h1></div>
-        <p class="lede">Read from the PCS, sized with the NBG sheets.</p>
+        <div><div class="eyebrow">Project</div><h1>Drop the PCS.<br><em>Get the building.</em></h1></div>
+        <p class="lede">Every building, its snow, drift and seismic, on every frame line and the bracing — and the mezzanines sized with the NBG sheets.</p>
       </div>
       <div class="intake">
         <div class="intake-head">
@@ -88,12 +109,13 @@
           <small id="dropSub">PDF · any mezzanine job</small>
         </label>
         <div class="progress"><i id="prog"></i></div>
-        <div class="intake-foot"><span id="intakeMsg">Beam sections, column sections, spans, tribs and quantities in about a second.</span><button class="btn-rail" id="manualBtn">Enter by hand instead</button></div>
+        <div class="intake-foot"><span id="intakeMsg">The building, its loads and the mezzanine sections in about a second.</span><button class="btn-rail" id="manualBtn">Enter by hand instead</button></div>
       </div>
+      <div id="projectSummary"></div>
       <div class="steps">
-        <div class="step-card"><div class="n">01</div><h4>Read the PCS</h4><p>Loads, slab, A–F clearances, joist spacing and seat depth. TBD rows fall back to the blue notes; checkboxes are read from the page.</p></div>
-        <div class="step-card"><div class="n">02</div><h4>Lay out the framing</h4><p>Frame lines and endwall columns inside the footprint set the beam lines, spans, tribs and ⊗ columns — checked against the floor plan.</p></div>
-        <div class="step-card"><div class="n">03</div><h4>Size like the sheets</h4><p>Every stocked BU at SR ≤ 0.99, L/360, L/240 → three options. Then W10X22 / W8X24 / W12X26 on the beam reactions.</p></div>
+        <div class="step-card"><div class="n">01</div><h4>Read the PCS</h4><p>Every building, its frames and attachments, the snow and seismic data, the mezzanines. The eScope, frame and bracing files add to it.</p></div>
+        <div class="step-card"><div class="n">02</div><h4>Load the building</h4><p>Balanced, unbalanced and drifted snow, the mezzanine's dead, live and seismic — on each frame line and the bracing, as NBG Frame and NBG Bracing take them.</p></div>
+        <div class="step-card"><div class="n">03</div><h4>Size the mezzanines</h4><p>Every stocked BU at SR ≤ 0.99, L/360, L/240 → three options. Then the columns on the beam reactions. The real workbooks, filled.</p></div>
       </div>
     </section>
 
@@ -139,6 +161,84 @@
       <section class="readout" id="readout" hidden></section>
     </section>
 
+    <!-- BUILDING -->
+    <section class="screen" id="v-building">
+      <div class="screen-heading">
+        <div><div class="eyebrow" id="bldEyebrow">The whole building</div><h1 id="bldTitle">Building</h1></div>
+        <p class="lede">Every building of the job, its frames, roofs, steps and mezzanines — and the loads each frame line takes.</p>
+      </div>
+      <div id="bldNeed"></div>
+      <div class="metrics" id="bldMetrics"></div>
+      <section class="model bld-model">
+        <div class="model-head">
+          <div><div class="eyebrow">3D · the site</div><h3 id="bldModelTitle">The building</h3></div>
+          <div class="model-tools" id="bldTools"></div>
+        </div>
+        <div class="model-stage"><canvas id="bldCanvas" aria-label="The whole building in 3D"></canvas><div class="model-hint">Drag to turn · right-drag to pan · wheel to zoom · double-click a building to fly to it</div></div>
+      </section>
+      <div class="panel"><div class="panel-head"><h3>Site plan</h3><span class="sub">click a frame line for its loads · amber: a roof step and its drift, the wind that builds it dashed</span></div><div class="panel-body"><div id="bldPlan" class="bld-plan"></div></div></div>
+      <div class="panel"><div class="panel-head"><h3>Frame lines</h3><span class="sub">what each frame line carries · click one to see it in elevation</span></div><div class="panel-body" id="bldFrames"></div></div>
+      <div class="panel" id="bldNotesPanel"><div class="panel-head"><h3>Flags</h3><span class="sub">what to check before the frames and the bracing go out</span></div><div class="panel-body" id="bldNotes"></div></div>
+    </section>
+
+    <!-- SNOW & DRIFT -->
+    <section class="screen" id="v-snow">
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2>Snow &amp; <em>drift</em></h2></div>
+        <p class="lede">Each roof's snow, each roof step's drift, and the drift frame line by frame line — as PY panel loads, labelled Snow Drift, ready for NBG Frame.</p>
+      </div>
+      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
+      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
+      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
+      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames · PY</h3><span class="sub">each frame line under a step: the panel loads, start and end, ft from the FSW · negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
+      <details class="explain"><summary>How the snow is worked and applied</summary><div class="explain-body" id="snowHow"></div></details>
+    </section>
+
+    <!-- FRAMES -->
+    <section class="screen" id="v-frames">
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Frame</div><h2>Loads on each <em>frame</em></h2></div>
+        <p class="lede">Pick a frame line: every load it takes, drawn — snow, drift, the mezzanine's dead, live and seismic. Drop the frame files to write them in.</p>
+      </div>
+      <div class="frame-pick" id="framePick"></div>
+      <div class="panel frame-view"><div class="panel-head"><h3 id="frameViewTitle">Frame line</h3><div class="seg fl-toggles" id="frameToggles" role="group" aria-label="Loads shown"></div></div>
+        <div class="panel-body"><div id="frameView" class="frame-stage"></div><div id="frameRows"></div></div></div>
+      <div class="panel" id="frameLoadsPanel">
+        <div class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">mezzanine dead and live on each frame's own columns, by frame line — mezzanine columns are not frame members and are left out</span></div>
+        <div class="panel-body"><div id="frameLoads"></div>
+          <div class="nbg" id="nbgFrame">
+            <div class="nbg-head"><div><span class="eyebrow">NBG Frame files</span><b>Put these loads into the job's frame files</b><small>Drop the .frame files NBG made for this building. The FDL / FLL concentrated loads — and the mezzanine seismic EQR / EQL once the Seismic page is complete — go in on each frame's own columns, the way they are typed under Tools → Concentrated (Panel) Loads, and the file is handed back ready to process. Nothing leaves this computer.</small></div>
+              <div class="seg" id="nbgHeight" role="group" aria-label="Load height"><button data-h="A" class="is-active">At floor level (A)</button><button data-h="beam">At T/beam</button></div></div>
+            <label class="nbg-drop" id="nbgDrop"><input type="file" id="nbgFile" accept=".frame" multiple><svg><use href="#i-file"/></svg><strong>Drop .frame files here or click to browse</strong><small id="nbgDropSub">one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame</small></label>
+            <div id="nbgList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BRACING -->
+    <section class="screen" id="v-bracing">
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Bracing</div><h2>The <em>bracing</em> &amp; where the seismic goes</h2></div>
+        <p class="lede">Each sidewall in elevation: its X-bracing, strut lines and the mezzanine's EQB / EQF — and every edge of a mezzanine whose force has nowhere to go yet.</p>
+      </div>
+      <div id="braceFlags"></div>
+      <div class="panel"><div class="panel-head"><h3>Sidewalls</h3><span class="sub" id="braceWallsSub">from the bracing file when it is dropped, else the eScope</span></div><div class="panel-body" id="braceWalls"></div></div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF and the wall strut line, written into the .bracing file</span></div>
+        <div class="panel-body" id="seisBracing"></div>
+      </div>
+    </section>
+
+    <!-- PURLINS -->
+    <section class="screen" id="v-purlins">
+      <div class="screen-heading">
+        <div><div class="eyebrow">Purlins · next</div><h2>Purlins <em>— a reminder</em></h2></div>
+        <p class="lede">The purlin design runs in the purlin program. What the drift puts on the purlins is listed here so nothing is missed.</p>
+      </div>
+      <div id="purlinView"></div>
+    </section>
+
     <!-- PLAN -->
     <section class="screen" id="v-plan">
       <div class="screen-heading">
@@ -168,17 +268,6 @@
           <div class="table-wrap" style="margin-top:14px"><table id="supTable"></table></div>
         </div>
       </details>
-      <div class="panel" id="frameLoadsPanel">
-        <div class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">mezzanine dead and live on each frame's own columns, by frame line — mezzanine columns are not frame members and are left out</span></div>
-        <div class="panel-body"><div id="frameLoads"></div>
-          <div class="nbg" id="nbgFrame">
-            <div class="nbg-head"><div><span class="eyebrow">NBG Frame files</span><b>Put these loads into the job's frame files</b><small>Drop the .frame files NBG made for this building. The FDL / FLL concentrated loads — and the mezzanine seismic EQR / EQL once the Seismic page is complete — go in on each frame's own columns, the way they are typed under Tools → Concentrated (Panel) Loads, and the file is handed back ready to process. Nothing leaves this computer.</small></div>
-              <div class="seg" id="nbgHeight" role="group" aria-label="Load height"><button data-h="A" class="is-active">At floor level (A)</button><button data-h="beam">At T/beam</button></div></div>
-            <label class="nbg-drop" id="nbgDrop"><input type="file" id="nbgFile" accept=".frame" multiple><svg><use href="#i-file"/></svg><strong>Drop .frame files here or click to browse</strong><small id="nbgDropSub">one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame</small></label>
-            <div id="nbgList"></div>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- SEISMIC -->
@@ -200,10 +289,7 @@
         <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
         <div class="panel-body" id="seisApply"></div>
       </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF and the wall strut line, written into the .bracing file</span></div>
-        <div class="panel-body" id="seisBracing"></div>
-      </div>
+      <div class="panel seis-step seis-moved"><div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the bracing's roof seismic, the mezzanine's EQB / EQF and the wall strut line — on the <a href="#" data-go="bracing">Bracing page</a>, with the walls drawn</span></div></div>
       <div class="panel seis-step" id="seisFlagsPanel">
         <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
         <div class="panel-body" id="seisFlags"></div>
@@ -302,7 +388,11 @@
 <script>/*@INLINE_JS design.js*/</script>
 <script>/*@INLINE_JS calcpack.js*/</script>
 <script>/*@INLINE_JS seismic.js*/</script>
+<script>/*@INLINE_JS snow.js*/</script>
+<script>/*@INLINE_JS site.js*/</script>
+<script>/*@INLINE_JS building.js*/</script>
 <script>/*@INLINE_JS run.js*/</script>
+<script>/*@INLINE_JS app-building.js*/</script>
 <script>/*@INLINE_JS app.js*/</script>
 <!--@OCR_ASSETS-->
 </body>

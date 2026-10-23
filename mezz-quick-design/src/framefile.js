@@ -118,8 +118,25 @@
         framing: tag(xml, 'FramingTypeName', xml.indexOf('<SeismicFramingType>')),
       },
       cloads: cloadsOf(xml).map(c => c.fields), hasSpecialLoads: sl >= 0,
+      // the designed frame's support reactions per load case (a lean-to's, to put on the host frame)
+      reactions: reactionsOf(xml, columns),
     };
     return { entries, model, xml, bom, info };
+  }
+  // <Reactions>: one row per load case and column (ColumnNumber 0-based, in GlobalX order), at the base
+  function reactionsOf(xml, columns) {
+    const s = xml.indexOf('<Reactions>'), e = xml.indexOf('</Reactions>', s);
+    if (s < 0 || e < 0) return [];
+    const ids = columns.filter(c => c.id).slice().sort((a, b) => a.x - b.x).map(c => c.id), out = [];
+    xml.slice(s, e).replace(/<Reaction>([\s\S]*?)<\/Reaction>/g, (_, body) => {
+      const f = {};
+      body.replace(/<([A-Za-z]+)>([^<]*)<\/\1>/g, (m, k, v) => { f[k] = v; return m; });
+      if (String(f.AtBottom) !== 'true') return _;
+      const n = +f.ColumnNumber;
+      out.push({ caseName: f.CaseName, col: ids[n] || `COL${String(n + 1).padStart(2, '0')}`, n, V: +f.Vertical, H: +f.Horizontal, M: +f.Moment });
+      return _;
+    });
+    return out;
   }
   // the <CLoad> rows of <SpecialLoads>, with their text spans
   function cloadsOf(xml) {
@@ -181,7 +198,10 @@
     const nl = xml.includes('\r\n') ? '\r\n' : '\n';
     const s = xml.indexOf('<SpecialLoads>'), e = xml.indexOf('</SpecialLoads>', s);
     if (s < 0 || e < 0) throw new Error('no <SpecialLoads> in the frame model');
-    const existing = cloadsOf(xml), ours = existing.filter(c => isOurs(c.fields)), theirs = existing.filter(c => !isOurs(c.fields));
+    // a designed lean-to's reactions (rows marked leanTo) replace NBG's own "Lean-To" rows on that member
+    const replaceOn = new Set(rows.filter(r => r.leanTo).map(r => r.member));
+    const mine = c => isOurs(c.fields) || (replaceOn.has(c.fields.memberID) && /^Lean-To/i.test(String(c.fields.name || '')));
+    const existing = cloadsOf(xml), ours = existing.filter(mine), theirs = existing.filter(c => !mine(c));
     // load group, status and location system as the rows NBG Frame wrote; Ecc. Loc. web centre with no offset
     const other = (theirs[0] || {}).fields || {};
     const code = String(opt.toFlange == null ? WEB_GUESS : opt.toFlange);
