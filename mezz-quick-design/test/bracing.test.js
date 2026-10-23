@@ -8,12 +8,13 @@ const FF = require('../src/framefile.js');
 const BR = require('../src/bracingfile.js');
 const io = { inflate: u => Promise.resolve(new Uint8Array(zlib.inflateRawSync(u))), deflate: u => Promise.resolve(new Uint8Array(zlib.deflateRawSync(u))) };
 
-// a 60' × 100' building, frame lines every 25', braced bays: FSW 4–5, BSW 2–3; one bay with no struts at all
+// a 60' × 100' building, frame lines every 25'. NBG Bracing keeps line A's wall — the BSW — under <FrontSidewall> (grid 0)
+// and the FSW under <BackSidewall>: braced bays FSW 2–3, BSW 4–5; one bay with no struts at all
 const line = (i, x) => `<Index>${i}</Index>\n<Name>${i + 1}</Name>\n<DistanceFromOne>${x}</DistanceFromOne>`;
-const bay = (i, braced, struts = true) => `<SidewallBay>
+const bay = (i, braced, struts = true, eave = 20) => `<SidewallBay>
 <Index>${i}</Index>
-${braced ? '<Braces>\n<Brace>\n<AppliedForces />\n<Index>0</Index>\n<TopElevation>20</TopElevation>\n<BottomElevation>0</BottomElevation>\n<MemberDescription>5/8_ROD</MemberDescription>\n</Brace>\n</Braces>' : '<Braces />'}
-${struts ? '<Struts>\n  <Strut>\n    <AppliedForces />\n    <Index>0</Index>\n    <StrutType>Eave</StrutType>\n    <Elevation>20</Elevation>\n    <Real>false</Real>\n  </Strut>\n</Struts>' : '<Struts />'}
+${braced ? '<Braces>\n<Brace>\n<AppliedForces />\n<Index>0</Index>\n<TopElevation>' + eave + '</TopElevation>\n<BottomElevation>0</BottomElevation>\n<MemberDescription>5/8_ROD</MemberDescription>\n</Brace>\n</Braces>' : '<Braces />'}
+${struts ? '<Struts>\n  <Strut>\n    <AppliedForces />\n    <Index>0</Index>\n    <StrutType>Eave</StrutType>\n    <AtRoof>0</AtRoof>\n    <Elevation>' + eave + '</Elevation>\n    <Real>false</Real>\n  </Strut>\n</Struts>' : '<Struts />'}
 <WallBracingInfo>
 <WallBracingInfo>
 <FromLine>${i}</FromLine>
@@ -93,21 +94,25 @@ function bracingZip(xml) {
   const f = await BR.read(bracingZip(model), io, 'Bldg_1234567.bracing'), i = f.info;
   assert.deepStrictEqual([i.job, i.code, i.risk, i.roofDead, i.collateral, i.snow, i.width, i.length, i.seismic.Ss, i.seismic.S1, i.seismic.siteClass], ['1234567', 'IBC2021', 'II-Standard Buildings', 2.5, 5, 30, 60, 100, 0.2, 0.08, 'D']);
   assert.deepStrictEqual(i.lines.map(l => `${l.index}:${l.name}@${l.x}`), ['0:1@0', '1:2@25', '2:3@50', '3:4@75', '4:5@100']);
-  assert.deepStrictEqual([i.walls.FSW.plane, i.walls.FSW.grid, i.walls.BSW.plane, i.walls.BSW.grid], [0, 0, 1, 4]);
-  assert.deepStrictEqual(['FSW', 'BSW'].map(w => i.walls[w].bays.filter(b => b.braced).map(b => `${b.from}-${b.to}`).join()), ['3-4', '1-2']);
+  assert.deepStrictEqual([i.walls.FSW.plane, i.walls.FSW.grid, i.walls.BSW.plane, i.walls.BSW.grid, i.walls.FSW.how], [1, 4, 0, 0, 'line A']);
+  assert.deepStrictEqual(['FSW', 'BSW'].map(w => i.walls[w].bays.filter(b => b.braced).map(b => `${b.from}-${b.to}`).join()), ['1-2', '3-4']);
+  // unequal eaves: each element is the wall its eave strut belongs to (here the BSW at 24' under <FrontSidewall>)
+  const tall = model.replace('<BSWEaveHeight>20</BSWEaveHeight>', '<BSWEaveHeight>24</BSWEaveHeight>').replace(/<FrontSidewall>[\s\S]*?<\/FrontSidewall>/, m => m.replace(/<Elevation>20<\/Elevation>/g, '<Elevation>24</Elevation>'));
+  const t = (await BR.read(bracingZip(tall), io, 'tall.bracing')).info;
+  assert.deepStrictEqual([t.walls.BSW.tag, t.walls.BSW.how, t.walls.BSW.top, t.walls.FSW.tag, t.walls.FSW.top], ['FrontSidewall', 'eave strut', 24, 'BackSidewall', 20]);
   assert.deepStrictEqual(i.loads.map(l => l.name), ['Crane stop', 'Mezz. Seismic']);
   // a mezzanine from 30' to 70' at 12': no frame line at its ends — the bay's lines 2 and 4 take EQB / EQF; the strut
   // line runs from it to each wall's braced bay
   const plan = BR.planFor(f, [{ wall: 'FSW', F: 2.5, at: 12, x0: 30, x1: 70 }, { wall: 'BSW', F: 2.5, at: 12, x0: 30, x1: 70 }]);
   assert.deepStrictEqual(plan.loads.map(l => `${l.wall} ${l.caseId} ${l.lineName} ${l.F}`), ['FSW EQB 2 2.5', 'FSW EQF 4 -2.5', 'BSW EQB 2 2.5', 'BSW EQF 4 -2.5']);
-  assert.deepStrictEqual(plan.struts.map(s => `${s.wall} ${s.fromName}-${s.toName} @${s.elev} bay ${s.bay}`), ['FSW 2-5 @12 bay 4–5', 'BSW 2-4 @12 bay 2–3']);
+  assert.deepStrictEqual(plan.struts.map(s => `${s.wall} ${s.fromName}-${s.toName} @${s.elev} bay ${s.bay}`), ['FSW 2-4 @12 bay 2–3', 'BSW 2-5 @12 bay 4–5']);
   const out = await BR.write(f, plan, io);
   assert.deepStrictEqual([out.added, out.kept, out.replaced], [{ loads: 4, struts: 5 }, { struts: 0 }, 1]);
   const g = await BR.read(out.bytes, io);
   assert.deepStrictEqual(g.info.loads.map(l => `${l.name} ${l.caseId} wall ${l.plane + 1} line ${l.line + 1} grid ${l.grid} @${l.elev} ${l.F}`), [
-    'Crane stop EQB wall 1 line 3 grid 0 @10 0.5', 'Mezz. Seismic EQB wall 1 line 2 grid 0 @12 2.5', 'Mezz. Seismic EQF wall 1 line 4 grid 0 @12 -2.5',
-    'Mezz. Seismic EQB wall 2 line 2 grid 4 @12 2.5', 'Mezz. Seismic EQF wall 2 line 4 grid 4 @12 -2.5']);
-  assert.deepStrictEqual(['FSW', 'BSW'].map(w => g.info.walls[w].bays.map(b => b.struts.map(s => s.elev).join('/') || '-').join(' | ')), ['20 | 20/12 | 20/12 | 20/12', '20 | 20/12 | 12 | 20']);
+    'Crane stop EQB wall 1 line 3 grid 0 @10 0.5', 'Mezz. Seismic EQB wall 2 line 2 grid 4 @12 2.5', 'Mezz. Seismic EQF wall 2 line 4 grid 4 @12 -2.5',
+    'Mezz. Seismic EQB wall 1 line 2 grid 0 @12 2.5', 'Mezz. Seismic EQF wall 1 line 4 grid 0 @12 -2.5']);
+  assert.deepStrictEqual(['FSW', 'BSW'].map(w => g.info.walls[w].bays.map(b => b.struts.map(s => s.elev).join('/') || '-').join(' | ')), ['20 | 20/12 | 12 | 20', '20 | 20/12 | 20/12 | 20/12']);
   assert.ok(/<Index>0<\/Index>\r\n\s*<Name>Crane stop<\/Name>/.test(out.xml) && out.xml.split('\n').every(l => l.endsWith('\r') || l === out.xml.split('\n').pop()), 'other loads kept; CRLF kept');
   // only the loads block and the struts changed; the purlin report is copied as it is
   const strip = x => x.replace(/<SpecialConcentratedLoads>[\s\S]*<\/SpecialConcentratedLoads>/, '').replace(/\s*<Strut>(?:(?!<\/Strut>)[\s\S])*?<Elevation>12<\/Elevation>[\s\S]*?<\/Strut>/g, '').replace(/<Struts>\s*<\/Struts>/g, '<Struts />');

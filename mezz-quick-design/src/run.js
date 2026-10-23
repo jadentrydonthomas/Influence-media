@@ -157,6 +157,7 @@
         // column symbols on the floor plan: ⊗ / circled I = mezzanine column, bare I / ✱ = frame column
         planCols: planFor(pcs, mi).planCols,
         attach: (pcs.attachments || []).find(a => bkeyName(a.building) === bkeyName(m.building)) || null,
+        bracing: (own && own.bracing) || null,
         // Box 2 roof shape and Box 4 roof loads, for the seismic weight of the roof and walls
         geo: { profile: b.profile || null, eaveFSW: b.eaveFSW ?? b.eave ?? null, eaveBSW: b.eaveBSW ?? b.eave ?? null, slopeFSW: b.slopeFSW ?? null, slopeBSW: b.slopeBSW ?? null },
         roofLoads: (own && own.roof) || null,
@@ -1363,7 +1364,7 @@
        sfrs: { FSW, BSW }, lines: { [label]: framing }, frameFile } }, mezz: { [id]: { FDL, FLC, FLJ, FLL, storage,
        partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride } — anything left out comes from
        the files, the PCS, the design or NBG's defaults. */
-  const SEIS_DEFAULTS = { SW: 2, RSW: 0, wall: 3, split: 'dead', sfrs: ['X-Bracing', 'X-Bracing'] };
+  const SEIS_DEFAULTS = { SW: 2, RDL: 3, RSW: 0, wall: 3, split: 'dead', sfrs: ['X-Bracing', 'X-Bracing'] };   // RDL: NBG Bracing's own default when the PCS says Per Seller (NBG Frame works out 2.7–2.8 psf on the jobs seen: 3 is on the safe side)
   const SEIS_SYSTEMS = ['X-Bracing', 'Portal Frame', 'Portal Frame (IMF)', 'Portal Frame (SMF)', 'X-Bracing (SCBF)'];
   const LINE_SYSTEMS = ['Rigid Frame', 'Post & Beam', 'Rigid Frame (IMF)', 'Rigid Frame (SMF)', 'Post & Beam (SCBF)', 'Fixed Base'];
   // one EQ value: building | frame line | column (grid point) | elevation
@@ -1371,11 +1372,26 @@
   const secWt = sec => (!sec ? 0 : sec.type === 'WF' ? (WF[sec.name] || {}).W || 0 : (sec.bof * sec.tof + sec.bif * sec.tif + (sec.d - sec.tof - sec.tif) * sec.tw) * 490 / 144);
   // a value with where it came from: typed on the page, a dropped file, the PCS, the design, or NBG's default
   const srcOf = (...tries) => { for (const [v, source] of tries) if (v != null && v !== '' && (typeof v !== 'number' || isFinite(v))) return { value: typeof v === 'string' && isFinite(+v) && source !== 'typed-text' ? +v : v, source: source === 'typed-text' ? 'typed' : source }; return { value: null, source: 'missing' }; };
-  function seismicJob(ctxs, mezz, frames, cfg = {}) {
+  // a building of the quote with no mezzanine in it, as the seismic job takes it: its Box 2 / 4 / 5 / 12 facts and its grid
+  function siteBuilding(pcs, n) {
+    const s = pcs.site[n] || {}, b0 = s.building;
+    if (!b0 || !(b0.width > 0) || !(b0.length > 0)) return null;
+    const bl = { width: b0.width, length: b0.length, ridge: b0.ridge, bays: b0.bays || [], lewCols: b0.lewCols || [], rewCols: b0.rewCols || [], fswSoldier: b0.fswSoldier || [], bswSoldier: b0.bswSoldier || [],
+      frames: s.frames || [], fromPCS: true, bracing: s.bracing || null,
+      geo: { profile: b0.profile || null, eaveFSW: b0.eaveFSW ?? b0.eave ?? null, eaveBSW: b0.eaveBSW ?? b0.eave ?? null, slopeFSW: b0.slopeFSW ?? null, slopeBSW: b0.slopeBSW ?? null }, roofLoads: s.roof || null };
+    const grid = LAYOUT.buildingGrid({ width: bl.width, length: bl.length, bays: bl.bays, lewCols: bl.lewCols, rewCols: bl.rewCols, ridge: bl.ridge, frames: bl.frames, fswSoldier: bl.fswSoldier, bswSoldier: bl.bswSoldier });
+    return { bkey: [n, bl.width, bl.length, bl.bays.join(',')].join('|'), inp: { building: bl, mezz: { building: n } }, grid, noMezz: true };
+  }
+  /* pcs: every building of the quote is worked, a mezzanine in it or not — NBG Design Calcs runs each building's frame
+     lines and bracing; a building whose mezzanine still waits for its inputs waits with it */
+  function seismicJob(ctxs, mezz, frames, cfg = {}, pcs = null) {
     const live = ctxs.filter(c => !c.incomplete);
-    if (!live.length || !SEIS) return null;
-    const F = PCS.fmtFtIn, c0 = live[0], px = c0.inp.seismic || {}, need = [], notes = [];
-    const files = cfg.files || {}, bkeys = [...new Set(live.map(c => c.bkey))];
+    const geoKey = k => String(k).split('|').slice(1).join('|'), nameOf = k => String(k).split('|')[0];
+    const extra = !pcs || !pcs.site ? [] : Object.keys(pcs.site).map(n => siteBuilding(pcs, n)).filter(Boolean)
+      .filter(e => !ctxs.some(c => { const n = nameOf(c.bkey); return n ? bkeyName(n) === bkeyName(nameOf(e.bkey)) : geoKey(c.bkey) === geoKey(e.bkey); }));
+    if ((!live.length && !extra.length) || !SEIS) return null;
+    const F = PCS.fmtFtIn, c0 = live[0] || { inp: { job: { ...(pcs.job || {}), code: pcs.code }, seismic: { ...(pcs.seismic || {}) } } }, px = c0.inp.seismic || {}, need = [], notes = [];
+    const files = cfg.files || {}, bkeys = [...new Set(live.map(c => c.bkey))].concat(extra.map(e => e.bkey));
     // a dropped bracing / eScope file belongs to one building; its project values (code, site) stand for the job
     const fx = files[bkeys.find(k => files[k])] || {};
     const fromFile = fx.from || 'file';
@@ -1412,8 +1428,8 @@
     if (noSec.length || nanF) need.push(`${noSec.length ? noSec.join(', ') : 'every beam'} sized on the Design page — with no section the framing weight and each frame column's share of the mezzanine EQ load are unknown`);
     const out = { ok: false, need, notes, inputs: inp, flags, design: d, buildings: [], cfg };
     bkeys.forEach(bk => {
-      const cs = live.filter(c => c.bkey === bk), b = cs[0].inp.building, geo = b.geo || {}, rl = b.roofLoads || {}, bo = (cfg.buildings || {})[bk] || {}, bf = files[bk] || {};
-      const name = cs[0].inp.mezz.building || 'Building', W = b.width, Lg = b.length;
+      const cs = live.filter(c => c.bkey === bk), src = cs[0] || extra.find(e => e.bkey === bk), b = src.inp.building, geo = b.geo || {}, rl = b.roofLoads || {}, bo = (cfg.buildings || {})[bk] || {}, bf = files[bk] || {};
+      const name = src.inp.mezz.building || (pcs && pcs.site && Object.keys(pcs.site).length === 1 ? Object.keys(pcs.site)[0] : 'Building'), W = b.width, Lg = b.length;
       const eF = geo.eaveFSW ?? b.eave, eB = geo.eaveBSW ?? eF;
       // 1. building data as NBG takes it: the ridge measured from the BSW, the slope on the BSW side
       let bd, geoNote = null;
@@ -1426,12 +1442,14 @@
       const ff = bo.frameFile || {}, bff = bf.from ? bf : fx;
       const roof = {
         SW: srcOf([bo.SW, 'typed'], [SEIS_DEFAULTS.SW, 'default']),
-        RDL: srcOf([bo.RDL, 'typed'], [bff.roofDead, bff.from || fromFile], [rl.dead && rl.dead.value, 'PCS'], [ff.roofDead, 'frame file']),
+        // NBG Frame works the roof dead out of the panel and purlins it designed — the value the engineer carries into Design
+        // Calcs (2.7291 psf on the 3-building job, where the bracing run still had 3); the bracing / eScope value next
+        RDL: srcOf([bo.RDL, 'typed'], [ff.roofDead, 'frame file'], [bff.roofDead, bff.from || fromFile], [rl.dead && rl.dead.value, 'PCS'], [SEIS_DEFAULTS.RDL, 'default']),
         CDL: srcOf([bo.CDL, 'typed'], [bff.collateral, bff.from || fromFile], [rl.coll1, 'PCS'], [ff.roofCollateral, 'frame file'], [0, 'default']),
         RSW: srcOf([bo.RSW, 'typed'], [SEIS_DEFAULTS.RSW, 'default']),
         Pf: srcOf([bo.Pf, 'typed'], [bff.snow, bff.from || fromFile], [rl.snow && rl.snow.value, 'PCS'], [0, 'default']),
       };
-      if (roof.RDL.value == null) need.push(`${name}: roof dead load — "Per Seller" on the PCS; drop the bracing or frame files (their roof dead is read) or type it`);
+      if (roof.RDL.source === 'default') notes.push({ level: 'info', text: `${name}: roof dead load ${SEIS_DEFAULTS.RDL} psf assumed ("Per Seller" on the PCS) — NBG Bracing's own default; NBG Frame works it out from the panel and purlins (2.7–2.8 psf on the jobs seen). Drop the job's .frame file on the Project page and its value is used; or type it in step 3.` });
       if (rl.snow && rl.snow.override && roof.Pf.source === 'PCS' && roof.Pf.value > 30) notes.push({ level: 'warn', text: `${name}: roof snow ${roof.Pf.value} psf* (user override on the PCS) is taken as the flat-roof snow. Confirm.` });
       // walls: full height metal panel unless set (an endwall's outline follows the roof; a sidewall runs to its eave)
       const wallIn = (k, top) => { const t = (bo.walls || {})[k] || {}, n = (v, dflt) => (v != null && v !== '' && isFinite(+v) ? +v : dflt);
@@ -1465,11 +1483,14 @@
       const mzArea = mz.reduce((a, m) => a + m.area, 0), sigHint = mzArea > (W * Lg) / 3;
       const significant = !!cfg.significant;
       // 5. force resisting systems
-      const grid = cs[0].grid, xs = grid.xs, nF = xs.length;
+      const grid = src.grid, xs = grid.xs, nF = xs.length;
       const pcsType = i => SEIS.frameType(((b.frames || []).find(fr => i + 1 >= fr.from && i + 1 <= fr.to) || {}).type);
       const lineSys = i => ((bo.lines || {})[grid.xLabel(xs[i])]) || pcsType(i);
-      const sfrs = { FSW: (bo.sfrs || {}).FSW || SEIS_DEFAULTS.sfrs[0], BSW: (bo.sfrs || {}).BSW || SEIS_DEFAULTS.sfrs[1], lines: xs.map((x, i) => lineSys(i)) };
-      const bOut = { bkey: bk, name, bd, g, geoNote, roof, walls, mezz: mz, significant, sigHint, mzArea, sfrs, frames: [], lines: [], long: null, braceLines: [], file: bf.from ? bf : null };
+      // the sidewalls' systems: picked on the page, else PCS Box 12's bracing on that wall (portal frames, wall X-bracing), else X-bracing
+      const boxSys = w => { const k = b.bracing && b.bracing[w] && b.bracing[w].kind; return k === 'portal' ? 'Portal Frame' : k === 'x' ? 'X-Bracing' : null; };
+      const sfrs = { FSW: (bo.sfrs || {}).FSW || boxSys('FSW') || SEIS_DEFAULTS.sfrs[0], BSW: (bo.sfrs || {}).BSW || boxSys('BSW') || SEIS_DEFAULTS.sfrs[1], lines: xs.map((x, i) => lineSys(i)),
+        src: { FSW: (bo.sfrs || {}).FSW ? 'typed' : boxSys('FSW') ? 'PCS Box 12' : 'default', BSW: (bo.sfrs || {}).BSW ? 'typed' : boxSys('BSW') ? 'PCS Box 12' : 'default' } };
+      const bOut = { bkey: bk, name, bd, g, geoNote, roof, walls, mezz: mz, significant, sigHint, mzArea, sfrs, frames: [], lines: [], long: null, braceLines: [], file: bf.from ? bf : null, noMezz: !cs.length };
       out.buildings.push(bOut);
       if (need.length || !d || !d.ok || !g) return;
       const P = { building: bd, seismic: { ed, risk: inp.risk.value, Ss: inp.Ss.value, S1: inp.S1.value, SMS: inp.SMS.value, SM1: inp.SM1.value, siteClass: inp.siteClass.value, ...flags, significant },
@@ -1768,7 +1789,7 @@
       byMi.forEach((qs, mi) => say(mi, `Mezzanine load on building columns that are in no NBG Frame file — give it to the endwall / sidewall design: ${qs.map(q => `${q.label} ${isFinite(q.D) ? `D ${q.D.toFixed(2)} / L ${q.L.toFixed(2)} k` : 'load not known yet (a beam framing in has no section)'}`).join(' · ')}.`));
     }
     let seismic = null;
-    try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
+    try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}, opts.pcs || null); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
     return { mezz, merges, columns: cols, colAlt, frameLoads: cols.frame, frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
   }
 
@@ -1943,6 +1964,6 @@
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, seismicJob, eqKey, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
+  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -120,23 +120,84 @@
       cloads: cloadsOf(xml).map(c => c.fields), hasSpecialLoads: sl >= 0,
       // the designed frame's support reactions per load case (a lean-to's, to put on the host frame)
       reactions: reactionsOf(xml, columns),
+      // the load cases the frame was run with (its reactions' case names) and the panel loads typed into it
+      cases: [...new Set(reactionsOf(xml, columns).map(r => r.caseName))],
+      ploads: ploadsOf(xml).map(p => p.fields),
     };
     return { entries, model, xml, bom, info };
   }
   // <Reactions>: one row per load case and column (ColumnNumber 0-based, in GlobalX order), at the base
+  /* a column's support reactions per load case. NBG writes one row at the base (AtBottom true: vertical, horizontal,
+     moment) and, where the column is held at its top — a lean-to column against the host's wall — a second row there
+     (AtBottom false: the horizontal the host takes). V is the base vertical, H the base horizontal, Htop the top's. */
   function reactionsOf(xml, columns) {
-    const s = xml.indexOf('<Reactions>'), e = xml.indexOf('</Reactions>', s);
-    if (s < 0 || e < 0) return [];
-    const ids = columns.filter(c => c.id).slice().sort((a, b) => a.x - b.x).map(c => c.id), out = [];
-    xml.slice(s, e).replace(/<Reaction>([\s\S]*?)<\/Reaction>/g, (_, body) => {
+    const s0 = xml.indexOf('<Reactions>'), e = xml.indexOf('</Reactions>', s0);
+    if (s0 < 0 || e < 0) return [];
+    const ids = columns.filter(c => c.id).slice().sort((a, b) => a.x - b.x).map(c => c.id), by = new Map();
+    xml.slice(s0, e).replace(/<Reaction>([\s\S]*?)<\/Reaction>/g, (_, body) => {
       const f = {};
       body.replace(/<([A-Za-z]+)>([^<]*)<\/\1>/g, (m, k, v) => { f[k] = v; return m; });
-      if (String(f.AtBottom) !== 'true') return _;
-      const n = +f.ColumnNumber;
-      out.push({ caseName: f.CaseName, col: ids[n] || `COL${String(n + 1).padStart(2, '0')}`, n, V: +f.Vertical, H: +f.Horizontal, M: +f.Moment });
+      const n = +f.ColumnNumber, key = f.CaseName + '|' + n;
+      const r = by.get(key) || { caseName: f.CaseName, col: ids[n] || `COL${String(n + 1).padStart(2, '0')}`, n, V: 0, H: 0, M: 0, Htop: null, Vtop: 0 };
+      if (String(f.AtBottom) === 'true') { r.V = +f.Vertical; r.H = +f.Horizontal; r.M = +f.Moment; } else { r.Htop = +f.Horizontal; r.Vtop = +f.Vertical; }
+      by.set(key, r);
       return _;
     });
+    return [...by.values()];
+  }
+  // the <PLoad> rows of <SpecialLoads> (panel loads: Snow Drift typed by hand), with their text spans
+  function ploadsOf(xml) {
+    const s0 = xml.indexOf('<SpecialLoads>'), e = xml.indexOf('</SpecialLoads>', s0);
+    if (s0 < 0 || e < 0) return [];
+    const out = [], re = /([ \t]*)<PLoad>[\s\S]*?<\/PLoad>(\r?\n)?/g;
+    re.lastIndex = s0;
+    let m;
+    while ((m = re.exec(xml)) && m.index < e) {
+      const fields = {};
+      m[0].replace(/<([A-Za-z]+)>([^<]*)<\/\1>/g, (_, k, v) => { fields[k] = v; return _; });
+      out.push({ start: m.index, end: m.index + m[0].length, fields });
+    }
     return out;
+  }
+  /* Panel loads into <SpecialLoads><PLoads>, the way an engineer types a Snow Drift row in NBG Frame (Tools →
+     Concentrated (Panel) Loads, panel tab): loadGroup 0, Global, start / end magnitude (k/ft, down negative) at start /
+     end location (ft along the frame from the FSW column), the roof panel (RP1 …), the load case, direction GY (NBG
+     Frame's own roof loads are GY), the name. rows: [{ name, caseId, panel, from, to, start, end, dir }]. Every drift or
+     sliding row already there is replaced — the tool's own from an earlier write, an engineer's typed "Snow Drift", and
+     NBG's generated "BackSidewall Drift" (worked with the adjacent roof's fetch alone): left in, it would add to the new
+     rows. Writing twice gives the same file. */
+  function addPanelLoads(xml, rows) {
+    const nl = xml.includes('\r\n') ? '\r\n' : '\n';
+    const s0 = xml.indexOf('<SpecialLoads>'), e0 = xml.indexOf('</SpecialLoads>', s0);
+    if (s0 < 0 || e0 < 0) throw new Error('no <SpecialLoads> in the frame model');
+    const names = new Set(rows.map(r => String(r.name).trim().toLowerCase()));
+    const old = ploadsOf(xml), ours = old.filter(p => { const n = String(p.fields.name || '').trim().toLowerCase(); return names.has(n) || /drift|sliding/.test(n); });
+    let out = xml;
+    ours.slice().sort((a, b) => b.start - a.start).forEach(p => { out = out.slice(0, p.start) + out.slice(p.end); });
+    const s2 = out.indexOf('<SpecialLoads>'), e2 = out.indexOf('</SpecialLoads>', s2);
+    let open = out.indexOf('<PLoads', s2);
+    if (open < 0 || open > e2) {
+      // no list at all: one goes first in <SpecialLoads>, where NBG Frame writes it
+      const at = out.indexOf('\n', s2) + 1, ind0 = out.slice(out.lastIndexOf('\n', s2) + 1, s2) + '  ';
+      out = out.slice(0, at) + `${ind0}<PLoads />${nl}` + out.slice(at);
+      open = at + ind0.length;
+    }
+    // an empty list left by the removal: <PLoads>  </PLoads> → <PLoads />
+    const closeAt = out.indexOf('</PLoads>', open);
+    if (!out.startsWith('<PLoads />', open) && closeAt > 0 && !/<PLoad>/.test(out.slice(open, closeAt))) out = out.slice(0, open) + '<PLoads />' + out.slice(closeAt + '</PLoads>'.length);
+    const lineStart = out.lastIndexOf('\n', open) + 1, ind = out.slice(lineStart, open), i1 = ind + '  ', i2 = ind + '    ';
+    const block = rows.map(r => [
+      `${i1}<PLoad>`,
+      `${i2}<loadGroup>0</loadGroup>`, `${i2}<status>Global</status>`, `${i2}<startMag>${fmt(r.start)}</startMag>`, `${i2}<endMag>${fmt(r.end)}</endMag>`,
+      `${i2}<startLoc>${fmt(r.from)}</startLoc>`, `${i2}<endLoc>${fmt(r.to)}</endLoc>`, `${i2}<panelID>${r.panel}</panelID>`, `${i2}<loadCaseID>${r.caseId}</loadCaseID>`,
+      `${i2}<dir>${r.dir || 'GY'}</dir>`, `${i2}<name>${r.name}</name>`,
+      `${i1}</PLoad>`,
+    ].join(nl) + nl).join('');
+    if (rows.length) {
+      if (out.startsWith('<PLoads />', open)) out = out.slice(0, open) + `<PLoads>${nl}${block}${ind}</PLoads>` + out.slice(open + '<PLoads />'.length);
+      else { const close = out.indexOf('</PLoads>', open), closeLine = out.lastIndexOf('\n', close) + 1; out = out.slice(0, closeLine) + block + out.slice(closeLine); }
+    }
+    return { xml: out, added: rows.length, replaced: ours.length, replacedRows: ours.map(p => p.fields) };
   }
   // the <CLoad> rows of <SpecialLoads>, with their text spans
   function cloadsOf(xml) {
@@ -200,7 +261,7 @@
     if (s < 0 || e < 0) throw new Error('no <SpecialLoads> in the frame model');
     // a designed lean-to's reactions (rows marked leanTo) replace NBG's own "Lean-To" rows on that member
     const replaceOn = new Set(rows.filter(r => r.leanTo).map(r => r.member));
-    const mine = c => isOurs(c.fields) || (replaceOn.has(c.fields.memberID) && /^Lean-To/i.test(String(c.fields.name || '')));
+    const mine = c => isOurs(c.fields) || (replaceOn.has(c.fields.memberID) && /^Lean[- ]?To/i.test(String(c.fields.name || '').trim()));
     const existing = cloadsOf(xml), ours = existing.filter(mine), theirs = existing.filter(c => !mine(c));
     // load group, status and location system as the rows NBG Frame wrote; Ecc. Loc. web centre with no offset
     const other = (theirs[0] || {}).fields || {};
@@ -350,6 +411,6 @@
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, addLoads, addPanelLoads, ploadsOf, reactionsOf, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);

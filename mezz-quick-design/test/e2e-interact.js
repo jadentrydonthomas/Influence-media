@@ -178,8 +178,10 @@ if (pdfArgs.length > 1) {
     if (eq2.map(r => r.slice(0, 3).join(' ')).join() !== 'EQR 2 COL02,EQL 2 COL02,EQR 3 COL03,EQL 3 COL03' || eq2.some(r => r[5] !== '11.50' || r[6] !== 'Top/Left') || +eq2[0][3] <= 0 || +eq2[0][3] !== -eq2[1][3]) fail('frame 2 should carry EQR + / EQL − on COL02 (Mezz 2) and COL03 (Mezz 1) at the floor level');
     await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(200);
     const seisTxt = await page.$eval('#v-seismic', e => e.innerText);
-    console.log('Seismic page'.padEnd(30), (seisTxt.match(/SDC\s*\S+/) || [''])[0], '· frames', (await page.$$('#seisFrames .seis-fr')).length, '· brace lines', (await page.$$('#seisBracing tbody tr')).length);
-    if (!/FRAME FILE/i.test(seisTxt) || (await page.$$('#seisFrames .seis-fr')).length !== 6 || /Needs input:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
+    // every PCS building is worked (Bldg 2 has no mezzanine); the frame files are Bldg 1's, so only its roof dead comes from them
+    const frBy = await page.$$eval('#seisFrames .seis-fr', trs => trs.reduce((o, tr) => { const k = tr.dataset.fr.split('|')[0]; o[k] = (o[k] || 0) + 1; return o; }, {}));
+    console.log('Seismic page'.padEnd(30), (seisTxt.match(/SDC\s*\S+/) || [''])[0], '· frames', JSON.stringify(frBy), '· brace lines', (await page.$$('#seisBracing tbody tr')).length);
+    if (!/FRAME FILE/i.test(seisTxt) || Object.values(frBy)[0] !== 6 || /Needs input:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
     await page.click('#seisFrames .seis-fr'); await page.waitForTimeout(120);
     if (await page.$eval('#seisFrames .seis-dist-row', e => e.hidden)) fail('a frame row should open its distribution');
     await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
@@ -436,7 +438,7 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
   await page.click('#m3In'); await page.click('#m3Out');
   // the slab and the joists bearing on the beams hide the beams' top faces: off while aiming
   for (const t of ['slab', 'joists']) await page.click(`#modelToggles button[data-t="${t}"]`);
-  await page.$eval('#model3d', c => c.scrollIntoView({ block: 'center' }));
+  await page.$eval('#model3d', c => c.scrollIntoView({ block: 'center', behavior: 'instant' }));
   const box = await page.$eval('#model3d', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   let hit = null;
   // aim at a beam's top face first (the renderer says where it is), then fall back to sweeping the canvas

@@ -1544,3 +1544,102 @@ body[data-ws="job"] #mezzTabs { display: none; }
 .site-plan .sp-outline, .site-plan .sp-ridge, .site-plan .sp-name, .site-plan .sp-dim { pointer-events: none; }
 .fv-sys { display: inline-flex; align-items: center; gap: 8px; margin-left: 14px; font-size: 12px; color: var(--ink-muted); vertical-align: middle; }
 .fv-sys select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 12.5px; }
+
+/* ---------------- round C: toggles with an on / off look everywhere, the frame elevation as a drawing, bracing on the plan ---------------- */
+.seg button.is-on { color: var(--green-dark); background: var(--green-soft); box-shadow: 0 2px 6px #0001; font-weight: 600; }
+.model-key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: #9fb7ca; font: 11.5px var(--mono); }
+.model-key i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; }
+.bld-model .model-toggles { flex-wrap: wrap; }
+.bld-model .model-stage { min-height: 560px; }
+/* the frame elevation: members as filled steel, loads as bands, each value once in a pill */
+.frame-elev .fe-mem { fill: url(#feSteel); stroke: color-mix(in srgb, var(--steel) 70%, #000 30%); stroke-width: 1.1; stroke-linejoin: round; }
+.frame-elev .fe-flange { fill: none; stroke: color-mix(in srgb, var(--steel) 55%, #fff 45%); stroke-width: 1; opacity: .8; }
+.frame-elev .fe-post { fill: var(--steel); opacity: .45; }
+.frame-elev .fe-base { fill: var(--ink-faint); opacity: .8; }
+.frame-elev .fe-band { opacity: .16; }
+.frame-elev .fe-dead .fe-band { fill: var(--ink-faint); } .frame-elev .fe-snow .fe-band { fill: #8fd3ff; } .frame-elev .fe-drift .fe-band, .frame-elev .fe-slide .fe-band { fill: var(--amber); }
+.frame-elev .fe-pill { fill: var(--surface); stroke: var(--line); stroke-width: 1; opacity: .96; }
+.frame-elev .fe-val { stroke: none; }
+.frame-elev .fe-waitline { stroke-dasharray: 5 4; }
+.frame-elev .fe-eq .fe-waitline { stroke: var(--ink-faint); }
+.frame-elev .fe-waithead { fill: var(--ink-faint); }
+.frame-elev .fe-wait { fill: var(--ink-muted); font-weight: 600; }
+.frame-elev .fe-eave { text-anchor: unset; }
+/* the sidewall: eave strut, base plates, portal frames, suggested tiers, labels in pills */
+.wall-elev .we-eave { stroke: var(--steel); stroke-width: 2.2; }
+.wall-elev .we-base { fill: var(--ink-faint); }
+.wall-elev .we-portal line { stroke: var(--amber); stroke-width: 3.6; stroke-linecap: round; }
+.wall-elev .we-x.is-new line { stroke: var(--green); stroke-dasharray: 7 5; stroke-width: 1.8; }
+.wall-elev .we-pill { fill: var(--surface); stroke: var(--line); opacity: .96; }
+.wall-elev .we-lab { fill: var(--ink); font-size: 11px; font-family: var(--mono); font-weight: 700; text-anchor: middle; }
+.wall-elev .we-lab.we-mezzlab { fill: var(--green); } .wall-elev .we-lab.we-brlab { fill: var(--amber); } .wall-elev .we-lab.we-new { fill: var(--green); } .wall-elev .we-lab.we-wait { fill: var(--ink-muted); font-weight: 600; }
+.wall-elev .we-load.is-wait line { stroke: var(--ink-faint); stroke-dasharray: 5 4; }
+.wall-elev .we-waithead { fill: var(--ink-faint); }
+.wall-elev .we-note { fill: var(--ink-muted); font-size: 11px; text-anchor: end; }
+/* the site plan: wall names, braced bays, portal frames, roof rods */
+.site-plan .sp-wall { fill: var(--ink-faint); font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-anchor: middle; }
+.site-plan .sp-brace line { stroke: var(--amber); stroke-width: 2; stroke-linecap: round; }
+.site-plan .sp-portal line { stroke: var(--amber); stroke-width: 5; stroke-linecap: butt; }
+.site-plan .sp-portal text { fill: var(--amber); font-size: 9px; font-weight: 800; text-anchor: middle; letter-spacing: .06em; }
+.site-plan .sp-roofx line { stroke: var(--amber); stroke-width: 1.3; stroke-dasharray: 5 4; opacity: .8; }
+.site-plan.is-compact .sp-name { font-size: 12px; } .site-plan.is-compact .sp-dim { font-size: 10px; } .site-plan.is-compact .sp-mezz text { font-size: 10px; }
+.site-plan .sp-mezz text { paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; }
+.site-plan .sp-name, .site-plan .sp-dim { paint-order: stroke; stroke: var(--surface-soft); stroke-width: 4px; }
+.frame-pickp .panel-body { display: grid; gap: 12px; }
+.frame-plan { padding: 0; }
+/* a section through a roof step */
+.step-sec { width: 100%; height: auto; display: block; margin: 12px 0 4px; font-family: var(--body); }
+.step-sec .ss-upper { fill: var(--surface-soft); stroke: var(--ink-faint); stroke-width: 1.2; stroke-dasharray: 6 4; }
+.step-sec .ss-name { fill: var(--ink); font-size: 12.5px; font-weight: 700; text-anchor: middle; }
+.step-sec .ss-sub { fill: var(--ink-muted); font-size: 10.5px; font-family: var(--mono); text-anchor: middle; }
+.step-sec .ss-roof { stroke: var(--steel); stroke-width: 3.2; stroke-linecap: round; }
+.step-sec .ss-wall { stroke: var(--steel); stroke-width: 2; }
+.step-sec .ss-balanced { fill: #ffffff; opacity: .55; stroke: #9cc4dd; stroke-width: .8; }
+[data-theme="dark"] .step-sec .ss-balanced { opacity: .75; }
+.step-sec .ss-drift { fill: var(--amber); fill-opacity: .42; stroke: var(--amber); stroke-width: 1.6; stroke-linejoin: round; }
+.step-sec .ss-wind { stroke: var(--steel); stroke-width: 2; stroke-dasharray: 9 5; animation: spWind 1.6s linear infinite; }
+.step-sec .ss-arrhead { fill: var(--steel); }
+.step-sec .ss-dim { stroke: var(--line-strong); stroke-width: 1; } .step-sec .ss-dimhead { fill: var(--line-strong); }
+.step-sec .ss-dimt { fill: var(--ink-muted); font-size: 11px; font-family: var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; }
+.step-sec .ss-peak { fill: var(--amber); font-size: 13px; font-weight: 800; font-family: var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.step-sec .ss-tick { stroke: var(--ink-muted); stroke-width: 1.4; }
+.step-sec .ss-mark { fill: var(--ink-muted); font-size: 10px; font-family: var(--mono); }
+.step-sec .ss-key, .step-sec .ss-note { fill: var(--ink-faint); font-size: 10.5px; }
+@media (prefers-reduced-motion: reduce) { .step-sec .ss-wind { animation: none; } }
+/* the snow page's inputs: one card a building, nothing wrapping into the next */
+.snow-bldgs { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.snow-bldg { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.snow-bldg > b { font-size: 13px; color: var(--ink); }
+.snow-bldg > label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-muted); }
+.snow-bldg > label.seis-chk { flex-direction: row; align-items: flex-start; gap: 8px; color: var(--ink); grid-column: auto; }
+.snow-bldg input[type="text"], .snow-bldg input:not([type]) { width: 100%; }
+.snow-step .seis-grid { margin-bottom: 4px; }
+.snow-step .seis-sum { margin-top: 6px; }
+.snow-marks { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.snow-marks span { padding: 3px 9px; border: 1px solid var(--line); border-radius: 8px; font: 11.5px var(--mono); color: var(--ink-muted); }
+.snow-marks span b { color: var(--ink); }
+/* the seismic page's summary, laid out like NBG Design Calcs' own report */
+.seis-report { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 10px 0 12px; }
+.seis-report > div { padding: 10px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.seis-report span { display: block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.seis-report b { display: block; margin-top: 3px; font: 600 16px var(--mono); color: var(--ink); }
+.seis-report small { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-muted); }
+.seis-report .is-wait b { color: var(--ink-muted); font-weight: 500; font-size: 13px; }
+.brace-pcs { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-muted); }
+.brace-pcs b { color: var(--ink); }
+.brace-lines { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.step-sec .ss-slide { fill: var(--steel); fill-opacity: .18; stroke: var(--steel); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.step-sec .ss-env { fill: none; stroke: var(--red, #ff6b6b); stroke-width: 2.2; stroke-linejoin: round; }
+.snow-level { display: grid; gap: 6px; margin: 0 0 12px; }
+.snow-level span { padding: 8px 12px; border: 1px dashed var(--line-strong); border-radius: 10px; font-size: 12.5px; color: var(--ink-muted); }
+.snow-level b { color: var(--ink); }
+.ff-write { border-top: 1px solid var(--line); padding-top: 12px; }
+.lt-file .seis-chk { grid-column: auto; margin: 6px 0; }
+.lt-file .seis-chk.sm { display: inline-flex; margin: 6px 0 0; font-size: 12px; }
+.step-sec .ss-break { fill: none; stroke: var(--ink-faint); stroke-width: 1.4; }
+.step-sec .ss-gap { fill: var(--surface); }
+.step-sec .ss-peak { font-size: 14px; }
+.site-plan .sp-leader { stroke: var(--ink-faint); stroke-width: 1; }
+.site-plan .sp-dlab-out { text-anchor: start; }
+.step-sec .ss-end { text-anchor: end; }
+.step-sec .ss-fig { fill: var(--ink-muted); font-size: 11px; font-family: var(--mono); }

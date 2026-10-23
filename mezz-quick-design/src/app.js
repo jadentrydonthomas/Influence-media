@@ -324,6 +324,8 @@
     status('Reading PCS', 'warn');
     prog(0.1);
     try {
+      performance.clearMarks(); performance.clearMeasures();
+      const mark = (() => { let last = 'start'; performance.mark('pcs:start'); return name => { performance.mark('pcs:' + name); try { performance.measure(name, 'pcs:' + last, 'pcs:' + name); } catch (e) { /* timing only */ } last = name; }; })();
       const data = new Uint8Array(await file.arrayBuffer());
       const pdf = await window.pdfjsLib.getDocument({ data, isEvalSupported: false }).promise;
       // the text layer of every page; a page with none (its words drawn as outlines by a print driver, or a scan) is
@@ -339,38 +341,54 @@
           prog(0.35 + 0.45 * done / total);
         },
       });
+      mark('text layer');
       const ocr = pages.ocr || { pages: [] };
       if (ocr.read) window.MZ_OCR.webEngine().then(e => e.end()).catch(() => {});   // free the workers' memory
       for (const p of PCS.box22Pages(pages)) {           // checkboxes are vector glyphs: render and look (OCR found them already)
         const det = await EX.detectChecks(p, PCS.checkboxTargets(p), p._page);
         p.checks = det.states || {};
       }
+      mark('checkboxes');
       prog(0.8);
       const pcs = PCS.parse(pages);
+      mark('parse');
       pcs.ocr = ocr.read ? { pages: ocr.pages, conf: ocr.conf } : null;
       const span = ns => ns.length > 2 && ns[ns.length - 1] - ns[0] === ns.length - 1 ? `${ns[0]}–${ns[ns.length - 1]}` : ns.join(', ');
-      if (!pcs.mezzanines.length) throw new Error(ocr.pages.length && !ocr.read
+      // a quote with no mezzanine is a building job like any other (snow, drift, seismic, frames, bracing); only a PDF
+      // the reader found no building in at all is refused
+      const nB = Object.values(pcs.site || {}).filter(b => b.building && b.building.width > 0 && b.building.length > 0).length;
+      if (!pcs.mezzanines.length && !nB) throw new Error(ocr.pages.length && !ocr.read
         ? `Page${ocr.pages.length > 1 ? 's' : ''} ${span(ocr.pages)} carr${ocr.pages.length > 1 ? 'y' : 'ies'} no text layer (the words are drawn as outlines) and the OCR reader could not run: ${ocr.error || 'unknown error'}.`
-        : 'No "22) MEZZANINES" box with a Mezzanine ID was found in this PDF.');
+        : 'No building (Box 2) and no mezzanine (Box 22) was found in this PDF — is it a PCS / Project Confirmation Summary?');
       // floor plan: the drawing page (no text, hundreds of vector paths) whose grid bubbles register to the frame lines
       // of the first mezzanine's building — not just the last drawing (a wind-pressure table can be one too)
       state.planPaths = null; state.planReg = null; state.planPage = null; state.planAnnots = [];
       const g0 = planGrid({ pcs, all: null });
-      const plan = await PLAN.findPlan(pages, g0 ? PLAN.gridOf(g0) : null, p => p._page.getOperatorList(), window.pdfjsLib.OPS);
+      // (only a mezzanine needs it: a building-only quote skips the search)
+      const plan = pcs.mezzanines.length ? await PLAN.findPlan(pcs.otherDoc ? pages.slice(0, pcs.otherDoc.page - 1) : pages, g0 ? PLAN.gridOf(g0) : null, p => p._page.getOperatorList(), window.pdfjsLib.OPS) : null;
       if (plan) { state.planPaths = plan.paths; state.planAnnots = plan.annots; state.planPage = plan.page; }
+      mark('floor plan');
       prog(0.9);
-      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.colBase = null; state.colBaseN = null; state.seis = seisLoad(); state.seisRestored = Object.keys(state.seis).length ? seisSavedAt() || 'an earlier session' : null; state.snow = BLD ? BLD.snowLoad() : {}; state.frameSel = null; state.scope = null; state.leanTo = null;
-      readPlan();                                           // grid letters + joist arrows off the drawing
+      // the new job's state, built before anything reads it: the mezzanines first (the plan reader walks them), the
+      // rest of the last job cleared (its designer numbers, its frame pick, its files)
       const keep = keepSettings();
+      state.pages = pages; state.pcs = pcs; state.mi = 0; state.planKey = null; state.colBase = null; state.colBaseN = null; state.seis = seisLoad(); state.seisRestored = Object.keys(state.seis).length ? seisSavedAt() || 'an earlier session' : null; state.snow = BLD ? BLD.snowLoad() : {}; state.frameSel = null; state.frameLayers = null; state.scope = null; state.leanTo = null; state.snowJob = null;
       state.all = pcs.mezzanines.map((m, i) => ({ inputs: RUN.inputsFromPCS(pcs, i), settings: { ...RUN.SETTINGS, ...keep } }));
-      state.inputs = state.all[0].inputs; state.settings = state.all[0].settings;
-      $('#dropSub').textContent = `${pdf.numPages} pages · ${pcs.mezzanines.length} mezzanine${pcs.mezzanines.length > 1 ? 's' : ''} found${pcs.ocr ? ` · ${pcs.ocr.pages.length} read by OCR` : ''}`;
+      state.inputs = state.all.length ? state.all[0].inputs : null; state.settings = state.all.length ? state.all[0].settings : { ...RUN.SETTINGS, ...keep };
+      state.res = null; state.job = null;
+      state.dz = dzDefault(); state.dzJob = null;          // the designer starts on this job's own marks, not the last job's
+      readPlan();                                           // grid letters + joist arrows off the drawing
+      mark('plan read');
+      $('#dropSub').textContent = `${pdf.numPages} pages · ${nB} building${nB === 1 ? '' : 's'} · ${pcs.mezzanines.length ? `${pcs.mezzanines.length} mezzanine${pcs.mezzanines.length > 1 ? 's' : ''}` : 'no mezzanine'}${pcs.ocr ? ` · ${pcs.ocr.pages.length} read by OCR` : ''}`;
       $('#intakeMsg').textContent = pcs.ocr
         ? `Parsed. Page${pcs.ocr.pages.length > 1 ? 's' : ''} ${span(pcs.ocr.pages)} had no text layer and ${pcs.ocr.pages.length > 1 ? 'were' : 'was'} read by OCR (${pcs.ocr.conf}% sure on average, ${Math.round((Date.now() - t0) / 1000)} s) — the Design page lists any Box 22 value read with less certainty; check those against the PDF.`
         : 'Parsed. Review the sections, then check the plan against the drawing.';
+      if (pcs.otherDoc) $('#intakeMsg').textContent += ` This PDF also holds an earlier version (${pcs.otherDoc.label || 'another label'}) from page ${pcs.otherDoc.page} — only the current one (${pcs.otherDoc.current || 'the first'}) is read.`;
       prog(1);
       recompute();
-      go(pcs.mezzanines.some(m => true) && state.res && state.res.incomplete ? 'results' : 'building');   // the building first; open values are asked for on the Design page
+      mark('design + render');
+      go(state.res && state.res.incomplete ? 'results' : 'building');   // the building first; open values are asked for on the Design page
+      if (location.hash === '#timing') console.table(performance.getEntriesByType('measure').map(m => ({ step: m.name, ms: Math.round(m.duration) })));
     } catch (err) {
       console.error(err);
       status('Could not read PCS', 'bad');
@@ -453,16 +471,16 @@
     state.planReg.page = state.planPage;
     RUN.applyPlan(pcs, state.planReg);
     // letters and column symbols (⊗ / circled I / marked X = mezzanine column, bare I / ✱ = frame column) per mezzanine
-    (state.all || []).forEach((a, i) => { const pf = RUN.planFor(pcs, i); a.inputs.building.yLetters = pf.yLetters; a.inputs.building.planCols = pf.planCols; a.inputs.mezz.planJoists = pcs.mezzanines[i].planJoists || null; a.inputs.mezz.planJoistsFrom = pcs.mezzanines[i].planJoistsFrom || null; a.inputs.mezz.planArrows = pcs.mezzanines[i].planArrows || 0; a.inputs.mezz.planRead = pcs.planRead; });
+    (state.all || []).forEach((a, i) => { const pf = RUN.planFor(pcs, i), pm = pcs.mezzanines[i] || {}; a.inputs.building.yLetters = pf.yLetters; a.inputs.building.planCols = pf.planCols; a.inputs.mezz.planJoists = pm.planJoists || null; a.inputs.mezz.planJoistsFrom = pm.planJoistsFrom || null; a.inputs.mezz.planArrows = pm.planArrows || 0; a.inputs.mezz.planRead = pcs.planRead; });
   }
 
   // ---------- compute ----------
   // returns false when the design could not run (the page keeps the last design and says so)
   function recompute() {
-    if (!state.inputs) return false;
+    if (!state.inputs) return state.pcs && !state.pcs.mezzanines.length ? recomputeBuilding() : false;
     if (state.all) { state.all[state.mi] = { inputs: state.inputs, settings: state.settings }; readPlan(); }
     const items = (state.all || [{ inputs: state.inputs, settings: state.settings }]).map(a => ({ inp: a.inputs, settings: a.settings }));
-    try { state.job = RUN.runJob(items, { seis: state.seis }); state.res = state.job.mezz[state.all ? state.mi : 0]; } catch (err) { console.error(err); status('Design error: ' + err.message, 'bad'); return false; }
+    try { state.job = RUN.runJob(items, { seis: state.seis, pcs: state.pcs }); state.res = state.job.mezz[state.all ? state.mi : 0]; } catch (err) { console.error(err); status('Design error: ' + err.message, 'bad'); return false; }
     if (BLD) BLD.compute();
     planCheck();
     if (state.mark >= jobMarks().length) { state.mark = 0; state.markSpan = 0; }
@@ -477,6 +495,40 @@
     renderAll();
     remember();
     return true;
+  }
+
+  /* a quote with no mezzanine: the building pages only — the snow, the seismic of every building (NBG Design Calcs'
+     frame lines and bracing), the frames and the bracing; the mezzanine pages say there is none */
+  function recomputeBuilding() {
+    let seismic = null;
+    try { seismic = RUN.seismicJob([], [], [], state.seis || {}, state.pcs); } catch (err) { console.error(err); seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + err.message }], error: true }; }
+    state.job = { mezz: [], merges: [], columns: [], frameLoads: [], frameEntries: [], marks: [], dm: null, excel: null, seismic };
+    state.res = null;
+    if (BLD) BLD.compute();
+    $$('#nav button').forEach(b => { if (b.classList.contains('is-soon')) return; const mz = BLD && BLD.wsOf(b.dataset.view) === 'mezz'; b.disabled = !!mz; });
+    $('#navMezzGroup').hidden = true;
+    const nm = $('#navMezz'); if (nm) nm.disabled = true;
+    const pc = $('#navPlanCount'); if (pc) { pc.hidden = false; pc.textContent = 'none'; }
+    $('#copyQuote').disabled = true; $('#printBtn').disabled = true;
+    const sj = seismic, open = sj && sj.need && sj.need.length;
+    status(open ? 'Building · needs input' : 'Building · no mezzanine', open ? 'warn' : 'ok');
+    renderJobOnly();
+    return true;
+  }
+  function renderJobOnly() {
+    const pcs = state.pcs, n = Object.keys(pcs.site || {}).length;
+    $('#mastContext').textContent = [pcs.job.quote, pcs.job.project, `${n} building${n === 1 ? '' : 's'}`, 'no mezzanine'].filter(Boolean).join(' · ');
+    const c = pcs.code || {};
+    $('#fCode').textContent = c.text ? (c.text.match(/IBC\s*\d{4}|NBCC\s*\d{4}/i) || [c.text])[0] : '—';
+    $('#fDiv').textContent = (pcs.job && pcs.job.division) || '—';
+    $('#rsSub').textContent = `${n} building${n === 1 ? '' : 's'} · no mezzanine`;
+    $('#stampMezz').hidden = true;
+    const orb = $('#orbEmpty'); if (orb) { orb.hidden = false; orb.textContent = 'No mezzanine'; }
+    const mm = $('#miniModel'); if (mm) mm.style.display = 'none';
+    const rv = $('#rvToggle'); if (rv) rv.hidden = true;
+    renderSeismic();
+    if (BLD) BLD.render();
+    queueFit(true);
   }
 
   // Compare the mezzanine-column symbols on the PCS floor plan with every mezzanine's columns
@@ -537,7 +589,7 @@
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); if (BLD) BLD.render(); }
+  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); if (BLD) BLD.render(); queueFit(true); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -1462,6 +1514,7 @@
     $('#miniModel').style.display = v === '3d' && has ? '' : 'none';
     $('#miniPlan').toggleAttribute('hidden', v !== 'plan' || !has);
     if (v === 'plan') renderMiniPlan();
+    queueFit(true);
   }
   $$('#rvToggle button[data-v]').forEach(b => { b.onclick = e => { e.stopPropagation(); setRailView(b.dataset.v); }; });
   const openPop = on => { $('#planPop').hidden = !on; if (on) renderMiniPlan(); };
@@ -1470,9 +1523,16 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#planPop').hidden) openPop(false); });
   // the sidebar fits the window: on a short screen it tightens in steps, then the 3D / plan square takes the height
   // that is left (never wider than the rail) — nothing in it is squeezed or cut off
-  function fitRail() {
+  // Only a change of the window (the rail's own box) or of what the rail holds (the pages re-render: fitRail(true))
+  // refits it; the steps it tries while fitting change the nav's height, and must never feed back into another fit —
+  // that loop made the sidebar flicker.
+  let fitBox = '';
+  function fitRail(force) {
     const rail = $('.rail'), score = rail && rail.querySelector('.rail-score'), view = $('#railView');
     if (!rail || !score || !view) return;
+    const box = `${rail.clientWidth}×${rail.clientHeight}`;
+    if (!force && box === fitBox) return;
+    fitBox = box;
     if (getComputedStyle(score).display === 'none') { delete rail.dataset.fit; view.style.removeProperty('--rv'); return; }
     let size = 0;
     for (const lv of [0, 1, 2, 3, 4]) {
@@ -1486,12 +1546,12 @@
     }
     view.style.setProperty('--rv', size + 'px');
   }
-  let fitQueued = false;
-  const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitRail(); }); };
-  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(queueFit); ['.rail', '#rsSub', '.rail-nav'].forEach(q => $(q) && ro.observe($(q))); }
-  window.addEventListener('resize', queueFit);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueFit);
-  queueFit();
+  let fitQueued = false, fitForce = false;
+  const queueFit = force => { fitForce = fitForce || force === true; if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; const f = fitForce; fitForce = false; fitRail(f); }); };
+  if (typeof ResizeObserver !== 'undefined' && $('.rail')) new ResizeObserver(() => queueFit(false)).observe($('.rail'));
+  window.addEventListener('resize', () => queueFit(false));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => queueFit(true));
+  queueFit(true);
   function renderMini(scene) {
     const cv = $('#miniModel');
     if (!cv || !M3) return;
@@ -2262,7 +2322,7 @@
     if (!box) return;
     const clear = () => ['#seisFrames', '#seisApply', '#seisBracing', '#seisFlags', '#seisHow'].forEach(q => { $(q).innerHTML = ''; });
     if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; clear(); return; }
-    const cfg = state.seis, d = sj.design, F2 = v => f(v, 2), F3 = v => f(v, 3), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
+    const cfg = state.seis, d = sj.design, F1 = v => f(v, 1), F2 = v => f(v, 2), F3 = v => f(v, 3), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-seis="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
     const sel = (key, val, opts) => `<select data-seis="${esc(key)}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     const chk = (key, on, label, dis) => `<label class="seis-chk"><input type="checkbox" data-seis="${esc(key)}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}> <span>${label}</span></label>`;
@@ -2271,11 +2331,17 @@
     const infos = (sj.notes || []).filter(n => n.level === 'info');
     const back = state.seisRestored ? `<div class="seis-msg info">Your Seismic entries for this quote from ${esc(String(state.seisRestored))} are back. <button class="btn-ghost" id="seisForget" type="button">Clear them</button></div>` : '';
     $('#seisStatus').innerHTML = back + (sj.need.length ? `<div class="seis-msg warn"><b>Needs input:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
-      + (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span>${d.Fa != null ? `<span>Fa <b>${F3(d.Fa)}</b> · Fv <b>${F2(d.Fv)}</b></span>` : ''}<span>SMS <b>${F3(d.SMS)}</b> · SM1 <b>${F3(d.SM1)}</b></span><span>SDS <b>${F3(d.SDS)}</b> · SD1 <b>${F3(d.SD1)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${F2(d.Ie)}</b></span><span>ρ <b>${F2(d.rho)}</b></span></div>` : '') + notes;
+      + (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span>${d.Fa != null ? `<span>Fa <b>${F3(d.Fa)}</b> · Fv <b>${F2(d.Fv)}</b></span>` : ''}<span>SMS <b>${F3(d.SMS)}</b> · SM1 <b>${F3(d.SM1)}</b></span><span>SDS <b>${F3(d.SDS)}</b> · SD1 <b>${F3(d.SD1)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${F2(d.Ie)}</b></span><span>ρ <b>${F2(d.rho)}</b></span></div>` : '')
+      // the report NBG Design Calcs prints, building by building: the areas, the roof seismic weight, the base shears, the mezzanine's seismic
+      + sj.buildings.map(b => { const G = b.long, u = G && G.bracing, area = b.bd.width * b.bd.length, frV = live ? Math.max(0, ...b.frames.map(x => x.lat.V)) : null, mzF = live && G ? u.conc.filter(x => x.key === 'mezz') : [];
+        const cell = (lab, val, sub, wait) => `<div class="${wait ? 'is-wait' : ''}"><span>${lab}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+        return `<div class="seis-report">${many ? cell('Building', esc(b.name), `${esc(b.bd.type)} · ${ft(b.bd.width)} × ${ft(b.bd.length)}`) : ''}${cell('Building area', `${n0(area)} sq ft`, `${esc(b.bd.type)} · eaves ${ft(b.bd.eaveFSW)} / ${ft(b.bd.eaveBSW)}`)}${cell('Mezzanine area', `${n0(b.mzArea)} sq ft`, `${Math.round(100 * b.mzArea / area)} % of the floor${b.significant ? ' · significant' : ''}`)}${live && u ? cell('Roof seismic weight', `${F2(u.totalPsf)} psf`, `dead ${F2(u.deadPsf)} + snow ${F2(u.snow)} psf (${F1(u.snowPct != null ? u.snowPct : 20)} %)`) : cell('Roof seismic weight', 'waiting', 'inputs above', true)}${live && G ? cell('Longitudinal base shear', `${F2(G.V)} k`, `W ${F1(G.totals.W / 1000)} k · Cs ${F3(G.Cs)} · ${esc(G.sys.label)} R ${+G.R.toFixed(2)}`) : cell('Longitudinal base shear', 'waiting', 'inputs above', true)}${live ? cell('Lateral · largest frame', `${F2(frV)} k`, `${b.frames.length} frame lines with a mezzanine on them`) : cell('Lateral · frames', 'waiting', 'inputs above', true)}${live && G ? cell('Mezzanine seismic', mzF.length ? mzF.map(x => `${F2(x.F)} k`).join(' · ') : '—', mzF.map(x => `${esc(x.name)} at ${ft(x.at)}`).join(' · ') || 'longitudinal, to the bracing') : cell('Mezzanine seismic', 'waiting', 'inputs above', true)}</div>`; }).join('')
+      + notes;
 
     // ---- the job's NBG files: a bracing run (per building) and the eScope — their code, site and roof loads ----
     const fileRows = sj.buildings.map(b => { const fx = (cfg.files || {})[b.bkey]; return fx ? `<li><b>${esc(fx.from)}</b>${many ? ` · ${esc(b.name)}` : ''}: ${esc([fx.code && `code ${fx.code}`, fx.Ss != null && `Ss ${fx.Ss} / S1 ${fx.S1}`, fx.siteClass && `site ${fx.siteClass}`, fx.roofDead != null && `roof dead ${F2(fx.roofDead)}`, fx.collateral != null && `collateral ${F2(fx.collateral)}`, fx.snow != null && `snow ${F2(fx.snow)} psf`].filter(Boolean).join(' · '))} <button class="btn-ghost sm" data-seisfile-rm="${esc(b.bkey)}">Remove</button></li>` : ''; }).join('');
-    const filesBox = `<div class="seis-files"><label class="nbg-drop seis-drop" id="seisDrop"><input type="file" id="seisFile" accept=".bracing,.nbgscope" multiple><svg><use href="#i-file"/></svg><span><strong>Drop the job's bracing (.bracing) or eScope (.nbgscope) file</strong><small>the building code, Ss / S1, site class, roof dead, collateral and snow are taken from it — the bracing file also gets the mezzanine loads in step 9</small></span></label>${fileRows ? `<ul class="seis-filelist">${fileRows}</ul>` : ''}</div>`;
+    // the job's files are dropped once, on the Project page; here, what each one gave
+    const filesBox = `<div class="seis-files">${fileRows ? `<ul class="seis-filelist">${fileRows}</ul>` : `<div class="seis-msg info">The job's .bracing and .nbgscope files go on the <a href="#" data-go="upload">Project page</a> — the building code, Ss / S1, site class, roof dead, collateral and snow are taken from them, and the bracing file gets the EQB / EQF.</div>`}</div>`;
 
     // ---- 1–2: building data and seismic data (job-wide) ----
     const sig = sj.buildings.map(b => `${many ? esc(b.name) + ': ' : ''}${n0(b.mzArea)} sq ft of mezzanine in ${n0(b.bd.width * b.bd.length)} sq ft (${Math.round(100 * b.mzArea / (b.bd.width * b.bd.length))} %)${b.sigHint ? ' — over ⅓: a story under IBC 505.2.1' : ''}`).join(' · ');
@@ -2379,30 +2445,36 @@
     if (ra) ra.onclick = () => { delete state.seis.eqOverride; delete state.seis.eqScale; seisSave(); recompute(); toast('EQ loads back to the calculated values'); };
 
     // ---- 9: longitudinal — NBG Bracing, and the loads into the bracing file ----
+    // the file side of step 9 (the loads and the strut line into the .bracing file) lives on the Bracing page, under
+    // the walls; the numbers stay here
+    const fileParts = [];
     $('#seisBracing').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
       const G = b.long;
       if (!G) return '';
       const u = G.bracing, bf = (state.bracing || {})[b.bkey], plan = bracingPlan(b);
       const tor = u.torsionMezz > 1 || u.torsionRoof > 1;
       const fileUI = !zipIO.ok ? '<div class="seis-msg warn">This browser cannot open .bracing files — use a current Chrome or Edge.</div>'
-        : !bf ? `<div class="seis-msg info">Drop this building's <b>.bracing</b> file in step 1 (or here) to have the mezzanine loads and the strut line written into it. <label class="btn-soft sm seis-pick">Choose the .bracing file<input type="file" class="seis-file-in" accept=".bracing" hidden></label></div>`
-          : `<div class="seis-bfile"><div class="seis-bfile-h"><b class="mono">${esc(bf.name)}</b> <small class="sub-n">${esc(bf.file.info.run || '')} · NBG Bracing ${esc(bf.file.info.version || '')} · ${bf.file.info.lines.length} frame lines · braced bays: ${['FSW', 'BSW'].map(w => `${w} ${(bf.file.info.walls[w] ? bf.file.info.walls[w].bays.filter(x => x.braced).map(x => `${lineName(bf, x.from)}–${lineName(bf, x.to)}`).join(', ') : '') || 'none'}`).join(' · ')}</small>${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).length ? `<small class="sub-n">${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).length} "Mezz. Seismic" loads in it now (${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).map(x => `${x.caseId} ${x.F > 0 ? '+' : ''}${f(x.F, 3)} line ${lineName(bf, x.line)} @ ${f(x.elev, 2)}'`).join(' · ')}) — replaced by these</small>` : ''}</div>
+        : !bf ? `<div class="seis-msg info">Drop ${many ? `<b>${esc(b.name)}</b>'s` : 'the job\'s'} <b>.bracing</b> file on the <a href="#" data-go="upload">Project page</a> to have the EQB / EQF${plan.struts.length || true ? ' and the wall strut line' : ''} written into it — the bays and tiers it holds are drawn above once it is in.</div>`
+          : `<div class="seis-bfile"><div class="seis-bfile-h"><b class="mono">${esc(bf.name)}</b> <small class="sub-n">${esc(bf.file.info.run || '')}${bf.file.info.version ? ` · NBG Bracing ${esc(bf.file.info.version)}` : ''} · ${bf.file.info.lines.length} frame lines · braced bays: ${['FSW', 'BSW'].map(w => `${w} ${(bf.file.info.walls[w] ? bf.file.info.walls[w].bays.filter(x => x.braced).map(x => `${lineName(bf, x.from)}–${lineName(bf, x.to)}`).join(', ') : '') || 'none'}`).join(' · ')}</small>${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).length ? `<small class="sub-n">${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).length} "Mezz. Seismic" loads in it now (${bf.file.info.loads.filter(x => x.name === BRF.LOAD_NAME).map(x => `${x.caseId} ${x.F > 0 ? '+' : ''}${f(x.F, 3)} line ${lineName(bf, x.line)} @ ${f(x.elev, 2)}'`).join(' · ')}) — replaced by these</small>` : ''}${(() => { const m = bf.file.info.wallMap || [], sw = m.filter(e => (e.key === 'FSW') !== (e.tag === 'FrontSidewall')); return sw.length ? `<small class="sub-n bf-map">In this file NBG Bracing keeps ${m.map(e => `the ${e.key} under &lt;${e.tag}&gt; (Wall ${e.plane + 1}, grid ${String.fromCharCode(65 + (e.grid || 0))}${e.eave != null ? `, eave strut ${ft(e.eave)}` : ''})`).join(' and ')} — ${m.some(e => e.how === 'eave strut') ? 'each wall told by its eave strut against the PCS eave heights' : 'line A being the back sidewall on Nucor drawings'}. The rows below go on the wall whose bays are that sidewall.</small>` : ''; })()}</div>
             <div class="table-wrap"><table class="fl-t seis-bload"><thead><tr><th>Load name</th><th>Load case</th><th>Panel</th><th>Frame line</th><th>Grid line</th><th class="num">Elevation</th><th class="num">Magnitude (kips)</th><th>Direction</th></tr></thead><tbody>${plan.loads.map(l => `<tr><td>${esc(BRF.LOAD_NAME)}</td><td class="mono"><b>${l.caseId}</b></td><td>Wall ${bf.file.info.walls[l.wall].plane + 1} <small class="sub-n">${l.wall}</small></td><td class="mono">${esc(l.lineName)}</td><td class="mono">${String.fromCharCode(65 + (bf.file.info.walls[l.wall].grid || 0))}</td><td class="num mono">${f(l.elev, 3)}</td><td class="num mono"><b>${f(l.F, 3)}</b></td><td>X - Longitudinal</td></tr>`).join('')}</tbody></table></div>
             <div class="seis-strut">${chk('strutLine', cfg.strutLine !== false, `<b>Add the wall strut line${plan.struts.length > 1 ? 's' : ''}</b> — ${plan.struts.map(s => `Wall ${bf.file.info.walls[s.wall].plane + 1} (${s.wall}), frame line ${esc(s.fromName)} to ${esc(s.toName)}, at ${f(s.elev, 3)} ft${s.bay ? ` <small class="sub-n">to the braced bay ${esc(s.bay)}</small>` : ''}`).join(' · ') || 'none needed'}`)}<small class="sub-n">As Tools → Add Wall Strut Line does, so the loads have joints at the mezzanine level. New: if NBG Bracing does not take it, untick it and add the strut line there by hand.</small></div>
             ${plan.notes.map(t => `<div class="seis-msg warn">${esc(t)}</div>`).join('')}
             <div class="seis-bfile-a"><button class="btn-soft" data-brdl="${esc(b.bkey)}" ${plan.loads.length ? '' : 'disabled'}><svg><use href="#i-file"/></svg>Download ${esc(bracingOutName(bf))}</button><button class="btn-ghost" data-brrm="${esc(b.bkey)}">Remove the file</button><small class="sub-n">The model is left as it is apart from these loads and the strut line; open it in NBG Bracing and design.</small></div></div>`;
-      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
+      const out9 = `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}
       <div class="seis-sum"><span>${esc(G.sys.label)} · R <b>${+G.R.toFixed(2)}</b></span><span>Ta <b>${F3(G.Ta)}</b> s · k <b>${F3(G.k)}</b></span><span>Cs <b>${F3(G.Cs)}</b></span><span>Base shear <b>${F2(G.V)} k</b></span><span>FSW ${esc(b.sfrs.FSW)} · BSW ${esc(b.sfrs.BSW)}</span></div>
       <div class="table-wrap"><table class="fl-t seis-bvals"><thead><tr><th colspan="2">For NBG Bracing — bracing uniform loads</th><th colspan="2">Bracing concentrated loads</th></tr></thead><tbody>
         <tr><td>Roof snow</td><td class="num mono">${F2(u.snow)} psf</td><td rowspan="5" colspan="2"><div class="seis-concs">${concT(u.conc)}</div>${tor ? `<small class="sub-n">${u.torsionMezz > 1 ? 'mezzanine force × 1.1 (accidental torsion, rigid mezzanine diaphragm)' : ''}${u.torsionRoof > 1 ? ' · seismic factor × 1.1 (rigid roof diaphragm)' : ''}</small>` : ''}</td></tr>
         <tr><td>Roof dead</td><td class="num mono">${F2(u.deadPsf)} psf</td></tr><tr><td>Roof total</td><td class="num mono"><b>${F2(u.totalPsf)} psf</b></td></tr><tr><td>Alt. roof total <small class="sub-n">with the sidewalls</small></td><td class="num mono">${F2(u.altTotalPsf)} psf</td></tr><tr><td>Seismic factor</td><td class="num mono"><b>${F3(u.factor)}</b></td></tr></tbody></table></div>
       <details class="seis-d"><summary>Seismic factors and the multistory distribution</summary>${factorsT(G.factors, G)}${distT(G)}</details>
       <div class="table-wrap"><table class="fl-t"><thead><tr><th>Line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
-      <small class="sub-n">The mezzanine floor spans across the building between these lines (lever rule): a sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force.</small>
-      ${fileUI}`;
+      <small class="sub-n">The mezzanine floor spans across the building between these lines (lever rule): a sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force. The walls are drawn, and the file written, on the <a href="#" data-go="bracing">Bracing page</a>.</small>`;
+      fileParts.push(`${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}${fileUI}`);
+      return out9;
     }).join('');
-    $$('#seisBracing [data-brdl]').forEach(btn => { btn.onclick = async () => { const b = sj.buildings.find(x => x.bkey === btn.dataset.brdl), bf = state.bracing[b.bkey], plan = bracingPlan(b); try { const o = await BRF.write(bf.file, { loads: plan.loads, struts: cfg.strutLine === false ? [] : plan.struts }, zipIO); cpSave(o.bytes, bracingOutName(bf), 'application/octet-stream'); toast(`${bracingOutName(bf)} — ${o.added.loads} Mezz. Seismic loads${o.replaced ? ` (in place of ${o.replaced})` : ''}${cfg.strutLine === false ? '' : `, ${o.added.struts} strut${o.added.struts === 1 ? '' : 's'} added${o.kept.struts ? `, ${o.kept.struts} already there` : ''}`}`); } catch (e) { console.error(e); toast('Bracing file: ' + e.message, 'bad'); } }; });
-    $$('#seisBracing [data-brrm]').forEach(btn => { btn.onclick = () => { delete state.bracing[btn.dataset.brrm]; renderSeismic(); }; });
+    const bfBox = $('#braceFile');
+    if (bfBox) bfBox.innerHTML = !live ? `<div class="seis-msg info">The loads come once the <a href="#" data-go="seismic">Seismic page</a> is complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>` : fileParts.join('');
+    $$('#seisBracing [data-brdl], #braceFile [data-brdl]').forEach(btn => { btn.onclick = async () => { const b = sj.buildings.find(x => x.bkey === btn.dataset.brdl), bf = state.bracing[b.bkey], plan = bracingPlan(b); try { const o = await BRF.write(bf.file, { loads: plan.loads, struts: cfg.strutLine === false ? [] : plan.struts }, zipIO); cpSave(o.bytes, bracingOutName(bf), 'application/octet-stream'); toast(`${bracingOutName(bf)} — ${o.added.loads} Mezz. Seismic loads${o.replaced ? ` (in place of ${o.replaced})` : ''}${cfg.strutLine === false ? '' : `, ${o.added.struts} strut${o.added.struts === 1 ? '' : 's'} added${o.kept.struts ? `, ${o.kept.struts} already there` : ''}`}`); } catch (e) { console.error(e); toast('Bracing file: ' + e.message, 'bad'); } }; });
+    $$('#seisBracing [data-brrm], #braceFile [data-brrm]').forEach(btn => { btn.onclick = () => { delete state.bracing[btn.dataset.brrm]; recompute(); }; });
     $$('#v-seismic .seis-file-in, #seisFile').forEach(inp => { inp.onchange = () => { addSeisFiles(Array.from(inp.files || [])); inp.value = ''; }; });
     const sd = $('#seisDrop');
     if (sd && !sd.dataset.wired) {
@@ -2436,7 +2508,7 @@
     // input handlers: a check box is true / false, a drop-down text, a box a number ('' takes the value back)
     const sfg = $('#seisForget');
     if (sfg) sfg.onclick = () => { const k = seisKey(); try { if (k) { localStorage.removeItem(k); localStorage.removeItem(k + '.t'); } } catch (e) { /* nothing kept */ } state.seis = {}; state.seisRestored = null; recompute(); toast('Seismic entries cleared — back to the PCS values'); };
-    $$('#v-seismic [data-seis]').forEach(el => {
+    $$('#v-seismic [data-seis], #braceFile [data-seis]').forEach(el => {
       el.onchange = () => {
         const k = el.dataset.seis, raw = el.type === 'checkbox' ? el.checked : el.value.trim(), c = state.seis;
         const v = el.type === 'checkbox' || el.tagName === 'SELECT' ? raw : raw === '' ? '' : +raw;
@@ -2446,7 +2518,7 @@
         else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
         else if (k === 'framingAll') { c.mezz = c.mezz || {}; sj.buildings.forEach(b => b.mezz.forEach(m => { c.mezz[m.id] = { ...(c.mezz[m.id] || {}), framing: !!v }; if (v) delete c.mezz[m.id].framing; })); }
         else if (k === 'significant') { if (v) c.significant = true; else delete c.significant; }
-        else if (k === 'strutLine') { if (v) delete c.strutLine; else c.strutLine = false; seisSave(); renderSeismic(); return; }
+        else if (k === 'strutLine') { if (v) delete c.strutLine; else c.strutLine = false; seisSave(); renderSeismic(); if (BLD) BLD.renderBracing(); return; }
         else if (v === '' || v == null) delete c[k];
         else c[k] = v;
         seisSave(); recompute();
@@ -2483,7 +2555,7 @@
           state.seis.files[b.bkey] = { ...(state.seis.files[b.bkey] || {}), from: 'bracing file', code: i.code, risk: risk(i.risk), Ss: s.Ss != null ? +s.Ss.toFixed(4) : null, S1: s.S1 != null ? +s.S1.toFixed(4) : null,
             SMS: ed722 && s.Sms != null ? +s.Sms.toFixed(4) : null, SM1: ed722 && s.Sm1 != null ? +s.Sm1.toFixed(4) : null, siteClass: s.siteClass || null,
             roofDead: i.roofDead != null ? +i.roofDead.toFixed(4) : null, collateral: i.collateral, snow: i.snow != null ? +i.snow.toFixed(4) : null };
-          toast(`${file.name} — ${i.code || 'code ?'}, Ss ${s.Ss != null ? +s.Ss.toFixed(3) : '?'} / S1 ${s.S1 != null ? +s.S1.toFixed(3) : '?'}, roof dead ${i.roofDead != null ? +i.roofDead.toFixed(3) : '?'} psf; the mezzanine loads are ready in step 9`);
+          toast(`${file.name} — ${i.code || 'code ?'}, Ss ${s.Ss != null ? +s.Ss.toFixed(3) : '?'} / S1 ${s.S1 != null ? +s.S1.toFixed(3) : '?'}, roof dead ${i.roofDead != null ? +i.roofDead.toFixed(3) : '?'} psf; the EQB / EQF go into it on the Bracing page`);
         } else if (/\.nbgscope$/i.test(file.name)) {
           const sc = BRF.readScope(await file.text());
           state.scope = { ...sc, name: file.name };
@@ -2620,6 +2692,9 @@
       if (at >= 0) state.nbg.files[at] = item; else state.nbg.files.push(item);
     }
     state.nbg.files.sort((a, b) => ((a.ff && a.ff.info.lines[0]) || 99) - ((b.ff && b.ff.info.lines[0]) || 99));
+    // files in hand on a job with a mezzanine: the folded mezzanine-load panel opens, so the cards are in view
+    const fold = $('#frameLoadsPanel');
+    if (fold && state.res && !state.res.incomplete && list.length) fold.open = true;
     // NBG Frame's roof dead / collateral for the seismic weight of the roof ("Per Seller" on the PCS)
     if (seisFromFrames()) { recompute(); return; }
     renderNbg();

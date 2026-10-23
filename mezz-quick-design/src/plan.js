@@ -95,6 +95,23 @@
     return out;
   }
 
+  /* A bucket grid over points: near(x, y, r) gives every item whose point lies within r (and a few more — the callers
+     keep their exact distance tests), so a symbol looks only at the strokes around it, not the whole sheet's. */
+  function bucket(items, X, Y, cell = 6) {
+    const m = new Map(), K = (i, j) => (i + 1048576) * 2097152 + (j + 1048576);
+    const add = it => { const k = K(Math.floor(X(it) / cell), Math.floor(Y(it) / cell)); const a = m.get(k); if (a) a.push(it); else m.set(k, [it]); };
+    items.forEach(add);
+    return {
+      add,
+      near(x, y, r) { return this.rect(x - r, y - r, x + r, y + r); },
+      rect(x0, y0, x1, y1) {
+        const out = [], i0 = Math.floor(x0 / cell), i1 = Math.floor(x1 / cell), j0 = Math.floor(y0 / cell), j1 = Math.floor(y1 / cell);
+        for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const a = m.get(K(i, j)); if (a) for (const it of a) out.push(it); }
+        return out;
+      },
+    };
+  }
+
   function readSymbols(paths) {
     const circles = [], segs = [];
     paths.forEach(p => {
@@ -108,43 +125,47 @@
     });
     chains(paths).forEach(p => { const c = circleOf(p); if (c) circles.push(c); });
     // merge concentric duplicates (filled rings are drawn as an outer + inner polyline)
-    const uniq = [];
-    circles.sort((a, b) => b.r - a.r).forEach(c => { if (!uniq.some(u => Math.hypot(u.x - c.x, u.y - c.y) < Math.max(0.8, c.r * 0.3) && Math.abs(u.r - c.r) < u.r * 0.25)) uniq.push(c); });
+    const uniq = [], uIdx = bucket([], u => u.x, u => u.y, 8);
+    circles.sort((a, b) => b.r - a.r).forEach(c => { if (!uIdx.near(c.x, c.y, Math.max(0.8, c.r * 0.3)).some(u => Math.hypot(u.x - c.x, u.y - c.y) < Math.max(0.8, c.r * 0.3) && Math.abs(u.r - c.r) < u.r * 0.25)) { uniq.push(c); uIdx.add(c); } });
     const crosses = [], plain = [];
     const axial = s => (Math.abs(s.b[0] - s.a[0]) < 0.12 * s.len ? 'v' : Math.abs(s.b[1] - s.a[1]) < 0.12 * s.len ? 'h' : null);
+    const sIdx = bucket(segs, sg => sg.mx, sg => sg.my);
     uniq.forEach(c => {
       if (c.r > 8) { plain.push(c); return; }
-      const diag = segs.filter(s => Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.35 && s.len > c.r * 1.1 && s.len < c.r * 2.4 && Math.abs(Math.abs(s.slope) - 1) < 0.6);
+      const diag = sIdx.near(c.x, c.y, c.r * 0.35).filter(s => Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.35 && s.len > c.r * 1.1 && s.len < c.r * 2.4 && Math.abs(Math.abs(s.slope) - 1) < 0.6);
       const hasX = diag.some(s => s.slope > 0) && diag.some(s => s.slope < 0), hasSlash = !hasX && diag.length > 0;
       // circled I: a web stroke through the centre (either orientation) with a flange stroke across one end
-      const webs = segs.filter(s => axial(s) && Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.3 && s.len > c.r * 0.6 && s.len < c.r * 1.6);
-      const hasI = webs.some(w => segs.some(f => f !== w && axial(f) && axial(f) !== axial(w) && f.len > c.r * 0.35 && f.len < c.r * 1.3
+      const webs = sIdx.near(c.x, c.y, c.r * 0.3).filter(s => axial(s) && Math.hypot(s.mx - c.x, s.my - c.y) < c.r * 0.3 && s.len > c.r * 0.6 && s.len < c.r * 1.6);
+      const hasI = webs.some(w => [...sIdx.near(w.a[0], w.a[1], c.r * 0.3), ...sIdx.near(w.b[0], w.b[1], c.r * 0.3)].some(f => f !== w && axial(f) && axial(f) !== axial(w) && f.len > c.r * 0.35 && f.len < c.r * 1.3
         && Math.min(Math.hypot(f.mx - w.a[0], f.my - w.a[1]), Math.hypot(f.mx - w.b[0], f.my - w.b[1])) < c.r * 0.3));
       if (hasX) crosses.push({ ...c, kind: 'x' });
       else if (hasI) crosses.push({ ...c, kind: 'i' });
       else if (hasSlash) crosses.push({ ...c, kind: 's' });
       else plain.push(c);
     });
-    const inCircle = p => uniq.some(c => c.r <= 8 && Math.hypot(c.x - p.x, c.y - p.y) < c.r * 1.05);
+    const cIdx = bucket(uniq.filter(c => c.r <= 8), c => c.x, c => c.y, 8);
+    const inCircle = p => cIdx.near(p.x, p.y, 8.4).some(c => c.r <= 8 && Math.hypot(c.x - p.x, c.y - p.y) < c.r * 1.05);
     // frame columns, bare I: a web with a flange stroke across each end (either orientation), not inside a circle
-    const frameCols = [];
-    const ax = segs.filter(sg => axial(sg) && sg.len >= 0.8 && sg.len <= 12);
+    const frameCols = [], fIdx = bucket([], q => q.x, q => q.y, 4);
+    const nearCol = c => fIdx.near(c.x, c.y, 1).some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1);
+    const ax = segs.filter(sg => axial(sg) && sg.len >= 0.8 && sg.len <= 12), axIdx = bucket(ax, sg => sg.mx, sg => sg.my);
     ax.forEach(w => {
       if (w.len < 2.5 || w.len > 10) return;
       const o = axial(w), tol = Math.max(0.35, w.len * 0.12);
-      const flange = end => ax.some(f => f !== w && axial(f) !== o && f.len >= w.len * 0.25 && f.len <= w.len * 1.4 && Math.hypot(f.mx - end[0], f.my - end[1]) < tol);
+      const flange = end => axIdx.near(end[0], end[1], tol).some(f => f !== w && axial(f) !== o && f.len >= w.len * 0.25 && f.len <= w.len * 1.4 && Math.hypot(f.mx - end[0], f.my - end[1]) < tol);
       const c = { x: w.mx, y: w.my };
-      if (!flange(w.a) || !flange(w.b) || inCircle(c) || frameCols.some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1)) return;
-      frameCols.push({ ...c, kind: 'I' });
+      if (!flange(w.a) || !flange(w.b) || inCircle(c) || nearCol(c)) return;
+      const q = { ...c, kind: 'I' };
+      frameCols.push(q); fIdx.add(q);
     });
     // ✱: three or more strokes crossing at their common midpoint in three or more directions, one diagonal
     const ang = sg => Math.round(((Math.atan2(sg.b[1] - sg.a[1], sg.b[0] - sg.a[0]) * 180 / Math.PI) % 180 + 180) % 180 / 15) % 12;
-    const mid = segs.filter(sg => sg.len >= 2.5 && sg.len <= 10);
+    const mid = segs.filter(sg => sg.len >= 2.5 && sg.len <= 10), midIdx = bucket(mid, sg => sg.mx, sg => sg.my);
     mid.forEach(sg => {
       const c = { x: sg.mx, y: sg.my };
-      if (frameCols.some(q => Math.hypot(q.x - c.x, q.y - c.y) < 1)) return;
-      const thru = mid.filter(t => Math.hypot(t.mx - c.x, t.my - c.y) < Math.max(0.35, sg.len * 0.1));
-      if (thru.length >= 3 && new Set(thru.map(ang)).size >= 3 && thru.some(t => !axial(t)) && !inCircle(c)) frameCols.push({ ...c, kind: 'star' });
+      if (nearCol(c)) return;
+      const r = Math.max(0.35, sg.len * 0.1), thru = midIdx.near(c.x, c.y, r).filter(t => Math.hypot(t.mx - c.x, t.my - c.y) < r);
+      if (thru.length >= 3 && new Set(thru.map(ang)).size >= 3 && thru.some(t => !axial(t)) && !inCircle(c)) { const q = { ...c, kind: 'star' }; frameCols.push(q); fIdx.add(q); }
     });
     const longSegs = paths.filter(p => p.length === 2).map(p => ({ a: p[0], b: p[1], len: Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) })).filter(sg => sg.len >= 25);
     return { crosses, frameCols, circles: plain, arrows: readArrows(segs.concat(longSegs)).concat(readJoistSymbols(paths)) };
@@ -158,9 +179,11 @@
     const long = segs.filter(s => s.len >= 25 && s.len <= 400 && (Math.abs(s.b[0] - s.a[0]) < 0.02 * s.len || Math.abs(s.b[1] - s.a[1]) < 0.02 * s.len));
     const short = segs.filter(s => s.len >= 3 && s.len <= 14);
     const at = (p, q) => Math.abs(p[0] - q[0]) < 0.4 && Math.abs(p[1] - q[1]) < 0.4;
+    // the short strokes by each end, so a shaft's ends look only at the strokes that start or finish there
+    const ends = bucket(short.flatMap(h => [{ h, p: h.a }, { h, p: h.b }]), e => e.p[0], e => e.p[1], 4);
     long.forEach(sh => {
       const vert = Math.abs(sh.b[0] - sh.a[0]) < Math.abs(sh.b[1] - sh.a[1]);
-      const head = end => short.some(h => {
+      const head = end => [...new Set(ends.near(end[0], end[1], 0.6).map(e => e.h))].some(h => {
         const o = at(h.a, end) ? h.b : at(h.b, end) ? h.a : null;
         if (!o) return false;
         const along = Math.abs(vert ? o[1] - end[1] : o[0] - end[0]), across = Math.abs(vert ? o[0] - end[0] : o[1] - end[1]);
@@ -178,15 +201,18 @@
      Zigzags may be one polyline or separate strokes. */
   function readJoistSymbols(paths) {
     const seg = [];
-    paths.forEach(p => { if (p.length >= 2 && p.length <= 60 && !p.closed) for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (len > 0.3) seg.push({ a, b, len }); } });
+    paths.forEach(p => { if (p.length >= 2 && p.length <= 60 && !p.closed) for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (len > 0.3) seg.push({ a, b, len, i: seg.length }); } });
+    // the web candidates by their first end: a web has both ends in the band beside the chord, so the band is looked up
+    const wIdx = bucket(seg.filter(q => q.len >= 1.5 && q.len <= 12), q => q.a[0], q => q.a[1], 8);
     const out = [];
     seg.filter(c => c.len >= 18 && c.len <= 320).forEach(c => {
       const horiz = Math.abs(c.b[1] - c.a[1]) < 0.02 * c.len, vert = Math.abs(c.b[0] - c.a[0]) < 0.02 * c.len;
       if (!horiz && !vert) return;
       const u = p => (horiz ? p[0] : p[1]), w = p => (horiz ? p[1] : p[0]);   // along / across the chord
       const lo = Math.min(u(c.a), u(c.b)), hi = Math.max(u(c.a), u(c.b)), off = w(c.a);
+      const band = (horiz ? wIdx.rect(lo - 1, off - 9.5, hi + 1, off + 9.5) : wIdx.rect(off - 9.5, lo - 1, off + 9.5, hi + 1)).sort((p, q) => p.i - q.i);
       for (const sideSign of [1, -1]) {
-        const webs = seg.filter(q => {
+        const webs = band.filter(q => {
           if (q === c || q.len < 1.5 || q.len > 12) return false;
           const da = (w(q.a) - off) * sideSign, db = (w(q.b) - off) * sideSign, along = Math.abs(u(q.b) - u(q.a)), across = Math.abs(w(q.b) - w(q.a));
           return Math.min(da, db) > -0.4 && Math.max(da, db) < 9 && across > 1 && along > 0.4 && along < 3 * across && u(q.a) > lo - 1 && u(q.a) < hi + 1 && u(q.b) > lo - 1 && u(q.b) < hi + 1;

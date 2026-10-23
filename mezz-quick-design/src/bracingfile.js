@@ -4,7 +4,8 @@
    concentrated load per wall and direction:
      · Load Case EQB (seismic one way): +F at the mezzanine's first frame line.
      · Load Case EQF (the other way): −F at its last frame line.
-     · Panel: the wall (Wall 1 = FSW, Wall 2 = BSW), Grid Line the wall's own, Elevation the mezzanine's, X - Longitudinal.
+     · Panel: the wall's plane, Grid Line the wall's own, Elevation the mezzanine's, X - Longitudinal. The plane is the
+       element whose bays are that wall (read() works it out: <FrontSidewall> holds line A, the back sidewall).
    Those rows are <BracingLoads><SpecialConcentratedLoads>.
 
    A load acts only where the wall has a joint at that height. Tools → Add Wall Strut Line (To Wall, From / To Frame Line,
@@ -68,22 +69,40 @@
     if (!lay) throw new Error('no building layout in this bracing model');
     info.width = num(text(xml, lay, 'WidthInFeet')); info.length = num(text(xml, lay, 'LengthInFeet'));
     info.eaveFSW = num(text(xml, lay, 'FSWEaveHeight')); info.eaveBSW = num(text(xml, lay, 'BSWEaveHeight'));
-    const wd = kid(xml, lay, 'WallData'), lines = new Map(), walls = {};
-    [['FSW', 'FrontSidewall'], ['BSW', 'BackSidewall']].forEach(([key, t], plane) => {
+    const wd = kid(xml, lay, 'WallData'), lines = new Map(), els = [];
+    ['FrontSidewall', 'BackSidewall'].forEach((t, plane) => {
       const w = kid(xml, wd, t);
       if (!w) return;
       const bays = all(xml, kid(xml, w, 'Bays'), 'SidewallBay');
-      walls[key] = { key, plane: num(text(xml, w, 'Index')) ?? plane, grid: num(text(xml, w, 'AtGrid')), top: num(text(xml, w, 'WallTop')),
+      els.push({ tag: t, plane: num(text(xml, w, 'Index')) ?? plane, grid: num(text(xml, w, 'AtGrid')), headerTop: num(text(xml, w, 'WallTop')),
         bays: bays.map(b => {
           const ln = e => ({ index: num(text(xml, e, 'Index')), name: text(xml, e, 'Name'), x: num(text(xml, e, 'DistanceFromOne')) });
           const from = ln(kid(xml, b, 'FromLine')), to = ln(kid(xml, b, 'ToLine'));
           [from, to].forEach(l => { if (l.index != null) lines.set(l.index, l); });
           const st = kid(xml, b, 'Struts'), br = kid(xml, b, 'Braces');
-          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType') }));
+          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType'), atRoof: num(text(xml, s, 'AtRoof')) }));
           const braces = all(xml, br, 'Brace').map(s => ({ top: num(text(xml, s, 'TopElevation')), bottom: num(text(xml, s, 'BottomElevation')), member: text(xml, s, 'MemberDescription') }));
           return { index: num(text(xml, b, 'Index')), from: from.index, to: to.index, braced: braces.length > 0, braces, struts, strutsAt: st ? { start: st.start, end: st.end, innerEnd: st.innerEnd, empty: !!st.empty } : null };
-        }) };
+        }) });
     });
+    /* Which wall each element is. The bays NBG Bracing keeps under <FrontSidewall> sit on grid line A (AtGrid 0, struts
+       DistanceFromA 0) — on Nucor's drawings line A is the BACK sidewall — and their eave strut, girts and brace tops are
+       the back sidewall's height; <BackSidewall> holds the front sidewall's. Only the element's own WallTop names the
+       other side. Every run seen with unequal eaves reads this way, and PCS Box 12 agrees with it (X-bracing on the low
+       FSW, the BSW's portal frames not in the rods). So each element is keyed by its bays' eave strut where the eaves
+       differ, else by line A = BSW; the loads written for a wall go on that element's plane and grid. */
+    const eF = info.eaveFSW, eB = info.eaveBSW, decisive = eF != null && eB != null && Math.abs(eF - eB) > 0.05;
+    els.forEach(e => {
+      const ev = e.bays.flatMap(b => b.struts.filter(t => t.type === 'Eave' && t.atRoof === 0).map(t => t.elev)).filter(v => v != null);
+      e.eave = ev.length ? Math.max(...ev) : null;
+      if (decisive && e.eave != null && Math.min(Math.abs(e.eave - eF), Math.abs(e.eave - eB)) < 0.05) { e.key = Math.abs(e.eave - eF) < Math.abs(e.eave - eB) ? 'FSW' : 'BSW'; e.how = 'eave strut'; }
+    });
+    const g0 = Math.min(...els.map(e => (e.grid == null ? Infinity : e.grid)));
+    els.forEach(e => { if (!e.key) { e.key = e.grid === g0 ? 'BSW' : 'FSW'; e.how = 'line A'; } });
+    if (els.length === 2 && els[0].key === els[1].key) els.forEach(e => { e.key = e.tag === 'FrontSidewall' ? 'BSW' : 'FSW'; e.how = 'line A'; });
+    const walls = {};
+    els.forEach(e => { walls[e.key] = { key: e.key, tag: e.tag, plane: e.plane, grid: e.grid, top: e.eave ?? (e.key === 'FSW' ? eF : eB) ?? e.headerTop, headerTop: e.headerTop, eave: e.eave, how: e.how, bays: e.bays }; });
+    info.wallMap = els.map(e => ({ key: e.key, tag: e.tag, plane: e.plane, grid: e.grid, eave: e.eave, how: e.how }));
     info.lines = [...lines.values()].sort((a, b) => a.index - b.index);
     info.walls = walls;
     // the special concentrated loads already in the file ("Mezz. Seismic" rows from an earlier run or by hand)

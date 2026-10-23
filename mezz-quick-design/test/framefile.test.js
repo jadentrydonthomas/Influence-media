@@ -164,10 +164,13 @@ const lines = [
     const fe = job.frameEntries.find(x => file.info.lines.map(String).includes(x.frame));
     const o = FF.orient(file.info, { interior: fe ? fe.interior : [], leanToWall: leanTo.toWall });
     assert.deepStrictEqual([o.mirrored, o.how], [false, 'lean-to'], name + ': COL01 is the FSW (the lean-to side)');
-    const rr = FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building });
+    // the gravity rows (the seismic completes too since the roof dead defaults to 2.5 psf: its EQR / EQL ride along)
+    const rr = FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building, seismic: false });
     assert.deepStrictEqual(rr.rows.map(x => [x.name, x.member, +(-x.y).toFixed(2)]), w.rows, name);
+    const eqr = FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building }).rows.filter(x => /^EQ[RL]$/.test(x.caseId));
+    assert.ok(job.seismic.ok && eqr.length === 2 * w.rows.length / 2 && eqr.every(x => x.x !== 0 && near(x.location, 11.5)), name + ': EQR / EQL on each column at the mezzanine level');
     assert.ok(rr.rows.every(x => near(x.location, 11.5)), name + ': at the floor level A 11\'-6"');
-    assert.ok(FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building, height: 'beam' }).rows.every(x => near(x.location, 10.75)), name + ': at T/beam 10\'-9"');
+    assert.ok(FF.rowsFor(file.info, job.frameEntries, { mirrored: o.mirrored, building: file.info.building, height: 'beam', seismic: false }).rows.every(x => near(x.location, 10.75)), name + ': at T/beam 10\'-9"');
     assert.deepStrictEqual(rr.unplaced.map(u => u.label), w.unplaced, name);
     const add = FF.addLoads(file.xml, rr.rows);
     assert.strictEqual(add.added, w.rows.length);

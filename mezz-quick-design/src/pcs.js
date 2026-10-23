@@ -187,12 +187,15 @@
   }
   /* The named building's row: the same name; else the one row whose name starts the other (a cut-off cell); else, when
      the table lists a single building, that one. With no name, the first row. `matched` says which rule found it. */
-  function pickRow(rows, name) {
+  function pickRow(rows, name, known = []) {
     if (!name) return rows[0] ? { row: rows[0], matched: 'first' } : null;
     const k = nkey(name);
     const same = rows.find(r => r.key === k);
     if (same) return { row: same, matched: 'name' };
-    const pre = rows.filter(r => r.key && (k.startsWith(r.key) || r.key.startsWith(k)));
+    // a cut-off cell may start the name, but a row that is another building's whole name ("Main" for "Main Extension")
+    // never stands in for it
+    const other = new Set(known.map(nkey).filter(q => q && q !== k));
+    const pre = rows.filter(r => r.key && !other.has(r.key) && (k.startsWith(r.key) || r.key.startsWith(k)));
     if (pre.length === 1) return { row: pre[0], matched: 'prefix' };
     return rows.length === 1 ? { row: rows[0], matched: 'only' } : null;
   }
@@ -294,15 +297,19 @@
      Building | Roof Dead | Roof Snow | Wind Enclosure | Thermal | Primary Collateral | Secondary Collateral | …
      ("Per Seller" or "n psf"; a * on the snow marks a user override) */
   function roofLoads(pages, name) {
-    const ls = boxLines(pages, 4), h = findLine(ls, /Roof Dead/i);
-    if (h < 0 || !/Collateral/i.test(ls[h].text)) return null;
-    const hx = re => { for (const l of ls.slice(h, h + 3)) for (const it of l.items) if (re.test(it.str)) return it.x; return null; };
-    const xPrim = hx(/^Primary/i), xSec = hx(/^Secondary/i), xDue = hx(/^Collateral$|Collateral Load/i), xDead = hx(/^Roof Dead/i) ?? 85;
-    const end = findLine(ls, /DEFLECTION REQUIREMENTS|^\* /i, h + 1);
-    const PSF = /Per Seller|([\d.]+)\s*psf(\*)?/gi;
-    const rows = nameRows(ls.slice(h + 2, end < 0 ? h + 12 : end), xDead, knownNames(pages, name), /\s(?:Per Seller|[\d.]+\s*psf)/i);
-    const pick = pickRow(rows, name);
+    // every copy of the load table: a long one goes on under "4) BUILDING LOAD REQUIREMENTS (CONTINUED)" with its header again
+    const ls = boxLines(pages, 4), rows = [], PSF = /Per Seller|([\d.]+)\s*psf(\*)?/gi, known = knownNames(pages, name);
+    for (let h = findLine(ls, /Roof Dead/i); h >= 0; h = findLine(ls, /Roof Dead/i, h + 1)) {
+      if (!/Collateral/i.test(ls[h].text)) continue;
+      const hx = re => { for (const l of ls.slice(h, h + 3)) for (const it of l.items) if (re.test(it.str)) return it.x; return null; };
+      const cols = { xPrim: hx(/^Primary/i), xSec: hx(/^Secondary/i), xDue: hx(/^Collateral$|Collateral Load/i), xDead: hx(/^Roof Dead/i) ?? 85 };
+      const end = findLine(ls, /DEFLECTION REQUIREMENTS|^\* |^LOAD REQUIREMENTS|Roof Dead/i, h + 2);
+      nameRows(ls.slice(h + 2, end < 0 ? h + 12 : end), cols.xDead, known, /\s(?:Per Seller|[\d.]+\s*psf)/i).forEach(r => { r.cols = cols; rows.push(r); });
+    }
+    if (!rows.length) return null;
+    const pick = pickRow(rows, name, known);
     if (!pick) return null;
+    const { xPrim, xSec, xDue } = pick.row.cols;
     // the row's own line: dead and snow are its first two values ("Per Seller" or "n psf", * = a user override); the
     // collaterals sit under their headers
     const toks = [];
@@ -314,8 +321,9 @@
     const rowText = pick.row.lines.map(l => l.items.filter(it => !it.name).map(it => it.str).join('  ')).join('  ');
     const ct = rowText.match(/\(\s*(0?\.85|1(?:\.[0-3]\d*)?)\s*\)/);
     out.Ct = ct ? +ct[1] : null;
-    const th = rowText.match(/\b(Unheated|Heated|Held\s+Just\s+Above|Freezer|Greenhouse|Open\s+Air)\b/i);
-    out.thermal = th ? (/held/i.test(th[1]) ? 'Held just above freezing' : th[1][0].toUpperCase() + th[1].slice(1).toLowerCase()) : null;
+    // the cell wraps ("Structure Held" / "Just Above" / "Freezing(1.1)") across the row's lines
+    const th = rowText.match(/\b(Unheated|Heated|Held\s+Just\s+Above|Just\s+Above|Above\s+Freezing|Freezer|Greenhouse|Open\s+Air)\b/i);
+    out.thermal = th ? (/held|just|above/i.test(th[1]) ? 'Held just above freezing' : th[1][0].toUpperCase() + th[1].slice(1).toLowerCase()) : null;
     const yn = pick.row.lines[0].items.filter(it => !it.name).map(it => it.str.trim()).filter(Boolean).pop();
     out.obstruction = /^yes$/i.test(yn || '') ? true : /^no$/i.test(yn || '') ? false : null;
     toks.slice(2).forEach(t => { const b = t.v.value != null && bin(t.x); if (b && (b[1] === 'coll1' || b[1] === 'coll2') && out[b[1]] == null) out[b[1]] = t.v.value; });
@@ -344,29 +352,34 @@
   // ---------- Box 2: building geometry ----------
   // every building the quote lists in Box 2's building information table, in its order (a lean-to or canopy with no
   // mezzanine too): the snow on one roof and the drift a higher one puts on it need all of them
+  /* the rows of Box 2's building information table — every copy of it: a long table goes on under "2) BUILDING
+     DESCRIPTION (CONTINUED)" on the next page with its heading again */
+  const PROFILE_GLUE = /\s(?:Gable|Single\s*Slope|Lean[- ]?To|Multi[- ]?Gable|Mono[- ]?Slope)\b/i;
+  function infoRows(ls, known) {
+    const rows = [];
+    for (let hi = findLine(ls, /BUILDING INFORMATION/i); hi >= 0; hi = findLine(ls, /BUILDING INFORMATION/i, hi + 1)) {
+      const end = findLine(ls, /^\*|ROOF SECONDARY|SIDEWALL AND ENDWALL|BUILDING INFORMATION/i, hi + 1);
+      const region = ls.slice(hi + 1, end < 0 ? ls.length : end);
+      const first = region.findIndex(l => (l.text.match(reDimAll) || []).map(ftin).filter(v => v != null).length >= 3);
+      if (first < 0) continue;
+      const prof = region.slice(0, first).flatMap(l => l.items).find(it => /^Building Profile/i.test(it.str));
+      rows.push(...nameRows(region.slice(first), prof ? prof.x : 87, known, PROFILE_GLUE));
+    }
+    return rows;
+  }
   function buildingNames(pages) {
-    const ls = boxLines(pages, 2), hi = findLine(ls, /BUILDING INFORMATION/i);
-    if (hi < 0) return [];
-    const end = findLine(ls, /^\*|ROOF SECONDARY|SIDEWALL AND ENDWALL/i, hi + 1);
-    const region = ls.slice(hi + 1, end < 0 ? ls.length : end);
-    const first = region.findIndex(l => (l.text.match(reDimAll) || []).map(ftin).filter(v => v != null).length >= 3);
-    if (first < 0) return [];
-    const prof = region.slice(0, first).flatMap(l => l.items).find(it => /^Building Profile/i.test(it.str));
-    return nameRows(region.slice(first), prof ? prof.x : 87, knownNames(pages, null), /\s(?:Gable|Single\s*Slope|Lean[- ]?To|Multi[- ]?Gable|Mono[- ]?Slope)\b/i).map(r => r.name).filter(Boolean);
+    const names = infoRows(boxLines(pages, 2), knownNames(pages, null)).map(r => r.name).filter(Boolean);
+    return [...new Set(names)];
   }
   function building(pages, name) {
     const ls = boxLines(pages, 2);
     if (!ls.length) return null;
     const known = knownNames(pages, name);
     const out = { name: null, width: null, length: null, ridge: null, eave: null, eaveFSW: null, eaveBSW: null, slopeFSW: null, slopeBSW: null, profile: null, bays: [], lewCols: [], rewCols: [], fswSoldier: [], bswSoldier: [], rows: {} };
-    // building information: one row per building, from the first line carrying >= 3 dimensions down to the footnote
-    const hi = findLine(ls, /BUILDING INFORMATION/i);
-    if (hi >= 0) {
-      const end = findLine(ls, /^\*|ROOF SECONDARY|SIDEWALL AND ENDWALL/i, hi + 1);
-      const region = ls.slice(hi + 1, end < 0 ? ls.length : end);
-      const first = region.findIndex(l => (l.text.match(reDimAll) || []).map(ftin).filter(v => v != null).length >= 3);
-      const prof = region.slice(0, Math.max(first, 0)).flatMap(l => l.items).find(it => /^Building Profile/i.test(it.str));
-      const pick = first < 0 ? null : pickRow(nameRows(region.slice(first), prof ? prof.x : 87, known, /\s(?:Gable|Single\s*Slope|Lean[- ]?To|Multi[- ]?Gable|Mono[- ]?Slope)\b/i), name);
+    // building information: one row per building, from the first line carrying >= 3 dimensions down to the footnote,
+    // in every copy of the table (it goes on over a page)
+    {
+      const pick = pickRow(infoRows(ls, known), name, known);
       if (pick) {
         // the row's own line, without the name piece; the profile can wrap ("Gable" / "Symmetrical")
         // a dimension the cell wrapped ("20'-7" over "11/16"" on the line under it) is joined back before reading
@@ -407,7 +420,7 @@
       // it as the name can; only the mezzanine's building's row is read
       const xFirst = cols.length ? cols[0][1] : 108;
       const first = region.findIndex(l => l.items.some(it => it.x >= xFirst - 6 && (/\d+\s*@/.test(it.str) || /^N\/A$/i.test(it.str))));
-      const pick = first < 0 ? null : pickRow(nameRows(region.slice(first), xFirst, known, /\s\d+\s*@/), name);
+      const pick = first < 0 ? null : pickRow(nameRows(region.slice(first), xFirst, known, /\s\d+\s*@/), name, known);
       if (pick) {
         pick.row.lines.forEach(l => l.items.forEach(it => { const k = !it.name && colOf(it.x); if (k) text[k] += ' ' + it.str; }));
         out.rows.spacing = { name: pick.row.name, matched: pick.matched };
@@ -427,7 +440,7 @@
     let matched = null;
     if (heads.length) {
       // the named building's block; with no name, the first building's (never another building's frames)
-      const pick = pickRow(heads, name);
+      const pick = pickRow(heads, name, knownNames(pages, name).concat(heads.map(h => h.name)));
       if (!pick) return [];
       const k = heads.indexOf(pick.row);
       matched = { name: pick.row.name, matched: pick.matched };
@@ -699,7 +712,62 @@
     return out;
   }
 
-  function parse(pages) {
+  // ---------- Box 12: bracing options — each building's walls, the bracing type and the bays it goes in ----------
+  /* "Bldg 1  FSW, BSW  Portal Frames  Per Seller  Yes  1, 4" → one row per wall list. The bays are numbered from the LEW
+     (bay 1 between frame lines 1 and 2 — checked against a bracing file: the eScope's bay 7 is the file's lines 7–8).
+     TBD / Per Seller / N/A leave the bays open. A building name wrapped onto the next line is joined back. */
+  const WALL_LIST = /^(?:LEW|REW|FSW|BSW)(?:,\s*(?:LEW|REW|FSW|BSW))*$/;
+  function bracingOptions(pages) {
+    const ls = boxLines(pages, 12), out = [];
+    for (const l of ls) {
+      if (/^Sketch must show|^Building Name|^Requested/i.test(l.text)) continue;
+      const it = l.items.map(i => i.str), wi = it.findIndex(s => WALL_LIST.test(s.trim()));
+      if (wi < 0) {
+        // a continuation line of the building name ("MAINTENANCE" / "BUILDING")
+        const last = out[out.length - 1];
+        if (last && it.length === 1 && /^[A-Z0-9 .'&-]{1,30}$/i.test(l.text) && Math.abs(l.y - last.y) < 20) last.building = clean(last.building + ' ' + l.text);
+        continue;
+      }
+      const name = clean(it.slice(0, wi).join(' ')), walls = it[wi].split(/,\s*/).map(w => w.trim().toUpperCase());
+      const rest = it.slice(wi + 1);
+      // type · clear height · user specified bay (Yes/No) · bays — the Yes/No anchors the row when a cell is blank
+      const yi = rest.findIndex(s => /^(Yes|No)$/i.test(s.trim()));
+      const type = clean(rest[0] || ''), clear = yi > 1 ? clean(rest.slice(1, yi).join(' ')) : yi === 1 ? '' : clean(rest[1] || ''), user = yi >= 0 ? /^Yes$/i.test(rest[yi].trim()) : false;
+      const baysText = clean(yi >= 0 ? rest.slice(yi + 1).join(' ') : rest.slice(2).join(' '));
+      const bays = [];
+      if (!/TBD|Per Seller|N\/A|None/i.test(baysText)) baysText.split(/[,\s]+/).forEach(t => { const r = t.match(/^(\d+)\s*[-–]\s*(\d+)$/); if (r) { for (let k = +r[1]; k <= +r[2]; k++) bays.push(k); } else if (/^\d+$/.test(t)) bays.push(+t); });
+      const kind = /portal/i.test(type) ? 'portal' : /roof/i.test(type) && /x/i.test(type) ? 'roofx' : /x[- ]?brac|rod|cable/i.test(type) ? 'x' : /^none$/i.test(type) ? 'none' : type ? 'other' : 'none';
+      out.push({ building: name, walls, type, kind, clearHeight: clear, userBay: user, bays: [...new Set(bays)].sort((a, b) => a - b), baysText, y: l.y });
+    }
+    return out.map(({ y, ...r }) => r);
+  }
+  // the options of one building, wall by wall: { FSW: { type, kind, bays, baysText, clearHeight, userBay }, … }
+  function bracingByWall(options, name, known = []) {
+    // the building's own rows; a cut-off name only when it is no other building's whole name ("Main" ≠ "Main Extension")
+    const k = nkey(name), other = new Set(known.map(nkey).filter(q => q && q !== k));
+    const exact = options.filter(o => nkey(o.building) === k);
+    const rows = exact.length ? exact : options.filter(o => { const ok = nkey(o.building); return ok && !other.has(ok) && (k.startsWith(ok) || ok.startsWith(k)); });
+    const out = {};
+    rows.forEach(o => o.walls.forEach(w => { out[w] = { type: o.type, kind: o.kind, bays: o.bays, baysText: o.baysText, clearHeight: o.clearHeight, userBay: o.userBay }; }));
+    return out;
+  }
+
+  /* A PDF can carry more than one Quote and Order Document — the current label and, behind it, an earlier one ("LABEL: 3 -
+     Created from 2" then "LABEL: 1 - Created from 0", each from its own "Page 1 of N"). Only the first is read: the
+     second holds the superseded values (a lean-to 66'-0" along a wall where the current label says 64'-0"). Pages added to
+     one document (a Box 22 alternate, "Page 23 of …") are part of it and stay. */
+  function primaryPages(pages) {
+    const at = qoStart(pages);
+    const label = p => { const l = lines(p).find(x => /LABEL:/i.test(x.text)); return l ? ((l.text.match(/LABEL:\s*(.+?)(?:\s{2,}|$)/i) || [])[1] || null) : null; };
+    for (let i = at + 1; i < pages.length; i++) {
+      const ls = lines(pages[i]).slice(0, 14).map(l => l.text).join('\n');
+      if (/QUOTE AND ORDER DOCUMENT/i.test(ls) && /\bPage\s+1\s+of\s+\d+/i.test(ls)) return { pages: pages.slice(0, i), cut: { page: i + 1, of: pages.length, label: label(pages[i]), current: label(pages[at]) } };
+    }
+    return { pages, cut: null };
+  }
+
+  function parse(pagesIn) {
+    const prim = primaryPages(pagesIn), pages = prim.pages;
     const job = jobFacts(pages);
     const code = buildingCode(pages);
     const mezz = mezzanines(pages);
@@ -717,9 +785,12 @@
     // every building of the quote (lean-tos and canopies with no mezzanine too), for the roof snow and the drifts
     const site = {};
     buildingNames(pages).forEach(n => { site[n] = buildings[n] || { building: building(pages, n), frames: frames(pages, n), roof: roofLoads(pages, n) }; });
-    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), columnRequest: colReq ? clean(colReq) : null };
+    // Box 12: where the quote puts its bracing (and of what kind), per building and wall
+    const brOpts = bracingOptions(pages);
+    Object.keys(site).forEach(n => { site[n].bracing = bracingByWall(brOpts, n, Object.keys(site)); });
+    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
   }
 
-  const api = { parse, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents };
+  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);

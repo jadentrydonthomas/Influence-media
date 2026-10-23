@@ -135,9 +135,12 @@ if (!ok) { console.log(`seismic tests passed (the rules worked by hand; ${nbg}; 
   // waits too. The job as quoted takes the frame column setback (MB1 BU14x94, MB2 BU13x48)
   assert.ok(RUN.runJob(inps.map(inp => ({ inp, settings: {} }))).seismic.need.some(n => /^MB1 sized on the Design page/.test(n)));
   const items = inps.map(inp => ({ inp, settings: { markInput: { MB1: { setback: true }, MB2: { setback: true } } } }));
-  // roof dead is "Per Seller" on the PCS: asked for, never guessed
+  // roof dead is "Per Seller" on the PCS: not a stop — 3 psf (NBG Bracing's default) is assumed and said so; a frame
+  // file's own value, a bracing file's, or a typed one replaces it
   let sj = RUN.runJob(items).seismic;
-  assert.ok(!sj.ok && /roof dead load/.test(sj.need.join(' ')));
+  assert.ok(sj.buildings[0].roof.RDL.value === 3 && sj.buildings[0].roof.RDL.source === 'default' && sj.notes.some(n => /roof dead load 3 psf assumed/.test(n.text)) && !sj.need.some(n => /roof dead/.test(n)));
+  const fromFrame = RUN.runJob(items, { seis: { buildings: { [sj.buildings[0].bkey]: { frameFile: { roofDead: 2.7291 } } }, files: { [sj.buildings[0].bkey]: { from: 'bracing file', roofDead: 3 } } } }).seismic.buildings[0].roof.RDL;
+  assert.deepStrictEqual([fromFrame.value, fromFrame.source], [2.7291, 'frame file'], 'NBG Frame\'s own roof dead before the bracing run\'s');
   const bk = sj.buildings[0].bkey;
   const base = { buildings: { [bk]: { RDL: 4.66 } }, mezz: { 'Mezz 1': { FDL: 55, framing: false, storage: true }, 'Mezz 2': { FDL: 55, framing: false, storage: true } } };
   sj = RUN.runJob(items, { seis: base }).seismic;
