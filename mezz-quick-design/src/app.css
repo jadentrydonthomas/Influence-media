@@ -2031,3 +2031,20 @@ table.seis-frames td small.sub-n, table.seis-lines td small.sub-n { display: blo
 table.seis-frames select { font: 600 12px var(--mono); padding: 4px 6px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 150px; }
 table.seis-kips tr.cont td { border-top-color: transparent; }
 .seis-dist-wrap .seis-wb { justify-self: end; }
+/* point loads on the plan: an arrow down onto the spot and its load */
+.plan svg .pl .ring { fill: var(--surface); stroke: var(--red); stroke-width: 2; }
+.plan svg .pl path { fill: var(--red); }
+.plan svg .pl .hit { fill: transparent; stroke: none; }
+.plan svg .pl text { font: 700 11px var(--mono); fill: var(--red-deep); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.plan svg .pl.off .ring, .plan svg .pl.off path { opacity: .45; }
+.plan.is-editing .pl { cursor: pointer; }
+.plan.is-editing .pl:hover .ring { stroke-width: 3; }
+.lay-pop .lay-pl { padding-top: 0; }
+.lay-pop .lay-pl > span:first-child { width: 34px; font: 600 12px var(--sans, inherit); color: var(--ink); }
+.lay-pop .lay-pl input { flex: 1 1 auto; min-width: 0; }
+.note .note-act { margin-left: auto; flex: 0 0 auto; align-self: center; }
+/* D / F read off the frame files' rafters */
+.df-row .df-calc { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; font-weight: 400; font-size: 13px; }
+.df-row .df-calc small { flex-basis: 100%; color: var(--ink-muted); }
+.df-row .good { color: var(--green-deep, var(--green)); } .df-row .bad { color: var(--red-deep); }
+.site-plan .sp-mz-lead { stroke: var(--green); stroke-width: 1; stroke-dasharray: 2 2; opacity: .8; }

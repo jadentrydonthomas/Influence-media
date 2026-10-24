@@ -342,6 +342,31 @@
      tool does not lay out (no floor / MEP support only, a hanging grid, cantilever or hot-rolled beams under grating)
      is a must-fix: the beams and columns here are then the Box 22 loads on a floor layout, a check only. */
   const OTHER_FRAMING = /not have any floor|\bno floor\b|mep support|hanging grid|cantilever|hot[- ]rolled|grating/i;
+  /* The point loads a special note gives a mezzanine: "support of 2000# stair located at frame line 3", "(2) 250#
+     point loads", "an 8'x8' grid with a 5kip load between each beam span". Each: P (kips), how many, what it is,
+     where the note says (a frame line, a gridline), and a grid's spacing when the loads are on one. A hanging door
+     weight, a crane or a column's cable tray is not the floor's. */
+  function notePoints(notes) {
+    const out = [];
+    (notes || []).forEach(n => {
+      const t = n.text, re = /(?:\((\d+)\)\s*)?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(#|lbs?\.?|pounds?|kips?|k)(?![a-z])/gi;
+      let m;
+      while ((m = re.exec(t))) {
+        const ctx = t.slice(Math.max(0, m.index - 80), m.index + m[0].length + 120);
+        if (/hanging dead weight|roll-?up door|crane|cable tray|psf|per square/i.test(ctx)) continue;
+        if (!/point load|stair|equipment|unit\b|tank|hanger|\bload between|concentrated/i.test(ctx)) continue;
+        const v = +m[2].replace(/,/g, ''), unit = m[3].toLowerCase(), P = /^(#|lb|pound)/.test(unit) ? v / 1000 : v;
+        if (!(P > 0) || P > 200) continue;
+        const what = /stair/i.test(ctx) ? 'stair' : /equipment|unit\b|tank/i.test(ctx) ? 'equipment' : /hanger|hanging/i.test(ctx) ? 'hanger' : 'point load';
+        const g = /(\d+(?:\.\d+)?)\s*'?\s*x\s*(\d+(?:\.\d+)?)\s*'?\s*grid/i.exec(t);
+        const fl = /frame\s*line\s*(\d+(?:\.\d+)?)/i.exec(ctx), gl = /grid\s*line\s*([A-Z])\b/.exec(ctx);
+        // a grid of loads said twice in a note ("grids of 5,000lb. point loads" … "an 8'x8' grid with a 5kip load"): once
+        if (g && out.some(o => o.n === n.n && o.grid && Math.abs(o.P - P) < 1e-9)) continue;
+        out.push({ n: n.n, page: n.page, P, count: +(m[1] || 1), what: g ? 'point load' : what, frameLine: fl ? +fl[1] : null, gridLine: gl ? gl[1] : null, edge: /\bedge\b/i.test(ctx), grid: g ? { sx: +g[1], sy: +g[2] } : null, text: m[0].trim().replace(/\.$/, '') });
+      }
+    });
+    return out;
+  }
   function scopeNotes(inp) {
     const out = [], mz = inp.mezz || {}, id = mz.id || 'This mezzanine';
     (mz.notes || []).forEach(n => {
@@ -381,6 +406,15 @@
     const chk = validate(inp);
     chk.soft.forEach(t => warn.push(typeof t === 'string' ? { level: 'warn', text: t } : t));
     scopeNotes(inp).forEach(w => warn.push(w));
+    // the point loads the notes give: a grid of them against Box 22's uniform loads; one placed on the Plan page or not
+    const notePts = notePoints((inp.mezz || {}).notes).map(q => ({ ...q, placed: (s.pointLoads || []).some(z => z && z.note === q.n && Math.abs(z.P - q.P) < 1e-6) }));
+    notePts.forEach(q => {
+      const who = inp.mezz.id || 'This mezzanine', F = PCS.fmtFtIn;
+      if (q.grid) {
+        const psf = q.P * 1000 / (q.grid.sx * q.grid.sy), dl = val(inp.loads.dead) || 0, ll = val(inp.loads.live) || 0, cl = val(inp.loads.coll) || 0;
+        warn.push({ level: psf > ll + cl + 1e-6 ? 'warn' : 'key', text: `${who}: special note ${q.n} — ${q.text} on a grid of ${F(q.grid.sx)} × ${F(q.grid.sy)} is ${psf.toFixed(1)} psf over the floor; Box 22 gives live ${ll} + collateral ${cl} = ${ll + cl} psf (dead ${dl} psf besides)${psf > ll + cl + 1e-6 ? ' — less than the point loads: raise the collateral, or place them on the Plan page' : ' — it covers them as a uniform load'}. A beam right under one takes ${q.P.toFixed(2)} k at that spot: place the ones that matter on the Plan page.` });
+      } else warn.push({ level: q.placed ? 'key' : 'warn', act: q.placed ? null : { kind: 'placePt', mi: index, n: q.n, P: q.P, what: q.what, frameLine: q.frameLine, edge: q.edge, count: q.count }, text: `${who}: special note ${q.n} — ${q.count > 1 ? `(${q.count}) ` : ''}${q.text} ${q.what}${q.frameLine != null ? ` at frame line ${q.frameLine}` : q.gridLine ? ` at gridline ${q.gridLine}` : ''}${q.placed ? ': placed on the Plan page and in the design.' : `: not in the design yet — place ${q.count > 1 ? 'them' : 'it'} (Design → "Place it", or click the spot on the Plan page in edit mode).`}` });
+    });
     ocrNotes(inp).forEach(w => warn.push(w));
     if (chk.miss.length) {
       warn.unshift({ level: 'stop', text: `Needs input: ${chk.miss.join(', ')} — not on the PCS (TBD, no blue note). Enter ${chk.miss.length > 1 ? 'them' : 'it'} above to run the design.` });
@@ -471,7 +505,9 @@
       const o = openings[r.index] || {}, F = PCS.fmtFtIn, lab = (x, y) => `${grid.xLabel(x) || F(x)}/${grid.yLabel(y) || F(y)}`;
       const lineLab = (v, alongX) => (alongX ? grid.yLabel(v) : grid.xLabel(v)) || F(v);
       const beamTxt = id => { const b = lay.beams[id]; return `${lineLab(b.line, b.dir === 'x')} (${F(b.from)} – ${F(b.to)})`; };
-      const parts = [r.cut.length ? `the beam${r.cut.length > 1 ? 's' : ''} on line ${r.cut.map(c => lineLab(c.line, lay.joists === 'y')).join(', ')} stop${r.cut.length > 1 ? '' : 's'} at a trimmer on the opening's edge, which takes ${r.cut.length > 1 ? 'their ends' : 'its end'} (designed at the uniform trib with the same moment and end shear)` : '',
+      // each cut beam's end as a point load on its trimmer: its floor (trib × span / 2), dead and live
+      const pts = r.trimmers.flatMap(id => (lay.beams[id].points || []).map(q => `${F(q.at - lay.beams[id].from)} along it: ${Math.round(q.area)} sq ft, D ${(q.area * (deadUsed + coll + joistWt) / 1000).toFixed(2)} k + L ${(q.area * live / 1000).toFixed(2)} k`));
+      const parts = [r.cut.length ? `the beam${r.cut.length > 1 ? 's' : ''} on line ${r.cut.map(c => lineLab(c.line, lay.joists === 'y')).join(', ')} stop${r.cut.length > 1 ? '' : 's'} at a trimmer on the opening's edge, which takes ${r.cut.length > 1 ? 'their ends' : 'its end'} as a point load (${pts.join('; ')}, and the beam's own weight) — the trimmer designed at the uniform trib with the same moment and end shear, its columns taking the point load by statics` : '',
         r.headers.length ? `a header on ${r.headers.map(beamTxt).join(', ')} carries the joists the opening cuts` : '',
         r.trimmers.length ? `trimmer${r.trimmers.length > 1 ? 's' : ''} on ${r.trimmers.map(beamTxt).join(', ')}` : '',
         r.cols.length ? `columns at ${r.cols.map(c => lab(c.x, c.y)).join(', ')}` : ''].filter(Boolean);
@@ -513,7 +549,7 @@
     const maxDepthByC = roomIn != null ? Math.floor(roomIn + 1e-3) : null;
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
-    return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, roomIn, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+    return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, roomIn, maxDepthByC, beamBase, bkey, notePts, id: inp.mezz.id || `Mezzanine ${index + 1}` };
   }
 
   /* Reading checks against the PCS floor plan: was it found and matched to the grid, does it show this mezzanine's
@@ -678,6 +714,64 @@
     return Math.ceil(t * 12 - 1e-6) / 12;
   }
 
+  /* A beam with point loads designed on the uniform-load MB sheet: the trib whose uniform load gives at least the beam's
+     largest moment and end shear. base: the floor's trib (ft); pts: [{ a (ft from the beam's start), A (the point load
+     as sq ft of this floor's load: P × 1000 / psf) }]. Rounded up to the inch, as equivTrib. */
+  function equivTribPoints(L, base, pts) {
+    if (!pts.length || !(L > 0)) return base;
+    const tot = base * L + pts.reduce((a, q) => a + q.A, 0);
+    const Rr = base * L / 2 + pts.reduce((a, q) => a + q.A * q.a / L, 0), Rl = tot - Rr;
+    const M = x => Rl * x - base * x * x / 2 - pts.reduce((a, q) => (q.a < x ? a + q.A * (x - q.a) : a), 0);
+    const xs = [...Array(401).keys()].map(i => L * i / 400).concat(pts.map(q => q.a));
+    const Mmax = Math.max(...xs.map(M));
+    const t = Math.max(base, 8 * Mmax / (L * L), 2 * Math.max(Rl, Rr) / L);
+    return Math.ceil(t * 12 - 1e-6) / 12;
+  }
+
+  /* Point loads on a mezzanine (a stair, a piece of equipment, a hanger — typed on the Plan page, or read from a PCS
+     note and placed there): on a beam it is that beam's; on the floor the joists take it to the beams either side, by
+     the lever rule. A beam carrying one gets the trib that covers its moment and end shear for the dead and the live
+     part each (designed on the MB sheet as any beam) and a mark of its own; its ends take the loads by statics. */
+  function applyPointLoads(c) {
+    if (!(c.s.pointLoads || []).length) return;
+    const L = c.lay, J = L.joists, beamDir = J === 'y' ? 'x' : 'y', U = p => (J === 'y' ? p.y : p.x), V = p => (J === 'y' ? p.x : p.y);
+    const F = PCS.fmtFtIn, B = c.beamBase, qD = B.dead + B.coll + B.joistWt, qL = B.live;
+    const on = (b, at) => at >= b.from - 0.05 && at <= b.to + 0.05;
+    const beamAt = (u, v) => L.beams.find(b => !b.absorbed && b.dir === beamDir && Math.abs(b.line - u) < 0.25 && on(b, v));
+    // what the plan draws: each load, where it went (beam ids and shares)
+    L.pointLoads = [];
+    (c.s.pointLoads || []).forEach((q, qi) => {
+      if (!(q && isFinite(q.x) && isFinite(q.y) && q.P > 0)) return;
+      const rec = { i: qi, x: q.x, y: q.y, P: +q.P, kind: q.kind === 'D' ? 'D' : 'L', what: q.what || '', note: q.note || null, on: [] };
+      L.pointLoads.push(rec);
+      applyOne(q, qi, rec);
+    });
+    function applyOne(q, qi, rec) {
+      const p = { x: q.x, y: q.y }, u = U(p), v = V(p), D = q.kind === 'D' ? q.P : 0, Lv = q.kind === 'D' ? 0 : q.P;
+      const what = q.what || 'point load', tag = `${what} ${(+q.P).toFixed(2)} k (${q.kind === 'D' ? 'dead' : 'live'}) at ${F(q.x)} / ${F(q.y)}`;
+      const put = (b, at, k) => { (b.pts = b.pts || []).push({ at: Math.min(b.to, Math.max(b.from, at)), D: D * k, L: Lv * k, P: q.P * k, kind: q.kind === 'D' ? 'D' : 'L', what, i: qi }); rec.on.push({ beam: b.id, k }); };
+      let b = beamAt(u, v);
+      const perp = !b && L.beams.find(x => !x.absorbed && x.dir !== beamDir && Math.abs(x.line - v) < 0.25 && on(x, u));
+      if (b) { put(b, v, 1); c.warn.push({ level: 'key', text: `${c.id}: ${tag} — on beam B${c.bOff + b.id + 1}, ${F(v - b.from)} from its end.` }); return; }
+      if (perp) { put(perp, u, 1); c.warn.push({ level: 'key', text: `${c.id}: ${tag} — on beam B${c.bOff + perp.id + 1}, ${F(u - perp.from)} from its end.` }); return; }
+      // on the floor: the beam lines either side of it, along the joists
+      const lo = L.beamLines.filter(w => w <= u + 1e-6).map(w => beamAt(w, v)).filter(Boolean).sort((a, z) => z.line - a.line)[0];
+      const hi = L.beamLines.filter(w => w >= u - 1e-6).map(w => beamAt(w, v)).filter(Boolean).sort((a, z) => a.line - z.line)[0];
+      if (!lo && !hi) { c.warn.push({ level: 'warn', text: `${c.id}: ${tag} is not over this mezzanine's beams — it is left out. Move it on the Plan page.` }); return; }
+      if (lo && hi && hi !== lo) {
+        const kHi = (u - lo.line) / (hi.line - lo.line);
+        put(lo, v, 1 - kHi); put(hi, v, kHi);
+        c.warn.push({ level: 'key', text: `${c.id}: ${tag} — on the floor, the joists take it to B${c.bOff + lo.id + 1} (${(100 * (1 - kHi)).toFixed(0)} %) and B${c.bOff + hi.id + 1} (${(100 * kHi).toFixed(0)} %). A joist under it is to be checked for it with the joist supplier.` });
+      } else { const only = lo || hi; put(only, v, 1); c.warn.push({ level: 'key', text: `${c.id}: ${tag} — past the last beam line, the joists cantilever it to B${c.bOff + only.id + 1}: confirm the slab edge framing.` }); }
+    }
+    L.beams.filter(b => b.pts && b.pts.length).forEach(b => {
+      b.tribNoPts = b.trib;
+      const tD = qD > 0 ? equivTribPoints(b.span, b.trib, b.pts.filter(x => x.D > 0).map(x => ({ a: x.at - b.from, A: x.D * 1000 / qD }))) : b.trib;
+      const tL = qL > 0 ? equivTribPoints(b.span, b.trib, b.pts.filter(x => x.L > 0).map(x => ({ a: x.at - b.from, A: x.L * 1000 / qL }))) : b.trib;
+      b.trib = Math.max(b.trib, tD, tL);
+    });
+  }
+
   /* Mezzanines side by side in one building: a beam that lands on another mezzanine's beam line is the same
      member. The mezzanine with more beam length on that line keeps it; the other's trib (its edge joists)
      is added to it, and that beam drops out of the other's count. */
@@ -764,10 +858,10 @@
     live.forEach(c => { const k = keyOf(c); let g = groups.find(x => x.key === k); if (!g) groups.push(g = { key: k, ctxs: [] }); g.ctxs.push(c); });
     const marks = [];
     groups.forEach(g => {
-      const all = g.ctxs.flatMap(c => c.lay.beams.filter(b => !b.absorbed).map(b => ({ mi: c.index, id: b.id, span: b.span, trib: b.trib, line: b.line, edgeOnly: !!(b.edge && !b.extra), opening: b.opening || null })));
+      const all = g.ctxs.flatMap(c => c.lay.beams.filter(b => !b.absorbed).map(b => ({ mi: c.index, id: b.id, span: b.span, trib: b.trib, line: b.line, edgeOnly: !!(b.edge && !b.extra), opening: b.opening || null, point: !b.opening && !!(b.pts && b.pts.length) })));
       // the beams framing a floor opening (header, trimmer) are a mark of their own: a trimmer's equivalent trib is no
-      // floor trib, and would raise every beam of another mark to it
-      const bs = all.filter(x => !x.opening), ops = all.filter(x => x.opening);
+      // floor trib, and would raise every beam of another mark to it; so are the beams carrying a point load
+      const bs = all.filter(x => !x.opening && !x.point), ops = all.filter(x => x.opening), pls = all.filter(x => x.point);
       if (!all.length) return;
       const mode = g.ctxs[0].s.marks;
       let sets;
@@ -782,6 +876,7 @@
       } else sets = [[bs, '']];
       sets = sets.filter(([xs]) => xs.length);
       if (ops.length) sets.push([ops, 'opening']);
+      if (pls.length) sets.push([pls, 'point load']);
       // a long beam given its own mark (Beam calc → "Give the … beam its own mark"): only those beams leave their mark,
       // every other mark stays as it was
       const own = (g.ctxs[0].s.ownSpan || []).map(Number).filter(v => v > 0);
@@ -795,7 +890,9 @@
       });
       sets.forEach(([xs, kind, ownMark, merged, k0]) => marks.push({ group: g, groupKey: g.key, kind, own: !!ownMark, sortKey: k0, merged: merged && merged.length ? merged : null, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
     });
-    marks.sort((a, b) => (a.own ? 1 : 0) - (b.own ? 1 : 0) || b.sortKey - a.sortKey || (a.kind === 'interior' ? -1 : 1));
+    // a point-load mark after the rest, as an own mark: the marks there before keep their names (and their picks)
+    const late = m => (m.kind === 'point load' ? 2 : 0) + (m.own ? 1 : 0);
+    marks.sort((a, b) => late(a) - late(b) || b.sortKey - a.sortKey || (a.kind === 'interior' ? -1 : 1));
     marks.forEach((m, i) => { m.mark = 'MB' + (i + 1); m.index = i; m.qtyAll = m.beamsAll.length; m.mezzIds = [...new Set(m.beamsAll.map(x => x.mi))]; });
     return marks;
   }
@@ -1044,6 +1141,22 @@
     const reaction = (c, id, side) => {
       const bm = c.lay.beams[id], mk = c.markOf(id);
       if (!mk || !mk.sec) return { D: NaN, L: NaN, mark: mk && mk.mark };
+      // a beam designed at an equivalent uniform trib (an opening's trimmer, a beam with a point load): its ends take
+      // what is on it by statics — its own floor and weight, each cut beam's end (its floor and its own weight) on a
+      // trimmer, each point load — not the equivalent trib's reaction
+      if ((bm.points && bm.points.length) || (bm.pts && bm.pts.length)) {
+        const B = c.beamBase, share = at => Math.abs(at - (side === 'L' ? bm.from : bm.to)) / bm.span;
+        const own = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.points && bm.points.length ? 0 : bm.tribNoPts ?? bm.trib }, mk.sec);
+        const a = side && bm.ov ? bm.ov[side === 'L' ? 1 : 0] : 0, k0 = a > 0 ? 2 * a / bm.span * (1 + a / (2 * bm.span)) : 0;
+        let D = own.D * (1 + k0), Lv = own.L * (1 + k0);
+        (bm.points || []).forEach(q => {
+          const cut = c.lay.beams.find(x => x.cutEnd && Math.abs(x.line - q.at) < 0.05 && Math.abs((x.cutEnd === 'to' ? x.to : x.from) - bm.line) < 0.05), cm = cut && c.markOf(cut.id);
+          const self = cm && cm.sec ? DESIGN.reactions({ ...c.beamBase, L: cut.span, trib: 0 }, cm.sec).D : 0;
+          D += share(q.at) * (q.area * ((B.dead || 0) + (B.coll || 0) + (B.joistWt || 0)) / 1000 + self); Lv += share(q.at) * q.area * (B.live || 0) / 1000;
+        });
+        (bm.pts || []).forEach(q => { D += share(q.at) * q.D; Lv += share(q.at) * q.L; });
+        return { D, L: Lv, mark: mk.mark, ov: a, points: true };
+      }
       const r = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.trib }, mk.sec);
       const a = side && bm.ov ? bm.ov[side === 'L' ? 1 : 0] : 0, k = a > 0 ? 2 * a / bm.span * (1 + a / (2 * bm.span)) : 0;
       return { D: r.D * (1 + k), L: r.L * (1 + k), mark: mk.mark, ov: a };
@@ -1159,7 +1272,7 @@
       beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: (mk.design || mk).span, trib: (mk.design || mk).trib, qty: mk.qty })),
       columns: colFinal ? [{ mark: 'MC1', section: colFinal.quoteAs, length: colLen, qty: owned.length }] : [],
     };
-    return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, roomIn: c.roomIn, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
+    return { settings: s, edition: ed, division, warn, grid, layout, notePts: c.notePts || [], marks: designed, clear: c.clear, roomIn: c.roomIn, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
   }
   const near2 = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
   // columns in plan order, as the C-numbers count them: along the length, then from the BSW
@@ -1910,6 +2023,7 @@
       if (map) c.site = { host: host.bkey, hostId: host.id, map };
     });
     const merges = ctxs.length > 1 ? mergeBeams(ctxs) : [];
+    ctxs.forEach(c => { if (!c.incomplete) applyPointLoads(c); });
     const marks = jobMarks(ctxs).map(designMark);
     ctxs.forEach(c => { if (!c.incomplete) attachMarks(c, marks); });
     const cols = jobColumns(ctxs);
@@ -2155,6 +2269,6 @@
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, mezzEdges, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, openingSizes, openingsFor, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL, columnNotesFor };
+  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, mezzEdges, notePoints, equivTribPoints, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, openingSizes, openingsFor, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL, columnNotesFor };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);

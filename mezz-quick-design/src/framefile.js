@@ -124,8 +124,33 @@
       // the load cases the frame was run with (its reactions' case names) and the panel loads typed into it
       cases: [...new Set(reactionsOf(xml, columns).map(r => r.caseName))],
       ploads: ploadsOf(xml).map(p => p.fields),
+      // the rafters as designed: the top of steel and the depth at each section point across the frame (GlobalX)
+      rafters: raftersOf(xml),
     };
     return { entries, model, xml, bom, info };
+  }
+  /* <Rafters>: each section point of each rafter — GlobalX, GlobalY (the top of the rafter there: the eave less the
+     purlin offset, up the slope), the web depth and the flanges (F6.38: 6" × 3/8"). Depth: web + both flanges, ft. */
+  function raftersOf(xml) {
+    const s0 = xml.indexOf('<Rafters>'), e = xml.indexOf('</Rafters>', s0), out = [];
+    if (s0 < 0 || e < 0) return out;
+    const tf = c => { const m = /^F\d+(?:\.(\d+))?$/.exec(String(c || '').trim()); return m && m[1] ? +('0.' + m[1]) : 0; };
+    const re = /<RafterIndividualData>[\s\S]*?<\/RafterIndividualData>/g, body = xml.slice(s0, e);
+    let m;
+    while ((m = re.exec(body))) {
+      const b = m[0], x = num(tag(b, 'GlobalX')), top = num(tag(b, 'GlobalY')), web = num(tag(b, 'WebDepth'));
+      if ([x, top, web].every(v => v != null && isFinite(v))) out.push({ x, top, d: (web + tf(tag(b, 'TopFlange')) + tf(tag(b, 'BottomFlange'))) / 12 });
+    }
+    return out.sort((a, b) => a.x - b.x);
+  }
+  /* the underside of the frame's rafter at GlobalX gx (ft above the base): between two section points the top and the
+     depth run straight; past the first or the last, as there. null with no rafters. */
+  function undersideAt(info, gx) {
+    const r = (info && info.rafters) || [];
+    if (!r.length) return null;
+    if (gx <= r[0].x) return r[0].top - r[0].d;
+    for (let i = 1; i < r.length; i++) if (gx <= r[i].x) { const a = r[i - 1], b = r[i], k = (gx - a.x) / ((b.x - a.x) || 1); return a.top + (b.top - a.top) * k - (a.d + (b.d - a.d) * k); }
+    const z = r[r.length - 1]; return z.top - z.d;
   }
   // <Reactions>: one row per load case and column (ColumnNumber 0-based, in GlobalX order), at the base
   /* a column's support reactions per load case. NBG writes one row at the base (AtBottom true: vertical, horizontal,
@@ -413,6 +438,6 @@
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, addPanelLoads, ploadsOf, reactionsOf, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, undersideAt, addLoads, addPanelLoads, ploadsOf, reactionsOf, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);

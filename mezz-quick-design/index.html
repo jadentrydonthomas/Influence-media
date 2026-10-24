@@ -2040,6 +2040,23 @@ table.seis-frames td small.sub-n, table.seis-lines td small.sub-n { display: blo
 table.seis-frames select { font: 600 12px var(--mono); padding: 4px 6px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 150px; }
 table.seis-kips tr.cont td { border-top-color: transparent; }
 .seis-dist-wrap .seis-wb { justify-self: end; }
+/* point loads on the plan: an arrow down onto the spot and its load */
+.plan svg .pl .ring { fill: var(--surface); stroke: var(--red); stroke-width: 2; }
+.plan svg .pl path { fill: var(--red); }
+.plan svg .pl .hit { fill: transparent; stroke: none; }
+.plan svg .pl text { font: 700 11px var(--mono); fill: var(--red-deep); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.plan svg .pl.off .ring, .plan svg .pl.off path { opacity: .45; }
+.plan.is-editing .pl { cursor: pointer; }
+.plan.is-editing .pl:hover .ring { stroke-width: 3; }
+.lay-pop .lay-pl { padding-top: 0; }
+.lay-pop .lay-pl > span:first-child { width: 34px; font: 600 12px var(--sans, inherit); color: var(--ink); }
+.lay-pop .lay-pl input { flex: 1 1 auto; min-width: 0; }
+.note .note-act { margin-left: auto; flex: 0 0 auto; align-self: center; }
+/* D / F read off the frame files' rafters */
+.df-row .df-calc { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; font-weight: 400; font-size: 13px; }
+.df-row .df-calc small { flex-basis: 100%; color: var(--ink-muted); }
+.df-row .good { color: var(--green-deep, var(--green)); } .df-row .bad { color: var(--red-deep); }
+.site-plan .sp-mz-lead { stroke: var(--green); stroke-width: 1; stroke-dasharray: 2 2; opacity: .8; }
 
 </style>
 </head>
@@ -3608,6 +3625,31 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     if (m) return +m[1];
     return null;
   }
+  /* A length as an engineer types it, quickly: 20'-3 1/2", 20-3-1/2, 20 3 1/2, 20-3.5, 20' 3.5", 20ft 3in, 20.25 (feet)
+     and the shorthand 20-3/2 for 20'-3 1/2" (a fraction over its own denominator is the inches and that part: 3/2 is
+     3 1/2, 5/4 is 5 1/4; a proper one, 20-3/4, is 3/4"). Inches alone take an inch mark (3 1/2") — or unit 'in' when
+     the box is in inches. Null when it is not a length. */
+  function typedLen(raw, unit = 'ft') {
+    let t = String(raw == null ? '' : raw).trim().toLowerCase().replace(/[’′`]/g, "'").replace(/[”″]|''/g, '"')
+      .replace(/\s*(?:feet|foot|ft)\.?(?=[\s\d-]|$)/g, "'").replace(/\s*(?:inches|inch|in)\.?(?=\s|$)/g, '"').replace(/\u2013|\u2014/g, '-');
+    if (!t || /^-/.test(t)) return null;
+    if (unit === 'ft' && /^\d*\.?\d+$/.test(t)) return +t;
+    const inchOnly = unit === 'in' ? !t.includes("'") : t.includes('"') && !t.includes("'");
+    const toks = t.replace(/['"]/g, ' ').trim().split(/(?:\s*-\s*|\s+)/).filter(Boolean);
+    if (!toks.length || toks.some(x => !/^\d*\.?\d+$|^\d+\/\d+$/.test(x))) return null;
+    const frac = x => { const [a, b] = x.split('/').map(Number); return !(b > 0) ? NaN : a >= b && b > 1 ? a + 1 / b : a / b; };
+    const num = x => (x.includes('/') ? frac(x) : +x);
+    const inches = list => {
+      if (list.length === 1) return num(list[0]);
+      if (list.length === 2 && !list[0].includes('/') && list[1].includes('/')) { const [a, b] = list[1].split('/').map(Number); return a < b ? +list[0] + a / b : NaN; }
+      return NaN;
+    };
+    let v;
+    if (inchOnly) v = inches(toks) / 12;
+    else if (toks[0].includes('/')) return null;
+    else v = toks.length === 1 ? +toks[0] : +toks[0] + inches(toks.slice(1)) / 12;
+    return isFinite(v) && v >= 0 ? v : null;
+  }
   // 12'-0", 0'-3 1/2", 5", 2-3/4" — and 8-4 1/2" (8'-4 1/2" with the foot mark lost to OCR)
   const DIM = String.raw`-?\d+'(?:\s*-\s*\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?")?|\d+-\d+(?:\.\d+)?(?: \d+\/\d+)?"|\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?"`;
   const reDimAll = new RegExp(DIM, 'g');
@@ -4521,7 +4563,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, pen, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), cranes: cranes(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
   }
 
-  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall, cranes };
+  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, typedLen, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall, cranes };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -5567,8 +5609,33 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       // the load cases the frame was run with (its reactions' case names) and the panel loads typed into it
       cases: [...new Set(reactionsOf(xml, columns).map(r => r.caseName))],
       ploads: ploadsOf(xml).map(p => p.fields),
+      // the rafters as designed: the top of steel and the depth at each section point across the frame (GlobalX)
+      rafters: raftersOf(xml),
     };
     return { entries, model, xml, bom, info };
+  }
+  /* <Rafters>: each section point of each rafter — GlobalX, GlobalY (the top of the rafter there: the eave less the
+     purlin offset, up the slope), the web depth and the flanges (F6.38: 6" × 3/8"). Depth: web + both flanges, ft. */
+  function raftersOf(xml) {
+    const s0 = xml.indexOf('<Rafters>'), e = xml.indexOf('</Rafters>', s0), out = [];
+    if (s0 < 0 || e < 0) return out;
+    const tf = c => { const m = /^F\d+(?:\.(\d+))?$/.exec(String(c || '').trim()); return m && m[1] ? +('0.' + m[1]) : 0; };
+    const re = /<RafterIndividualData>[\s\S]*?<\/RafterIndividualData>/g, body = xml.slice(s0, e);
+    let m;
+    while ((m = re.exec(body))) {
+      const b = m[0], x = num(tag(b, 'GlobalX')), top = num(tag(b, 'GlobalY')), web = num(tag(b, 'WebDepth'));
+      if ([x, top, web].every(v => v != null && isFinite(v))) out.push({ x, top, d: (web + tf(tag(b, 'TopFlange')) + tf(tag(b, 'BottomFlange'))) / 12 });
+    }
+    return out.sort((a, b) => a.x - b.x);
+  }
+  /* the underside of the frame's rafter at GlobalX gx (ft above the base): between two section points the top and the
+     depth run straight; past the first or the last, as there. null with no rafters. */
+  function undersideAt(info, gx) {
+    const r = (info && info.rafters) || [];
+    if (!r.length) return null;
+    if (gx <= r[0].x) return r[0].top - r[0].d;
+    for (let i = 1; i < r.length; i++) if (gx <= r[i].x) { const a = r[i - 1], b = r[i], k = (gx - a.x) / ((b.x - a.x) || 1); return a.top + (b.top - a.top) * k - (a.d + (b.d - a.d) * k); }
+    const z = r[r.length - 1]; return z.top - z.d;
   }
   // <Reactions>: one row per load case and column (ColumnNumber 0-based, in GlobalX order), at the base
   /* a column's support reactions per load case. NBG writes one row at the base (AtBottom true: vertical, horizontal,
@@ -5856,7 +5923,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     })));
   }
 
-  const api = { unzip, zip, crc32, read, write, addLoads, addPanelLoads, ploadsOf, reactionsOf, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
+  const api = { unzip, zip, crc32, read, write, undersideAt, addLoads, addPanelLoads, ploadsOf, reactionsOf, rowsFor, orient, bundle, cloadsOf, isOurs, isGravity, isSeismic, learnWebCode, learnBottomRight, eccCheck, WEB_GUESS, ECC_TOP_LEFT, ECC_CANDIDATES, frameLinesOf, buildingOf, bldgKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_FRAMEFILE = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -9249,7 +9316,8 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       }
       return takenMemo.get(k);
     };
-    const narrowSet = new Set(), outLabels = [];
+    const narrowSet = new Set(), outLabels = [], later = [];
+    let mzRects = [];   // the mezzanines' outlines on the drawing: a name moved beside a small building keeps off them
     let top = '';   // names set outside their building, drawn over everything so the next building does not cover them
     const bboxes = site.buildings.map(b => { const cs = b.corners.map(q => P(q)); return { name: b.name, r: [Math.min(...cs.map(q => q[0])) - 2, Math.min(...cs.map(q => q[1])) - 2, Math.max(...cs.map(q => q[0])) + 2, Math.max(...cs.map(q => q[1])) + 2] }; });
     const letterMap = siteLetters(site, opts.letters), bubbles = [];
@@ -9262,11 +9330,12 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       // ridge(s) dashed
       SITE.roofBreaks(g).slice(1, -1).forEach(yr => { const a = P(b.toSite([0, yr])), c = P(b.toSite([L, yr])); out += `<line class="sp-ridge" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(c[0])}" y2="${f(c[1])}"/>`; });
       // braced bays on the walls: an X across the bay, a bar for a portal frame, rods across the end bay for roof bracing
-      const brc = (opts.bracing || {})[b.name] || {};
+      const brc = (opts.bracing || {})[b.name] || {}, wallTags = [];
       ['FSW', 'BSW'].forEach(w => (brc[w] || []).forEach(bay => {
         const y = w === 'FSW' ? 0 : W, xa = b.xs[bay.from], xb = b.xs[bay.to];
         if (xa == null || xb == null) return;
         const inw = (w === 'FSW' ? 1 : -1) * 7 / sc, a0 = P(b.toSite([xa, y])), a1 = P(b.toSite([xb, y])), c0 = P(b.toSite([xa, y + inw])), c1 = P(b.toSite([xb, y + inw]));
+        if (bay.kind === 'portal') { const tx = (c0[0] + c1[0]) / 2, ty = (c0[1] + c1[1]) / 2; wallTags.push([tx - 9, ty - 5, tx + 9, ty + 5]); occ.push(wallTags[wallTags.length - 1]); }
         if (bay.kind === 'portal') out += `<g class="sp-portal"><line x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/><text x="${f((c0[0] + c1[0]) / 2)}" y="${f((c0[1] + c1[1]) / 2 + 3.5)}">PF</text></g>`;
         else out += `<g class="sp-brace"><line class="sp-band" x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(c1[0])}" y2="${f(c1[1])}"/><line class="sp-band" x1="${f(c0[0])}" y1="${f(c0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/>${xGlyph((c0[0] + c1[0] + a0[0] + a1[0]) / 4, (c0[1] + c1[1] + a0[1] + a1[1]) / 4, compact ? 4 : 5.5)}</g>`;
       }));
@@ -9355,6 +9424,8 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       const cs = b.corners.map(q => P(q)), x0 = Math.min(...cs.map(q => q[0])), y0 = Math.min(...cs.map(q => q[1])), bw = Math.max(...cs.map(q => q[0])) - x0, bh = Math.max(...cs.map(q => q[1])) - y0;
       const dr = opts.noDrift ? null : (J.drifts || []).find(d => same(d.lower, b.name) && !d.drift.none && !d.off);
       const topStep = dr && dr.kind === 'side' && P(b.toSite(SITE.wallSeg(g, dr.lowerWall).p0))[1] < y0 + bh / 2 ? Math.min(dr.drift.w, dr.lowerWidth) * sc + 4 : 0;
+      // an endwall's drift band down the left of the outline (its label runs up it): the name starts past it
+      const leftStep = dr && dr.kind === 'end' && P(b.toSite(SITE.wallSeg(g, dr.lowerWall).p0))[0] < x0 + bw / 2 ? Math.min(dr.drift.w, dr.lowerWidth || dr.drift.w) * sc + 4 : 0;
       const dimT = `${ftin(W)} × ${ftin(L)} · ${g.profile || ''}`, need = Math.max(7.6 * b.name.length, 6.4 * dimT.length) + 24;
       // a drift band too narrow on the drawing to hold its label: the label goes with the building's name
       const dsp = dr ? dr.step.span : null, dLen = dsp ? Math.hypot(...[0, 1].map(k => P(b.toSite(dsp[1]))[k] - P(b.toSite(dsp[0]))[k])) : 0;
@@ -9364,16 +9435,19 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       /* the wall names inside the outline (the bubbles and the bay dimensions sit outside), clear of the name: a
          sidewall's in the bay nearest its middle that carries no bracing mark, an endwall's in the widest stretch between
          the grid lines */
-      const nameBox = bw >= need && bh >= 44 + topStep ? [x0 + 8, y0 + 6 + topStep, x0 + need, y0 + 42 + topStep + (narrow ? 15 : 0)] : null;
+      const nameBox = bw >= need + leftStep && bh >= 44 + topStep ? [x0 + 8 + leftStep, y0 + 6 + topStep, x0 + need + leftStep, y0 + 42 + topStep + (narrow ? 15 : 0)] : null;
       const wallBoxes = [];
       if (nameBox) occ.push(nameBox);
+      // for the wall labels the name block is two lines: the name (short) over the size (long)
+      const nameBoxes = nameBox ? [[nameBox[0], nameBox[1], Math.min(nameBox[2], nameBox[0] + 7.6 * b.name.length + 12), nameBox[1] + 18], [nameBox[0], nameBox[1] + 18, nameBox[2], nameBox[3]]] : [];
       SITE.WALLS.forEach(w => {
         if (taken(b, w)) return;   // a wall shared with another building: the joint says it
         const sgm = SITE.wallSeg(g, w), side = w === 'FSW' || w === 'BSW', off = -11 / sc;
         let cands;
         if (side) {
-          const bays = fls.slice(1).map((fl, i) => ({ c: (fls[i].x + fl.x) / 2, marked: (brc[w] || []).some(bay => bay.from <= i && bay.to >= i + 1) }));
-          cands = bays.sort((p, q) => p.marked - q.marked || Math.abs(p.c - L / 2) - Math.abs(q.c - L / 2)).map(q => [q.c, w === 'FSW' ? 0 : W]);
+          const bays = fls.slice(1).map((fl, i) => ({ c: (fls[i].x + fl.x) / 2, d: fl.x - fls[i].x, marked: (brc[w] || []).some(bay => bay.from <= i && bay.to >= i + 1) }));
+          // the middle of a bay, then its quarter points (one braced bay a wall long: beside its tag)
+          cands = bays.sort((p, q) => p.marked - q.marked || Math.abs(p.c - L / 2) - Math.abs(q.c - L / 2)).flatMap(q => [q.c, q.c - q.d * 0.28, q.c + q.d * 0.28, q.c + q.d * 0.4, q.c - q.d * 0.4].map(x => [x, w === 'FSW' ? 0 : W]));
         } else {
           // the widest stretches (within 15 % of the widest) nearest the middle first; in a long one the label may slide
           // to either end of it to keep clear of the name
@@ -9387,35 +9461,54 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
         const wl = ((opts.lines || {})[b.name] || []).find(l => l.wall === w && l.wallTag), wt = wl ? wl.wallTag : w, hw = 3.7 * wt.length + 5;
         const box = q => (along ? [q[0] - hw, q[1] - 6, q[0] + hw, q[1] + 6] : [q[0] - 6, q[1] - hw, q[0] + 6, q[1] + hw]);
         const hit = (r, q) => r[0] < q[2] + 6 && r[2] > q[0] - 6 && r[1] < q[3] + 6 && r[3] > q[1] - 6;
-        const m = spots.find(q => ![nameBox, ...wallBoxes].some(r => r && hit(box(q), r))) || spots[0];
+        const m = spots.find(q => ![...nameBoxes, ...wallBoxes, ...wallTags].some(r => r && hit(box(q), r))) || spots.find(q => ![...nameBoxes, ...wallBoxes].some(r => r && hit(box(q), r))) || spots[0];
         wallBoxes.push(box(m)); occ.push(box(m));
         let ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) * 180 / Math.PI;
         if (ang > 90 || ang < -90) ang += 180;
         out += `<text class="sp-wall${wl ? ' has-load' : ''}" x="${f(m[0])}" y="${f(m[1] + 3.5)}" transform="rotate(${ang.toFixed(1)} ${f(m[0])} ${f(m[1])})">${esc(wt)}</text>`;
       });
-      if (bw >= need && bh >= 44 + topStep) {
-        const nx = x0 + 14, ny = y0 + 22 + topStep;
+      if (nameBox) {
+        // a wall label the corner could not keep clear of (a short endwall has one spot): the name steps right past it
+        const under = wallBoxes.filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] && r[1] < nameBox[3] && r[3] > nameBox[1]);
+        const dx = under.length ? Math.max(...under.map(r => r[2] - nameBox[0] + 4)) : 0, sx = dx > 0 && bw >= need + leftStep + dx ? dx : 0;
+        // a portal frame's tag on the wall above the corner: the name steps down past it
+        const tagOver = wallTags.filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] + sx && r[3] > nameBox[1] - 6 && r[1] < nameBox[1] + 14);
+        const sy = tagOver.length && bh >= 58 + topStep ? Math.max(...tagOver.map(r => r[3] - nameBox[1] + 8)) : 0;
+        const nx = x0 + 14 + leftStep + sx, ny = y0 + 22 + topStep + sy;
         out += `<text class="sp-name sp-name-corner" x="${f(nx)}" y="${f(ny)}">${esc(b.name)}</text><text class="sp-dim sp-dim-corner" x="${f(nx)}" y="${f(ny + 14)}">${esc(dimT)}</text>${narrow ? `<text class="sp-dlab sp-dlab-out" x="${f(nx)}" y="${f(ny + 29)}">${esc(dT)}</text>` : ''}</g>`;
       } else if (bh >= need && bw >= 40) {
         const cx = x0 + bw / 2 - 2, cy = y0 + bh / 2;
         out += `<g transform="rotate(-90 ${f(cx)} ${f(cy)})"><text class="sp-name" x="${f(cx)}" y="${f(cy - 2)}">${esc(b.name)}</text><text class="sp-dim" x="${f(cx)}" y="${f(cy + 12)}">${esc(dimT)}</text>${narrow ? `<text class="sp-dlab" x="${f(cx)}" y="${f(cy + 27)}">${esc(dT)}</text>` : ''}</g></g>`;
       } else {
-        // too small on the drawing: the name beside it, outside the outline, with a leader — right, above, left or
-        // below, the first spot clear of the other buildings and the names already placed
-        const lh = dr && !compact ? 34 : 20, hitAny = r => [...bboxes.filter(q => q.name !== b.name).map(q => q.r), ...outLabels].some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
-        const cand = [
-          { nx: x0 + bw + 12, ny: y0 + 14, lx: x0 + bw, ly: y0 + 10, ex: x0 + bw + 9, ey: y0 + 10 },
-          { nx: x0, ny: y0 - lh - 6 + 12, lx: x0 + 8, ly: y0, ex: x0 + 8, ey: y0 - 6 },
-          { nx: x0 - 12 - need, ny: y0 + 14, lx: x0, ly: y0 + 10, ex: x0 - 9, ey: y0 + 10 },
-          { nx: x0, ny: y0 + bh + 30, lx: x0 + 8, ly: y0 + bh, ex: x0 + 8, ey: y0 + bh + 18 },
-        ].filter(c => c.nx >= 2 && c.nx + need <= Wd - 2 && c.ny - 12 >= 2 && c.ny + lh - 12 <= H - 2);
-        const c = cand.find(q => !hitAny([q.nx, q.ny - 12, q.nx + need, q.ny + lh - 12])) || cand[0] || { nx: x0, ny: y0 + bh + 30, lx: x0 + 8, ly: y0 + bh, ex: x0 + 8, ey: y0 + bh + 18 };
-        outLabels.push([c.nx, c.ny - 12, c.nx + need, c.ny + lh - 12]);
+        // too small on the drawing: the name beside it with a leader, placed once every building's own labels are (so
+        // it keeps clear of them) — right, above, left or below, outside its neighbours; else inside a neighbour's
+        // open floor beside it; the first spot clear of the bubbles, names and wall labels
         out += '</g>';
+        later.push(() => {
+        const lh = dr && !compact ? 34 : 20, clashes = (r, list) => list.some(q => r[0] < q[2] + 3 && r[2] > q[0] - 3 && r[1] < q[3] + 3 && r[3] > q[1] - 3);
+        const others = bboxes.filter(q => q.name !== b.name).map(q => q.r);
+        const at = (nx, ny, lx, ly, ex, ey, inside) => ({ nx, ny, lx, ly, ex, ey, inside });
+        const cand = [
+          at(x0 + bw + 12, y0 + 14, x0 + bw, y0 + 10, x0 + bw + 9, y0 + 10),
+          at(x0, y0 - lh - 6 + 12, x0 + 8, y0, x0 + 8, y0 - 6),
+          at(x0 - 12 - need, y0 + 14, x0, y0 + 10, x0 - 9, y0 + 10),
+          at(x0, y0 + bh + 30, x0 + 8, y0 + bh, x0 + 8, y0 + bh + 18),
+          // inside the neighbour beside it, further along until the floor is open (a leader runs back to it)
+          ...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => [0.5, 0.72, 0.28].map(k => at(x0 + bw + 14 + i * 40, y0 + bh * k, x0 + bw, y0 + bh * k - 4, x0 + bw + 11 + i * 40, y0 + bh * k - 4, true))),
+          ...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => [0.5, 0.72, 0.28].map(k => at(x0 - 14 - need - i * 40, y0 + bh * k, x0, y0 + bh * k - 4, x0 - 11 - i * 40, y0 + bh * k - 4, true))),
+        ].filter(c => c.nx >= 2 && c.nx + need <= Wd - 2 && c.ny - 12 >= 2 && c.ny + lh - 12 <= H - 2);
+        const rOf = q => [q.nx, q.ny - 12, q.nx + need, q.ny + lh - 12];
+        const c = cand.find(q => !clashes(rOf(q), [...occ, ...outLabels]) && (q.inside ? !clashes(rOf(q), mzRects) : !clashes(rOf(q), others))) || cand.find(q => !clashes(rOf(q), [...occ, ...outLabels])) || cand[0] || at(x0, y0 + bh + 30, x0 + 8, y0 + bh, x0 + 8, y0 + bh + 18);
+        outLabels.push(rOf(c)); occ.push(rOf(c));
         top += `<line class="sp-leader" x1="${f(c.lx)}" y1="${f(c.ly)}" x2="${f(c.ex)}" y2="${f(c.ey)}"/><text class="sp-name sp-name-corner" x="${f(c.nx)}" y="${f(c.ny)}">${esc(b.name)}</text><text class="sp-dim sp-dim-corner" x="${f(c.nx)}" y="${f(c.ny + 14)}">${esc(dimT)}</text>${dr && !compact ? `<text class="sp-dlab sp-dlab-out" x="${f(c.nx)}" y="${f(c.ny + 29)}">${esc(dT)}</text>` : ''}`;
         narrowSet.add(b.name);
+        });
       }
     });
+    const mzBox = m => { const b = site.buildings.find(q => same(q.name, m.building)) || site.buildings[0]; if (!b) return null; const p = P(b.toSite([m.x0, m.y0])), q = P(b.toSite([m.x1, m.y1])); return [Math.min(p[0], q[0]), Math.min(p[1], q[1]), Math.max(p[0], q[0]), Math.max(p[1], q[1])]; };
+    mzRects = (opts.mezz || []).map(mzBox).filter(Boolean);
+    later.forEach(fn => fn());
+    const mzLabs = [];
     (opts.mezz || []).forEach(m => {
       const b = site.buildings.find(q => same(q.name, m.building)) || site.buildings[0];
       if (!b) return;
@@ -9423,13 +9516,37 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       const x = Math.min(p[0], q[0]), y = Math.min(p[1], q[1]), w = Math.abs(q[0] - p[0]), h = Math.abs(q[1] - p[1]);
       const lab = `${mezzName(m.id)}${m.A != null && !compact ? ` · ${ftin(m.A)}` : ''}`;
       const mc = (m.cols || []).map(c => { const q = P(b.toSite([c.x, c.y])), r = compact ? 3 : 4.2; return `<g class="sp-mcol"><circle cx="${f(q[0])}" cy="${f(q[1])}" r="${r}"/><path d="M${f(q[0] - r * 0.7)},${f(q[1] - r * 0.7)} L${f(q[0] + r * 0.7)},${f(q[1] + r * 0.7)} M${f(q[0] - r * 0.7)},${f(q[1] + r * 0.7)} L${f(q[0] + r * 0.7)},${f(q[1] - r * 0.7)}"/></g>`; }).join('');
-      // the name in the middle, or nudged up or down off the columns it would sit on
-      const cq = (m.cols || []).map(c => P(b.toSite([c.x, c.y]))), tw = (compact ? 5.8 : 6.6) * lab.length / 2 + 4;
-      const ly = [0, -0.22, 0.22, -0.34, 0.34].map(k => y + h / 2 + 4 + k * h).find(v => !cq.some(q => Math.abs(q[0] - (x + w / 2)) < tw + 5 && q[1] > v - 15 && q[1] < v + 9)) ?? y + h / 2 + 4;
+      /* the name in the middle, or nudged up or down off the columns it would sit on — clear of the building names, the
+         wall labels, the bubbles and the other mezzanines' names; on a floor drawn too small for it, the name alone (the
+         height in its hover), then turned along a tall floor; failing all, the name alone where it clashes least */
+      const cq = (m.cols || []).map(c => P(b.toSite([c.x, c.y]))), cw = compact ? 5.8 : 6.6;
+      const clash = r => [...occ, ...mzLabs].some(q => r[0] < q[2] + 2 && r[2] > q[0] - 2 && r[1] < q[3] + 2 && r[3] > q[1] - 2);
+      const onCol = (cx, v, half) => cq.some(q => Math.abs(q[0] - cx) < half + 5 && q[1] > v - 15 && q[1] < v + 9);
+      const variants = [lab, mezzName(m.id), String(m.id)].filter((t, i, a) => a.indexOf(t) === i);
+      let pick = null;
+      for (const t of variants) {
+        const half = cw * t.length / 2 + 4;
+        if (2 * half > w - 4) continue;
+        const v = [0, -0.22, 0.22, -0.34, 0.34].map(k => y + h / 2 + 4 + k * h).find(v2 => v2 - 12 > y && v2 + 4 < y + h && !onCol(x + w / 2, v2, half) && !clash([x + w / 2 - half, v2 - 11, x + w / 2 + half, v2 + 4]));
+        if (v != null) { pick = { t, cx: x + w / 2, cy: v, r: [x + w / 2 - half, v - 11, x + w / 2 + half, v + 4] }; break; }
+      }
+      if (!pick) for (const t of variants) {
+        const half = cw * t.length / 2 + 4;
+        if (2 * half <= h - 4 && w >= 14) { const cx = x + w / 2 + 4, cy = y + h / 2, r = [cx - 11, cy - half, cx + 4, cy + half]; if (!clash(r) || t === variants[variants.length - 1]) { pick = { t, cx, cy, rot: true, r }; break; } }
+      }
+      if (!pick) {
+        // a floor too small to hold its name: beside it with a leader — right, left, above, below — clear of the rest
+        const t = variants[variants.length - 1], tw = cw * t.length + 8;
+        const sp = [[x + w + 8, y + h / 2 + 4, 'start'], [x - 8, y + h / 2 + 4, 'end'], [x + w / 2, y - 6, 'middle'], [x + w / 2, y + h + 14, 'middle'], [x + w + 8, y + 12, 'start'], [x + w + 8, y + h - 4, 'start']]
+          .map(([tx, ty, an]) => { const x0r = an === 'start' ? tx : an === 'end' ? tx - tw : tx - tw / 2; return { tx, ty, an, r: [x0r, ty - 11, x0r + tw, ty + 4] }; });
+        const q = sp.find(c => !clash(c.r)) || sp[0];
+        pick = { t, cx: q.tx, cy: q.ty, anchor: q.an, r: q.r, lead: [x + w / 2, y + h / 2, q.an === 'start' ? q.r[0] - 2 : q.an === 'end' ? q.r[2] + 2 : q.tx, q.an === 'middle' ? (q.ty < y ? q.ty + 4 : q.ty - 11) : q.ty - 4] };
+      }
+      mzLabs.push(pick.r); occ.push(pick.r);
       // a floor opening: the floor taken out, outlined and crossed
       const hs = (m.holes || []).map(o => { const a = P(b.toSite([o.x0, o.y0])), c = P(b.toSite([o.x1, o.y1])), hx = Math.min(a[0], c[0]), hy = Math.min(a[1], c[1]), hw = Math.abs(c[0] - a[0]), hh = Math.abs(c[1] - a[1]);
         return `<g class="sp-hole"><rect x="${f(hx)}" y="${f(hy)}" width="${f(hw)}" height="${f(hh)}"/><path d="M${f(hx)},${f(hy)} L${f(hx + hw)},${f(hy + hh)} M${f(hx + hw)},${f(hy)} L${f(hx)},${f(hy + hh)}"/><title>Floor opening ${ftin(Math.abs(o.x1 - o.x0))} × ${ftin(Math.abs(o.y1 - o.y0))}</title></g>`; }).join('');
-      out += `<g class="sp-mezz"><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" fill="url(#spHatch)"/><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" class="sp-mezz-edge"/>${hs}${mc}<text x="${f(x + w / 2)}" y="${f(ly)}">${esc(lab)}</text></g>`;
+      out += `<g class="sp-mezz"><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" fill="url(#spHatch)"/><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" class="sp-mezz-edge"/>${hs}${mc}${pick.lead ? `<line class="sp-mz-lead" x1="${f(pick.lead[0])}" y1="${f(pick.lead[1])}" x2="${f(pick.lead[2])}" y2="${f(pick.lead[3])}"/>` : ''}<text x="${f(pick.cx)}" y="${f(pick.cy)}"${pick.anchor ? ` style="text-anchor:${pick.anchor}"` : ''}${pick.rot ? ` transform="rotate(-90 ${f(pick.cx)} ${f(pick.cy)})"` : ''}>${esc(pick.t)}<title>${esc(lab)}</title></text></g>`;
     });
     /* the bracing lines (the Bracing page): each sidewall and endwall, and each mezzanine edge off the walls — a bracing
        wall to create, dashed, with its braced bay; the line picked lit; EQB / EQF arrows at the ends of its run, pointing
@@ -10501,6 +10618,31 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
      tool does not lay out (no floor / MEP support only, a hanging grid, cantilever or hot-rolled beams under grating)
      is a must-fix: the beams and columns here are then the Box 22 loads on a floor layout, a check only. */
   const OTHER_FRAMING = /not have any floor|\bno floor\b|mep support|hanging grid|cantilever|hot[- ]rolled|grating/i;
+  /* The point loads a special note gives a mezzanine: "support of 2000# stair located at frame line 3", "(2) 250#
+     point loads", "an 8'x8' grid with a 5kip load between each beam span". Each: P (kips), how many, what it is,
+     where the note says (a frame line, a gridline), and a grid's spacing when the loads are on one. A hanging door
+     weight, a crane or a column's cable tray is not the floor's. */
+  function notePoints(notes) {
+    const out = [];
+    (notes || []).forEach(n => {
+      const t = n.text, re = /(?:\((\d+)\)\s*)?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(#|lbs?\.?|pounds?|kips?|k)(?![a-z])/gi;
+      let m;
+      while ((m = re.exec(t))) {
+        const ctx = t.slice(Math.max(0, m.index - 80), m.index + m[0].length + 120);
+        if (/hanging dead weight|roll-?up door|crane|cable tray|psf|per square/i.test(ctx)) continue;
+        if (!/point load|stair|equipment|unit\b|tank|hanger|\bload between|concentrated/i.test(ctx)) continue;
+        const v = +m[2].replace(/,/g, ''), unit = m[3].toLowerCase(), P = /^(#|lb|pound)/.test(unit) ? v / 1000 : v;
+        if (!(P > 0) || P > 200) continue;
+        const what = /stair/i.test(ctx) ? 'stair' : /equipment|unit\b|tank/i.test(ctx) ? 'equipment' : /hanger|hanging/i.test(ctx) ? 'hanger' : 'point load';
+        const g = /(\d+(?:\.\d+)?)\s*'?\s*x\s*(\d+(?:\.\d+)?)\s*'?\s*grid/i.exec(t);
+        const fl = /frame\s*line\s*(\d+(?:\.\d+)?)/i.exec(ctx), gl = /grid\s*line\s*([A-Z])\b/.exec(ctx);
+        // a grid of loads said twice in a note ("grids of 5,000lb. point loads" … "an 8'x8' grid with a 5kip load"): once
+        if (g && out.some(o => o.n === n.n && o.grid && Math.abs(o.P - P) < 1e-9)) continue;
+        out.push({ n: n.n, page: n.page, P, count: +(m[1] || 1), what: g ? 'point load' : what, frameLine: fl ? +fl[1] : null, gridLine: gl ? gl[1] : null, edge: /\bedge\b/i.test(ctx), grid: g ? { sx: +g[1], sy: +g[2] } : null, text: m[0].trim().replace(/\.$/, '') });
+      }
+    });
+    return out;
+  }
   function scopeNotes(inp) {
     const out = [], mz = inp.mezz || {}, id = mz.id || 'This mezzanine';
     (mz.notes || []).forEach(n => {
@@ -10540,6 +10682,15 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     const chk = validate(inp);
     chk.soft.forEach(t => warn.push(typeof t === 'string' ? { level: 'warn', text: t } : t));
     scopeNotes(inp).forEach(w => warn.push(w));
+    // the point loads the notes give: a grid of them against Box 22's uniform loads; one placed on the Plan page or not
+    const notePts = notePoints((inp.mezz || {}).notes).map(q => ({ ...q, placed: (s.pointLoads || []).some(z => z && z.note === q.n && Math.abs(z.P - q.P) < 1e-6) }));
+    notePts.forEach(q => {
+      const who = inp.mezz.id || 'This mezzanine', F = PCS.fmtFtIn;
+      if (q.grid) {
+        const psf = q.P * 1000 / (q.grid.sx * q.grid.sy), dl = val(inp.loads.dead) || 0, ll = val(inp.loads.live) || 0, cl = val(inp.loads.coll) || 0;
+        warn.push({ level: psf > ll + cl + 1e-6 ? 'warn' : 'key', text: `${who}: special note ${q.n} — ${q.text} on a grid of ${F(q.grid.sx)} × ${F(q.grid.sy)} is ${psf.toFixed(1)} psf over the floor; Box 22 gives live ${ll} + collateral ${cl} = ${ll + cl} psf (dead ${dl} psf besides)${psf > ll + cl + 1e-6 ? ' — less than the point loads: raise the collateral, or place them on the Plan page' : ' — it covers them as a uniform load'}. A beam right under one takes ${q.P.toFixed(2)} k at that spot: place the ones that matter on the Plan page.` });
+      } else warn.push({ level: q.placed ? 'key' : 'warn', act: q.placed ? null : { kind: 'placePt', mi: index, n: q.n, P: q.P, what: q.what, frameLine: q.frameLine, edge: q.edge, count: q.count }, text: `${who}: special note ${q.n} — ${q.count > 1 ? `(${q.count}) ` : ''}${q.text} ${q.what}${q.frameLine != null ? ` at frame line ${q.frameLine}` : q.gridLine ? ` at gridline ${q.gridLine}` : ''}${q.placed ? ': placed on the Plan page and in the design.' : `: not in the design yet — place ${q.count > 1 ? 'them' : 'it'} (Design → "Place it", or click the spot on the Plan page in edit mode).`}` });
+    });
     ocrNotes(inp).forEach(w => warn.push(w));
     if (chk.miss.length) {
       warn.unshift({ level: 'stop', text: `Needs input: ${chk.miss.join(', ')} — not on the PCS (TBD, no blue note). Enter ${chk.miss.length > 1 ? 'them' : 'it'} above to run the design.` });
@@ -10630,7 +10781,9 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       const o = openings[r.index] || {}, F = PCS.fmtFtIn, lab = (x, y) => `${grid.xLabel(x) || F(x)}/${grid.yLabel(y) || F(y)}`;
       const lineLab = (v, alongX) => (alongX ? grid.yLabel(v) : grid.xLabel(v)) || F(v);
       const beamTxt = id => { const b = lay.beams[id]; return `${lineLab(b.line, b.dir === 'x')} (${F(b.from)} – ${F(b.to)})`; };
-      const parts = [r.cut.length ? `the beam${r.cut.length > 1 ? 's' : ''} on line ${r.cut.map(c => lineLab(c.line, lay.joists === 'y')).join(', ')} stop${r.cut.length > 1 ? '' : 's'} at a trimmer on the opening's edge, which takes ${r.cut.length > 1 ? 'their ends' : 'its end'} (designed at the uniform trib with the same moment and end shear)` : '',
+      // each cut beam's end as a point load on its trimmer: its floor (trib × span / 2), dead and live
+      const pts = r.trimmers.flatMap(id => (lay.beams[id].points || []).map(q => `${F(q.at - lay.beams[id].from)} along it: ${Math.round(q.area)} sq ft, D ${(q.area * (deadUsed + coll + joistWt) / 1000).toFixed(2)} k + L ${(q.area * live / 1000).toFixed(2)} k`));
+      const parts = [r.cut.length ? `the beam${r.cut.length > 1 ? 's' : ''} on line ${r.cut.map(c => lineLab(c.line, lay.joists === 'y')).join(', ')} stop${r.cut.length > 1 ? '' : 's'} at a trimmer on the opening's edge, which takes ${r.cut.length > 1 ? 'their ends' : 'its end'} as a point load (${pts.join('; ')}, and the beam's own weight) — the trimmer designed at the uniform trib with the same moment and end shear, its columns taking the point load by statics` : '',
         r.headers.length ? `a header on ${r.headers.map(beamTxt).join(', ')} carries the joists the opening cuts` : '',
         r.trimmers.length ? `trimmer${r.trimmers.length > 1 ? 's' : ''} on ${r.trimmers.map(beamTxt).join(', ')}` : '',
         r.cols.length ? `columns at ${r.cols.map(c => lab(c.x, c.y)).join(', ')}` : ''].filter(Boolean);
@@ -10672,7 +10825,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     const maxDepthByC = roomIn != null ? Math.floor(roomIn + 1e-3) : null;
     const beamBase = { dead: deadUsed, coll, live, joistWt, Lb: spacing, edition: ed.beamEd };
     const bkey = [inp.mezz.building || '', bl.width, bl.length, (bl.bays || []).join(',')].join('|');
-    return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, roomIn, maxDepthByC, beamBase, bkey, id: inp.mezz.id || `Mezzanine ${index + 1}` };
+    return { index, inp, s, warn, ed, division, A, slabIn, seatIn, Bq, Cq, joistDepthIn, grid, mz, lay, roomIn, maxDepthByC, beamBase, bkey, notePts, id: inp.mezz.id || `Mezzanine ${index + 1}` };
   }
 
   /* Reading checks against the PCS floor plan: was it found and matched to the grid, does it show this mezzanine's
@@ -10837,6 +10990,64 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     return Math.ceil(t * 12 - 1e-6) / 12;
   }
 
+  /* A beam with point loads designed on the uniform-load MB sheet: the trib whose uniform load gives at least the beam's
+     largest moment and end shear. base: the floor's trib (ft); pts: [{ a (ft from the beam's start), A (the point load
+     as sq ft of this floor's load: P × 1000 / psf) }]. Rounded up to the inch, as equivTrib. */
+  function equivTribPoints(L, base, pts) {
+    if (!pts.length || !(L > 0)) return base;
+    const tot = base * L + pts.reduce((a, q) => a + q.A, 0);
+    const Rr = base * L / 2 + pts.reduce((a, q) => a + q.A * q.a / L, 0), Rl = tot - Rr;
+    const M = x => Rl * x - base * x * x / 2 - pts.reduce((a, q) => (q.a < x ? a + q.A * (x - q.a) : a), 0);
+    const xs = [...Array(401).keys()].map(i => L * i / 400).concat(pts.map(q => q.a));
+    const Mmax = Math.max(...xs.map(M));
+    const t = Math.max(base, 8 * Mmax / (L * L), 2 * Math.max(Rl, Rr) / L);
+    return Math.ceil(t * 12 - 1e-6) / 12;
+  }
+
+  /* Point loads on a mezzanine (a stair, a piece of equipment, a hanger — typed on the Plan page, or read from a PCS
+     note and placed there): on a beam it is that beam's; on the floor the joists take it to the beams either side, by
+     the lever rule. A beam carrying one gets the trib that covers its moment and end shear for the dead and the live
+     part each (designed on the MB sheet as any beam) and a mark of its own; its ends take the loads by statics. */
+  function applyPointLoads(c) {
+    if (!(c.s.pointLoads || []).length) return;
+    const L = c.lay, J = L.joists, beamDir = J === 'y' ? 'x' : 'y', U = p => (J === 'y' ? p.y : p.x), V = p => (J === 'y' ? p.x : p.y);
+    const F = PCS.fmtFtIn, B = c.beamBase, qD = B.dead + B.coll + B.joistWt, qL = B.live;
+    const on = (b, at) => at >= b.from - 0.05 && at <= b.to + 0.05;
+    const beamAt = (u, v) => L.beams.find(b => !b.absorbed && b.dir === beamDir && Math.abs(b.line - u) < 0.25 && on(b, v));
+    // what the plan draws: each load, where it went (beam ids and shares)
+    L.pointLoads = [];
+    (c.s.pointLoads || []).forEach((q, qi) => {
+      if (!(q && isFinite(q.x) && isFinite(q.y) && q.P > 0)) return;
+      const rec = { i: qi, x: q.x, y: q.y, P: +q.P, kind: q.kind === 'D' ? 'D' : 'L', what: q.what || '', note: q.note || null, on: [] };
+      L.pointLoads.push(rec);
+      applyOne(q, qi, rec);
+    });
+    function applyOne(q, qi, rec) {
+      const p = { x: q.x, y: q.y }, u = U(p), v = V(p), D = q.kind === 'D' ? q.P : 0, Lv = q.kind === 'D' ? 0 : q.P;
+      const what = q.what || 'point load', tag = `${what} ${(+q.P).toFixed(2)} k (${q.kind === 'D' ? 'dead' : 'live'}) at ${F(q.x)} / ${F(q.y)}`;
+      const put = (b, at, k) => { (b.pts = b.pts || []).push({ at: Math.min(b.to, Math.max(b.from, at)), D: D * k, L: Lv * k, P: q.P * k, kind: q.kind === 'D' ? 'D' : 'L', what, i: qi }); rec.on.push({ beam: b.id, k }); };
+      let b = beamAt(u, v);
+      const perp = !b && L.beams.find(x => !x.absorbed && x.dir !== beamDir && Math.abs(x.line - v) < 0.25 && on(x, u));
+      if (b) { put(b, v, 1); c.warn.push({ level: 'key', text: `${c.id}: ${tag} — on beam B${c.bOff + b.id + 1}, ${F(v - b.from)} from its end.` }); return; }
+      if (perp) { put(perp, u, 1); c.warn.push({ level: 'key', text: `${c.id}: ${tag} — on beam B${c.bOff + perp.id + 1}, ${F(u - perp.from)} from its end.` }); return; }
+      // on the floor: the beam lines either side of it, along the joists
+      const lo = L.beamLines.filter(w => w <= u + 1e-6).map(w => beamAt(w, v)).filter(Boolean).sort((a, z) => z.line - a.line)[0];
+      const hi = L.beamLines.filter(w => w >= u - 1e-6).map(w => beamAt(w, v)).filter(Boolean).sort((a, z) => a.line - z.line)[0];
+      if (!lo && !hi) { c.warn.push({ level: 'warn', text: `${c.id}: ${tag} is not over this mezzanine's beams — it is left out. Move it on the Plan page.` }); return; }
+      if (lo && hi && hi !== lo) {
+        const kHi = (u - lo.line) / (hi.line - lo.line);
+        put(lo, v, 1 - kHi); put(hi, v, kHi);
+        c.warn.push({ level: 'key', text: `${c.id}: ${tag} — on the floor, the joists take it to B${c.bOff + lo.id + 1} (${(100 * (1 - kHi)).toFixed(0)} %) and B${c.bOff + hi.id + 1} (${(100 * kHi).toFixed(0)} %). A joist under it is to be checked for it with the joist supplier.` });
+      } else { const only = lo || hi; put(only, v, 1); c.warn.push({ level: 'key', text: `${c.id}: ${tag} — past the last beam line, the joists cantilever it to B${c.bOff + only.id + 1}: confirm the slab edge framing.` }); }
+    }
+    L.beams.filter(b => b.pts && b.pts.length).forEach(b => {
+      b.tribNoPts = b.trib;
+      const tD = qD > 0 ? equivTribPoints(b.span, b.trib, b.pts.filter(x => x.D > 0).map(x => ({ a: x.at - b.from, A: x.D * 1000 / qD }))) : b.trib;
+      const tL = qL > 0 ? equivTribPoints(b.span, b.trib, b.pts.filter(x => x.L > 0).map(x => ({ a: x.at - b.from, A: x.L * 1000 / qL }))) : b.trib;
+      b.trib = Math.max(b.trib, tD, tL);
+    });
+  }
+
   /* Mezzanines side by side in one building: a beam that lands on another mezzanine's beam line is the same
      member. The mezzanine with more beam length on that line keeps it; the other's trib (its edge joists)
      is added to it, and that beam drops out of the other's count. */
@@ -10923,10 +11134,10 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     live.forEach(c => { const k = keyOf(c); let g = groups.find(x => x.key === k); if (!g) groups.push(g = { key: k, ctxs: [] }); g.ctxs.push(c); });
     const marks = [];
     groups.forEach(g => {
-      const all = g.ctxs.flatMap(c => c.lay.beams.filter(b => !b.absorbed).map(b => ({ mi: c.index, id: b.id, span: b.span, trib: b.trib, line: b.line, edgeOnly: !!(b.edge && !b.extra), opening: b.opening || null })));
+      const all = g.ctxs.flatMap(c => c.lay.beams.filter(b => !b.absorbed).map(b => ({ mi: c.index, id: b.id, span: b.span, trib: b.trib, line: b.line, edgeOnly: !!(b.edge && !b.extra), opening: b.opening || null, point: !b.opening && !!(b.pts && b.pts.length) })));
       // the beams framing a floor opening (header, trimmer) are a mark of their own: a trimmer's equivalent trib is no
-      // floor trib, and would raise every beam of another mark to it
-      const bs = all.filter(x => !x.opening), ops = all.filter(x => x.opening);
+      // floor trib, and would raise every beam of another mark to it; so are the beams carrying a point load
+      const bs = all.filter(x => !x.opening && !x.point), ops = all.filter(x => x.opening), pls = all.filter(x => x.point);
       if (!all.length) return;
       const mode = g.ctxs[0].s.marks;
       let sets;
@@ -10941,6 +11152,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       } else sets = [[bs, '']];
       sets = sets.filter(([xs]) => xs.length);
       if (ops.length) sets.push([ops, 'opening']);
+      if (pls.length) sets.push([pls, 'point load']);
       // a long beam given its own mark (Beam calc → "Give the … beam its own mark"): only those beams leave their mark,
       // every other mark stays as it was
       const own = (g.ctxs[0].s.ownSpan || []).map(Number).filter(v => v > 0);
@@ -10954,7 +11166,9 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       });
       sets.forEach(([xs, kind, ownMark, merged, k0]) => marks.push({ group: g, groupKey: g.key, kind, own: !!ownMark, sortKey: k0, merged: merged && merged.length ? merged : null, beamsAll: xs, span: Math.max(...xs.map(x => x.span)), trib: Math.max(...xs.map(x => x.trib)) }));
     });
-    marks.sort((a, b) => (a.own ? 1 : 0) - (b.own ? 1 : 0) || b.sortKey - a.sortKey || (a.kind === 'interior' ? -1 : 1));
+    // a point-load mark after the rest, as an own mark: the marks there before keep their names (and their picks)
+    const late = m => (m.kind === 'point load' ? 2 : 0) + (m.own ? 1 : 0);
+    marks.sort((a, b) => late(a) - late(b) || b.sortKey - a.sortKey || (a.kind === 'interior' ? -1 : 1));
     marks.forEach((m, i) => { m.mark = 'MB' + (i + 1); m.index = i; m.qtyAll = m.beamsAll.length; m.mezzIds = [...new Set(m.beamsAll.map(x => x.mi))]; });
     return marks;
   }
@@ -11203,6 +11417,22 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     const reaction = (c, id, side) => {
       const bm = c.lay.beams[id], mk = c.markOf(id);
       if (!mk || !mk.sec) return { D: NaN, L: NaN, mark: mk && mk.mark };
+      // a beam designed at an equivalent uniform trib (an opening's trimmer, a beam with a point load): its ends take
+      // what is on it by statics — its own floor and weight, each cut beam's end (its floor and its own weight) on a
+      // trimmer, each point load — not the equivalent trib's reaction
+      if ((bm.points && bm.points.length) || (bm.pts && bm.pts.length)) {
+        const B = c.beamBase, share = at => Math.abs(at - (side === 'L' ? bm.from : bm.to)) / bm.span;
+        const own = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.points && bm.points.length ? 0 : bm.tribNoPts ?? bm.trib }, mk.sec);
+        const a = side && bm.ov ? bm.ov[side === 'L' ? 1 : 0] : 0, k0 = a > 0 ? 2 * a / bm.span * (1 + a / (2 * bm.span)) : 0;
+        let D = own.D * (1 + k0), Lv = own.L * (1 + k0);
+        (bm.points || []).forEach(q => {
+          const cut = c.lay.beams.find(x => x.cutEnd && Math.abs(x.line - q.at) < 0.05 && Math.abs((x.cutEnd === 'to' ? x.to : x.from) - bm.line) < 0.05), cm = cut && c.markOf(cut.id);
+          const self = cm && cm.sec ? DESIGN.reactions({ ...c.beamBase, L: cut.span, trib: 0 }, cm.sec).D : 0;
+          D += share(q.at) * (q.area * ((B.dead || 0) + (B.coll || 0) + (B.joistWt || 0)) / 1000 + self); Lv += share(q.at) * q.area * (B.live || 0) / 1000;
+        });
+        (bm.pts || []).forEach(q => { D += share(q.at) * q.D; Lv += share(q.at) * q.L; });
+        return { D, L: Lv, mark: mk.mark, ov: a, points: true };
+      }
       const r = DESIGN.reactions({ ...c.beamBase, L: bm.span, trib: bm.trib }, mk.sec);
       const a = side && bm.ov ? bm.ov[side === 'L' ? 1 : 0] : 0, k = a > 0 ? 2 * a / bm.span * (1 + a / (2 * bm.span)) : 0;
       return { D: r.D * (1 + k), L: r.L * (1 + k), mark: mk.mark, ov: a };
@@ -11318,7 +11548,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       beams: designed.map(mk => ({ mark: mk.mark, section: mk.desc, span: (mk.design || mk).span, trib: (mk.design || mk).trib, qty: mk.qty })),
       columns: colFinal ? [{ mark: 'MC1', section: colFinal.quoteAs, length: colLen, qty: owned.length }] : [],
     };
-    return { settings: s, edition: ed, division, warn, grid, layout, marks: designed, clear: c.clear, roomIn: c.roomIn, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
+    return { settings: s, edition: ed, division, warn, grid, layout, notePts: c.notePts || [], marks: designed, clear: c.clear, roomIn: c.roomIn, joistDepthIn: c.joistDepthIn, maxDepthByC: c.maxDepthByC, colLen, columns: owned, colGroups: groups, colFinal, colWhy, foreignCols: foreign, merges: merges.filter(m => m.owner === c.index || m.sub === c.index), quote, beamBase: c.beamBase, id: c.id, index: c.index };
   }
   const near2 = (p, q) => Math.abs(p.x - q.x) < 0.01 && Math.abs(p.y - q.y) < 0.01;
   // columns in plan order, as the C-numbers count them: along the length, then from the BSW
@@ -12069,6 +12299,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       if (map) c.site = { host: host.bkey, hostId: host.id, map };
     });
     const merges = ctxs.length > 1 ? mergeBeams(ctxs) : [];
+    ctxs.forEach(c => { if (!c.incomplete) applyPointLoads(c); });
     const marks = jobMarks(ctxs).map(designMark);
     ctxs.forEach(c => { if (!c.incomplete) attachMarks(c, marks); });
     const cols = jobColumns(ctxs);
@@ -12314,7 +12545,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, mezzEdges, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, openingSizes, openingsFor, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL, columnNotesFor };
+  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, mezzEdges, notePoints, equivTribPoints, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, openingSizes, openingsFor, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL, columnNotesFor };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -13826,12 +14057,13 @@ window.MZ_APP_BUILDING = function (C) {
       const where = `line ${esc(line)} · ${esc(fl(bm.from) || ft(bm.from))} → ${esc(fl(bm.to) || ft(bm.to))}`;
       if (kind === 'carried') return head(`${esc(m.id)} edge · ${bNo(m, id)}`, where) + `<div class="tip-f">Carried by ${esc(bm.absorbed.mezz)} ${bm.absorbed.into.map(i => bNo(job.mezz[bm.absorbed.mi], i)).join(', ')} on the same line — its ${ft(bm.tribOwn)} trib is added to that beam, so it is not counted here.</div>`;
       const mk = mkOf(m, id), run = runOf(mk, bm.span), rx = mk && mk.sec ? DESIGN.reactions({ ...m.beamBase, L: bm.span, trib: bm.trib }, mk.sec) : null;
-      const trib = bm.extra ? `${ft(bm.trib)} <small>(${ft(bm.tribOwn)} + ${bm.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')})</small>` : ft(bm.trib);
+      const trib = bm.pts && bm.pts.length ? `${ft(bm.trib)} <small>(equivalent: ${ft(bm.tribNoPts)} of floor + ${bm.pts.map(q => `${f(q.P, 2)} k ${q.kind} at ${ft(q.at - bm.from)}`).join(' + ')})</small>`
+        : bm.extra ? `${ft(bm.trib)} <small>(${ft(bm.tribOwn)} + ${bm.extra.map(x => esc(x.mezz) + ' ' + ft(x.tribOwn)).join(' + ')})</small>` : ft(bm.trib);
       return head(`${many ? esc(m.id) + ' ' : ''}${bNo(m, id)} · ${esc(mkName(mk))}`, where) +
         `<div class="tip-sec"><i style="background:${mkHex(mk)}"></i>${esc(mk ? mk.desc || 'no section' : '—')}</div>` +
         `<dl class="tip-dl"><div><dt>Span</dt><dd>${ft(bm.span)}</dd></div><div><dt>Trib</dt><dd>${trib}</dd></div><div><dt>MB sheet run</dt><dd>${mk && !mk.sec ? '<b class="ng">none — nothing passes</b>' : mk ? `${ft(run ? runL(run) : Math.abs(bm.span - mk.span) < 1e-3 ? mkDz(mk).span : bm.span)} × ${ft(mkDz(mk).trib)}` : '—'}</dd></div></dl>` +
         (rx ? `<div class="tip-k">End shear, each end · own span and trib (MB H6 / H10)</div><div class="tip-lr one">${pair('Each end', rx.D, rx.L)}</div>` : '') +
-        `<div class="tip-f">${mk && !mk.sec ? `${esc(mk.mark)}: nothing passes — see Beam calc.` : mk && mk.kind === 'interior' ? 'Interior: more trib than any edge beam — designed at the largest interior trib.' : mk && mk.kind === 'exterior' ? 'Exterior: edge beam, joists on one side — designed at the largest edge trib.' : ''}</div>`;
+        `<div class="tip-f">${mk && !mk.sec ? `${esc(mk.mark)}: nothing passes — see Beam calc.` : bm.pts && bm.pts.length ? 'Point load: designed at the uniform trib that gives its largest moment and end shear (dead and live each); its ends take the loads by statics.' : mk && mk.kind === 'interior' ? 'Interior: more trib than any edge beam — designed at the largest interior trib.' : mk && mk.kind === 'exterior' ? 'Exterior: edge beam, joists on one side — designed at the largest edge trib.' : ''}</div>`;
     }
     return '';
   }
@@ -14353,8 +14585,9 @@ window.MZ_APP_BUILDING = function (C) {
   const parseKind = (kind, raw) => {
     raw = String(raw).trim();
     if (raw === '') return null;
-    if (kind === 'ftin') return PCS.ftin(raw) ?? PCS.ftin(raw + "'");
-    if (kind === 'in') { const v = PCS.ftin(/["']/.test(raw) ? raw : raw + '"'); return v != null ? v : parseFloat(raw) / 12; }
+    // lenient: 20-3/2, 20-3-1/2, 20 3.5 are all 20'-3 1/2"
+    if (kind === 'ftin') return PCS.typedLen(raw);
+    if (kind === 'in') return PCS.typedLen(raw, 'in');
     return parseFloat(raw);
   };
   const inputsOf = i => (state.all ? (i === state.mi ? state.inputs : state.all[i].inputs) : state.inputs);
@@ -14456,7 +14689,7 @@ window.MZ_APP_BUILDING = function (C) {
   }
   function notesHtml(warn, hideNeed) {
     const ws = hideNeed ? warn.filter(w => !/^Needs input/.test(w.text)) : warn;
-    const item = w => `<div class="note ${w.level}">${esc(w.text)}</div>`;
+    const item = w => `<div class="note ${w.level}">${esc(w.text)}${w.act && w.act.kind === 'placePt' ? ` <button class="btn-soft sm note-act" data-nact="${esc(JSON.stringify(w.act))}">Place ${w.act.count > 1 ? 'them' : 'it'}</button>` : ''}</div>`;
     const grp = (lv, title, open = true) => { const xs = ws.filter(w => lv.includes(w.level)); if (!xs.length) return '';
       return open ? `<div class="note-group"><h5>${title}</h5>${xs.map(item).join('')}</div>` : `<details class="note-group more"><summary>${title} · ${xs.length} note${xs.length > 1 ? 's' : ''}</summary>${xs.map(item).join('')}</details>`; };
     return grp(['stop', 'warn'], 'Check before quoting') + grp(['ok'], 'Confirmed against the PCS', false) + grp(['key'], 'Design decisions', false) + grp(['info'], 'How it was read', false);
@@ -15013,8 +15246,8 @@ window.MZ_APP_BUILDING = function (C) {
     root.querySelectorAll('[data-sbamt]').forEach(inp => {
       inp.onchange = () => {
         if (inp.dataset.used) return;
-        // 1'-4", 1' 4", 16" or 1.333 (ft)
-        const raw = inp.value.trim(), v = raw === '' ? null : PCS.ftin(raw.replace(/'\s+(?=\d)/, "'-")) ?? (/^\d*\.?\d+$/.test(raw) ? +raw : null);
+        // 1'-4", 1' 4", 1-4, 16" or 1.333 (ft)
+        const raw = inp.value.trim(), v = raw === '' ? null : PCS.typedLen(raw);
         if (v == null || !(v >= 0) || v > 5) { toast(`${raw} is not a setback — e.g. 1'-4"`); inp.value = ft(state.settings[inp.dataset.sbamt]); return; }
         inp.dataset.used = '1';
         allSettings().forEach(st => { st[inp.dataset.sbamt] = v; });
@@ -15038,7 +15271,7 @@ window.MZ_APP_BUILDING = function (C) {
 
   // ---------- 3D framing model ----------
   let model = null;
-  const KIND3 = { interior: 'INT', exterior: 'EXT', opening: 'OPNG' };
+  const KIND3 = { interior: 'INT', exterior: 'EXT', opening: 'OPNG', 'point load': 'PT' };
   // the whole job in one scene: every mezzanine at its own elevation, beams in their mark's colour (interior / exterior)
   // with a mark tag at mid-span, every column once (numbered over the job), the building columns beams frame into
   function buildScene(opt = {}) {
@@ -15453,7 +15686,8 @@ window.MZ_APP_BUILDING = function (C) {
   // ---------- plan ----------
   $$('#joistSeg button').forEach(b => { b.onclick = () => { state.settings.joists = b.dataset.j; delete state.settings.xLines; delete state.settings.yLines; recompute(); }; });
   $('#gridReset').onclick = () => { ['xLines', 'yLines', 'drop', 'colKind'].forEach(k => delete state.settings[k]); recompute(); };
-  const listIn = str => str.split(/[,;\s]+/).map(t => PCS.ftin(t) ?? parseFloat(t)).filter(v => isFinite(v));
+  // a typed list: commas between values (each one as leniently as a single box: 20-3/2), else spaces; 3@20 repeats
+  const listIn = str => String(str || '').split(/[,;]/.test(str) ? /[,;]+/ : /\s+/).map(t => t.trim()).filter(Boolean).flatMap(t => { const m = /^(\d+)\s*@\s*(.+)$/.exec(t), v = PCS.typedLen(m ? m[2] : t); return v == null ? [] : Array(m ? +m[1] : 1).fill(v); });
   function onGridEdit() {
     const lay = state.res.layout, bl = listIn($('#beamLinesIn').value), sl = listIn($('#supLinesIn').value);
     if (bl.length < 1 || sl.length < 2) { toast('Need at least 1 beam line and 2 support lines'); return; }
@@ -15646,7 +15880,7 @@ window.MZ_APP_BUILDING = function (C) {
         if (last && last.mk === mk && Math.abs(last.line - b.line) < 1e-6 && Math.abs(last.to - b.from) < 0.05) last.to = b.to; else runs.push({ mk, line: b.line, from: b.from, to: b.to, dir: b.dir }); });
       runs.forEach(rn => {
         if (!rn.mk || rn.mk.kind === 'opening') return;   // a header / trimmer: its colour, B tag and the legend name it
-        const len = (rn.to - rn.from) * s - 16, long = `${rn.mk.mark}${rn.mk.kind ? ' · ' + rn.mk.kind.toUpperCase() : ''} · ${rn.mk.desc || 'NO SECTION'}`, short = `${rn.mk.mark}${rn.mk.kind ? ' ' + rn.mk.kind.slice(0, 3).toUpperCase() : ''}`;
+        const len = (rn.to - rn.from) * s - 16, long = `${rn.mk.mark}${rn.mk.kind ? ' · ' + rn.mk.kind.toUpperCase() : ''} · ${rn.mk.desc || 'NO SECTION'}`, short = `${rn.mk.mark}${rn.mk.kind ? ' ' + ({ interior: 'INT', exterior: 'EXT', opening: 'OPNG', 'point load': 'PT' }[rn.mk.kind] || rn.mk.kind.slice(0, 3).toUpperCase()) : ''}`;
         const txt = long.length * 6.4 < len ? long : short.length * 6.4 < len ? short : '';
         if (!txt) return;
         // clear of the column symbols on the line (⊗ and its drawing ring reach 14 px)
@@ -15725,6 +15959,13 @@ window.MZ_APP_BUILDING = function (C) {
         o.push(`<text class="mz-name ${m === r ? 'is-cur' : ''}" data-mezz="${m.index}" x="${X(cx)}" y="${Y(cy)}">${esc(m.id)}${m === r && state.planEdit ? ' · editing' : ''}</text>`);
       }
     });
+    // point loads: an arrow down onto the spot and its load (click it in edit mode to move, change or take it out)
+    ms.filter(m => !m._map).forEach(m => (m.layout.pointLoads || []).forEach(q => {
+      const cx = X(q.x), cy = Y(q.y), lab = `${f(q.P, q.P < 10 ? 2 : 1)} k ${q.kind}`, off = !q.on.length;
+      const to = q.on.map(z => `${bNo(m, z.beam)}${z.k < 0.999 ? ` ${Math.round(z.k * 100)} %` : ''}`).join(', ');
+      // a target on the spot, its load below and to the right (the beam run labels sit above a beam, left of one)
+      o.push(`<g class="pl${off ? ' off' : ''}" data-pl="${m.index}|${q.i}"><circle class="hit" cx="${cx}" cy="${cy}" r="${hitR(13)}"/><circle class="ring" cx="${cx}" cy="${cy}" r="8"/><path d="M${cx},${cy + 4.5} l-4.5,-8 h9 z"/><text x="${cx + 10}" y="${cy + 17}">${esc(lab)}</text><title>${esc(`${q.what || 'Point load'} ${f(q.P, 2)} k ${q.kind === 'D' ? 'dead' : 'live'} at ${ft(q.x)} / ${ft(q.y)}${q.note ? ` (special note ${q.note})` : ''} — ${off ? 'not over a beam of this mezzanine: left out' : 'on ' + to}`)}</title></g>`);
+    }));
     o.push('<g id="planCursor" class="plan-cursor"></g>');   // edit mode: the cross-hair, a dragged column, its distances
     $('#planSvg').setAttribute('viewBox', `0 0 ${VW} ${VH}`);
     $('#planSvg').innerHTML = o.join('');
@@ -15761,7 +16002,7 @@ window.MZ_APP_BUILDING = function (C) {
   // ---------- layout edits on the plan: a column made a frame / mezzanine column or taken out, beam and column lines
   //            added or removed. Each is a setting of that mezzanine (lines, drop, colKind), undoable, and the whole job
   //            re-designs from it: beams, columns, frame loads, seismic, the quote ----------
-  const LAY_KEYS = ['xLines', 'yLines', 'drop', 'colKind', 'joists', 'ownSpan', 'openings', 'openingsOff'], layUndo = [];   // ownSpan: a long beam's own mark goes with the layout it was made for
+  const LAY_KEYS = ['xLines', 'yLines', 'drop', 'colKind', 'joists', 'ownSpan', 'openings', 'openingsOff', 'pointLoads'], layUndo = [];   // ownSpan: a long beam's own mark goes with the layout it was made for
   const ptKey = (x, y) => `${(+x).toFixed(2)},${(+y).toFixed(2)}`;
   const laySnap = () => allSettings().map(st => JSON.stringify(Object.fromEntries(LAY_KEYS.filter(k => st[k] !== undefined).map(k => [k, st[k]]))));
   const layRestore = snap => allSettings().forEach((st, i) => { LAY_KEYS.forEach(k => delete st[k]); Object.assign(st, JSON.parse(snap[i] || '{}')); });
@@ -15783,7 +16024,20 @@ window.MZ_APP_BUILDING = function (C) {
   $('#layEdit').onclick = () => { state.planEdit = !state.planEdit; hideLayPop(); layBarSync(); renderPlan(); if (state.planEdit) $('#layBar').scrollIntoView({ block: 'start', behavior: 'smooth' }); };
   $('#layDone').onclick = () => { state.planEdit = false; hideLayPop(); layBarSync(); renderPlan(); };
   $('#layUndo').onclick = () => { const snap = layUndo.pop(); if (!snap) return; layRestore(snap); hideLayPop(); recompute(); toast('Undone'); };
-  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => { allSettings().forEach(st => LAY_KEYS.forEach(k => delete st[k])); state.colBase = null; state.colBaseN = null; });
+  // a point load a PCS note gives, placed where the note says (a frame line; on the edge it names), else mid-floor: in the
+  // design at once, and moved on the Plan page if the drawing has it elsewhere
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-nact]'); if (!b || !state.job) return;
+    let a; try { a = JSON.parse(b.dataset.nact); } catch (e) { return; }
+    const m = state.job.mezz[a.mi], st = allSettings()[a.mi]; if (!m || !st || m.incomplete) return;
+    const fp = m.layout.footprint, xs = m.grid.xs, n = Math.max(1, a.count || 1);
+    const fx = a.frameLine != null && Number.isInteger(a.frameLine) ? xs[a.frameLine - 1] : null, onLine = fx != null && fx >= fp.x0 - 0.01 && fx <= fp.x1 + 0.01;
+    const pts = [...Array(n).keys()].map(i => ({ x: onLine ? fx : fp.x0 + (fp.x1 - fp.x0) * (i + 1) / (n + 1), y: a.edge && n === 1 ? fp.y0 : onLine ? fp.y0 + (fp.y1 - fp.y0) * (i + 1) / (n + 1) : (fp.y0 + fp.y1) / 2 }))
+      .map(p => ({ x: Math.round(p.x * 2) / 2, y: Math.round(p.y * 2) / 2, P: a.P, kind: 'L', what: a.what || '', note: a.n }));
+    layDo(`Special note ${a.n}: ${n > 1 ? `${n} × ` : ''}${f(a.P, 2)} k ${a.what || 'point load'} placed at ${pts.map(p => `${ft(p.x)} / ${ft(p.y)}`).join(', ')}${onLine ? ` (frame line ${a.frameLine})` : ''} — move it on the Plan page if the drawing has it elsewhere`, () => { st.pointLoads = [...(st.pointLoads || []), ...pts]; });
+  });
+  // (point loads are loads, not layout: they stay)
+  $('#layReset').onclick = () => layDo('Layout back to the building grid and the PCS drawing', () => { allSettings().forEach(st => LAY_KEYS.filter(k => k !== 'pointLoads').forEach(k => delete st[k])); state.colBase = null; state.colBaseN = null; });
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideLayPop(); });
   document.addEventListener('click', ev => { const p = $('#layPop'); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest('#planSvg')) hideLayPop(); });
 
@@ -15859,7 +16113,9 @@ window.MZ_APP_BUILDING = function (C) {
     return null;
   }
   // a typed position: ft-in or feet; a y from the BSW turned into one from the FSW (the wall picked beside it)
-  const typedFt = raw => { const t = String(raw || '').trim(); return t === '' ? NaN : (PCS.ftin(t) ?? PCS.ftin(t + "'") ?? NaN); };
+  const typedFt = raw => PCS.typedLen(raw) ?? NaN;
+  // a load typed: 5, 5 k, 5 kips — or 5000 lb, 5,000#, and a bare number of 100 or more is pounds
+  const typedKips = raw => { const t = String(raw || '').trim().toLowerCase().replace(/,/g, ''), m = /^(\d*\.?\d+)\s*(k|kips?|#|lbs?\.?|pounds?)?$/.exec(t); if (!m) return null; const v = +m[1], u = m[2] || ''; return /^(#|lb|pound)/.test(u) || (!u && v >= 100) ? v / 1000 : v; };
   const fromWall = (id, v) => { const sel = $('#' + id + 'W'); return sel && sel.value === 'BSW' ? state.res.grid.width - v : v; };
   const readAt = id => fromWall(id, typedFt(($('#' + id) || {}).value));
   function readXY(id) {
@@ -15947,10 +16203,10 @@ window.MZ_APP_BUILDING = function (C) {
     const ms = jobView(), sets = allSettings(), items = [];
     const ring = (cx, cy) => { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('class', 'edit-ring'); c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 17); svg.appendChild(c); };
     let head = '', where = '';
-    const tgt = ev.target.closest('[data-dropped],[data-col],[data-tip^="bcol"],[data-beam],[data-open]');
+    const tgt = ev.target.closest('[data-pl],[data-dropped],[data-col],[data-tip^="bcol"],[data-beam],[data-open]');
     hideLayPop();
     // a mezzanine of an attached building is drawn in this building's coordinates: edit it in its own — switch to it
-    const tmi = !tgt ? NaN : tgt.dataset.open ? +tgt.dataset.open.split('|')[0] : tgt.dataset.dropped ? +tgt.dataset.dropped.split('|')[0] : tgt.dataset.col ? +tgt.dataset.col.split('|')[2] : tgt.dataset.beam ? +tgt.dataset.beam.split(':')[0] : +((tgt.dataset.tip || '').split('|')[3] ?? NaN);
+    const tmi = !tgt ? NaN : tgt.dataset.pl ? +tgt.dataset.pl.split('|')[0] : tgt.dataset.open ? +tgt.dataset.open.split('|')[0] : tgt.dataset.dropped ? +tgt.dataset.dropped.split('|')[0] : tgt.dataset.col ? +tgt.dataset.col.split('|')[2] : tgt.dataset.beam ? +tgt.dataset.beam.split(':')[0] : +((tgt.dataset.tip || '').split('|')[3] ?? NaN);
     const tm = ms.find(z => z.index === tmi) || (!tgt ? ms.find(z => { const f2 = z.layout.footprint; return wx >= f2.x0 - 0.01 && wx <= f2.x1 + 0.01 && wy >= f2.y0 - 0.01 && wy <= f2.y1 + 0.01; }) : null);
     if (tm && tm._map) { switchMezz(tm.index); toast(`Editing ${tm.id} — click again to change its layout`); return; }
     // a floor opening on the plan, and the one to add: its corner (nearest the LEW and the FSW) and its size
@@ -15960,7 +16216,20 @@ window.MZ_APP_BUILDING = function (C) {
     const opAt = (m, id) => { const c = readXY(id + 'C'), sz = readWH(id); if (!c || !sz) return null; const fp = m.layout.footprint, fromB = (($('#' + id + 'CYW') || {}).value === 'BSW');
       const r = { x0: c.x, x1: c.x + sz.w, y0: fromB ? c.y - sz.h : c.y, y1: fromB ? c.y : c.y + sz.h };
       if (r.x0 < fp.x0 - 0.01 || r.y0 < fp.y0 - 0.01 || r.x1 > fp.x1 + 0.01 || r.y1 > fp.y1 + 0.01) { toast(`The opening runs past ${esc(m.id)}'s edge — keep it inside ${ft(fp.x0)} – ${ft(fp.x1)} × ${ft(fp.y0)} – ${ft(fp.y1)}`); return null; } return r; };
-    if (tgt && tgt.dataset.open) {
+    // a point load: where it is and what it is, typed; P in kips (or lb), live or dead
+    const plRow = it => `<div class="lay-at lay-pl"><span>P</span><input id="${it.pl.id}P" value="${it.pl.P == null ? '' : esc(f(it.pl.P, 3).replace(/\.?0+$/, ''))}" placeholder="5 k or 5000 lb" aria-label="the load, kips"><select id="${it.pl.id}K" aria-label="live or dead"><option value="L" ${it.pl.kind !== 'D' ? 'selected' : ''}>live</option><option value="D" ${it.pl.kind === 'D' ? 'selected' : ''}>dead</option></select></div><div class="lay-at lay-pl"><span>what</span><input id="${it.pl.id}N" value="${esc(it.pl.what || '')}" placeholder="stair, equipment …" aria-label="what it is"></div>`;
+    const readPL = id => { const P = typedKips(($('#' + id + 'P') || {}).value); if (!(P > 0)) { toast('Type the load: 5 (kips), 5 k or 5000 lb'); return null; } return { P, kind: ($('#' + id + 'K') || {}).value === 'D' ? 'D' : 'L', what: String(($('#' + id + 'N') || {}).value || '').trim() }; };
+    const plAdd = (m, st, p, v) => layDo(`${v.what || 'Point load'} ${f(v.P, 2)} k ${v.kind === 'D' ? 'dead' : 'live'} at ${ft(p.x)} / ${ft(p.y)} — click it to move or change it`, () => { st.pointLoads = [...(st.pointLoads || []), { ...p, ...v }]; });
+    if (tgt && tgt.dataset.pl) {
+      const [mi, qi] = tgt.dataset.pl.split('|').map(Number), m = state.job.mezz[mi], st = sets[mi], q = (st.pointLoads || [])[qi];
+      if (!q) return;
+      head = `${esc(q.what || 'Point load')} · ${f(q.P, 2)} k ${q.kind === 'D' ? 'dead' : 'live'}`;
+      { const w = whereTxt(q.x, q.y); where = `${w.x}<br>${w.y}${q.note ? `<br>special note ${q.note}` : ''}`; }
+      items.push({ t: 'Move or change it', sub: 'where it is, then the load', xy: { id: 'layPq', x: q.x, y: q.y }, pl: { id: 'layPv', P: q.P, kind: q.kind, what: q.what },
+        go: () => { const p = readXY('layPq'), v = readPL('layPv'); if (!p || !v) return; layDo(`${v.what || 'Point load'}: ${f(v.P, 2)} k ${v.kind === 'D' ? 'dead' : 'live'} at ${ft(p.x)} / ${ft(p.y)}`, () => { st.pointLoads = st.pointLoads.map((z, i) => (i === qi ? { ...z, ...p, ...v } : z)); }); } });
+      items.push({ t: 'Take it out', sub: 'the beams under it go back to the floor load', go: () => layDo(`${q.what || 'Point load'} taken out`, () => { st.pointLoads = st.pointLoads.filter((z, i) => i !== qi); if (!st.pointLoads.length) delete st.pointLoads; }) });
+      ring(v.x, v.y);
+    } else if (tgt && tgt.dataset.open) {
       const [mi, key] = tgt.dataset.open.split('|'), m = state.job.mezz[+mi], r = (m.layout.openings || []).find(q => q.key === key), st = sets[+mi];
       if (!r) return;
       head = `Floor opening · ${ft(r.x1 - r.x0)} × ${ft(r.y1 - r.y0)}`;
@@ -16016,6 +16285,11 @@ window.MZ_APP_BUILDING = function (C) {
           go: () => { const at = readAt('layAc'); if (!isFinite(at)) { toast('Type where the column goes'); return; } const e = layColumnTo(m, null, sAx === 'x' ? { x: at, y: b.line } : { x: b.line, y: at }, ''); if (e) toast(e); } });
         where = `${ax === 'y' ? whereTxt(b.from, b.line).y : whereTxt(b.line, b.from).x}`;
       }
+      if (!m._map) {
+        const sAx = ax === 'y' ? 'x' : 'y', at = Math.min(b.to, Math.max(b.from, sAx === 'x' ? wx : wy)), p0 = sAx === 'x' ? { x: Math.round(at * 2) / 2, y: b.line } : { x: b.line, y: Math.round(at * 2) / 2 };
+        items.push({ t: 'Add a point load on this beam', sub: 'a stair, equipment, a hanger — the beam is designed for it (its own mark), its columns take it', xy: { id: 'layPq', ...p0 }, pl: { id: 'layPv', P: null, kind: 'L', what: '' },
+          go: () => { const p = readXY('layPq'), v2 = readPL('layPv'); if (!p || !v2) return; plAdd(m, sets[mi], p, v2); } });
+      }
       items.push({ t: 'Open its calc', sub: 'the MB sheet for this mark', go: () => { hideLayPop(); openBeam(m, id); } });
     } else {
       const m = ms.find(z => { const f2 = z.layout.footprint; return wx >= f2.x0 - 0.01 && wx <= f2.x1 + 0.01 && wy >= f2.y0 - 0.01 && wy <= f2.y1 + 0.01; });
@@ -16040,6 +16314,8 @@ window.MZ_APP_BUILDING = function (C) {
         items.push({ t: 'Add a floor opening', sub: `${todo ? `Box 22's ${ft(todo.h)} × ${ft(todo.w)}` : 'its size'} — corner nearest the LEW and the FSW, then along the length × across the width; framed with a header and trimmer as the drawings do`, xy: { id: 'layOpC', x: cx, y: cy }, wh: { id: 'layOp', w: w0, h: h0 },
           go: () => { const nr = opAt(m, 'layOp'); if (!nr) return; layDo(`Floor opening ${ft(nr.x1 - nr.x0)} × ${ft(nr.y1 - nr.y0)} added at ${ft(nr.x0)} / ${ft(nr.y0)}`, () => { st.openings = [...(st.openings || []), { ...nr, h: todo ? todo.h : nr.x1 - nr.x0, w: todo ? todo.w : nr.y1 - nr.y0, for: todo ? todo.key : undefined, from: todo ? `Box 22 ${todo.from.replace(/^Box 22 /, '')}, placed on the Plan page` : 'placed on the Plan page' }]; }); } });
       }
+      items.push({ t: 'Add a point load here', sub: 'on the floor: the joists take it to the beams either side', xy: { id: 'layPq', x: Math.round(wx * 2) / 2, y: Math.round(wy * 2) / 2 }, pl: { id: 'layPv', P: null, kind: 'L', what: '' },
+        go: () => { const p = readXY('layPq'), v2 = readPL('layPv'); if (!p || !v2) return; plAdd(m, sets[m.index], p, v2); } });
       { const w = whereTxt(snapFt(wx, ptLines(m, 'x')), snapFt(wy, ptLines(m, 'y'))); where = `${w.x}<br>${w.y}`; }
       ring(v.x, v.y);
     }
@@ -16048,7 +16324,7 @@ window.MZ_APP_BUILDING = function (C) {
     const wallSel = (id, from) => (from === 'FSW' ? `<select id="${id}W" aria-label="measured from"><option>FSW</option><option>BSW</option></select>` : `<span>the ${from}</span>`);
     const atRow = it => `<div class="lay-at"><span>at</span><input id="${it.at.id}" value="${esc(it.at.v)}" aria-label="${esc(it.t)}"><span>from</span>${wallSel(it.at.id, it.at.from)}</div>`;
     const xyRow = it => `<div class="lay-at lay-xy"><span>x</span><input id="${it.xy.id}X" value="${esc(ft(it.xy.x))}" aria-label="distance from the LEW"><span>from the LEW</span></div><div class="lay-at lay-xy"><span>y</span><input id="${it.xy.id}Y" value="${esc(ft(it.xy.y))}" aria-label="distance from the sidewall">${wallSel(it.xy.id + 'Y', 'FSW')}</div>`;
-    pop.innerHTML = `<h6>${head}</h6>${where ? `<p class="lay-where">${where}</p>` : ''}` + items.map((it, i) => `<button type="button" data-i="${i}" ${it.off ? 'disabled' : ''}>${esc(it.t)}<small>${esc(it.sub || '')}</small></button>${it.at ? atRow(it) : ''}${it.xy ? xyRow(it) : ''}${it.wh ? whRow(it) : ''}`).join('');
+    pop.innerHTML = `<h6>${head}</h6>${where ? `<p class="lay-where">${where}</p>` : ''}` + items.map((it, i) => `<button type="button" data-i="${i}" ${it.off ? 'disabled' : ''}>${esc(it.t)}<small>${esc(it.sub || '')}</small></button>${it.at ? atRow(it) : ''}${it.xy ? xyRow(it) : ''}${it.wh ? whRow(it) : ''}${it.pl ? plRow(it) : ''}`).join('');
     pop.hidden = false;
     const left = Math.min(ev.clientX - wr.left + 10, wr.width - pop.offsetWidth - 8), top = Math.min(ev.clientY - wr.top + 10, wr.height - pop.offsetHeight - 8);
     pop.style.left = Math.max(8, left) + 'px'; pop.style.top = Math.max(8, top) + 'px';
@@ -16056,7 +16332,7 @@ window.MZ_APP_BUILDING = function (C) {
     if (pop.getBoundingClientRect().bottom > innerHeight - 8) pop.style.top = Math.max(8, ev.clientY - wr.top - pop.offsetHeight - 10) + 'px';
     pop.scrollIntoView({ block: 'nearest' });
     $$('#layPop button[data-i]').forEach(bt => { bt.onclick = e2 => { e2.stopPropagation(); const it = items[+bt.dataset.i]; if (it.go) it.go(); }; });
-    $$('#layPop input').forEach(inp => inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { const it = items.find(z => (z.at && z.at.id === inp.id) || (z.xy && inp.id.startsWith(z.xy.id)) || (z.wh && inp.id.startsWith(z.wh.id))); if (it) it.go(); } }));
+    $$('#layPop input').forEach(inp => inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { const it = items.find(z => (z.at && z.at.id === inp.id) || (z.xy && inp.id.startsWith(z.xy.id)) || (z.wh && inp.id.startsWith(z.wh.id)) || (z.pl && inp.id.startsWith(z.pl.id))); if (it) it.go(); } }));
   }
   $('#planSvg').addEventListener('click', layMenu);
 
@@ -16834,14 +17110,20 @@ window.MZ_APP_BUILDING = function (C) {
   }
   function setBrCode(v) { state.nbg.br = v; try { if (v.code) localStorage.setItem(BR_KEY, JSON.stringify(v)); else localStorage.removeItem(BR_KEY); } catch (e) { /* private window */ } }
   // what one file gets: its frame lines, the side COL01 is on, the rows, what is left out, the checks
-  function nbgPlan(item) {
+  // a file's frame lines and the side its COL01 is on (Box 5's interior columns, a lean-to's loads)
+  function nbgOrient(item) {
     const fr = (state.job && state.job.frameEntries) || [], info = item.ff.info, pcs = state.pcs || {};
     const lines = parseLines(item.lines);
     const grid = state.res && state.res.grid;
     const fe = fr.find(x => lines.map(String).includes(String(x.frame)));
     const interior = fe ? fe.interior : grid && lines[0] && grid.interior[lines[0] - 1] ? grid.interior[lines[0] - 1] : [];
     const att = (pcs.attachments || []).find(a => /^(FSW|BSW)$/.test(a.toWall) && (sameName(a.to, info.building) || (pcs.attachments || []).length === 1));
-    const o = FF.orient(info, { interior, leanToWall: att ? att.toWall : null });
+    return { lines, o: FF.orient(info, { interior, leanToWall: att ? att.toWall : null }) };
+  }
+  function nbgPlan(item) {
+    const fr = (state.job && state.job.frameEntries) || [], info = item.ff.info, pcs = state.pcs || {};
+    const grid = state.res && state.res.grid;
+    const { lines, o } = nbgOrient(item);
     const bldgs = [...new Set(fr.map(x => x.building).filter(Boolean))];
     const building = bldgs.length && info.building ? info.building : null;   // a file for another building takes none of these loads
     const r = FF.rowsFor(info, fr, { lines, mirrored: o.mirrored, height: state.nbg.height, building, bottomRight: brCode().code || null });
@@ -17014,7 +17296,7 @@ window.MZ_APP_BUILDING = function (C) {
     $$('#beamInputs input[data-bi]').forEach(inp => {
       inp.onchange = () => {
         const k = inp.dataset.bi, raw = inp.value.trim();
-        const v = raw === '' ? lay[k] : (PCS.ftin(raw) ?? PCS.ftin(raw + "'"));
+        const v = raw === '' ? lay[k] : PCS.typedLen(raw);
         if (v == null || !(v > 0)) { toast(`${raw} is not a length — e.g. 22'-4" or 22.333`); inp.value = ft(mkDz(mk)[k]); return; }
         const next = { ...((state.settings.markInput || {})[mk.mark] || {}) };
         if (k === 'span') delete next.setback;   // a span typed in replaces the setback
@@ -17648,6 +17930,37 @@ window.MZ_APP_BUILDING = function (C) {
     const note = isObj && node.note ? `<small>${esc(node.note)}</small>` : sub ? `<small>${esc(sub)}</small>` : '';
     return `<div class="field-row ${kind === 'list' ? 'wide' : ''}"><label>${label}${badge}${note}</label><input data-path="${path}" data-kind="${kind}" value="${esc(shown)}"></div>`;
   }
+  /* the frame over this mezzanine, from the job's .frame files: on each of its frame lines the underside of the rafter
+     across the mezzanine's width, lowest point — F, the clearance under the frame from the finished floor, and D, from
+     the top of the mezzanine floor (F − A) */
+  function frameClear(r) {
+    if (!r || r.incomplete || !state.nbg || !state.nbg.files.length) return [];
+    const fp = r.layout.footprint, g = r.grid, bname = (inpOf(r).mezz || {}).building, out = [];
+    state.nbg.files.filter(x => x.ff && (x.ff.info.rafters || []).length && (!x.ff.info.building || !bname || sameName(x.ff.info.building, bname))).forEach(item => {
+      let pl; try { pl = nbgOrient(item); } catch (e) { return; }
+      const info = item.ff.info, W = info.width || g.width;
+      pl.lines.forEach(ln => {
+        const x = g.xs[ln - 1];
+        // the floor's edge sits up to a girt depth inside an end frame's line: that frame is over it too
+        if (x == null || x < fp.x0 - 1 || x > fp.x1 + 1) return;
+        let low = null;
+        for (let y = fp.y0; y <= fp.y1 + 1e-6; y += 0.25) { const u = FF.undersideAt(info, pl.o.mirrored ? W - y : y); if (u != null && (!low || u < low.u)) low = { u, y }; }
+        if (low) out.push({ file: item.name, line: ln, ...low, how: pl.o.how });
+      });
+    });
+    return out;
+  }
+  // D and F as the job's frame files have them: the lowest underside of a rafter over the mezzanine, each line
+  function dfRow(r) {
+    const fc = frameClear(r), A = state.inputs.geom.A && state.inputs.geom.A.value;
+    if (!fc.length) return state.nbg && state.nbg.files.length ? '' : `<div class="field-row full df-row"><label>Under the frame<small>drop the job's .frame files on the Project page: D and F are read off the rafters over this mezzanine</small></label></div>`;
+    const lo = fc.reduce((a, q) => (q.u < a.u ? q : a)), D = A != null ? lo.u - A : null;
+    const reqD = state.inputs.geom.D && state.inputs.geom.D.value, reqF = state.inputs.geom.F && state.inputs.geom.F.value;
+    const ok = (have, want) => (want == null ? '' : have + 1e-6 >= want ? ` <b class="good">≥ ${ft(want)} asked ✓</b>` : ` <b class="bad">under the ${ft(want)} asked</b>`);
+    const each = fc.map(q => `line ${q.line} ${ft(q.u)}${q.how === 'assumed' ? '*' : ''}`).join(' · ');
+    return `<div class="field-row full df-row"><label>Under the frame, from the frame files<small>the rafter's underside over the mezzanine, lowest point: ${esc(each)} (${esc(fc.map(q => q.file).filter((v, i, a) => a.indexOf(v) === i).join(', '))})${fc.some(q => q.how === 'assumed') ? ' · * COL01 taken as the FSW column' : ''}</small></label>
+      <div class="calc df-calc"><span>F <b>${ft(lo.u)}</b> from the finished floor${ok(lo.u, reqF)}</span><span>D <b>${D != null ? ft(D) : '—'}</b> above the mezzanine floor (F − A ${A != null ? ft(A) : '—'})${D != null ? ok(D, reqD) : ''}</span><small>line ${lo.line}, ${ft(lo.y)} from the FSW</small></div></div>`;
+  }
   function renderInputs() {
     const inp = state.inputs, r = state.res;
     const checks = (grp, title) => {
@@ -17671,6 +17984,8 @@ window.MZ_APP_BUILDING = function (C) {
       fieldRow('geom.A', '(A) Finish floor to top of mezzanine', 'ftin'), fieldRow('geom.B', '(B) Min. clearance under joist', 'ftin'), fieldRow('geom.C', '(C) Min. clearance under support beams', 'ftin', state.inputs.geom.C && state.inputs.geom.C.source === 'none' ? 'no requirement (entered)' : 'the beam and its sag fit in A − C − slab − seat'),
       fieldRow('geom.slab', 'Slab & deck thickness, (in.)', 'in'), fieldRow('geom.seat', 'Joist seat depth, (in.)', 'in'), fieldRow('geom.joistSpacing', 'Joist spacing (= beam Lb)', 'ftin'),
       `<div class="field-row"><label>Total joist depth, (in.)<small>A − B − slab − seat</small></label><div class="calc">${r.joistDepthIn != null ? f(r.joistDepthIn, 2) + '"' : '—'}</div></div>`,
+      fieldRow('geom.D', '(D) Min. clearance under frame', 'ftin', 'from the top of the mezzanine floor — for the frame design'), fieldRow('geom.F', '(F) Clearance under frame', 'ftin', 'from the finished floor'),
+      dfRow(r),
       '<div class="group-title">Mezzanine footprint</div>',
       fieldRow('geom.width', 'Width (along endwall)', 'ftin'), fieldRow('geom.length', 'Length (along sidewall)', 'ftin'), fieldRow('geom.startLEW', 'Start from LEW', 'ftin'), fieldRow('geom.startFSW', 'Start from FSW', 'ftin'),
       ck ? '<div class="group-title">PCS checkboxes</div>' + ck : '',
@@ -17687,7 +18002,7 @@ window.MZ_APP_BUILDING = function (C) {
   function onInput(el) {
     const [grp, key] = el.dataset.path.split('.'), kind = el.dataset.kind, raw = el.value.trim();
     let val;
-    if (kind === 'ftin') val = raw === '' ? null : (PCS.ftin(raw) ?? PCS.ftin(raw + "'"));
+    if (kind === 'ftin') val = raw === '' ? null : PCS.typedLen(raw);
     else if (kind === 'in') val = parseKind('in', raw);
     else if (kind === 'list') val = parseSpacing(raw);
     else val = raw === '' ? null : parseFloat(raw);

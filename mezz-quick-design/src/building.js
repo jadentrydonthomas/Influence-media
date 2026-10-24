@@ -321,7 +321,8 @@
       }
       return takenMemo.get(k);
     };
-    const narrowSet = new Set(), outLabels = [];
+    const narrowSet = new Set(), outLabels = [], later = [];
+    let mzRects = [];   // the mezzanines' outlines on the drawing: a name moved beside a small building keeps off them
     let top = '';   // names set outside their building, drawn over everything so the next building does not cover them
     const bboxes = site.buildings.map(b => { const cs = b.corners.map(q => P(q)); return { name: b.name, r: [Math.min(...cs.map(q => q[0])) - 2, Math.min(...cs.map(q => q[1])) - 2, Math.max(...cs.map(q => q[0])) + 2, Math.max(...cs.map(q => q[1])) + 2] }; });
     const letterMap = siteLetters(site, opts.letters), bubbles = [];
@@ -334,11 +335,12 @@
       // ridge(s) dashed
       SITE.roofBreaks(g).slice(1, -1).forEach(yr => { const a = P(b.toSite([0, yr])), c = P(b.toSite([L, yr])); out += `<line class="sp-ridge" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(c[0])}" y2="${f(c[1])}"/>`; });
       // braced bays on the walls: an X across the bay, a bar for a portal frame, rods across the end bay for roof bracing
-      const brc = (opts.bracing || {})[b.name] || {};
+      const brc = (opts.bracing || {})[b.name] || {}, wallTags = [];
       ['FSW', 'BSW'].forEach(w => (brc[w] || []).forEach(bay => {
         const y = w === 'FSW' ? 0 : W, xa = b.xs[bay.from], xb = b.xs[bay.to];
         if (xa == null || xb == null) return;
         const inw = (w === 'FSW' ? 1 : -1) * 7 / sc, a0 = P(b.toSite([xa, y])), a1 = P(b.toSite([xb, y])), c0 = P(b.toSite([xa, y + inw])), c1 = P(b.toSite([xb, y + inw]));
+        if (bay.kind === 'portal') { const tx = (c0[0] + c1[0]) / 2, ty = (c0[1] + c1[1]) / 2; wallTags.push([tx - 9, ty - 5, tx + 9, ty + 5]); occ.push(wallTags[wallTags.length - 1]); }
         if (bay.kind === 'portal') out += `<g class="sp-portal"><line x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/><text x="${f((c0[0] + c1[0]) / 2)}" y="${f((c0[1] + c1[1]) / 2 + 3.5)}">PF</text></g>`;
         else out += `<g class="sp-brace"><line class="sp-band" x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(c1[0])}" y2="${f(c1[1])}"/><line class="sp-band" x1="${f(c0[0])}" y1="${f(c0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/>${xGlyph((c0[0] + c1[0] + a0[0] + a1[0]) / 4, (c0[1] + c1[1] + a0[1] + a1[1]) / 4, compact ? 4 : 5.5)}</g>`;
       }));
@@ -427,6 +429,8 @@
       const cs = b.corners.map(q => P(q)), x0 = Math.min(...cs.map(q => q[0])), y0 = Math.min(...cs.map(q => q[1])), bw = Math.max(...cs.map(q => q[0])) - x0, bh = Math.max(...cs.map(q => q[1])) - y0;
       const dr = opts.noDrift ? null : (J.drifts || []).find(d => same(d.lower, b.name) && !d.drift.none && !d.off);
       const topStep = dr && dr.kind === 'side' && P(b.toSite(SITE.wallSeg(g, dr.lowerWall).p0))[1] < y0 + bh / 2 ? Math.min(dr.drift.w, dr.lowerWidth) * sc + 4 : 0;
+      // an endwall's drift band down the left of the outline (its label runs up it): the name starts past it
+      const leftStep = dr && dr.kind === 'end' && P(b.toSite(SITE.wallSeg(g, dr.lowerWall).p0))[0] < x0 + bw / 2 ? Math.min(dr.drift.w, dr.lowerWidth || dr.drift.w) * sc + 4 : 0;
       const dimT = `${ftin(W)} × ${ftin(L)} · ${g.profile || ''}`, need = Math.max(7.6 * b.name.length, 6.4 * dimT.length) + 24;
       // a drift band too narrow on the drawing to hold its label: the label goes with the building's name
       const dsp = dr ? dr.step.span : null, dLen = dsp ? Math.hypot(...[0, 1].map(k => P(b.toSite(dsp[1]))[k] - P(b.toSite(dsp[0]))[k])) : 0;
@@ -436,16 +440,19 @@
       /* the wall names inside the outline (the bubbles and the bay dimensions sit outside), clear of the name: a
          sidewall's in the bay nearest its middle that carries no bracing mark, an endwall's in the widest stretch between
          the grid lines */
-      const nameBox = bw >= need && bh >= 44 + topStep ? [x0 + 8, y0 + 6 + topStep, x0 + need, y0 + 42 + topStep + (narrow ? 15 : 0)] : null;
+      const nameBox = bw >= need + leftStep && bh >= 44 + topStep ? [x0 + 8 + leftStep, y0 + 6 + topStep, x0 + need + leftStep, y0 + 42 + topStep + (narrow ? 15 : 0)] : null;
       const wallBoxes = [];
       if (nameBox) occ.push(nameBox);
+      // for the wall labels the name block is two lines: the name (short) over the size (long)
+      const nameBoxes = nameBox ? [[nameBox[0], nameBox[1], Math.min(nameBox[2], nameBox[0] + 7.6 * b.name.length + 12), nameBox[1] + 18], [nameBox[0], nameBox[1] + 18, nameBox[2], nameBox[3]]] : [];
       SITE.WALLS.forEach(w => {
         if (taken(b, w)) return;   // a wall shared with another building: the joint says it
         const sgm = SITE.wallSeg(g, w), side = w === 'FSW' || w === 'BSW', off = -11 / sc;
         let cands;
         if (side) {
-          const bays = fls.slice(1).map((fl, i) => ({ c: (fls[i].x + fl.x) / 2, marked: (brc[w] || []).some(bay => bay.from <= i && bay.to >= i + 1) }));
-          cands = bays.sort((p, q) => p.marked - q.marked || Math.abs(p.c - L / 2) - Math.abs(q.c - L / 2)).map(q => [q.c, w === 'FSW' ? 0 : W]);
+          const bays = fls.slice(1).map((fl, i) => ({ c: (fls[i].x + fl.x) / 2, d: fl.x - fls[i].x, marked: (brc[w] || []).some(bay => bay.from <= i && bay.to >= i + 1) }));
+          // the middle of a bay, then its quarter points (one braced bay a wall long: beside its tag)
+          cands = bays.sort((p, q) => p.marked - q.marked || Math.abs(p.c - L / 2) - Math.abs(q.c - L / 2)).flatMap(q => [q.c, q.c - q.d * 0.28, q.c + q.d * 0.28, q.c + q.d * 0.4, q.c - q.d * 0.4].map(x => [x, w === 'FSW' ? 0 : W]));
         } else {
           // the widest stretches (within 15 % of the widest) nearest the middle first; in a long one the label may slide
           // to either end of it to keep clear of the name
@@ -459,35 +466,54 @@
         const wl = ((opts.lines || {})[b.name] || []).find(l => l.wall === w && l.wallTag), wt = wl ? wl.wallTag : w, hw = 3.7 * wt.length + 5;
         const box = q => (along ? [q[0] - hw, q[1] - 6, q[0] + hw, q[1] + 6] : [q[0] - 6, q[1] - hw, q[0] + 6, q[1] + hw]);
         const hit = (r, q) => r[0] < q[2] + 6 && r[2] > q[0] - 6 && r[1] < q[3] + 6 && r[3] > q[1] - 6;
-        const m = spots.find(q => ![nameBox, ...wallBoxes].some(r => r && hit(box(q), r))) || spots[0];
+        const m = spots.find(q => ![...nameBoxes, ...wallBoxes, ...wallTags].some(r => r && hit(box(q), r))) || spots.find(q => ![...nameBoxes, ...wallBoxes].some(r => r && hit(box(q), r))) || spots[0];
         wallBoxes.push(box(m)); occ.push(box(m));
         let ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) * 180 / Math.PI;
         if (ang > 90 || ang < -90) ang += 180;
         out += `<text class="sp-wall${wl ? ' has-load' : ''}" x="${f(m[0])}" y="${f(m[1] + 3.5)}" transform="rotate(${ang.toFixed(1)} ${f(m[0])} ${f(m[1])})">${esc(wt)}</text>`;
       });
-      if (bw >= need && bh >= 44 + topStep) {
-        const nx = x0 + 14, ny = y0 + 22 + topStep;
+      if (nameBox) {
+        // a wall label the corner could not keep clear of (a short endwall has one spot): the name steps right past it
+        const under = wallBoxes.filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] && r[1] < nameBox[3] && r[3] > nameBox[1]);
+        const dx = under.length ? Math.max(...under.map(r => r[2] - nameBox[0] + 4)) : 0, sx = dx > 0 && bw >= need + leftStep + dx ? dx : 0;
+        // a portal frame's tag on the wall above the corner: the name steps down past it
+        const tagOver = wallTags.filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] + sx && r[3] > nameBox[1] - 6 && r[1] < nameBox[1] + 14);
+        const sy = tagOver.length && bh >= 58 + topStep ? Math.max(...tagOver.map(r => r[3] - nameBox[1] + 8)) : 0;
+        const nx = x0 + 14 + leftStep + sx, ny = y0 + 22 + topStep + sy;
         out += `<text class="sp-name sp-name-corner" x="${f(nx)}" y="${f(ny)}">${esc(b.name)}</text><text class="sp-dim sp-dim-corner" x="${f(nx)}" y="${f(ny + 14)}">${esc(dimT)}</text>${narrow ? `<text class="sp-dlab sp-dlab-out" x="${f(nx)}" y="${f(ny + 29)}">${esc(dT)}</text>` : ''}</g>`;
       } else if (bh >= need && bw >= 40) {
         const cx = x0 + bw / 2 - 2, cy = y0 + bh / 2;
         out += `<g transform="rotate(-90 ${f(cx)} ${f(cy)})"><text class="sp-name" x="${f(cx)}" y="${f(cy - 2)}">${esc(b.name)}</text><text class="sp-dim" x="${f(cx)}" y="${f(cy + 12)}">${esc(dimT)}</text>${narrow ? `<text class="sp-dlab" x="${f(cx)}" y="${f(cy + 27)}">${esc(dT)}</text>` : ''}</g></g>`;
       } else {
-        // too small on the drawing: the name beside it, outside the outline, with a leader — right, above, left or
-        // below, the first spot clear of the other buildings and the names already placed
-        const lh = dr && !compact ? 34 : 20, hitAny = r => [...bboxes.filter(q => q.name !== b.name).map(q => q.r), ...outLabels].some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
-        const cand = [
-          { nx: x0 + bw + 12, ny: y0 + 14, lx: x0 + bw, ly: y0 + 10, ex: x0 + bw + 9, ey: y0 + 10 },
-          { nx: x0, ny: y0 - lh - 6 + 12, lx: x0 + 8, ly: y0, ex: x0 + 8, ey: y0 - 6 },
-          { nx: x0 - 12 - need, ny: y0 + 14, lx: x0, ly: y0 + 10, ex: x0 - 9, ey: y0 + 10 },
-          { nx: x0, ny: y0 + bh + 30, lx: x0 + 8, ly: y0 + bh, ex: x0 + 8, ey: y0 + bh + 18 },
-        ].filter(c => c.nx >= 2 && c.nx + need <= Wd - 2 && c.ny - 12 >= 2 && c.ny + lh - 12 <= H - 2);
-        const c = cand.find(q => !hitAny([q.nx, q.ny - 12, q.nx + need, q.ny + lh - 12])) || cand[0] || { nx: x0, ny: y0 + bh + 30, lx: x0 + 8, ly: y0 + bh, ex: x0 + 8, ey: y0 + bh + 18 };
-        outLabels.push([c.nx, c.ny - 12, c.nx + need, c.ny + lh - 12]);
+        // too small on the drawing: the name beside it with a leader, placed once every building's own labels are (so
+        // it keeps clear of them) — right, above, left or below, outside its neighbours; else inside a neighbour's
+        // open floor beside it; the first spot clear of the bubbles, names and wall labels
         out += '</g>';
+        later.push(() => {
+        const lh = dr && !compact ? 34 : 20, clashes = (r, list) => list.some(q => r[0] < q[2] + 3 && r[2] > q[0] - 3 && r[1] < q[3] + 3 && r[3] > q[1] - 3);
+        const others = bboxes.filter(q => q.name !== b.name).map(q => q.r);
+        const at = (nx, ny, lx, ly, ex, ey, inside) => ({ nx, ny, lx, ly, ex, ey, inside });
+        const cand = [
+          at(x0 + bw + 12, y0 + 14, x0 + bw, y0 + 10, x0 + bw + 9, y0 + 10),
+          at(x0, y0 - lh - 6 + 12, x0 + 8, y0, x0 + 8, y0 - 6),
+          at(x0 - 12 - need, y0 + 14, x0, y0 + 10, x0 - 9, y0 + 10),
+          at(x0, y0 + bh + 30, x0 + 8, y0 + bh, x0 + 8, y0 + bh + 18),
+          // inside the neighbour beside it, further along until the floor is open (a leader runs back to it)
+          ...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => [0.5, 0.72, 0.28].map(k => at(x0 + bw + 14 + i * 40, y0 + bh * k, x0 + bw, y0 + bh * k - 4, x0 + bw + 11 + i * 40, y0 + bh * k - 4, true))),
+          ...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => [0.5, 0.72, 0.28].map(k => at(x0 - 14 - need - i * 40, y0 + bh * k, x0, y0 + bh * k - 4, x0 - 11 - i * 40, y0 + bh * k - 4, true))),
+        ].filter(c => c.nx >= 2 && c.nx + need <= Wd - 2 && c.ny - 12 >= 2 && c.ny + lh - 12 <= H - 2);
+        const rOf = q => [q.nx, q.ny - 12, q.nx + need, q.ny + lh - 12];
+        const c = cand.find(q => !clashes(rOf(q), [...occ, ...outLabels]) && (q.inside ? !clashes(rOf(q), mzRects) : !clashes(rOf(q), others))) || cand.find(q => !clashes(rOf(q), [...occ, ...outLabels])) || cand[0] || at(x0, y0 + bh + 30, x0 + 8, y0 + bh, x0 + 8, y0 + bh + 18);
+        outLabels.push(rOf(c)); occ.push(rOf(c));
         top += `<line class="sp-leader" x1="${f(c.lx)}" y1="${f(c.ly)}" x2="${f(c.ex)}" y2="${f(c.ey)}"/><text class="sp-name sp-name-corner" x="${f(c.nx)}" y="${f(c.ny)}">${esc(b.name)}</text><text class="sp-dim sp-dim-corner" x="${f(c.nx)}" y="${f(c.ny + 14)}">${esc(dimT)}</text>${dr && !compact ? `<text class="sp-dlab sp-dlab-out" x="${f(c.nx)}" y="${f(c.ny + 29)}">${esc(dT)}</text>` : ''}`;
         narrowSet.add(b.name);
+        });
       }
     });
+    const mzBox = m => { const b = site.buildings.find(q => same(q.name, m.building)) || site.buildings[0]; if (!b) return null; const p = P(b.toSite([m.x0, m.y0])), q = P(b.toSite([m.x1, m.y1])); return [Math.min(p[0], q[0]), Math.min(p[1], q[1]), Math.max(p[0], q[0]), Math.max(p[1], q[1])]; };
+    mzRects = (opts.mezz || []).map(mzBox).filter(Boolean);
+    later.forEach(fn => fn());
+    const mzLabs = [];
     (opts.mezz || []).forEach(m => {
       const b = site.buildings.find(q => same(q.name, m.building)) || site.buildings[0];
       if (!b) return;
@@ -495,13 +521,37 @@
       const x = Math.min(p[0], q[0]), y = Math.min(p[1], q[1]), w = Math.abs(q[0] - p[0]), h = Math.abs(q[1] - p[1]);
       const lab = `${mezzName(m.id)}${m.A != null && !compact ? ` · ${ftin(m.A)}` : ''}`;
       const mc = (m.cols || []).map(c => { const q = P(b.toSite([c.x, c.y])), r = compact ? 3 : 4.2; return `<g class="sp-mcol"><circle cx="${f(q[0])}" cy="${f(q[1])}" r="${r}"/><path d="M${f(q[0] - r * 0.7)},${f(q[1] - r * 0.7)} L${f(q[0] + r * 0.7)},${f(q[1] + r * 0.7)} M${f(q[0] - r * 0.7)},${f(q[1] + r * 0.7)} L${f(q[0] + r * 0.7)},${f(q[1] - r * 0.7)}"/></g>`; }).join('');
-      // the name in the middle, or nudged up or down off the columns it would sit on
-      const cq = (m.cols || []).map(c => P(b.toSite([c.x, c.y]))), tw = (compact ? 5.8 : 6.6) * lab.length / 2 + 4;
-      const ly = [0, -0.22, 0.22, -0.34, 0.34].map(k => y + h / 2 + 4 + k * h).find(v => !cq.some(q => Math.abs(q[0] - (x + w / 2)) < tw + 5 && q[1] > v - 15 && q[1] < v + 9)) ?? y + h / 2 + 4;
+      /* the name in the middle, or nudged up or down off the columns it would sit on — clear of the building names, the
+         wall labels, the bubbles and the other mezzanines' names; on a floor drawn too small for it, the name alone (the
+         height in its hover), then turned along a tall floor; failing all, the name alone where it clashes least */
+      const cq = (m.cols || []).map(c => P(b.toSite([c.x, c.y]))), cw = compact ? 5.8 : 6.6;
+      const clash = r => [...occ, ...mzLabs].some(q => r[0] < q[2] + 2 && r[2] > q[0] - 2 && r[1] < q[3] + 2 && r[3] > q[1] - 2);
+      const onCol = (cx, v, half) => cq.some(q => Math.abs(q[0] - cx) < half + 5 && q[1] > v - 15 && q[1] < v + 9);
+      const variants = [lab, mezzName(m.id), String(m.id)].filter((t, i, a) => a.indexOf(t) === i);
+      let pick = null;
+      for (const t of variants) {
+        const half = cw * t.length / 2 + 4;
+        if (2 * half > w - 4) continue;
+        const v = [0, -0.22, 0.22, -0.34, 0.34].map(k => y + h / 2 + 4 + k * h).find(v2 => v2 - 12 > y && v2 + 4 < y + h && !onCol(x + w / 2, v2, half) && !clash([x + w / 2 - half, v2 - 11, x + w / 2 + half, v2 + 4]));
+        if (v != null) { pick = { t, cx: x + w / 2, cy: v, r: [x + w / 2 - half, v - 11, x + w / 2 + half, v + 4] }; break; }
+      }
+      if (!pick) for (const t of variants) {
+        const half = cw * t.length / 2 + 4;
+        if (2 * half <= h - 4 && w >= 14) { const cx = x + w / 2 + 4, cy = y + h / 2, r = [cx - 11, cy - half, cx + 4, cy + half]; if (!clash(r) || t === variants[variants.length - 1]) { pick = { t, cx, cy, rot: true, r }; break; } }
+      }
+      if (!pick) {
+        // a floor too small to hold its name: beside it with a leader — right, left, above, below — clear of the rest
+        const t = variants[variants.length - 1], tw = cw * t.length + 8;
+        const sp = [[x + w + 8, y + h / 2 + 4, 'start'], [x - 8, y + h / 2 + 4, 'end'], [x + w / 2, y - 6, 'middle'], [x + w / 2, y + h + 14, 'middle'], [x + w + 8, y + 12, 'start'], [x + w + 8, y + h - 4, 'start']]
+          .map(([tx, ty, an]) => { const x0r = an === 'start' ? tx : an === 'end' ? tx - tw : tx - tw / 2; return { tx, ty, an, r: [x0r, ty - 11, x0r + tw, ty + 4] }; });
+        const q = sp.find(c => !clash(c.r)) || sp[0];
+        pick = { t, cx: q.tx, cy: q.ty, anchor: q.an, r: q.r, lead: [x + w / 2, y + h / 2, q.an === 'start' ? q.r[0] - 2 : q.an === 'end' ? q.r[2] + 2 : q.tx, q.an === 'middle' ? (q.ty < y ? q.ty + 4 : q.ty - 11) : q.ty - 4] };
+      }
+      mzLabs.push(pick.r); occ.push(pick.r);
       // a floor opening: the floor taken out, outlined and crossed
       const hs = (m.holes || []).map(o => { const a = P(b.toSite([o.x0, o.y0])), c = P(b.toSite([o.x1, o.y1])), hx = Math.min(a[0], c[0]), hy = Math.min(a[1], c[1]), hw = Math.abs(c[0] - a[0]), hh = Math.abs(c[1] - a[1]);
         return `<g class="sp-hole"><rect x="${f(hx)}" y="${f(hy)}" width="${f(hw)}" height="${f(hh)}"/><path d="M${f(hx)},${f(hy)} L${f(hx + hw)},${f(hy + hh)} M${f(hx + hw)},${f(hy)} L${f(hx)},${f(hy + hh)}"/><title>Floor opening ${ftin(Math.abs(o.x1 - o.x0))} × ${ftin(Math.abs(o.y1 - o.y0))}</title></g>`; }).join('');
-      out += `<g class="sp-mezz"><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" fill="url(#spHatch)"/><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" class="sp-mezz-edge"/>${hs}${mc}<text x="${f(x + w / 2)}" y="${f(ly)}">${esc(lab)}</text></g>`;
+      out += `<g class="sp-mezz"><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" fill="url(#spHatch)"/><rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" class="sp-mezz-edge"/>${hs}${mc}${pick.lead ? `<line class="sp-mz-lead" x1="${f(pick.lead[0])}" y1="${f(pick.lead[1])}" x2="${f(pick.lead[2])}" y2="${f(pick.lead[3])}"/>` : ''}<text x="${f(pick.cx)}" y="${f(pick.cy)}"${pick.anchor ? ` style="text-anchor:${pick.anchor}"` : ''}${pick.rot ? ` transform="rotate(-90 ${f(pick.cx)} ${f(pick.cy)})"` : ''}>${esc(pick.t)}<title>${esc(lab)}</title></text></g>`;
     });
     /* the bracing lines (the Bracing page): each sidewall and endwall, and each mezzanine edge off the walls — a bracing
        wall to create, dashed, with its braced bay; the line picked lit; EQB / EQF arrows at the ends of its run, pointing

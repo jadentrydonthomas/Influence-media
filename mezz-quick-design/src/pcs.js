@@ -48,6 +48,31 @@
     if (m) return +m[1];
     return null;
   }
+  /* A length as an engineer types it, quickly: 20'-3 1/2", 20-3-1/2, 20 3 1/2, 20-3.5, 20' 3.5", 20ft 3in, 20.25 (feet)
+     and the shorthand 20-3/2 for 20'-3 1/2" (a fraction over its own denominator is the inches and that part: 3/2 is
+     3 1/2, 5/4 is 5 1/4; a proper one, 20-3/4, is 3/4"). Inches alone take an inch mark (3 1/2") — or unit 'in' when
+     the box is in inches. Null when it is not a length. */
+  function typedLen(raw, unit = 'ft') {
+    let t = String(raw == null ? '' : raw).trim().toLowerCase().replace(/[’′`]/g, "'").replace(/[”″]|''/g, '"')
+      .replace(/\s*(?:feet|foot|ft)\.?(?=[\s\d-]|$)/g, "'").replace(/\s*(?:inches|inch|in)\.?(?=\s|$)/g, '"').replace(/\u2013|\u2014/g, '-');
+    if (!t || /^-/.test(t)) return null;
+    if (unit === 'ft' && /^\d*\.?\d+$/.test(t)) return +t;
+    const inchOnly = unit === 'in' ? !t.includes("'") : t.includes('"') && !t.includes("'");
+    const toks = t.replace(/['"]/g, ' ').trim().split(/(?:\s*-\s*|\s+)/).filter(Boolean);
+    if (!toks.length || toks.some(x => !/^\d*\.?\d+$|^\d+\/\d+$/.test(x))) return null;
+    const frac = x => { const [a, b] = x.split('/').map(Number); return !(b > 0) ? NaN : a >= b && b > 1 ? a + 1 / b : a / b; };
+    const num = x => (x.includes('/') ? frac(x) : +x);
+    const inches = list => {
+      if (list.length === 1) return num(list[0]);
+      if (list.length === 2 && !list[0].includes('/') && list[1].includes('/')) { const [a, b] = list[1].split('/').map(Number); return a < b ? +list[0] + a / b : NaN; }
+      return NaN;
+    };
+    let v;
+    if (inchOnly) v = inches(toks) / 12;
+    else if (toks[0].includes('/')) return null;
+    else v = toks.length === 1 ? +toks[0] : +toks[0] + inches(toks.slice(1)) / 12;
+    return isFinite(v) && v >= 0 ? v : null;
+  }
   // 12'-0", 0'-3 1/2", 5", 2-3/4" — and 8-4 1/2" (8'-4 1/2" with the foot mark lost to OCR)
   const DIM = String.raw`-?\d+'(?:\s*-\s*\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?")?|\d+-\d+(?:\.\d+)?(?: \d+\/\d+)?"|\d+(?:\.\d+)?(?:[ -]\d+\/\d+)?"`;
   const reDimAll = new RegExp(DIM, 'g');
@@ -961,6 +986,6 @@
     return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, pen, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), cranes: cranes(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
   }
 
-  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall, cranes };
+  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, typedLen, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall, cranes };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);
