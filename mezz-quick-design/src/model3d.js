@@ -32,7 +32,7 @@
     const ctx = canvas.getContext('2d');
     // the window it draws in (a canvas in a window of its own — the building on a second screen — turns on that window's frames)
     const win = opts.win || (canvas.ownerDocument && canvas.ownerDocument.defaultView) || window, doc = win.document;
-    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, target: [0, 0, 0], auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
+    const view = { yaw: -0.72, pitch: 0.52, zoom: 1, target: [0, 0, 0], auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true }, ghostA: 0.1, onlyTags: null };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
     const ZMIN = 0.5, ZMAX = 40;
     let scene = null, polys = [], raf = 0, last = 0, dragging = null, visible = true, dpr = 1, W = 0, H = 0, fit = 1, anim = null, flakes = [];
@@ -157,7 +157,7 @@
         // isolating: the rest faint, the snow and drift left out
         const ghost = view.only && !view.only.has(m0.id);
         if (ghost && (m0.kind === 'snow' || m0.kind === 'drift')) continue;
-        const m = ghost ? { ...m0, alpha: Math.min(m0.alpha ?? 1, m0.kind === 'roof' ? 0.04 : 0.1) } : m0;
+        const m = ghost ? { ...m0, alpha: Math.min(m0.alpha ?? 1, m0.kind === 'roof' ? 0.04 : view.ghostA) } : m0;
         const rgb = hexToRgb(m.color);
         const hl = view.hover === m.id || view.selected === m.id;
         for (const b of m.boxes || []) {
@@ -167,7 +167,7 @@
             const pts = f.v.map(project);
             const depth = pts.reduce((a, p) => a + p[2], 0) / 4;
             const lam = 0.5 + 0.55 * Math.max(0, f.n[0] * light[0] + f.n[1] * light[1] + f.n[2] * light[2]);
-            polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgb, lam * (hl ? 1.25 : 1), m.alpha ?? 1), stroke: m.kind === 'slab' ? shade(rgb, 1.4, 0.35) : shade(rgb, 0.55, ghost ? 0.12 : 0.9), hl, kind: m.kind, ghost, w: mean(f.v) });
+            polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgb, lam * (hl ? 1.25 : 1), m.alpha ?? 1), stroke: m.kind === 'slab' ? shade(rgb, 1.4, 0.35) : shade(rgb, 0.55, ghost ? Math.max(0.12, view.ghostA) : 0.9), hl, kind: m.kind, ghost, w: mean(f.v) });
           }
         }
         // free polygons (roof planes, snow, drift wedges): lit from either side, never culled
@@ -187,7 +187,7 @@
         }
         for (const [a, c] of m.lines || []) {
           const pa = project(a), pc = project(c);
-          polys.push({ type: 'line', pts: [pa, pc], depth: (pa[2] + pc[2]) / 2, id: m.id, stroke: shade(rgb, hl ? 1.3 : 1, ghost ? Math.min(0.12, m.alpha ?? 0.8) : m.alpha ?? 0.8), width: m.width || 1, hl, kind: m.kind, ghost, w: mean([a, c]) });
+          polys.push({ type: 'line', pts: [pa, pc], depth: (pa[2] + pc[2]) / 2, id: m.id, stroke: shade(rgb, hl ? 1.3 : 1, ghost ? Math.min(Math.max(0.12, view.ghostA), m.alpha ?? 0.8) : m.alpha ?? 0.8), width: m.width || 1, hl, kind: m.kind, ghost, w: mean([a, c]) });
         }
       }
       polys.sort((a, b) => b.depth - a.depth);
@@ -235,7 +235,7 @@
       const hits = (x0, y0, x1, y1) => bubbles.some(b => b[0] + 11 > x0 && b[0] - 11 < x1 && b[1] + 11 > y0 && b[1] - 11 < y1) || placed.some(r => r[0] < x1 && r[2] > x0 && r[1] < y1 && r[3] > y0);
       for (const l of all.filter(q => q.kind !== 'tag').concat(all.filter(q => q.kind === 'tag'))) {
         // the Labels switch takes the words off (the grid bubbles stay); a label of a layer that is off goes with it
-        if (l.kind !== 'bubble' && (view.toggles.labels === false || view.only)) continue;
+        if (l.kind !== 'bubble' && (view.toggles.labels === false || (view.only && !(view.onlyTags && l.toggle === view.onlyTags)))) continue;
         if (l.toggle && [].concat(l.toggle).some(k => view.toggles[k] === false)) continue;
         const p = project(l.p);
         if (l.kind === 'tag') {
@@ -394,8 +394,9 @@
         resize();
       },
       select(id) { view.selected = id; draw(); },
-      // show these members alone (the rest faint) and fly to box; null: the whole scene again
-      isolate(ids, b) { view.only = ids && ids.length ? new Set(ids) : null; stopAuto(); if (b) focus(b); else if (!ids && scene) anim = { t0: win.performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; draw(); },
+      // show these members alone (the rest faint) and fly to box; null: the whole scene again. o.ghost: how faint the rest
+      // is (0.1 by default; more to keep it as an outline); o.tags: the layer whose tags stay (as 'brace'); o.turn: keep turning
+      isolate(ids, b, o = {}) { view.only = ids && ids.length ? new Set(ids) : null; view.ghostA = o.ghost ?? 0.1; view.onlyTags = o.tags || null; if (!o.turn) stopAuto(); if (b) focus(b); else if (!ids && scene) anim = { t0: win.performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; draw(); },
       get isolated() { return !!view.only; },
       toggle(k, v) { view.toggles[k] = v; draw(); },
       toggles: view.toggles,

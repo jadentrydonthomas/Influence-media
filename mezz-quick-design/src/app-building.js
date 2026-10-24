@@ -147,9 +147,19 @@ window.MZ_APP_BUILDING = function (C) {
     state.frameSel = { building: name, frame: +no };
     popAll = false;
     renderFrames(); renderBldPlan(); popSelect();
-    if (open) go('frames');
+    if (open) go('frames'); else if (C.railFocus) C.railFocus();
   }
   const kft = v => (v == null ? '—' : `${F3(Math.abs(v))} k/ft`);
+  // the alternate snow to type into NBG Frame for a building's frames (its unbalanced cases), one line on the Frames page
+  const altSnowT = name => { const r = state.snowJob && state.snowJob.roofs.find(q => sameName(q.name, name)), u = r && r.unbalanced;
+    if (!u || !u.applies || u.need) return '';
+    if (u.simple) return `<span>Unbalanced snow <b>leeward ${F2(u.leeward)} psf</b>, windward 0 (W ≤ 20 ft) — each way</span>`;
+    const d = u.dirs || { FSW: u, BSW: u };
+    return u.same !== false ? `<span>Alt snow <b>${F2(u.surcharge)} psf</b> over ${ft(u.length)} from the ridge — each way (SnowLeftSlope / SnowRightSlope)</span>`
+      : `<span>Alt snow · wind from the FSW <b>${F2(d.FSW.surcharge)} psf</b> over ${ft(d.FSW.length)} on the BSW slope · from the BSW <b>${F2(d.BSW.surcharge)} psf</b> over ${ft(d.BSW.length)} on the FSW slope</span>`; };
+  // the alternate snow NBG Frame takes, each way the wind blows (the same both ways on an equal gable)
+  const ubKey = u => { const d = u.dirs || { FSW: u, BSW: u }, one = (w, q) => `<span><b>Wind from the ${w}</b> · alt snow (surcharge) <b class="mono ub-big">${F2(q.surcharge)} psf</b> over ${ft(q.length)} from the ridge on the ${w === 'FSW' ? 'BSW' : 'FSW'} slope · windward <b class="mono">${F2(q.windward)}</b> · leeward <b class="mono">${F2(q.leeward)}</b> psf</span>`;
+    return `<div class="ub-key">${one('FSW', d.FSW)}${one('BSW', d.BSW)}<span class="sub-n">${u.same !== false ? 'An equal gable: the same each way. ' : `An unequal gable: each way its own (hd on the windward eave-to-ridge run, S of the leeward slope); the wind from the ${u.gov || 'FSW'} governs. `}NBG Frame's unbalanced cases (SnowLeftSlope / SnowRightSlope) take the surcharge as the alternate snow — one case each way, as NBG Design Calcs gives WindToRight and WindToLeft.</span></div>`; };
   const wirePlan = (root, open) => $$(root + ' .sp-fl').forEach(g => { const act = () => selectFrame(g.dataset.bldg, +g.dataset.frame, open); g.onclick = act; g.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } }; });
 
   // ---------- Project & files ----------
@@ -195,7 +205,7 @@ window.MZ_APP_BUILDING = function (C) {
   const LAYERS = {
     job: [['snow', 'Snow', ['snow', 'drift', 'flakes'], true], ['mezz', 'Mezzanines', ['mezz', 'joist', 'joists'], true], ['roof', 'Roof', ['roof', 'snow', 'drift', 'flakes'], true], ['brace', 'Bracing', ['brace'], true],
       ['purlin', 'Purlins', ['purlin'], false], ['frame', 'Frames', ['frame'], true], ['labels', 'Labels', ['labels'], true]],
-    mezz: [['slab', 'Slab', ['slab'], true], ['joists', 'Joists', ['joists'], true], ['building', 'Building columns', ['building'], true], ['labels', 'Labels', ['tags', 'labels'], true]],
+    mezz: [['slab', 'Slab', ['slab'], true], ['joists', 'Joists', ['joists'], true], ['building', 'Building columns', ['building'], true], ['brace', 'Bracing', ['brace'], true], ['labels', 'Labels', ['tags', 'labels'], true]],
   };
   const TOGGLES = LAYERS.job;
   state.layers = (() => { try { return JSON.parse(localStorage.getItem('mzd.layers') || 'null') || {}; } catch (e) { return {}; } })();
@@ -494,7 +504,7 @@ window.MZ_APP_BUILDING = function (C) {
         return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.building.g.profile || '')} ${F2(r.slope)}:12<small class="sub-n">${F1(r.slopeDeg)}°${r.slippery ? ' · slippery' : ''}</small></td><td class="num mono">${F2(r.Ct)}</td><td class="num mono">${F1(r.pf)}</td><td class="num mono">${F2(r.Cs)}</td><td class="num mono">${F1(r.ps)}</td><td class="num mono">${pm}</td><td class="num mono"><b>${F1(r.applied ?? r.design)} psf</b><small class="sub-n">${esc(r.appliedSrc || '')}</small></td><td>${ut}</td><td>${pcsT}</td></tr>`; }).join('')}</tbody></table></div>
         <small class="sub-n">Is ${J.roofs.length ? F2(J.roofs[0].Is) : '1.00'} · pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf. <b>On the frames</b> is the uniform snow NBG Frame applies — the PCS's user override where it has one, else the larger of ps and pm; a drift always sits on ps.</small>`
         // each gable's unbalanced snow, drawn: the surcharge is what NBG Frame takes as the alternate snow
-        + J.roofs.map(r => { const u = r.unbalanced; return `<div class="ub-card" data-bldg="${esc(r.name)}">${u && u.applies && !u.need ? `<div class="wall-card">${B.unbalancedSvg(r)}</div>${u.simple ? '' : `<div class="ub-key"><span><b>Alt snow (surcharge)</b> <b class="mono ub-big">${F1(u.surcharge)} psf</b> over ${ft(u.length)} from the ridge</span><span>windward <b class="mono">${F1(u.windward)}</b> psf · leeward <b class="mono">${F1(u.leeward)}</b> psf</span><span class="sub-n">NBG Frame's unbalanced cases (SnowLeftSlope / SnowRightSlope) take the surcharge as the alternate snow, each way</span></div>`}` : `<div class="seis-msg info">${esc(r.name)}: no unbalanced snow — ${esc(u ? (u.need ? 'ASCE 7-22 needs W2' : u.why) : 'not a gable')}.</div>`}</div>`; }).join('');
+        + J.roofs.map(r => { const u = r.unbalanced; return `<div class="ub-card" data-bldg="${esc(r.name)}">${u && u.applies && !u.need ? `<div class="wall-card">${B.unbalancedSvg(r, 'FSW')}</div><div class="wall-card">${B.unbalancedSvg(r, 'BSW')}</div>${u.simple ? '' : ubKey(u)}` : `<div class="seis-msg info">${esc(r.name)}: no unbalanced snow — ${esc(u ? (u.need ? 'ASCE 7-22 needs W2' : u.why) : 'not a gable')}.</div>`}</div>`; }).join('');
       const sp = (state.snow && state.snow.purlin) || DEFAULT_PURLIN;
       const level = J.drifts.filter(d => d.level), steps = J.drifts.filter(d => !d.level);
       const levelT = level.length ? `<div class="snow-level">${level.map(d => `<span><b>${esc(d.lower)}</b> ${d.lowerWall} meets <b>${esc(d.upper)}</b> ${d.upperWall} level — one roof, no drift; a fetch toward a step runs on through both</span>`).join('')}</div>` : '';
@@ -823,7 +833,7 @@ window.MZ_APP_BUILDING = function (C) {
     plan.crows.forEach(r => con.push({ name: r.name, cs: r.caseId, member: r.member, at: r.location, x: r.x, y: r.y, ecc: r.toFlange, lean: true }));
     const eqWait = (ld.eq || []).some(q => q.F == null);
     const sum = [ld.snow ? `<span>Roof snow <b>${F1(ld.snow.applied)} psf</b> (${esc(ld.snow.src)}) → <b>${kft(ld.snow.kft)}</b></span>${ld.snow.applied !== ld.snow.ps ? `<span>balanced ps <b>${F1(ld.snow.ps)} psf</b> under the drift</span>` : ''}` : '', `<span>Roof dead + collateral <b>${kft(ld.dead + ld.coll)}</b></span>`,
-      lat ? `<span>Roof seismic <b>${F2(lat.lat.frame.roofPsf)} psf</b> · Cs <b>${F3(lat.lat.Cs)}</b> · base shear <b>${F2(lat.lat.V)} k</b> · ${esc(lat.lat.sys.label)} R <b>${+lat.lat.R.toFixed(2)}</b></span>` : ''].filter(Boolean).join('');
+      lat ? `<span>Roof seismic <b>${F2(lat.lat.frame.roofPsf)} psf</b> · Cs <b>${F3(lat.lat.Cs)}</b> · base shear <b>${F2(lat.lat.V)} k</b> · ${esc(lat.lat.sys.label)} R <b>${+lat.lat.R.toFixed(2)}</b></span>` : '', altSnowT(Fd.name)].filter(Boolean).join('');
     const panT = plan.pan.length ? `<div class="table-wrap nbg-grid"><table class="fl-t"><thead><tr><th>Description</th><th>Load Case</th><th>Panel</th><th>Load Direction</th><th class="num">Start Load (kip/ft)</th><th class="num">End Load (kip/ft)</th><th class="num">Start Location (ft)</th><th class="num">End Location (ft)</th></tr></thead><tbody>${plan.pan.map(r => `<tr><td>${esc(r.name)}</td><td class="mono">${r.caseId}</td><td class="mono">${r.panel}</td><td class="mono">${r.dir}</td><td class="num mono"><b>${F3(r.start)}</b></td><td class="num mono"><b>${F3(r.end)}</b></td><td class="num mono">${F3(r.from)}</td><td class="num mono">${F3(r.to)}</td></tr>`).join('')}</tbody></table></div><small class="sub-n">${plan.scaleNote ? esc(plan.scaleNote) + ' ' : ''}The larger of the drift and any sliding snow at each point (7.9: not added together), × ${plan.scale !== 1 ? `the file's ${ft(plan.bay)} bay` : `the ${ft(Fd.trib)} tributary width`}. Under SL${plan.extraCases.length ? ` and ${plan.extraCases.join(', ')}` : ''}, direction ${plan.dir}${plan.dir === 'PY' ? ' (on the horizontal projection — NBG Frame\'s own automatic drift row is GY)' : ''}.</small>` : '<small class="sub-n">No drift or sliding snow on this frame line.</small>';
     const had = file ? (file.ff.info.ploads || []).filter(q => /drift|sliding/i.test(q.name || '')) : [];
     const bayF = file && file.ff.info.bayWidth > 0 ? file.ff.info.bayWidth : Fd.trib;
@@ -998,7 +1008,9 @@ window.MZ_APP_BUILDING = function (C) {
       const bay = (want.bay != null && bays.find(q => Math.abs(q.i - want.bay) < 0.01)) || dflt, kind = NEW_KINDS.some(q => q[0] === want.kind) ? want.kind : 'x';
       const name = ltr ? `line ${ltr}` : `${ft(e.y)} from the FSW`;
       M.list.push({ key, kind: 'new', y: e.y, segs: e.segs, label: name, letter: ltr, edge: e, F: e.design, cols, bays, bay, pickKind: kind, note: want.note || '', chosen: !!(want.bay != null && bay && Math.abs(bay.i - want.bay) < 0.01), run: [r0, r1],
-        tag: `${name} · ${e.design != null ? F2(e.design) + ' k' : 'mezzanine edge'} · new wall`, pick: bay ? { u0: bay.u0, u1: bay.u1, kind } : null, loads: [{ u: r0, caseId: 'EQB', F: e.design }, { u: r1, caseId: 'EQF', F: e.design == null ? null : -e.design }] });
+        tag: `${name} · ${e.design != null ? F2(e.design) + ' k' : 'mezzanine edge'} · new wall`, pick: bay ? { u0: bay.u0, u1: bay.u1, kind } : null, loads: [{ u: r0, caseId: 'EQB', F: e.design }, { u: r1, caseId: 'EQF', F: e.design == null ? null : -e.design }],
+        // the side of the line the floor is on (+1: toward the BSW) — the plan puts EQB over the floor, EQF outside it
+        floor: mz.some(m => (e.mezz || []).map(String).includes(String(m.id)) && Math.abs(m.y0 - e.y) < 0.6) ? 1 : -1 });
     });
     // ---- the endwalls ----
     ['LEW', 'REW'].forEach(w => M.list.push({ key: `${b.name}|${w}`, kind: 'end', wall: w, label: w, bw: br.walls[w] }));
@@ -1192,7 +1204,7 @@ window.MZ_APP_BUILDING = function (C) {
     const models = J.site.buildings.map(b => braceModel(b, letters)), all = models.flatMap(M => M.list.map(l => ({ M, l })));
     // the line picked, else the one that most needs a look: a new bracing wall, then a sidewall taking a mezzanine
     const sel = all.find(q => q.l.key === state.braceSel) || all.find(q => q.l.kind === 'new') || all.find(q => q.l.kind === 'side' && q.l.edge) || all[0];
-    const linesOpt = Object.fromEntries(models.map(M => [M.b.name, M.list.map(l => ({ key: l.key, kind: l.kind, wall: l.wall, y: l.y, segs: l.segs, label: l.label, tag: l.tag, wallTag: l.wallTag, pick: l.pick, loads: l.kind === 'side' ? l.planLoads : l.loads }))]));
+    const linesOpt = Object.fromEntries(models.map(M => [M.b.name, M.list.map(l => ({ key: l.key, kind: l.kind, wall: l.wall, y: l.y, segs: l.segs, label: l.label, tag: l.tag, wallTag: l.wallTag, pick: l.pick, floor: l.floor, loads: l.kind === 'side' ? l.planLoads : l.loads }))]));
     const plan = B.planSvg(J, { mezz: mezzBoxes(), bracing: bracingAll(), letters: GLs, lines: linesOpt, lineSel: sel ? sel.l.key : null, noDrift: true });
     const sub = l => {
       if (l.kind === 'new') return `new wall · ${l.F != null ? F2(l.F) + ' k' : 'edge'}`;
@@ -1278,5 +1290,5 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   function render() { renderProject(); renderBuilding(); renderSnow(); renderFrames(); renderBracing(); renderPurlins(); }
-  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
+  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, bracingAll, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
 };

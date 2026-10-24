@@ -266,6 +266,7 @@
     $$('.screen').forEach(s => s.classList.toggle('is-active', s.id === 'v-' + view));
     $$('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
     if (view === 'calcs' && typeof renderCalcs === 'function') renderCalcs();
+    if (railReady) railFocus();
     window.scrollTo({ top: 0 });
   }
   $$('#nav button').forEach(b => { b.onclick = () => go(b.dataset.view); });
@@ -906,7 +907,19 @@
   const wbIdb = () => new Promise((ok, no) => { try { const r = indexedDB.open(WB_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(WB_STORE, { keyPath: 'id' }); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
   async function wbLoadAll() {
     try { const db = await wbIdb(); books.list = await new Promise((ok, no) => { const q = db.transaction(WB_STORE).objectStore(WB_STORE).getAll(); q.onsuccess = () => ok(q.result || []); q.onerror = () => no(q.error); }); } catch (e) { /* private window: kept for this session only */ }
+    await wbBuiltIn();
     books.loaded = true;
+  }
+  // a private copy of the tool may carry the workbooks built in: each one ready without adding it (one added on this
+  // computer takes its place)
+  async function wbBuiltIn() {
+    for (const el of $$('script[id^="wb-embed-"]')) {
+      try {
+        const z = Uint8Array.from(atob(el.textContent.trim()), c => c.charCodeAt(0));
+        const bytes = new Uint8Array(await new Response(new Blob([z]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()), name = el.dataset.name || 'workbook.xls', k = wbKind(name, bytes);
+        if (k.kind && k.ed !== 'S16' && !books.list.some(x => x.id === k.kind + '|' + (k.ed || ''))) books.list.push({ id: k.kind + '|' + (k.ed || ''), name, kind: k.kind, ed: k.ed, label: k.label, bytes, builtin: true });
+      } catch (e) { console.warn('built-in workbook', el.dataset.name, e); }
+    }
   }
   async function wbPut(it) { try { const db = await wbIdb(); await new Promise((ok, no) => { const t = db.transaction(WB_STORE, 'readwrite'); t.objectStore(WB_STORE).put(it); t.oncomplete = ok; t.onerror = () => no(t.error); }); } catch (e) { /* session only */ } }
   async function wbDel(id) { try { const db = await wbIdb(); await new Promise(ok => { const t = db.transaction(WB_STORE, 'readwrite'); t.objectStore(WB_STORE).delete(id); t.oncomplete = ok; t.onerror = ok; }); } catch (e) { /* session only */ } }
@@ -994,7 +1007,7 @@
     const jobs = state.job ? wbJobs() : [];
     const kinds = [['beam', '13'], ['beam', '15'], ['beam', '16'], ['column', '15'], ['column', '16'], ['seismic', null]];
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
-    const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}</small><button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>` : '<small>not added yet</small>'}</span>`; }).join('');
+    const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}${b.builtin ? ' · built in' : ''}</small>${b.builtin ? '' : `<button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>`}` : '<small>not added yet</small>'}</span>`; }).join('');
     const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows" data-k="${k}">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
     el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
@@ -1002,7 +1015,7 @@
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
     const inp = $('#wbFile'); if (inp) inp.onchange = () => { wbAdd(Array.from(inp.files || [])); inp.value = ''; };
-    $$('#wbPanel [data-wbdel]').forEach(b => { b.onclick = async () => { await wbDel(b.dataset.wbdel); books.list = books.list.filter(x => x.id !== b.dataset.wbdel); renderAll(); }; });
+    $$('#wbPanel [data-wbdel]').forEach(b => { b.onclick = async () => { await wbDel(b.dataset.wbdel); books.list = books.list.filter(x => x.id !== b.dataset.wbdel); await wbBuiltIn(); renderAll(); }; });
   }
 
   /* ---------- the calc package: a design-basis workbook (inputs and their sources, the MB / Column sheet cells and
@@ -1029,7 +1042,30 @@
     } catch (e) { toast('Calc package: ' + (e.message || e)); }
   }
   document.addEventListener('click', ev => { const b = ev.target.closest('[data-cpdl]'); if (b) { ev.preventDefault(); cpDownload(b.dataset.cpdl); } });
+  /* the filled NBG workbook for what the page shows, at its top: the MB workbook for the mark, the Column workbook for
+     the column case, the IBC Seismic workbook for each frame line — the engineer's own .xls with this job typed in */
+  function renderWbTop() {
+    const jobs = state.job ? wbJobs() : [], src = (kind, ed) => { const bk = wbFind(kind, ed); return bk ? (bk.builtin ? `${esc(bk.name)} · built into this copy of the tool` : `your ${esc(bk.name)} · kept on this computer`) : `choose your ${esc(WB_NAME[kind](ed))} .xls once — it is kept on this computer`; };
+    const bar = (title, sub, btns) => `<svg class="wb-top-ic"><use href="#i-file"/></svg><div class="wb-top-t"><b>${title}</b><small>${sub}</small></div><div class="wb-top-b">${btns}</div>`;
+    $$('[data-wbtop]').forEach(el => {
+      let h = '';
+      if (el.dataset.wbtop === 'beam') {
+        const mk = jobMarks()[state.mark], b = mk && state.job && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)), j = b && jobs.find(x => x.key === `beam|${b.copy}|${b.marks.join('+')}`);
+        if (j) h = bar(`${esc(WB_NAME.beam(j.ed))} — filled for ${esc(b.marks.join(', '))}`, `${esc(j.sub)} · ${j.steps.length} cells typed in · ${src('beam', j.ed)}`, wbBtn(j.key, 'Download the filled workbook (.xls)'));
+      } else if (el.dataset.wbtop === 'col') {
+        const c = colShown(), j = c && c.colFinal && c.colFinal.checks[state.colGroup] && jobs.find(x => x.key === `column|${c.index}|${state.colGroup}`);
+        if (j) h = bar(`${esc(WB_NAME.column(j.ed))} — filled for ${esc(j.title)}`, `${esc(j.sub)} · ${j.steps.length} cells typed in · ${src('column', j.ed)}`, wbBtn(j.key, 'Download the filled workbook (.xls)'));
+      } else {
+        const xs = jobs.filter(x => x.kind === 'seismic'), sj = state.job && state.job.seismic;
+        if (xs.length) h = bar('IBC Seismic — filled, one copy per frame line', `Input Data and Longitudinal Calcs. from this job, Lateral Calcs. (1) from that frame line · ${src('seismic', null)}`, xs.map(j => wbBtn(j.key, j.title.replace(/ · Frame line /, ' · F').replace(/^Frame line /, 'Frame '))).join(''));
+        else if (sj && !sj.ok && !sj.error) h = bar('IBC Seismic — filled', 'once the Seismic calc is complete (the inputs it needs are listed above)', '');
+      }
+      el.innerHTML = h; el.hidden = !h;
+      el.classList.toggle('is-many', (h.match(/data-wb=/g) || []).length > 2);
+    });
+  }
   function renderCalcPack() {
+    renderWbTop();
     const ready = !!(state.job && state.job.marks && state.job.marks.length);
     const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
     // the IBC Seismic workbook is added, but the Seismic calc is not finished: the zip leaves it out — say so
@@ -1439,6 +1475,10 @@
     const NG = opt.calm ? '#f6c779' : '#ff6b6b';   // no section yet: red on the Design page, amber while the decision is open
     const members = [], labels = [], floor = [];
     let Atop = 0;
+    // the bracing of each floor's building (the Bracing page's picks), in this building's coordinates
+    const brAll = BLD && BLD.bracingAll ? BLD.bracingAll() : {}, braceDone = new Set();
+    const brcOf = m => { const bn = inpOf(m._own || m).mezz.building || (state.pcs && state.pcs.planBuilding) || '', k = Object.keys(brAll).find(q => sameName(q, bn)) || (m._map ? null : Object.keys(brAll)[0]); return (k && brAll[k]) || {}; };
+    const P2 = (m, u, y) => (m._map ? [m._map.X(u), m._map.Y(y)] : [u, y]);
     ms.forEach(m => {
       const inp = inpOf(m), lay = m.layout, fp = lay.footprint, pre = many ? m.id + ' ' : '';
       const A = inp.geom.A.value ?? 12, slab = (inp.geom.slab.value || 4 / 12), seat = (inp.geom.seat.value || 2.5 / 12);
@@ -1476,10 +1516,63 @@
           bx(-cd / 2 - 0.12, cd / 2 + 0.12, -cb / 2 - 0.12, cb / 2 + 0.12, zc - 0.06, zc), bx(-cd / 2 - 0.25, cd / 2 + 0.25, -cb / 2 - 0.25, cb / 2 + 0.25, 0, 0.07),
         ], ref: { type: 'col', m, c, no: cno.get(c.label) } });
       });
-      // a portal frame's legs (picked on the Bracing page) where mezzanine columns would stand: drawn in its colour
+      // a portal frame's legs (picked on the Bracing page) where mezzanine columns would stand: W shapes in its colour,
+      // the strong axis along its line (the beam between them is drawn with the bracing, below)
+      const zc = zTop - dBeam;
       lay.supports.filter(sp => sp.userKind === 'portal').forEach(sp => {
-        const zc = zTop - dBeam;
-        members.push({ id: `${sp.label} · portal frame leg`, kind: 'col', color: '#ff8f8f', boxes: [{ x0: sp.x - 0.4, x1: sp.x + 0.4, y0: sp.y - 0.4, y1: sp.y + 0.4, z0: 0, z1: zc }], ref: { type: 'portal', m, sp } });
+        const along = (brcOf(m).lines || []).some(l => Math.abs(P2(m, l.u0, l.y)[1] - sp.y) < 0.6) ? 'x' : 'y', hd = 0.55, hb = 0.4, tf = 0.07, tw = 0.06;
+        const bx = (a0, a1, b0, b1, z0, z1) => (along === 'x' ? { x0: sp.x + a0, x1: sp.x + a1, y0: sp.y + b0, y1: sp.y + b1, z0, z1 } : { x0: sp.x + b0, x1: sp.x + b1, y0: sp.y + a0, y1: sp.y + a1, z0, z1 });
+        members.push({ id: `${sp.label} · portal frame leg`, kind: 'brace', color: '#ff8f8f', boxes: [bx(-hd, -hd + tf, -hb, hb, 0, zc), bx(hd - tf, hd, -hb, hb, 0, zc), bx(-hd + tf, hd - tf, -tw, tw, 0, zc), bx(-hd - 0.2, hd + 0.2, -hb - 0.2, hb + 0.2, 0, 0.07)], ref: { type: 'portal', m, sp } });
+      });
+      /* the bracing that holds this floor (the Bracing page's): on its own edge a portal frame (its beam under the floor's
+         edge beam, between the legs above), X-bracing or knee braces, named; on a sidewall beside it the braced bays (X
+         or portal frame) to the top of the column stubs, and the strut line at the floor */
+      const brc = brcOf(m), W0 = (m._own || m).grid.width, xsB = (m._own || m).grid.xs, bTop = A + 2.5, NEW = '#ff8f8f', OLD = '#f6c779';
+      (brc.lines || []).forEach(l => {
+        const p0 = P2(m, l.u0, l.y), p1 = P2(m, l.u1, l.y), onEdge = [fp.y0, fp.y1].some(v => Math.abs(v - p0[1]) < 1) && Math.min(p0[0], p1[0]) > fp.x0 - 1 && Math.max(p0[0], p1[0]) < fp.x1 + 1;
+        const key = `line|${p0.map(v => v.toFixed(1))}|${p1.map(v => v.toFixed(1))}`;
+        if (!onEdge || braceDone.has(key)) return;
+        braceDone.add(key);
+        const name = l.label ? `line ${l.label}` : 'this edge', ref = { type: 'brace', line: l.label, kind: l.kind }, mid = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2];
+        if (l.kind === 'portal') {
+          const ax = Math.abs(p1[0] - p0[0]) >= Math.abs(p1[1] - p0[1]), lo = ax ? Math.min(p0[0], p1[0]) : Math.min(p0[1], p1[1]), hi = ax ? Math.max(p0[0], p1[0]) : Math.max(p0[1], p1[1]), c = ax ? p0[1] : p0[0];
+          const bb = (a0, a1, w, z0, z1) => (ax ? { x0: a0, x1: a1, y0: c - w, y1: c + w, z0, z1 } : { x0: c - w, x1: c + w, y0: a0, y1: a1, z0, z1 });
+          const pd = Math.min(2, Math.max(1.2, (hi - lo) / 14));   // the portal beam: deep enough to read, under the edge beam
+          members.push({ id: `Portal frame · ${name}`, kind: 'brace', color: NEW, boxes: [bb(lo, hi, 0.4, zc - 0.07, zc), bb(lo, hi, 0.05, zc - pd + 0.07, zc - 0.07), bb(lo, hi, 0.4, zc - pd, zc - pd + 0.07)], ref });
+          labels.push({ p: [mid[0], mid[1], zc - pd / 2], text: `PORTAL FRAME · ${name.toUpperCase()}`, kind: 'tag', color: NEW, toggle: 'brace' });
+        } else if (l.kind === 'x' || l.kind === 'knee') {
+          const k = Math.min(3, Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) / 4), u = [(p1[0] - p0[0]), (p1[1] - p0[1])].map(v => v / (Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1));
+          const ls = l.kind === 'x' ? [[[...p0, 0], [...p1, zc]], [[...p0, zc], [...p1, 0]]] : [[[...p0, zc - k], [p0[0] + u[0] * k, p0[1] + u[1] * k, zc]], [[...p1, zc - k], [p1[0] - u[0] * k, p1[1] - u[1] * k, zc]]];
+          members.push({ id: `${l.kind === 'x' ? 'X-bracing' : 'Knee braces'} · ${name}`, kind: 'brace', color: NEW, width: 2.6, alpha: 0.95, lines: ls, ref });
+          labels.push({ p: [mid[0], mid[1], zc * 0.55], text: `${l.kind === 'x' ? 'X-BRACING' : 'KNEE BRACES'} · ${name.toUpperCase()}`, kind: 'tag', color: NEW, toggle: 'brace' });
+        }
+      });
+      [['FSW', 0], ['BSW', W0]].forEach(([w, yw]) => {
+        const yh = P2(m, 0, yw)[1];
+        if (Math.min(Math.abs(yh - fp.y0), Math.abs(yh - fp.y1)) > 3) return;   // not beside this floor
+        (brc[w] || []).forEach(bay => {
+          const xa = xsB[bay.from], xb = xsB[bay.to], key = `${w}|${bay.from}|${bay.to}|${m._map ? m.bkey : ''}`;
+          if (xa == null || xb == null || braceDone.has(key)) return;
+          const a = P2(m, xa, yw), c = P2(m, xb, yw);
+          if (Math.max(a[0], c[0]) < fp.x0 - 6 || Math.min(a[0], c[0]) > fp.x1 + 6) return;   // off the part of the building shown
+          braceDone.add(key);
+          if (bay.kind === 'portal') {
+            const i1 = [a[0] + (c[0] - a[0]) * 0.06, a[1]], i2 = [c[0] - (c[0] - a[0]) * 0.06, c[1]];
+            // (drawn to the top of the column stubs, as the building is here: its legs and its beam there)
+            members.push({ id: `${w} portal frame ${bay.from + 1}-${bay.to + 1}`, kind: 'brace', color: OLD, width: 3.4, alpha: 0.95, lines: [[[...i1, 0], [...i1, bTop]], [[...i2, 0], [...i2, bTop]], [[...i1, bTop], [...i2, bTop]], [[...i1, bTop - 1.2], [...i2, bTop - 1.2]]], ref: { type: 'brace', wall: w, kind: 'portal' } });
+            labels.push({ p: [(a[0] + c[0]) / 2, a[1], bTop - 1], text: `${w} PORTAL FRAME`, kind: 'tag', color: OLD, toggle: 'brace' });
+          } else {
+            const tiers = bay.tiers && bay.tiers.length ? bay.tiers.map(([z0, z1]) => [z0, Math.min(z1 == null ? bTop : z1, bTop)]).filter(([z0, z1]) => z1 > z0 + 0.5) : [[0, bTop]];
+            const xl = tiers.flatMap(([z0, z1]) => [[[...a, z0], [...c, z1]], [[...a, z1], [...c, z0]]]);
+            members.push({ id: `${w} X-bracing ${bay.from + 1}-${bay.to + 1}`, kind: 'brace', color: OLD, width: 2.2, alpha: 0.9, lines: xl, ref: { type: 'brace', wall: w, kind: 'x' } });
+          }
+        });
+        (brc.struts || []).filter(t => t.wall === w).forEach(t => {
+          const lo = Math.min(t.from, t.to), hi = Math.max(t.from, t.to), sl = [];
+          for (let i = lo; i < hi; i++) if (xsB[i] != null && xsB[i + 1] != null && !(t.skip || []).includes(i)) { const a = P2(m, xsB[i], yw), c = P2(m, xsB[i + 1], yw); if (Math.max(a[0], c[0]) >= fp.x0 - 6 && Math.min(a[0], c[0]) <= fp.x1 + 6) sl.push([[...a, t.elev], [...c, t.elev]]); }
+          const key = `strut|${w}|${lo}|${hi}|${m._map ? m.bkey : ''}`;
+          if (sl.length && !braceDone.has(key)) { braceDone.add(key); members.push({ id: `${w} strut line`, kind: 'brace', color: '#69fac5', width: 2.6, alpha: 0.95, lines: sl, ref: { type: 'brace', wall: w, kind: 'strut' } }); }
+        });
       });
       // joists: open-web lines between beam lines at the joist spacing
       const sp = m.beamBase.Lb;
@@ -1597,6 +1690,36 @@
   window.addEventListener('resize', () => queueFit(false));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => queueFit(true));
   queueFit(true);
+  /* the sidebar's 3D follows the page: the whole building on the Building page; on the Frames page the frame picked (the
+     rest faint) and flown to; on the Bracing page the bracing, the floors and their tags, the frames left faint for the
+     outline. "Whole building" puts it all back until the page or the frame changes. */
+  let railFocusKey = null, railWholeAt = null;
+  var railReady = true;   // (go() runs before this point while the page starts: the sidebar is not up yet)
+  const boundsOf = ms => { const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity }, add = p => { b.x0 = Math.min(b.x0, p[0]); b.x1 = Math.max(b.x1, p[0]); b.y0 = Math.min(b.y0, p[1]); b.y1 = Math.max(b.y1, p[1]); b.z0 = Math.min(b.z0, p[2]); b.z1 = Math.max(b.z1, p[2]); };
+    ms.forEach(m => { (m.boxes || []).forEach(q => { add([q.x0, q.y0, q.z0]); add([q.x1, q.y1, q.z1]); }); (m.faces || []).forEach(fc => (fc.pts || fc).forEach(add)); (m.lines || []).forEach(([a, c]) => { add(a); add(c); }); });
+    return isFinite(b.x0) ? { ...b, x0: b.x0 - 4, x1: b.x1 + 4, y0: b.y0 - 2, y1: b.y1 + 2, z0: 0 } : null; };
+  function railFocus() {
+    const btn = $('#rvFocus');
+    if (!mini || !railJob() || !state.bldScene) { if (btn) btn.hidden = true; return; }
+    const S = state.bldScene, fs = state.frameSel;
+    let ids = null, box = null, key = 'all', what = '', o = {};
+    if (state.view === 'frames' && fs) {
+      const ms = S.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, fs.building) && +q.ref.frame === +fs.frame);
+      if (ms.length) { ids = ms.map(q => q.id); box = boundsOf(ms); key = `f|${fs.building}|${fs.frame}`; what = `${S.members.some(q => q.ref && q.ref.building && !sameName(q.ref.building, fs.building)) ? fs.building + ' · ' : ''}Frame ${fs.frame}`; o = { ghost: 0.08, turn: true }; }
+    } else if (state.view === 'bracing') {
+      const ms = S.members.filter(q => q.kind === 'brace' || q.kind === 'mezz');
+      if (ms.some(q => q.kind === 'brace')) { ids = ms.map(q => q.id); key = 'b'; what = 'Bracing'; o = { ghost: 0.2, turn: true }; }
+    }
+    if (railWholeAt && railWholeAt !== key) railWholeAt = null;
+    if (railWholeAt) { ids = null; box = null; }
+    const k2 = railWholeAt ? 'whole' : key;
+    if (k2 !== railFocusKey) { railFocusKey = k2; mini.isolate(ids, box, o); }
+    btn.hidden = !ids && !railWholeAt;
+    $('#rvFocusWhat').textContent = railWholeAt ? 'Whole building' : what;
+    $('#rvWhole').textContent = railWholeAt ? 'Refocus' : 'Show all';
+    $('#rvWhole').title = railWholeAt ? `Back to ${key === 'b' ? 'the bracing' : 'the frame'}` : 'Show the whole building';
+  }
+  $('#rvWhole').onclick = e => { e.stopPropagation(); railWholeAt = railWholeAt ? null : (railFocusKey === 'whole' ? null : railFocusKey); railFocus(); };
   let mezzMini = null;   // the mezzanine scene the sidebar turns in the Mezzanine workspace
   function railRefresh() { if (state.pcs) renderMini(mezzMini, true); }
   function renderMini(scene, again) {
@@ -1626,9 +1749,12 @@
     if (job) {
       // the whole building, small and turning: no tags, the purlins off as on the Building page
       mini.set({ ...state.bldScene, labels: [] });
+      railFocusKey = null;
+      railFocus();
       setRailView(railView);
       return;
     }
+    $('#rvFocus').hidden = true;
     // frame on the steel itself (not the grid bubbles), so it sits in the middle of the square
     const bb = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z1: 0 };
     scene.members.forEach(m => (m.boxes || []).forEach(b => { bb.x0 = Math.min(bb.x0, b.x0); bb.x1 = Math.max(bb.x1, b.x1); bb.y0 = Math.min(bb.y0, b.y0); bb.y1 = Math.max(bb.y1, b.y1); bb.z1 = Math.max(bb.z1, b.z1); }));
@@ -2825,6 +2951,7 @@
   const RISK_OPTS = [['I', 'I-Low Hazard'], ['II', 'II-Standard Buildings'], ['III', 'III-Substantial Hazard'], ['IV', 'IV-Essential Facilities']];
   const WALLS = [['LEW', 'Left EW'], ['REW', 'Right EW'], ['FSW', 'Front SW'], ['BSW', 'Back SW']];
   function renderSeismic() {
+    if (typeof renderWbTop === 'function') setTimeout(renderWbTop);
     const sj = state.job && state.job.seismic, box = $('#seisInputs');
     if (!box) return;
     const clear = () => ['#seisFrames', '#seisApply', '#seisBracing', '#seisFlags', '#seisHow'].forEach(q => { $(q).innerHTML = ''; });
@@ -3833,11 +3960,15 @@
     return (state.job.mezz || []).flatMap(r => (r.colGroups || []).map((g, gi) => ({ key: `${r.index}|${gi}`, g, r, gi })).filter(x => known(x.g)))
       .sort((a, b) => no(a.g) - no(b.g)).map(({ key, r, g }) => ({ key, label: `${g.cols.slice().sort((a, b) => (cno.get(a.label) || 1e9) - (cno.get(b.label) || 1e9)).map(c => `C${cno.get(c.label) || '?'} ${c.label}`).join(', ')}${manyMezz() ? ' · ' + r.id : ''}`, r, g }));
   };
+  /* what a mark or column case of the job was when the designer took its numbers: when the job's design moves on (another
+     option picked, the layout edited) the designer takes them again — it showed the old section under the new name */
+  const dzBeamSig = key => { const s = dzBeamSources().find(x => x.key === key), q = s && s.m.sec; return s ? JSON.stringify([s.m.params, q ? q.name || [q.type, q.d, q.tw, q.bof, q.tof, q.bif, q.tif] : null]) : null; };
+  const dzColSig = key => { const s = dzColSources().find(x => x.key === key), cf = s && s.r.colFinal; return s ? JSON.stringify([s.r.colLen, s.g.loads, cf ? cf.name : null, s.r.edition && s.r.edition.colEd]) : null; };
   function dzLoadBeam(key) {
     const src = dzBeamSources().find(x => x.key === key);
     if (!src) return;
     const m = src.m, p = m.params, sec = m.sec, b = state.dz.beam;
-    Object.assign(b, { from: key, useMark: m.mark, ed: p.edition || b.ed, div: (state.res && state.res.division) || b.div, dead: p.dead, coll: p.coll, live: p.live, joistWt: p.joistWt, L: +(+p.L).toFixed(4), Lb: p.Lb, trib: +(+p.trib).toFixed(4) });
+    Object.assign(b, { from: key, sig: dzBeamSig(key), useMark: m.mark, ed: p.edition || b.ed, div: (state.res && state.res.division) || b.div, dead: p.dead, coll: p.coll, live: p.live, joistWt: p.joistWt, L: +(+p.L).toFixed(4), Lb: p.Lb, trib: +(+p.trib).toFixed(4) });
     if (!sec) { /* no section on this mark: keep the section on screen */ }
     else if (sec.type === 'WF') Object.assign(b, { type: 'WF', wf: sec.name });
     else Object.assign(b, { type: 'BU', d: sec.d, tw: sec.tw, bof: sec.bof, tof: sec.tof, bif: sec.bif, tif: sec.tif, sym: sec.bof === sec.bif && sec.tof === sec.tif });
@@ -3847,7 +3978,7 @@
     const src = dzColSources().find(x => x.key === key);
     if (!src) return;
     const c = state.dz.col, ld = src.g.loads, cf = src.r.colFinal;
-    Object.assign(c, { from: key, ed: (src.r.edition && src.r.edition.colEd) || c.ed, L: +(+src.r.colLen).toFixed(4), DL_L: +ld.DL_L.toFixed(3), LL_L: +ld.LL_L.toFixed(3), DL_R: +ld.DL_R.toFixed(3), LL_R: +ld.LL_R.toFixed(3) });
+    Object.assign(c, { from: key, sig: dzColSig(key), ed: (src.r.edition && src.r.edition.colEd) || c.ed, L: +(+src.r.colLen).toFixed(4), DL_L: +ld.DL_L.toFixed(3), LL_L: +ld.LL_L.toFixed(3), DL_R: +ld.DL_R.toFixed(3), LL_R: +ld.LL_R.toFixed(3) });
     if (cf && cf.sec.type === 'BU') Object.assign(c, { type: 'BU', d: cf.sec.d, tw: cf.sec.tw, bf: cf.sec.bof, tf: cf.sec.tof });
     else Object.assign(c, { type: 'WF', wf: cf ? cf.name : c.wf });
     state.dz.colNear = null;
@@ -3867,6 +3998,11 @@
       const b0 = dzBeamSources()[0], c0 = cs0.slice().sort((a, b) => gv(b) - gv(a))[0];
       // only once the job has a designed mark: while it still asks for inputs there is nothing to load yet
       if (b0) { state.dzJob = jk; dzLoadBeam(b0.key); if (c0) dzLoadCol(c0.key); dzSave(); }
+    }
+    // a mark or case taken from the job follows it while it is untouched here (an edit clears "from")
+    if (state.job) {
+      if (dz.beam.from) { const sg = dzBeamSig(dz.beam.from); if (sg && sg !== dz.beam.sig) { dzLoadBeam(dz.beam.from); dzSave(); } }
+      if (dz.col.from) { const sg = dzColSig(dz.col.from); if (sg && sg !== dz.col.sig) { dzLoadCol(dz.col.from); dzSave(); } }
     }
     $$('#dzTabs button').forEach(b => { b.classList.toggle('is-active', b.dataset.t === dz.tab); b.onclick = () => { dz.tab = b.dataset.t; dzSave(); renderDesigner(); }; });
     el.innerHTML = dz.tab === 'beam' ? dzBeamHTML() : dzColHTML();
@@ -4262,6 +4398,7 @@
     nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave, renderSeismic, railRefresh,
     // the mezzanine in its own window: its model, its floor plan (a column or beam clicked there opens its calc here)
     mezzSceneLive: () => state.scene || (state.res && !state.res.incomplete ? buildScene() : null),
+    railFocus: () => { if (railReady) railFocus(); },
     mezzPlanSvg: w => { const r = state.res; if (!r || r.incomplete) return ''; const lays = jobView().map(m => m.layout), ext = (k, lo) => lays.map(l => (lo ? Math.min : Math.max)(l.footprint[k], ...(k[0] === 'x' ? l.xLines : l.yLines)));
       const ratio = (Math.max(...ext('y1')) - Math.min(...ext('y0', 1))) / Math.max(1, Math.max(...ext('x1')) - Math.min(...ext('x0', 1))), h = Math.round(Math.max(260, (w - 80) * ratio + 120));
       return `<svg viewBox="0 0 ${w} ${h}" id="planPopSvg" style="--k:1.8" role="img" aria-label="Floor plan">${planMarkup(w, h, 1.8)}</svg>`; },

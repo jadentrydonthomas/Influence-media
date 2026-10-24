@@ -50,10 +50,15 @@ if (Object.values(OCR_FILES).every(f => fs.existsSync(path.join(OCRD, f)))) {
   html = html.replace('<!--@OCR_ASSETS-->', '');
   console.warn('warning: built without the OCR reader — a PCS drawn as outlines (no text layer) will not be read. Set OCR_DIST.');
 }
+/* A private copy may carry the engineer's own NBG workbooks (EMBED_WORKBOOKS: .xls paths, joined by the path
+   delimiter), gzipped in inert blocks the page unpacks to fill: never in the shared index.html, so BUILD_OUT is required. */
+const WB = (process.env.EMBED_WORKBOOKS || '').split(path.delimiter).filter(Boolean);
+if (WB.length && !process.env.BUILD_OUT) { console.error('build stopped — EMBED_WORKBOOKS needs BUILD_OUT: the workbooks never go into the shared index.html'); process.exit(1); }
+html = html.replace('<!--@WB_EMBED-->', () => WB.map((f, i) => `<script type="text/plain" id="wb-embed-${i}" data-name="${path.basename(f).replace(/[^\w .()-]/g, '')}">${require('zlib').gzipSync(fs.readFileSync(f), { level: 9 }).toString('base64')}</script>`).join('\n'));
 const pkg = JSON.parse(fs.readFileSync(path.join(PDFJS, 'package.json'), 'utf8'));
 if (pkg.version !== '3.11.174') console.warn(`warning: expected pdfjs-dist 3.11.174, found ${pkg.version}`);
 const stamp = new Date().toISOString().slice(0, 10);
-html = html.replace('</title>', `</title>\n<meta name="generator" content="mezz-quick-design build ${stamp}; pdf.js ${pkg.version}; ${ocrNote}">`);
+html = html.replace('</title>', `</title>\n<meta name="generator" content="mezz-quick-design build ${stamp}; pdf.js ${pkg.version}; ${ocrNote}${WB.length ? `; ${WB.length} workbooks built in` : ''}">`);
 const out = process.env.BUILD_OUT ? path.resolve(process.env.BUILD_OUT) : path.join(__dirname, 'index.html');   // BUILD_OUT: a copy elsewhere (the tests read index.html)
 fs.writeFileSync(out, html);
 console.log(`wrote ${path.relative(process.cwd(), out)} (${(html.length / 1024).toFixed(0)} KB)`);

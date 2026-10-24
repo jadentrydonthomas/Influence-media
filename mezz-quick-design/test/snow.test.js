@@ -140,6 +140,22 @@ assert.deepStrictEqual(['IBC 2024', 'IBC 2021', 'KBC 2018 ASCE 7-10', 'IBC 2015'
   assert.deepStrictEqual(f1.segs.map(s => [s.from, s.to, s.panel]), [[0, 30, 1], [30, 60, 2]], 'across both roof panels');
 }
 
+// unbalanced snow each way (NBG Design Calcs' WindToRight / WindToLeft): an equal gable the same both ways; an unequal
+// one (ridge 20 ft from the FSW, 1.5 on 12 there, 0.75 on 12 to the BSW) its own each way — hd on the windward eave-to-
+// ridge run, S of the leeward slope — and the larger surcharge stands for the roof
+{
+  const one = (name, bld) => SITE.snowJob({ site: { [name]: { building: { name, profile: 'Gable', length: 100, bays: [25, 25, 25, 25], ...bld }, roof: { Ct: 1, obstruction: true } } }, attachments: [] }, { ed: '7-16', pg: 40, Ce: 1, risk: 'II' }).roofs[0];
+  const eq = one('Eq', { width: 60, ridge: 30, eaveFSW: 20, eaveBSW: 20, slopeFSW: 1, slopeBSW: 1 }).unbalanced;
+  assert.ok(eq.same && eq.dirs.FSW.surcharge === eq.dirs.BSW.surcharge && eq.surcharge === eq.dirs.FSW.surcharge, 'equal gable: the same each way');
+  const r = one('Uneq', { width: 60, ridge: 20, eaveFSW: 20, eaveBSW: 20, slopeFSW: 1.5, slopeBSW: 0.75 }), u = r.unbalanced, g = 0.13 * 40 + 14;
+  const hd = lu => 0.43 * Math.cbrt(lu) * Math.pow(50, 0.25) - 1.5;
+  near(r.ps, 28, 1e-9, 'ps'); near(u.dirs.FSW.windward, 8.4, 1e-9, 'windward 0.3 ps');
+  near(u.dirs.FSW.surcharge, hd(20) * g / Math.sqrt(16), 1e-9, 'wind from the FSW: hd on the 20 ft run, S = 16 (the BSW slope)');
+  near(u.dirs.FSW.length, 8 * hd(20) * 4 / 3, 1e-9, 'its length');
+  near(u.dirs.BSW.surcharge, hd(40) * g / Math.sqrt(8), 1e-9, 'wind from the BSW: hd on the 40 ft run, S = 8 (the FSW slope)');
+  near(u.dirs.BSW.length, 8 * hd(40) * Math.sqrt(8) / 3, 1e-9, 'its length');
+  assert.ok(!u.same && u.gov === 'BSW' && u.surcharge === u.dirs.BSW.surcharge, 'the larger one governs');
+}
 // ---------- the sample jobs (private/pcs, gitignored), when present ----------
 const PRIV = path.join(__dirname, '..', 'private', 'pcs');
 const have = f => fs.existsSync(path.join(PRIV, f));

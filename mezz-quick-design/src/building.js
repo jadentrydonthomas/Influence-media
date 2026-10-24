@@ -328,7 +328,20 @@
     const letterMap = siteLetters(site, opts.letters), bubbles = [];
     const occ = [];   // the screen boxes taken by bubbles, names and wall labels, for the labels placed last to keep clear of
     // X-bracing on the plan: a small bold X
-    const xGlyph = (cx, cy, r) => `<path class="sp-xg" d="M${f(cx - r)},${f(cy - r)} L${f(cx + r)},${f(cy + r)} M${f(cx - r)},${f(cy + r)} L${f(cx + r)},${f(cy - r)}"/>`;
+    // X-bracing in plan: a long slim X from one end of the bay to the other, a band either side of the line (side: +1 / -1
+    // one side only, as a wall's inside, 0 both sides); a portal frame: its beam with a leg square at each end, and PF
+    const xBay = (p, q, half, side = 0) => {
+      const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1, nx = -(q[1] - p[1]) / len, ny = (q[0] - p[0]) / len;
+      const a = side ? 0 : -half, z = side ? side * 2 * half : half, P0 = k => [p[0] + nx * k, p[1] + ny * k], Q0 = k => [q[0] + nx * k, q[1] + ny * k];
+      const [p1, q1, p2, q2] = [P0(a), Q0(z), P0(z), Q0(a)];
+      return `<line class="sp-band" x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(q1[0])}" y2="${f(q1[1])}"/><line class="sp-band" x1="${f(p2[0])}" y1="${f(p2[1])}" x2="${f(q2[0])}" y2="${f(q2[1])}"/>`;
+    };
+    // (the PF tag sits on the beam, in the middle: nothing beside the line to clash with; its box goes to occ)
+    const pfMark = (p, q, cls = '') => { const r = compact ? 2.5 : 3.2, m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], tw = compact ? 18 : 21, th = compact ? 11 : 13;
+      occ.push([m[0] - tw / 2, m[1] - th / 2, m[0] + tw / 2, m[1] + th / 2]);
+      // the tag over everything (a building drawn after, along the same wall, or a picked line would cover half of it)
+      top += `<g class="sp-portal${cls}"><rect class="sp-pf-tag" x="${f(m[0] - tw / 2)}" y="${f(m[1] - th / 2)}" width="${tw}" height="${th}" rx="${th / 2}"/><text x="${f(m[0])}" y="${f(m[1] + (compact ? 3.1 : 3.4))}">PF</text><title>Portal frame</title></g>`;
+      return `<g class="sp-portal${cls}"><line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><rect class="sp-pf-leg" x="${f(p[0] - r)}" y="${f(p[1] - r)}" width="${f(2 * r)}" height="${f(2 * r)}"/><rect class="sp-pf-leg" x="${f(q[0] - r)}" y="${f(q[1] - r)}" width="${f(2 * r)}" height="${f(2 * r)}"/><title>Portal frame</title></g>`; };
     site.buildings.forEach(b => {
       const g = b.g, W = g.width, L = g.length;
       out += `<g class="sp-bldg" data-bldg="${esc(b.name)}"><polygon points="${b.corners.map(pt).join(' ')}" class="sp-outline"/>`;
@@ -339,10 +352,10 @@
       ['FSW', 'BSW'].forEach(w => (brc[w] || []).forEach(bay => {
         const y = w === 'FSW' ? 0 : W, xa = b.xs[bay.from], xb = b.xs[bay.to];
         if (xa == null || xb == null) return;
-        const inw = (w === 'FSW' ? 1 : -1) * 7 / sc, a0 = P(b.toSite([xa, y])), a1 = P(b.toSite([xb, y])), c0 = P(b.toSite([xa, y + inw])), c1 = P(b.toSite([xb, y + inw]));
-        if (bay.kind === 'portal') { const tx = (c0[0] + c1[0]) / 2, ty = (c0[1] + c1[1]) / 2; wallTags.push([tx - 9, ty - 5, tx + 9, ty + 5]); occ.push(wallTags[wallTags.length - 1]); }
-        if (bay.kind === 'portal') out += `<g class="sp-portal"><line x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/><text x="${f((c0[0] + c1[0]) / 2)}" y="${f((c0[1] + c1[1]) / 2 + 3.5)}">PF</text></g>`;
-        else out += `<g class="sp-brace"><line class="sp-band" x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(c1[0])}" y2="${f(c1[1])}"/><line class="sp-band" x1="${f(c0[0])}" y1="${f(c0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/>${xGlyph((c0[0] + c1[0] + a0[0] + a1[0]) / 4, (c0[1] + c1[1] + a0[1] + a1[1]) / 4, compact ? 4 : 5.5)}</g>`;
+        const inw = (w === 'FSW' ? 1 : -1) * (compact ? 8 : 11) / sc, a0 = P(b.toSite([xa, y])), a1 = P(b.toSite([xb, y])), c0 = P(b.toSite([xa, y + inw])), c1 = P(b.toSite([xb, y + inw]));
+        if (bay.kind === 'portal') { const tx = (a0[0] + a1[0]) / 2, ty = (a0[1] + a1[1]) / 2; wallTags.push([tx - 11, ty - 7, tx + 11, ty + 7]); }
+        if (bay.kind === 'portal') out += pfMark(a0, a1);
+        else out += `<g class="sp-brace"><line class="sp-band" x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(c1[0])}" y2="${f(c1[1])}"/><line class="sp-band" x1="${f(c0[0])}" y1="${f(c0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/><title>X-bracing</title></g>`;
       }));
       // the wall strut lines at the mezzanine level: green along the wall, just inside it
       (brc.struts || []).forEach(t => {
@@ -351,11 +364,11 @@
         const a0 = P(b.toSite([xa, y + inw])), a1 = P(b.toSite([xb, y + inw]));
         out += `<line class="sp-strut" x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"><title>strut line at ${ftin(t.elev)}</title></line>`;
       });
-      // a mezzanine edge off the walls, braced as picked
-      (brc.lines || []).forEach(l => {
+      // a mezzanine edge off the walls, braced as picked (on the Bracing page its line draws it, below)
+      if (!(opts.lines || {})[b.name]) (brc.lines || []).forEach(l => {
         const p = P(b.toSite([l.u0, l.y])), q = P(b.toSite([l.u1, l.y])), m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-        if (l.kind === 'portal') out += `<g class="sp-portal is-new"><line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><text x="${f(m[0])}" y="${f(m[1] - 6)}">PF</text></g>`;
-        else out += `<g class="sp-brace is-new">${l.kind === 'x' ? `<line class="sp-band" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/>${xGlyph(m[0], m[1], compact ? 4 : 5.5)}` : `<line class="sp-band" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><text x="${f(m[0])}" y="${f(m[1] - 5)}">${l.kind === 'knee' ? 'K' : '?'}</text>`}</g>`;
+        if (l.kind === 'portal') out += pfMark(p, q, ' is-new');
+        else out += `<g class="sp-brace is-new">${l.kind === 'x' ? `${xBay(p, q, compact ? 5 : 7)}<title>X-bracing</title>` : `<line class="sp-band" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><text x="${f(m[0])}" y="${f(m[1] - 5)}">${l.kind === 'knee' ? 'K' : '?'}</text>`}</g>`;
       });
       ['LEW', 'REW'].forEach(w => (brc[w] || []).forEach(bay => {
         if (bay.kind === 'roofx') {
@@ -364,8 +377,8 @@
           const q = [P(b.toSite([xa, 0])), P(b.toSite([xb, W])), P(b.toSite([xa, W])), P(b.toSite([xb, 0]))];
           out += `<g class="sp-roofx"><line x1="${f(q[0][0])}" y1="${f(q[0][1])}" x2="${f(q[1][0])}" y2="${f(q[1][1])}"/><line x1="${f(q[2][0])}" y1="${f(q[2][1])}" x2="${f(q[3][0])}" y2="${f(q[3][1])}"/></g>`;
         } else if (bay.kind === 'x' && bay.ys) {
-          const x = w === 'LEW' ? 0 : L, inw = (w === 'LEW' ? 1 : -1) * 7 / sc, a0 = P(b.toSite([x, bay.ys[0]])), a1 = P(b.toSite([x, bay.ys[1]])), c0 = P(b.toSite([x + inw, bay.ys[0]])), c1 = P(b.toSite([x + inw, bay.ys[1]]));
-          out += `<g class="sp-brace"><line x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(c1[0])}" y2="${f(c1[1])}"/><line x1="${f(c0[0])}" y1="${f(c0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/></g>`;
+          const x = w === 'LEW' ? 0 : L, inw = (w === 'LEW' ? 1 : -1) * (compact ? 8 : 11) / sc, a0 = P(b.toSite([x, bay.ys[0]])), a1 = P(b.toSite([x, bay.ys[1]])), c0 = P(b.toSite([x + inw, bay.ys[0]])), c1 = P(b.toSite([x + inw, bay.ys[1]]));
+          out += `<g class="sp-brace"><line class="sp-band" x1="${f(a0[0])}" y1="${f(a0[1])}" x2="${f(c1[0])}" y2="${f(c1[1])}"/><line class="sp-band" x1="${f(c0[0])}" y1="${f(c0[1])}" x2="${f(a1[0])}" y2="${f(a1[1])}"/><title>X-bracing</title></g>`;
         }
       }));
       /* the grid, as the mezzanine plan draws it: a lettered line along the length at each sidewall, each interior column
@@ -413,6 +426,7 @@
           const off = (bubAtB ? 31 : 13) / sc, m = P(b.toSite([(x0 + x1) / 2, dW + off]));
           let ang = Math.atan2(c[1] - a[1], c[0] - a[0]) * 180 / Math.PI; if (ang > 90 || ang < -90) ang += 180;
           gTxt.push(`<text class="sp-bay" x="${f(m[0])}" y="${f(m[1] + 3.5)}" transform="rotate(${ang.toFixed(1)} ${f(m[0])} ${f(m[1])})">${t}</text>`);
+          const hw = 3.1 * t.length + 2, flat = Math.abs(ang) < 45; occ.push(flat ? [m[0] - hw, m[1] - 6, m[0] + hw, m[1] + 6] : [m[0] - 6, m[1] - hw, m[0] + 6, m[1] + hw]);
         });
       }
       out += gTxt.join('');
@@ -431,7 +445,8 @@
       const topStep = dr && dr.kind === 'side' && P(b.toSite(SITE.wallSeg(g, dr.lowerWall).p0))[1] < y0 + bh / 2 ? Math.min(dr.drift.w, dr.lowerWidth) * sc + 4 : 0;
       // an endwall's drift band down the left of the outline (its label runs up it): the name starts past it
       const leftStep = dr && dr.kind === 'end' && P(b.toSite(SITE.wallSeg(g, dr.lowerWall).p0))[0] < x0 + bw / 2 ? Math.min(dr.drift.w, dr.lowerWidth || dr.drift.w) * sc + 4 : 0;
-      const dimT = `${ftin(W)} × ${ftin(L)} · ${g.profile || ''}`, need = Math.max(7.6 * b.name.length, 6.4 * dimT.length) + 24;
+      // (the Bracing page: the name alone, the plan there being about the lines)
+      const slim = !!opts.lines, dimT = slim ? '' : `${ftin(W)} × ${ftin(L)} · ${g.profile || ''}`, need = Math.max(7.6 * b.name.length, 6.4 * dimT.length) + 24;
       // a drift band too narrow on the drawing to hold its label: the label goes with the building's name
       const dsp = dr ? dr.step.span : null, dLen = dsp ? Math.hypot(...[0, 1].map(k => P(b.toSite(dsp[1]))[k] - P(b.toSite(dsp[0]))[k])) : 0;
       const narrow = !!dr && !compact && (Math.min(dr.drift.w, dr.lowerWidth) * sc < 15 || dLen < 200);
@@ -440,9 +455,22 @@
       /* the wall names inside the outline (the bubbles and the bay dimensions sit outside), clear of the name: a
          sidewall's in the bay nearest its middle that carries no bracing mark, an endwall's in the widest stretch between
          the grid lines */
-      const nameBox = bw >= need + leftStep && bh >= 44 + topStep ? [x0 + 8 + leftStep, y0 + 6 + topStep, x0 + need + leftStep, y0 + 42 + topStep + (narrow ? 15 : 0)] : null;
+      const nameBox = bw >= need + leftStep && bh >= 44 + topStep ? [x0 + 8 + leftStep, y0 + 6 + topStep, x0 + need + leftStep, y0 + (slim ? 26 : 42) + topStep + (narrow ? 15 : 0)] : null;
       const wallBoxes = [];
-      if (nameBox) occ.push(nameBox);
+      // a portal frame's tag on the wall above the corner, or (the Bracing page) the room inside a sidewall's ends for its
+      // EQB / EQF callouts, placed later: the name steps down past them
+      let sy = 0;
+      if (nameBox) {
+        const eqRes = ((opts.lines || {})[b.name] || []).filter(l => l.kind === 'side').flatMap(l => (l.loads || []).filter(ld => ld.F != null).map(ld => {
+          const yw = l.wall === 'FSW' ? 0 : W, s = l.wall === 'FSW' ? 1 : -1, dir = ld.caseId === 'EQF' ? -1 : 1;
+          const a = P(b.toSite([ld.u, yw + s * 4 / sc])), z = P(b.toSite([ld.u + dir * 140 / sc, yw + s * 30 / sc]));
+          return [Math.min(a[0], z[0]), Math.min(a[1], z[1]), Math.max(a[0], z[0]), Math.max(a[1], z[1])];
+        }));
+        const tagOver = [...wallTags, ...eqRes].filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] && r[3] > nameBox[1] - 6 && r[1] < nameBox[1] + 14);
+        sy = tagOver.length && bh >= 58 + topStep ? Math.max(...tagOver.map(r => r[3] - nameBox[1] + 8)) : 0;
+        nameBox[1] += sy; nameBox[3] += sy;
+        occ.push(nameBox);
+      }
       // for the wall labels the name block is two lines: the name (short) over the size (long)
       const nameBoxes = nameBox ? [[nameBox[0], nameBox[1], Math.min(nameBox[2], nameBox[0] + 7.6 * b.name.length + 12), nameBox[1] + 18], [nameBox[0], nameBox[1] + 18, nameBox[2], nameBox[3]]] : [];
       SITE.WALLS.forEach(w => {
@@ -476,14 +504,12 @@
         // a wall label the corner could not keep clear of (a short endwall has one spot): the name steps right past it
         const under = wallBoxes.filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] && r[1] < nameBox[3] && r[3] > nameBox[1]);
         const dx = under.length ? Math.max(...under.map(r => r[2] - nameBox[0] + 4)) : 0, sx = dx > 0 && bw >= need + leftStep + dx ? dx : 0;
-        // a portal frame's tag on the wall above the corner: the name steps down past it
-        const tagOver = wallTags.filter(r => r[0] < nameBox[2] && r[2] > nameBox[0] + sx && r[3] > nameBox[1] - 6 && r[1] < nameBox[1] + 14);
-        const sy = tagOver.length && bh >= 58 + topStep ? Math.max(...tagOver.map(r => r[3] - nameBox[1] + 8)) : 0;
         const nx = x0 + 14 + leftStep + sx, ny = y0 + 22 + topStep + sy;
-        out += `<text class="sp-name sp-name-corner" x="${f(nx)}" y="${f(ny)}">${esc(b.name)}</text><text class="sp-dim sp-dim-corner" x="${f(nx)}" y="${f(ny + 14)}">${esc(dimT)}</text>${narrow ? `<text class="sp-dlab sp-dlab-out" x="${f(nx)}" y="${f(ny + 29)}">${esc(dT)}</text>` : ''}</g>`;
+        nameBox[0] += sx; nameBox[2] += sx;   // (where it is drawn, for what is placed after)
+        out += `<text class="sp-name sp-name-corner" x="${f(nx)}" y="${f(ny)}">${esc(b.name)}</text>${dimT ? `<text class="sp-dim sp-dim-corner" x="${f(nx)}" y="${f(ny + 14)}">${esc(dimT)}</text>` : ''}${narrow ? `<text class="sp-dlab sp-dlab-out" x="${f(nx)}" y="${f(ny + 29)}">${esc(dT)}</text>` : ''}</g>`;
       } else if (bh >= need && bw >= 40) {
         const cx = x0 + bw / 2 - 2, cy = y0 + bh / 2;
-        out += `<g transform="rotate(-90 ${f(cx)} ${f(cy)})"><text class="sp-name" x="${f(cx)}" y="${f(cy - 2)}">${esc(b.name)}</text><text class="sp-dim" x="${f(cx)}" y="${f(cy + 12)}">${esc(dimT)}</text>${narrow ? `<text class="sp-dlab" x="${f(cx)}" y="${f(cy + 27)}">${esc(dT)}</text>` : ''}</g></g>`;
+        out += `<g transform="rotate(-90 ${f(cx)} ${f(cy)})"><text class="sp-name" x="${f(cx)}" y="${f(cy - 2)}">${esc(b.name)}</text>${dimT ? `<text class="sp-dim" x="${f(cx)}" y="${f(cy + 12)}">${esc(dimT)}</text>` : ''}${narrow ? `<text class="sp-dlab" x="${f(cx)}" y="${f(cy + 27)}">${esc(dT)}</text>` : ''}</g></g>`;
       } else {
         // too small on the drawing: the name beside it with a leader, placed once every building's own labels are (so
         // it keeps clear of them) — right, above, left or below, outside its neighbours; else inside a neighbour's
@@ -505,7 +531,7 @@
         const rOf = q => [q.nx, q.ny - 12, q.nx + need, q.ny + lh - 12];
         const c = cand.find(q => !clashes(rOf(q), [...occ, ...outLabels]) && (q.inside ? !clashes(rOf(q), mzRects) : !clashes(rOf(q), others))) || cand.find(q => !clashes(rOf(q), [...occ, ...outLabels])) || cand[0] || at(x0, y0 + bh + 30, x0 + 8, y0 + bh, x0 + 8, y0 + bh + 18);
         outLabels.push(rOf(c)); occ.push(rOf(c));
-        top += `<line class="sp-leader" x1="${f(c.lx)}" y1="${f(c.ly)}" x2="${f(c.ex)}" y2="${f(c.ey)}"/><text class="sp-name sp-name-corner" x="${f(c.nx)}" y="${f(c.ny)}">${esc(b.name)}</text><text class="sp-dim sp-dim-corner" x="${f(c.nx)}" y="${f(c.ny + 14)}">${esc(dimT)}</text>${dr && !compact ? `<text class="sp-dlab sp-dlab-out" x="${f(c.nx)}" y="${f(c.ny + 29)}">${esc(dT)}</text>` : ''}`;
+        top += `<line class="sp-leader" x1="${f(c.lx)}" y1="${f(c.ly)}" x2="${f(c.ex)}" y2="${f(c.ey)}"/><text class="sp-name sp-name-corner" x="${f(c.nx)}" y="${f(c.ny)}">${esc(b.name)}</text>${dimT ? `<text class="sp-dim sp-dim-corner" x="${f(c.nx)}" y="${f(c.ny + 14)}">${esc(dimT)}</text>` : ''}${dr && !compact ? `<text class="sp-dlab sp-dlab-out" x="${f(c.nx)}" y="${f(c.ny + 29)}">${esc(dT)}</text>` : ''}`;
         narrowSet.add(b.name);
         });
       }
@@ -532,12 +558,17 @@
       for (const t of variants) {
         const half = cw * t.length / 2 + 4;
         if (2 * half > w - 4) continue;
-        const v = [0, -0.22, 0.22, -0.34, 0.34].map(k => y + h / 2 + 4 + k * h).find(v2 => v2 - 12 > y && v2 + 4 < y + h && !onCol(x + w / 2, v2, half) && !clash([x + w / 2 - half, v2 - 11, x + w / 2 + half, v2 + 4]));
-        if (v != null) { pick = { t, cx: x + w / 2, cy: v, r: [x + w / 2 - half, v - 11, x + w / 2 + half, v + 4] }; break; }
+        // the middle first, then off to either side along the floor
+        const hx = [0.5, 0.3, 0.7, 0.18, 0.82].map(k => x + k * w).filter(cx => cx - half >= x + 2 && cx + half <= x + w - 2);
+        for (const cx of hx) {
+          const v = [0, -0.22, 0.22, -0.34, 0.34].map(k => y + h / 2 + 4 + k * h).find(v2 => v2 - 12 > y && v2 + 4 < y + h && !onCol(cx, v2, half) && !clash([cx - half, v2 - 11, cx + half, v2 + 4]));
+          if (v != null) { pick = { t, cx, cy: v, r: [cx - half, v - 11, cx + half, v + 4] }; break; }
+        }
+        if (pick) break;
       }
       if (!pick) for (const t of variants) {
         const half = cw * t.length / 2 + 4;
-        if (2 * half <= h - 4 && w >= 14) { const cx = x + w / 2 + 4, cy = y + h / 2, r = [cx - 11, cy - half, cx + 4, cy + half]; if (!clash(r) || t === variants[variants.length - 1]) { pick = { t, cx, cy, rot: true, r }; break; } }
+        if (2 * half <= h - 4 && w >= 14) { const cx = x + w / 2 + 4, cy = y + h / 2, r = [cx - 11, cy - half, cx + 4, cy + half]; if (!clash(r)) { pick = { t, cx, cy, rot: true, r }; break; } }
       }
       if (!pick) {
         // a floor too small to hold its name: beside it with a leader — right, left, above, below — clear of the rest
@@ -568,36 +599,46 @@
         let o = `<g class="sp-bl is-${l.kind}${sel ? ' is-sel' : ''}" data-bline="${esc(l.key)}" tabindex="0" role="button" aria-label="${esc(b.name + ' · ' + l.label)}">`;
         segs.forEach(([u0, u1]) => { const p = at(u0), q = at(u1); o += `<line class="sp-bl-line" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><line class="sp-hit" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/>`; });
         if (l.pick) {
-          const p = at(l.pick.u0), q = at(l.pick.u1), len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1, nx = -(q[1] - p[1]) / len * 5, ny = (q[0] - p[0]) / len * 5;
-          o += l.pick.kind === 'portal' ? `<g class="sp-portal"><line x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><text x="${f((p[0] + q[0]) / 2 + nx * 2.2)}" y="${f((p[1] + q[1]) / 2 + ny * 2.2 + 3.5)}">PF</text></g>`
-            : `<g class="sp-brace"><line class="sp-band" x1="${f(p[0] + nx)}" y1="${f(p[1] + ny)}" x2="${f(q[0] - nx)}" y2="${f(q[1] - ny)}"/><line class="sp-band" x1="${f(p[0] - nx)}" y1="${f(p[1] - ny)}" x2="${f(q[0] + nx)}" y2="${f(q[1] + ny)}"/>${l.pick.kind === 'x' ? xGlyph((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, 6) : `<text x="${f((p[0] + q[0]) / 2)}" y="${f((p[1] + q[1]) / 2 - 7)}">${l.pick.kind === 'knee' ? 'K' : '?'}</text>`}</g>`;
+          const p = at(l.pick.u0), q = at(l.pick.u1);
+          // the picked bay's mark: a long X across the bay, a portal frame with PF on its beam, else its letter on the floor's side
+          const fs = l.kind === 'side' ? (l.wall === 'FSW' ? 1 : -1) : (l.floor || -1), yL = l.kind === 'side' ? (l.wall === 'FSW' ? 0 : g.width) : l.y;
+          const tm = P(b.toSite([(l.pick.u0 + l.pick.u1) / 2, yL + fs * 12 / sc])), tpx = tm[0], tpy = tm[1] + 3.5;
+          o += l.pick.kind === 'portal' ? pfMark(p, q)
+            : `<g class="sp-brace">${l.pick.kind === 'x' ? xBay(p, q, 9) : `<line class="sp-band" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/><text x="${f(tpx)}" y="${f(tpy)}">${l.pick.kind === 'knee' ? 'K' : '?'}</text>`}</g>`;
+          if (l.pick.kind !== 'portal' && l.pick.kind !== 'x') occ.push([tpx - 9, tpy - 9, tpx + 9, tpy + 3]);
         }
-        if (l.kind === 'new' && l.tag) {
-          const long = segs.slice().sort((p, q) => (q[1] - q[0]) - (p[1] - p[0]))[0], m = at((long[0] + long[1]) / 2), tw = 6.2 * l.tag.length + 14;
-          o += `<g class="sp-bl-tag"><rect x="${f(m[0] - tw / 2)}" y="${f(m[1] - 25)}" width="${f(tw)}" height="17" rx="8.5"/><text x="${f(m[0])}" y="${f(m[1] - 13)}">${esc(l.tag)}</text></g>`;
-          occ.push([m[0] - tw / 2, m[1] - 25, m[0] + tw / 2, m[1] - 8]);
-        }
+        // (a new line is named by its grid letter, lit, and on the chips above: no tag on the drawing)
         // EQB / EQF: an arrow along the line at the point it goes in, the way it pushes, with its value outside the building
         // (beside an interior line, toward the FSW)
+        /* EQB / EQF: a callout each, on its own side of the line — EQB over the floor (inside a wall), EQF outside it — an
+           arrow beside the line from the point the load goes in, the way it pushes, its value at the arrowhead; moved
+           further off or along it until clear of the bubbles, names, tags and the other callout */
         (l.loads || []).forEach(ld => {
-          const dir = ld.caseId === 'EQF' ? -1 : 1, p = at(ld.u), q = at(ld.u + dir * 30 / sc);
-          o += `<line class="sp-eq" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" marker-end="url(#spArrEq)"/>`;
-          if (end || ld.F == null) return;
-          // just past the arrowhead, the way it points, a little off the line — inside a wall, toward the FSW beside an
-          // interior line, else the other side or further along: the first spot clear of the bubbles, names and labels
-          const y0 = l.kind === 'side' ? (l.wall === 'FSW' ? 0 : g.width) : l.y, inSide = l.kind === 'side' ? (l.wall === 'FSW' ? 1 : -1) : -1;
-          const t = `${ld.caseId} ${dir > 0 ? '+' : '−'}${Math.abs(ld.F).toFixed(2)}`, w = 6.1 * t.length + 10;
-          const spot = (side, ahead) => {
-            const h0 = P(b.toSite([ld.u + dir * ahead / sc, y0 + side / sc])), h1 = P(b.toSite([ld.u + dir * (ahead + 1) / sc, y0 + side / sc])), dl = Math.hypot(h1[0] - h0[0], h1[1] - h0[1]) || 1;
-            const c = [h0[0] + (h1[0] - h0[0]) / dl * w / 2, h0[1] + (h1[1] - h0[1]) / dl * w / 2];
-            return { c, r: [c[0] - w / 2, c[1] - 8, c[0] + w / 2, c[1] + 7] };
+          const dir = ld.caseId === 'EQF' ? -1 : 1;
+          if (end || ld.F == null) { const p = at(ld.u), q = at(ld.u + dir * 30 / sc); o += `<line class="sp-eq" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}" marker-end="url(#spArrEq)"/>`; return; }
+          const y0 = l.kind === 'side' ? (l.wall === 'FSW' ? 0 : g.width) : l.y, floor = l.kind === 'side' ? (l.wall === 'FSW' ? 1 : -1) : (l.floor || -1);
+          const sgn = ld.caseId === 'EQF' ? -floor : floor;
+          const t = `${ld.caseId} ${dir > 0 ? '+' : '−'}${Math.abs(ld.F).toFixed(2)} k`, w = 6.1 * t.length + 10, AL = compact ? 22 : 30;
+          const pt = (u, d) => P(b.toSite([u, y0 + d / sc]));
+          const call = (off, shift, flip = 1) => {
+            const u0 = ld.u + dir * shift / sc, u1 = u0 + dir * AL / sc, a = pt(u0, sgn * flip * off), z = pt(u1, sgn * flip * off), dl = Math.hypot(z[0] - a[0], z[1] - a[1]) || 1, ux = (z[0] - a[0]) / dl, uy = (z[1] - a[1]) / dl;
+            const c = [z[0] + ux * (w / 2 + 4), z[1] + uy * (w / 2 + 4)], lr = [c[0] - w / 2, c[1] - 8, c[0] + w / 2, c[1] + 7];
+            const ar = [Math.min(a[0], z[0]) - 3, Math.min(a[1], z[1]) - 3, Math.max(a[0], z[0]) + 3, Math.max(a[1], z[1]) + 3];
+            // the dotted leader: from the point the load goes in, square off the line, then along to the arrow's tail
+            const lead = [at(ld.u), pt(ld.u, sgn * flip * off), a], tb = (...v) => [Math.min(...v.map(q => q[0])) - 1, Math.min(...v.map(q => q[1])) - 1, Math.max(...v.map(q => q[0])) + 1, Math.max(...v.map(q => q[1])) + 1];
+            return { a, z, c, lr, ar, lead, tk: tb(pt(ld.u, sgn * flip * Math.min(6, off)), lead[1], a) };
           };
-          // (side and distance off the line in px, how far along from the point)
-          const cand = [[11, 33], [-11, 15], [-11, 33], [11, 15], [30, 33], [30, 15], [-30, 15], [11, 75], [-11, 75], [30, 75], [11, 120]].map(([d, a]) => spot(Math.sign(d) * inSide * Math.abs(d), a));
-          const clear = q => !occ.some(r => q.r[0] < r[2] + 2 && q.r[2] > r[0] - 2 && q.r[1] < r[3] + 2 && q.r[3] > r[1] - 2);
-          const pk = cand.find(clear) || cand[0];
-          occ.push(pk.r);
-          o += `<g class="sp-eqlab"><rect x="${f(pk.r[0])}" y="${f(pk.c[1] - 8)}" width="${f(w)}" height="15" rx="7.5"/><text x="${f(pk.c[0])}" y="${f(pk.c[1] + 3.5)}">${t}</text></g>`;
+          // its own side first; where that has no room (a wall's outside, under the bubbles and dimensions) the other side,
+          // further off the line than the other callout
+          const near = [[12, 0], [12, 26], [24, 0], [12, 60], [24, 40], [36, 0], [12, 110], [36, 60], [24, 110], [48, 0], [12, 170], [48, 60], [24, 170]];
+          const cand = near.map(([d, sh]) => call(d, sh)).concat([[18, 0], [18, 40], [30, 0], [30, 40], [44, 0], [18, 90], [30, 90], [44, 60]].map(([d, sh]) => call(d, sh, -1)));
+          const inside = q => q.lr[0] >= 2 && q.lr[2] <= Wd - 2 && q.lr[1] >= 2 && q.lr[3] <= H - 2;
+          const clear = q => inside(q) && ![q.lr, q.ar, q.tk].some(r => occ.some(k => r[0] < k[2] + 2 && r[2] > k[0] - 2 && r[1] < k[3] + 2 && r[3] > k[1] - 2));
+          // none clear: the one that covers least of what is there
+          const ovl = q => [q.lr, q.ar, q.tk].reduce((a, r) => a + occ.reduce((b2, k) => b2 + Math.max(0, Math.min(r[2], k[2] + 2) - Math.max(r[0], k[0] - 2)) * Math.max(0, Math.min(r[3], k[3] + 2) - Math.max(r[1], k[1] - 2)), 0), 0);
+          const pk = cand.find(clear) || cand.filter(inside).map(q => [q, ovl(q)]).sort((a2, b2) => a2[1] - b2[1]).map(e => e[0])[0] || cand[0];
+          occ.push(pk.lr, pk.ar, pk.tk);
+          o += `<g class="sp-eqc is-${ld.caseId.toLowerCase()}"><polyline class="sp-eq-tick" points="${pk.lead.map(q => `${f(q[0])},${f(q[1])}`).join(' ')}"/><line class="sp-eq" x1="${f(pk.a[0])}" y1="${f(pk.a[1])}" x2="${f(pk.z[0])}" y2="${f(pk.z[1])}" marker-end="url(#spArrEq)"/><g class="sp-eqlab"><rect x="${f(pk.lr[0])}" y="${f(pk.lr[1])}" width="${f(w)}" height="15" rx="7.5"/><text x="${f(pk.c[0])}" y="${f(pk.c[1] + 3.5)}">${t}</text></g><title>${ld.caseId} ${dir > 0 ? '+' : '−'}${Math.abs(ld.F).toFixed(2)} k — ${ld.caseId === 'EQB' ? 'pushing toward the back' : 'pushing toward the front'} of the line, at the mezzanine level</title></g>`;
         });
         out += o + '</g>';
       });
@@ -1121,48 +1162,52 @@
     return s;
   }
 
-  /* ---------- unbalanced snow on a gable (7.6.1), across the building with the wind from the FSW: windward 0.3 ps,
-     leeward ps with the surcharge from the ridge — the number NBG Frame takes as the alternate snow ----------
-     r: a roof of the snow job ({ name, ps, unbalanced: { windward, leeward, surcharge, length, simple }, building: { g } }) */
-  function unbalancedSvg(r) {
-    const u = r.unbalanced, g = r.building.g, W = g.width, brk = SITE.roofBreaks(g), yr = brk.length > 2 ? brk[1] : W / 2, Z = y => SITE.roofZ(g, 0, y);
+  /* ---------- unbalanced snow on a gable (7.6.1), across the building, the wind from the FSW or (wind 'BSW') from the
+     BSW: windward 0.3 ps, leeward ps with the surcharge from the ridge down the leeward slope — the number NBG Frame takes
+     as the alternate snow. Drawn the same way round each time (FSW left), the loads on the slopes the wind puts them.
+     r: a roof of the snow job ({ name, ps, unbalanced: { windward, leeward, surcharge, length, simple, dirs }, building }) */
+  function unbalancedSvg(r, wind = 'FSW') {
+    const u = (r.unbalanced.dirs && r.unbalanced.dirs[wind]) || r.unbalanced, g = r.building.g, W = g.width, brk = SITE.roofBreaks(g), yr = brk.length > 2 ? brk[1] : W / 2, Z = y => SITE.roofZ(g, 0, y);
+    const fromF = wind !== 'BSW', win = fromF ? [0, yr] : [yr, W], lee = fromF ? [yr, W] : [0, yr], leeEave = fromF ? W : 0;
     const zMax = Math.max(...brk.map(Z)), Wpx = 760, padL = 70, padR = 70, padT = 96, padB = 58, sx = (Wpx - padL - padR) / W;
     const peak = Math.max(u.leeward + (u.surcharge || 0), u.windward, 1), hLoad = 82, pz = v => (v / peak) * hLoad;   // psf → px above the roof
     const roofPx = Math.min(110, zMax * sx * 0.9), sz = roofPx / zMax, Hpx = padT + hLoad + roofPx + padB;
-    const X = y => padL + y * sx, Y = z => padT + hLoad + (zMax - z) * sz, f = v => (+v).toFixed(1), F1 = v => (+v).toFixed(1);
+    const X = y => padL + y * sx, Y = z => padT + hLoad + (zMax - z) * sz, f = v => (+v).toFixed(1), F1 = v => (+v).toFixed(1), F2 = v => (+v).toFixed(2);
     const band = (y0, y1, v, cls) => { if (!(v > 0)) return ''; const p0 = [X(y0), Y(Z(y0)) - 2], p1 = [X(y1), Y(Z(y1)) - 2]; return `<polygon class="${cls}" points="${f(p0[0])},${f(p0[1])} ${f(p1[0])},${f(p1[1])} ${f(p1[0])},${f(p1[1] - pz(v))} ${f(p0[0])},${f(p0[1] - pz(v))}"/>`; };
-    const arrows = (y0, y1, v, base, cls) => { let a = ''; const n = Math.max(2, Math.round((y1 - y0) * sx / 46)); for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n, yb = Y(Z(y)) - 2 - base; a += `<line class="${cls}" x1="${f(X(y))}" y1="${f(yb - pz(v))}" x2="${f(X(y))}" y2="${f(yb - 3)}" marker-end="url(#ubArr)"/>`; } return a; };
+    const arrows = (y0, y1, v, base, cls) => { let a = ''; const n = Math.max(2, Math.round((y1 - y0) * sx / 46)); for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n, yb = Y(Z(y)) - 2 - base; a += `<line class="${cls}" x1="${f(X(y))}" y1="${f(yb - pz(v))}" x2="${f(X(y))}" y2="${f(yb - 3)}" marker-end="url(#ubArr${fromF ? 'F' : 'B'})"/>`; } return a; };
     const tw = (t, cls) => (cls === 'ub-surt' ? 7.9 : 7.1) * String(t).length + 16;
-    const pill = (x, y, t, cls = '') => `<rect class="ub-pill ${cls}" x="${f(x - tw(t, cls) / 2)}" y="${f(y - 12)}" width="${f(tw(t, cls))}" height="17" rx="5"/><text class="ub-lab ${cls}" x="${f(x)}" y="${f(y + 1)}">${esc(t)}</text>`;
-    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx.toFixed(0)}" class="ub-sec" role="img" aria-label="${esc(r.name)}: unbalanced snow"><defs><marker id="ubArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-head"/></marker><marker id="ubWind" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-windhead"/></marker></defs>`;
+    const pill = (x, y, t, cls = '') => { const w = tw(t, cls), cx = Math.min(Math.max(x, w / 2 + 4), Wpx - w / 2 - 4); return `<rect class="ub-pill ${cls}" x="${f(cx - w / 2)}" y="${f(y - 12)}" width="${f(w)}" height="17" rx="5"/><text class="ub-lab ${cls}" x="${f(cx)}" y="${f(y + 1)}">${esc(t)}</text>`; };
+    const mid = ([a, b]) => (a + b) / 2;
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx.toFixed(0)}" class="ub-sec" role="img" aria-label="${esc(r.name)}: unbalanced snow, wind from the ${fromF ? 'FSW' : 'BSW'}"><defs><marker id="ubArr${fromF ? 'F' : 'B'}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-head"/></marker><marker id="ubWind${fromF ? 'F' : 'B'}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-windhead"/></marker></defs>`;
     // the building: columns, the roof
     s += `<line class="ub-ground" x1="${f(X(0) - 20)}" y1="${f(Y(0))}" x2="${f(X(W) + 20)}" y2="${f(Y(0))}"/>`;
     s += `<polyline class="ub-frame" points="${f(X(0))},${f(Y(0))} ${brk.map(y => `${f(X(y))},${f(Y(Z(y)))}`).join(' ')} ${f(X(W))},${f(Y(0))}"/>`;
-    // the wind, from the FSW
-    s += `<line class="ub-wind" x1="${f(X(0) - 58)}" y1="${f(padT - 6)}" x2="${f(X(0) - 8)}" y2="${f(padT - 6)}" marker-end="url(#ubWind)"/><text class="ub-windt" x="${f(X(0) - 58)}" y="${f(padT - 14)}">wind</text>`;
+    // the wind, from its side
+    s += fromF ? `<line class="ub-wind" x1="${f(X(0) - 58)}" y1="${f(padT - 6)}" x2="${f(X(0) - 8)}" y2="${f(padT - 6)}" marker-end="url(#ubWind${fromF ? 'F' : 'B'})"/><text class="ub-windt" x="${f(X(0) - 58)}" y="${f(padT - 14)}">wind</text>`
+      : `<line class="ub-wind" x1="${f(X(W) + 58)}" y1="${f(padT - 6)}" x2="${f(X(W) + 8)}" y2="${f(padT - 6)}" marker-end="url(#ubWind${fromF ? 'F' : 'B'})"/><text class="ub-windt" x="${f(X(W) + 58)}" y="${f(padT - 14)}" style="text-anchor:end">wind</text>`;
     if (u.simple) {
-      s += band(yr, W, u.leeward, 'ub-lee') + arrows(yr, W, u.leeward, 0, 'ub-arr');
-      s += pill((X(yr) + X(W)) / 2, Y(Z((yr + W) / 2)) - pz(u.leeward) - 16, `leeward Is pg = ${F1(u.leeward)} psf`, 'ub-leet');
-      s += pill((X(0) + X(yr)) / 2, Y(Z(yr / 2)) - 22, 'windward 0', '');
+      s += band(lee[0], lee[1], u.leeward, 'ub-lee') + arrows(lee[0], lee[1], u.leeward, 0, 'ub-arr');
+      s += pill(X(mid(lee)), Y(Z(mid(lee))) - pz(u.leeward) - 16, `leeward Is pg = ${F2(u.leeward)} psf`, 'ub-leet');
+      s += pill(X(mid(win)), Y(Z(mid(win))) - 22, 'windward 0', '');
     } else {
       // windward 0.3 ps; leeward ps; the surcharge on the leeward from the ridge
-      s += band(0, yr, u.windward, 'ub-wind-b') + arrows(0, yr, u.windward, 0, 'ub-arr');
-      s += band(yr, W, u.leeward, 'ub-lee') + arrows(yr, W, u.leeward, 0, 'ub-arr');
-      const ys = Math.min(W, yr + u.length * Math.cos(Math.atan((g.slopeBSW ?? 1) / 12)));
+      s += band(win[0], win[1], u.windward, 'ub-wind-b') + arrows(win[0], win[1], u.windward, 0, 'ub-arr');
+      s += band(lee[0], lee[1], u.leeward, 'ub-lee') + arrows(lee[0], lee[1], u.leeward, 0, 'ub-arr');
+      const run = u.length * Math.cos(Math.atan(((fromF ? g.slopeBSW : g.slopeFSW) ?? 1) / 12)), ys = fromF ? Math.min(W, yr + run) : Math.max(0, yr - run);
       const p0 = [X(yr), Y(Z(yr)) - 2 - pz(u.leeward)], p1 = [X(ys), Y(Z(ys)) - 2 - pz(u.leeward)];
       s += `<polygon class="ub-sur" points="${f(p0[0])},${f(p0[1])} ${f(p1[0])},${f(p1[1])} ${f(p1[0])},${f(p1[1] - pz(u.surcharge))} ${f(p0[0])},${f(p0[1] - pz(u.surcharge))}"/>`;
-      s += pill((X(0) + X(yr)) / 2, Y(Z(yr / 2)) - 2 - pz(u.windward) - 14, `windward 0.3 ps = ${F1(u.windward)} psf`);
-      s += pill((X(ys) + X(W)) / 2 + 10, Y(Z((ys + W) / 2)) - 2 - pz(u.leeward) - 14, `leeward ps = ${F1(u.leeward)} psf`, 'ub-leet');
+      s += pill(X(mid(win)), Y(Z(mid(win))) - 2 - pz(u.windward) - 14, `windward 0.3 ps = ${F2(u.windward)} psf`);
+      s += pill((X(ys) + X(leeEave)) / 2 + (fromF ? 10 : -10), Y(Z((ys + leeEave) / 2)) - 2 - pz(u.leeward) - 14, `leeward ps = ${F2(u.leeward)} psf`, 'ub-leet');
       // the surcharge: its value large over it, its length dimensioned under the roof
       const sx0 = (p0[0] + p1[0]) / 2, sy0 = Math.min(p0[1], p1[1]) - pz(u.surcharge) - 14;
-      s += pill(sx0, sy0, `Alt snow · surcharge ${F1(u.surcharge)} psf`, 'ub-surt');
-      const dy = Y(0) + 22;
-      s += `<line class="ub-dim" x1="${f(X(yr))}" y1="${f(dy)}" x2="${f(X(ys))}" y2="${f(dy)}"/><line class="ub-dim" x1="${f(X(yr))}" y1="${f(dy - 6)}" x2="${f(X(yr))}" y2="${f(dy + 6)}"/><line class="ub-dim" x1="${f(X(ys))}" y1="${f(dy - 6)}" x2="${f(X(ys))}" y2="${f(dy + 6)}"/>`;
+      s += pill(sx0, sy0, `Alt snow · surcharge ${F2(u.surcharge)} psf`, 'ub-surt');
+      const dy = Y(0) + 22, xa = Math.min(X(yr), X(ys)), xb = Math.max(X(yr), X(ys));
+      s += `<line class="ub-dim" x1="${f(xa)}" y1="${f(dy)}" x2="${f(xb)}" y2="${f(dy)}"/><line class="ub-dim" x1="${f(xa)}" y1="${f(dy - 6)}" x2="${f(xa)}" y2="${f(dy + 6)}"/><line class="ub-dim" x1="${f(xb)}" y1="${f(dy - 6)}" x2="${f(xb)}" y2="${f(dy + 6)}"/>`;
       s += `<line class="ub-ext" x1="${f(X(yr))}" y1="${f(Y(Z(yr)))}" x2="${f(X(yr))}" y2="${f(dy)}"/><line class="ub-ext" x1="${f(X(ys))}" y1="${f(Y(Z(ys)))}" x2="${f(X(ys))}" y2="${f(dy)}"/>`;
-      s += `<text class="ub-dimt" x="${f((X(yr) + X(ys)) / 2)}" y="${f(dy + 16)}">${ftin(u.length)} from the ridge · 8 hd √S / 3</text>`;
+      s += `<text class="ub-dimt" x="${f((xa + xb) / 2)}" y="${f(dy + 16)}">${ftin(u.length)} from the ridge · 8 hd √S / 3</text>`;
     }
     s += `<text class="ub-side" x="${f(X(0))}" y="${f(Y(0) + 18)}">FSW</text><text class="ub-side" x="${f(X(W))}" y="${f(Y(0) + 18)}">BSW</text>`;
-    s += `<text class="ub-title" x="${f(padL - 50)}" y="24">${esc(r.name)} · unbalanced snow, wind from the FSW</text><text class="ub-note" x="${f(Wpx - 16)}" y="24">${u.simple ? 'W ≤ 20 ft: the simple case (7.6.1)' : `hd ${ftin(u.hd)} · S ${F1(u.S)} · γ ${F1(r.gamma)} pcf · and the mirror with the wind from the BSW`}</text>`;
+    s += `<text class="ub-title" x="${f(padL - 50)}" y="24">${esc(r.name)} · wind from the ${fromF ? 'FSW' : 'BSW'} · surcharge on the ${fromF ? 'BSW' : 'FSW'} slope</text><text class="ub-note" x="${f(Wpx - 16)}" y="24">${u.simple ? 'W ≤ 20 ft: the simple case (7.6.1)' : `hd ${ftin(u.hd)} on the ${ftin(fromF ? yr : W - yr)} ${fromF ? 'FSW' : 'BSW'} run · S ${F1(u.S)} · γ ${F1(r.gamma)} pcf`}</text>`;
     return s + '</svg>';
   }
 
@@ -1272,6 +1317,17 @@
     };
   }
 
-  const api = { ftin, frameEntry, columnsOf, endPosts, frameLines, frameData, scene, siteLetters, planSvg, frameSvg, wallSvg, splitSvg, lineSvg, stepSvg, unbalancedSvg, windSvg, ccSvg, iFaces };
+  /* each drawing's own ids (its arrowheads, gradients, hatch) made unique to it: the same drawing sits on several pages,
+     and a marker found first in a page that is hidden draws nothing — the arrowheads went missing that way */
+  let idSeq = 0;
+  const ownIds = fn => (...a) => {
+    const s = fn(...a);
+    if (typeof s !== 'string') return s;
+    const ids = [...new Set([...s.matchAll(/\sid="([A-Za-z][\w-]*)"/g)].map(m => m[1]))];
+    if (!ids.length) return s;
+    const k = ++idSeq;
+    return ids.reduce((t, id) => t.split(`id="${id}"`).join(`id="${id}-${k}"`).split(`url(#${id})`).join(`url(#${id}-${k})`).split(`href="#${id}"`).join(`href="#${id}-${k}"`), s);
+  };
+  const api = { ftin, frameEntry, columnsOf, endPosts, frameLines, frameData, scene, siteLetters, planSvg: ownIds(planSvg), frameSvg: ownIds(frameSvg), wallSvg: ownIds(wallSvg), splitSvg: ownIds(splitSvg), lineSvg: ownIds(lineSvg), stepSvg: ownIds(stepSvg), unbalancedSvg: ownIds(unbalancedSvg), windSvg: ownIds(windSvg), ccSvg: ownIds(ccSvg), iFaces };
   if (node) module.exports = api; else root.MZ_BUILDING = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -45,6 +45,7 @@
         <i class="orb-empty" id="orbEmpty">Drop a PCS</i>
         <div class="rv-toggle" id="rvToggle" hidden><button id="rvLayers" title="What the 3D shows" aria-label="Layers" aria-expanded="false">Layers</button><button id="rvBig" title="Open it in its own window — drag it to a second screen" aria-label="Open in its own window">⤢</button></div>
         <div class="rv-layers model-toggles" id="rvLayersMenu" hidden></div>
+        <div class="rv-focus" id="rvFocus" hidden><span id="rvFocusWhat"></span><button id="rvWhole" title="Show the whole building">Show all</button></div>
       </div>
       <small id="rsSub"></small>
     </section>
@@ -204,6 +205,7 @@
         <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
       </div>
       <div class="seis-status" id="seisStatus"></div>
+      <div class="wb-top" data-wbtop="seismic" hidden></div>
       <div id="seisFileCmp"></div>
       <div class="panel seis-step">
         <div class="panel-head"><h3><span class="step-no">1–6</span>Inputs</h3><span class="sub">as NBG Design Calcs takes them: building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · each filled from the PCS, the job's NBG files or the design, its source tagged · type over any value</span></div>
@@ -332,6 +334,7 @@
         <div><div class="eyebrow">Mezzanine beam design</div><h2 id="beamCalcTitle">MB sheet</h2></div>
         <p class="lede">The MB sheet, cell for cell.<span class="screen-only"> Click a depth-table row to use that section.</span></p>
       </div>
+      <div class="wb-top" data-wbtop="beam" hidden></div>
       <div class="tabs" id="markTabs"></div>
       <details class="explain" id="beamExplain"><summary id="beamExplainHead">How this beam was designed</summary><div class="explain-body" id="beamHow"></div></details>
       <div class="beam-inputs" id="beamInputs"></div>
@@ -354,6 +357,7 @@
         <div><div class="eyebrow">Independent mezzanine columns</div><h2>Column <em>sheet</em></h2></div>
         <p class="lede">The Column sheet: left / right reactions at e = d/2, three combinations, each &lt; 1.00.</p>
       </div>
+      <div class="wb-top" data-wbtop="col" hidden></div>
       <div class="tabs" id="colTabs"></div>
       <details class="explain" id="colExplain"><summary id="colExplainHead">How the column was chosen</summary><div class="explain-body" id="colHow"></div></details>
       <div class="panel"><div class="panel-body" id="colSheet"></div></div>
@@ -425,5 +429,6 @@
 <script>/*@INLINE_JS app-building.js*/</script>
 <script>/*@INLINE_JS app.js*/</script>
 <!--@OCR_ASSETS-->
+<!--@WB_EMBED-->
 </body>
 </html>

@@ -218,6 +218,18 @@
       const gable = g.profile === 'Gable';
       const W = gable ? Math.max(g.width - ridgeY(g), ridgeY(g)) : g.width;
       const res = SNOW.roof({ ed: facts.ed, pg: facts.pg, Ce: facts.Ce ?? 1, Ct, risk: facts.risk, slope, slippery, W, gable, W2: facts.W2 });
+      // the unbalanced snow each way, as NBG Design Calcs gives it (WindToRight / WindToLeft): the wind from the FSW puts
+      // the surcharge on the BSW slope (hd on the FSW eave-to-ridge run, S of the BSW slope), and the mirror; on an equal
+      // gable the two are the same. The governing one stands for the roof.
+      if (gable && res.unbalanced && res.unbalanced.applies && !res.unbalanced.need) {
+        const yr = ridgeY(g), one = (run, sLee) => SNOW.unbalanced({ ed: facts.ed, pg: facts.pg, W: run, W2: facts.W2, slope: sLee || slope }, res);
+        const dirs = { FSW: one(yr, g.slopeBSW ?? g.slopeFSW), BSW: one(g.width - yr, g.slopeFSW ?? g.slopeBSW) };
+        if (dirs.FSW.applies && dirs.BSW.applies && !dirs.FSW.need && !dirs.BSW.need) {
+          const extra = u => (u.surcharge || 0) * (u.length || 0);   // the surcharge's own load, per foot of frame spacing
+          const gov = extra(dirs.BSW) > extra(dirs.FSW) + 1e-9 ? 'BSW' : 'FSW';
+          res.unbalanced = { ...dirs[gov], gov, dirs, same: ['windward', 'leeward', 'surcharge', 'length'].every(k => Math.abs((dirs.FSW[k] || 0) - (dirs.BSW[k] || 0)) < 1e-6) };
+        }
+      }
       const pcsSnow = r.snow && r.snow.value != null ? r.snow : null;
       const shown = Math.max(res.ps, res.pm || 0);
       // the uniform snow NBG Frame puts on the roof (SL): Box 4's user override where it has one, else the larger of ps and
