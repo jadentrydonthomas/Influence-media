@@ -202,7 +202,7 @@
     return { bytes: FF.zip(entries), xml, added, kept, replaced };
   }
 
-  /* What goes into the file for the mezzanines, from the Seismic page's bracing lines:
+  /* What goes into the file for the mezzanines, from the Seismic calc's bracing lines:
      lines: [{ wall: 'FSW' | 'BSW', F (kips), at (elevation), x0, x1 (the mezzanine's extent along the length, ft from the LEW), mezz }]
      returns { loads, struts, notes }: EQB +F at the first frame line of the mezzanine's extent, EQF −F at the last;
      a strut line at its elevation from the mezzanine to the wall's nearest braced bay. */

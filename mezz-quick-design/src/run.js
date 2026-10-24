@@ -1486,7 +1486,7 @@
           eave, and each mezzanine's force (× 1.1 accidental torsion on a rigid floor). That force goes to the mezzanine's
           two long edges as a simply supported flexible diaphragm: an edge on a sidewall is that wall's bracing (EQB + / EQF −
           at the mezzanine's frame lines, with a wall strut line at its elevation); any other edge needs independent X-bracing.
-     cfg (the Seismic page): { ed, risk, Ss, S1, SMS, SM1, siteClass, roofDiaphragm, mezzDiaphragm, ndfs, significant,
+     cfg (the Seismic calc): { ed, risk, Ss, S1, SMS, SM1, siteClass, roofDiaphragm, mezzDiaphragm, ndfs, significant,
        irregular, torsionLong, torsionLat, files: { [bkey]: { from, code, risk, Ss, S1, SMS, SM1, siteClass, roofDead,
        collateral, snow } } (read from a dropped bracing / eScope file), buildings: { [bkey]: { SW, RDL, CDL, RSW, Pf,
        walls: { LEW | REW | FSW | BSW: { kind, parapet, shear, top, weight, masonryTop, lowerWeight, upperWeight } },

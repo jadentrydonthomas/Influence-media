@@ -1895,3 +1895,19 @@ table.snow-roofs td small.sub-n { display: block; }
 .bl-res-t td small.sub-n, .bl-split td small.sub-n { display: block; }
 .bl-split th small.sub-n { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; }
 .bl-cmp-n { display: block; margin-top: 6px; }
+/* the frame elevation: column numbers at the bases, the load heights outside on dotted leaders */
+.frame-elev .fe-colno circle { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+.frame-elev .fe-colno text { fill: var(--ink); font: 700 11.5px var(--mono); text-anchor: middle; }
+.frame-elev .fe-lvl { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 4; }
+.frame-elev .fe-lvlt { fill: var(--ink-muted); font: 600 11.5px var(--mono); }
+[data-theme="light"] .frame-elev .fe-eq line { stroke: #c9424b; }
+[data-theme="light"] .frame-elev .fe-eqhead { fill: #c9424b; }
+/* the sidebar's site plan (the building pages): the whole job, small; a frame line opens on the Frames page */
+#miniSite { position: absolute; inset: 0; display: grid; place-items: center; padding: 26px 6px 6px; }
+#miniSite[hidden] { display: none; }
+#miniSite svg { width: 100%; height: 100%; }
+/* at that size only the outline, the frame lines, the bracing and the mezzanines: no words */
+#miniSite text, #miniSite .sp-key, #miniSite .sp-dim, #miniSite .sp-dlab, #miniSite .sp-name, #miniSite .sp-gb, #miniSite .sp-gext, #miniSite .sp-leader { display: none; }
+#miniSite .sp-outline, #miniSite .sp-bldg { stroke-width: 6px; }
+#miniSite .sp-fl line, #miniSite .sp-fl path { stroke-width: 5px; }
+.rail-nav .count.soon.has-cranes { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }

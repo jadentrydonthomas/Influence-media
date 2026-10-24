@@ -257,7 +257,9 @@
         luUpper, luLower, luUpperSrc: 'typed', luLowerSrc: o.luLower != null ? 'typed' : 'default', luUpperParts: [{ name: x.name || 'typed', len: x.lu }], luLowerParts: [{ name: b.name, len: luLower }], s, lowerWidth, hMin: h, hMax: h, length: sgm.len, drift: dMax, driftLow: dMax, sliding: slide,
         envelope: envelope(dMax, slide, lowerWidth), frames: o.off ? [] : frameLoads(st, base, low, slide, side), off: !!o.off, psLower: low.ps, typed: true, extraIndex: i });
     });
-    (pcs.extras || []).filter(x => !x.none).forEach(x => notes.push({ level: 'warn', text: `${x.building}: Box 4 lists an additional obstruction or building (“${x.text}”) — its drift is not drawn on the PCS; add it as a step on the Snow & drift page (step 3).` }));
+    (pcs.extras || []).filter(x => !x.none).forEach(x => notes.push(x.yesNo && /^No$/i.test(x.drift || '')
+      ? { level: 'info', text: `${x.building}: Box 4 lists an additional existing building or obstruction not defined in Box 25, and answers that it does not cause a snow drift — none is drawn. If it does, add it as a step in the Snow calc (Calcs page, step 3).` }
+      : { level: 'warn', text: `${x.building}: Box 4 lists an additional obstruction or building${x.yesNo ? (/^Yes$/i.test(x.drift || '') ? ' that causes a snow drift' : ' (whether it causes a drift is not answered)') : ` (“${x.text}”)`} — its drift is not drawn on the PCS; add it as a step in the Snow calc (Calcs page, step 3).` }));
     if (site.lost.length) notes.push({ level: 'warn', text: `Not placed on the site: ${site.lost.join(', ')} (no attachment note in Box 2 ties ${site.lost.length > 1 ? 'them' : 'it'} to the others).` });
     return { site, roofs, drifts, notes, facts };
   }

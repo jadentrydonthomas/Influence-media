@@ -404,6 +404,10 @@
       const t = clean(l.text), nm = names.slice().sort((a, b) => b.length - a.length).find(n => nkey(t).startsWith(nkey(n)));
       if (!nm) return;
       const rest = clean(t.slice(t.toUpperCase().indexOf(String(nm).toUpperCase()) + String(nm).length));
+      // the newer table asks yes / no: an existing building or obstruction not in Box 25? does it cause snow drift?
+      // solar panels? other loads? — "Yes  No  N/A  N/A"
+      const yn = rest.match(/^(Yes|No)\s+(Yes|No|N\/A)\s+(\S+(?:\s\S+)*?)\s+(\S+(?:\s\S+)*?)$/i);
+      if (yn) { const v = q => (/^N\/A$/i.test(q) ? null : q); out.push({ building: nm, text: '', none: /^No$/i.test(yn[1]), exists: yn[1], drift: v(yn[2]), solar: v(yn[3]), other: v(yn[4]), yesNo: true }); return; }
       const none = /^No Additional Obstruction\b/i.test(rest), cells = rest.replace(/^No Additional Obstruction\s*/i, '').split(/\s{2,}|\s(?=N\/A\b)/).map(clean).filter(Boolean);
       out.push({ building: nm, text: rest, none, drift: cells[0] && !/^N\/A$/i.test(cells[0]) ? cells[0] : null, solar: cells[1] && !/^N\/A$/i.test(cells[1]) ? cells[1] : null, other: cells[2] && !/^N\/A$/i.test(cells[2]) ? cells[2] : null });
     });
@@ -882,6 +886,36 @@
     return its.length ? clean(its.map(it => it.str).join(' ')) : clean(row.items[0].str);
   }
 
+  /* Box 23: the cranes. Each "Crane ID:" entry — its type and capacity, the aisle and the frame line it starts at, the
+     runway, the weights and the wheel load, the clearances and the beam spacing — read for the flags and the Cranes
+     page; the frames, bracing and seismic do not carry crane loads yet, and say so. */
+  function cranes(pages) {
+    const out = [];
+    pages.forEach(p => {
+      const ls = lines(p), s = findLine(ls, /^23\)\s*CRANES/i);
+      if (s < 0 || /NONE\s+REQUIRED/i.test(ls[s].text)) return;
+      const e = findLine(ls, /^2[4-9]\)\s/, s + 1), blk = ls.slice(s, e < 0 ? ls.length : e).map(l => l.text);
+      const head = blk.slice(0, blk.findIndex(t => /^Crane ID:/i.test(t)) + 1 || 1).join('\n');
+      const starts = blk.map((t, i) => (/^Crane ID:/i.test(t) ? i : -1)).filter(i => i >= 0);
+      starts.forEach((st, k) => {
+        const txt = blk.slice(st, k + 1 < starts.length ? starts[k + 1] : blk.length).join('\n');
+        const g = re => grab(txt, re), lbs = re => { const v = g(re); return v != null && isFinite(+v) ? +v : null; };
+        out.push({
+          building: grab(head, /BUILDING NAME:\s*(.+?)(?:\s{2,}|\n|$)/i) || null, kind: grab(head, /CRANE TYPE:\s*(.+?)(?:\s{2,}|\n|$)/i) || null,
+          id: g(/^Crane ID:\s*(\S+)/im), aisle: g(/Crane Aisle Location:\s*(\S+)/i), startLine: lbs(/Starting Frameline:\s*(\d+)/i), direction: g(/Crane Direction:\s*(\S+)/i),
+          qty: lbs(/Quantity:\s*(\d+)/i), type: g(/^Crane Type:\s*(\S+)/im), tons: lbs(/Rated Capacity:\s*([\d.]+)\s*tons?/i), cmaa: g(/CMAA Service Duty Class:\s*(\S+)/i),
+          control: g(/Operation Control Type:\s*(\S+)/i), runway: ftin(g(new RegExp(String.raw`Runway Length:\s*(` + DIM + ')', 'i'))),
+          hoistTrolley: lbs(/Hoist and Trolley Weight:\s*([\d.]+)\s*lbs/i), bridge: lbs(/Bridge Weight:\s*([\d.]+)\s*lbs/i), wheel: lbs(/Max\. Wheel Load w\/o Impact:\s*([\d.]+)\s*lbs/i),
+          wheelsPerTruck: lbs(/Wheels per End Truck[^:]*:\s*(\d+)/i), wheelSpacing: ftin(g(new RegExp(String.raw`Wheel Spacing:\s*(` + DIM + ')', 'i'))),
+          beamCC: ftin(g(new RegExp(String.raw`Center to Center of Beam:\s*(` + DIM + ')', 'i'))), beamToSteel: ftin(g(new RegExp(String.raw`Center of Beam to Steel Line:\s*(` + DIM + ')', 'i'))),
+          clearBeam: ftin(g(new RegExp(String.raw`Min\. Clear From Bottom of Beam:\s*(` + DIM + ')', 'i'))), runwayBeam: lbs(/Runway Beam Weight:\s*([\d.]+)\s*lbs/i),
+          sway: g(/Sway Bracing by Seller \(Y\/N\):\s*(\S+)/i), notBySeller: /Seller has not supplied crane beams/i.test(blk.join(' ')), page: p.num,
+        });
+      });
+    });
+    return out;
+  }
+
   function parse(pagesIn) {
     const prim = primaryPages(pagesIn), pages = prim.pages;
     const job = jobFacts(pages);
@@ -924,9 +958,9 @@
         if (f && f.interior && f.interior.length === sp.length && sp.length > 1 && Math.abs(sum(f.interior) - sum(sp)) < 0.1 && f.interior.some((v, i) => Math.abs(v - sp[i]) > 0.05)) { f.box5 = f.interior; f.interior = sp.slice(); f.fromMarkup = true; }
       });
     });
-    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, pen, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
+    return { job, code, building: first.building, frames: first.frames, buildings, site, mezzanines: mezz, notes, pen, ecospan: eco ? eco[0].trim() : null, attachments: attachments(pages), seismic: seismicFacts(pages), extras: extraComponents(pages), cranes: cranes(pages), bracingOptions: brOpts, columnRequest: colReq ? clean(colReq) : null, otherDoc: prim.cut };
   }
 
-  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall };
+  const api = { parse, primaryPages, qoStart, specialNotes, qualifications, notesFor, lines, ftin, fmtFtIn, spacingList, undouble, editionFor, divisionFrom, checkboxTargets, box22Pages, CHECK_LABELS, building, frames, mezzanines, jobFacts, attachments, seismicFacts, roofLoads, buildingNames, extraComponents, bracingOptions, bracingByWall, cranes };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_PCS = api;
 })(typeof self !== 'undefined' ? self : this);

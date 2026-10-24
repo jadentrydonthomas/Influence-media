@@ -99,6 +99,20 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   const bldPlan = await page.$$eval('#bldPlan .sp-fl', g => g.length), bldFrames = await page.$$eval('#bldFrames tbody tr', r => r.length);
   console.log('Building page'.padEnd(30), 'site 3D inked', bldInk, '· plan frame lines', bldPlan, '· frame rows', bldFrames);
   if (bldInk < 1500 || !bldPlan || bldPlan !== bldFrames) fail('the Building page should draw the site in 3D and list every frame line on the plan and in the table');
+  // the building in its own window (a second screen): it turns in 3D, shows the plan, and a frame line clicked there opens here
+  {
+    const [pop] = await Promise.all([page.waitForEvent('popup'), page.click('#bldPop')]);
+    await pop.setViewportSize({ width: 1100, height: 760 }); await pop.waitForTimeout(900);
+    const popInk = await pop.$eval('#popCanvas', c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 0) n++; return n; });
+    await pop.click('#popSeg button[data-v="plan"]'); await pop.waitForTimeout(300);
+    const popLines = await pop.$$('#popPlan .sp-fl');
+    if (popLines.length) { await popLines[popLines.length - 1].click(); await page.waitForTimeout(300); }
+    const opened = await page.evaluate(() => [document.querySelector('.screen.is-active').id, (document.querySelector('#framePick .fp-chip.is-on') || {}).textContent].join(' '));
+    console.log('Own window'.padEnd(30), 'ink', popInk, '· plan lines', popLines.length, '· opened', opened);
+    if (popInk < 1500 || popLines.length !== bldPlan || !/^v-frames \d+$/.test(opened)) fail('the building\'s own window should turn in 3D, show every frame line on its plan and open a clicked one here');
+    await pop.close();
+    await page.click('#nav button[data-view="building"]'); await page.waitForTimeout(300);
+  }
   await page.click('#bldPlan .sp-fl'); await page.waitForTimeout(300);
   if (!(await page.$('#v-frames.is-active')) || !(await page.$('#frameView svg'))) fail('clicking a frame line on the site plan should open it on the Frames page');
   console.log('Frames page'.padEnd(30), await page.$eval('#frameViewTitle', e => e.textContent.trim()), '· layers', await page.$$eval('#frameToggles button', b => b.map(x => x.textContent).join(', ')));

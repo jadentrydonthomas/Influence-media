@@ -28,6 +28,8 @@
   /* scene: { center:[x,y,z], radius, members:[{ id, kind, color, boxes:[], lines:[[p,q],...], alpha, info }], labels:[{p:[x,y,z], text, kind}] } */
   function mount(canvas, opts = {}) {
     const ctx = canvas.getContext('2d');
+    // the window it draws in (a canvas in a window of its own — the building on a second screen — turns on that window's frames)
+    const win = opts.win || (canvas.ownerDocument && canvas.ownerDocument.defaultView) || window, doc = win.document;
     const view = { yaw: -0.72, pitch: 0.52, zoom: 1, target: [0, 0, 0], auto: opts.auto !== false, hover: null, selected: null, toggles: { slab: true, joists: true, building: true, tags: true } };
     const home = { yaw: view.yaw, pitch: view.pitch, zoom: 1 };
     const ZMIN = 0.5, ZMAX = 40;
@@ -57,7 +59,7 @@
 
     function resize() {
       const r = canvas.getBoundingClientRect();
-      dpr = Math.min(2, window.devicePixelRatio || 1);
+      dpr = Math.min(2, win.devicePixelRatio || 1);
       W = Math.max(MIN_W, r.width); H = Math.max(MIN_H, r.height);
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       fitScale();
@@ -281,7 +283,7 @@
     }
 
     function tick(t) {
-      raf = requestAnimationFrame(tick);
+      raf = win.requestAnimationFrame(tick);
       const dt = Math.min(64, t - (last || t)); last = t;
       if (anim) {
         const k = Math.min(1, (t - anim.t0) / anim.ms), e = 1 - Math.pow(1 - k, 3);
@@ -289,8 +291,8 @@
         view.zoom = anim.from.zoom * Math.pow(anim.to.zoom / anim.from.zoom, e);
         if (k >= 1) anim = null;
         draw();
-      } else if (view.auto && !dragging && visible && !document.hidden) { view.yaw += dt * (opts.speed || 0.00012); if (flakes.length && view.toggles.flakes !== false) stepFlakes(dt); draw(); }
-      else if (flakes.length && view.toggles.flakes !== false && visible && !document.hidden && !dragging) { stepFlakes(dt); draw(); }
+      } else if (view.auto && !dragging && visible && !doc.hidden) { view.yaw += dt * (opts.speed || 0.00012); if (flakes.length && view.toggles.flakes !== false) stepFlakes(dt); draw(); }
+      else if (flakes.length && view.toggles.flakes !== false && visible && !doc.hidden && !dragging) { stepFlakes(dt); draw(); }
     }
 
     const pos = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -350,9 +352,9 @@
       stopAuto();
       if (g) { focus(g.box); if (opts.onFocus) opts.onFocus(g.id); } else { zoomAt(2, x, y); draw(); }
     });
-    if (typeof IntersectionObserver !== 'undefined') new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }).observe(canvas);
-    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resize).observe(canvas); else window.addEventListener('resize', resize);
-    raf = requestAnimationFrame(tick);
+    if (win.IntersectionObserver) new win.IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }).observe(canvas);
+    if (win.ResizeObserver) new win.ResizeObserver(resize).observe(canvas); else win.addEventListener('resize', resize);
+    raf = win.requestAnimationFrame(tick);
 
     return {
       // a new scene keeps the view when it is the same job redrawn (an edit); a different extent starts whole again
@@ -382,7 +384,7 @@
         const p = project([(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.z1]);
         return [p[0], p[1]];
       },
-      destroy() { cancelAnimationFrame(raf); },
+      destroy() { win.cancelAnimationFrame(raf); },
     };
   }
 

@@ -62,6 +62,35 @@ const geo = async (k, mi = 0) => { const p = PCS.parse(await readPcs(job(k))), g
       seen.push('k02 bracing = the engineer\'s own EQB / EQF rows (4.73 k on each wall)');
     }
   }
+  // k02 as the engineer designed it in the workbooks (their filled 15th-edition copies): MB1 BU15x30, 25'-0" span, 8'-0"
+  // trib, 43 + 5 / 115 / 8 psf, 1 k axial; the column W10X22 at 8'-4" with 5.948 / 11.5 k each side. The tool's engine
+  // gives the workbook's numbers. (The tool's own pick is BU13x36: it keeps the beam's total-load sag inside C = 8'-0".)
+  {
+    const wbDir = path.join(dir, 'workbooks-new');
+    if (fs.existsSync(path.join(wbDir, 'Mezzanine_Beam_Design_15th.xls'))) {
+      const MZ = require('../src/engine.js'), WF = require('../src/wf-db.js');
+      const b = MZ.beamCheck({ dead: 43, coll: 5, live: 115, joistWt: 8, L: 25, Lb: 3.916667, trib: 8, axial: 1, edition: '15', sec: { type: 'BU', d: 15, tw: 0.188, bof: 8, tof: 0.375, bif: 8, tif: 0.375 } }, WF);
+      assert.ok(b.desc === 'BU15x30' && b.combinedText === 'COMBINED OK (SR = 0.81)' && b.shearText === 'SHEAR OK (SR = 0.43)', b.combinedText);
+      assert.ok(near(b.V.D, 5.9691829625, 1e-9) && near(b.V.L, 11.5, 1e-9) && near(b.M.T, 109.182393515625, 1e-9) && near(b.res.Ix, 366.2399597167969, 1e-4));
+      assert.deepStrictEqual([b.defl.rDL, b.defl.rLL, b.defl.rTL].map(Math.round), [759, 394, 259]);
+      const c = MZ.columnCheck({ sec: { type: 'WF', name: 'W10X22' }, Fy: 50, Fu: 65, L: 8.33333, Lby: 99.99996, DL_L: 5.948, LL_L: 11.5, DL_R: 5.948, LL_R: 11.5 }, WF);
+      [[4.887499809265137, 23.57933235168457, 0.19105537836941727], [-4.887499809265137, 23.57933235168457, 0.19105537836941727], [0, 35.0793342590332, 0.2724502438196258]].forEach(([Mx, P, csr], i) => assert.ok(near(c.combos[i].Mx, Mx, 1e-5) && near(c.combos[i].P, P, 1e-5) && near(c.combos[i].csr, csr, 1e-5), `column combination ${i + 1}`));
+      seen.push('k02 the engineer\'s MB1 BU15x30 and W10X22 = their workbooks');
+    }
+  }
+  // the building-only jobs: "22) MEZZANINES - NONE REQUIRED" read as no mezzanine; Box 4's yes / no obstruction answers
+  // read as answers; Box 23's crane read field by field
+  for (const k of ['k04', 'k05', 'k07', 'k10']) {
+    if (!fs.existsSync(job(k))) continue;
+    const p = PCS.parse(await readPcs(job(k)));
+    assert.strictEqual(p.mezzanines.length, 0, `${k}: no mezzanine`);
+    if (k === 'k05') assert.deepStrictEqual(p.extras.map(x => [x.yesNo, x.exists, x.drift, x.none]), [[true, 'Yes', 'No', false]], 'Yes (an obstruction) · No (no drift)');
+    if (k === 'k10') {
+      const [c] = p.cranes;
+      assert.ok(p.cranes.length === 1 && c.type === 'UHSG' && c.tons === 5 && c.cmaa === 'C' && c.startLine === 6 && c.direction === 'REW' && near(c.runway, 53) && c.wheel === 5100 && c.bridge === 2273 && c.hoistTrolley === 690 && near(c.wheelSpacing, 7 + 6.5 / 12) && near(c.beamCC, 15) && c.runwayBeam === 50 && c.notBySeller, JSON.stringify(c));
+    } else assert.strictEqual(p.cranes.length, 0, `${k}: no crane`);
+  }
+  seen.push('k04 / k05 / k07 / k10 building only; k05 Box 4 yes / no; k10 Box 23 crane (5 t UHSG from line 6)');
   // k06: a column of single-value notes, each box taller than its row
   if (fs.existsSync(job('k06'))) {
     const g = await geo('k06');

@@ -512,11 +512,24 @@
           drift: [segs], sliding: [segs], mezz: [{ y, elev, D, L, member, label }], eq: [{ y, at, F (null = waiting), member }],
           leanTo: [{ y, at, text }] }, step: { side, upperName, upperEave, h, rake } }
      Returns { svg, legend: [{ key, label }] } — every load in its own <g data-layer>. */
+  /* the frame's columns as NBG Frame numbers them, left to right from one end: the frame columns, and on an end frame
+     its posts. Where a load names its column (COL02 …) that numbering is followed — from the FSW or from the BSW, with
+     or without the posts — else they count from the FSW. Returns [{ y, n }] */
+  function columnNumbers(F) {
+    const ld = F.loads || {}, uniq = a => [...new Set(a.map(v => +(+v).toFixed(3)))].sort((p, q) => p - q);
+    const sets = [uniq([...F.cols, ...(F.posts || [])]), uniq(F.cols)];
+    const known = [...(ld.mezz || []), ...(ld.eq || []), ...(ld.leanTo || [])].map(q => ({ y: q.y, n: +((String(q.member || '').match(/^COL0*(\d+)$/i) || [])[1]) })).filter(q => q.n > 0);
+    for (const ys of sets) for (const flip of [false, true]) {
+      const num = i => (flip ? ys.length - i : i + 1);
+      if (known.length && known.every(q => { const i = ys.findIndex(v => Math.abs(v - q.y) < 0.3); return i >= 0 && num(i) === q.n; })) return ys.map((y, i) => ({ y, n: num(i) }));
+    }
+    return sets[0].map((y, i) => ({ y, n: i + 1 }));
+  }
   function frameSvg(F) {
     const g = F.g, W = g.width, Zr = y => SITE.roofZ(g, F.x, y), brk = SITE.roofBreaks(g), ld = F.loads || {};
     const eaveMax = Math.max(Zr(0), Zr(W), ...brk.map(Zr)), stepH = F.step ? F.step.upperEave : 0;
     const extraL = F.step && F.step.side === 'FSW' ? Math.max(10, W * 0.28) : 0, extraR = F.step && F.step.side === 'BSW' ? Math.max(10, W * 0.28) : 0;
-    const Hft = Math.max(eaveMax, stepH) + 2.5, padT = 150, padB = 64;
+    const Hft = Math.max(eaveMax, stepH) + 2.5, padT = 150, padB = 86;
     const sc = Math.min(330 / Hft, 720 / (W + extraL + extraR));
     const used = (W + extraL + extraR) * sc, Wpx = Math.max(660, used + 300), padL = (Wpx - used) / 2, Hpx = Hft * sc + padT + padB;
     const X = y => padL + (y + extraL) * sc, Y = z => padT + (Hft - z) * sc;
@@ -581,8 +594,8 @@
     const top = brk.map(y => p(y, Zr(y))), bot = brk.slice().reverse().map(y => p(y, Zr(y) - depthAt(y)));
     frame += `<polygon class="fe-mem fe-rafm" points="${top.join(' ')} ${bot.join(' ')}"/>`;
     frame += `<polyline class="fe-flange" points="${brk.map(y => p(y, Zr(y) - depthAt(y))).join(' ')}"/>`;
-    // dimensions: the width and the frame type under the frame, the eave heights at the columns, the wall names
-    frame += `<g class="fe-dims"><line x1="${f(X(0))}" y1="${f(Y(0) + 30)}" x2="${f(X(W))}" y2="${f(Y(0) + 30)}"/><line x1="${f(X(0))}" y1="${f(Y(0) + 24)}" x2="${f(X(0))}" y2="${f(Y(0) + 36)}"/><line x1="${f(X(W))}" y1="${f(Y(0) + 24)}" x2="${f(X(W))}" y2="${f(Y(0) + 36)}"/><text x="${f((X(0) + X(W)) / 2)}" y="${f(Y(0) + 48)}">${ftin(W)}${F.type ? ' · ' + esc(F.type) : ''}</text>`;
+    // dimensions: the width and the frame type under the column numbers, the eave heights at the columns
+    frame += `<g class="fe-dims"><line x1="${f(X(0))}" y1="${f(Y(0) + 46)}" x2="${f(X(W))}" y2="${f(Y(0) + 46)}"/><line x1="${f(X(0))}" y1="${f(Y(0) + 40)}" x2="${f(X(0))}" y2="${f(Y(0) + 52)}"/><line x1="${f(X(W))}" y1="${f(Y(0) + 40)}" x2="${f(X(W))}" y2="${f(Y(0) + 52)}"/><text x="${f((X(0) + X(W)) / 2)}" y="${f(Y(0) + 66)}">${ftin(W)}${F.type ? ' · ' + esc(F.type) : ''}</text>`;
     // the eave heights outside each column top — inside, under the rafter, on a side a higher building stands against
     const eaveLab = (y, out) => {
       const stepHere = F.step && (F.step.side === 'FSW' ? y === 0 : y === W), inward = stepHere ? -out : out, t = ftin(Zr(y)), w = 7.2 * t.length;
@@ -591,7 +604,11 @@
       return `<text class="fe-eave" x="${f(x)}" y="${f(yy)}" style="text-anchor:${inward < 0 ? 'end' : 'start'}">${t}</text>`;
     };
     frame += eaveLab(0, -1) + eaveLab(W, 1);
-    frame += `<text class="fe-wall" x="${f(X(0))}" y="${f(Y(0) + 16)}">FSW</text><text class="fe-wall" x="${f(X(W))}" y="${f(Y(0) + 16)}">BSW</text></g>`;
+    // each column's number at its base, as NBG Frame numbers them (COL01, COL02 … — the FDL2 / EQR2 rows name them);
+    // the walls beside the end ones
+    const colNo = columnNumbers(F);
+    colNo.forEach(c => { frame += `<g class="fe-colno"><circle cx="${f(X(c.y))}" cy="${f(Y(0) + 20)}" r="10"/><text x="${f(X(c.y))}" y="${f(Y(0) + 24)}">${c.n}</text></g>`; });
+    frame += `<text class="fe-wall" x="${f(X(0) - 16)}" y="${f(Y(0) + 24)}" style="text-anchor:end">FSW</text><text class="fe-wall" x="${f(X(W) + 16)}" y="${f(Y(0) + 24)}" style="text-anchor:start">BSW</text></g>`;
     s += `<g class="fe-frame">${frame}</g>`;
     // the snow on the roof at true scale: the balanced depth, the drift wedge, sliding snow
     const hb = ld.snow && ld.snow.hb > 0 ? ld.snow.hb : 0, roofTop = y => Zr(y) + 0.2;
@@ -652,34 +669,50 @@
       });
     });
     bands.forEach(b => { s += layer(b.key, b.label, `<g class="${b.cls}">${b.body}</g>`); });
-    // the mezzanine's dead and live on the columns it bears on, at its floor; its seismic on the outside of the column
+    /* the mezzanine on its columns, at its floor: the dead and live (negative, downward) over a down arrow onto the
+       column; under the floor, EQR / EQL with its two arrows. The floor's height outside the frame, on a dotted line. */
+    const heights = new Map();   // elevation → { left, right } the leader reaches from
+    // from the outermost loaded column on a side; one leader a height, on the FSW side when a load is there
+    const reach = (y, z) => { const k = z.toFixed(3), o = heights.get(k) || { z, left: null, right: null }; if (y < W / 2) o.left = o.left == null ? y : Math.min(o.left, y); else o.right = o.right == null ? y : Math.max(o.right, y); heights.set(k, o); };
+    const heightMarks = () => [...heights.values()].map(o => {
+      let t = '';
+      if (o.left != null) o.right = null;
+      const lab = ftin(o.z), w = 7.2 * lab.length;
+      if (o.left != null) { const xa = X(0) - 30; t += `<line class="fe-lvl" x1="${f(X(o.left))}" y1="${f(Y(o.z))}" x2="${f(xa)}" y2="${f(Y(o.z))}"/><text class="fe-lvlt" x="${f(xa - 4)}" y="${f(Y(o.z) + 4)}" style="text-anchor:end">${lab}</text>`; labels.push([xa - 4 - w, Y(o.z) - 8, xa, Y(o.z) + 6]); }
+      if (o.right != null) { const xa = X(W) + 30; t += `<line class="fe-lvl" x1="${f(X(o.right))}" y1="${f(Y(o.z))}" x2="${f(xa)}" y2="${f(Y(o.z))}"/><text class="fe-lvlt" x="${f(xa + 4)}" y="${f(Y(o.z) + 4)}" style="text-anchor:start">${lab}</text>`; labels.push([xa, Y(o.z) - 8, xa + 4 + w, Y(o.z) + 6]); }
+      return t;
+    }).join('');
     if ((ld.mezz || []).length) {
       let m = '';
       ld.mezz.forEach(q => {
         const x = X(q.y), z = Y(q.elev), dir = q.y < W / 2 ? 1 : -1;
-        m += `<line class="fe-floor" x1="${f(x + dir * 4)}" y1="${f(z)}" x2="${f(x + dir * 52)}" y2="${f(z)}"/>`;
-        m += `<line x1="${f(x + dir * 15)}" y1="${f(z - 40)}" x2="${f(x + dir * 15)}" y2="${f(z - 3)}" marker-end="url(#feArrM)"/>`;
-        // one pill, inside the drawing, clear of the other labels
-        const tx = `${q.member || q.label || ''} · FDL ${k2(q.D)} · FLL ${k2(q.L)} k @ ${ftin(q.elev)}`, w = tw(tx);
-        // under the floor line, inside the frame where it is open; stepped down past another label
-        const px = Math.min(Math.max(x + dir * (w / 2 + 8), w / 2 + 6), Wpx - w / 2 - 6);
-        m += pill(px, spot(px, z + 24, w, 19), tx, 'fe-mzv');
+        reach(q.y, q.elev);
+        m += `<line class="fe-floor" x1="${f(x + dir * 4)}" y1="${f(z)}" x2="${f(x + dir * 46)}" y2="${f(z)}"/>`;
+        // the arrow just inside the column, onto the floor where it bears
+        const ax = x + dir * 15;
+        m += `<line x1="${f(ax)}" y1="${f(z - 42)}" x2="${f(ax)}" y2="${f(z - 3)}" marker-end="url(#feArrM)"/>`;
+        const tx = `FDL −${k2(q.D)} · FLL −${k2(q.L)} k`, w = tw(tx);
+        const px = Math.min(Math.max(ax, w / 2 + 6), Wpx - w / 2 - 6);
+        m += pill(px, place(px, z - 48, w), tx, 'fe-mzv');
       });
       s += layer('mezz', 'Mezzanine dead / live', `<g class="fe-mezz">${m}</g>`);
     }
     if ((ld.eq || []).length) {
       let e = '';
       ld.eq.forEach(q => {
-        const x = X(q.y), z = Y(q.at), dir = q.y < W / 2 ? -1 : 1, wait = q.F == null;
-        const x0 = x + dir * 62, x1 = x + dir * 5;
-        e += `<line class="${wait ? 'fe-waitline' : ''}" x1="${f(x0)}" y1="${f(z)}" x2="${f(x1)}" y2="${f(z)}" marker-end="url(#${wait ? 'feArrW' : 'feArrE'})"/>`;
-        // under the arrow, outside the column, held inside the drawing
-        const tx = wait ? `${q.member || ''} · EQR / EQL waiting on the Seismic page` : `${q.member || ''} · EQR +${k2(q.F)} · EQL −${k2(q.F)} k`, w = tw(tx);
-        const px = Math.min(Math.max(x + dir * (w / 2 + 6), w / 2 + 6), Wpx - w / 2 - 6);
-        e += pill(px, spot(px, z - 12, w, -19), tx, wait ? 'fe-wait' : 'fe-eqv');
+        const x = X(q.y), z = Y(q.at), wait = q.F == null;
+        reach(q.y, q.at);
+        const tx = wait ? 'EQR / EQL waiting on the Seismic calc' : `EQR / EQL ${k2(q.F)} k`, w = Math.max(tw(tx), 52);
+        const px = Math.min(Math.max(x, w / 2 + 6), Wpx - w / 2 - 6), py = spot(px, z + 22, w, 34);
+        e += pill(px, py, tx, wait ? 'fe-wait' : 'fe-eqv');
+        // the two directions under it: EQR to the right, EQL to the left
+        const hw = 19, a = py + 11, c = py + 20, cls = wait ? 'fe-waitline' : '', mk = wait ? 'feArrW' : 'feArrE';
+        e += `<line class="${cls}" x1="${f(px - hw)}" y1="${f(a)}" x2="${f(px + hw)}" y2="${f(a)}" marker-end="url(#${mk})"/><line class="${cls}" x1="${f(px + hw)}" y1="${f(c)}" x2="${f(px - hw)}" y2="${f(c)}" marker-end="url(#${mk})"/>`;
+        labels.push([px - hw - 4, a - 4, px + hw + 4, c + 4]);
       });
       s += layer('eq', 'Seismic EQR / EQL', `<g class="fe-eq">${e}</g>`);
     }
+    if (heights.size) s += `<g class="fe-lvls">${heightMarks()}</g>`;
     /* a lean-to's reactions (NBG Frame's Add Frame Reactions): each on its host column at its location — the vertical
        down onto the column, the horizontal along the frame, the case and values in a pill clear of the rest. A lean-to
        against this end frame stands behind it: drawn ghosted between the columns its frame lines land on. */
@@ -691,7 +724,7 @@
         const x = X(q.y), z = Y(q.at), sx = q.X > 0 ? 1 : -1, hasH = Math.abs(q.X) > 0.0005;
         e += `<circle cx="${f(x)}" cy="${f(z)}" r="3.2"/><line x1="${f(x)}" y1="${f(z - 50)}" x2="${f(x)}" y2="${f(z - 5)}" marker-end="url(#feArrL)"/>`;
         if (hasH) e += `<line x1="${f(x - sx * 46)}" y1="${f(z)}" x2="${f(x - sx * 6)}" y2="${f(z)}" marker-end="url(#feArrL)"/>`;
-        const tx = `${q.member} · ${q.caseName}  Y −${k2(q.V)}${hasH ? `  X ${q.X >= 0 ? '+' : '−'}${k2(Math.abs(q.X))}` : ''} k`, w = tw(tx);
+        const tx = `${q.caseName}  Y −${k2(q.V)}${hasH ? `  X ${q.X >= 0 ? '+' : '−'}${k2(Math.abs(q.X))}` : ''} k`, w = tw(tx);
         const px = Math.min(Math.max(x, w / 2 + 6), Wpx - w / 2 - 6);
         e += pill(px, place(px, z - 58, w), tx, 'fe-leanv');
       });

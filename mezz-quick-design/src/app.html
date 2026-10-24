@@ -41,6 +41,7 @@
       <div class="rail-view" id="railView">
         <canvas id="miniModel" aria-label="The mezzanine, turning"></canvas>
         <svg id="miniPlan" hidden role="img" aria-label="Floor plan of the mezzanine"></svg>
+        <div id="miniSite" hidden aria-label="Site plan of the building"></div>
         <i class="orb-empty" id="orbEmpty">Drop a PCS</i>
         <div class="rv-toggle" id="rvToggle" hidden><button data-v="3d" class="is-on">3D</button><button data-v="plan">Plan</button><button id="rvBig" title="Show the plan larger" aria-label="Show the plan larger">⤢</button></div>
       </div>
@@ -67,7 +68,7 @@
         <button data-view="column" disabled><svg><use href="#i-column"/></svg>Column calc</button>
         <button data-view="designer"><svg><use href="#i-tool"/></svg>Custom</button>
       </div>
-      <button class="is-soon" disabled title="Cranes come next"><svg><use href="#i-crane"/></svg>Cranes<span class="count soon">later</span></button>
+      <button class="is-soon" disabled title="Cranes come next" id="navCranes"><svg><use href="#i-crane"/></svg>Cranes<span class="count soon" id="navCranesCount">later</span></button>
       <button data-view="settings"><svg><use href="#i-settings"/></svg>Settings</button>
     </nav>
     <div class="rail-bottom">
@@ -177,7 +178,7 @@
         <div class="model-stage">
           <div class="model-top"><div class="model-meta"><span id="bldModelMeta"></span><span>Drag to turn · right-drag to pan · wheel to zoom · double-click a building to fly to it · click a frame for its loads</span></div></div>
           <canvas id="bldCanvas" aria-label="The whole building in 3D"></canvas>
-          <div class="model-controls"><button id="bldPause">Pause rotation</button><button id="bldReset">Reset view</button><button id="bldOut" aria-label="Zoom out">−</button><button id="bldIn" aria-label="Zoom in">+</button></div>
+          <div class="model-controls"><button id="bldPop" title="Open the building in its own window — drag it to a second screen; a frame clicked there opens here">⧉ Own window</button><button id="bldPause">Pause rotation</button><button id="bldReset">Reset view</button><button id="bldOut" aria-label="Zoom out">−</button><button id="bldIn" aria-label="Zoom in">+</button></div>
         </div>
         <div class="model-key" id="bldKey"></div>
       </section>
@@ -263,7 +264,7 @@
         <summary class="panel-head"><h3>Frame loads · NBG Frame</h3><span class="sub">every frame line's mezzanine dead and live on its own columns, as typed into NBG Frame, and the job's .frame files with those loads written in</span></summary>
         <div class="panel-body"><div id="frameLoads"></div>
           <div class="nbg" id="nbgFrame">
-            <div class="nbg-head"><div><span class="eyebrow">NBG Frame files</span><b>Put these loads into the job's frame files</b><small>Drop the .frame files NBG made for this building. The FDL / FLL concentrated loads — and the mezzanine seismic EQR / EQL once the Seismic page is complete — go in on each frame's own columns, the way they are typed under Tools → Concentrated (Panel) Loads, and the file is handed back ready to process. Nothing leaves this computer.</small></div>
+            <div class="nbg-head"><div><span class="eyebrow">NBG Frame files</span><b>Put these loads into the job's frame files</b><small>Drop the .frame files NBG made for this building. The FDL / FLL concentrated loads — and the mezzanine seismic EQR / EQL once the Seismic calc is complete — go in on each frame's own columns, the way they are typed under Tools → Concentrated (Panel) Loads, and the file is handed back ready to process. Nothing leaves this computer.</small></div>
               <div class="seg" id="nbgHeight" role="group" aria-label="Load height"><button data-h="A" class="is-active">At floor level (A)</button><button data-h="beam">At T/beam</button></div></div>
             <label class="nbg-drop" id="nbgDrop"><input type="file" id="nbgFile" accept=".frame" multiple><svg><use href="#i-file"/></svg><strong>Drop .frame files here or click to browse</strong><small id="nbgDropSub">one per frame line or group of lines · e.g. Frame_…_Bldg_1_3-5.frame</small></label>
             <div id="nbgList"></div>
@@ -281,7 +282,7 @@
       <div class="panel brace-top"><div class="panel-head"><h3>Bracing files</h3><span class="sub">drop a building's .bracing here (or on the Project page) · each downloads with the mezzanine's EQB / EQF and strut line written in</span></div><div class="panel-body" id="braceTop"></div></div>
       <div class="panel"><div class="panel-head"><h3>Bracing lines</h3><span class="sub" id="braceWallsSub">click a line on the plan or below</span></div><div class="panel-body" id="braceWalls"></div></div>
       <div class="panel"><div class="panel-head"><h3>Checks</h3><span class="sub">the bracing against PCS Box 12 and where the mezzanine's force goes</span></div><div class="panel-body" id="braceFlags"></div></div>
-      <div class="panel" id="braceFilePanel"><div class="panel-head"><h3>Into the bracing file</h3><span class="sub">the rows each file gets, as Tools → Add Loads and Add Wall Strut Line take them · the numbers behind them are step 9 of the Seismic page</span></div><div class="panel-body" id="braceFile"></div></div>
+      <div class="panel" id="braceFilePanel"><div class="panel-head"><h3>Into the bracing file</h3><span class="sub">the rows each file gets, as Tools → Add Loads and Add Wall Strut Line take them · the numbers behind them are step 9 of the Seismic calc</span></div><div class="panel-body" id="braceFile"></div></div>
     </section>
 
     <!-- PURLINS -->

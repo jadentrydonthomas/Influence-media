@@ -533,6 +533,7 @@
     $('#fDiv').textContent = (pcs.job && pcs.job.division) || '—';
     $('#rsSub').textContent = `${n} building${n === 1 ? '' : 's'} · no mezzanine`;
     $('#stampMezz').hidden = true;
+    mezzMini = null;
     const orb = $('#orbEmpty'); if (orb) { orb.hidden = false; orb.textContent = 'No mezzanine'; }
     const mm = $('#miniModel'); if (mm) mm.style.display = 'none';
     const rv = $('#rvToggle'); if (rv) rv.hidden = true;
@@ -990,7 +991,7 @@
     const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows" data-k="${k}">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
     el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
-      ${jobs.length && state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null) ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic page is finished</small>' : ''}
+      ${jobs.length && state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null) ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
       <small class="sub-n">Each download is a copy of your own workbook with this job's entries typed into its input cells (the same cells as "Excel, step by step") — nothing else in it changes. Excel recalculates when it opens the copy, so every result you see is the workbook's. The workbooks stay on this computer; nothing is uploaded.</small>`;
     const inp = $('#wbFile'); if (inp) inp.onchange = () => { wbAdd(Array.from(inp.files || [])); inp.value = ''; };
@@ -1016,7 +1017,7 @@
       wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value }))).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
       if (zipIO.ok) for (const f of files) f.packed = await zipIO.deflate(f.data);   // compressed where the browser can
       cpSave(window.MZ_XLSX.zip(files), name + '.zip', 'application/zip');
-      const seisOut = state.job.seismic && !state.job.seismic.ok ? ' · IBC Seismic is left out until the Seismic page is complete' : '';
+      const seisOut = state.job.seismic && !state.job.seismic.ok ? ' · IBC Seismic is left out until the Seismic calc is complete' : '';
       toast(`${name}.zip — the package and ${files.length - 1} filled workbook${files.length === 2 ? '' : 's'}${missing.size ? ` · add ${[...missing].join(', ')} to include ${missing.size > 1 ? 'them' : 'it'}` : ''}${seisOut}`);
     } catch (e) { toast('Calc package: ' + (e.message || e)); }
   }
@@ -1024,11 +1025,11 @@
   function renderCalcPack() {
     const ready = !!(state.job && state.job.marks && state.job.marks.length);
     const nWb = state.job ? wbJobs().filter(j => wbFind(j.kind, j.ed)).length : 0, nAll = state.job ? wbJobs().length : 0;
-    // the IBC Seismic workbook is added, but the Seismic page is not finished: the zip leaves it out — say so
+    // the IBC Seismic workbook is added, but the Seismic calc is not finished: the zip leaves it out — say so
     const seisWait = !!(state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null));
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic page is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic page is finished</small>' : ''}</div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
     });
   }
 
@@ -1530,19 +1531,23 @@
   // the sidebar orb: the same scene, small, turning; click it to jump to the framing model
   let mini = null;
   railView = (() => { try { return localStorage.getItem('mzd.railView') || '3d'; } catch (e) { return '3d'; } })();
+  // the sidebar shows the whole building on the building pages, the mezzanines in the Mezzanine workspace
+  const railJob = () => state.ws !== 'mezz' && !!state.bldScene;
   function setRailView(v) {
     railView = v;
     try { localStorage.setItem('mzd.railView', v); } catch (e) { /* storage off */ }
     $$('#rvToggle button[data-v]').forEach(b => b.classList.toggle('is-on', b.dataset.v === v));
-    const has = !!(state.res && !state.res.incomplete);
+    const job = railJob(), has = job || !!(state.res && !state.res.incomplete && mezzMini);
     $('#miniModel').style.display = v === '3d' && has ? '' : 'none';
-    $('#miniPlan').toggleAttribute('hidden', v !== 'plan' || !has);
+    $('#miniPlan').toggleAttribute('hidden', v !== 'plan' || !has || job);
+    $('#miniSite').toggleAttribute('hidden', v !== 'plan' || !job);
     if (v === 'plan') renderMiniPlan();
     queueFit(true);
   }
   $$('#rvToggle button[data-v]').forEach(b => { b.onclick = e => { e.stopPropagation(); setRailView(b.dataset.v); }; });
   const openPop = on => { $('#planPop').hidden = !on; if (on) renderMiniPlan(); };
-  $('#rvBig').onclick = e => { e.stopPropagation(); openPop($('#planPop').hidden); };
+  // ⤢: on the building pages the building in its own window (a second screen); in the Mezzanine workspace the plan large
+  $('#rvBig').onclick = e => { e.stopPropagation(); if (railJob() && BLD) BLD.popOut(); else openPop($('#planPop').hidden); };
   $('#ppClose').onclick = () => openPop(false);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#planPop').hidden) openPop(false); });
   // the sidebar fits the window: on a short screen it tightens in steps, then the 3D / plan square takes the height
@@ -1576,16 +1581,37 @@
   window.addEventListener('resize', () => queueFit(false));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => queueFit(true));
   queueFit(true);
-  function renderMini(scene) {
+  let mezzMini = null;   // the mezzanine scene the sidebar turns in the Mezzanine workspace
+  function railRefresh() { if (state.pcs) renderMini(mezzMini, true); }
+  function renderMini(scene, again) {
     const cv = $('#miniModel');
     if (!cv || !M3) return;
-    $('#orbEmpty').hidden = !!scene;
-    $('#orbEmpty').textContent = state.res && state.res.incomplete ? 'Needs input' : 'Drop a PCS';
-    $('#rvToggle').hidden = !scene;
-    if (!scene) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); return; }
+    if (!again) mezzMini = scene;
+    const job = railJob(), show = job ? state.bldScene : scene;
+    $('#orbEmpty').hidden = !!show;
+    $('#orbEmpty').textContent = state.pcs && !(state.job && state.job.mezz && state.job.mezz.length) ? 'No mezzanine' : state.res && state.res.incomplete ? 'Needs input' : 'Drop a PCS';
+    $('#rvToggle').hidden = !show;
+    $('#rvBig').title = job ? 'Open the building in its own window — drag it to a second screen' : 'Show the plan larger';
+    $('#rvBig').setAttribute('aria-label', $('#rvBig').title);
+    $('#railView').classList.toggle('is-bldg', job);
+    if (job) {
+      // one building: its size; several: how many (each one's size on hover) — a long line would take the square's room
+      const bs = state.snowJob ? state.snowJob.site.buildings : [], all = bs.map(b => `${b.name} ${ft(b.g.width)} × ${ft(b.g.length)}`).join(' · ');
+      $('#rsSub').textContent = bs.length > 1 ? `${bs.length} buildings · ${bs.reduce((a, b) => a + b.xs.length, 0)} frame lines` : all;
+      $('#rsSub').title = bs.length > 1 ? all : '';
+    }
+    else if (state.res && state.inputs && state.job && state.job.mezz && state.job.mezz.length) renderRail();
+    if (!show) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); $('#miniSite').setAttribute('hidden', ''); return; }
     if (!mini) {
-      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, onSelect: () => { go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
+      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, onSelect: () => { if (railJob()) { go('building'); return; } go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
       mini.toggle('joists', false);
+    }
+    if (job) {
+      // the whole building, small and turning: no tags, the purlins off as on the Building page
+      mini.set({ ...state.bldScene, labels: [] });
+      ['purlin'].forEach(k => mini.toggle(k, false));
+      setRailView(railView);
+      return;
     }
     // frame on the steel itself (not the grid bubbles), so it sits in the middle of the square
     const bb = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z1: 0 };
@@ -1653,6 +1679,12 @@
     svg.querySelectorAll('[data-beam]').forEach(el => { el.onclick = () => { const [mi, id] = el.dataset.beam.split(':').map(Number); openBeam(state.job.mezz[mi], id); }; });
   }
   function renderMiniPlan() {
+    if (railJob() && BLD && state.snowJob) {
+      const box = $('#miniSite');
+      box.innerHTML = window.MZ_BUILDING.planSvg(state.snowJob, { mezz: BLD.mezzBoxes(), selected: state.frameSel, bracing: null, compact: true, mini: true });
+      $$('#miniSite .sp-fl').forEach(g => { g.onclick = e => { e.stopPropagation(); BLD.selectFrame(g.dataset.bldg, +g.dataset.frame, true); }; });
+      return;
+    }
     const svg = $('#miniPlan'), r = state.res, ok = !!(svg && r && !r.incomplete);
     if (svg) { svg.innerHTML = ok ? planMarkup(200, 200, 1, 18) : ''; svg.setAttribute('viewBox', '0 0 200 200'); if (ok) wirePlan(svg); }
     const pop = $('#planPop');
@@ -2405,7 +2437,7 @@
   $('#planSvg').addEventListener('click', layMenu);
 
   // ---------- Calcs: every calc of the job a card (as NBG Design Calcs keeps them, a folder a building); the open one on
-  // the right — the Seismic and Snow pages, or a document of the job's .nbgcalcs read as it is ----------
+  // the right — the Seismic and Snow calcs, or a document of the job's .nbgcalcs read as it is ----------
   const CF = window.MZ_CALCS;
   const calcName = f => f.replace(/\.nbgcalcs$/i, '') + '_mz.nbgcalcs';
   // the Design Calcs folder of one of the job's buildings: by its name, else by its width and length
@@ -2695,7 +2727,7 @@
 
   // ---------- seismic: the mezzanine on the frames (EQR / EQL) and the bracing, as the IBC Seismic workbook ----------
   const SEIS_TYPE = t => (window.MZ_SEISMIC && window.MZ_SEISMIC.frameType(t)) || 'Rigid Frame';
-  // ---------- the Seismic page: NBG Design Calcs (Seismic), section by section, then the loads into the files ----------
+  // ---------- the Seismic calc: NBG Design Calcs (Seismic), section by section, then the loads into the files ----------
   const CODE_OPTS = [['7-16', 'ASCE 7-16 — IBC 2018 / 2021'], ['7-22', 'ASCE 7-22 — IBC 2024'], ['7-10', 'ASCE 7-10 — IBC 2012 / 2015'], ['7-05', 'ASCE 7-05 — IBC 2006 / 2009']];
   const RISK_OPTS = [['I', 'I-Low Hazard'], ['II', 'II-Standard Buildings'], ['III', 'III-Substantial Hazard'], ['IV', 'IV-Essential Facilities']];
   const WALLS = [['LEW', 'Left EW'], ['REW', 'Right EW'], ['FSW', 'Front SW'], ['BSW', 'Back SW']];
@@ -2870,7 +2902,7 @@
       return out9;
     }).join('');
     const bfBox = $('#braceFile');
-    if (bfBox) bfBox.innerHTML = !live ? `<div class="seis-msg info">The loads come once the <a href="#" data-go="seismic">Seismic page</a> is complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>` : fileParts.join('');
+    if (bfBox) bfBox.innerHTML = !live ? `<div class="seis-msg info">The loads come once the <a href="#" data-go="seismic">Seismic calc</a> is complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>` : fileParts.join('');
     $$('#seisBracing [data-brdl], #braceFile [data-brdl]').forEach(btn => { btn.onclick = () => bracingDownload(btn.dataset.brdl); });
     $$('#seisBracing [data-brrm], #braceFile [data-brrm]').forEach(btn => { btn.onclick = () => { delete state.bracing[btn.dataset.brrm]; recompute(); }; });
     $$('#v-seismic .seis-file-in, #seisFile').forEach(inp => { inp.onchange = () => { addSeisFiles(Array.from(inp.files || [])); inp.value = ''; }; });
@@ -3034,10 +3066,10 @@
       const sum = (k, onlyMembers) => fl.entries.filter(e => !onlyMembers || e.member).reduce((a, e) => a + e[k], 0);
       return `<div class="fl-frame"><div class="fl-head"><span class="fl-no">${esc(fl.frame)}</span><div><b>${twoB ? esc(fl.building) + ' · ' : ''}Frame line ${esc(fl.frame)}</b><small>${typ}</small></div>
           <button class="btn-soft" data-fl="${fi}"><svg><use href="#i-copy"/></svg>Copy</button></div>
-        <table class="fl-t fl-fr"><colgroup><col class="c-lab"><col class="c-mem"><col class="c-at"><col class="c-n"><col class="c-n"><col class="c-eq"><col class="c-from"></colgroup><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num" title="Seismic: the mezzanine's share of the frame (Seismic page), EQR +X / EQL −X">EQR / EQL (k)${sj && sj.ok ? '' : '<small class="sub-n eq-tag">pending · Seismic page</small>'}</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}|${e.parts[0].mi}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : '—'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
+        <table class="fl-t fl-fr"><colgroup><col class="c-lab"><col class="c-mem"><col class="c-at"><col class="c-n"><col class="c-n"><col class="c-eq"><col class="c-from"></colgroup><thead><tr><th>Column</th><th>NBG Frame member</th><th class="num">At (${atLab})</th><th class="num">Floor dead (k)</th><th class="num">Floor live (k)</th><th class="num" title="Seismic: the mezzanine's share of the frame (Seismic calc), EQR +X / EQL −X">EQR / EQL (k)${sj && sj.ok ? '' : '<small class="sub-n eq-tag">pending · Seismic calc</small>'}</th><th>From</th></tr></thead><tbody>${fl.entries.map(e => `<tr class="${e.member ? '' : 'not-member'}" data-tip="bcol|${e.x}|${e.y}|${e.parts[0].mi}"><td class="mono"><b>${esc(e.label)}</b>${e.planKind === 'star' ? ' <span class="star" title="Most Economical (✱) on the drawing">✱</span>' : ''}</td><td>${e.member ? `<b class="mono">${esc(e.member)}</b> · ${esc(e.where)}` : `<span class="sub-n">${esc(e.where)}</span>`}</td><td class="num mono">${ft(atOf(e))}</td><td class="num mono d">${F2(e.D)}</td><td class="num mono l">${F2(e.L)}</td><td class="num mono e">${e.eq && e.eq.length ? '±' + F2(e.eq.reduce((a, q) => a + q.F, 0)) + (e.eq.some(q => q.edited) ? `<small class="sub-n eq-tag">${e.eq.some(q => q.edited === 'typed') ? 'typed' : 'scaled'} · calc. ${F2(e.eq.reduce((a, q) => a + q.calc, 0))}</small>` : '') : '—'}</td><td class="sub-n">${esc(e.parts.map(p => `${many ? p.mezz + ' ' : ''}${p.beam}${p.mark ? ' ' + p.mark : ''}`).join(' + '))}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="3">Frame members</td><td class="num mono d">${F2(sum('D', true))}</td><td class="num mono l">${F2(sum('L', true))}</td><td class="num mono e">${fl.seismic ? (() => { const qs = fl.entries.filter(e => e.member).flatMap(e => e.eq || []), F = qs.reduce((a, q) => a + q.F, 0), calc = qs.reduce((a, q) => a + q.calc, 0); return '±' + F2(F) + (qs.some(q => q.edited) ? `<small class="sub-n eq-tag">edited · calc. ${F2(calc)}</small>` : ''); })() : ''}</td><td>${fl.seismic ? `<small class="sub-n">roof seismic DL ${F2(fl.seismic.roofPsf)} psf · Cs ${f(fl.seismic.Cs, 4)}</small>` : ''}</td></tr></tfoot></table></div>`;
     }).join('');
-    el.innerHTML = `<div class="name-key"><b>Column names</b> · <span class="mono">2/A</span> the grid point, frame line 2 × column line A · <span class="mono">COL03</span> the member in that frame's NBG Frame file: COL01 at the FSW, then each interior column, the BSW column last · mezzanine columns (C1, C2 … on the plan) are not frame members and are not listed here.</div><div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic page), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
+    el.innerHTML = `<div class="name-key"><b>Column names</b> · <span class="mono">2/A</span> the grid point, frame line 2 × column line A · <span class="mono">COL03</span> the member in that frame's NBG Frame file: COL01 at the FSW, then each interior column, the BSW column last · mezzanine columns (C1, C2 … on the plan) are not frame members and are not listed here.</div><div class="fl-frames">${rows}</div><div class="xl-foot"><span>Unfactored mezzanine beam end shears (MB sheet H6 / H10), summed at each column; enter them as concentrated floor dead / floor live loads on the member at that height (the floor level A by default — set T/beam below). Seismic: the mezzanine's share of each frame (Seismic calc), EQR +X / EQL −X. Members are numbered as NBG Frame does: COL01 at the FSW, then each interior column, the BSW column last.</span><button class="btn-soft" id="flCsv"><svg><use href="#i-copy"/></svg>Download CSV</button></div>`;
     const eqOf = e => (e.eq && e.eq.length ? +e.eq.reduce((a, q) => a + q.F, 0).toFixed(3) : '');
     const tsv = fl => [(twoB ? 'Building\t' : '') + `Frame line\tColumn\tMember\tWhere\tAt ${atLab} (ft)\tFloor dead (k)\tFloor live (k)\tSeismic EQR/EQL (k)\tFrom`].concat(fl.entries.map(e => [...(twoB ? [fl.building] : []), fl.frame, e.label, e.member || '', e.where, (+atOf(e).toFixed(3)), (+e.D.toFixed(3)), (+e.L.toFixed(3)), eqOf(e), e.parts.map(p => `${p.mezz} ${p.beam}`).join(' + ')].join('\t'))).join('\n');
     $$('#frameLoads [data-fl]').forEach(b => { const fl = fr[+b.dataset.fl]; b.onclick = () => copyText(tsv(fl), `${twoB ? fl.building + ' ' : ''}Frame line ${fl.frame} loads copied`); });
@@ -3216,7 +3248,7 @@
       const rowsT = p.r.rows.length ? `<div class="table-wrap"><table class="fl-t nbg-t"><thead><tr><th>Description</th><th>Load Case</th><th>Member</th><th class="num">X Force (kip)</th><th class="num">Y Force (kip)</th><th class="num">Moment (kip·ft)</th><th class="num">Location (ft)</th><th>Ecc. Loc.</th><th class="num">Ecc. Offset (in)</th><th>Loc. Sys.</th><th>From</th></tr></thead><tbody>${p.r.rows.map(x => { const m = p.r.members.find(q => q.member === x.member); const eq = /^EQ/.test(x.caseId); const code = x.toFlange != null ? x.toFlange : webCode().code; return `<tr class="${eq ? 'eq-row' : ''}"><td class="mono"><b>${esc(x.name)}</b></td><td class="mono">${x.caseId}</td><td class="mono">${esc(x.member)}</td><td class="num mono ${eq ? 'e' : ''}">${x.caseId === 'EQR' ? `<input class="seis-in eq-in card-eq ${eqState(m, x.location) ? 'is-' + eqState(m, x.location) : ''}" data-cardeq="${i}|${esc(x.member)}|${x.location}" value="${f(x.x, 3)}" inputmode="decimal" title="kips — EQR + / EQL − (typed here: every frame line of this file at this column, this level)">${eqState(m, x.location) === 'typed' ? `<button class="eq-x" data-cardeqclear="${i}|${esc(x.member)}|${x.location}" title="back to the calculated load">↺</button>` : ''}` : f(x.x || 0, 3)}</td><td class="num mono ${x.caseId === 'FDL' ? 'd' : x.caseId === 'FLL' ? 'l' : ''}">${f(x.y || 0, 3)}</td><td class="num mono">0.000</td><td class="num mono">${f(x.location, 2)}</td><td>${eccName(code)} <small class="sub-n">${esc(code)}${!eq && webCode().how === 'guess' ? '?' : ''}</small></td><td class="num mono">0.000</td><td>Global</td><td class="sub-n">${eq ? esc(seisFrom(m, x)) : esc(from(m))}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">No mezzanine load on the columns of this frame${p.lines.length ? ` (line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))})` : ''}.</div>`;
       // the roof seismic weight and factor NBG Frame needs for these lines (the workbook's override), against the file's own
       const sz = seisFor(p, info), sj = state.job && state.job.seismic;
-      const seisT = !sz ? (sj && !sj.ok && p.r.rows.length ? `<div class="nbg-seis warn"><b>Seismic not added yet</b> — the Seismic page needs: ${esc(sj.need.join('; '))}.</div>` : '')
+      const seisT = !sz ? (sj && !sj.ok && p.r.rows.length ? `<div class="nbg-seis warn"><b>Seismic not added yet</b> — the Seismic calc needs: ${esc(sj.need.join('; '))}.</div>` : '')
         : `<div class="nbg-seis note"><b>Seismic for line${p.lines.length > 1 ? 's' : ''} ${esc(linesText(p.lines))}:</b> the EQR / EQL rows above are the mezzanine's load from the workbook (${sz.mezz}${sz.edited ? ' as calculated; the rows carry your edited values' : ''}). The roof seismic stays NBG Frame's own (file: ${f(sz.now.dead, 2)} psf · ${f(sz.now.factor, 3)}).
           <small>Workbook alt. roof weight (Lateral G64, info): ${f(sz.roofPsf, 2)} psf · Cs ${f(sz.Cs, 4)} · base shear ${f(sz.V, 2)} k.</small></div>`;
       const left = p.r.unplaced.length ? `<div class="nbg-left"><b>Not in this file</b> — the frame has no member at these columns, so their loads are not put on it (an endwall column goes with the endwall design; a column made a frame column on the Plan page has to be added in NBG Frame first):${p.r.unplaced.map(u => `<div><span class="mono"><b>${esc(u.label)}</b></span> ${esc(u.where.replace(/\s*—\s*not a member.*$/, ''))} · <span class="mono d">D ${F2(u.D)} k</span> · <span class="mono l">L ${F2(u.L)} k</span> at ${ft(state.nbg.height === 'A' && u.A != null ? u.A : u.elev)}<small>${esc(u.parts.map(q => `${many ? q.mezz + ' ' : ''}${q.beam}${q.mark ? ' ' + q.mark : ''}`).join(' + '))}</small></div>`).join('')}</div>` : '';
@@ -3225,7 +3257,7 @@
       return `<div class="nbg-file ${it.include ? '' : 'off'}">${head}${checks}${rowsT}${seisT}${left}<div class="nbg-notes">${notes.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>`;
     };
     const anyRows = webCode().how !== 'guess' && plans.some((p, i) => p && files[i].include && p.r.rows.length);
-    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (FDL / FLL Ecc. Loc. WebCenterline; EQR +X, EQL −X at the mezzanine level), then Save and Gen Loads.</li><li>Seismic: the EQR / EQL rows are the mezzanine's seismic load (EQR + Bottom/Right or Top/Left, EQL −) — check them against the Seismic page. The roof seismic stays NBG Frame's own.</li><li>Run the frame as usual.</li></ol><small class="nbg-path">Files are named short on purpose (e.g. <code>${esc(files.find(x => x.ff) ? outName(files.find(x => x.ff), parseLines(files.find(x => x.ff).lines)) : '1234567-B1-2_mz.frame')}</code>): NBG Frame's analysis only reads a file path up to <b>64 characters</b>, folder included — past that the frame opens but the run stops with “No input file …”. Keep the file in a short folder (Downloads is fine) and delete older copies first, so the browser does not add “ (1)”, “ (2)” to the name.</small></div>` : '';
+    const steps = files.length ? `<div class="nbg-steps"><b>In NBG Frame</b><ol><li>Open the file. Frame Loads shows Floor Dead and Floor Live at 1.000 psf.</li><li>Process → Get Applied Loads → final pass, so the FDL and FLL cases exist.</li><li>Tools → Concentrated (Panel) Loads: the rows above are there — check them against this table (FDL / FLL Ecc. Loc. WebCenterline; EQR +X, EQL −X at the mezzanine level), then Save and Gen Loads.</li><li>Seismic: the EQR / EQL rows are the mezzanine's seismic load (EQR + Bottom/Right or Top/Left, EQL −) — check them against the Seismic calc. The roof seismic stays NBG Frame's own.</li><li>Run the frame as usual.</li></ol><small class="nbg-path">Files are named short on purpose (e.g. <code>${esc(files.find(x => x.ff) ? outName(files.find(x => x.ff), parseLines(files.find(x => x.ff).lines)) : '1234567-B1-2_mz.frame')}</code>): NBG Frame's analysis only reads a file path up to <b>64 characters</b>, folder included — past that the frame opens but the run stops with “No input file …”. Keep the file in a short folder (Downloads is fine) and delete older copies first, so the browser does not add “ (1)”, “ (2)” to the name.</small></div>` : '';
     const w = webCode();
     const firstOk = files.find(x => x.ff);
     const ecc = files.length ? (w.how === 'guess'
@@ -4016,7 +4048,7 @@
   function jobsRow() {
     const list = histLoad();
     const last = list.slice(-6).reverse().map(r => `<li><b>${esc(r.quote || r.key)}</b> <span>${esc(r.saved.replace('T', ' '))}</span><small>${esc((r.mezz || []).map(m => `${m.id}: ${(m.beams || []).join(', ')}${m.columns ? ' · ' + m.columns : ''}`).join(' | '))}</small></li>`).join('');
-    return `<div class="field-row full jobs-row"><label>${list.length} job${list.length === 1 ? '' : 's'} remembered<small>Saved automatically when a job is fully designed: what you typed for open values, the option you picked, the joist direction and the sections. They make your usual values the first suggestions next time; opening a PCS again starts fresh — a hand-picked section or column and layout edits are not put back (the calc package keeps a record of them). The Seismic page's entries are kept per quote and come back when the same quote opens, with a note and a Clear button. Nothing leaves this computer unless you export it.</small></label>
+    return `<div class="field-row full jobs-row"><label>${list.length} job${list.length === 1 ? '' : 's'} remembered<small>Saved automatically when a job is fully designed: what you typed for open values, the option you picked, the joist direction and the sections. They make your usual values the first suggestions next time; opening a PCS again starts fresh — a hand-picked section or column and layout edits are not put back (the calc package keeps a record of them). The Seismic calc's entries are kept per quote and come back when the same quote opens, with a note and a Clear button. Nothing leaves this computer unless you export it.</small></label>
       <div class="jobs"><ul>${last || '<li class="dim-t">None yet — design a job and it is remembered.</li>'}</ul>
       <div class="jobs-btns"><button class="btn-soft" id="jobsExport" ${list.length ? '' : 'disabled'}>Export (.json)</button><label class="btn-ghost file-btn">Import<input type="file" id="jobsImport" accept=".json,application/json" hidden></label><button class="btn-ghost" id="jobsClear" ${list.length ? '' : 'disabled'}>Forget all</button></div></div></div>`;
   }
@@ -4079,7 +4111,7 @@
   }
   const BLD = window.MZ_APP_BUILDING ? window.MZ_APP_BUILDING({ state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B: window.MZ_BUILDING, SITE: window.MZ_SITE, SNOW: window.MZ_SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, addCalcsFile, cpDownload, bracingPlan, bracingDownload, bracingOutName: bf => bracingOutName(bf), zipIO, cpSave,
     // the mezzanine rows a dropped frame file gets (so a lean-to's rows are added to them, not in their place)
-    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave, renderSeismic }) : null;
+    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave, renderSeismic, railRefresh }) : null;
   // the live state, for the browser tests (test/e2e*.js) and a look from the console
   window.MZ_STATE = () => state;
   renderSettings();

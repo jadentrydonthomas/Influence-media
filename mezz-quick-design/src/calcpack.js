@@ -49,7 +49,7 @@
         kv('Quote', q.quote || '—'), kv('Building code (PCS)', ctx.codeText || (q.code && q.code.text) || '—'),
         kv('Beam sheet', BOOKS[ed.beamEd] || '—'), kv('Column sheet', COLBOOKS[ed.colEd] || '—'), kv('Specification', ed.spec || '—'),
         kv('Division (stock and limits)', div), kv('Stress ratio limit', num(target, 'n2l')), kv('Deflection limits', 'L/360 live, L/240 total (MB sheet)'),
-        kv('Mezzanines', live.map(r => r.id).join(', ')), kv('Seismic', job.seismic && job.seismic.ok ? 'IBC Seismic workbook, frame by frame (sheet Seismic)' : 'not finished on the Seismic page — no EQ loads in this package'), [],
+        kv('Mezzanines', live.map(r => r.id).join(', ')), kv('Seismic', job.seismic && job.seismic.ok ? 'IBC Seismic workbook, frame by frame (sheet Seismic)' : 'not finished on the Seismic calc — no EQ loads in this package'), [],
         B('Beams'));
       rows.push(
         H(['Mark', 'Section', 'Plates', 'Flange economy', 'plf', 'Member length', 'Trib', 'Qty', 'Comb. SR', 'Shear SR', 'Live L/', 'Total L/', 'MB end shear D (k)', 'MB end shear L (k)', 'Chosen as']));
@@ -289,14 +289,14 @@
       out.push({ name: 'Seismic', cols: [26, 50, 20, 10, 12, 11, 10], wrap: [1], rows });
     }
     else {
-      // not finished on the Seismic page: said here, so the package never reads as if seismic were checked
+      // not finished on the Seismic calc: said here, so the package never reads as if seismic were checked
       const need = (sj && sj.need) || [];
       out.push({ name: 'Seismic', cols: [26, 70], wrap: [1], rows: [[{ v: 'Seismic — not finished', s: 't' }],
-        note('The Seismic page still needs the entries below, so this package has no EQ loads, the frame files carry none and no IBC Seismic workbook is filled. Finish the Seismic page and export the package again.'), [],
-        H(['Still needed', '']), ...(need.length ? need.map(t => spanRow(0, [t])) : [spanRow(0, ['the Seismic page has not been run for this job'])])] });
+        note('The Seismic calc still needs the entries below, so this package has no EQ loads, the frame files carry none and no IBC Seismic workbook is filled. Finish the Seismic calc and export the package again.'), [],
+        H(['Still needed', '']), ...(need.length ? need.map(t => spanRow(0, [t])) : [spanRow(0, ['the Seismic calc has not been run for this job'])])] });
     }
 
-    // ---------------- Snow & drift (ctx.snow: the Snow page's job) ----------------
+    // ---------------- Snow & drift (ctx.snow: the Snow calc's job) ----------------
     const sn = ctx.snow;
     if (sn && sn.site && sn.site.buildings.length) {
       const F = sn.F || {}, fx = o => (o && o.value != null ? `${o.value} (${o.source})` : '—');
@@ -320,8 +320,8 @@
       H(['Document / workbook', 'Revision / file', 'Gives', 'Checked by']),
       [BOOKS[ed.beamEd] || 'Mezzanine Beam Design', ed.beamEd ? `Mezzanine_Beam_Design_${ed.beamEd}th.xls` : '', 'INPUT sheet (loads, heights, clearances); MB1–MB4 (member length, Lb, trib, section → end shears H6 / H10, deflections, combined / shear, joist bearing L7)', 'cell-for-cell port; the real workbook run on every option and every job (oracle) — the filled copy reads the same'],
       [COLBOOKS[ed.colEd] || 'Mezzanine Column', ed.colEd ? `Mezzanine_Column_${ed.colEd}th_S16-*.xls` : '', 'Column sheet (L, section, left / right reactions → three combinations, CSR)', 'the real workbook on every column case'],
-      ['IBC Seismic', 'rev. 2021.01.20 (IBC_Seismic.xls)', `Input Data, Lateral Calcs. (1) per frame line, Longitudinal Calcs. → mezzanine seismic force per frame and for the bracing${sj && sj.ok ? '' : ' — not used in this package yet (the Seismic page is not finished)'}`, '1,386 of 1,386 values over 15 cases; every frame of the sample jobs recalculated in the workbook'],
-      ['NBG Design Calcs — Seismic', 'v1.6 (.nbgcalcs)', 'the seismic engine the Seismic page follows: Fa / Fv, SDC, R, Cs, the roof seismic weight and factor NBG Frame and NBG Bracing take, each frame line\'s and the bracing\'s mezzanine force', '22 validation prints, 4,985 of 4,985 printed values; a .nbgcalcs file to 1e-9 (oracle/nbg_seismic.js)'],
+      ['IBC Seismic', 'rev. 2021.01.20 (IBC_Seismic.xls)', `Input Data, Lateral Calcs. (1) per frame line, Longitudinal Calcs. → mezzanine seismic force per frame and for the bracing${sj && sj.ok ? '' : ' — not used in this package yet (the Seismic calc is not finished)'}`, '1,386 of 1,386 values over 15 cases; every frame of the sample jobs recalculated in the workbook'],
+      ['NBG Design Calcs — Seismic', 'v1.6 (.nbgcalcs)', 'the seismic engine the Seismic calc follows: Fa / Fv, SDC, R, Cs, the roof seismic weight and factor NBG Frame and NBG Bracing take, each frame line\'s and the bracing\'s mezzanine force', '22 validation prints, 4,985 of 4,985 printed values; a .nbgcalcs file to 1e-9 (oracle/nbg_seismic.js)'],
       ['NBG Design Calcs — Snow · ASCE 7 ch. 7', 'v1.6 (.nbgcalcs)', 'balanced and unbalanced roof snow; roof step drift (7.7), separate buildings (7.7.2), sliding snow (7.9) as worked on sheet Snow & drift', 'NBG\'s unbalanced snow document to float precision; drift cases by hand (test/snow.test.js)'],
       ['NBG Frame / NBG Bracing files', '.frame / .bracing', 'FDL / FLL / EQR / EQL concentrated loads and the Snow Drift panel loads per frame line; EQB / EQF and the wall strut line per sidewall', 'files read back and compared row for row (test/framefile.test.js, test/bracing.test.js)'],
       ['NBG Production Guidelines', 'rev. 2026.01.15 (Primary & Secondary Steel, built-up)', 'part depth / width / thickness / length / weight by division; web / flange rules (sheet Shop rules)', 'every section searched is held to them'],
