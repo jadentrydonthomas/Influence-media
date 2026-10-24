@@ -100,7 +100,9 @@
   /* The mezzanine loads into one seismic document, its results worked again.
      m: { loads: [{ elev, FDL, FLC, FLJ, FLL, storage, partition, FLP }] (the floor's uniform loads, in order: ID 1, 2 …),
           lines: [[{ n (index into loads), area, conc }]] — one list a lateral calculation, in the document's order, or null
-          to leave the lateral calculations as they are; long: [{ n, area, conc }] }
+          to leave the lateral calculations as they are; long: [{ n, area, conc }];
+          framing: [{ bay, roofConc }] — a lateral calculation's tributary width (bay, FSW and BSW) and roof concentrated
+          load (kips) where the engineer typed them, else null } 
      S: src/seismic.js. Returns { changed: [text], lat: [V], longV } */
   function writeSeismic(sd, m, S) {
     if (!asce(sd)) throw new Error(`${codeOf(sd) || 'this code'}: the tool works ASCE 7 seismic only — the document is left as it is`);
@@ -112,6 +114,11 @@
     const place = list => (list || []).filter(q => q.area > 0 || q.conc > 0).map(q => ({ UniformLoadInputId: q.n + 1, UniformLoads: { ...loads[q.n] }, LoadingAreaInSquareFeet: q.area, ConcentratedLoadTotalInKips: q.conc || 0 }));
     const lat = sd.LateralCalculations || [];
     if (m.lines) lat.forEach((l, i) => { l.FramingInputs.Mezzanines = place(m.lines[i]); });
+    if (m.framing) lat.forEach((l, i) => {
+      const t = m.framing[i], fi = l.FramingInputs;
+      if (t && t.bay > 0) { fi.BayWidthInFeet = t.bay; fi.FSWTribLengthInFeet = t.bay; fi.BSWTribLengthInFeet = t.bay; changed.push(`${fi.Description || 'line ' + (i + 1)}: tributary width ${t.bay}`); }
+      if (t && t.roofConc != null) { fi.RoofConcentratedLoadsInKips = t.roofConc; changed.push(`${fi.Description || 'line ' + (i + 1)}: roof concentrated ${t.roofConc} k`); }
+    });
     sd.LongitudinalCalculations.FramingInputs.Mezzanines = place(m.long);
     // the results, as Design Calcs works them from these inputs
     const { P, lines, longIn } = seismicInputs(sd), J = S.project(P);

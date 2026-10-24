@@ -214,7 +214,7 @@
         <div class="panel-body" id="seisResults"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
+        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip (type over either) → roof seismic weight, seismic factor, concentrated loads · click a row for the factors, the distribution and its workbook</span></div>
         <div class="panel-body" id="seisFrames"></div>
       </div>
       <div class="panel seis-step">
@@ -233,14 +233,14 @@
     </div>
           <div class="calc-doc" id="v-snow" hidden>
       <div class="screen-heading">
-        <div><div class="eyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2>Snow &amp; <em>drift</em></h2></div>
-        <p class="lede">Each roof's snow, each roof step's drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.</p>
+        <div><div class="eyebrow" id="snowEyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2 id="snowTitle">Snow &amp; <em>drift</em></h2></div>
+        <p class="lede" id="snowLede">Each roof's snow, each roof step's drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.</p>
       </div>
       <div class="seis-status" id="snowStatus"></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames</h3><span class="sub">each frame line under a step: the Snow Drift panel loads, start and end, ft from the FSW · k/ft, negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
+      <div class="panel seis-step snow-p-data"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
+      <div class="panel seis-step snow-p-roofs"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
+      <div class="panel seis-step snow-p-steps"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
+      <div class="panel seis-step snow-p-frames"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames</h3><span class="sub">each frame line under a step: the Snow Drift panel loads, start and end, ft from the FSW · k/ft, negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
       <details class="explain"><summary>How the snow is worked and applied</summary><div class="explain-body" id="snowHow"></div></details>
     </div>
         </div>

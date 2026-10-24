@@ -1970,6 +1970,77 @@ table.snow-roofs td small.sub-n { display: block; }
 #miniSite .sp-fl line, #miniSite .sp-fl path { stroke-width: 5px; }
 .rail-nav .count.soon.has-cranes { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
 
+/* unbalanced snow across a gable: windward, leeward, the surcharge (the alternate snow) */
+.ub-card { margin-top: 14px; } .ub-card .wall-card { margin: 0; }
+.ub-sec { width: 100%; height: auto; display: block; }
+.ub-sec .ub-ground { stroke: var(--ink-faint); stroke-width: 1.2; }
+.ub-sec .ub-frame { fill: none; stroke: var(--steel); stroke-width: 3; stroke-linejoin: round; }
+.ub-sec .ub-wind-b { fill: color-mix(in srgb, #cfe6f7 22%, transparent); stroke: #cfe6f7; stroke-width: 1; }
+.ub-sec .ub-lee { fill: color-mix(in srgb, #cfe6f7 34%, transparent); stroke: #cfe6f7; stroke-width: 1; }
+.ub-sec .ub-sur { fill: color-mix(in srgb, var(--amber) 42%, transparent); stroke: var(--amber); stroke-width: 1.4; }
+.ub-sec .ub-arr { stroke: #cfe6f7; stroke-width: 1.2; } .ub-sec .ub-head { fill: #cfe6f7; }
+.ub-sec .ub-wind { stroke: var(--ink-muted); stroke-width: 2; } .ub-sec .ub-windhead { fill: var(--ink-muted); }
+.ub-sec .ub-windt { fill: var(--ink-muted); font-size: 11px; }
+.ub-sec .ub-pill { fill: var(--surface); stroke: var(--line-strong); opacity: .96; }
+.ub-sec .ub-lab { fill: var(--ink); font: 700 11.5px var(--mono); text-anchor: middle; }
+.ub-sec .ub-pill.ub-surt { stroke: var(--amber); stroke-width: 1.4; } .ub-sec .ub-lab.ub-surt { fill: var(--amber); font-size: 12.5px; }
+.ub-sec .ub-dim { stroke: var(--amber); stroke-width: 1.2; } .ub-sec .ub-ext { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+.ub-sec .ub-dimt { fill: var(--amber); font: 600 11px var(--mono); text-anchor: middle; }
+.ub-sec .ub-side { fill: var(--ink-muted); font: 700 10.5px var(--mono); text-anchor: middle; }
+.ub-sec .ub-title { fill: var(--ink); font-size: 13px; font-weight: 700; } .ub-sec .ub-note { fill: var(--ink-muted); font-size: 11px; text-anchor: end; }
+[data-theme="light"] .ub-sec .ub-wind-b, [data-theme="light"] .ub-sec .ub-lee { fill: color-mix(in srgb, var(--steel) 14%, transparent); stroke: var(--steel); }
+[data-theme="light"] .ub-sec .ub-arr { stroke: var(--steel); } [data-theme="light"] .ub-sec .ub-head { fill: var(--steel); }
+.ub-key { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin-top: 8px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--amber) 7%, transparent); font-size: 13px; }
+.ub-key .ub-big { color: var(--amber); font-size: 17px; }
+.ub-key .sub-n { flex-basis: 100%; }
+/* the drift's peak, at the top of its triangle; w carried down to its dimension */
+.step-sec .ss-apex rect { fill: var(--surface); stroke: var(--amber); stroke-width: 1.4; }
+.step-sec .ss-apex text { fill: var(--amber); font: 800 12.5px var(--mono); }
+.step-sec .ss-apexdot { fill: var(--amber); }
+.step-sec .ss-ext { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+#snowTitle small { display: block; margin-top: 6px; color: var(--ink-muted); font: 500 15px var(--body); letter-spacing: 0; }
+/* wind: the main wind force zones on the building, the components-and-cladding square */
+.wz-cases { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.wz-cases .bl-tog small.sub-n { margin-left: 4px; font-size: 10px; }
+.wz-svg { width: 100%; height: auto; display: block; }
+.wz-svg .wz-face { stroke: var(--line-strong); stroke-width: 1; }
+.wz-svg .wz-face.is-e { stroke-dasharray: 3 3; }
+.wz-svg .wz-edge { fill: none; stroke: var(--steel); stroke-width: 1.8; stroke-linejoin: round; }
+.wz-svg .wz-z { fill: var(--ink); font: 800 15px var(--body); text-anchor: middle; } .wz-svg .wz-z.sm { font-size: 11px; }
+.wz-svg .wz-p { fill: var(--ink); font: 700 11.5px var(--mono); text-anchor: middle; } .wz-svg .wz-p.sm { font-size: 9.5px; }
+.wz-svg .wz-wind { stroke: var(--ink-muted); stroke-width: 2.4; } .wz-svg .wz-head { fill: var(--ink-muted); }
+.wz-svg .wz-windt, .wz-svg .wz-note { fill: var(--ink-muted); font-size: 11px; }
+.wz-svg .wz-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.wz-svg .wz-kh { fill: var(--ink-faint); font: 700 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.wz-svg .wz-hid text, .wz-svg .wz-key text { fill: var(--ink-muted); font-size: 11.5px; }
+.wz-svg .wz-zt { fill: var(--ink); font-weight: 800; } .wz-svg .wz-pt { fill: var(--ink); font-family: var(--mono); font-weight: 700; }
+.wz-svg .wz-hid rect, .wz-svg .wz-key rect { stroke: var(--line-strong); }
+.cc-svg .cc-field { fill: color-mix(in srgb, #6bb8ff 16%, var(--surface)); stroke: var(--line-strong); }
+.cc-svg .cc-edge { fill: color-mix(in srgb, #6bb8ff 34%, var(--surface)); stroke: var(--line-strong); }
+.cc-svg .cc-corner { fill: color-mix(in srgb, #6bb8ff 58%, var(--surface)); stroke: var(--line-strong); }
+.cc-svg .cc-z { fill: var(--ink); font: 800 12px var(--body); text-anchor: middle; } .cc-svg .cc-p { fill: var(--ink); font: 700 11px var(--mono); text-anchor: middle; }
+.cc-svg .cc-side { fill: var(--ink-muted); font: 700 10.5px var(--mono); text-anchor: middle; }
+.cc-svg .cc-kt { fill: var(--ink); font-size: 11.5px; font-weight: 600; } .cc-svg .cc-kv { fill: var(--ink-muted); font: 600 11px var(--mono); }
+.cc-card { max-width: 640px; }
+.calc-ft tr.is-on td { background: color-mix(in srgb, var(--green) 7%, transparent); }
+.wz-res .seis-sum { margin-top: 10px; }
+/* seismic results: the loads to apply, in kips */
+.seis-kips-wrap { margin-top: 16px; }
+.seis-kips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px 22px; align-items: start; }
+.seis-kips-grid h5 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
+.seis-kips-grid h5 small { font-weight: 400; margin-left: 6px; }
+table.seis-kips td small.sub-n { display: block; margin-top: 2px; font-size: 11.5px; }
+table.seis-kips tr.bad td { color: var(--red-deep); }
+/* step 6 / 7: trib width and roof load typed per frame line; the system picked per line */
+table.seis-lines input.seis-in { width: 76px; }
+table.seis-frames input.seis-in { width: 62px; }
+table.seis-frames .seis-mzin { grid-template-columns: 62px auto; }
+table.seis-frames td.nw { white-space: nowrap; }
+table.seis-frames td small.sub-n, table.seis-lines td small.sub-n { display: block; margin-top: 2px; }
+table.seis-frames select { font: 600 12px var(--mono); padding: 4px 6px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 150px; }
+table.seis-kips tr.cont td { border-top-color: transparent; }
+.seis-dist-wrap .seis-wb { justify-self: end; }
+
 </style>
 </head>
 <body>
@@ -2177,7 +2248,7 @@ table.snow-roofs td small.sub-n { display: block; }
         <div class="panel-body" id="seisResults"></div>
       </div>
       <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
+        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip (type over either) → roof seismic weight, seismic factor, concentrated loads · click a row for the factors, the distribution and its workbook</span></div>
         <div class="panel-body" id="seisFrames"></div>
       </div>
       <div class="panel seis-step">
@@ -2196,14 +2267,14 @@ table.snow-roofs td small.sub-n { display: block; }
     </div>
           <div class="calc-doc" id="v-snow" hidden>
       <div class="screen-heading">
-        <div><div class="eyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2>Snow &amp; <em>drift</em></h2></div>
-        <p class="lede">Each roof's snow, each roof step's drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.</p>
+        <div><div class="eyebrow" id="snowEyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2 id="snowTitle">Snow &amp; <em>drift</em></h2></div>
+        <p class="lede" id="snowLede">Each roof's snow, each roof step's drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.</p>
       </div>
       <div class="seis-status" id="snowStatus"></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
-      <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames</h3><span class="sub">each frame line under a step: the Snow Drift panel loads, start and end, ft from the FSW · k/ft, negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
+      <div class="panel seis-step snow-p-data"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
+      <div class="panel seis-step snow-p-roofs"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
+      <div class="panel seis-step snow-p-steps"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
+      <div class="panel seis-step snow-p-frames"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames</h3><span class="sub">each frame line under a step: the Snow Drift panel loads, start and end, ft from the FSW · k/ft, negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
       <details class="explain"><summary>How the snow is worked and applied</summary><div class="explain-body" id="snowHow"></div></details>
     </div>
         </div>
@@ -8321,7 +8392,9 @@ table.snow-roofs td small.sub-n { display: block; }
   /* The mezzanine loads into one seismic document, its results worked again.
      m: { loads: [{ elev, FDL, FLC, FLJ, FLL, storage, partition, FLP }] (the floor's uniform loads, in order: ID 1, 2 …),
           lines: [[{ n (index into loads), area, conc }]] — one list a lateral calculation, in the document's order, or null
-          to leave the lateral calculations as they are; long: [{ n, area, conc }] }
+          to leave the lateral calculations as they are; long: [{ n, area, conc }];
+          framing: [{ bay, roofConc }] — a lateral calculation's tributary width (bay, FSW and BSW) and roof concentrated
+          load (kips) where the engineer typed them, else null } 
      S: src/seismic.js. Returns { changed: [text], lat: [V], longV } */
   function writeSeismic(sd, m, S) {
     if (!asce(sd)) throw new Error(`${codeOf(sd) || 'this code'}: the tool works ASCE 7 seismic only — the document is left as it is`);
@@ -8333,6 +8406,11 @@ table.snow-roofs td small.sub-n { display: block; }
     const place = list => (list || []).filter(q => q.area > 0 || q.conc > 0).map(q => ({ UniformLoadInputId: q.n + 1, UniformLoads: { ...loads[q.n] }, LoadingAreaInSquareFeet: q.area, ConcentratedLoadTotalInKips: q.conc || 0 }));
     const lat = sd.LateralCalculations || [];
     if (m.lines) lat.forEach((l, i) => { l.FramingInputs.Mezzanines = place(m.lines[i]); });
+    if (m.framing) lat.forEach((l, i) => {
+      const t = m.framing[i], fi = l.FramingInputs;
+      if (t && t.bay > 0) { fi.BayWidthInFeet = t.bay; fi.FSWTribLengthInFeet = t.bay; fi.BSWTribLengthInFeet = t.bay; changed.push(`${fi.Description || 'line ' + (i + 1)}: tributary width ${t.bay}`); }
+      if (t && t.roofConc != null) { fi.RoofConcentratedLoadsInKips = t.roofConc; changed.push(`${fi.Description || 'line ' + (i + 1)}: roof concentrated ${t.roofConc} k`); }
+    });
     sd.LongitudinalCalculations.FramingInputs.Mezzanines = place(m.long);
     // the results, as Design Calcs works them from these inputs
     const { P, lines, longIn } = seismicInputs(sd), J = S.project(P);
@@ -9903,10 +9981,15 @@ table.snow-roofs td small.sub-n { display: block; }
     const dim = (x1, y1, x2, y2, text, tx, ty, anchor = 'middle') => `<line class="ss-dim" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" marker-start="url(#ssDim)" marker-end="url(#ssDim)"/><text class="ss-dimt" x="${f(tx)}" y="${f(ty)}" text-anchor="${anchor}">${esc(text)}</text>`;
     s += dim(X(0) - 12, Y(hb), X(0) - 12, Y(hb + hd), `hd ${ftin(hd)}${dr.capped ? ' = hc' : ''}`, X(0) - 18, Y(hb + hd / 2) + 4, 'end');
     s += dim(X(xMax) - 8, Y(0), X(xMax) - 8, Y(hb), '', 0, 0) + `<text class="ss-dimt ss-end" x="${f(X(xMax) - 4)}" y="${f(Y(hb) - 7)}">hb ${ftin(hb)} (balanced ${r1(d.psLower)} psf)</text>`;
-    s += dim(X(0), Y(0) + 26, X(reach), Y(0) + 26, dr.truncated ? `w ${ftin(w)} — cut off at the far eave, ${r1(dr.end)} psf there` : `w ${ftin(w)}`, X(reach / 2), Y(0) + 41);
+    // w: from the step wall to where the drift runs out, its ends carried down from the drift to the dimension line
+    s += `<line class="ss-ext" x1="${f(X(reach))}" y1="${f(Y(hb + endH))}" x2="${f(X(reach))}" y2="${f(Y(0) + 32)}"/><line class="ss-ext" x1="${f(X(0))}" y1="${f(Y(0))}" x2="${f(X(0))}" y2="${f(Y(0) + 32)}"/>`;
+    s += dim(X(0), Y(0) + 26, X(reach), Y(0) + 26, dr.truncated ? `drift length w ${ftin(w)} — cut off at the far eave, ${r1(dr.end)} psf there` : `drift length w = ${ftin(w)}`, X(reach / 2), Y(0) + 41);
+    // Dmax, the drift load at the wall, at the top of the triangle
+    { const t = `Dmax ${r1(dr.pd)} psf`, tw2 = 7.2 * t.length + 14, ax = X(0) + 8, ay = Y(hb + hd) - 10;
+      s += `<g class="ss-apex"><rect x="${f(ax)}" y="${f(ay - 13)}" width="${f(tw2)}" height="18" rx="5"/><text x="${f(ax + tw2 / 2)}" y="${f(ay + 1)}" text-anchor="middle">${esc(t)}</text></g><circle class="ss-apexdot" cx="${f(X(0))}" cy="${f(Y(hb + hd))}" r="3.5"/>`; }
     if (sl) s += dim(X(0), Y(0) + 50, X(ext), Y(0) + 50, `sliding ${ftin(ext)}`, X(ext / 2), Y(0) + 65);
     // the figures, top right: the peak and what governs
-    const tx = X(xMax), lines = [`pd = hd γ = ${r1(dr.pd)} psf`, `${dr.gov} governs · γ ${gam.toFixed(2)} pcf · hc ${ftin(dr.hc)}`, `balanced ${r1(d.psLower)} psf → ${r1(dr.pd + d.psLower)} psf at the wall`];
+    const tx = X(xMax), lines = [`Dmax = pd = hd γ = ${r1(dr.pd)} psf · w ${ftin(w)}`, `${dr.gov} governs · γ ${gam.toFixed(2)} pcf · hc ${ftin(dr.hc)}`, `balanced ${r1(d.psLower)} psf → ${r1(dr.pd + d.psLower)} psf at the wall`];
     if (sl) lines.push(`sliding ${r1(sl.psf)} psf over ${ftin(ext)} — the larger of the two is carried (7.9)`);
     s += lines.map((t, i) => `<text class="${i ? 'ss-fig' : 'ss-peak'} ss-end" x="${f(tx)}" y="${f(20 + i * 15 + (i ? 4 : 0))}">${esc(t)}</text>`).join('');
     // the frame lines / purlins the drift falls across: ticks with their numbers; the values are listed under the drawing
@@ -9914,6 +9997,127 @@ table.snow-roofs td small.sub-n { display: block; }
     s += `<text class="ss-key" x="8" y="${f(Hpx - 8)}">Section through the step · ${d.kind === 'side' ? 'across the lower frames' : 'along the lower building'} · across to scale, the snow ×${(sy / sx).toFixed(1)} upward${broken ? ', the step wall broken' : ''}</text>`;
     s += '</svg>';
     return s;
+  }
+
+  /* ---------- unbalanced snow on a gable (7.6.1), across the building with the wind from the FSW: windward 0.3 ps,
+     leeward ps with the surcharge from the ridge — the number NBG Frame takes as the alternate snow ----------
+     r: a roof of the snow job ({ name, ps, unbalanced: { windward, leeward, surcharge, length, simple }, building: { g } }) */
+  function unbalancedSvg(r) {
+    const u = r.unbalanced, g = r.building.g, W = g.width, brk = SITE.roofBreaks(g), yr = brk.length > 2 ? brk[1] : W / 2, Z = y => SITE.roofZ(g, 0, y);
+    const zMax = Math.max(...brk.map(Z)), Wpx = 760, padL = 70, padR = 70, padT = 96, padB = 58, sx = (Wpx - padL - padR) / W;
+    const peak = Math.max(u.leeward + (u.surcharge || 0), u.windward, 1), hLoad = 82, pz = v => (v / peak) * hLoad;   // psf → px above the roof
+    const roofPx = Math.min(110, zMax * sx * 0.9), sz = roofPx / zMax, Hpx = padT + hLoad + roofPx + padB;
+    const X = y => padL + y * sx, Y = z => padT + hLoad + (zMax - z) * sz, f = v => (+v).toFixed(1), F1 = v => (+v).toFixed(1);
+    const band = (y0, y1, v, cls) => { if (!(v > 0)) return ''; const p0 = [X(y0), Y(Z(y0)) - 2], p1 = [X(y1), Y(Z(y1)) - 2]; return `<polygon class="${cls}" points="${f(p0[0])},${f(p0[1])} ${f(p1[0])},${f(p1[1])} ${f(p1[0])},${f(p1[1] - pz(v))} ${f(p0[0])},${f(p0[1] - pz(v))}"/>`; };
+    const arrows = (y0, y1, v, base, cls) => { let a = ''; const n = Math.max(2, Math.round((y1 - y0) * sx / 46)); for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n, yb = Y(Z(y)) - 2 - base; a += `<line class="${cls}" x1="${f(X(y))}" y1="${f(yb - pz(v))}" x2="${f(X(y))}" y2="${f(yb - 3)}" marker-end="url(#ubArr)"/>`; } return a; };
+    const tw = (t, cls) => (cls === 'ub-surt' ? 7.9 : 7.1) * String(t).length + 16;
+    const pill = (x, y, t, cls = '') => `<rect class="ub-pill ${cls}" x="${f(x - tw(t, cls) / 2)}" y="${f(y - 12)}" width="${f(tw(t, cls))}" height="17" rx="5"/><text class="ub-lab ${cls}" x="${f(x)}" y="${f(y + 1)}">${esc(t)}</text>`;
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx.toFixed(0)}" class="ub-sec" role="img" aria-label="${esc(r.name)}: unbalanced snow"><defs><marker id="ubArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-head"/></marker><marker id="ubWind" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-windhead"/></marker></defs>`;
+    // the building: columns, the roof
+    s += `<line class="ub-ground" x1="${f(X(0) - 20)}" y1="${f(Y(0))}" x2="${f(X(W) + 20)}" y2="${f(Y(0))}"/>`;
+    s += `<polyline class="ub-frame" points="${f(X(0))},${f(Y(0))} ${brk.map(y => `${f(X(y))},${f(Y(Z(y)))}`).join(' ')} ${f(X(W))},${f(Y(0))}"/>`;
+    // the wind, from the FSW
+    s += `<line class="ub-wind" x1="${f(X(0) - 58)}" y1="${f(padT - 6)}" x2="${f(X(0) - 8)}" y2="${f(padT - 6)}" marker-end="url(#ubWind)"/><text class="ub-windt" x="${f(X(0) - 58)}" y="${f(padT - 14)}">wind</text>`;
+    if (u.simple) {
+      s += band(yr, W, u.leeward, 'ub-lee') + arrows(yr, W, u.leeward, 0, 'ub-arr');
+      s += pill((X(yr) + X(W)) / 2, Y(Z((yr + W) / 2)) - pz(u.leeward) - 16, `leeward Is pg = ${F1(u.leeward)} psf`, 'ub-leet');
+      s += pill((X(0) + X(yr)) / 2, Y(Z(yr / 2)) - 22, 'windward 0', '');
+    } else {
+      // windward 0.3 ps; leeward ps; the surcharge on the leeward from the ridge
+      s += band(0, yr, u.windward, 'ub-wind-b') + arrows(0, yr, u.windward, 0, 'ub-arr');
+      s += band(yr, W, u.leeward, 'ub-lee') + arrows(yr, W, u.leeward, 0, 'ub-arr');
+      const ys = Math.min(W, yr + u.length * Math.cos(Math.atan((g.slopeBSW ?? 1) / 12)));
+      const p0 = [X(yr), Y(Z(yr)) - 2 - pz(u.leeward)], p1 = [X(ys), Y(Z(ys)) - 2 - pz(u.leeward)];
+      s += `<polygon class="ub-sur" points="${f(p0[0])},${f(p0[1])} ${f(p1[0])},${f(p1[1])} ${f(p1[0])},${f(p1[1] - pz(u.surcharge))} ${f(p0[0])},${f(p0[1] - pz(u.surcharge))}"/>`;
+      s += pill((X(0) + X(yr)) / 2, Y(Z(yr / 2)) - 2 - pz(u.windward) - 14, `windward 0.3 ps = ${F1(u.windward)} psf`);
+      s += pill((X(ys) + X(W)) / 2 + 10, Y(Z((ys + W) / 2)) - 2 - pz(u.leeward) - 14, `leeward ps = ${F1(u.leeward)} psf`, 'ub-leet');
+      // the surcharge: its value large over it, its length dimensioned under the roof
+      const sx0 = (p0[0] + p1[0]) / 2, sy0 = Math.min(p0[1], p1[1]) - pz(u.surcharge) - 14;
+      s += pill(sx0, sy0, `Alt snow · surcharge ${F1(u.surcharge)} psf`, 'ub-surt');
+      const dy = Y(0) + 22;
+      s += `<line class="ub-dim" x1="${f(X(yr))}" y1="${f(dy)}" x2="${f(X(ys))}" y2="${f(dy)}"/><line class="ub-dim" x1="${f(X(yr))}" y1="${f(dy - 6)}" x2="${f(X(yr))}" y2="${f(dy + 6)}"/><line class="ub-dim" x1="${f(X(ys))}" y1="${f(dy - 6)}" x2="${f(X(ys))}" y2="${f(dy + 6)}"/>`;
+      s += `<line class="ub-ext" x1="${f(X(yr))}" y1="${f(Y(Z(yr)))}" x2="${f(X(yr))}" y2="${f(dy)}"/><line class="ub-ext" x1="${f(X(ys))}" y1="${f(Y(Z(ys)))}" x2="${f(X(ys))}" y2="${f(dy)}"/>`;
+      s += `<text class="ub-dimt" x="${f((X(yr) + X(ys)) / 2)}" y="${f(dy + 16)}">${ftin(u.length)} from the ridge · 8 hd √S / 3</text>`;
+    }
+    s += `<text class="ub-side" x="${f(X(0))}" y="${f(Y(0) + 18)}">FSW</text><text class="ub-side" x="${f(X(W))}" y="${f(Y(0) + 18)}">BSW</text>`;
+    s += `<text class="ub-title" x="${f(padL - 50)}" y="24">${esc(r.name)} · unbalanced snow, wind from the FSW</text><text class="ub-note" x="${f(Wpx - 16)}" y="24">${u.simple ? 'W ≤ 20 ft: the simple case (7.6.1)' : `hd ${ftin(u.hd)} · S ${F1(u.S)} · γ ${F1(r.gamma)} pcf · and the mirror with the wind from the BSW`}</text>`;
+    return s + '</svg>';
+  }
+
+  /* ---------- main wind force zones on the building, as NBG Design Calcs numbers them (ASCE 7 Fig. 28.3-1): one load
+     case, its pressure on each zone (qh × the file's coefficient, which carries the internal pressure). Zones stay on their
+     faces: 1 the FSW wall, 2 / 3 the FSW / BSW halves of the roof, 4 the BSW wall, 5 / 6 the endwalls; the end zones 1E–4E
+     a strip 2a wide at the corner. A longitudinal case (wind on an endwall): 2 / 3 are the halves of the roof along the
+     length, 5 the endwall with 2. Seen from the FSW–LEW corner; the faces behind are listed beside.
+     o: { W, L, eF, eB, yr (ridge from the FSW, null on a single slope), zr, a2, qh, name, cs: { name, z: [1..6], e: [1..4] }, long } */
+  function windSvg(o) {
+    const { W, L } = o, c30 = Math.cos(Math.PI / 6), s30 = 0.5, zr = o.yr != null ? o.zr : null;
+    const zTop = Math.max(o.eF, o.eB, zr || 0), Wpx = 760, Hpx = 400, k = Math.min((Wpx - 300) / ((L + W) * c30), (Hpx - 120) / ((L + W) * s30 + zTop));
+    const ox = 150 + W * c30 * k, oy = Hpx - 40, f = v => (+v).toFixed(1);
+    const P = (x, y, z) => [ox + (x - y) * c30 * k, oy - z * k - (x + y) * s30 * k], pts = a => a.map(q => P(...q)).map(q => `${f(q[0])},${f(q[1])}`).join(' ');
+    const roofZ = y => (o.yr != null ? (y <= o.yr ? o.eF + (zr - o.eF) * (y / o.yr) : o.eB + (zr - o.eB) * ((W - y) / (W - o.yr))) : o.eF + (o.eB - o.eF) * (y / W));
+    const p = n => (o.cs.z[n - 1] == null ? null : o.qh * o.cs.z[n - 1]), pe = n => (o.cs.e[n - 1] == null ? null : o.qh * o.cs.e[n - 1]);
+    const peak = Math.max(1, ...[1, 2, 3, 4, 5, 6].map(n => Math.abs(p(n) || 0)), ...[1, 2, 3, 4].map(n => Math.abs(pe(n) || 0)));
+    const fill = v => (v == null ? 'var(--surface-soft)' : v >= 0 ? `color-mix(in srgb, #ff8f6b ${Math.round(18 + 52 * Math.abs(v) / peak)}%, var(--surface))` : `color-mix(in srgb, #6bb8ff ${Math.round(18 + 52 * Math.abs(v) / peak)}%, var(--surface))`);
+    const sgn = v => (v == null ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`);
+    const face = (poly, v, cls = '') => `<polygon class="wz-face ${cls}" points="${pts(poly)}" style="fill:${fill(v)}"/>`;
+    const lab = (q, z, v, big = true) => { const c = P(...q); return `<text class="wz-z${big ? '' : ' sm'}" x="${f(c[0])}" y="${f(c[1] - (big ? 2 : 0))}">${esc(z)}</text><text class="wz-p${big ? '' : ' sm'}" x="${f(c[0])}" y="${f(c[1] + (big ? 14 : 11))}">${sgn(v)}</text>`; };
+    const a2 = Math.min(o.a2 || 0, L / 4), rs = (y0, y1, x0, x1) => [[x0, y0, roofZ(y0)], [x1, y0, roofZ(y0)], [x1, y1, roofZ(y1)], [x0, y1, roofZ(y1)]];
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx}" class="wz-svg" role="img" aria-label="${esc(o.name)}: wind zones, case ${esc(o.cs.name)}"><defs><marker id="wzArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="wz-head"/></marker></defs>`;
+    const yr = o.yr != null ? o.yr : W / 2, hid = [];
+    if (!o.long) {
+      // FSW wall (1, 1E), the endwall seen (5), the roof halves (2, 2E | 3, 3E)
+      s += face([[a2, 0, 0], [L, 0, 0], [L, 0, o.eF], [a2, 0, o.eF]], p(1)) + face([[0, 0, 0], [a2, 0, 0], [a2, 0, o.eF], [0, 0, o.eF]], pe(1), 'is-e');
+      s += face([[0, 0, 0], [0, W, 0], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : []), [0, 0, o.eF]], p(5));
+      s += face(rs(0, yr, a2, L), p(2)) + face(rs(0, yr, 0, a2), pe(2), 'is-e') + face(rs(yr, W, a2, L), p(3)) + face(rs(yr, W, 0, a2), pe(3), 'is-e');
+      s += lab([(a2 + L) / 2, 0, o.eF / 2], '1', p(1)) + (a2 > 0 ? lab([a2 / 2, 0, o.eF / 2], '1E', pe(1), false) : '') + lab([0, W / 2, Math.min(o.eF, o.eB) / 2], '5', p(5));
+      s += lab([(a2 + L) / 2, yr / 2, roofZ(yr / 2)], '2', p(2)) + lab([(a2 + L) / 2, (yr + W) / 2, roofZ((yr + W) / 2)], '3', p(3));
+      if (a2 > 0) s += lab([a2 / 2, yr / 2, roofZ(yr / 2)], '2E', pe(2), false) + lab([a2 / 2, (yr + W) / 2, roofZ((yr + W) / 2)], '3E', pe(3), false);
+      hid.push(['4', 'BSW wall', p(4)], ['4E', 'BSW end zone', pe(4)], ['6', 'far endwall', p(6)]);
+      // the wind, onto the FSW (or the BSW: from behind)
+      const fromF = (o.cs.z[0] || 0) >= (o.cs.z[3] || 0), a = P(L * 0.55, fromF ? -W * 0.55 : W * 1.5, o.eF * 0.6), b = P(L * 0.55, fromF ? -W * 0.08 : W * 1.05, o.eF * 0.6);
+      s += `<line class="wz-wind" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" marker-end="url(#wzArr)"/><text class="wz-windt" x="${f(a[0])}" y="${f(a[1] - 6)}">wind ${fromF ? 'onto the FSW' : 'onto the BSW (from behind)'}</text>`;
+    } else {
+      // wind on an endwall: the endwall seen is 5 when it is windward, the roof halves 2 / 3 along the length
+      const five = (o.cs.z[4] || 0) >= (o.cs.z[5] || 0), zEnd = five ? 5 : 6, zFar = five ? 6 : 5, rNear = five ? 2 : 3, rFar = five ? 3 : 2;
+      s += face([[0, 0, 0], [L, 0, 0], [L, 0, o.eF], [0, 0, o.eF]], p(1)) + face([[0, 0, 0], [0, W, 0], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : []), [0, 0, o.eF]], p(zEnd));
+      s += face([[0, 0, o.eF], [L / 2, 0, o.eF], ...(o.yr != null ? [[L / 2, o.yr, zr]] : []), [L / 2, W, o.eB], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : [])], p(rNear)) + face([[L / 2, 0, o.eF], [L, 0, o.eF], ...(o.yr != null ? [[L, o.yr, zr]] : []), [L, W, o.eB], [L / 2, W, o.eB], ...(o.yr != null ? [[L / 2, o.yr, zr]] : [])], p(rFar));
+      s += lab([L / 2, 0, o.eF / 2], '1', p(1)) + lab([0, W / 2, Math.min(o.eF, o.eB) / 2], String(zEnd), p(zEnd)) + lab([L / 4, W / 2, roofZ(W / 2)], String(rNear), p(rNear)) + lab([L * 0.75, W / 2, roofZ(W / 2)], String(rFar), p(rFar));
+      hid.push(['4', 'BSW wall', p(4)], [String(zFar), 'far endwall (leeward)', p(zFar)]);
+      const a = P(-L * 0.35, W / 2, o.eF * 0.55), b = P(-L * 0.04, W / 2, o.eF * 0.55);
+      s += `<line class="wz-wind" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" marker-end="url(#wzArr)"/><text class="wz-windt" x="${f(a[0])}" y="${f(a[1] - 6)}">wind on the endwall</text>`;
+    }
+    // the edges of the building drawn over the faces
+    s += `<polyline class="wz-edge" points="${pts([[0, 0, 0], [L, 0, 0], [L, 0, o.eF], [0, 0, o.eF], [0, 0, 0], [0, W, 0], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : []), [0, 0, o.eF]])}"/><polyline class="wz-edge" points="${pts([[L, 0, o.eF], ...(o.yr != null ? [[L, o.yr, zr], [0, o.yr, zr]] : []), ...(o.yr != null ? [] : [[L, W, o.eB], [0, W, o.eB]])])}"/>${o.yr == null ? '' : `<polyline class="wz-edge" points="${pts([[L, o.yr, zr], [L, W, o.eB], [0, W, o.eB]])}"/>`}`;
+    // the faces behind, and the key
+    const kx = Wpx - 214;
+    s += `<g class="wz-hid"><text class="wz-kh" x="${kx}" y="34">Behind</text>${hid.map(([z, t, v], i) => `<rect x="${kx}" y="${44 + i * 26}" width="14" height="14" rx="3" style="fill:${fill(v)}"/><text x="${kx + 22}" y="${55 + i * 26}"><tspan class="wz-zt">${esc(z)}</tspan> ${esc(t)} <tspan class="wz-pt">${sgn(v)} psf</tspan></text>`).join('')}</g>`;
+    s += `<g class="wz-key"><rect x="${kx}" y="${Hpx - 74}" width="14" height="14" rx="3" style="fill:${fill(peak)}"/><text x="${kx + 22}" y="${Hpx - 63}">+ pressure, onto the surface</text><rect x="${kx}" y="${Hpx - 50}" width="14" height="14" rx="3" style="fill:${fill(-peak)}"/><text x="${kx + 22}" y="${Hpx - 39}">− suction, away from it</text></g>`;
+    s += `<text class="wz-title" x="16" y="24">${esc(o.name)} · case ${esc(o.cs.name)} · psf = qh ${o.qh.toFixed(2)} × the file's coefficient</text>`;
+    if (a2 > 0) s += `<text class="wz-note" x="16" y="${Hpx - 12}">end zones (E) ${ftin(o.a2)} wide at the corner (2a) — each corner in turn</text>`;
+    return s + '</svg>';
+  }
+
+  /* ---------- components and cladding on the roof, the square as Design Calcs lists its zones: the corners (3…), the
+     edge bands (2…) and the field (1), each with its pressure and suction for one member (schematic: the bands are a wide).
+     o: { W, L, a, name, member, zones: [{ label, wp, ws }] } */
+  function ccSvg(o) {
+    const Wpx = 520, Hpx = 330, pad = 36, k = Math.min((Wpx - 2 * pad - 150) / o.L, (Hpx - 2 * pad) / o.W), w = o.L * k, h = o.W * k, x0 = pad, y0 = (Hpx - h) / 2 + 6;
+    const band = Math.max(18, Math.min(h / 4, w / 6, (o.a || 0) * k || 22)), f = v => (+v).toFixed(1);
+    const grp = re => o.zones.filter(z => re.test(String(z.label)));
+    const worst = zs => (zs.length ? { ws: Math.min(...zs.map(z => z.ws)), wp: Math.max(...zs.map(z => z.wp)), labels: zs.map(z => z.label).join(' / ') } : null);
+    const g1 = worst(grp(/^1/)), g2 = worst(grp(/^2/)), g3 = worst(grp(/^3/));
+    const t = (x, y, z) => (z ? `<text class="cc-z" x="${f(x)}" y="${f(y - 4)}">${esc(z.labels)}</text><text class="cc-p" x="${f(x)}" y="${f(y + 11)}">${z.ws.toFixed(1)}</text>` : '');
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx}" class="wz-svg cc-svg" role="img" aria-label="${esc(o.name)}: roof zones for components and cladding">`;
+    s += `<rect class="cc-field" x="${f(x0)}" y="${f(y0)}" width="${f(w)}" height="${f(h)}"/>`;
+    if (g2) s += `<path class="cc-edge" d="M${f(x0)},${f(y0)} h${f(w)} v${f(h)} h${f(-w)} z M${f(x0 + band)},${f(y0 + band)} v${f(h - 2 * band)} h${f(w - 2 * band)} v${f(-(h - 2 * band))} z" fill-rule="evenodd"/>`;
+    if (g3) [[x0, y0], [x0 + w - band, y0], [x0, y0 + h - band], [x0 + w - band, y0 + h - band]].forEach(([x, y]) => { s += `<rect class="cc-corner" x="${f(x)}" y="${f(y)}" width="${f(band)}" height="${f(band)}"/>`; });
+    s += t(x0 + w / 2, y0 + h / 2, g1) + (g2 ? t(x0 + w / 2, y0 + band / 2 + 2, g2) : '') + (g3 ? t(x0 + band / 2, y0 + band / 2 + 2, { ...g3, labels: g3.labels.split(' / ')[0] }) : '');
+    s += `<text class="cc-side" x="${f(x0 + w / 2)}" y="${f(y0 + h + 18)}">FSW</text><text class="cc-side" x="${f(x0 + w / 2)}" y="${f(y0 - 8)}">BSW</text>`;
+    const kx = x0 + w + 22;
+    s += `<text class="wz-kh" x="${kx}" y="${f(y0 + 4)}">${esc(o.member)}</text>` + [[g3, 'corners', 'cc-corner'], [g2, 'edges', 'cc-edge'], [g1, 'field', 'cc-field']].filter(([z]) => z).map(([z, n, cls], i) => `<rect class="${cls}" x="${kx}" y="${f(y0 + 16 + i * 46)}" width="14" height="14" rx="3"/><text class="cc-kt" x="${kx + 22}" y="${f(y0 + 27 + i * 46)}">${esc(z.labels)} · ${n}</text><text class="cc-kv" x="${kx + 22}" y="${f(y0 + 43 + i * 46)}">${z.ws.toFixed(1)} / +${z.wp.toFixed(1)} psf</text>`).join('');
+    s += `<text class="wz-note" x="${pad}" y="${Hpx - 8}">roof plan, schematic · edge zone a ${o.a ? ftin(o.a) : '—'} · suction / pressure</text>`;
+    return s + '</svg>';
   }
 
   /* everything one frame line carries, for frameSvg and the load table: the balanced snow (ps × trib, PY), every
@@ -9946,7 +10150,7 @@ table.snow-roofs td small.sub-n { display: block; }
     };
   }
 
-  const api = { ftin, frameEntry, columnsOf, endPosts, frameLines, frameData, scene, siteLetters, planSvg, frameSvg, wallSvg, splitSvg, lineSvg, stepSvg, iFaces };
+  const api = { ftin, frameEntry, columnsOf, endPosts, frameLines, frameData, scene, siteLetters, planSvg, frameSvg, wallSvg, splitSvg, lineSvg, stepSvg, unbalancedSvg, windSvg, ccSvg, iFaces };
   if (node) module.exports = api; else root.MZ_BUILDING = api;
 })(typeof self !== 'undefined' ? self : this);
 
@@ -11674,9 +11878,11 @@ table.snow-roofs td small.sub-n { display: block; }
         const inStrip = mz.map(m => { const aT = typedN(cfg.areaLat, lk(m.id)); return { m, a: aT != null ? aT : floorIn(m, lo, hi).a, aCalc: floorIn(m, lo, hi).a, aTyped: aT != null, conc: typedN(cfg.concLat, lk(m.id)) || 0 }; }).filter(o => o.a > 0.5 || o.conc > 0);
         const at = i === 0 ? 'lew' : i === nF - 1 ? 'rew' : 'interior';
         const bayType = { lew: 'Left Endwall', rew: 'Right Endwall', interior: 'Interior' }[at];
-        const lineIn = { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: hi - lo, bayType, roofConc: 0, fswTrib: hi - lo, bswTrib: hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: o.conc, aCalc: o.aCalc, aTyped: o.aTyped })) };
+        // the tributary width (roof and sidewalls) and a roof concentrated load: the strip's, or as the engineer types them
+        const lkey = `${bk}|${grid.xLabel(x)}`, twT = typedN(cfg.tribLat, lkey), trib = twT != null && twT > 0 ? twT : hi - lo, rcT = typedN(cfg.roofConcLat, lkey);
+        const lineIn = { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: trib, bayType, roofConc: rcT || 0, fswTrib: trib, bswTrib: trib, bayCalc: hi - lo, bayTyped: trib !== hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: o.conc, aCalc: o.aCalc, aTyped: o.aTyped })) };
         const lat = SEIS.frameLine(J, lineIn);
-        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, lineIn, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
+        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, trib, at, bayType, type: sfrs.lines[i], lat, lineIn, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
         if (!inStrip.length) return;
         if (lat.limit) notes.push({ level: 'warn', text: `Frame ${grid.xLabel(x)} (${name}): ${lat.limit}` });
         // the frame columns each mezzanine frames into on this line, and its share of the frame's mezzanine load
@@ -11711,7 +11917,7 @@ table.snow-roofs td small.sub-n { display: block; }
         });
         eqs.length = 0;
         (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
-        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, lineIn, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, trib, at, bayType, type: sfrs.lines[i], lat, lineIn, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
         if (fe) fe.seismic = { roofPsf: lat.frame.roofPsf, altRoofPsf: lat.frame.altRoofPsf, Cs: lat.Cs, R: lat.R, V: lat.V, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
       });
@@ -12154,10 +12360,10 @@ window.MZ_APP_BUILDING = function (C) {
   function snowLoad() { const k = snowKey(); try { const c = k && JSON.parse(localStorage.getItem(k) || 'null'); snowRestored = !!(c && Object.keys(c).length); return c || {}; } catch (e) { return {}; } }
   function facts() {
     const pcs = state.pcs || {}, ps = pcs.seismic || {}, sj = state.job && state.job.seismic, c = state.snow || {};
-    const ed = (sj && sj.inputs && sj.inputs.ed && sj.inputs.ed.value) || SNOW.editionOf(pcs.code && pcs.code.text).ed;
+    const edAuto = (sj && sj.inputs && sj.inputs.ed && sj.inputs.ed.value) || SNOW.editionOf(pcs.code && pcs.code.text).ed, ed = c.ed || edAuto;
     const risk = c.risk || (sj && sj.inputs && sj.inputs.risk && sj.inputs.risk.value) || ps.risk || 'II';
     const src = (k, typed, pcsV, dflt) => (typed != null && typed !== '' ? { value: +typed, source: 'typed' } : pcsV != null ? { value: pcsV, source: 'PCS' } : { value: dflt, source: dflt == null ? 'missing' : 'default' });
-    return { ed, risk, riskSrc: c.risk ? 'typed' : 'PCS', pg: src('pg', c.pg, ps.groundSnow, null), Ce: src('Ce', c.Ce, ps.Ce, 1), W2: src('W2', c.W2, ps.W2, null), ceText: ps.ceText || null };
+    return { ed, edAuto, edSrc: c.ed ? 'typed' : 'code', risk, riskSrc: c.risk ? 'typed' : 'PCS', pg: src('pg', c.pg, ps.groundSnow, null), Ce: src('Ce', c.Ce, ps.Ce, 1), W2: src('W2', c.W2, ps.W2, null), ceText: ps.ceText || null };
   }
   function compute() {
     state.snowJob = null;
@@ -12562,6 +12768,22 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   // ---------- Snow & drift ----------
+  /* the Snow page opened from a Calcs card shows that calc alone, as Design Calcs keeps them apart: Unbalanced Snow (the
+     data and the roofs, the building's diagram) or one Roof Step Snow Drift (the data, that step, its frame lines) */
+  function snowFocus() {
+    const v = $('#v-snow');
+    if (!v) return;
+    const fc = v.dataset.focus || '', step = v.dataset.step || '', bn = v.dataset.bldg || '';
+    v.querySelectorAll('.snow-p-roofs').forEach(el => { el.hidden = fc === 'step'; });
+    v.querySelectorAll('.snow-p-steps, .snow-p-frames').forEach(el => { el.hidden = fc === 'roof'; });
+    v.querySelectorAll('#snowSteps .snow-step, #snowFrames tr[data-step]').forEach(el => { el.hidden = fc === 'step' && !!step && el.dataset.step !== step; });
+    v.querySelectorAll('#snowSteps .snow-level, #snowSteps .snow-add').forEach(el => { el.hidden = fc === 'step'; });
+    v.querySelectorAll('#snowRoofs .ub-card').forEach(el => { el.hidden = fc === 'roof' && !!bn && !sameName(el.dataset.bldg, bn); });
+    const d = fc === 'step' && state.snowJob ? state.snowJob.drifts.find(q => q.key === step) : null;
+    $('#snowEyebrow').textContent = fc === 'step' ? 'NBG Design Calcs · Roof Step Snow Drift · ASCE 7 7.7 – 7.9' : fc === 'roof' ? 'NBG Design Calcs · Unbalanced Snow · ASCE 7 7.3 – 7.6' : 'NBG Design Calcs · Snow · ASCE 7 chapter 7';
+    $('#snowLede').textContent = fc === 'step' ? 'The drift where a lower roof meets a higher wall — its height and length worked from the fetch, drawn to scale, and what each frame line under it takes as "Snow Drift" panel loads for NBG Frame.' : fc === 'roof' ? 'The balanced snow on each roof and, on a gable, the unbalanced case: windward and leeward, and the surcharge NBG Frame takes as the alternate snow.' : 'Each roof\'s snow, each roof step\'s drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.';
+    $('#snowTitle').innerHTML = fc === 'step' ? `Roof step <em>drift</em>${d ? ` <small class="sub-n">from ${esc(d.upper)} ${esc(d.upperWall || '')} to ${esc(d.lower)} ${esc(d.lowerWall)}</small>` : ''}` : fc === 'roof' ? `Unbalanced <em>snow</em>${bn ? ` <small class="sub-n">${esc(bn)}</small>` : ''}` : 'Snow &amp; <em>drift</em>';
+  }
   function renderSnow() {
     const box = $('#snowInputs');
     if (!box) return;
@@ -12583,7 +12805,7 @@ window.MZ_APP_BUILDING = function (C) {
       <label><span class="lab">Ground snow, pg (psf) ${tag(F.pg)}</span>${num('pg', F.pg.value)}</label>
       <label><span class="lab">Exposure factor, Ce ${tag(F.Ce)}</span>${num('Ce', F.Ce.value)}${F.ceText ? `<small class="sub-n">PCS: ${esc(F.ceText)}</small>` : ''}</label>
       <label><span class="lab">Risk category <small class="src src-${F.riskSrc}">${F.riskSrc}</small></span><select data-snow="risk">${['I', 'II', 'III', 'IV'].map(r => `<option ${r === F.risk ? 'selected' : ''}>${r}</option>`).join('')}</select><small class="sub-n">Is ${F.ed === '7-22' ? '1.0 (ASCE 7-22: pg is risk-targeted)' : SNOW.IS[F.risk]}</small></label>
-      <label><span class="lab">Code</span><b class="seis-echo-v">ASCE ${esc(F.ed)}</b><small class="sub-n">follows the Seismic calc's building code</small></label>
+      <label><span class="lab">Code <small class="src src-${F.edSrc === 'typed' ? 'typed' : 'PCS'}">${F.edSrc === 'typed' ? 'typed' : 'building code'}</small></span><select data-snow="ed"><option value="">ASCE ${esc(F.edAuto)} — the building code</option>${['7-05', '7-10', '7-16', '7-22'].map(e => `<option value="${e}" ${(state.snow || {}).ed === e ? 'selected' : ''}>ASCE ${e}</option>`).join('')}</select><small class="sub-n">ASCE 7-05 / 7-10 / 7-16 work alike; 7-22 takes W2 and drops Is</small></label>
       ${F.ed === '7-22' ? `<label><span class="lab">Winter wind parameter, W2 ${tag(F.W2)}</span>${num('W2', F.W2.value)}<small class="sub-n">ASCE 7-22 drifts need it (PCS Box 3 or the hazard tool)</small></label>` : ''}
     </div>` + (J ? `<div class="table-wrap"><table class="fl-t snow-bt"><thead><tr><th>Building</th><th>Thermal factor, Ct</th><th>PCS Box 4 · thermal</th><th>Unobstructed slippery roof <small class="sub-n">Box 4 "R &lt; 30 and/or obstruction": No → slippery</small></th></tr></thead><tbody>${J.roofs.map(r => { const pr = (pcsB(r.name) || {}).roof || {}; return `<tr><td><b>${esc(r.name)}</b></td><td><div class="snow-ct">${num(`b.${r.name}.Ct`, r.Ct)} <small class="src src-${esc(r.CtSrc)}">${esc(r.CtSrc)}</small></div></td><td>${r.thermal ? esc(r.thermal) : '<span class="sub-n">—</span>'}</td><td>${chk(`b.${r.name}.slippery`, r.slippery, `${r.slippery ? 'slippery' : 'not slippery'} <small class="sub-n">Box 4: ${pr.obstruction === false ? 'No' : pr.obstruction === true ? 'Yes' : 'not read'}</small>`)}</td></tr>`; }).join('')}</tbody></table></div>` : '');
     if (!J) { $('#snowRoofs').innerHTML = '<div class="seis-msg warn">Type the ground snow load to work the roofs.</div>'; $('#snowSteps').innerHTML = ''; $('#snowFrames').innerHTML = ''; }
@@ -12593,7 +12815,9 @@ window.MZ_APP_BUILDING = function (C) {
         const pm = r.pm != null ? F1(r.pm) : '—';
         const pcsT = r.pcsSnow ? `<span class="mono">${F1(r.pcsSnow.value)} psf</span> ${r.pcsSnow.override ? '<small class="src src-typed">user override</small>' : r.pcsMatch ? '<small class="src src-ok">matches</small>' : '<small class="src src-bad">differs</small>'}` : '—';
         return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.building.g.profile || '')} ${F2(r.slope)}:12<small class="sub-n">${F1(r.slopeDeg)}°${r.slippery ? ' · slippery' : ''}</small></td><td class="num mono">${F2(r.Ct)}</td><td class="num mono">${F1(r.pf)}</td><td class="num mono">${F2(r.Cs)}</td><td class="num mono">${F1(r.ps)}</td><td class="num mono">${pm}</td><td class="num mono"><b>${F1(r.applied ?? r.design)} psf</b><small class="sub-n">${esc(r.appliedSrc || '')}</small></td><td>${ut}</td><td>${pcsT}</td></tr>`; }).join('')}</tbody></table></div>
-        <small class="sub-n">Is ${J.roofs.length ? F2(J.roofs[0].Is) : '1.00'} · pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf. <b>On the frames</b> is the uniform snow NBG Frame applies — the PCS's user override where it has one, else the larger of ps and pm; a drift always sits on ps.</small>`;
+        <small class="sub-n">Is ${J.roofs.length ? F2(J.roofs[0].Is) : '1.00'} · pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf. <b>On the frames</b> is the uniform snow NBG Frame applies — the PCS's user override where it has one, else the larger of ps and pm; a drift always sits on ps.</small>`
+        // each gable's unbalanced snow, drawn: the surcharge is what NBG Frame takes as the alternate snow
+        + J.roofs.map(r => { const u = r.unbalanced; return `<div class="ub-card" data-bldg="${esc(r.name)}">${u && u.applies && !u.need ? `<div class="wall-card">${B.unbalancedSvg(r)}</div>${u.simple ? '' : `<div class="ub-key"><span><b>Alt snow (surcharge)</b> <b class="mono ub-big">${F1(u.surcharge)} psf</b> over ${ft(u.length)} from the ridge</span><span>windward <b class="mono">${F1(u.windward)}</b> psf · leeward <b class="mono">${F1(u.leeward)}</b> psf</span><span class="sub-n">NBG Frame's unbalanced cases (SnowLeftSlope / SnowRightSlope) take the surcharge as the alternate snow, each way</span></div>`}` : `<div class="seis-msg info">${esc(r.name)}: no unbalanced snow — ${esc(u ? (u.need ? 'ASCE 7-22 needs W2' : u.why) : 'not a gable')}.</div>`}</div>`; }).join('');
       const sp = (state.snow && state.snow.purlin) || DEFAULT_PURLIN;
       const level = J.drifts.filter(d => d.level), steps = J.drifts.filter(d => !d.level);
       const levelT = level.length ? `<div class="snow-level">${level.map(d => `<span><b>${esc(d.lower)}</b> ${d.lowerWall} meets <b>${esc(d.upper)}</b> ${d.upperWall} level — one roof, no drift; a fetch toward a step runs on through both</span>`).join('')}</div>` : '';
@@ -12612,7 +12836,7 @@ window.MZ_APP_BUILDING = function (C) {
           }
         }
         const upperG = d.step.upper && d.step.upper.g;
-        return `<div class="snow-step ${d.off ? 'is-off' : ''}"><div class="snow-step-h"><div><b>${esc(d.lower)}</b> ${d.lowerWall} <span class="sub-n">below</span> <b>${esc(d.upper)}</b> ${d.upperWall || ''}${d.typed ? ' <small class="src src-typed">typed</small>' : ''} <small class="sub-n">· ${d.kind === 'side' ? 'drift across the lower frames (side wall)' : 'drift along the lower building (end wall)'} · shared ${ft(d.length)} · step ${ft(d.hMin)}${d.hMax - d.hMin > 0.05 ? ` to ${ft(d.hMax)} at the rake` : ''}</small></div>${chk(`s.${d.key}.off`, d.off, 'leave this step out')}</div>
+        return `<div class="snow-step ${d.off ? 'is-off' : ''}" data-step="${esc(d.key)}"><div class="snow-step-h"><div><b>${esc(d.lower)}</b> ${d.lowerWall} <span class="sub-n">below</span> <b>${esc(d.upper)}</b> ${d.upperWall || ''}${d.typed ? ' <small class="src src-typed">typed</small>' : ''} <small class="sub-n">· ${d.kind === 'side' ? 'drift across the lower frames (side wall)' : 'drift along the lower building (end wall)'} · shared ${ft(d.length)} · step ${ft(d.hMin)}${d.hMax - d.hMin > 0.05 ? ` to ${ft(d.hMax)} at the rake` : ''}</small></div>${chk(`s.${d.key}.off`, d.off, 'leave this step out')}</div>
           <div class="snow-sub">Your inputs <small class="sub-n">filled in from the site; type over any</small></div>
           <div class="seis-grid"><label><span class="lab">Higher roof's fetch, lu (ft) <small class="src src-${esc(d.luUpperSrc.replace(/\s+/g, '-'))}">${esc(d.luUpperSrc)}</small></span>${num(`s.${d.key}.luUpper`, d.luUpper)}<small class="sub-n">${d.luUpperParts && d.luUpperParts.length > 1 ? `${d.luUpperParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} — the roofs meet level, the snow blows the whole way` : d.upperWall === 'FSW' || d.upperWall === 'BSW' ? 'its width' : d.upperWall ? 'its length' : 'as typed'}</small></label>
             <label><span class="lab">Lower roof's fetch (ft) <small class="src src-${esc(d.luLowerSrc.replace(/\s+/g, '-'))}">${esc(d.luLowerSrc)}</small></span>${num(`s.${d.key}.luLower`, d.luLower)}<small class="sub-n">${d.luLowerParts && d.luLowerParts.length > 1 ? `${d.luLowerParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} · ` : ''}for the windward drift (¾ hd)</small></label>
@@ -12624,7 +12848,7 @@ window.MZ_APP_BUILDING = function (C) {
           ${d.sliding.applies ? `<div class="seis-msg info">Sliding snow (7.9)${d.sliding.mode === 'calcs' ? ', as NBG Design Calcs works it' : ''}: 0.4 pf W = 0.4 × ${F1(d.sliding.pfUpper)} × ${ft(d.sliding.W)} = ${n0(d.sliding.perFt)} lb/ft over ${ft(d.sliding.extent)} → <b>${F2(d.sliding.psf)} psf</b>, with the balanced snow. It is not added to the drift: 7.9 says sliding "need not be used in combination with drift" — the frames take the larger of the two at each point (NBG Design Calcs' Total Snow).${d.envelope && d.envelope.length > 1 ? ` Envelope from the wall: ${d.envelope.map(e => `${F1(e.va)}${Math.abs(e.va - e.vb) > 0.05 ? '→' + F1(e.vb) : ''} psf to ${ft(e.b)} (${e.by})`).join(' · ')}.` : ''}</div>` : `<small class="sub-n">Sliding snow: ${esc(d.sliding.why)}.</small>`}</div>`;
       }).join('') + stepAdder();
       // onto the frames
-      const rows = J.drifts.filter(d => !d.off && d.frames.length).flatMap(d => d.frames.map(fl => `<tr><td><b>${esc(d.lower)}</b> line ${fl.frame}<small class="sub-n">x ${ft(fl.x)} · trib ${ft(fl.tribAt || fl.trib[1] - fl.trib[0])}${fl.strip ? ` · ${ft(fl.strip[0])}–${ft(fl.strip[1])} from the step` : ''}</small></td><td class="num mono">${ft(fl.h)}</td><td class="num mono">${fl.drift ? F1(fl.drift.pd) : '—'}</td><td>${fl.segs.map(s => `<div class="snow-seg"><i>${esc(s.name)}</i> <span class="mono">RP${s.panel}</span> <span class="mono">${ft(s.from)} → ${ft(s.to)}</span> <b class="mono">${F3(s.start)} → ${F3(s.end)}</b> k/ft</div>`).join('')}</td><td class="num"><button class="btn-ghost sm" data-bldg="${esc(d.lower)}" data-frame="${fl.frame}">Draw →</button></td></tr>`));
+      const rows = J.drifts.filter(d => !d.off && d.frames.length).flatMap(d => d.frames.map(fl => `<tr data-step="${esc(d.key)}"><td><b>${esc(d.lower)}</b> line ${fl.frame}<small class="sub-n">x ${ft(fl.x)} · trib ${ft(fl.tribAt || fl.trib[1] - fl.trib[0])}${fl.strip ? ` · ${ft(fl.strip[0])}–${ft(fl.strip[1])} from the step` : ''}</small></td><td class="num mono">${ft(fl.h)}</td><td class="num mono">${fl.drift ? F1(fl.drift.pd) : '—'}</td><td>${fl.segs.map(s => `<div class="snow-seg"><i>${esc(s.name)}</i> <span class="mono">RP${s.panel}</span> <span class="mono">${ft(s.from)} → ${ft(s.to)}</span> <b class="mono">${F3(s.start)} → ${F3(s.end)}</b> k/ft</div>`).join('')}</td><td class="num"><button class="btn-ghost sm" data-bldg="${esc(d.lower)}" data-frame="${fl.frame}">Draw →</button></td></tr>`));
       $('#snowFrames').innerHTML = rows.length ? `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Frame line</th><th class="num">Step h</th><th class="num">pd (psf)</th><th>Panel loads for NBG Frame · positions from the FSW</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div><small class="sub-n">A side-wall step: the drift at the wall (pd × tributary width) falling to zero w from it, or to its value at the far eave; with sliding snow, the larger of the two at each point. An end-wall step: the frame's share over its own strip, the same across the frame. Cut where the roof panels change (RP1 / RP2). Negative = down, GY, as NBG Frame's own roof loads. Into NBG Frame: Tools → Concentrated (Panel) Loads, the panel tab, "Snow Drift" under SL (and LRD / RRD when the frame has those cases) — the Frames page writes them into the frame file, scaled to the file's own bay width.</small>` : '<div class="seis-msg info">No drift reaches a frame line.</div>';
       $$('#snowFrames [data-frame]').forEach(x => { x.onclick = () => selectFrame(x.dataset.bldg, +x.dataset.frame, true); });
     }
@@ -12636,6 +12860,7 @@ window.MZ_APP_BUILDING = function (C) {
       <li><b>Sliding snow</b> (7.9): 0.4 pf W per foot of eave from a roof steeper than ¼:12 (slippery) or 2:12 that drains onto the lower roof, over 15 ft (scaled to a narrower roof), with the balanced snow.</li>
       <li><b>Onto the frames</b>: a side-wall step runs across the lower frames — each frame line takes pd × its tributary width at the wall, to 0 at w (or the far eave): a triangle, PY, "Snow Drift". An end-wall step runs along the length — each frame near the end takes the drift over its own strip, uniform across the frame. The section in step 3 marks each frame line (or purlin line) with what it takes. The fetch and the gap are the engineer's call where another roof continues in line: type them above.</li>
       <li><b>Onto the purlins</b>: the Purlins page lists the same drift as purlin line loads (the purlin program is not here).</li></ol>`;
+    snowFocus();
     const forget = $('#snowForget');
     if (forget) forget.onclick = () => { const k = snowKey(); try { if (k) localStorage.removeItem(k); } catch (e) { /* nothing kept */ } state.snow = {}; snowRestored = false; recompute(); toast('Snow entries cleared — back to the PCS values'); };
     $$('#v-snow [data-snow]').forEach(el => {
@@ -13376,7 +13601,7 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   function render() { renderProject(); renderBuilding(); renderSnow(); renderFrames(); renderBracing(); renderPurlins(); }
-  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
+  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
 };
 
 </script>
@@ -15877,7 +16102,7 @@ window.MZ_APP_BUILDING = function (C) {
     if (!same) rows.push({ grp: 'Frame lines', lab: 'count', ours: b.lines.length, theirs: lines.length, fmt: v => v, ok: false });
     (same ? b.lines : []).forEach((l, i) => {
       const fl = lines[i], g = `Frame line ${l.label}`;
-      row(g, 'Bay width', l.bay, fl.bay, ft, 1e-3);
+      row(g, 'Bay width', l.trib ?? l.bay, fl.bay, ft, 1e-3);
       sysRow(g, 'System', `${l.type}`, `${fl.framing}`);
       b.mezz.forEach((m, k) => { const a = (l.lineIn.mezz || []).find(z => z.id === m.id), fq = (fl.mezz || []).find(z => z.id === (P.mezz[k] || {}).id); if (a || fq) { row(g, `${mezzName(m.id)} loading area`, a ? a.area : 0, fq ? fq.area : 0, n0, 1e-4); row(g, `${mezzName(m.id)} concentrated (k)`, a ? a.conc || 0 : 0, fq ? fq.conc || 0 : 0, F3); } });
       row(g, 'Base shear (k)', l.lat ? l.lat.V : null, (sd.LateralCalculations[i].BaseShearResults || {}).BaseShear, F3);
@@ -15917,7 +16142,9 @@ window.MZ_APP_BUILDING = function (C) {
       const idx = id => b.mezz.findIndex(m => m.id === id);
       const lines = sd.LateralCalculations.length === b.lines.length ? b.lines.map(l => (l.lineIn.mezz || []).map(q => ({ n: idx(q.id), area: q.area, conc: q.conc || 0 }))) : null;
       const long = b.mezz.map((m, k) => { const cl = (state.seis.concLong || {})[`${b.bkey}|${m.id}`]; return { n: k, area: m.area, conc: cl > 0 ? +cl : 0 }; });
-      const r = CF.writeSeismic(sd, { loads: b.mezz.map(m => ({ elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, partition: m.partition, FLP: m.FLP })), lines, long }, window.MZ_SEISMIC);
+      const typed = (box, l) => { const v = (state.seis[box] || {})[`${b.bkey}|${l.label}`]; return v != null && v !== '' && isFinite(+v) ? +v : null; };
+      const framing = lines ? b.lines.map(l => ({ bay: typed('tribLat', l) > 0 ? typed('tribLat', l) : null, roofConc: typed('roofConcLat', l) })) : null;
+      const r = CF.writeSeismic(sd, { loads: b.mezz.map(m => ({ elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, partition: m.partition, FLP: m.FLP })), lines, long, framing }, window.MZ_SEISMIC);
       done.push(`${b.name}: longitudinal ${f(r.longV, 2)} k${lines ? '' : ' (its frame lines differ from the job\'s — left as they were)'}`);
     });
     if (!done.length) { toast('No seismic document in the file matches a building of this job', 'bad'); return; }
@@ -16011,6 +16238,7 @@ window.MZ_APP_BUILDING = function (C) {
     // the open calc
     $('#v-seismic').hidden = !cur || cur.kind !== 'seismic';
     $('#v-snow').hidden = !cur || cur.kind !== 'snow';
+    if (cur && cur.kind === 'snow') { const v = $('#v-snow'); v.dataset.focus = cur.focus || ''; v.dataset.step = cur.step || ''; v.dataset.bldg = cur.name || ''; if (BLD && BLD.snowFocus) BLD.snowFocus(); }
     const cfDoc = $('#v-calcfile');
     cfDoc.hidden = !cur || cur.kind !== 'calcfile';
     if (cur && cur.kind === 'seismic') {
@@ -16018,7 +16246,10 @@ window.MZ_APP_BUILDING = function (C) {
       const fb = $('#seisFileCmp');
       if (fb) fb.innerHTML = calcCmpHtml(cur);
     }
-    if (cur && cur.kind === 'calcfile') cfDoc.innerHTML = calcFileHtml(cur);
+    if (cur && cur.kind === 'calcfile') {
+      cfDoc.innerHTML = calcFileHtml(cur);
+      $$('#v-calcfile [data-wcase]').forEach(b => { b.onclick = () => { const [k1, k2, c] = b.dataset.wcase.split('|'); state.windCase = { ...(state.windCase || {}), [`${k1}|${k2}`]: c }; renderCalcs(); }; });
+    }
     $$('#calcList [data-calc]').forEach(btn => { btn.onclick = () => { const c = all.find(z => calcKey(z) === btn.dataset.calc); state.calcDoc = { key: btn.dataset.calc, kind: c.kind, name: c.name }; renderCalcs(); calcFocus(c); }; });
     const rm = $('#calcRm'); if (rm) rm.onclick = calcRemove;
     const dl = $('#calcDl'); if (dl) dl.onclick = calcDownload;
@@ -16113,13 +16344,33 @@ window.MZ_APP_BUILDING = function (C) {
         + panel('Drift', 'as Design Calcs worked it', fields(w.DriftResults));
     }
     if (d.kind === 'wind') {
-      const m = w.MainWindResults || {}, zones = (m.LateralZones || []).concat(m.LongitudinalZones || []);
+      const m = w.MainWindResults || {}, lat = m.LateralZones || [], lon = m.LongitudinalZones || [], zones = lat.concat(lon);
       const kv = ca ? [['Reference velocity pressure q', `${f(s.qKpa, 2)} kPa <small class="sub-n">${f(s.qKpa * KPA, 2)} psf</small>`], ['Importance', esc(ENUM(s.importance))], ['Iw', s.Iw], ['Terrain', esc(ENUM(s.exposure))], ['Ce', ok(s.Ce) ? f(s.Ce, 3) : null], ['Cgi', s.Cgi], ['Cpi', s.Cpi ? `${f(s.Cpi[0], 2)} / ${f(s.Cpi[1], 2)}` : null], ['Enclosure', esc(ENUM(s.category || s.enclosure))], ['Reference height', ft(s.h)], ['Base wind pressure', ok(s.base) ? `<b>${f(s.base, 3)} psf</b>` : null], ['Edge zone', ft(s.zone)]]
         : [['Basic wind speed', `${s.V} mph`], ['Exposure', s.exposure], ['Enclosure', s.enclosure], ['Kd', f(s.Kd, 3)], ['Kh', f(s.Kh, 4)], ['Kzt', f(s.Kzt, 3)], ['Ke', f(s.Ke, 3)], ['Gust factor G', f(s.G, 3)], ['GCpi', `± ${f(s.GCpi, 2)}`], ['Mean roof height', ft(s.h)], ['qh', `<b>${f(s.qh, 3)} psf</b>`], ['Edge zone', ft(s.zone)]];
-      const zk = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+Coefficient$/.test(k)) : [];
+      const zk = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+Coefficient$/.test(k)) : [], ek = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+EdgeCoefficient$/.test(k)) : [];
+      // the building as the file has it, for the drawings
+      const W = +geo.BuildingWidthInFeet || 0, Lg = +geo.BuildingLengthInFeet || 0, eF = +geo.FSWEaveHeightInFeet || +geo.EaveHeightInFeet || 0, eB = +geo.BSWEaveHeightInFeet || eF;
+      const gable = /gable/i.test(geo.SelectedBuildingType || ''), sF = +geo.FSWRoofSlopeOn12 || +geo.RoofSlopeOn12 || 1, sB = +geo.BSWRoofSlopeOn12 || sF;
+      const yr = gable && W ? window.MZ_SITE.ridgeY({ width: W, ridge: +geo.RidgeDistanceInFeet || null, eaveFSW: eF, eaveBSW: eB, slopeFSW: sF, slopeBSW: sB, profile: 'Gable' }) : null;
+      const zr = yr != null ? eF + sF / 12 * yr : null, qh = ca ? (s.qKpa || 0) * KPA : (s.qh || m.BaseWindPressure || 0);
+      const dkey = `${cur.folder}|${cur.doc}`, pick = (state.windCase || {})[dkey], csz = zones.find(z => z.CaseDescription === pick) || zones[0];
+      const isLong = z => lon.includes(z);
+      const caseOf = z => ({ name: z.CaseDescription, z: zk.map(k => z[k]), e: ek.map(k => z[k]) });
+      const draw = !ca && csz && W && Lg && eF ? `<div class="wz-cases">${zones.map(z => `<button class="bl-tog${z === csz ? ' is-on' : ''}" data-wcase="${esc(dkey)}|${esc(z.CaseDescription)}"><i></i>${esc(z.CaseDescription)}<small class="sub-n">${isLong(z) ? 'longitudinal' : 'transverse'}</small></button>`).join('')}</div>
+          <div class="wall-card">${window.MZ_BUILDING.windSvg({ W, L: Lg, eF, eB, yr, zr, a2: 2 * (+m.LateralEdgeZoneDistanceInFeet || 0), qh, name: geo.BuildingName || d.name.replace(/^[^:]*:\s*/, ''), cs: caseOf(csz), long: isLong(csz) })}</div>` : '';
+      const pr = v => (ok(v) ? `<td class="num mono"><b>${f(qh * v, 1)}</b><small class="sub-n">${f(v, 3)}</small></td>` : '<td class="num mono">—</td>');
+      const ptab = zones.length ? table(['Case', ...zk.map(k => ({ n: k.replace(/^Zone(\d+)Coefficient$/, 'Zone $1') })), ...ek.filter(k => zones.some(z => z[k])).map(k => ({ n: k.replace(/^Zone(\d+)EdgeCoefficient$/, '$1E') }))],
+        zones.map(z => `<tr class="${z === csz ? 'is-on' : ''}"><td class="mono"><b>${esc(z.CaseDescription)}</b><small class="sub-n">${isLong(z) ? 'longitudinal' : 'transverse'}</small></td>${zk.map(k => pr(z[k])).join('')}${ek.filter(k => zones.some(q => q[k])).map(k => pr(z[k])).join('')}</tr>`)) : '';
+      // components and cladding: the roof square for the purlins (or the first roof member), every member's zones
+      const cc = w.ComponentAndCladdingResults || {}, rr = cc.RoofResults || [], wr = cc.WallResults || [];
+      const zl = r => (r.ResultsPerZone || [r.TypicalLoads, r.EdgeLoads, r.CornerLoads].filter(Boolean)).map(q => ({ label: q.ZoneLabel, wp: (q.ZoneWindPressures || {}).WindPressure, ws: (q.ZoneWindPressures || {}).WindSuction, ov: (q.ZoneWindPressures || {}).OverhangSuction }));
+      const roofM = rr.find(r => /purlin|joist/i.test(r.MemberDescription || '')) || rr[0];
+      const ccSq = !ca && roofM && W && Lg ? `<div class="wall-card cc-card">${window.MZ_BUILDING.ccSvg({ W, L: Lg, a: +cc.RoofEdgeZoneDistanceInFeet || 0, name: d.name, member: roofM.MemberDescription || 'Roof', zones: zl(roofM).filter(z => ok(z.ws)) })}</div>` : '';
+      const ccTab = rows => table(['Member', { n: 'Trib. area (sq ft)' }, 'Zone', { n: 'Pressure (psf)' }, { n: 'Suction (psf)' }, { n: 'Overhang (psf)' }], rows.flatMap(r => zl(r).map((z, i) => `<tr>${i ? '<td></td><td></td>' : `<td><b>${esc(r.MemberDescription || '')}</b></td>${num(r.TributaryAreaSqFt, 0)}`}<td class="mono">${esc(z.label)}</td>${num(z.wp, 1)}${num(z.ws, 1)}${num(z.ov, 1)}</tr>`)));
       return head + panel(ca ? 'Velocity pressure · NBC 4.1.7' : 'Velocity pressure', ca ? 'q, Ce, Cg Cp and Cpi as the file has them' : 'ASCE 7 chapter 26–28, as the file has it', geoChips + chips(kv)
-          + chips([['Longitudinal force to the bracing', ok(s.longBracing) ? f(s.longBracing, 2) + ' k' : null], ['Total longitudinal force', ok(s.longTotal) ? f(s.longTotal, 2) + ' k' : null]]))
-        + (zones.length ? panel(ca ? 'Main wind force · Cp Cg by zone' : 'Main wind force · GCpf by zone', 'each load case, interior zones (the edge zones in the file beside them)', table(['Case', ...zk.map(k => ({ n: k.replace(/^Zone(\d+)Coefficient$/, 'Zone $1') }))], zones.map(z => `<tr><td class="mono"><b>${esc(z.CaseDescription || '')}</b></td>${zk.map(k => num(z[k], 3)).join('')}</tr>`))) : '');
+          + `<div class="wz-res">${chips([['Longitudinal force to the bracing', ok(s.longBracing) ? `<b>${f(s.longBracing, 2)} k</b>` : null], ['Total longitudinal force', ok(s.longTotal) ? f(s.longTotal, 2) + ' k' : null], ['qh', ok(qh) ? `${f(qh, 2)} psf` : null]])}</div>`)
+        + (zones.length ? panel(ca ? 'Main wind force · zones' : 'Main wind force · the zones', ca ? 'each load case, Cp Cg as the file has them' : 'each load case: the pressure on each zone, psf = qh × the coefficient (internal pressure in it) — pick a case to draw it', draw + ptab) : '')
+        + (rr.length || wr.length ? panel('Components and cladding', `roof edge zone a ${ok(cc.RoofEdgeZoneDistanceInFeet) ? ft(cc.RoofEdgeZoneDistanceInFeet) : '—'} · wall edge zone ${ok(cc.WallEdgeZoneDistanceInFeet) ? ft(cc.WallEdgeZoneDistanceInFeet) : '—'}`, ccSq + (rr.length ? `<h4 class="calc-ft-h">Roof</h4>${ccTab(rr)}` : '') + (wr.length ? `<h4 class="calc-ft-h">Walls</h4>${ccTab(wr)}` : '')) : '');
     }
     return head + panel('The document', '', fields(w));
   }
@@ -16138,6 +16389,7 @@ window.MZ_APP_BUILDING = function (C) {
     if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; clear(); return; }
     const cfg = state.seis, d = sj.design, F1 = v => f(v, 1), F2 = v => f(v, 2), F3 = v => f(v, 3), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-seis="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
+    const tribIn = (b, l) => `${num(`tw.${b.bkey}|${l.label}`, +(l.trib ?? l.bay).toFixed(3))}<small class="sub-n">${l.lineIn.bayTyped ? `typed · the strip is ${ft(l.bay)}` : l.at === 'interior' ? 'half of each bay' : 'half the end bay'}</small>`;
     const sel = (key, val, opts) => `<select data-seis="${esc(key)}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     const chk = (key, on, label, dis) => `<label class="seis-chk"><input type="checkbox" data-seis="${esc(key)}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}> <span>${label}</span></label>`;
     const I = sj.inputs, FL = sj.flags, live = sj.ok, many = sj.buildings.length > 1;
@@ -16147,6 +16399,16 @@ window.MZ_APP_BUILDING = function (C) {
     $('#seisStatus').innerHTML = back + (sj.need.length ? `<div class="seis-msg warn"><b>Needs input:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
       + notes;
     // the results, after the inputs: the code's numbers, then one row a building (the report NBG Design Calcs prints)
+    // the loads to apply, in kips: each frame line's mezzanine load on its columns (EQR / EQL) and each bracing line's
+    // share of the mezzanine's longitudinal force (EQB / EQF) — what steps 8 and 9 write into the files
+    const applySum = b => {
+      const fr = b.frames.flatMap(x => { const by = new Map(); x.eqs.forEach(e => { const r = by.get(e.key) || { line: x.label, label: e.label, member: e.member, at: e.at, F: 0, edited: null }; r.F += e.F; r.edited = r.edited || e.edited; by.set(e.key, r); }); return [...by.values()].concat(x.loose.map(l => ({ line: x.label, loose: l }))); });
+      const br = b.braceLines || [], tot = (b.mezzLong || {}).total || 0, sumBr = br.reduce((a, l) => a + l.F, 0);
+      if (!fr.length && !br.length) return '';
+      const frT = fr.length ? `<table class="fl-t seis-kips"><thead><tr><th>Line</th><th>Column</th><th class="num">At</th><th class="num">EQR / EQL</th></tr></thead><tbody>${fr.map((r, i) => { const cont = i > 0 && fr[i - 1].line === r.line, ln = cont ? '' : `<b>${esc(r.line)}</b>`; return r.loose ? `<tr class="bad${cont ? ' cont' : ''}"><td class="mono">${ln}</td><td colspan="2">${esc(mezzName(r.loose.id))} — no frame column</td><td class="num mono">${F2(r.loose.F)} k</td></tr>` : `<tr class="${cont ? 'cont' : ''}"><td class="mono">${ln}</td><td>${esc(r.label)}<small class="sub-n">${esc(r.member || '')}</small></td><td class="num mono">${ft(r.at)}</td><td class="num mono"><b>±${F2(r.F)}</b> k${r.edited ? `<small class="sub-n">${r.edited}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>` : '<small class="sub-n">No mezzanine load on a frame line.</small>';
+      const brT = br.length ? `<table class="fl-t seis-kips"><thead><tr><th>Bracing line</th><th class="num">At</th><th class="num">EQB / EQF</th></tr></thead><tbody>${br.map(l => `<tr><td><b>${esc(l.edge)}</b><small class="sub-n">${l.by.map(q => `½ ${esc(mezzName(q.id))}${q.via ? ` via ${esc(mezzName(q.via))}` : ''}`).join(' + ')}</small></td><td class="num mono">${ft(l.at)}</td><td class="num mono"><b>${F2(l.design)}</b> k${l.governs !== 'seismic' ? '<small class="sub-n">DM 1 % governs</small>' : ''}</td></tr>`).join('')}</tbody><tfoot><tr><td>Mezzanine total</td><td></td><td class="num mono"><b>${F2(tot)}</b> k${Math.abs(sumBr - tot) > 0.01 ? `<small class="sub-n bad">lines add to ${F2(sumBr)}</small>` : ''}</td></tr></tfoot></table>` : '<small class="sub-n">No mezzanine force to bracing.</small>';
+      return `<div class="seis-kips-wrap">${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="seis-kips-grid"><div><h5>Into NBG Frame <small class="sub-n">mezzanine load on each column · step 8</small></h5>${frT}</div><div><h5>Into NBG Bracing <small class="sub-n">half of each mezzanine to each long edge · step 9</small></h5>${brT}</div></div></div>`;
+    };
     const resBox = $('#seisResults');
     if (resBox) resBox.innerHTML = (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span>${d.Fa != null ? `<span>Fa <b>${F3(d.Fa)}</b> · Fv <b>${F2(d.Fv)}</b></span>` : ''}<span>SMS <b>${F3(d.SMS)}</b> · SM1 <b>${F3(d.SM1)}</b></span><span>SDS <b>${F3(d.SDS)}</b> · SD1 <b>${F3(d.SD1)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${F2(d.Ie)}</b></span><span>ρ <b>${F2(d.rho)}</b></span></div>` : '')
       + (live ? `<div class="table-wrap"><table class="fl-t seis-rep"><thead><tr><th>Building</th><th class="num">Area</th><th class="num">Mezzanine</th><th class="num">Roof seismic weight</th><th class="num">Longitudinal base shear</th><th class="num">Largest frame (lateral)</th><th class="num">Mezzanine seismic</th></tr></thead><tbody>${sj.buildings.map(b => {
@@ -16158,7 +16420,7 @@ window.MZ_APP_BUILDING = function (C) {
           <td class="num mono">${u ? `<b>${F2(u.totalPsf)} psf</b><small class="sub-n">${sIn ? `dead ${F2(u.deadPsf)} + snow ${F2(u.snowInW)}` : `dead only · pf ${F1(u.snow)} psf ≤ 30: no snow in W`}</small>` : '—'}</td>
           <td class="num mono">${G ? `<b>${F2(G.V)} k</b><small class="sub-n">W ${F1(G.totals.W / 1000)} k · Cs ${F3(G.Cs)} · R ${+G.R.toFixed(2)}</small>` : '—'}</td>
           <td class="num mono">${frV != null ? `<b>${F2(frV)} k</b><small class="sub-n">${lines.length} frame lines</small>` : '—'}</td>
-          <td class="num mono">${mzF.length ? `<b>${mzF.map(x => F2(x.F)).join(' · ')} k</b><small class="sub-n">${mzF.map(x => `${esc(x.name.replace(/ Loads$/, ''))} at ${ft(x.at)}`).join(' · ')}</small>` : '—'}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="seis-msg info">The results follow once the inputs above are complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>`);
+          <td class="num mono">${mzF.length ? `<b>${mzF.map(x => F2(x.F)).join(' · ')} k</b><small class="sub-n">${mzF.map(x => `${esc(x.name.replace(/ Loads$/, ''))} at ${ft(x.at)}`).join(' · ')}</small>` : '—'}</td></tr>`; }).join('')}</tbody></table></div>${sj.buildings.map(b => applySum(b)).join('')}` : `<div class="seis-msg info">The results follow once the inputs above are complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>`);
 
     // ---- the job's NBG files: a bracing run (per building) and the eScope — their code, site and roof loads ----
     const fileRows = sj.buildings.map(b => { const fx = (cfg.files || {})[b.bkey]; return fx ? `<li><b>${esc(fx.from)}</b>${many ? ` · ${esc(b.name)}` : ''}: ${esc([fx.code && `code ${fx.code}`, fx.Ss != null && `Ss ${fx.Ss} / S1 ${fx.S1}`, fx.siteClass && `site ${fx.siteClass}`, fx.roofDead != null && `roof dead ${F2(fx.roofDead)}`, fx.collateral != null && `collateral ${F2(fx.collateral)}`, fx.snow != null && `snow ${F2(fx.snow)} psf`].filter(Boolean).join(' · '))} <button class="btn-ghost sm" data-seisfile-rm="${esc(b.bkey)}">Remove</button></li>` : ''; }).join('');
@@ -16217,7 +16479,7 @@ window.MZ_APP_BUILDING = function (C) {
       const sysT = `<div class="seis-group"><h4><span class="step-no sm">6</span>Seismic force resisting systems${many ? ` — ${esc(b.name)}` : ''}</h4><div class="seis-grid">
           <label><span class="lab">FSW force resisting system <small class="sub-n">longitudinal</small></span>${sel(k + '.sfrs.FSW', b.sfrs.FSW, RUN.SEIS_SYSTEMS.map(x => [x, x.replace('X-Bracing', 'X - Bracing')]))}</label>
           <label><span class="lab">BSW force resisting system <small class="sub-n">longitudinal</small></span>${sel(k + '.sfrs.BSW', b.sfrs.BSW, RUN.SEIS_SYSTEMS.map(x => [x, x.replace('X-Bracing', 'X - Bracing')]))}</label></div>
-          <div class="table-wrap"><table class="fl-t seis-lines"><thead><tr><th>Frameline</th><th>Seismic force resisting system <small class="sub-n">lateral · PCS Box 5</small></th><th class="num">Tributary width</th></tr></thead><tbody>${b.lines.length ? b.lines.map(l => `<tr><td><b class="mono">Line ${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${sel(`${k}.lines.${l.label}`, l.type, RUN.LINE_SYSTEMS.map(x => [x, x]))}</td><td class="num mono">${ft(l.bay)}</td></tr>`).join('') : '<tr><td colspan="3" class="sub-n">The frame lines follow once the inputs above are complete.</td></tr>'}</tbody></table></div></div>`;
+          <div class="table-wrap"><table class="fl-t seis-lines"><thead><tr><th>Frameline</th><th>Seismic force resisting system <small class="sub-n">lateral · PCS Box 5</small></th><th class="num">Tributary width (ft) <small class="sub-n">roof and sidewalls</small></th><th class="num">Roof concentrated (k)</th></tr></thead><tbody>${b.lines.length ? b.lines.map(l => `<tr><td><b class="mono">Line ${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${sel(`${k}.lines.${l.label}`, l.type, RUN.LINE_SYSTEMS.map(x => [x, x]))}</td><td class="num">${tribIn(b, l)}</td><td class="num">${num(`rc.${b.bkey}|${l.label}`, l.lineIn.roofConc || 0)}</td></tr>`).join('') : '<tr><td colspan="4" class="sub-n">The frame lines follow once the inputs above are complete.</td></tr>'}</tbody></table></div></div>`;
       return `<div class="seis-bldg" data-bk="${esc(b.bkey)}" ${many && tab !== b.bkey ? 'hidden' : ''}>${roofT + wallT + mzT + sysT}</div>`;
     }).join('');
     // several buildings: one at a time, a tab each (as NBG Design Calcs keeps a document a building)
@@ -16228,17 +16490,16 @@ window.MZ_APP_BUILDING = function (C) {
     // ---- 7: lateral calculations — NBG Frame, every frame line ----
     const factorsT = (fa, R) => `<div class="seis-factors">${[['Ie', F2(fa.Ie)], fa.Fa != null && ['Fa', F2(fa.Fa)], fa.Fv != null && ['Fv', F2(fa.Fv)], ['Sms', F3(fa.Sms)], ['Sm1', F3(fa.Sm1)], ['Sds', F3(fa.Sds)], ['Sd1', F3(fa.Sd1)], ['SDC', esc(fa.SDC)], ['R', +fa.R.toFixed(2)], ['Ω0', +fa.Om.toFixed(2)], ['Cd', +fa.Cd.toFixed(2)], ['Ct', fa.Ct ? f(fa.Ct, 3) : '—'], ['Ta', F3(fa.Ta)], ['ρ', F3(fa.rho)], ['k', F3(fa.k)], ['Cs', `<b>${F3(R.Cs)}</b>`]].filter(Boolean).map(([a, v]) => `<span>${a} <b>${v}</b></span>`).join('')}<small class="sub-n">Cs by ${esc(R.cs.governs)}${R.cs.note ? ' · ' + esc(R.cs.note) : ''} · ${esc(R.sys.label)}${R.sys.via ? ' (the least R of the lines, 12.2.3.3)' : ''}</small></div>`;
     const distT = R => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">Vertical dist. factor</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-kips)</th></tr></thead><tbody>${R.rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : r.excluded ? ' <small class="sub-n">shear wall — left out</small>' : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.num)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.Mx)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(R.totals.W)}</td><td></td><td class="num mono">${lb(R.totals.num)}</td><td class="num mono"><b>${F2(R.totals.Fx)}</b></td><td class="num mono">${F2(R.totals.Mx)}</td></tr></tfoot></table>`;
-    const concT = cs => cs.map(c => `<span class="seis-conc ${c.key === 'mezz' ? 'mz' : ''}">${esc(c.key === 'mezz' || c.key === 'crane' ? c.name.replace(' Loads', '') : c.name)} <b>${F2(c.F)} k</b> at ${ft(c.at)}</span>`).join('');
+    const concT = cs => cs.map(c => `<span class="seis-conc ${c.key === 'mezz' ? 'mz' : ''}">${esc(c.key === 'mezz' ? mezzName(c.id) : c.key === 'crane' ? c.name.replace(' Loads', '') : c.name)} <b>${F2(c.F)} k</b> at ${ft(c.at)}</span>`).join('');
     $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
       if (!b.lines.length) return '';
       const ids = b.mezz.map(m => m.id);
-      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num seis-mzh">${esc(mezzName(id))}<small class="sub-n">loading area (sq ft) · concentrated (k)</small></th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th><th></th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
-        <td><b class="mono">${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${esc(l.type)}<small class="sub-n">${esc(L.sys.label)} · R ${+L.R.toFixed(2)}</small></td><td class="num mono">${ft(l.bay)}</td>
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num seis-mzh">${esc(mezzName(id))}<small class="sub-n">loading area (sq ft) · concentrated (k)</small></th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
+        <td><b class="mono">${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td class="nw">${esc(l.type)}<small class="sub-n">R ${+L.R.toFixed(2)}</small></td><td class="num">${tribIn(b, l)}</td>
         ${ids.map(id => { const q = (l.lineIn.mezz || []).find(z => z.id === id), k = `${b.bkey}|${l.label}|${id}`;
           return !q ? `<td class="num mono sub-n">—</td>` : `<td class="num"><div class="seis-mzin">${num('la.' + k, +q.area.toFixed(1))}<span>sq ft</span>${num('cl.' + k, q.conc || 0)}<span>k</span></div>${q.aTyped ? `<small class="sub-n">typed · the layout's ${n0(q.aCalc)}</small>` : ''}</td>`; }).join('')}<td class="num mono">${F3(L.Cs)}</td>
-        <td class="num mono">${F2(u.roofPsf)} psf<small class="sub-n">${F2(u.altRoofPsf)} psf</small></td><td class="seis-concs">${concT(u.conc)}</td><td class="num mono"><b>${F2(L.V)}</b> k</td>
-        <td>${fr ? wbBtn(`seismic|${b.bkey}|${l.label}`, 'Workbook') : ''}</td></tr>
-        <tr class="seis-dist-row" hidden><td colspan="${8 + ids.length}"><div class="seis-dist-wrap">${factorsT(L.factors, L)}${distT(L)}
+        <td class="num mono">${F2(u.roofPsf)} psf<small class="sub-n">${F2(u.altRoofPsf)} psf</small></td><td class="seis-concs">${concT(u.conc)}</td><td class="num mono"><b>${F2(L.V)}</b> k</td></tr>
+        <tr class="seis-dist-row" hidden><td colspan="${7 + ids.length}"><div class="seis-dist-wrap">${fr ? `<div class="seis-wb">${wbBtn(`seismic|${b.bkey}|${l.label}`, 'Workbook')}</div>` : ''}${factorsT(L.factors, L)}${distT(L)}
           <div class="seis-out"><b>For NBG Frame</b> — roof seismic weight <b>${F2(u.roofPsf)} psf</b> (alt. ${F2(u.altRoofPsf)} psf with the sidewalls) with seismic factor <b>${F3(u.factor)}</b>; panel load ${f(u.panel, 4)} klf (alt. ${f(u.altPanel, 4)}); equivalent roof force ${F2(u.equivRoof)} k. Concentrated: ${u.conc.map(c => `${esc(c.name.replace(' Loads', ''))} ${F2(c.F)} k at ${ft(c.at)}`).join(' · ')}.${fr && fr.loose.length ? `<div class="bad">${fr.loose.map(x => `${esc(x.id)} ${F2(x.F)} k has no frame column on this line — ${esc(x.why)}`).join('<br>')}</div>` : ''}</div></div></td></tr>`; }).join('')}</tbody></table></div>`;
     }).join('') + (live && infos.length ? `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>` : '');
     $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('button, input, label')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
@@ -16344,7 +16605,13 @@ window.MZ_APP_BUILDING = function (C) {
         const setPath = (obj, path, val) => { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); if (val === '' || val == null || (typeof val === 'number' && !isFinite(val))) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = val; };
         if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], rest.slice(bk.length + 1), v); }
         else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; setPath(c.mezz[id], k.slice(2 + id.length + 1), v); }
-        else if (/^(la|cl|cg)\./.test(k)) { const box = { la: 'areaLat', cl: 'concLat', cg: 'concLong' }[k.slice(0, 2)], key = k.slice(3); c[box] = c[box] || {}; if (v === '' || !isFinite(+v) || (box === 'areaLat' && !(+v >= 0))) delete c[box][key]; else c[box][key] = +v; if (!Object.keys(c[box]).length) delete c[box]; }
+        else if (/^(la|cl|cg|tw|rc)\./.test(k)) {
+          const box = { la: 'areaLat', cl: 'concLat', cg: 'concLong', tw: 'tribLat', rc: 'roofConcLat' }[k.slice(0, 2)], key = k.slice(3);
+          // a trib width as wide as the strip's is no edit: kept only when it differs
+          const l = box === 'tribLat' && sj.buildings.flatMap(b => b.lines.map(x => ({ x, key: `${b.bkey}|${x.label}` }))).find(q => q.key === key);
+          const same = l && v !== '' && Math.abs(+v - l.x.bay) < 1e-4;
+          c[box] = c[box] || {}; if (v === '' || !isFinite(+v) || same || (box === 'areaLat' && !(+v >= 0)) || (box === 'tribLat' && !(+v > 0)) || (box === 'roofConcLat' && !(+v >= 0))) delete c[box][key]; else c[box][key] = +v; if (!Object.keys(c[box]).length) delete c[box];
+        }
         else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
         else if (k === 'framingAll') { c.mezz = c.mezz || {}; sj.buildings.forEach(b => b.mezz.forEach(m => { c.mezz[m.id] = { ...(c.mezz[m.id] || {}), framing: !!v }; if (v) delete c.mezz[m.id].framing; })); }
         else if (k === 'significant') { if (v) c.significant = true; else delete c.significant; }

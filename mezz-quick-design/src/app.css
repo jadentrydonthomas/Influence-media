@@ -1960,3 +1960,74 @@ table.snow-roofs td small.sub-n { display: block; }
 #miniSite .sp-outline, #miniSite .sp-bldg { stroke-width: 6px; }
 #miniSite .sp-fl line, #miniSite .sp-fl path { stroke-width: 5px; }
 .rail-nav .count.soon.has-cranes { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+
+/* unbalanced snow across a gable: windward, leeward, the surcharge (the alternate snow) */
+.ub-card { margin-top: 14px; } .ub-card .wall-card { margin: 0; }
+.ub-sec { width: 100%; height: auto; display: block; }
+.ub-sec .ub-ground { stroke: var(--ink-faint); stroke-width: 1.2; }
+.ub-sec .ub-frame { fill: none; stroke: var(--steel); stroke-width: 3; stroke-linejoin: round; }
+.ub-sec .ub-wind-b { fill: color-mix(in srgb, #cfe6f7 22%, transparent); stroke: #cfe6f7; stroke-width: 1; }
+.ub-sec .ub-lee { fill: color-mix(in srgb, #cfe6f7 34%, transparent); stroke: #cfe6f7; stroke-width: 1; }
+.ub-sec .ub-sur { fill: color-mix(in srgb, var(--amber) 42%, transparent); stroke: var(--amber); stroke-width: 1.4; }
+.ub-sec .ub-arr { stroke: #cfe6f7; stroke-width: 1.2; } .ub-sec .ub-head { fill: #cfe6f7; }
+.ub-sec .ub-wind { stroke: var(--ink-muted); stroke-width: 2; } .ub-sec .ub-windhead { fill: var(--ink-muted); }
+.ub-sec .ub-windt { fill: var(--ink-muted); font-size: 11px; }
+.ub-sec .ub-pill { fill: var(--surface); stroke: var(--line-strong); opacity: .96; }
+.ub-sec .ub-lab { fill: var(--ink); font: 700 11.5px var(--mono); text-anchor: middle; }
+.ub-sec .ub-pill.ub-surt { stroke: var(--amber); stroke-width: 1.4; } .ub-sec .ub-lab.ub-surt { fill: var(--amber); font-size: 12.5px; }
+.ub-sec .ub-dim { stroke: var(--amber); stroke-width: 1.2; } .ub-sec .ub-ext { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+.ub-sec .ub-dimt { fill: var(--amber); font: 600 11px var(--mono); text-anchor: middle; }
+.ub-sec .ub-side { fill: var(--ink-muted); font: 700 10.5px var(--mono); text-anchor: middle; }
+.ub-sec .ub-title { fill: var(--ink); font-size: 13px; font-weight: 700; } .ub-sec .ub-note { fill: var(--ink-muted); font-size: 11px; text-anchor: end; }
+[data-theme="light"] .ub-sec .ub-wind-b, [data-theme="light"] .ub-sec .ub-lee { fill: color-mix(in srgb, var(--steel) 14%, transparent); stroke: var(--steel); }
+[data-theme="light"] .ub-sec .ub-arr { stroke: var(--steel); } [data-theme="light"] .ub-sec .ub-head { fill: var(--steel); }
+.ub-key { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin-top: 8px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--amber) 7%, transparent); font-size: 13px; }
+.ub-key .ub-big { color: var(--amber); font-size: 17px; }
+.ub-key .sub-n { flex-basis: 100%; }
+/* the drift's peak, at the top of its triangle; w carried down to its dimension */
+.step-sec .ss-apex rect { fill: var(--surface); stroke: var(--amber); stroke-width: 1.4; }
+.step-sec .ss-apex text { fill: var(--amber); font: 800 12.5px var(--mono); }
+.step-sec .ss-apexdot { fill: var(--amber); }
+.step-sec .ss-ext { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+#snowTitle small { display: block; margin-top: 6px; color: var(--ink-muted); font: 500 15px var(--body); letter-spacing: 0; }
+/* wind: the main wind force zones on the building, the components-and-cladding square */
+.wz-cases { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.wz-cases .bl-tog small.sub-n { margin-left: 4px; font-size: 10px; }
+.wz-svg { width: 100%; height: auto; display: block; }
+.wz-svg .wz-face { stroke: var(--line-strong); stroke-width: 1; }
+.wz-svg .wz-face.is-e { stroke-dasharray: 3 3; }
+.wz-svg .wz-edge { fill: none; stroke: var(--steel); stroke-width: 1.8; stroke-linejoin: round; }
+.wz-svg .wz-z { fill: var(--ink); font: 800 15px var(--body); text-anchor: middle; } .wz-svg .wz-z.sm { font-size: 11px; }
+.wz-svg .wz-p { fill: var(--ink); font: 700 11.5px var(--mono); text-anchor: middle; } .wz-svg .wz-p.sm { font-size: 9.5px; }
+.wz-svg .wz-wind { stroke: var(--ink-muted); stroke-width: 2.4; } .wz-svg .wz-head { fill: var(--ink-muted); }
+.wz-svg .wz-windt, .wz-svg .wz-note { fill: var(--ink-muted); font-size: 11px; }
+.wz-svg .wz-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.wz-svg .wz-kh { fill: var(--ink-faint); font: 700 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.wz-svg .wz-hid text, .wz-svg .wz-key text { fill: var(--ink-muted); font-size: 11.5px; }
+.wz-svg .wz-zt { fill: var(--ink); font-weight: 800; } .wz-svg .wz-pt { fill: var(--ink); font-family: var(--mono); font-weight: 700; }
+.wz-svg .wz-hid rect, .wz-svg .wz-key rect { stroke: var(--line-strong); }
+.cc-svg .cc-field { fill: color-mix(in srgb, #6bb8ff 16%, var(--surface)); stroke: var(--line-strong); }
+.cc-svg .cc-edge { fill: color-mix(in srgb, #6bb8ff 34%, var(--surface)); stroke: var(--line-strong); }
+.cc-svg .cc-corner { fill: color-mix(in srgb, #6bb8ff 58%, var(--surface)); stroke: var(--line-strong); }
+.cc-svg .cc-z { fill: var(--ink); font: 800 12px var(--body); text-anchor: middle; } .cc-svg .cc-p { fill: var(--ink); font: 700 11px var(--mono); text-anchor: middle; }
+.cc-svg .cc-side { fill: var(--ink-muted); font: 700 10.5px var(--mono); text-anchor: middle; }
+.cc-svg .cc-kt { fill: var(--ink); font-size: 11.5px; font-weight: 600; } .cc-svg .cc-kv { fill: var(--ink-muted); font: 600 11px var(--mono); }
+.cc-card { max-width: 640px; }
+.calc-ft tr.is-on td { background: color-mix(in srgb, var(--green) 7%, transparent); }
+.wz-res .seis-sum { margin-top: 10px; }
+/* seismic results: the loads to apply, in kips */
+.seis-kips-wrap { margin-top: 16px; }
+.seis-kips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px 22px; align-items: start; }
+.seis-kips-grid h5 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
+.seis-kips-grid h5 small { font-weight: 400; margin-left: 6px; }
+table.seis-kips td small.sub-n { display: block; margin-top: 2px; font-size: 11.5px; }
+table.seis-kips tr.bad td { color: var(--red-deep); }
+/* step 6 / 7: trib width and roof load typed per frame line; the system picked per line */
+table.seis-lines input.seis-in { width: 76px; }
+table.seis-frames input.seis-in { width: 62px; }
+table.seis-frames .seis-mzin { grid-template-columns: 62px auto; }
+table.seis-frames td.nw { white-space: nowrap; }
+table.seis-frames td small.sub-n, table.seis-lines td small.sub-n { display: block; margin-top: 2px; }
+table.seis-frames select { font: 600 12px var(--mono); padding: 4px 6px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 150px; }
+table.seis-kips tr.cont td { border-top-color: transparent; }
+.seis-dist-wrap .seis-wb { justify-self: end; }

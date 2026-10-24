@@ -2493,7 +2493,7 @@
     if (!same) rows.push({ grp: 'Frame lines', lab: 'count', ours: b.lines.length, theirs: lines.length, fmt: v => v, ok: false });
     (same ? b.lines : []).forEach((l, i) => {
       const fl = lines[i], g = `Frame line ${l.label}`;
-      row(g, 'Bay width', l.bay, fl.bay, ft, 1e-3);
+      row(g, 'Bay width', l.trib ?? l.bay, fl.bay, ft, 1e-3);
       sysRow(g, 'System', `${l.type}`, `${fl.framing}`);
       b.mezz.forEach((m, k) => { const a = (l.lineIn.mezz || []).find(z => z.id === m.id), fq = (fl.mezz || []).find(z => z.id === (P.mezz[k] || {}).id); if (a || fq) { row(g, `${mezzName(m.id)} loading area`, a ? a.area : 0, fq ? fq.area : 0, n0, 1e-4); row(g, `${mezzName(m.id)} concentrated (k)`, a ? a.conc || 0 : 0, fq ? fq.conc || 0 : 0, F3); } });
       row(g, 'Base shear (k)', l.lat ? l.lat.V : null, (sd.LateralCalculations[i].BaseShearResults || {}).BaseShear, F3);
@@ -2533,7 +2533,9 @@
       const idx = id => b.mezz.findIndex(m => m.id === id);
       const lines = sd.LateralCalculations.length === b.lines.length ? b.lines.map(l => (l.lineIn.mezz || []).map(q => ({ n: idx(q.id), area: q.area, conc: q.conc || 0 }))) : null;
       const long = b.mezz.map((m, k) => { const cl = (state.seis.concLong || {})[`${b.bkey}|${m.id}`]; return { n: k, area: m.area, conc: cl > 0 ? +cl : 0 }; });
-      const r = CF.writeSeismic(sd, { loads: b.mezz.map(m => ({ elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, partition: m.partition, FLP: m.FLP })), lines, long }, window.MZ_SEISMIC);
+      const typed = (box, l) => { const v = (state.seis[box] || {})[`${b.bkey}|${l.label}`]; return v != null && v !== '' && isFinite(+v) ? +v : null; };
+      const framing = lines ? b.lines.map(l => ({ bay: typed('tribLat', l) > 0 ? typed('tribLat', l) : null, roofConc: typed('roofConcLat', l) })) : null;
+      const r = CF.writeSeismic(sd, { loads: b.mezz.map(m => ({ elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, partition: m.partition, FLP: m.FLP })), lines, long, framing }, window.MZ_SEISMIC);
       done.push(`${b.name}: longitudinal ${f(r.longV, 2)} k${lines ? '' : ' (its frame lines differ from the job\'s — left as they were)'}`);
     });
     if (!done.length) { toast('No seismic document in the file matches a building of this job', 'bad'); return; }
@@ -2627,6 +2629,7 @@
     // the open calc
     $('#v-seismic').hidden = !cur || cur.kind !== 'seismic';
     $('#v-snow').hidden = !cur || cur.kind !== 'snow';
+    if (cur && cur.kind === 'snow') { const v = $('#v-snow'); v.dataset.focus = cur.focus || ''; v.dataset.step = cur.step || ''; v.dataset.bldg = cur.name || ''; if (BLD && BLD.snowFocus) BLD.snowFocus(); }
     const cfDoc = $('#v-calcfile');
     cfDoc.hidden = !cur || cur.kind !== 'calcfile';
     if (cur && cur.kind === 'seismic') {
@@ -2634,7 +2637,10 @@
       const fb = $('#seisFileCmp');
       if (fb) fb.innerHTML = calcCmpHtml(cur);
     }
-    if (cur && cur.kind === 'calcfile') cfDoc.innerHTML = calcFileHtml(cur);
+    if (cur && cur.kind === 'calcfile') {
+      cfDoc.innerHTML = calcFileHtml(cur);
+      $$('#v-calcfile [data-wcase]').forEach(b => { b.onclick = () => { const [k1, k2, c] = b.dataset.wcase.split('|'); state.windCase = { ...(state.windCase || {}), [`${k1}|${k2}`]: c }; renderCalcs(); }; });
+    }
     $$('#calcList [data-calc]').forEach(btn => { btn.onclick = () => { const c = all.find(z => calcKey(z) === btn.dataset.calc); state.calcDoc = { key: btn.dataset.calc, kind: c.kind, name: c.name }; renderCalcs(); calcFocus(c); }; });
     const rm = $('#calcRm'); if (rm) rm.onclick = calcRemove;
     const dl = $('#calcDl'); if (dl) dl.onclick = calcDownload;
@@ -2729,13 +2735,33 @@
         + panel('Drift', 'as Design Calcs worked it', fields(w.DriftResults));
     }
     if (d.kind === 'wind') {
-      const m = w.MainWindResults || {}, zones = (m.LateralZones || []).concat(m.LongitudinalZones || []);
+      const m = w.MainWindResults || {}, lat = m.LateralZones || [], lon = m.LongitudinalZones || [], zones = lat.concat(lon);
       const kv = ca ? [['Reference velocity pressure q', `${f(s.qKpa, 2)} kPa <small class="sub-n">${f(s.qKpa * KPA, 2)} psf</small>`], ['Importance', esc(ENUM(s.importance))], ['Iw', s.Iw], ['Terrain', esc(ENUM(s.exposure))], ['Ce', ok(s.Ce) ? f(s.Ce, 3) : null], ['Cgi', s.Cgi], ['Cpi', s.Cpi ? `${f(s.Cpi[0], 2)} / ${f(s.Cpi[1], 2)}` : null], ['Enclosure', esc(ENUM(s.category || s.enclosure))], ['Reference height', ft(s.h)], ['Base wind pressure', ok(s.base) ? `<b>${f(s.base, 3)} psf</b>` : null], ['Edge zone', ft(s.zone)]]
         : [['Basic wind speed', `${s.V} mph`], ['Exposure', s.exposure], ['Enclosure', s.enclosure], ['Kd', f(s.Kd, 3)], ['Kh', f(s.Kh, 4)], ['Kzt', f(s.Kzt, 3)], ['Ke', f(s.Ke, 3)], ['Gust factor G', f(s.G, 3)], ['GCpi', `± ${f(s.GCpi, 2)}`], ['Mean roof height', ft(s.h)], ['qh', `<b>${f(s.qh, 3)} psf</b>`], ['Edge zone', ft(s.zone)]];
-      const zk = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+Coefficient$/.test(k)) : [];
+      const zk = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+Coefficient$/.test(k)) : [], ek = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+EdgeCoefficient$/.test(k)) : [];
+      // the building as the file has it, for the drawings
+      const W = +geo.BuildingWidthInFeet || 0, Lg = +geo.BuildingLengthInFeet || 0, eF = +geo.FSWEaveHeightInFeet || +geo.EaveHeightInFeet || 0, eB = +geo.BSWEaveHeightInFeet || eF;
+      const gable = /gable/i.test(geo.SelectedBuildingType || ''), sF = +geo.FSWRoofSlopeOn12 || +geo.RoofSlopeOn12 || 1, sB = +geo.BSWRoofSlopeOn12 || sF;
+      const yr = gable && W ? window.MZ_SITE.ridgeY({ width: W, ridge: +geo.RidgeDistanceInFeet || null, eaveFSW: eF, eaveBSW: eB, slopeFSW: sF, slopeBSW: sB, profile: 'Gable' }) : null;
+      const zr = yr != null ? eF + sF / 12 * yr : null, qh = ca ? (s.qKpa || 0) * KPA : (s.qh || m.BaseWindPressure || 0);
+      const dkey = `${cur.folder}|${cur.doc}`, pick = (state.windCase || {})[dkey], csz = zones.find(z => z.CaseDescription === pick) || zones[0];
+      const isLong = z => lon.includes(z);
+      const caseOf = z => ({ name: z.CaseDescription, z: zk.map(k => z[k]), e: ek.map(k => z[k]) });
+      const draw = !ca && csz && W && Lg && eF ? `<div class="wz-cases">${zones.map(z => `<button class="bl-tog${z === csz ? ' is-on' : ''}" data-wcase="${esc(dkey)}|${esc(z.CaseDescription)}"><i></i>${esc(z.CaseDescription)}<small class="sub-n">${isLong(z) ? 'longitudinal' : 'transverse'}</small></button>`).join('')}</div>
+          <div class="wall-card">${window.MZ_BUILDING.windSvg({ W, L: Lg, eF, eB, yr, zr, a2: 2 * (+m.LateralEdgeZoneDistanceInFeet || 0), qh, name: geo.BuildingName || d.name.replace(/^[^:]*:\s*/, ''), cs: caseOf(csz), long: isLong(csz) })}</div>` : '';
+      const pr = v => (ok(v) ? `<td class="num mono"><b>${f(qh * v, 1)}</b><small class="sub-n">${f(v, 3)}</small></td>` : '<td class="num mono">—</td>');
+      const ptab = zones.length ? table(['Case', ...zk.map(k => ({ n: k.replace(/^Zone(\d+)Coefficient$/, 'Zone $1') })), ...ek.filter(k => zones.some(z => z[k])).map(k => ({ n: k.replace(/^Zone(\d+)EdgeCoefficient$/, '$1E') }))],
+        zones.map(z => `<tr class="${z === csz ? 'is-on' : ''}"><td class="mono"><b>${esc(z.CaseDescription)}</b><small class="sub-n">${isLong(z) ? 'longitudinal' : 'transverse'}</small></td>${zk.map(k => pr(z[k])).join('')}${ek.filter(k => zones.some(q => q[k])).map(k => pr(z[k])).join('')}</tr>`)) : '';
+      // components and cladding: the roof square for the purlins (or the first roof member), every member's zones
+      const cc = w.ComponentAndCladdingResults || {}, rr = cc.RoofResults || [], wr = cc.WallResults || [];
+      const zl = r => (r.ResultsPerZone || [r.TypicalLoads, r.EdgeLoads, r.CornerLoads].filter(Boolean)).map(q => ({ label: q.ZoneLabel, wp: (q.ZoneWindPressures || {}).WindPressure, ws: (q.ZoneWindPressures || {}).WindSuction, ov: (q.ZoneWindPressures || {}).OverhangSuction }));
+      const roofM = rr.find(r => /purlin|joist/i.test(r.MemberDescription || '')) || rr[0];
+      const ccSq = !ca && roofM && W && Lg ? `<div class="wall-card cc-card">${window.MZ_BUILDING.ccSvg({ W, L: Lg, a: +cc.RoofEdgeZoneDistanceInFeet || 0, name: d.name, member: roofM.MemberDescription || 'Roof', zones: zl(roofM).filter(z => ok(z.ws)) })}</div>` : '';
+      const ccTab = rows => table(['Member', { n: 'Trib. area (sq ft)' }, 'Zone', { n: 'Pressure (psf)' }, { n: 'Suction (psf)' }, { n: 'Overhang (psf)' }], rows.flatMap(r => zl(r).map((z, i) => `<tr>${i ? '<td></td><td></td>' : `<td><b>${esc(r.MemberDescription || '')}</b></td>${num(r.TributaryAreaSqFt, 0)}`}<td class="mono">${esc(z.label)}</td>${num(z.wp, 1)}${num(z.ws, 1)}${num(z.ov, 1)}</tr>`)));
       return head + panel(ca ? 'Velocity pressure · NBC 4.1.7' : 'Velocity pressure', ca ? 'q, Ce, Cg Cp and Cpi as the file has them' : 'ASCE 7 chapter 26–28, as the file has it', geoChips + chips(kv)
-          + chips([['Longitudinal force to the bracing', ok(s.longBracing) ? f(s.longBracing, 2) + ' k' : null], ['Total longitudinal force', ok(s.longTotal) ? f(s.longTotal, 2) + ' k' : null]]))
-        + (zones.length ? panel(ca ? 'Main wind force · Cp Cg by zone' : 'Main wind force · GCpf by zone', 'each load case, interior zones (the edge zones in the file beside them)', table(['Case', ...zk.map(k => ({ n: k.replace(/^Zone(\d+)Coefficient$/, 'Zone $1') }))], zones.map(z => `<tr><td class="mono"><b>${esc(z.CaseDescription || '')}</b></td>${zk.map(k => num(z[k], 3)).join('')}</tr>`))) : '');
+          + `<div class="wz-res">${chips([['Longitudinal force to the bracing', ok(s.longBracing) ? `<b>${f(s.longBracing, 2)} k</b>` : null], ['Total longitudinal force', ok(s.longTotal) ? f(s.longTotal, 2) + ' k' : null], ['qh', ok(qh) ? `${f(qh, 2)} psf` : null]])}</div>`)
+        + (zones.length ? panel(ca ? 'Main wind force · zones' : 'Main wind force · the zones', ca ? 'each load case, Cp Cg as the file has them' : 'each load case: the pressure on each zone, psf = qh × the coefficient (internal pressure in it) — pick a case to draw it', draw + ptab) : '')
+        + (rr.length || wr.length ? panel('Components and cladding', `roof edge zone a ${ok(cc.RoofEdgeZoneDistanceInFeet) ? ft(cc.RoofEdgeZoneDistanceInFeet) : '—'} · wall edge zone ${ok(cc.WallEdgeZoneDistanceInFeet) ? ft(cc.WallEdgeZoneDistanceInFeet) : '—'}`, ccSq + (rr.length ? `<h4 class="calc-ft-h">Roof</h4>${ccTab(rr)}` : '') + (wr.length ? `<h4 class="calc-ft-h">Walls</h4>${ccTab(wr)}` : '')) : '');
     }
     return head + panel('The document', '', fields(w));
   }
@@ -2754,6 +2780,7 @@
     if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; clear(); return; }
     const cfg = state.seis, d = sj.design, F1 = v => f(v, 1), F2 = v => f(v, 2), F3 = v => f(v, 3), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-seis="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
+    const tribIn = (b, l) => `${num(`tw.${b.bkey}|${l.label}`, +(l.trib ?? l.bay).toFixed(3))}<small class="sub-n">${l.lineIn.bayTyped ? `typed · the strip is ${ft(l.bay)}` : l.at === 'interior' ? 'half of each bay' : 'half the end bay'}</small>`;
     const sel = (key, val, opts) => `<select data-seis="${esc(key)}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     const chk = (key, on, label, dis) => `<label class="seis-chk"><input type="checkbox" data-seis="${esc(key)}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}> <span>${label}</span></label>`;
     const I = sj.inputs, FL = sj.flags, live = sj.ok, many = sj.buildings.length > 1;
@@ -2763,6 +2790,16 @@
     $('#seisStatus').innerHTML = back + (sj.need.length ? `<div class="seis-msg warn"><b>Needs input:</b> ${sj.need.map(esc).join(' · ')}</div>` : '')
       + notes;
     // the results, after the inputs: the code's numbers, then one row a building (the report NBG Design Calcs prints)
+    // the loads to apply, in kips: each frame line's mezzanine load on its columns (EQR / EQL) and each bracing line's
+    // share of the mezzanine's longitudinal force (EQB / EQF) — what steps 8 and 9 write into the files
+    const applySum = b => {
+      const fr = b.frames.flatMap(x => { const by = new Map(); x.eqs.forEach(e => { const r = by.get(e.key) || { line: x.label, label: e.label, member: e.member, at: e.at, F: 0, edited: null }; r.F += e.F; r.edited = r.edited || e.edited; by.set(e.key, r); }); return [...by.values()].concat(x.loose.map(l => ({ line: x.label, loose: l }))); });
+      const br = b.braceLines || [], tot = (b.mezzLong || {}).total || 0, sumBr = br.reduce((a, l) => a + l.F, 0);
+      if (!fr.length && !br.length) return '';
+      const frT = fr.length ? `<table class="fl-t seis-kips"><thead><tr><th>Line</th><th>Column</th><th class="num">At</th><th class="num">EQR / EQL</th></tr></thead><tbody>${fr.map((r, i) => { const cont = i > 0 && fr[i - 1].line === r.line, ln = cont ? '' : `<b>${esc(r.line)}</b>`; return r.loose ? `<tr class="bad${cont ? ' cont' : ''}"><td class="mono">${ln}</td><td colspan="2">${esc(mezzName(r.loose.id))} — no frame column</td><td class="num mono">${F2(r.loose.F)} k</td></tr>` : `<tr class="${cont ? 'cont' : ''}"><td class="mono">${ln}</td><td>${esc(r.label)}<small class="sub-n">${esc(r.member || '')}</small></td><td class="num mono">${ft(r.at)}</td><td class="num mono"><b>±${F2(r.F)}</b> k${r.edited ? `<small class="sub-n">${r.edited}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>` : '<small class="sub-n">No mezzanine load on a frame line.</small>';
+      const brT = br.length ? `<table class="fl-t seis-kips"><thead><tr><th>Bracing line</th><th class="num">At</th><th class="num">EQB / EQF</th></tr></thead><tbody>${br.map(l => `<tr><td><b>${esc(l.edge)}</b><small class="sub-n">${l.by.map(q => `½ ${esc(mezzName(q.id))}${q.via ? ` via ${esc(mezzName(q.via))}` : ''}`).join(' + ')}</small></td><td class="num mono">${ft(l.at)}</td><td class="num mono"><b>${F2(l.design)}</b> k${l.governs !== 'seismic' ? '<small class="sub-n">DM 1 % governs</small>' : ''}</td></tr>`).join('')}</tbody><tfoot><tr><td>Mezzanine total</td><td></td><td class="num mono"><b>${F2(tot)}</b> k${Math.abs(sumBr - tot) > 0.01 ? `<small class="sub-n bad">lines add to ${F2(sumBr)}</small>` : ''}</td></tr></tfoot></table>` : '<small class="sub-n">No mezzanine force to bracing.</small>';
+      return `<div class="seis-kips-wrap">${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="seis-kips-grid"><div><h5>Into NBG Frame <small class="sub-n">mezzanine load on each column · step 8</small></h5>${frT}</div><div><h5>Into NBG Bracing <small class="sub-n">half of each mezzanine to each long edge · step 9</small></h5>${brT}</div></div></div>`;
+    };
     const resBox = $('#seisResults');
     if (resBox) resBox.innerHTML = (d && d.ok ? `<div class="seis-sum"><span>ASCE ${esc(d.ed)}</span>${d.Fa != null ? `<span>Fa <b>${F3(d.Fa)}</b> · Fv <b>${F2(d.Fv)}</b></span>` : ''}<span>SMS <b>${F3(d.SMS)}</b> · SM1 <b>${F3(d.SM1)}</b></span><span>SDS <b>${F3(d.SDS)}</b> · SD1 <b>${F3(d.SD1)}</b></span><span>SDC <b>${esc(d.SDC)}</b></span><span>Ie <b>${F2(d.Ie)}</b></span><span>ρ <b>${F2(d.rho)}</b></span></div>` : '')
       + (live ? `<div class="table-wrap"><table class="fl-t seis-rep"><thead><tr><th>Building</th><th class="num">Area</th><th class="num">Mezzanine</th><th class="num">Roof seismic weight</th><th class="num">Longitudinal base shear</th><th class="num">Largest frame (lateral)</th><th class="num">Mezzanine seismic</th></tr></thead><tbody>${sj.buildings.map(b => {
@@ -2774,7 +2811,7 @@
           <td class="num mono">${u ? `<b>${F2(u.totalPsf)} psf</b><small class="sub-n">${sIn ? `dead ${F2(u.deadPsf)} + snow ${F2(u.snowInW)}` : `dead only · pf ${F1(u.snow)} psf ≤ 30: no snow in W`}</small>` : '—'}</td>
           <td class="num mono">${G ? `<b>${F2(G.V)} k</b><small class="sub-n">W ${F1(G.totals.W / 1000)} k · Cs ${F3(G.Cs)} · R ${+G.R.toFixed(2)}</small>` : '—'}</td>
           <td class="num mono">${frV != null ? `<b>${F2(frV)} k</b><small class="sub-n">${lines.length} frame lines</small>` : '—'}</td>
-          <td class="num mono">${mzF.length ? `<b>${mzF.map(x => F2(x.F)).join(' · ')} k</b><small class="sub-n">${mzF.map(x => `${esc(x.name.replace(/ Loads$/, ''))} at ${ft(x.at)}`).join(' · ')}</small>` : '—'}</td></tr>`; }).join('')}</tbody></table></div>` : `<div class="seis-msg info">The results follow once the inputs above are complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>`);
+          <td class="num mono">${mzF.length ? `<b>${mzF.map(x => F2(x.F)).join(' · ')} k</b><small class="sub-n">${mzF.map(x => `${esc(x.name.replace(/ Loads$/, ''))} at ${ft(x.at)}`).join(' · ')}</small>` : '—'}</td></tr>`; }).join('')}</tbody></table></div>${sj.buildings.map(b => applySum(b)).join('')}` : `<div class="seis-msg info">The results follow once the inputs above are complete${sj.need.length ? ` — ${esc(sj.need[0])}` : ''}.</div>`);
 
     // ---- the job's NBG files: a bracing run (per building) and the eScope — their code, site and roof loads ----
     const fileRows = sj.buildings.map(b => { const fx = (cfg.files || {})[b.bkey]; return fx ? `<li><b>${esc(fx.from)}</b>${many ? ` · ${esc(b.name)}` : ''}: ${esc([fx.code && `code ${fx.code}`, fx.Ss != null && `Ss ${fx.Ss} / S1 ${fx.S1}`, fx.siteClass && `site ${fx.siteClass}`, fx.roofDead != null && `roof dead ${F2(fx.roofDead)}`, fx.collateral != null && `collateral ${F2(fx.collateral)}`, fx.snow != null && `snow ${F2(fx.snow)} psf`].filter(Boolean).join(' · '))} <button class="btn-ghost sm" data-seisfile-rm="${esc(b.bkey)}">Remove</button></li>` : ''; }).join('');
@@ -2833,7 +2870,7 @@
       const sysT = `<div class="seis-group"><h4><span class="step-no sm">6</span>Seismic force resisting systems${many ? ` — ${esc(b.name)}` : ''}</h4><div class="seis-grid">
           <label><span class="lab">FSW force resisting system <small class="sub-n">longitudinal</small></span>${sel(k + '.sfrs.FSW', b.sfrs.FSW, RUN.SEIS_SYSTEMS.map(x => [x, x.replace('X-Bracing', 'X - Bracing')]))}</label>
           <label><span class="lab">BSW force resisting system <small class="sub-n">longitudinal</small></span>${sel(k + '.sfrs.BSW', b.sfrs.BSW, RUN.SEIS_SYSTEMS.map(x => [x, x.replace('X-Bracing', 'X - Bracing')]))}</label></div>
-          <div class="table-wrap"><table class="fl-t seis-lines"><thead><tr><th>Frameline</th><th>Seismic force resisting system <small class="sub-n">lateral · PCS Box 5</small></th><th class="num">Tributary width</th></tr></thead><tbody>${b.lines.length ? b.lines.map(l => `<tr><td><b class="mono">Line ${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${sel(`${k}.lines.${l.label}`, l.type, RUN.LINE_SYSTEMS.map(x => [x, x]))}</td><td class="num mono">${ft(l.bay)}</td></tr>`).join('') : '<tr><td colspan="3" class="sub-n">The frame lines follow once the inputs above are complete.</td></tr>'}</tbody></table></div></div>`;
+          <div class="table-wrap"><table class="fl-t seis-lines"><thead><tr><th>Frameline</th><th>Seismic force resisting system <small class="sub-n">lateral · PCS Box 5</small></th><th class="num">Tributary width (ft) <small class="sub-n">roof and sidewalls</small></th><th class="num">Roof concentrated (k)</th></tr></thead><tbody>${b.lines.length ? b.lines.map(l => `<tr><td><b class="mono">Line ${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${sel(`${k}.lines.${l.label}`, l.type, RUN.LINE_SYSTEMS.map(x => [x, x]))}</td><td class="num">${tribIn(b, l)}</td><td class="num">${num(`rc.${b.bkey}|${l.label}`, l.lineIn.roofConc || 0)}</td></tr>`).join('') : '<tr><td colspan="4" class="sub-n">The frame lines follow once the inputs above are complete.</td></tr>'}</tbody></table></div></div>`;
       return `<div class="seis-bldg" data-bk="${esc(b.bkey)}" ${many && tab !== b.bkey ? 'hidden' : ''}>${roofT + wallT + mzT + sysT}</div>`;
     }).join('');
     // several buildings: one at a time, a tab each (as NBG Design Calcs keeps a document a building)
@@ -2844,17 +2881,16 @@
     // ---- 7: lateral calculations — NBG Frame, every frame line ----
     const factorsT = (fa, R) => `<div class="seis-factors">${[['Ie', F2(fa.Ie)], fa.Fa != null && ['Fa', F2(fa.Fa)], fa.Fv != null && ['Fv', F2(fa.Fv)], ['Sms', F3(fa.Sms)], ['Sm1', F3(fa.Sm1)], ['Sds', F3(fa.Sds)], ['Sd1', F3(fa.Sd1)], ['SDC', esc(fa.SDC)], ['R', +fa.R.toFixed(2)], ['Ω0', +fa.Om.toFixed(2)], ['Cd', +fa.Cd.toFixed(2)], ['Ct', fa.Ct ? f(fa.Ct, 3) : '—'], ['Ta', F3(fa.Ta)], ['ρ', F3(fa.rho)], ['k', F3(fa.k)], ['Cs', `<b>${F3(R.Cs)}</b>`]].filter(Boolean).map(([a, v]) => `<span>${a} <b>${v}</b></span>`).join('')}<small class="sub-n">Cs by ${esc(R.cs.governs)}${R.cs.note ? ' · ' + esc(R.cs.note) : ''} · ${esc(R.sys.label)}${R.sys.via ? ' (the least R of the lines, 12.2.3.3)' : ''}</small></div>`;
     const distT = R => `<table class="fl-t seis-dist"><thead><tr><th>Portion of the structure</th><th class="num">Eff. seismic weight (lb)</th><th class="num">Elevation hx (ft)</th><th class="num">Vertical dist. factor</th><th class="num">Fx (kips)</th><th class="num">Mx (ft-kips)</th></tr></thead><tbody>${R.rows.map(r => `<tr class="${r.key === 'mezz' ? 'mz' : ''}"><td>${esc(r.name)}${r.key === 'mezz' ? ` <small class="sub-n">${n0(r.area)} sq ft × ${F2(r.psf)} psf</small>` : r.excluded ? ' <small class="sub-n">shear wall — left out</small>' : ''}</td><td class="num mono">${lb(r.W)}</td><td class="num mono">${F2(r.h)}</td><td class="num mono">${lb(r.num)}</td><td class="num mono"><b>${F2(r.Fx)}</b></td><td class="num mono">${F2(r.Mx)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Totals</td><td class="num mono">${lb(R.totals.W)}</td><td></td><td class="num mono">${lb(R.totals.num)}</td><td class="num mono"><b>${F2(R.totals.Fx)}</b></td><td class="num mono">${F2(R.totals.Mx)}</td></tr></tfoot></table>`;
-    const concT = cs => cs.map(c => `<span class="seis-conc ${c.key === 'mezz' ? 'mz' : ''}">${esc(c.key === 'mezz' || c.key === 'crane' ? c.name.replace(' Loads', '') : c.name)} <b>${F2(c.F)} k</b> at ${ft(c.at)}</span>`).join('');
+    const concT = cs => cs.map(c => `<span class="seis-conc ${c.key === 'mezz' ? 'mz' : ''}">${esc(c.key === 'mezz' ? mezzName(c.id) : c.key === 'crane' ? c.name.replace(' Loads', '') : c.name)} <b>${F2(c.F)} k</b> at ${ft(c.at)}</span>`).join('');
     $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
       if (!b.lines.length) return '';
       const ids = b.mezz.map(m => m.id);
-      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num seis-mzh">${esc(mezzName(id))}<small class="sub-n">loading area (sq ft) · concentrated (k)</small></th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th><th></th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
-        <td><b class="mono">${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${esc(l.type)}<small class="sub-n">${esc(L.sys.label)} · R ${+L.R.toFixed(2)}</small></td><td class="num mono">${ft(l.bay)}</td>
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num seis-mzh">${esc(mezzName(id))}<small class="sub-n">loading area (sq ft) · concentrated (k)</small></th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
+        <td><b class="mono">${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td class="nw">${esc(l.type)}<small class="sub-n">R ${+L.R.toFixed(2)}</small></td><td class="num">${tribIn(b, l)}</td>
         ${ids.map(id => { const q = (l.lineIn.mezz || []).find(z => z.id === id), k = `${b.bkey}|${l.label}|${id}`;
           return !q ? `<td class="num mono sub-n">—</td>` : `<td class="num"><div class="seis-mzin">${num('la.' + k, +q.area.toFixed(1))}<span>sq ft</span>${num('cl.' + k, q.conc || 0)}<span>k</span></div>${q.aTyped ? `<small class="sub-n">typed · the layout's ${n0(q.aCalc)}</small>` : ''}</td>`; }).join('')}<td class="num mono">${F3(L.Cs)}</td>
-        <td class="num mono">${F2(u.roofPsf)} psf<small class="sub-n">${F2(u.altRoofPsf)} psf</small></td><td class="seis-concs">${concT(u.conc)}</td><td class="num mono"><b>${F2(L.V)}</b> k</td>
-        <td>${fr ? wbBtn(`seismic|${b.bkey}|${l.label}`, 'Workbook') : ''}</td></tr>
-        <tr class="seis-dist-row" hidden><td colspan="${8 + ids.length}"><div class="seis-dist-wrap">${factorsT(L.factors, L)}${distT(L)}
+        <td class="num mono">${F2(u.roofPsf)} psf<small class="sub-n">${F2(u.altRoofPsf)} psf</small></td><td class="seis-concs">${concT(u.conc)}</td><td class="num mono"><b>${F2(L.V)}</b> k</td></tr>
+        <tr class="seis-dist-row" hidden><td colspan="${7 + ids.length}"><div class="seis-dist-wrap">${fr ? `<div class="seis-wb">${wbBtn(`seismic|${b.bkey}|${l.label}`, 'Workbook')}</div>` : ''}${factorsT(L.factors, L)}${distT(L)}
           <div class="seis-out"><b>For NBG Frame</b> — roof seismic weight <b>${F2(u.roofPsf)} psf</b> (alt. ${F2(u.altRoofPsf)} psf with the sidewalls) with seismic factor <b>${F3(u.factor)}</b>; panel load ${f(u.panel, 4)} klf (alt. ${f(u.altPanel, 4)}); equivalent roof force ${F2(u.equivRoof)} k. Concentrated: ${u.conc.map(c => `${esc(c.name.replace(' Loads', ''))} ${F2(c.F)} k at ${ft(c.at)}`).join(' · ')}.${fr && fr.loose.length ? `<div class="bad">${fr.loose.map(x => `${esc(x.id)} ${F2(x.F)} k has no frame column on this line — ${esc(x.why)}`).join('<br>')}</div>` : ''}</div></div></td></tr>`; }).join('')}</tbody></table></div>`;
     }).join('') + (live && infos.length ? `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>` : '');
     $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('button, input, label')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
@@ -2960,7 +2996,13 @@
         const setPath = (obj, path, val) => { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); if (val === '' || val == null || (typeof val === 'number' && !isFinite(val))) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = val; };
         if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], rest.slice(bk.length + 1), v); }
         else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; setPath(c.mezz[id], k.slice(2 + id.length + 1), v); }
-        else if (/^(la|cl|cg)\./.test(k)) { const box = { la: 'areaLat', cl: 'concLat', cg: 'concLong' }[k.slice(0, 2)], key = k.slice(3); c[box] = c[box] || {}; if (v === '' || !isFinite(+v) || (box === 'areaLat' && !(+v >= 0))) delete c[box][key]; else c[box][key] = +v; if (!Object.keys(c[box]).length) delete c[box]; }
+        else if (/^(la|cl|cg|tw|rc)\./.test(k)) {
+          const box = { la: 'areaLat', cl: 'concLat', cg: 'concLong', tw: 'tribLat', rc: 'roofConcLat' }[k.slice(0, 2)], key = k.slice(3);
+          // a trib width as wide as the strip's is no edit: kept only when it differs
+          const l = box === 'tribLat' && sj.buildings.flatMap(b => b.lines.map(x => ({ x, key: `${b.bkey}|${x.label}` }))).find(q => q.key === key);
+          const same = l && v !== '' && Math.abs(+v - l.x.bay) < 1e-4;
+          c[box] = c[box] || {}; if (v === '' || !isFinite(+v) || same || (box === 'areaLat' && !(+v >= 0)) || (box === 'tribLat' && !(+v > 0)) || (box === 'roofConcLat' && !(+v >= 0))) delete c[box][key]; else c[box][key] = +v; if (!Object.keys(c[box]).length) delete c[box];
+        }
         else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
         else if (k === 'framingAll') { c.mezz = c.mezz || {}; sj.buildings.forEach(b => b.mezz.forEach(m => { c.mezz[m.id] = { ...(c.mezz[m.id] || {}), framing: !!v }; if (v) delete c.mezz[m.id].framing; })); }
         else if (k === 'significant') { if (v) c.significant = true; else delete c.significant; }

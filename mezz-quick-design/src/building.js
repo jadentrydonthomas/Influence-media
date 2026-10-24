@@ -1053,10 +1053,15 @@
     const dim = (x1, y1, x2, y2, text, tx, ty, anchor = 'middle') => `<line class="ss-dim" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" marker-start="url(#ssDim)" marker-end="url(#ssDim)"/><text class="ss-dimt" x="${f(tx)}" y="${f(ty)}" text-anchor="${anchor}">${esc(text)}</text>`;
     s += dim(X(0) - 12, Y(hb), X(0) - 12, Y(hb + hd), `hd ${ftin(hd)}${dr.capped ? ' = hc' : ''}`, X(0) - 18, Y(hb + hd / 2) + 4, 'end');
     s += dim(X(xMax) - 8, Y(0), X(xMax) - 8, Y(hb), '', 0, 0) + `<text class="ss-dimt ss-end" x="${f(X(xMax) - 4)}" y="${f(Y(hb) - 7)}">hb ${ftin(hb)} (balanced ${r1(d.psLower)} psf)</text>`;
-    s += dim(X(0), Y(0) + 26, X(reach), Y(0) + 26, dr.truncated ? `w ${ftin(w)} — cut off at the far eave, ${r1(dr.end)} psf there` : `w ${ftin(w)}`, X(reach / 2), Y(0) + 41);
+    // w: from the step wall to where the drift runs out, its ends carried down from the drift to the dimension line
+    s += `<line class="ss-ext" x1="${f(X(reach))}" y1="${f(Y(hb + endH))}" x2="${f(X(reach))}" y2="${f(Y(0) + 32)}"/><line class="ss-ext" x1="${f(X(0))}" y1="${f(Y(0))}" x2="${f(X(0))}" y2="${f(Y(0) + 32)}"/>`;
+    s += dim(X(0), Y(0) + 26, X(reach), Y(0) + 26, dr.truncated ? `drift length w ${ftin(w)} — cut off at the far eave, ${r1(dr.end)} psf there` : `drift length w = ${ftin(w)}`, X(reach / 2), Y(0) + 41);
+    // Dmax, the drift load at the wall, at the top of the triangle
+    { const t = `Dmax ${r1(dr.pd)} psf`, tw2 = 7.2 * t.length + 14, ax = X(0) + 8, ay = Y(hb + hd) - 10;
+      s += `<g class="ss-apex"><rect x="${f(ax)}" y="${f(ay - 13)}" width="${f(tw2)}" height="18" rx="5"/><text x="${f(ax + tw2 / 2)}" y="${f(ay + 1)}" text-anchor="middle">${esc(t)}</text></g><circle class="ss-apexdot" cx="${f(X(0))}" cy="${f(Y(hb + hd))}" r="3.5"/>`; }
     if (sl) s += dim(X(0), Y(0) + 50, X(ext), Y(0) + 50, `sliding ${ftin(ext)}`, X(ext / 2), Y(0) + 65);
     // the figures, top right: the peak and what governs
-    const tx = X(xMax), lines = [`pd = hd γ = ${r1(dr.pd)} psf`, `${dr.gov} governs · γ ${gam.toFixed(2)} pcf · hc ${ftin(dr.hc)}`, `balanced ${r1(d.psLower)} psf → ${r1(dr.pd + d.psLower)} psf at the wall`];
+    const tx = X(xMax), lines = [`Dmax = pd = hd γ = ${r1(dr.pd)} psf · w ${ftin(w)}`, `${dr.gov} governs · γ ${gam.toFixed(2)} pcf · hc ${ftin(dr.hc)}`, `balanced ${r1(d.psLower)} psf → ${r1(dr.pd + d.psLower)} psf at the wall`];
     if (sl) lines.push(`sliding ${r1(sl.psf)} psf over ${ftin(ext)} — the larger of the two is carried (7.9)`);
     s += lines.map((t, i) => `<text class="${i ? 'ss-fig' : 'ss-peak'} ss-end" x="${f(tx)}" y="${f(20 + i * 15 + (i ? 4 : 0))}">${esc(t)}</text>`).join('');
     // the frame lines / purlins the drift falls across: ticks with their numbers; the values are listed under the drawing
@@ -1064,6 +1069,127 @@
     s += `<text class="ss-key" x="8" y="${f(Hpx - 8)}">Section through the step · ${d.kind === 'side' ? 'across the lower frames' : 'along the lower building'} · across to scale, the snow ×${(sy / sx).toFixed(1)} upward${broken ? ', the step wall broken' : ''}</text>`;
     s += '</svg>';
     return s;
+  }
+
+  /* ---------- unbalanced snow on a gable (7.6.1), across the building with the wind from the FSW: windward 0.3 ps,
+     leeward ps with the surcharge from the ridge — the number NBG Frame takes as the alternate snow ----------
+     r: a roof of the snow job ({ name, ps, unbalanced: { windward, leeward, surcharge, length, simple }, building: { g } }) */
+  function unbalancedSvg(r) {
+    const u = r.unbalanced, g = r.building.g, W = g.width, brk = SITE.roofBreaks(g), yr = brk.length > 2 ? brk[1] : W / 2, Z = y => SITE.roofZ(g, 0, y);
+    const zMax = Math.max(...brk.map(Z)), Wpx = 760, padL = 70, padR = 70, padT = 96, padB = 58, sx = (Wpx - padL - padR) / W;
+    const peak = Math.max(u.leeward + (u.surcharge || 0), u.windward, 1), hLoad = 82, pz = v => (v / peak) * hLoad;   // psf → px above the roof
+    const roofPx = Math.min(110, zMax * sx * 0.9), sz = roofPx / zMax, Hpx = padT + hLoad + roofPx + padB;
+    const X = y => padL + y * sx, Y = z => padT + hLoad + (zMax - z) * sz, f = v => (+v).toFixed(1), F1 = v => (+v).toFixed(1);
+    const band = (y0, y1, v, cls) => { if (!(v > 0)) return ''; const p0 = [X(y0), Y(Z(y0)) - 2], p1 = [X(y1), Y(Z(y1)) - 2]; return `<polygon class="${cls}" points="${f(p0[0])},${f(p0[1])} ${f(p1[0])},${f(p1[1])} ${f(p1[0])},${f(p1[1] - pz(v))} ${f(p0[0])},${f(p0[1] - pz(v))}"/>`; };
+    const arrows = (y0, y1, v, base, cls) => { let a = ''; const n = Math.max(2, Math.round((y1 - y0) * sx / 46)); for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n, yb = Y(Z(y)) - 2 - base; a += `<line class="${cls}" x1="${f(X(y))}" y1="${f(yb - pz(v))}" x2="${f(X(y))}" y2="${f(yb - 3)}" marker-end="url(#ubArr)"/>`; } return a; };
+    const tw = (t, cls) => (cls === 'ub-surt' ? 7.9 : 7.1) * String(t).length + 16;
+    const pill = (x, y, t, cls = '') => `<rect class="ub-pill ${cls}" x="${f(x - tw(t, cls) / 2)}" y="${f(y - 12)}" width="${f(tw(t, cls))}" height="17" rx="5"/><text class="ub-lab ${cls}" x="${f(x)}" y="${f(y + 1)}">${esc(t)}</text>`;
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx.toFixed(0)}" class="ub-sec" role="img" aria-label="${esc(r.name)}: unbalanced snow"><defs><marker id="ubArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-head"/></marker><marker id="ubWind" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ub-windhead"/></marker></defs>`;
+    // the building: columns, the roof
+    s += `<line class="ub-ground" x1="${f(X(0) - 20)}" y1="${f(Y(0))}" x2="${f(X(W) + 20)}" y2="${f(Y(0))}"/>`;
+    s += `<polyline class="ub-frame" points="${f(X(0))},${f(Y(0))} ${brk.map(y => `${f(X(y))},${f(Y(Z(y)))}`).join(' ')} ${f(X(W))},${f(Y(0))}"/>`;
+    // the wind, from the FSW
+    s += `<line class="ub-wind" x1="${f(X(0) - 58)}" y1="${f(padT - 6)}" x2="${f(X(0) - 8)}" y2="${f(padT - 6)}" marker-end="url(#ubWind)"/><text class="ub-windt" x="${f(X(0) - 58)}" y="${f(padT - 14)}">wind</text>`;
+    if (u.simple) {
+      s += band(yr, W, u.leeward, 'ub-lee') + arrows(yr, W, u.leeward, 0, 'ub-arr');
+      s += pill((X(yr) + X(W)) / 2, Y(Z((yr + W) / 2)) - pz(u.leeward) - 16, `leeward Is pg = ${F1(u.leeward)} psf`, 'ub-leet');
+      s += pill((X(0) + X(yr)) / 2, Y(Z(yr / 2)) - 22, 'windward 0', '');
+    } else {
+      // windward 0.3 ps; leeward ps; the surcharge on the leeward from the ridge
+      s += band(0, yr, u.windward, 'ub-wind-b') + arrows(0, yr, u.windward, 0, 'ub-arr');
+      s += band(yr, W, u.leeward, 'ub-lee') + arrows(yr, W, u.leeward, 0, 'ub-arr');
+      const ys = Math.min(W, yr + u.length * Math.cos(Math.atan((g.slopeBSW ?? 1) / 12)));
+      const p0 = [X(yr), Y(Z(yr)) - 2 - pz(u.leeward)], p1 = [X(ys), Y(Z(ys)) - 2 - pz(u.leeward)];
+      s += `<polygon class="ub-sur" points="${f(p0[0])},${f(p0[1])} ${f(p1[0])},${f(p1[1])} ${f(p1[0])},${f(p1[1] - pz(u.surcharge))} ${f(p0[0])},${f(p0[1] - pz(u.surcharge))}"/>`;
+      s += pill((X(0) + X(yr)) / 2, Y(Z(yr / 2)) - 2 - pz(u.windward) - 14, `windward 0.3 ps = ${F1(u.windward)} psf`);
+      s += pill((X(ys) + X(W)) / 2 + 10, Y(Z((ys + W) / 2)) - 2 - pz(u.leeward) - 14, `leeward ps = ${F1(u.leeward)} psf`, 'ub-leet');
+      // the surcharge: its value large over it, its length dimensioned under the roof
+      const sx0 = (p0[0] + p1[0]) / 2, sy0 = Math.min(p0[1], p1[1]) - pz(u.surcharge) - 14;
+      s += pill(sx0, sy0, `Alt snow · surcharge ${F1(u.surcharge)} psf`, 'ub-surt');
+      const dy = Y(0) + 22;
+      s += `<line class="ub-dim" x1="${f(X(yr))}" y1="${f(dy)}" x2="${f(X(ys))}" y2="${f(dy)}"/><line class="ub-dim" x1="${f(X(yr))}" y1="${f(dy - 6)}" x2="${f(X(yr))}" y2="${f(dy + 6)}"/><line class="ub-dim" x1="${f(X(ys))}" y1="${f(dy - 6)}" x2="${f(X(ys))}" y2="${f(dy + 6)}"/>`;
+      s += `<line class="ub-ext" x1="${f(X(yr))}" y1="${f(Y(Z(yr)))}" x2="${f(X(yr))}" y2="${f(dy)}"/><line class="ub-ext" x1="${f(X(ys))}" y1="${f(Y(Z(ys)))}" x2="${f(X(ys))}" y2="${f(dy)}"/>`;
+      s += `<text class="ub-dimt" x="${f((X(yr) + X(ys)) / 2)}" y="${f(dy + 16)}">${ftin(u.length)} from the ridge · 8 hd √S / 3</text>`;
+    }
+    s += `<text class="ub-side" x="${f(X(0))}" y="${f(Y(0) + 18)}">FSW</text><text class="ub-side" x="${f(X(W))}" y="${f(Y(0) + 18)}">BSW</text>`;
+    s += `<text class="ub-title" x="${f(padL - 50)}" y="24">${esc(r.name)} · unbalanced snow, wind from the FSW</text><text class="ub-note" x="${f(Wpx - 16)}" y="24">${u.simple ? 'W ≤ 20 ft: the simple case (7.6.1)' : `hd ${ftin(u.hd)} · S ${F1(u.S)} · γ ${F1(r.gamma)} pcf · and the mirror with the wind from the BSW`}</text>`;
+    return s + '</svg>';
+  }
+
+  /* ---------- main wind force zones on the building, as NBG Design Calcs numbers them (ASCE 7 Fig. 28.3-1): one load
+     case, its pressure on each zone (qh × the file's coefficient, which carries the internal pressure). Zones stay on their
+     faces: 1 the FSW wall, 2 / 3 the FSW / BSW halves of the roof, 4 the BSW wall, 5 / 6 the endwalls; the end zones 1E–4E
+     a strip 2a wide at the corner. A longitudinal case (wind on an endwall): 2 / 3 are the halves of the roof along the
+     length, 5 the endwall with 2. Seen from the FSW–LEW corner; the faces behind are listed beside.
+     o: { W, L, eF, eB, yr (ridge from the FSW, null on a single slope), zr, a2, qh, name, cs: { name, z: [1..6], e: [1..4] }, long } */
+  function windSvg(o) {
+    const { W, L } = o, c30 = Math.cos(Math.PI / 6), s30 = 0.5, zr = o.yr != null ? o.zr : null;
+    const zTop = Math.max(o.eF, o.eB, zr || 0), Wpx = 760, Hpx = 400, k = Math.min((Wpx - 300) / ((L + W) * c30), (Hpx - 120) / ((L + W) * s30 + zTop));
+    const ox = 150 + W * c30 * k, oy = Hpx - 40, f = v => (+v).toFixed(1);
+    const P = (x, y, z) => [ox + (x - y) * c30 * k, oy - z * k - (x + y) * s30 * k], pts = a => a.map(q => P(...q)).map(q => `${f(q[0])},${f(q[1])}`).join(' ');
+    const roofZ = y => (o.yr != null ? (y <= o.yr ? o.eF + (zr - o.eF) * (y / o.yr) : o.eB + (zr - o.eB) * ((W - y) / (W - o.yr))) : o.eF + (o.eB - o.eF) * (y / W));
+    const p = n => (o.cs.z[n - 1] == null ? null : o.qh * o.cs.z[n - 1]), pe = n => (o.cs.e[n - 1] == null ? null : o.qh * o.cs.e[n - 1]);
+    const peak = Math.max(1, ...[1, 2, 3, 4, 5, 6].map(n => Math.abs(p(n) || 0)), ...[1, 2, 3, 4].map(n => Math.abs(pe(n) || 0)));
+    const fill = v => (v == null ? 'var(--surface-soft)' : v >= 0 ? `color-mix(in srgb, #ff8f6b ${Math.round(18 + 52 * Math.abs(v) / peak)}%, var(--surface))` : `color-mix(in srgb, #6bb8ff ${Math.round(18 + 52 * Math.abs(v) / peak)}%, var(--surface))`);
+    const sgn = v => (v == null ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`);
+    const face = (poly, v, cls = '') => `<polygon class="wz-face ${cls}" points="${pts(poly)}" style="fill:${fill(v)}"/>`;
+    const lab = (q, z, v, big = true) => { const c = P(...q); return `<text class="wz-z${big ? '' : ' sm'}" x="${f(c[0])}" y="${f(c[1] - (big ? 2 : 0))}">${esc(z)}</text><text class="wz-p${big ? '' : ' sm'}" x="${f(c[0])}" y="${f(c[1] + (big ? 14 : 11))}">${sgn(v)}</text>`; };
+    const a2 = Math.min(o.a2 || 0, L / 4), rs = (y0, y1, x0, x1) => [[x0, y0, roofZ(y0)], [x1, y0, roofZ(y0)], [x1, y1, roofZ(y1)], [x0, y1, roofZ(y1)]];
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx}" class="wz-svg" role="img" aria-label="${esc(o.name)}: wind zones, case ${esc(o.cs.name)}"><defs><marker id="wzArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="wz-head"/></marker></defs>`;
+    const yr = o.yr != null ? o.yr : W / 2, hid = [];
+    if (!o.long) {
+      // FSW wall (1, 1E), the endwall seen (5), the roof halves (2, 2E | 3, 3E)
+      s += face([[a2, 0, 0], [L, 0, 0], [L, 0, o.eF], [a2, 0, o.eF]], p(1)) + face([[0, 0, 0], [a2, 0, 0], [a2, 0, o.eF], [0, 0, o.eF]], pe(1), 'is-e');
+      s += face([[0, 0, 0], [0, W, 0], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : []), [0, 0, o.eF]], p(5));
+      s += face(rs(0, yr, a2, L), p(2)) + face(rs(0, yr, 0, a2), pe(2), 'is-e') + face(rs(yr, W, a2, L), p(3)) + face(rs(yr, W, 0, a2), pe(3), 'is-e');
+      s += lab([(a2 + L) / 2, 0, o.eF / 2], '1', p(1)) + (a2 > 0 ? lab([a2 / 2, 0, o.eF / 2], '1E', pe(1), false) : '') + lab([0, W / 2, Math.min(o.eF, o.eB) / 2], '5', p(5));
+      s += lab([(a2 + L) / 2, yr / 2, roofZ(yr / 2)], '2', p(2)) + lab([(a2 + L) / 2, (yr + W) / 2, roofZ((yr + W) / 2)], '3', p(3));
+      if (a2 > 0) s += lab([a2 / 2, yr / 2, roofZ(yr / 2)], '2E', pe(2), false) + lab([a2 / 2, (yr + W) / 2, roofZ((yr + W) / 2)], '3E', pe(3), false);
+      hid.push(['4', 'BSW wall', p(4)], ['4E', 'BSW end zone', pe(4)], ['6', 'far endwall', p(6)]);
+      // the wind, onto the FSW (or the BSW: from behind)
+      const fromF = (o.cs.z[0] || 0) >= (o.cs.z[3] || 0), a = P(L * 0.55, fromF ? -W * 0.55 : W * 1.5, o.eF * 0.6), b = P(L * 0.55, fromF ? -W * 0.08 : W * 1.05, o.eF * 0.6);
+      s += `<line class="wz-wind" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" marker-end="url(#wzArr)"/><text class="wz-windt" x="${f(a[0])}" y="${f(a[1] - 6)}">wind ${fromF ? 'onto the FSW' : 'onto the BSW (from behind)'}</text>`;
+    } else {
+      // wind on an endwall: the endwall seen is 5 when it is windward, the roof halves 2 / 3 along the length
+      const five = (o.cs.z[4] || 0) >= (o.cs.z[5] || 0), zEnd = five ? 5 : 6, zFar = five ? 6 : 5, rNear = five ? 2 : 3, rFar = five ? 3 : 2;
+      s += face([[0, 0, 0], [L, 0, 0], [L, 0, o.eF], [0, 0, o.eF]], p(1)) + face([[0, 0, 0], [0, W, 0], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : []), [0, 0, o.eF]], p(zEnd));
+      s += face([[0, 0, o.eF], [L / 2, 0, o.eF], ...(o.yr != null ? [[L / 2, o.yr, zr]] : []), [L / 2, W, o.eB], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : [])], p(rNear)) + face([[L / 2, 0, o.eF], [L, 0, o.eF], ...(o.yr != null ? [[L, o.yr, zr]] : []), [L, W, o.eB], [L / 2, W, o.eB], ...(o.yr != null ? [[L / 2, o.yr, zr]] : [])], p(rFar));
+      s += lab([L / 2, 0, o.eF / 2], '1', p(1)) + lab([0, W / 2, Math.min(o.eF, o.eB) / 2], String(zEnd), p(zEnd)) + lab([L / 4, W / 2, roofZ(W / 2)], String(rNear), p(rNear)) + lab([L * 0.75, W / 2, roofZ(W / 2)], String(rFar), p(rFar));
+      hid.push(['4', 'BSW wall', p(4)], [String(zFar), 'far endwall (leeward)', p(zFar)]);
+      const a = P(-L * 0.35, W / 2, o.eF * 0.55), b = P(-L * 0.04, W / 2, o.eF * 0.55);
+      s += `<line class="wz-wind" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" marker-end="url(#wzArr)"/><text class="wz-windt" x="${f(a[0])}" y="${f(a[1] - 6)}">wind on the endwall</text>`;
+    }
+    // the edges of the building drawn over the faces
+    s += `<polyline class="wz-edge" points="${pts([[0, 0, 0], [L, 0, 0], [L, 0, o.eF], [0, 0, o.eF], [0, 0, 0], [0, W, 0], [0, W, o.eB], ...(o.yr != null ? [[0, o.yr, zr]] : []), [0, 0, o.eF]])}"/><polyline class="wz-edge" points="${pts([[L, 0, o.eF], ...(o.yr != null ? [[L, o.yr, zr], [0, o.yr, zr]] : []), ...(o.yr != null ? [] : [[L, W, o.eB], [0, W, o.eB]])])}"/>${o.yr == null ? '' : `<polyline class="wz-edge" points="${pts([[L, o.yr, zr], [L, W, o.eB], [0, W, o.eB]])}"/>`}`;
+    // the faces behind, and the key
+    const kx = Wpx - 214;
+    s += `<g class="wz-hid"><text class="wz-kh" x="${kx}" y="34">Behind</text>${hid.map(([z, t, v], i) => `<rect x="${kx}" y="${44 + i * 26}" width="14" height="14" rx="3" style="fill:${fill(v)}"/><text x="${kx + 22}" y="${55 + i * 26}"><tspan class="wz-zt">${esc(z)}</tspan> ${esc(t)} <tspan class="wz-pt">${sgn(v)} psf</tspan></text>`).join('')}</g>`;
+    s += `<g class="wz-key"><rect x="${kx}" y="${Hpx - 74}" width="14" height="14" rx="3" style="fill:${fill(peak)}"/><text x="${kx + 22}" y="${Hpx - 63}">+ pressure, onto the surface</text><rect x="${kx}" y="${Hpx - 50}" width="14" height="14" rx="3" style="fill:${fill(-peak)}"/><text x="${kx + 22}" y="${Hpx - 39}">− suction, away from it</text></g>`;
+    s += `<text class="wz-title" x="16" y="24">${esc(o.name)} · case ${esc(o.cs.name)} · psf = qh ${o.qh.toFixed(2)} × the file's coefficient</text>`;
+    if (a2 > 0) s += `<text class="wz-note" x="16" y="${Hpx - 12}">end zones (E) ${ftin(o.a2)} wide at the corner (2a) — each corner in turn</text>`;
+    return s + '</svg>';
+  }
+
+  /* ---------- components and cladding on the roof, the square as Design Calcs lists its zones: the corners (3…), the
+     edge bands (2…) and the field (1), each with its pressure and suction for one member (schematic: the bands are a wide).
+     o: { W, L, a, name, member, zones: [{ label, wp, ws }] } */
+  function ccSvg(o) {
+    const Wpx = 520, Hpx = 330, pad = 36, k = Math.min((Wpx - 2 * pad - 150) / o.L, (Hpx - 2 * pad) / o.W), w = o.L * k, h = o.W * k, x0 = pad, y0 = (Hpx - h) / 2 + 6;
+    const band = Math.max(18, Math.min(h / 4, w / 6, (o.a || 0) * k || 22)), f = v => (+v).toFixed(1);
+    const grp = re => o.zones.filter(z => re.test(String(z.label)));
+    const worst = zs => (zs.length ? { ws: Math.min(...zs.map(z => z.ws)), wp: Math.max(...zs.map(z => z.wp)), labels: zs.map(z => z.label).join(' / ') } : null);
+    const g1 = worst(grp(/^1/)), g2 = worst(grp(/^2/)), g3 = worst(grp(/^3/));
+    const t = (x, y, z) => (z ? `<text class="cc-z" x="${f(x)}" y="${f(y - 4)}">${esc(z.labels)}</text><text class="cc-p" x="${f(x)}" y="${f(y + 11)}">${z.ws.toFixed(1)}</text>` : '');
+    let s = `<svg viewBox="0 0 ${Wpx} ${Hpx}" class="wz-svg cc-svg" role="img" aria-label="${esc(o.name)}: roof zones for components and cladding">`;
+    s += `<rect class="cc-field" x="${f(x0)}" y="${f(y0)}" width="${f(w)}" height="${f(h)}"/>`;
+    if (g2) s += `<path class="cc-edge" d="M${f(x0)},${f(y0)} h${f(w)} v${f(h)} h${f(-w)} z M${f(x0 + band)},${f(y0 + band)} v${f(h - 2 * band)} h${f(w - 2 * band)} v${f(-(h - 2 * band))} z" fill-rule="evenodd"/>`;
+    if (g3) [[x0, y0], [x0 + w - band, y0], [x0, y0 + h - band], [x0 + w - band, y0 + h - band]].forEach(([x, y]) => { s += `<rect class="cc-corner" x="${f(x)}" y="${f(y)}" width="${f(band)}" height="${f(band)}"/>`; });
+    s += t(x0 + w / 2, y0 + h / 2, g1) + (g2 ? t(x0 + w / 2, y0 + band / 2 + 2, g2) : '') + (g3 ? t(x0 + band / 2, y0 + band / 2 + 2, { ...g3, labels: g3.labels.split(' / ')[0] }) : '');
+    s += `<text class="cc-side" x="${f(x0 + w / 2)}" y="${f(y0 + h + 18)}">FSW</text><text class="cc-side" x="${f(x0 + w / 2)}" y="${f(y0 - 8)}">BSW</text>`;
+    const kx = x0 + w + 22;
+    s += `<text class="wz-kh" x="${kx}" y="${f(y0 + 4)}">${esc(o.member)}</text>` + [[g3, 'corners', 'cc-corner'], [g2, 'edges', 'cc-edge'], [g1, 'field', 'cc-field']].filter(([z]) => z).map(([z, n, cls], i) => `<rect class="${cls}" x="${kx}" y="${f(y0 + 16 + i * 46)}" width="14" height="14" rx="3"/><text class="cc-kt" x="${kx + 22}" y="${f(y0 + 27 + i * 46)}">${esc(z.labels)} · ${n}</text><text class="cc-kv" x="${kx + 22}" y="${f(y0 + 43 + i * 46)}">${z.ws.toFixed(1)} / +${z.wp.toFixed(1)} psf</text>`).join('');
+    s += `<text class="wz-note" x="${pad}" y="${Hpx - 8}">roof plan, schematic · edge zone a ${o.a ? ftin(o.a) : '—'} · suction / pressure</text>`;
+    return s + '</svg>';
   }
 
   /* everything one frame line carries, for frameSvg and the load table: the balanced snow (ps × trib, PY), every
@@ -1096,6 +1222,6 @@
     };
   }
 
-  const api = { ftin, frameEntry, columnsOf, endPosts, frameLines, frameData, scene, siteLetters, planSvg, frameSvg, wallSvg, splitSvg, lineSvg, stepSvg, iFaces };
+  const api = { ftin, frameEntry, columnsOf, endPosts, frameLines, frameData, scene, siteLetters, planSvg, frameSvg, wallSvg, splitSvg, lineSvg, stepSvg, unbalancedSvg, windSvg, ccSvg, iFaces };
   if (node) module.exports = api; else root.MZ_BUILDING = api;
 })(typeof self !== 'undefined' ? self : this);

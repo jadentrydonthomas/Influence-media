@@ -1719,9 +1719,11 @@
         const inStrip = mz.map(m => { const aT = typedN(cfg.areaLat, lk(m.id)); return { m, a: aT != null ? aT : floorIn(m, lo, hi).a, aCalc: floorIn(m, lo, hi).a, aTyped: aT != null, conc: typedN(cfg.concLat, lk(m.id)) || 0 }; }).filter(o => o.a > 0.5 || o.conc > 0);
         const at = i === 0 ? 'lew' : i === nF - 1 ? 'rew' : 'interior';
         const bayType = { lew: 'Left Endwall', rew: 'Right Endwall', interior: 'Interior' }[at];
-        const lineIn = { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: hi - lo, bayType, roofConc: 0, fswTrib: hi - lo, bswTrib: hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: o.conc, aCalc: o.aCalc, aTyped: o.aTyped })) };
+        // the tributary width (roof and sidewalls) and a roof concentrated load: the strip's, or as the engineer types them
+        const lkey = `${bk}|${grid.xLabel(x)}`, twT = typedN(cfg.tribLat, lkey), trib = twT != null && twT > 0 ? twT : hi - lo, rcT = typedN(cfg.roofConcLat, lkey);
+        const lineIn = { desc: `Line ${grid.xLabel(x)}`, framing: sfrs.lines[i], bay: trib, bayType, roofConc: rcT || 0, fswTrib: trib, bswTrib: trib, bayCalc: hi - lo, bayTyped: trib !== hi - lo, mezz: inStrip.map(o => ({ id: o.m.id, area: o.a, conc: o.conc, aCalc: o.aCalc, aTyped: o.aTyped })) };
         const lat = SEIS.frameLine(J, lineIn);
-        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, lineIn, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
+        bOut.lines.push({ label: grid.xLabel(x), x, bay: hi - lo, trib, at, bayType, type: sfrs.lines[i], lat, lineIn, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) });
         if (!inStrip.length) return;
         if (lat.limit) notes.push({ level: 'warn', text: `Frame ${grid.xLabel(x)} (${name}): ${lat.limit}` });
         // the frame columns each mezzanine frames into on this line, and its share of the frame's mezzanine load
@@ -1756,7 +1758,7 @@
         });
         eqs.length = 0;
         (fe ? fe.entries : []).filter(e => e.member && e.eq && e.eq.length).forEach(e => e.eq.forEach(q => eqs.push({ member: e.member, label: e.label, mezz: q.mezz, F: q.F, calc: q.calc, at: q.at, share: q.share, edited: q.edited, key: q.key })));
-        const fr = { label: grid.xLabel(x), x, bay: hi - lo, at, bayType, type: sfrs.lines[i], lat, lineIn, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
+        const fr = { label: grid.xLabel(x), x, bay: hi - lo, trib, at, bayType, type: sfrs.lines[i], lat, lineIn, eqs, loose, areas: Object.fromEntries(inStrip.map(o => [o.m.id, o.a])) };
         if (fe) fe.seismic = { roofPsf: lat.frame.roofPsf, altRoofPsf: lat.frame.altRoofPsf, Cs: lat.Cs, R: lat.R, V: lat.V, wallLoads: lat.wallLoads, mezzLoads: lat.mezzLoads, k: lat.k, Ta: lat.Ta };
         bOut.frames.push(fr);
       });

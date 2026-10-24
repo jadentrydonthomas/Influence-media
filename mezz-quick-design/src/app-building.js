@@ -37,10 +37,10 @@ window.MZ_APP_BUILDING = function (C) {
   function snowLoad() { const k = snowKey(); try { const c = k && JSON.parse(localStorage.getItem(k) || 'null'); snowRestored = !!(c && Object.keys(c).length); return c || {}; } catch (e) { return {}; } }
   function facts() {
     const pcs = state.pcs || {}, ps = pcs.seismic || {}, sj = state.job && state.job.seismic, c = state.snow || {};
-    const ed = (sj && sj.inputs && sj.inputs.ed && sj.inputs.ed.value) || SNOW.editionOf(pcs.code && pcs.code.text).ed;
+    const edAuto = (sj && sj.inputs && sj.inputs.ed && sj.inputs.ed.value) || SNOW.editionOf(pcs.code && pcs.code.text).ed, ed = c.ed || edAuto;
     const risk = c.risk || (sj && sj.inputs && sj.inputs.risk && sj.inputs.risk.value) || ps.risk || 'II';
     const src = (k, typed, pcsV, dflt) => (typed != null && typed !== '' ? { value: +typed, source: 'typed' } : pcsV != null ? { value: pcsV, source: 'PCS' } : { value: dflt, source: dflt == null ? 'missing' : 'default' });
-    return { ed, risk, riskSrc: c.risk ? 'typed' : 'PCS', pg: src('pg', c.pg, ps.groundSnow, null), Ce: src('Ce', c.Ce, ps.Ce, 1), W2: src('W2', c.W2, ps.W2, null), ceText: ps.ceText || null };
+    return { ed, edAuto, edSrc: c.ed ? 'typed' : 'code', risk, riskSrc: c.risk ? 'typed' : 'PCS', pg: src('pg', c.pg, ps.groundSnow, null), Ce: src('Ce', c.Ce, ps.Ce, 1), W2: src('W2', c.W2, ps.W2, null), ceText: ps.ceText || null };
   }
   function compute() {
     state.snowJob = null;
@@ -445,6 +445,22 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   // ---------- Snow & drift ----------
+  /* the Snow page opened from a Calcs card shows that calc alone, as Design Calcs keeps them apart: Unbalanced Snow (the
+     data and the roofs, the building's diagram) or one Roof Step Snow Drift (the data, that step, its frame lines) */
+  function snowFocus() {
+    const v = $('#v-snow');
+    if (!v) return;
+    const fc = v.dataset.focus || '', step = v.dataset.step || '', bn = v.dataset.bldg || '';
+    v.querySelectorAll('.snow-p-roofs').forEach(el => { el.hidden = fc === 'step'; });
+    v.querySelectorAll('.snow-p-steps, .snow-p-frames').forEach(el => { el.hidden = fc === 'roof'; });
+    v.querySelectorAll('#snowSteps .snow-step, #snowFrames tr[data-step]').forEach(el => { el.hidden = fc === 'step' && !!step && el.dataset.step !== step; });
+    v.querySelectorAll('#snowSteps .snow-level, #snowSteps .snow-add').forEach(el => { el.hidden = fc === 'step'; });
+    v.querySelectorAll('#snowRoofs .ub-card').forEach(el => { el.hidden = fc === 'roof' && !!bn && !sameName(el.dataset.bldg, bn); });
+    const d = fc === 'step' && state.snowJob ? state.snowJob.drifts.find(q => q.key === step) : null;
+    $('#snowEyebrow').textContent = fc === 'step' ? 'NBG Design Calcs · Roof Step Snow Drift · ASCE 7 7.7 – 7.9' : fc === 'roof' ? 'NBG Design Calcs · Unbalanced Snow · ASCE 7 7.3 – 7.6' : 'NBG Design Calcs · Snow · ASCE 7 chapter 7';
+    $('#snowLede').textContent = fc === 'step' ? 'The drift where a lower roof meets a higher wall — its height and length worked from the fetch, drawn to scale, and what each frame line under it takes as "Snow Drift" panel loads for NBG Frame.' : fc === 'roof' ? 'The balanced snow on each roof and, on a gable, the unbalanced case: windward and leeward, and the surcharge NBG Frame takes as the alternate snow.' : 'Each roof\'s snow, each roof step\'s drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.';
+    $('#snowTitle').innerHTML = fc === 'step' ? `Roof step <em>drift</em>${d ? ` <small class="sub-n">from ${esc(d.upper)} ${esc(d.upperWall || '')} to ${esc(d.lower)} ${esc(d.lowerWall)}</small>` : ''}` : fc === 'roof' ? `Unbalanced <em>snow</em>${bn ? ` <small class="sub-n">${esc(bn)}</small>` : ''}` : 'Snow &amp; <em>drift</em>';
+  }
   function renderSnow() {
     const box = $('#snowInputs');
     if (!box) return;
@@ -466,7 +482,7 @@ window.MZ_APP_BUILDING = function (C) {
       <label><span class="lab">Ground snow, pg (psf) ${tag(F.pg)}</span>${num('pg', F.pg.value)}</label>
       <label><span class="lab">Exposure factor, Ce ${tag(F.Ce)}</span>${num('Ce', F.Ce.value)}${F.ceText ? `<small class="sub-n">PCS: ${esc(F.ceText)}</small>` : ''}</label>
       <label><span class="lab">Risk category <small class="src src-${F.riskSrc}">${F.riskSrc}</small></span><select data-snow="risk">${['I', 'II', 'III', 'IV'].map(r => `<option ${r === F.risk ? 'selected' : ''}>${r}</option>`).join('')}</select><small class="sub-n">Is ${F.ed === '7-22' ? '1.0 (ASCE 7-22: pg is risk-targeted)' : SNOW.IS[F.risk]}</small></label>
-      <label><span class="lab">Code</span><b class="seis-echo-v">ASCE ${esc(F.ed)}</b><small class="sub-n">follows the Seismic calc's building code</small></label>
+      <label><span class="lab">Code <small class="src src-${F.edSrc === 'typed' ? 'typed' : 'PCS'}">${F.edSrc === 'typed' ? 'typed' : 'building code'}</small></span><select data-snow="ed"><option value="">ASCE ${esc(F.edAuto)} — the building code</option>${['7-05', '7-10', '7-16', '7-22'].map(e => `<option value="${e}" ${(state.snow || {}).ed === e ? 'selected' : ''}>ASCE ${e}</option>`).join('')}</select><small class="sub-n">ASCE 7-05 / 7-10 / 7-16 work alike; 7-22 takes W2 and drops Is</small></label>
       ${F.ed === '7-22' ? `<label><span class="lab">Winter wind parameter, W2 ${tag(F.W2)}</span>${num('W2', F.W2.value)}<small class="sub-n">ASCE 7-22 drifts need it (PCS Box 3 or the hazard tool)</small></label>` : ''}
     </div>` + (J ? `<div class="table-wrap"><table class="fl-t snow-bt"><thead><tr><th>Building</th><th>Thermal factor, Ct</th><th>PCS Box 4 · thermal</th><th>Unobstructed slippery roof <small class="sub-n">Box 4 "R &lt; 30 and/or obstruction": No → slippery</small></th></tr></thead><tbody>${J.roofs.map(r => { const pr = (pcsB(r.name) || {}).roof || {}; return `<tr><td><b>${esc(r.name)}</b></td><td><div class="snow-ct">${num(`b.${r.name}.Ct`, r.Ct)} <small class="src src-${esc(r.CtSrc)}">${esc(r.CtSrc)}</small></div></td><td>${r.thermal ? esc(r.thermal) : '<span class="sub-n">—</span>'}</td><td>${chk(`b.${r.name}.slippery`, r.slippery, `${r.slippery ? 'slippery' : 'not slippery'} <small class="sub-n">Box 4: ${pr.obstruction === false ? 'No' : pr.obstruction === true ? 'Yes' : 'not read'}</small>`)}</td></tr>`; }).join('')}</tbody></table></div>` : '');
     if (!J) { $('#snowRoofs').innerHTML = '<div class="seis-msg warn">Type the ground snow load to work the roofs.</div>'; $('#snowSteps').innerHTML = ''; $('#snowFrames').innerHTML = ''; }
@@ -476,7 +492,9 @@ window.MZ_APP_BUILDING = function (C) {
         const pm = r.pm != null ? F1(r.pm) : '—';
         const pcsT = r.pcsSnow ? `<span class="mono">${F1(r.pcsSnow.value)} psf</span> ${r.pcsSnow.override ? '<small class="src src-typed">user override</small>' : r.pcsMatch ? '<small class="src src-ok">matches</small>' : '<small class="src src-bad">differs</small>'}` : '—';
         return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.building.g.profile || '')} ${F2(r.slope)}:12<small class="sub-n">${F1(r.slopeDeg)}°${r.slippery ? ' · slippery' : ''}</small></td><td class="num mono">${F2(r.Ct)}</td><td class="num mono">${F1(r.pf)}</td><td class="num mono">${F2(r.Cs)}</td><td class="num mono">${F1(r.ps)}</td><td class="num mono">${pm}</td><td class="num mono"><b>${F1(r.applied ?? r.design)} psf</b><small class="sub-n">${esc(r.appliedSrc || '')}</small></td><td>${ut}</td><td>${pcsT}</td></tr>`; }).join('')}</tbody></table></div>
-        <small class="sub-n">Is ${J.roofs.length ? F2(J.roofs[0].Is) : '1.00'} · pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf. <b>On the frames</b> is the uniform snow NBG Frame applies — the PCS's user override where it has one, else the larger of ps and pm; a drift always sits on ps.</small>`;
+        <small class="sub-n">Is ${J.roofs.length ? F2(J.roofs[0].Is) : '1.00'} · pf = 0.7 Ce Ct Is pg (Eq. 7.3-1) · ps = Cs pf · pm the low-slope minimum (slopes under 15°) · γ = 0.13 pg + 14 ≤ 30 pcf. <b>On the frames</b> is the uniform snow NBG Frame applies — the PCS's user override where it has one, else the larger of ps and pm; a drift always sits on ps.</small>`
+        // each gable's unbalanced snow, drawn: the surcharge is what NBG Frame takes as the alternate snow
+        + J.roofs.map(r => { const u = r.unbalanced; return `<div class="ub-card" data-bldg="${esc(r.name)}">${u && u.applies && !u.need ? `<div class="wall-card">${B.unbalancedSvg(r)}</div>${u.simple ? '' : `<div class="ub-key"><span><b>Alt snow (surcharge)</b> <b class="mono ub-big">${F1(u.surcharge)} psf</b> over ${ft(u.length)} from the ridge</span><span>windward <b class="mono">${F1(u.windward)}</b> psf · leeward <b class="mono">${F1(u.leeward)}</b> psf</span><span class="sub-n">NBG Frame's unbalanced cases (SnowLeftSlope / SnowRightSlope) take the surcharge as the alternate snow, each way</span></div>`}` : `<div class="seis-msg info">${esc(r.name)}: no unbalanced snow — ${esc(u ? (u.need ? 'ASCE 7-22 needs W2' : u.why) : 'not a gable')}.</div>`}</div>`; }).join('');
       const sp = (state.snow && state.snow.purlin) || DEFAULT_PURLIN;
       const level = J.drifts.filter(d => d.level), steps = J.drifts.filter(d => !d.level);
       const levelT = level.length ? `<div class="snow-level">${level.map(d => `<span><b>${esc(d.lower)}</b> ${d.lowerWall} meets <b>${esc(d.upper)}</b> ${d.upperWall} level — one roof, no drift; a fetch toward a step runs on through both</span>`).join('')}</div>` : '';
@@ -495,7 +513,7 @@ window.MZ_APP_BUILDING = function (C) {
           }
         }
         const upperG = d.step.upper && d.step.upper.g;
-        return `<div class="snow-step ${d.off ? 'is-off' : ''}"><div class="snow-step-h"><div><b>${esc(d.lower)}</b> ${d.lowerWall} <span class="sub-n">below</span> <b>${esc(d.upper)}</b> ${d.upperWall || ''}${d.typed ? ' <small class="src src-typed">typed</small>' : ''} <small class="sub-n">· ${d.kind === 'side' ? 'drift across the lower frames (side wall)' : 'drift along the lower building (end wall)'} · shared ${ft(d.length)} · step ${ft(d.hMin)}${d.hMax - d.hMin > 0.05 ? ` to ${ft(d.hMax)} at the rake` : ''}</small></div>${chk(`s.${d.key}.off`, d.off, 'leave this step out')}</div>
+        return `<div class="snow-step ${d.off ? 'is-off' : ''}" data-step="${esc(d.key)}"><div class="snow-step-h"><div><b>${esc(d.lower)}</b> ${d.lowerWall} <span class="sub-n">below</span> <b>${esc(d.upper)}</b> ${d.upperWall || ''}${d.typed ? ' <small class="src src-typed">typed</small>' : ''} <small class="sub-n">· ${d.kind === 'side' ? 'drift across the lower frames (side wall)' : 'drift along the lower building (end wall)'} · shared ${ft(d.length)} · step ${ft(d.hMin)}${d.hMax - d.hMin > 0.05 ? ` to ${ft(d.hMax)} at the rake` : ''}</small></div>${chk(`s.${d.key}.off`, d.off, 'leave this step out')}</div>
           <div class="snow-sub">Your inputs <small class="sub-n">filled in from the site; type over any</small></div>
           <div class="seis-grid"><label><span class="lab">Higher roof's fetch, lu (ft) <small class="src src-${esc(d.luUpperSrc.replace(/\s+/g, '-'))}">${esc(d.luUpperSrc)}</small></span>${num(`s.${d.key}.luUpper`, d.luUpper)}<small class="sub-n">${d.luUpperParts && d.luUpperParts.length > 1 ? `${d.luUpperParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} — the roofs meet level, the snow blows the whole way` : d.upperWall === 'FSW' || d.upperWall === 'BSW' ? 'its width' : d.upperWall ? 'its length' : 'as typed'}</small></label>
             <label><span class="lab">Lower roof's fetch (ft) <small class="src src-${esc(d.luLowerSrc.replace(/\s+/g, '-'))}">${esc(d.luLowerSrc)}</small></span>${num(`s.${d.key}.luLower`, d.luLower)}<small class="sub-n">${d.luLowerParts && d.luLowerParts.length > 1 ? `${d.luLowerParts.map(q => `${esc(q.name)} ${ft(q.len)}`).join(' + ')} · ` : ''}for the windward drift (¾ hd)</small></label>
@@ -507,7 +525,7 @@ window.MZ_APP_BUILDING = function (C) {
           ${d.sliding.applies ? `<div class="seis-msg info">Sliding snow (7.9)${d.sliding.mode === 'calcs' ? ', as NBG Design Calcs works it' : ''}: 0.4 pf W = 0.4 × ${F1(d.sliding.pfUpper)} × ${ft(d.sliding.W)} = ${n0(d.sliding.perFt)} lb/ft over ${ft(d.sliding.extent)} → <b>${F2(d.sliding.psf)} psf</b>, with the balanced snow. It is not added to the drift: 7.9 says sliding "need not be used in combination with drift" — the frames take the larger of the two at each point (NBG Design Calcs' Total Snow).${d.envelope && d.envelope.length > 1 ? ` Envelope from the wall: ${d.envelope.map(e => `${F1(e.va)}${Math.abs(e.va - e.vb) > 0.05 ? '→' + F1(e.vb) : ''} psf to ${ft(e.b)} (${e.by})`).join(' · ')}.` : ''}</div>` : `<small class="sub-n">Sliding snow: ${esc(d.sliding.why)}.</small>`}</div>`;
       }).join('') + stepAdder();
       // onto the frames
-      const rows = J.drifts.filter(d => !d.off && d.frames.length).flatMap(d => d.frames.map(fl => `<tr><td><b>${esc(d.lower)}</b> line ${fl.frame}<small class="sub-n">x ${ft(fl.x)} · trib ${ft(fl.tribAt || fl.trib[1] - fl.trib[0])}${fl.strip ? ` · ${ft(fl.strip[0])}–${ft(fl.strip[1])} from the step` : ''}</small></td><td class="num mono">${ft(fl.h)}</td><td class="num mono">${fl.drift ? F1(fl.drift.pd) : '—'}</td><td>${fl.segs.map(s => `<div class="snow-seg"><i>${esc(s.name)}</i> <span class="mono">RP${s.panel}</span> <span class="mono">${ft(s.from)} → ${ft(s.to)}</span> <b class="mono">${F3(s.start)} → ${F3(s.end)}</b> k/ft</div>`).join('')}</td><td class="num"><button class="btn-ghost sm" data-bldg="${esc(d.lower)}" data-frame="${fl.frame}">Draw →</button></td></tr>`));
+      const rows = J.drifts.filter(d => !d.off && d.frames.length).flatMap(d => d.frames.map(fl => `<tr data-step="${esc(d.key)}"><td><b>${esc(d.lower)}</b> line ${fl.frame}<small class="sub-n">x ${ft(fl.x)} · trib ${ft(fl.tribAt || fl.trib[1] - fl.trib[0])}${fl.strip ? ` · ${ft(fl.strip[0])}–${ft(fl.strip[1])} from the step` : ''}</small></td><td class="num mono">${ft(fl.h)}</td><td class="num mono">${fl.drift ? F1(fl.drift.pd) : '—'}</td><td>${fl.segs.map(s => `<div class="snow-seg"><i>${esc(s.name)}</i> <span class="mono">RP${s.panel}</span> <span class="mono">${ft(s.from)} → ${ft(s.to)}</span> <b class="mono">${F3(s.start)} → ${F3(s.end)}</b> k/ft</div>`).join('')}</td><td class="num"><button class="btn-ghost sm" data-bldg="${esc(d.lower)}" data-frame="${fl.frame}">Draw →</button></td></tr>`));
       $('#snowFrames').innerHTML = rows.length ? `<div class="table-wrap"><table class="fl-t"><thead><tr><th>Frame line</th><th class="num">Step h</th><th class="num">pd (psf)</th><th>Panel loads for NBG Frame · positions from the FSW</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div><small class="sub-n">A side-wall step: the drift at the wall (pd × tributary width) falling to zero w from it, or to its value at the far eave; with sliding snow, the larger of the two at each point. An end-wall step: the frame's share over its own strip, the same across the frame. Cut where the roof panels change (RP1 / RP2). Negative = down, GY, as NBG Frame's own roof loads. Into NBG Frame: Tools → Concentrated (Panel) Loads, the panel tab, "Snow Drift" under SL (and LRD / RRD when the frame has those cases) — the Frames page writes them into the frame file, scaled to the file's own bay width.</small>` : '<div class="seis-msg info">No drift reaches a frame line.</div>';
       $$('#snowFrames [data-frame]').forEach(x => { x.onclick = () => selectFrame(x.dataset.bldg, +x.dataset.frame, true); });
     }
@@ -519,6 +537,7 @@ window.MZ_APP_BUILDING = function (C) {
       <li><b>Sliding snow</b> (7.9): 0.4 pf W per foot of eave from a roof steeper than ¼:12 (slippery) or 2:12 that drains onto the lower roof, over 15 ft (scaled to a narrower roof), with the balanced snow.</li>
       <li><b>Onto the frames</b>: a side-wall step runs across the lower frames — each frame line takes pd × its tributary width at the wall, to 0 at w (or the far eave): a triangle, PY, "Snow Drift". An end-wall step runs along the length — each frame near the end takes the drift over its own strip, uniform across the frame. The section in step 3 marks each frame line (or purlin line) with what it takes. The fetch and the gap are the engineer's call where another roof continues in line: type them above.</li>
       <li><b>Onto the purlins</b>: the Purlins page lists the same drift as purlin line loads (the purlin program is not here).</li></ol>`;
+    snowFocus();
     const forget = $('#snowForget');
     if (forget) forget.onclick = () => { const k = snowKey(); try { if (k) localStorage.removeItem(k); } catch (e) { /* nothing kept */ } state.snow = {}; snowRestored = false; recompute(); toast('Snow entries cleared — back to the PCS values'); };
     $$('#v-snow [data-snow]').forEach(el => {
@@ -1259,5 +1278,5 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   function render() { renderProject(); renderBuilding(); renderSnow(); renderFrames(); renderBracing(); renderPurlins(); }
-  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
+  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
 };

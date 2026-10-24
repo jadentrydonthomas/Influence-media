@@ -185,7 +185,7 @@ if (pdfArgs.length > 1) {
     const frBy = await page.$$eval('#seisFrames .seis-fr', trs => trs.reduce((o, tr) => { const k = tr.dataset.fr.split('|')[0]; o[k] = (o[k] || 0) + 1; return o; }, {}));
     console.log('Seismic page'.padEnd(30), (seisTxt.match(/SDC\s*\S+/) || [''])[0], '· frames', JSON.stringify(frBy), '· brace lines', (await page.$$('#seisBracing tbody tr')).length);
     if (!/FRAME FILE/i.test(seisTxt) || Object.values(frBy)[0] !== 6 || /Needs input:/.test(seisTxt)) fail('the Seismic page should take the roof dead from the frame files and work frames 1–6');
-    await page.click('#seisFrames .seis-fr'); await page.waitForTimeout(120);
+    await page.click('#seisFrames .seis-fr td:first-child'); await page.waitForTimeout(120);
     if (await page.$eval('#seisFrames .seis-dist-row', e => e.hidden)) fail('a frame row should open its distribution');
     await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
     if (!one || one[2].join() !== '1/C,1/B' || one[1].some(r => /COL01/.test(r))) fail('frame 1: 1/E and 1/A on the frame, 1/B and 1/C listed apart, nothing on the FSW column');

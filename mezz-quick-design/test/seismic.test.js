@@ -194,6 +194,15 @@ if (!ok) { console.log(`seismic tests passed (the rules worked by hand; ${nbg}; 
   assert.deepStrictEqual(rowsOf(ed2, ['3', '4', '5']), ['EQR3 COL03 2.75', 'EQL3 COL03 -2.75']);
   assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: base }), ['3', '4', '5']), ['EQR3 COL03 4.01', 'EQL3 COL03 -4.01'], 'no edits: the calculated loads');
   assert.deepStrictEqual(rowsOf(RUN.runJob(items, { seis: { ...base, eqOverride: { [c2.key]: 0 } } }), ['2']), ['EQR3 COL03 4.01', 'EQL3 COL03 -4.01'], '0 typed: no EQ rows for that column');
+  // the tributary width and roof concentrated load typed for a frame line (as NBG Design Calcs takes them): the roof and
+  // both sidewalls take the typed width, the roof load × Cs adds to the base shear; the mezzanine area in the strip stays
+  const l2 = b.lines.find(l => l.label === '2'), lk = `${bk}|2`;
+  const tw = RUN.runJob(items, { seis: { ...base, tribLat: { [lk]: 33 }, roofConcLat: { [lk]: 2 } } }).seismic.buildings[0].lines.find(l => l.label === '2');
+  assert.ok(tw.trib === 33 && tw.bay === 28 && tw.lineIn.bayTyped && tw.lineIn.fswTrib === 33 && tw.lineIn.bswTrib === 33 && tw.lineIn.roofConc === 2);
+  assert.deepStrictEqual(tw.lineIn.mezz.map(q => q.area), l2.lineIn.mezz.map(q => q.area), 'the strip\'s mezzanine area is kept');
+  const roofW = r => r.lat.rows.find(x => x.key === 'roof').W;
+  assert.ok(near(roofW(tw) - roofW(l2), 5 * (roofW(l2) / 28) + 2000, 1e-6), 'roof weight: 5 ft more of the strip + the 2 k');
+  assert.ok(tw.lat.V > l2.lat.V && near(tw.lat.frame.conc.filter(c => c.key === 'mezz').reduce((a, c) => a + c.F, 0), l2.lat.frame.conc.filter(c => c.key === 'mezz').reduce((a, c) => a + c.F, 0), 1e-9), 'the mezzanine loads unchanged');
   // the code chosen on the page over the PCS's: the PCS's Ss / S1 belong to its own edition, so they are asked for
   const sw = RUN.runJob(items, { seis: { ...base, ed: '7-22' } }).seismic;
   assert.ok(!sw.ok && /SMS and SM1|Ss and S1 for ASCE 7-22/.test(sw.need.join(' ')));
