@@ -15,6 +15,7 @@
   <symbol id="i-design" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></symbol>
   <symbol id="i-plan" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
   <symbol id="i-beam" viewBox="0 0 24 24"><path d="M4 5h16M4 19h16M12 5v14"/></symbol>
+  <symbol id="i-calcs" viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M8 7h8M8 11.5h.01M12 11.5h.01M16 11.5h.01M8 15.5h.01M12 15.5h.01M16 15.5h.01M8 19h.01M12 19h4"/></symbol>
   <symbol id="i-seismic" viewBox="0 0 24 24"><path d="M2 12h3l2-6 3 12 3-9 2 5 2-2h5"/></symbol>
   <symbol id="i-column" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M10 3v18M14 3v18"/></symbol>
   <symbol id="i-inputs" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
@@ -51,8 +52,7 @@
         <button data-view="upload" aria-current="page"><svg><use href="#i-upload"/></svg>Project &amp; files</button>
         <span class="nav-head">Building · loads</span>
         <button data-view="building" disabled><svg><use href="#i-bldg"/></svg>Building</button>
-        <button data-view="snow" disabled><svg><use href="#i-snow"/></svg>Snow &amp; drift<span class="count" id="navSnowCount" hidden></span></button>
-        <button data-view="seismic" disabled><svg><use href="#i-seismic"/></svg>Seismic</button>
+        <button data-view="calcs" disabled><svg><use href="#i-calcs"/></svg>Calcs<span class="count" id="navCalcCount" hidden></span></button>
         <button data-view="frames" disabled><svg><use href="#i-frame"/></svg>Frames<span class="count" id="navFramesCount" hidden></span></button>
         <button data-view="bracing" disabled><svg><use href="#i-brace"/></svg>Bracing</button>
         <button data-view="purlins" disabled><svg><use href="#i-purlin"/></svg>Purlins<span class="count soon">later</span></button>
@@ -186,17 +186,65 @@
       <div class="panel" id="bldNotesPanel"><div class="panel-head"><h3>Flags</h3><span class="sub">what to check before the frames and the bracing go out</span></div><div class="panel-body" id="bldNotes"></div></div>
     </section>
 
-    <!-- SNOW & DRIFT -->
-    <section class="screen" id="v-snow">
+
+    <!-- CALCS: every calc of the job as NBG Design Calcs keeps them, a card each; the calc opens on the right -->
+    <section class="screen" id="v-calcs">
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Design Calcs · the job's calcs</div><h2>The <em>calcs</em></h2></div>
+        <p class="lede">Seismic, snow and drift, wind — a card each, building by building, as NBG Design Calcs keeps them. Open one to work it on the right; drop the job's .nbgcalcs to check it against the tool and take it back with the mezzanine loads in.</p>
+      </div>
+      <div class="calc-top" id="calcTop"></div>
+      <div class="calc-wrap">
+        <aside class="calc-list" id="calcList" aria-label="The calcs"></aside>
+        <div class="calc-pane" id="calcPane">
+          <div class="calc-doc" id="v-calcfile" hidden></div>
+          <div class="calc-doc" id="v-seismic" hidden>
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Design Calcs · Seismic · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
+        <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
+      </div>
+      <div class="seis-status" id="seisStatus"></div>
+      <div id="seisFileCmp"></div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">1–6</span>Inputs</h3><span class="sub">as NBG Design Calcs takes them: building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · each filled from the PCS, the job's NBG files or the design, its source tagged · type over any value</span></div>
+        <div class="panel-body" id="seisInputs"></div>
+      </div>
+      <div class="panel seis-step seis-results-p">
+        <div class="panel-head"><h3><span class="step-no">=</span>Results</h3><span class="sub">what the inputs above give, building by building — the frame and bracing loads follow in 7–9</span></div>
+        <div class="panel-body" id="seisResults"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
+        <div class="panel-body" id="seisFrames"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
+        <div class="panel-body" id="seisApply"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF at the mezzanine level · the walls are drawn on the <a href="#" data-go="bracing">Bracing page</a></span></div>
+        <div class="panel-body" id="seisBracing"></div>
+      </div>
+      <div class="panel seis-step" id="seisFlagsPanel">
+        <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
+        <div class="panel-body" id="seisFlags"></div>
+      </div>
+      <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
+    </div>
+          <div class="calc-doc" id="v-snow" hidden>
       <div class="screen-heading">
         <div><div class="eyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2>Snow &amp; <em>drift</em></h2></div>
         <p class="lede">Each roof's snow, each roof step's drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.</p>
       </div>
+      <div class="seis-status" id="snowStatus"></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames</h3><span class="sub">each frame line under a step: the Snow Drift panel loads, start and end, ft from the FSW · k/ft, negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
       <details class="explain"><summary>How the snow is worked and applied</summary><div class="explain-body" id="snowHow"></div></details>
+    </div>
+        </div>
+      </div>
     </section>
 
     <!-- FRAMES -->
@@ -276,39 +324,6 @@
       </details>
     </section>
 
-    <!-- SEISMIC -->
-    <section class="screen" id="v-seismic">
-      <div class="screen-heading">
-        <div><div class="eyebrow">NBG Design Calcs · Seismic · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
-        <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
-      </div>
-      <div class="seis-status" id="seisStatus"></div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">1–6</span>Inputs</h3><span class="sub">as NBG Design Calcs takes them: building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · each filled from the PCS, the job's NBG files or the design, its source tagged · type over any value</span></div>
-        <div class="panel-body" id="seisInputs"></div>
-      </div>
-      <div class="panel seis-step seis-results-p">
-        <div class="panel-head"><h3><span class="step-no">=</span>Results</h3><span class="sub">what the inputs above give, building by building — the frame and bracing loads follow in 7–9</span></div>
-        <div class="panel-body" id="seisResults"></div>
-      </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
-        <div class="panel-body" id="seisFrames"></div>
-      </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
-        <div class="panel-body" id="seisApply"></div>
-      </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF at the mezzanine level · the walls are drawn on the <a href="#" data-go="bracing">Bracing page</a></span></div>
-        <div class="panel-body" id="seisBracing"></div>
-      </div>
-      <div class="panel seis-step" id="seisFlagsPanel">
-        <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
-        <div class="panel-body" id="seisFlags"></div>
-      </div>
-      <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
-    </section>
 
     <!-- BEAM CALC -->
     <section class="screen" id="v-beam">
@@ -401,6 +416,7 @@
 <script>/*@INLINE_JS design.js*/</script>
 <script>/*@INLINE_JS calcpack.js*/</script>
 <script>/*@INLINE_JS seismic.js*/</script>
+<script>/*@INLINE_JS calcsfile.js*/</script>
 <script>/*@INLINE_JS snow.js*/</script>
 <script>/*@INLINE_JS site.js*/</script>
 <script>/*@INLINE_JS building.js*/</script>

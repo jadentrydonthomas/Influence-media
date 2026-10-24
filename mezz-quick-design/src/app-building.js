@@ -4,9 +4,9 @@
    and src/snow.js work the numbers. */
 window.MZ_APP_BUILDING = function (C) {
   'use strict';
-  const { state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B, SITE, SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, bracingPlan, zipIO, cpSave } = C;
+  const { state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B, SITE, SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, addCalcsFile, bracingPlan, zipIO, cpSave } = C;
   const F1 = v => f(v, 1), F2 = v => f(v, 2), F3 = v => f(v, 3);
-  const JOB_VIEWS = new Set(['upload', 'building', 'snow', 'seismic', 'frames', 'bracing', 'purlins']);
+  const JOB_VIEWS = new Set(['upload', 'building', 'calcs', 'snow', 'seismic', 'frames', 'bracing', 'purlins']);
   const MEZZ_VIEWS = new Set(['results', 'inputs', 'plan', 'beam', 'column', 'designer']);
   let bldModel = null, snowRestored = null;
   const DEFAULT_PURLIN = 5;
@@ -24,7 +24,8 @@ window.MZ_APP_BUILDING = function (C) {
     if (tabs) tabs.classList.toggle('ws-off', ws !== 'mezz');
   }
   const wsOf = view => (MEZZ_VIEWS.has(view) ? 'mezz' : JOB_VIEWS.has(view) ? 'job' : null);
-  $$('[data-ws]').forEach(b => { b.onclick = () => { const ws = b.dataset.ws; setWs(ws); go(ws === 'mezz' ? 'results' : 'building'); }; });
+  $$('button[data-ws]').forEach(b => { b.onclick = () => { const ws = b.dataset.ws; setWs(ws); go(ws === 'mezz' ? 'results' : 'building'); }; });
+  document.body.dataset.ws = state.ws;   // the page opens on the whole building: the mezzanine strip waits for its workspace
   const navMezz = $('#navMezz');
   if (navMezz) navMezz.onclick = () => { setWs('mezz'); go('results'); };
 
@@ -42,11 +43,13 @@ window.MZ_APP_BUILDING = function (C) {
   function compute() {
     state.snowJob = null;
     if (!state.pcs || !state.pcs.site) return;
-    const F = facts();
-    if (!(F.pg.value > 0)) return;
+    const F = facts(), canada = ((state.pcs.code || {}).family === 'CSA');
+    // a Canadian job: the site and its frames are drawn, with no snow worked — NBCC snow (Ss, Sr, Cb …) is not ASCE 7
+    if (!(F.pg.value > 0) && !canada) return;
     try {
-      state.snowJob = SITE.snowJob(state.pcs, { ed: F.ed, pg: F.pg.value, Ce: F.Ce.value, risk: F.risk, W2: F.W2.value }, state.snow || {});
+      state.snowJob = SITE.snowJob(state.pcs, { ed: F.ed, pg: canada ? 0 : F.pg.value, Ce: F.Ce.value, risk: F.risk, W2: F.W2.value }, state.snow || {});
       state.snowJob.F = F;
+      if (canada) state.snowJob.canada = { code: state.pcs.code.text, note: state.pcs.code.note, Ss: (state.pcs.seismic || {}).groundSnowKpa };
     } catch (e) { console.error(e); state.snowJob = { error: e.message, site: { buildings: [] }, roofs: [], drifts: [], notes: [], F }; }
   }
   // the mezzanines as boxes in their own building's plan, with their columns (for the site drawings)
@@ -74,20 +77,21 @@ window.MZ_APP_BUILDING = function (C) {
       const pw = pb[w] || null, kind = pw ? pw.kind : 'x';
       let check = null;
       if (bf && bf.file.info.walls[w]) {
-        bays = bf.file.info.walls[w].bays.filter(x => x.braced).map(x => ({ from: x.from, to: x.to, tiers: [...new Set(x.braces.map(t => `${t.bottom}|${t.top}`))].map(q => q.split('|').map(Number)), kind: 'x', src: 'file' }));
-        // the bracing file against PCS Box 12, bay by bay (bay n: frame lines n to n + 1). Portal frames are not rods, so a
-        // PCS portal bay the file leaves bare is drawn from the PCS.
-        const fileN = bays.map(q => q.from + 1), list = a => a.join(', ');
+        bays = bf.file.info.walls[w].bays.filter(x => x.braced).map(x => ({ from: x.from, to: x.to, tiers: [...new Set(x.braces.map(t => `${t.bottom}|${t.top}`))].map(q => q.split('|').map(Number)), kind: x.portal ? 'portal' : 'x', src: 'file', id: x.portal ? x.portal.id : null }));
+        // the bracing file against PCS Box 12, bay by bay (bay n: frame lines n to n + 1): its rods, and its portal frames
+        // (<PortalFrames>); a PCS portal bay the file leaves bare is drawn from the PCS.
+        const fileN = bays.filter(q => q.kind === 'x').map(q => q.from + 1), filePF = bays.filter(q => q.kind === 'portal').map(q => q.from + 1), list = a => a.join(', ');
         const pre = `${name} ${w}: PCS Box 12 asks for ${pw ? pw.type : ''}`;
         if (pw && pw.kind === 'portal' && pw.bays.length) {
           const clash = pw.bays.filter(n => fileN.includes(n));
-          bays = bays.concat(pw.bays.filter(n => !fileN.includes(n)).map(n => ({ from: n - 1, to: n, tiers: [], kind: 'portal', src: 'PCS' })));
+          bays = bays.concat(pw.bays.filter(n => !fileN.includes(n) && !filePF.includes(n)).map(n => ({ from: n - 1, to: n, tiers: [], kind: 'portal', src: 'PCS' })));
           if (clash.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has X-bracing rods in bay${clash.length > 1 ? 's' : ''} ${list(clash)} instead — check which the wall gets.` };
         } else if (pw && pw.kind === 'x' && pw.bays.length) {
           const miss = pw.bays.filter(n => !fileN.includes(n)), extra = fileN.filter(n => !pw.bays.includes(n));
-          if (!fileN.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has no braced bay on this wall yet.` };
+          if (filePF.some(n => pw.bays.includes(n))) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has a portal frame in bay${filePF.length > 1 ? 's' : ''} ${list(filePF)}.` };
+          else if (!fileN.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has no braced bay on this wall yet.` };
           else if (miss.length || extra.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} braces bay${fileN.length > 1 ? 's' : ''} ${list(fileN)}.` };
-        } else if (pw && pw.kind === 'none' && fileN.length) check = { level: 'warn', text: `${name} ${w}: PCS Box 12 lists no bracing on this wall; ${bf.name} braces bay${fileN.length > 1 ? 's' : ''} ${list(fileN)}.` };
+        } else if (pw && pw.kind === 'none' && (fileN.length || filePF.length)) check = { level: 'warn', text: `${name} ${w}: PCS Box 12 lists no bracing on this wall; ${bf.name} braces bay${fileN.length + filePF.length > 1 ? 's' : ''} ${list([...fileN, ...filePF].sort((a, c) => a - c))}.` };
       } else if (scopeB && scopeB.bracing && (scopeB.bracing[w] || []).some(t => (t.bays || []).length)) bays = scopeB.bracing[w].flatMap(t => (t.bays || []).map(n => ({ from: n - 1, to: n, tiers: [], kind: /portal/i.test(t.type || '') ? 'portal' : 'x', src: 'eScope' })));
       else if (pw && pw.kind !== 'none') bays = pw.kind === 'roofx' ? [{ from: 0, to: 1, tiers: [], kind: 'roofx', src: 'PCS' }] : pw.bays.map(n => ({ from: n - 1, to: n, tiers: [], kind, src: 'PCS' }));
       // an endwall's bays count from the FSW corner, as Box 2 lists its column spacing (one practice job: LEW bay 2 = F–D, 26'-9"; another:
@@ -142,15 +146,15 @@ window.MZ_APP_BUILDING = function (C) {
       <div class="pj-grid">
         <div class="pj-card"><h4>Buildings <small>PCS Box 2 / 4 / 12</small></h4>${bl}${att ? `<ul class="pj-list">${att}</ul>` : ''}</div>
         <div class="pj-card"><h4>Loads <small>PCS Box 3</small></h4><div class="pj-facts">${F ? `<span>Ground snow <b>${F.pg.value != null ? F1(F.pg.value) + ' psf' : '—'}</b></span><span>Ce <b>${F2(F.Ce.value)}</b>${F.ceText ? ` <small>${esc(F.ceText)}</small>` : ''}</span><span>ASCE <b>${esc(F.ed)}</b></span>` : ''}<span>Ss <b>${esc((pcs.seismic || {}).Ss ?? '—')}</b> · S1 <b>${esc((pcs.seismic || {}).S1 ?? '—')}</b></span><span>Site <b>${esc((pcs.seismic || {}).siteClass || '—')}</b></span></div>
-          <div class="pj-links"><a href="#" data-go="snow">Snow &amp; drift</a><a href="#" data-go="seismic">Seismic</a><a href="#" data-go="frames">Frames</a><a href="#" data-go="bracing">Bracing</a></div></div>
+          <div class="pj-links"><a href="#" data-go="calcs">Calcs</a><a href="#" data-go="frames">Frames</a><a href="#" data-go="bracing">Bracing</a></div></div>
         <div class="pj-card pj-files"><h4>The job's NBG files <small>frame · bracing · eScope</small></h4>
-          <label class="nbg-drop pj-drop" id="pjDrop"><input type="file" id="pjFile" accept=".frame,.bracing,.nbgscope" multiple><svg><use href="#i-file"/></svg><span><strong>Drop the .frame, .bracing and .nbgscope files here</strong><small>each goes where it belongs: frame files get their loads on the Frames page, the bracing file its EQB / EQF on the Bracing page, the eScope fills in the code and loads</small></span></label>
+          <label class="nbg-drop pj-drop" id="pjDrop"><input type="file" id="pjFile" accept=".frame,.bracing,.nbgscope,.nbgcalcs" multiple><svg><use href="#i-file"/></svg><span><strong>Drop the .frame, .bracing, .nbgscope and .nbgcalcs files here</strong><small>each goes where it belongs: frame files get their loads on the Frames page, the bracing file its EQB / EQF on the Bracing page, the eScope fills in the code and loads, the Design Calcs file is checked and filled on the Calcs page</small></span></label>
           ${loaded.length ? `<ul class="pj-list">${loaded.join('')}</ul>` : '<small class="sub-n">none yet</small>'}</div>
         <div class="pj-card"><h4>Hand-off <small>what the engineer checks</small></h4><p>The real NBG workbooks, filled by the tool, and the design basis with every input and where it came from.</p>
           <div class="pj-acts"><button class="btn-soft" data-cpdl="all"><svg><use href="#i-file"/></svg>Filled workbooks + design basis (.zip)</button><button class="btn-ghost" data-cpdl="xlsx">Design basis (.xlsx)</button></div><small class="sub-n">The workbooks are added once on the Design page (Calc package → Add workbooks); each copy is the original file with the job typed into it, so Excel recalculates everything itself.</small></div>
       </div></div>`;
     const inp = $('#pjFile'), drop = $('#pjDrop');
-    const route = list => { const fr = list.filter(x => /\.frame$/i.test(x.name)), se = list.filter(x => /\.(bracing|nbgscope)$/i.test(x.name)); if (fr.length) addFrameFiles(fr); if (se.length) addSeisFiles(se); if (!fr.length && !se.length) toast('Drop .frame, .bracing or .nbgscope files'); };
+    const route = list => { const fr = list.filter(x => /\.frame$/i.test(x.name)), se = list.filter(x => /\.(bracing|nbgscope)$/i.test(x.name)), dc = list.filter(x => /\.nbgcalcs$/i.test(x.name)); if (fr.length) addFrameFiles(fr); if (se.length) addSeisFiles(se); dc.forEach(x => addCalcsFile && addCalcsFile(x)); if (!fr.length && !se.length && !dc.length) toast('Drop .frame, .bracing, .nbgscope or .nbgcalcs files'); };
     inp.onchange = () => { route(Array.from(inp.files || [])); inp.value = ''; };
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-over'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-over'); }));
@@ -263,6 +267,14 @@ window.MZ_APP_BUILDING = function (C) {
     if (!box) return;
     if (!state.pcs) { box.innerHTML = '<div class="empty">Load a PCS first.</div>'; ['#snowRoofs', '#snowSteps', '#snowFrames', '#snowHow'].forEach(q => { $(q).innerHTML = ''; }); return; }
     const J = state.snowJob, F = J ? J.F : facts(), c = state.snow || {};
+    $('#v-snow').classList.toggle('calc-none', !!(J && J.canada));
+    $('#snowStatus').innerHTML = '';
+    if (J && J.canada) {
+      box.innerHTML = '';
+      $('#snowStatus').innerHTML = `<div class="seis-msg stop"><b>${esc(J.canada.code || 'Canadian code')}</b> — ${esc(J.canada.note || 'NBCC')} ${J.canada.Ss != null ? `Ground snow Ss ${J.canada.Ss} kPa on the PCS. ` : ''}This tool works ASCE 7 snow only: work the snow and the drifts in NBG Design Calcs (NBCC) — drop its .nbgcalcs at the top of this page and each roof's snow and drift opens here as Design Calcs worked it. No snow from this tool goes on the frames.</div>`;
+      ['#snowRoofs', '#snowSteps', '#snowFrames', '#snowHow'].forEach(q => { $(q).innerHTML = ''; });
+      return;
+    }
     const tag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-snow="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
     const chk = (key, on, label) => `<label class="seis-chk"><input type="checkbox" data-snow="${esc(key)}" ${on ? 'checked' : ''}> <span>${label}</span></label>`;
@@ -735,14 +747,14 @@ window.MZ_APP_BUILDING = function (C) {
     const lines = bf ? bf.file.info.lines.map(l => ({ no: l.index + 1, x: l.x })) : b.xs.map((x, i) => ({ no: i + 1, x }));
     const mz = mezzBoxes().filter(q => sameName(q.building, b.name)), lt = (letters.get(b.name) || { lab: new Map() }).lab;
     const letter = y => { for (const [v, t] of lt) if (Math.abs(v - y) < 0.3) return t; return null; };
-    const edges = live && bS ? bS.braceLines.map(l => ({ y: l.y, segs: l.segs, at: l.at, mezz: l.mezz, F: l.F, design: l.design, governs: l.governs, stab: l.stab, wall: l.wall }))
+    const edges = live && bS ? bS.braceLines.map(l => ({ y: l.y, segs: l.segs, at: l.at, mezz: l.mezz, F: l.F, design: l.design, governs: l.governs, stab: l.stab, wall: l.wall, by: l.by, Fshare: l.Fshare, Ffull: l.Ffull, share: l.share }))
       : edgesOf(mz).map(e => ({ ...e, F: null, design: null, wall: e.y < 0.6 ? 'FSW' : e.y > W - 0.6 ? 'BSW' : null }));
     const plan = bf && bS && live ? bracingPlan(bS) : null, M = { b, bS, bf, br, lines, fls, mz, live, plan, list: [], letter };
     // ---- the sidewalls ----
     ['FSW', 'BSW'].forEach(w => {
       const e = edges.find(q => q.wall === w) || null, wi = bf && bf.file.info.walls[w], bw = br.walls[w];
       // the file's rods, and PCS Box 12's portal frames in bays the file leaves bare (portal frames are not rods)
-      const bays = wi ? wi.bays.map(x => { const pf = !x.braced && bw.bays.find(q => q.kind === 'portal' && q.from === x.from); return pf ? { ...x, braced: true, kind: 'portal', src: 'PCS' } : { ...x, kind: 'x' }; })
+      const bays = wi ? wi.bays.map(x => { const pf = !x.braced && bw.bays.find(q => q.kind === 'portal' && q.from === x.from); return pf ? { ...x, braced: true, kind: 'portal', src: 'PCS' } : { ...x, kind: x.portal ? 'portal' : 'x' }; })
         : lines.slice(0, -1).map((l, i) => { const bb = bw.bays.find(q => q.from === i); return { from: i, to: i + 1, braced: !!bb, kind: bb ? bb.kind : 'x', braces: bb && bb.tiers.length ? bb.tiers.map(([bottom, top]) => ({ bottom, top })) : [], struts: [] }; });
       let loads = [], struts = [];
       if (plan) {
@@ -796,6 +808,112 @@ window.MZ_APP_BUILDING = function (C) {
     ['LEW', 'REW'].forEach(w => M.list.push({ key: `${b.name}|${w}`, kind: 'end', wall: w, label: w, bw: br.walls[w] }));
     return M;
   }
+  // ---- the bracing file: what its last design found on a wall, and what the tool writes against what it holds ----
+  const LOAD_NAME = 'Mezz. Seismic';
+  const memberName = m => String(m || '—').replace(/^(\d+(?:\/\d+)?)_ROD$/i, '$1" rod').replace(/_/g, ' ');
+  const comboText = (bf, n) => { const c = n == null ? null : (bf.file.info.combos || [])[n]; return c ? c.text : n == null ? '—' : `combination ${n + 1}`; };
+  const ratioCell = (a, cap) => (cap > 0 ? `<td class="num mono ${a / cap > 1 + 1e-9 ? 'r-bad' : a / cap > 0.9 ? 'r-warn' : ''}"><b>${F2(a / cap)}</b></td>` : '<td class="num mono"><small class="sub-n">not checked</small></td>');
+  const lineNo = (bf, i) => { const l = bf.file.info.lines.find(q => q.index === i); return l ? l.name : String(i + 1); };
+  // a portal frame's largest sway reaction and drift over the combinations, and the capacity its ID names (…H5K: 5 k)
+  function portalOf(p) {
+    const n = Math.max(p.H1.length, p.H2.length), H = i => Math.max(Math.abs(p.H1[i] || 0), Math.abs(p.H2[i] || 0));
+    let iH = 0, iD = 0;
+    for (let i = 1; i < n; i++) { if (H(i) > H(iH)) iH = i; if ((p.delta[i] || 0) > (p.delta[iD] || 0)) iD = i; }
+    const cap = +((String(p.id || '').match(/H([\d.]+)K$/i) || [])[1]) || null;
+    return { H: n ? H(iH) : null, comboH: iH, drift: p.delta.length ? p.delta[iD] : null, comboD: iD, cap };
+  }
+  // the members of one wall as the file's last design left them: rods tier by tier, portal frames, struts by height
+  function wallResults(bf, w, mezzAt) {
+    const I = bf.file.info, wl = I.walls[w];
+    if (!wl) return '';
+    const rows = [];
+    wl.bays.filter(x => x.braced).forEach(x => {
+      const bay = `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}`;
+      if (x.portal) {
+        const q = portalOf(x.portal), hgt = x.portal.height;
+        rows.push(`<tr><td class="mono"><b>${bay}</b></td><td>Portal frame <span class="mono">${esc(x.portal.id || '')}</span><small class="sub-n">${ft(hgt)} high${x.portal.grid ? ` · line ${esc(x.portal.grid)}` : ''}</small></td><td class="mono">0'-0" – ${ft(hgt)}</td>
+          <td class="num mono">H ${q.H != null ? F2(q.H) : '—'}${q.cap ? ` / ${F2(q.cap)}` : ''}<small class="sub-n">drift ${q.drift != null ? `${F2(q.drift)} in${hgt ? ` · h/${Math.round(hgt * 12 / q.drift)}` : ''}` : '—'}</small></td>${q.cap ? ratioCell(q.H, q.cap) : '<td class="num mono">—</td>'}<td><small>${esc(comboText(bf, q.comboH))}</small></td></tr>`);
+        return;
+      }
+      const tiers = new Map();
+      x.braces.forEach(r => { const k = `${r.bottom}|${r.top}`, t = tiers.get(k) || { bottom: r.bottom, top: r.top, rods: [] }; t.rods.push(r); tiers.set(k, t); });
+      [...tiers.values()].sort((a, c) => a.bottom - c.bottom).forEach(t => {
+        const g = t.rods.reduce((a, r) => (r.axial > a.axial ? r : a), t.rods[0]), cap = Math.min(...t.rods.map(r => r.allowed).filter(v => v > 0));
+        rows.push(`<tr><td class="mono"><b>${bay}</b></td><td>${esc([...new Set(t.rods.map(r => memberName(r.member)))].join(' / '))} X<small class="sub-n">${esc([...new Set(t.rods.map(r => r.id).filter(Boolean))].join(', '))}</small></td><td class="mono">${ft(t.bottom)} – ${ft(t.top)}${tiers.size > 1 ? ' <small class="sub-n">tier</small>' : ''}</td>
+          <td class="num mono">${F2(g.axial)}${isFinite(cap) ? ` / ${F2(cap)}` : ''}</td>${ratioCell(g.axial, isFinite(cap) ? cap : 0)}<td><small>${esc(comboText(bf, g.combo))}</small></td></tr>`);
+      });
+    });
+    // struts: one row a height along the wall — the largest force and the bay it is in
+    const byZ = new Map();
+    wl.bays.forEach(x => x.struts.forEach(t => { const k = (+t.elev).toFixed(2), o = byZ.get(k) || { elev: t.elev, max: null, ids: new Set(), n: 0, real: 0 }; o.n++; if (t.real) o.real++; if (t.id) o.ids.add(t.id); if (!o.max || t.axial > o.max.axial) o.max = { ...t, bay: `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}` }; byZ.set(k, o); }));
+    const st = [...byZ.values()].sort((a, c) => c.elev - a.elev).map(o => {
+      const m = o.max, atMz = mezzAt != null && Math.abs(o.elev - mezzAt) < 0.05, unchecked = !(m.allowed > 0) && m.axial > 0.005;
+      return `<tr class="${atMz ? 'is-mz' : ''}"><td class="mono"><b>${ft(o.elev)}</b>${atMz ? ' <small class="src src-ok">mezzanine</small>' : ''}</td><td><span class="mono">${esc([...o.ids].join(', ') || '—')}</span><small class="sub-n">${o.n} bay${o.n > 1 ? 's' : ''}${o.real ? ` · ${o.real} added as wall strut${o.real > 1 ? 's' : ''}` : ''}</small></td><td class="mono">${esc(m.bay)}</td>
+        <td class="num mono">${F2(m.axial)}${m.allowed > 0 ? ` / ${F2(m.allowed)}` : ''}</td>${unchecked ? '<td class="num mono"><small class="src src-bad">not checked</small></td>' : ratioCell(m.axial, m.allowed)}<td><small>${esc(comboText(bf, m.combo))}</small></td></tr>`;
+    });
+    const mz = I.loads.some(r => r.name === LOAD_NAME), status = I.status;
+    return `<div class="bl-res"><div class="bl-res-h"><h5>${esc(bf.name)} · as last designed</h5><small class="sub-n">${status ? (status.designed ? 'designed' : status.solved ? 'solved, not designed' : 'not solved') : ''}${mz ? ' · with its Mezz. Seismic rows' : ' · without mezzanine loads — design it again in NBG Bracing once the download is opened'}</small></div>
+      ${rows.length ? `<div class="table-wrap"><table class="fl-t bl-res-t"><thead><tr><th>Bay</th><th>Member</th><th>Height</th><th class="num">Force / allowed (k)</th><th class="num">Ratio</th><th>Governing combination</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<div class="seis-msg warn">No braced bay on this wall in the file.</div>'}
+      ${st.length ? `<div class="table-wrap"><table class="fl-t bl-res-t"><thead><tr><th>Strut line</th><th>Member</th><th>Largest in bay</th><th class="num">Force / allowed (k)</th><th class="num">Ratio</th><th>Governing combination</th></tr></thead><tbody>${st.join('')}</tbody></table></div>` : ''}</div>`;
+  }
+  // the Mezz. Seismic rows already in the file on one wall, against what the tool writes
+  function fileRowsCmp(bf, w, loads) {
+    const I = bf.file.info, wl = I.walls[w], have = wl ? I.loads.filter(r => r.name === LOAD_NAME && r.plane === wl.plane) : [];
+    if (!have.length) return '';
+    const key = (c, line, z) => `${c}|${line}|${(+z).toFixed(2)}`, ours = new Map(loads.map(l => [key(l.caseId, l.line - 1, l.elev), l.F]));
+    const seen = new Set(), rows = have.map(r => { const k = key(r.caseId, r.line, r.elev), o = ours.get(k); seen.add(k); const ok = o != null && Math.abs(o - r.F) <= 0.006;
+      return `<tr class="${ok ? '' : 'is-diff'}"><td class="mono"><b>${esc(r.caseId)}</b></td><td class="mono">${esc(lineNo(bf, r.line))}</td><td class="num mono">${ft(r.elev)}</td><td class="num mono">${F2(r.F)}</td><td class="num mono">${o != null ? F2(o) : '—'}</td><td>${ok ? '<span class="src src-ok">ties</span>' : '<span class="src src-bad">differs</span>'}</td></tr>`; });
+    loads.filter(l => !seen.has(key(l.caseId, l.line - 1, l.elev))).forEach(l => rows.push(`<tr class="is-diff"><td class="mono"><b>${esc(l.caseId)}</b></td><td class="mono">${esc(lineNo(bf, l.line - 1))}</td><td class="num mono">${ft(l.elev)}</td><td class="num mono">—</td><td class="num mono">${F2(l.F)}</td><td><span class="src src-bad">not in the file</span></td></tr>`));
+    const differ = rows.some(r => /is-diff/.test(r));
+    return `<div class="table-wrap"><table class="fl-t bl-cmp"><thead><tr><th>Mezz. Seismic</th><th>Frame line</th><th class="num">Elevation</th><th class="num">In the file now (k)</th><th class="num">The tool writes (k)</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      + `<small class="sub-n bl-cmp-n">${differ ? 'The download puts the tool\'s rows in place of these. Its force is the Seismic calc\'s — on the Calcs page that calc is set against the job\'s Design Calcs file (its inputs can be taken from it).' : 'The tool writes the rows the file already holds.'}</small>`;
+  }
+  /* the bracing file against the job: its building, frame lines, roof loads and seismic against the PCS and the Seismic
+     calc, each member over its allowable, and a strut at the mezzanine level NBG Bracing does not check (a girt or the
+     mezzanine's edge beam: DM 15.1 — a mezzanine beam in a bracing system is designed for the axial with its bending) */
+  function fileChecks(M) {
+    const { b, bS, bf } = M, out = [];
+    if (!bf) return out;
+    const I = bf.file.info, g = b.g, pre = `${bf.name}: `, near = (a, c, t) => a != null && c != null && Math.abs(a - c) <= t;
+    if (!near(I.width, g.width, 0.05) || !near(I.length, g.length, 0.05)) out.push({ level: 'warn', text: `${pre}${ft(I.width)} × ${ft(I.length)} — the PCS has ${ft(g.width)} × ${ft(g.length)}.` });
+    if (!near(I.eaveFSW, g.eaveFSW, 0.05) || !near(I.eaveBSW, g.eaveBSW, 0.05)) out.push({ level: 'warn', text: `${pre}eaves FSW ${ft(I.eaveFSW)} / BSW ${ft(I.eaveBSW)} — the PCS has ${ft(g.eaveFSW)} / ${ft(g.eaveBSW)}.` });
+    const xs = b.xs || [];
+    if (xs.length && (I.lines.length !== xs.length || I.lines.some((l, i) => !near(l.x, xs[i], 0.1)))) out.push({ level: 'warn', text: `${pre}frame lines at ${I.lines.map(l => ft(l.x)).join(', ')} — the PCS has ${xs.map(ft).join(', ')}.` });
+    const sjI = state.job && state.job.seismic && state.job.seismic.inputs, u = bS && bS.long && bS.long.bracing, z = I.seismic;
+    if (bS && bS.roof) {
+      const R = bS.roof;
+      if (I.roofDead != null && R.RDL.value != null && !near(I.roofDead, R.RDL.value, 0.01)) out.push({ level: 'info', text: `${pre}roof dead ${F2(I.roofDead)} psf — the seismic takes ${F2(R.RDL.value)} psf (${R.RDL.source}).` });
+      if (I.collateral != null && R.CDL.value != null && !near(I.collateral, R.CDL.value, 0.01)) out.push({ level: 'info', text: `${pre}collateral ${F2(I.collateral)} psf — the seismic takes ${F2(R.CDL.value)} psf (${R.CDL.source}).` });
+    }
+    if (z && sjI) {
+      const pairs = [['Ss', z.Ss, sjI.Ss && sjI.Ss.value, 0.0005], ['S1', z.S1, sjI.S1 && sjI.S1.value, 0.0005]].filter(([, a, c, t]) => a != null && c != null && !near(a, c, t));
+      if (pairs.length || (z.siteClass && sjI.siteClass && z.siteClass !== sjI.siteClass.value)) out.push({ level: 'warn', text: `${pre}${[...pairs.map(([k, a, c]) => `${k} ${F3(a)} (the calc ${F3(c)})`), z.siteClass && sjI.siteClass && z.siteClass !== sjI.siteClass.value ? `site class ${z.siteClass} (the calc ${sjI.siteClass.value})` : ''].filter(Boolean).join(' · ')}.` });
+    }
+    if (z && u) {
+      if (z.factor != null && !near(z.factor, u.factor, 0.0005)) out.push({ level: 'info', text: `${pre}roof seismic factor ${F3(z.factor)} with R ${z.R} — the Seismic calc's longitudinal works ${F3(u.factor)} with R ${+bS.long.R.toFixed(2)} (${bS.long.sys.label}); NBG Bracing designs with its own.` });
+      if (z.roofTotal != null && !near(z.roofTotal, u.totalPsf, 0.05)) out.push({ level: 'info', text: `${pre}roof total seismic ${F2(z.roofTotal)} psf — the Seismic calc's ${F2(u.totalPsf)} psf.` });
+    }
+    ['FSW', 'BSW'].forEach(w => {
+      const wl = I.walls[w];
+      if (!wl) return;
+      wl.bays.forEach(x => {
+        const bay = `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}`;
+        x.braces.filter(r => r.allowed > 0 && r.axial > r.allowed * (1 + 1e-9)).forEach(r => out.push({ level: 'stop', text: `${pre}${w} bay ${bay}: ${memberName(r.member)} ${ft(r.bottom)}–${ft(r.top)} at ${F2(r.axial)} k over its ${F2(r.allowed)} k (${comboText(bf, r.combo)}).` }));
+        if (x.portal) { const q = portalOf(x.portal); if (q.cap && q.H > q.cap) out.push({ level: 'stop', text: `${pre}${w} bay ${bay}: portal frame ${x.portal.id} sways ${F2(q.H)} k over its ${F2(q.cap)} k.` }); }
+      });
+      // the strut at each mezzanine level: its force, and whether the program checks it
+      M.mz.filter(m => (w === 'FSW' ? m.y0 < 0.6 : m.y1 > g.width - 0.6)).map(m => m.A).filter((v, i, a) => a.indexOf(v) === i).forEach(A => {
+        const at = wl.bays.flatMap(x => x.struts.filter(t => Math.abs(t.elev - A) < 0.05).map(t => ({ ...t, bay: `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}` })));
+        const big = at.reduce((a, t) => (!a || t.axial > a.axial ? t : a), null);
+        if (!at.length) out.push({ level: 'warn', text: `${pre}${w}: no strut at the mezzanine level (${ft(A)}) yet — the download adds the wall strut line, and NBG Bracing tiers the braced bay there.` });
+        else if (big && big.axial > 0.005 && !(big.allowed > 0)) out.push({ level: 'warn', text: `${pre}${w}: the strut at the mezzanine level (${ft(A)}) is ${big.id || 'a girt'} carrying ${F2(big.axial)} k in bay ${big.bay} (${comboText(bf, big.combo)}) — NBG Bracing does not check it: the mezzanine's edge beam (or that girt) takes this axial with its bending (DM 15.1).` });
+      });
+    });
+    if (I.cost && I.cost.totalWeight > 0) out.push({ level: 'info', text: `${pre}bracing ${n0(I.cost.totalWeight)} lb${I.cost.totalCost ? ` · $${n0(I.cost.totalCost)}` : ''} (rods ${n0(I.cost.rodWeight)} · struts ${n0(I.cost.strutWeight)}${I.cost.portalWeight ? ` · portal frames ${n0(I.cost.portalWeight)}` : ''} lb), as last designed.` });
+    else if (I.cost && I.cost.portalWeight > 0) out.push({ level: 'info', text: `${pre}portal frames ${n0(I.cost.portalWeight)} lb${I.cost.portalCost ? ` · $${n0(I.cost.portalCost)}` : ''}, as last designed.` });
+    return out;
+  }
+
   // where along a building a point of a line sits: on a frame line, else its distance from the LEW
   const atLine = (lines, u) => { const l = lines.find(q => Math.abs(q.x - u) < 0.6); return l ? `frame line ${l.no}` : `${ft(u)} from the LEW`; };
 
@@ -810,12 +928,18 @@ window.MZ_APP_BUILDING = function (C) {
       const tb = l.bays.filter(x => x.tierable);
       const ctl = tb.length ? `<div class="bl-ctl"><span class="bl-ctl-l">Tier at the mezzanine level</span>${tb.map(x => `<button class="bl-tog${x.tier != null ? ' is-on' : ''}" data-tier="${esc(x.tkey)}" aria-pressed="${x.tier != null}"><i></i>Bay ${x.from + 1}–${x.to + 1}</button>`).join('')}<small class="sub-n">On: the X splits at ${ft(l.struts[0] ? l.struts[0].elev : 0)} where the strut line crosses it${bf ? ' (the strut goes into the file in that bay)' : ''}. Off: the X runs to the eave and the strut line stops at the bay.</small></div>` : '';
       const n = (q, i) => `${q.caseId} ${q.F == null ? '(waiting on Seismic)' : `${q.F >= 0 ? '+' : '−'}${F2(Math.abs(q.F))} k`} at frame line ${q.line}`;
+      // the mezzanine's force on this wall: each mezzanine's whole longitudinal force, the full of it or its share
+      const full = !e || e.share !== 'share';
+      const split = e && e.by && e.by.length ? `<div class="table-wrap"><table class="fl-t bl-split"><thead><tr><th>Mezzanine</th><th class="num">Its longitudinal force (k)</th><th class="num">Full, on this wall</th><th class="num">Its share here <small class="sub-n">lever rule</small></th></tr></thead><tbody>${e.by.map(q => `<tr><td><b>${esc(mezzName(q.id))}</b></td><td class="num mono">${F2(q.total)}</td><td class="num mono ${full ? 'is-on' : ''}">${F2(q.full)}</td><td class="num mono ${full ? '' : 'is-on'}">${F2(q.share)}</td></tr>`).join('')}</tbody><tfoot><tr><td>This wall takes</td><td></td><td class="num mono ${full ? 'is-on' : ''}"><b>${F2(e.Ffull)} k</b></td><td class="num mono ${full ? '' : 'is-on'}"><b>${F2(e.Fshare)} k</b></td></tr></tfoot></table></div>
+        <div class="bl-ctl"><span class="bl-ctl-l">Each wall the floor bears on takes</span>${[['full', 'The full force'], ['share', 'Its share']].map(([k, t]) => `<button class="bl-tog${(k === 'full') === full ? ' is-on' : ''}" data-share="${k}" aria-pressed="${(k === 'full') === full}"><i></i>${t}</button>`).join('')}<small class="sub-n">${full ? 'As the engineers\' own bracing files enter it: each sidewall the mezzanine bears on gets its whole force, +F in EQB at its first frame line and −F in EQF at its last — conservative, the floor not counted on to share it.' : 'The floor as a flexible diaphragm between its edges: each wall its share by the lever rule, the walls holding the force once between them.'}</small></div>` : '';
       const rows = e ? [
-        ['Force', e.F != null ? `<b>${F2(e.F)} k</b> <small class="sub-n">${esc(e.mezz.map(mezzName).join(' + '))}'s longitudinal seismic on this wall</small>` : '<small class="sub-n">once the Seismic page is complete</small>'],
+        ['Force', e.F != null ? `<b>${F2(e.F)} k</b> <small class="sub-n">${esc(e.mezz.map(mezzName).join(' + '))}'s longitudinal seismic on this wall${e.by && e.by.length ? (full ? ' — the full force' : ' — its share') : ''}</small>` : '<small class="sub-n">once the Seismic page is complete</small>'],
         ['Add Loads', `${l.loads.map(n).join(' · ')} — at ${ft(e.at)}, X - Longitudinal${bf ? ` <small class="sub-n">(Wall ${bf.file.info.walls[l.wall] ? bf.file.info.walls[l.wall].plane + 1 : '?'} in ${esc(bf.name)})</small>` : ''}`],
         ['Add Wall Strut Line', l.struts.length ? l.struts.map(s => `frame line ${s.from + 1} to ${s.to + 1} at ${ft(s.elev)}${s.skip && s.skip.length ? ` <small class="sub-n">— not through bay${s.skip.length > 1 ? 's' : ''} ${s.skip.map(k => `${k + 1}–${k + 2}`).join(', ')} (untiered)</small>` : ''}`).join(' · ') : '<small class="sub-n">off (Seismic page step 9)</small>'],
       ] : [['Mezzanine', 'none on this wall — it takes the building\'s own longitudinal seismic, as NBG Bracing designs it']];
-      return `<div class="bl-head"><h4>${esc(pre)}${l.wall}${l.letter ? ` <span class="bl-gl">line ${esc(l.letter)}</span>` : ''}</h4><small class="sub-n">eave ${ft(l.wall === 'FSW' ? g.eaveFSW : g.eaveBSW)} · ${esc(note)}</small></div><div class="wall-card">${svg}</div>${ctl}<dl class="bl-nbg">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+      const cmp = bf && e ? fileRowsCmp(bf, l.wall, l.loads.filter(q => q.F != null)) : '';
+      const res = bf ? wallResults(bf, l.wall, e ? e.at : null) : '';
+      return `<div class="bl-head"><h4>${esc(pre)}${l.wall}${l.letter ? ` <span class="bl-gl">line ${esc(l.letter)}</span>` : ''}</h4><small class="sub-n">eave ${ft(l.wall === 'FSW' ? g.eaveFSW : g.eaveBSW)} · ${esc(note)}</small></div><div class="wall-card">${svg}</div>${ctl}<dl class="bl-nbg">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${split}${cmp ? `<h5 class="bl-h5">Against the rows already in ${esc(bf.name)}</h5>${cmp}` : ''}${res}`;
     }
     if (l.kind === 'new') {
       const e = l.edge, A = e.at, top = u => SITE.roofZ(g, u, l.y), lbl = `${e.mezz.map(mezzName).join(' + ')} · ${ft(A)}`;
@@ -874,9 +998,11 @@ window.MZ_APP_BUILDING = function (C) {
         if (l.kind === 'new') flags.push({ level: 'warn', text: `${pre}${l.label} (${ft(l.y)} from the FSW) takes ${l.F != null ? `${F2(l.F)} k of` : ''} the mezzanine's longitudinal seismic and is not on a sidewall: create its bracing wall in NBG Bracing — ${l.bay ? `${l.pickKind === 'portal' ? 'a portal frame' : 'X-bracing to the floor'} between ${ft(l.bay.u0)} and ${ft(l.bay.u1)}` : 'no two columns on it yet'} (select it above).` });
       });
       WALLS.forEach(w => { const bw = M.br.walls[w]; if (bw.check) flags.push(bw.check); });
+      fileChecks(M).forEach(q => flags.push({ ...q, text: (many ? M.b.name + ' · ' : '') + q.text }));
     });
     if (flagsBox) flagsBox.innerHTML = (live ? '' : `<div class="seis-msg warn">The Seismic page is not complete yet${sj && sj.need && sj.need.length ? ` (${esc(sj.need[0])})` : ''} — the forces come once it is; the lines and where the loads go are known from the layout.</div>`)
-      + (flags.length ? flags.map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('') : (live ? (mezzBoxes().length ? '<div class="seis-msg ok">Every mezzanine edge that takes longitudinal seismic sits on a braced sidewall.</div>' : '<div class="seis-msg info">No mezzanine on this job: the walls carry the building\'s own longitudinal seismic, as NBG Bracing designs it.</div>') : ''));
+      + (live && !flags.some(n => n.level === 'warn' || n.level === 'stop') ? (mezzBoxes().length ? '<div class="seis-msg ok">Every mezzanine edge that takes longitudinal seismic sits on a braced sidewall.</div>' : '<div class="seis-msg info">No mezzanine on this job: the walls carry the building\'s own longitudinal seismic, as NBG Bracing designs it.</div>') : '')
+      + flags.slice().sort((p, q) => ['stop', 'warn', 'info'].indexOf(p.level) - ['stop', 'warn', 'info'].indexOf(q.level)).map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('');
     $('#braceWallsSub').textContent = Object.keys(state.bracing || {}).length ? 'click a line on the plan or below · bays, tiers and strut lines from the bracing file' : state.scope ? 'click a line on the plan or below · braced bays from the eScope' : 'click a line on the plan or below · frame lines from PCS Box 2, bracing from PCS Box 12';
     // ---- wiring: pick a line, tier a bay, pick a new wall's bay and kind ----
     const pick = k => { state.braceSel = k; renderBracing(); };
@@ -885,6 +1011,7 @@ window.MZ_APP_BUILDING = function (C) {
     const save = () => { C.seisSave && C.seisSave(); renderBracing(); if (C.renderSeismic) C.renderSeismic(); };
     const tierFlip = k => { const t = state.seis.tiers = state.seis.tiers || {}; if (t[k] === false) delete t[k]; else t[k] = false; if (!Object.keys(t).length) delete state.seis.tiers; save(); };
     $$('#braceLine [data-tier]').forEach(el => { el.onclick = () => tierFlip(el.dataset.tier); });
+    $$('#braceLine [data-share]').forEach(el => { el.onclick = () => { if (el.dataset.share === 'share') state.seis.braceShare = 'share'; else delete state.seis.braceShare; C.seisSave && C.seisSave(); recompute(); }; });
     $$('#braceLine [data-tierbay]').forEach(el => { el.onclick = () => { const l = sel && sel.l, x = l && l.bays && l.bays.find(q => String(q.from) === el.dataset.tierbay); if (x && x.tkey) tierFlip(x.tkey); }; });
     const setNew = (k, patch) => { const n = state.seis.newLines = state.seis.newLines || {}; n[k] = { ...(n[k] || {}), ...patch }; save(); };
     $$('#braceLine [data-nbay]').forEach(el => { el.onclick = () => { const [k, i] = el.dataset.nbay.split(/\|(?=[^|]*$)/); setNew(k, { bay: +i }); }; });

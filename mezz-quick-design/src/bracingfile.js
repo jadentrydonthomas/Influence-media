@@ -40,6 +40,23 @@
   const kid = (xml, scope, name) => (scope ? kids(xml, scope).find(k => k.name === name) || null : null);
   const all = (xml, scope, name) => (scope ? kids(xml, scope).filter(k => k.name === name) : []);
   const path = (xml, scope, ...names) => names.reduce((s, n) => kid(xml, s, n), scope);
+  // the first element of that name anywhere inside scope (for blocks whose parent varies between versions)
+  function findDeep(xml, scope, name) {
+    if (!scope) return null;
+    const re = new RegExp(`<${name}(?=[\\s>/])`, 'g');
+    re.lastIndex = scope.innerStart;
+    const m = re.exec(xml);
+    if (!m || m.index >= scope.innerEnd) return null;
+    let depth = 0, x;
+    TAG.lastIndex = m.index;
+    while ((x = TAG.exec(xml))) {
+      const [whole, close, , self] = x;
+      if (self && depth === 0) return { name, start: m.index, end: x.index + whole.length, innerStart: x.index + whole.length, innerEnd: x.index + whole.length, empty: true };
+      if (close) { if (--depth === 0) return { name, start: m.index, end: x.index + whole.length, innerStart: xml.indexOf('>', m.index) + 1, innerEnd: x.index }; }
+      else if (!self) depth++;
+    }
+    return null;
+  }
   const text = (xml, scope, name) => { const k = kid(xml, scope, name); return k && !k.empty ? xml.slice(k.innerStart, k.innerEnd) : null; };
   const rootOf = xml => ({ innerStart: 0, innerEnd: xml.length });
 
@@ -80,8 +97,11 @@
           const from = ln(kid(xml, b, 'FromLine')), to = ln(kid(xml, b, 'ToLine'));
           [from, to].forEach(l => { if (l.index != null) lines.set(l.index, l); });
           const st = kid(xml, b, 'Struts'), br = kid(xml, b, 'Braces');
-          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType'), atRoof: num(text(xml, s, 'AtRoof')) }));
-          const braces = all(xml, br, 'Brace').map(s => ({ top: num(text(xml, s, 'TopElevation')), bottom: num(text(xml, s, 'BottomElevation')), member: text(xml, s, 'MemberDescription') }));
+          // each member with what the last design found: its force under the governing combination and what it allows
+          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType'), atRoof: num(text(xml, s, 'AtRoof')),
+            id: text(xml, s, 'ID'), axial: Math.abs(num(text(xml, s, 'Axial')) || 0), allowed: num(text(xml, s, 'AxialAllowed')), combo: num(text(xml, s, 'LoadCombination')), bogus: text(xml, s, 'BogusStrut') === 'true' }));
+          const braces = all(xml, br, 'Brace').map(s => ({ top: num(text(xml, s, 'TopElevation')), bottom: num(text(xml, s, 'BottomElevation')), member: text(xml, s, 'MemberDescription'),
+            id: text(xml, s, 'ID'), axial: Math.abs(num(text(xml, s, 'AxialLoad')) || 0), allowed: num(text(xml, s, 'AxialAllowed')), combo: num(text(xml, s, 'LoadCombination')), length: num(text(xml, s, 'Length')), orient: text(xml, s, 'BracingOrientation') }));
           return { index: num(text(xml, b, 'Index')), from: from.index, to: to.index, braced: braces.length > 0, braces, struts, strutsAt: st ? { start: st.start, end: st.end, innerEnd: st.innerEnd, empty: !!st.empty } : null };
         }) });
     });
@@ -105,6 +125,23 @@
     info.wallMap = els.map(e => ({ key: e.key, tag: e.tag, plane: e.plane, grid: e.grid, eave: e.eave, how: e.how }));
     info.lines = [...lines.values()].sort((a, b) => a.index - b.index);
     info.walls = walls;
+    // portal frames (not rods: <PortalFrames>, by wall plane and bay) — a braced bay all the same
+    const dbl = (scope, name) => all(xml, kid(xml, scope, name), 'double').map(d => +xml.slice(d.innerStart, d.innerEnd));
+    info.portals = all(xml, path(xml, pd, 'Buildings', 'BuildingLayout', 'PortalFrames') || kid(xml, pd, 'PortalFrames') || findDeep(xml, pd, 'PortalFrames'), 'PortalFrame').map(q => ({
+      id: text(xml, q, 'ID'), plane: num(text(xml, q, 'Wall')), bay: num(text(xml, q, 'Bay')), height: num(text(xml, q, 'Height')), grid: text(xml, q, 'GridLine'), combo: num(text(xml, q, 'Combination')),
+      H1: dbl(q, 'Portal_H1'), H2: dbl(q, 'Portal_H2'), T1: dbl(q, 'Portal_T1'), T2: dbl(q, 'Portal_T2'), delta: dbl(q, 'Portal_Delta') }));
+    Object.values(walls).forEach(w => w.bays.forEach(b => { const pf = info.portals.find(q => q.plane === w.plane && q.bay === b.index); if (pf) { b.portal = pf; b.braced = true; } }));
+    // the load combinations, in the order the members' forces are kept, each named by its cases
+    const CASE = { SelfWeight: 'SW', RoofDeadLoad: 'D', CollateralDeadLoad: 'C', SnowLeftSlope: 'S', SnowRightSlope: 'S', RoofLiveLeft: 'Lr', RoofLiveRight: 'Lr', LongitudinalWind1Back: 'W1B', LongitudinalWind1Front: 'W1F',
+      LongitudinalWind2Back: 'W2B', LongitudinalWind2Front: 'W2F', SeismicBack: 'EQB', SeismicFront: 'EQF', NotionalLoadToBack: 'NB', NotionalLoadToFront: 'NF' };
+    info.combos = all(xml, findDeep(xml, pd, 'LoadCombinations'), 'LoadCombination').map((c, n) => ({ n, active: text(xml, c, 'Active') !== 'false',
+      text: all(xml, kid(xml, c, 'LoadCasesWithFactor'), 'LoadCase').map(lc => { const fct = +(text(xml, lc, 'Factor') || 1), cs = text(xml, lc, 'Case') || ''; return `${fct === 1 ? '' : +fct.toFixed(3) + ' '}${CASE[cs] || cs}`; }).join(' + ') }));
+    const cw = findDeep(xml, pd, 'CostAndWeights'), cv = n => num(text(xml, cw, n));
+    info.cost = cw ? { rodWeight: cv('RodWeight'), rodCost: cv('RodCost'), strutWeight: cv('StrutWeight'), strutCost: cv('StrutCost'), portalWeight: cv('PortalWeight'), portalCost: cv('PortalCost'), cableWeight: cv('CableWeight'),
+      angleWeight: cv('AngleWeight'), purlinStrutWeight: cv('PurlinStrutWeight'), totalWeight: cv('TotalWeight'), totalCost: cv('TotalCost') } : null;
+    const ctl = findDeep(xml, pd, 'Control'), flag = n => text(xml, ctl, n) === 'true';
+    info.status = ctl ? { solved: flag('DidSolveModel'), designed: flag('DidDesignBracing'), edited: flag('DidEditBracing') } : null;
+    info.totalLong = num(text(xml, sz, 'TotalLongitudinalForce')) ?? num(text(xml, findDeep(xml, pd, 'Seismic'), 'TotalLongitudinalForce'));
     // the special concentrated loads already in the file ("Mezz. Seismic" rows from an earlier run or by hand)
     const sl = kid(xml, bl, 'SpecialConcentratedLoads');
     info.loads = all(xml, sl, 'ConcentratedLoad').map(c => ({ name: text(xml, c, 'Name'), caseId: text(xml, c, 'LoadCaseId'), plane: num(text(xml, c, 'PlaneNbr')), line: num(text(xml, c, 'Frameline')),

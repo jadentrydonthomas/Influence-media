@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Building Design</title>
-<meta name="generator" content="mezz-quick-design build 2026-10-23; pdf.js 3.11.174; OCR reader tesseract.js 5.1.1">
+<meta name="generator" content="mezz-quick-design build 2026-10-24; pdf.js 3.11.174; OCR reader tesseract.js 5.1.1">
 <meta name="description" content="Upload a PCS: the building's snow, drift and seismic loads on every frame and the bracing, and the NBG mezzanine beam and column sections.">
 <style>
 /* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
@@ -1849,6 +1849,62 @@ table.snow-roofs td small.sub-n { display: block; }
 .wall-elev .le-ground { stroke: var(--ink-faint); stroke-width: 1.4; }
 @media (max-width: 700px) { .bl-nbg { grid-template-columns: 1fr; } .bl-chip { min-width: 0; } }
 
+/* ---------- Calcs: the job's calcs, a card each; the open one on the right ---------- */
+.calc-top { margin-bottom: 18px; }
+.calc-top-in { display: flex; flex-wrap: wrap; align-items: stretch; gap: 14px; }
+.calc-top-in > .calc-drop, .calc-top-in > .calc-file { flex: 1 1 380px; margin: 0; }
+.calc-file { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.calc-file > svg { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--green); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.calc-file > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.calc-dl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.calc-dl .btn-soft svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; vertical-align: -3px; margin-right: 6px; }
+.calc-wrap { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 20px; align-items: start; }
+.calc-list { position: sticky; top: 14px; display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 28px); overflow: auto; padding-right: 2px; }
+.calc-group h5 { margin: 0 0 8px; font: 700 11px var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.calc-card { display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 10px; row-gap: 3px; width: 100%; margin-bottom: 8px; padding: 11px 12px; text-align: left; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
+.calc-card:hover { border-color: var(--line-strong); }
+.calc-card.is-on { border-color: var(--green); background: var(--green-soft); }
+.calc-card .cc-ic { grid-row: 1 / span 3; width: 20px; height: 20px; margin-top: 1px; fill: none; stroke: var(--green); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.calc-card .cc-t { font: 600 13.5px var(--body); }
+.calc-card .cc-s { font: 11.5px var(--mono); color: var(--ink-muted); line-height: 1.45; overflow-wrap: anywhere; }
+.calc-card .cc-b { justify-self: start; margin-top: 3px; padding: 1px 8px; border-radius: 999px; font: 600 10.5px var(--body); border: 1px solid var(--line-strong); color: var(--ink-muted); }
+.calc-card .cc-b.ok { border-color: var(--green); color: var(--green); }
+.calc-card .cc-b.warn { border-color: var(--amber); color: var(--amber); }
+.calc-pane { min-width: 0; }
+.calc-doc > .screen-heading { margin-bottom: 14px; }
+.calc-doc > .screen-heading h2 { font-size: clamp(24px, 2.6vw, 34px); }
+.seis-mzin { display: inline-grid; grid-template-columns: 76px auto; align-items: center; gap: 3px 5px; justify-items: end; }
+.seis-mzin .seis-in { width: 76px; }
+.seis-mzin span { font-size: 10.5px; color: var(--ink-faint); justify-self: start; }
+.seis-frames th.seis-mzh small { display: block; font-weight: 500; }
+.calc-cmp .calc-cmp-t td:first-child { min-width: 180px; }
+.calc-cmp .cmp-g td { padding-top: 12px; font: 700 11px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); background: transparent; }
+.calc-cmp tr.is-diff td { background: color-mix(in srgb, var(--amber) 9%, transparent); }
+.calc-cmp-a { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.calc-cmp-a small { flex: 1 1 360px; }
+.calc-raw { margin: 0; font: 12px var(--mono); white-space: pre-wrap; color: var(--ink-muted); }
+@media (max-width: 1100px) { .calc-wrap { grid-template-columns: 1fr; } .calc-list { position: static; max-height: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); } }
+
+/* a calc the tool does not work (a Canadian job): its message only, none of the empty steps */
+.calc-doc.calc-none > .panel, .calc-doc.calc-none > details { display: none; }
+.calc-ft-h { margin: 18px 0 8px; font: 600 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.calc-ft td small.sub-n { display: block; }
+/* the Bracing page: the mezzanine's force on a wall, the rows already in the file, the file's last design */
+.bl-split, .bl-cmp, .bl-res-t { margin-top: 12px; }
+.bl-split td.is-on { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--green) 8%, transparent); }
+.bl-split td:not(.is-on).num { color: var(--ink-faint); }
+.bl-split tfoot td { border-top: 1px solid var(--line-strong); font-weight: 700; }
+.bl-split + .bl-ctl { margin-top: 10px; }
+.bl-h5, .bl-res-h h5 { margin: 18px 0 0; font: 600 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.bl-res-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 18px; }
+.bl-res-h h5 { margin: 0; }
+.bl-cmp tr.is-diff td { background: color-mix(in srgb, var(--amber) 9%, transparent); }
+.bl-res-t td.r-bad b { color: var(--red); } .bl-res-t td.r-warn b { color: var(--amber); }
+.bl-res-t tr.is-mz td { background: color-mix(in srgb, var(--green) 6%, transparent); }
+.bl-res-t td small.sub-n, .bl-split td small.sub-n { display: block; }
+.bl-split th small.sub-n { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.bl-cmp-n { display: block; margin-top: 6px; }
+
 </style>
 </head>
 <body>
@@ -1857,6 +1913,7 @@ table.snow-roofs td small.sub-n { display: block; }
   <symbol id="i-design" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></symbol>
   <symbol id="i-plan" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
   <symbol id="i-beam" viewBox="0 0 24 24"><path d="M4 5h16M4 19h16M12 5v14"/></symbol>
+  <symbol id="i-calcs" viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M8 7h8M8 11.5h.01M12 11.5h.01M16 11.5h.01M8 15.5h.01M12 15.5h.01M16 15.5h.01M8 19h.01M12 19h4"/></symbol>
   <symbol id="i-seismic" viewBox="0 0 24 24"><path d="M2 12h3l2-6 3 12 3-9 2 5 2-2h5"/></symbol>
   <symbol id="i-column" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M10 3v18M14 3v18"/></symbol>
   <symbol id="i-inputs" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
@@ -1893,8 +1950,7 @@ table.snow-roofs td small.sub-n { display: block; }
         <button data-view="upload" aria-current="page"><svg><use href="#i-upload"/></svg>Project &amp; files</button>
         <span class="nav-head">Building · loads</span>
         <button data-view="building" disabled><svg><use href="#i-bldg"/></svg>Building</button>
-        <button data-view="snow" disabled><svg><use href="#i-snow"/></svg>Snow &amp; drift<span class="count" id="navSnowCount" hidden></span></button>
-        <button data-view="seismic" disabled><svg><use href="#i-seismic"/></svg>Seismic</button>
+        <button data-view="calcs" disabled><svg><use href="#i-calcs"/></svg>Calcs<span class="count" id="navCalcCount" hidden></span></button>
         <button data-view="frames" disabled><svg><use href="#i-frame"/></svg>Frames<span class="count" id="navFramesCount" hidden></span></button>
         <button data-view="bracing" disabled><svg><use href="#i-brace"/></svg>Bracing</button>
         <button data-view="purlins" disabled><svg><use href="#i-purlin"/></svg>Purlins<span class="count soon">later</span></button>
@@ -2028,17 +2084,65 @@ table.snow-roofs td small.sub-n { display: block; }
       <div class="panel" id="bldNotesPanel"><div class="panel-head"><h3>Flags</h3><span class="sub">what to check before the frames and the bracing go out</span></div><div class="panel-body" id="bldNotes"></div></div>
     </section>
 
-    <!-- SNOW & DRIFT -->
-    <section class="screen" id="v-snow">
+
+    <!-- CALCS: every calc of the job as NBG Design Calcs keeps them, a card each; the calc opens on the right -->
+    <section class="screen" id="v-calcs">
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Design Calcs · the job's calcs</div><h2>The <em>calcs</em></h2></div>
+        <p class="lede">Seismic, snow and drift, wind — a card each, building by building, as NBG Design Calcs keeps them. Open one to work it on the right; drop the job's .nbgcalcs to check it against the tool and take it back with the mezzanine loads in.</p>
+      </div>
+      <div class="calc-top" id="calcTop"></div>
+      <div class="calc-wrap">
+        <aside class="calc-list" id="calcList" aria-label="The calcs"></aside>
+        <div class="calc-pane" id="calcPane">
+          <div class="calc-doc" id="v-calcfile" hidden></div>
+          <div class="calc-doc" id="v-seismic" hidden>
+      <div class="screen-heading">
+        <div><div class="eyebrow">NBG Design Calcs · Seismic · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
+        <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
+      </div>
+      <div class="seis-status" id="seisStatus"></div>
+      <div id="seisFileCmp"></div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">1–6</span>Inputs</h3><span class="sub">as NBG Design Calcs takes them: building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · each filled from the PCS, the job's NBG files or the design, its source tagged · type over any value</span></div>
+        <div class="panel-body" id="seisInputs"></div>
+      </div>
+      <div class="panel seis-step seis-results-p">
+        <div class="panel-head"><h3><span class="step-no">=</span>Results</h3><span class="sub">what the inputs above give, building by building — the frame and bracing loads follow in 7–9</span></div>
+        <div class="panel-body" id="seisResults"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
+        <div class="panel-body" id="seisFrames"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
+        <div class="panel-body" id="seisApply"></div>
+      </div>
+      <div class="panel seis-step">
+        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF at the mezzanine level · the walls are drawn on the <a href="#" data-go="bracing">Bracing page</a></span></div>
+        <div class="panel-body" id="seisBracing"></div>
+      </div>
+      <div class="panel seis-step" id="seisFlagsPanel">
+        <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
+        <div class="panel-body" id="seisFlags"></div>
+      </div>
+      <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
+    </div>
+          <div class="calc-doc" id="v-snow" hidden>
       <div class="screen-heading">
         <div><div class="eyebrow">NBG Design Calcs · Snow · ASCE 7 chapter 7</div><h2>Snow &amp; <em>drift</em></h2></div>
         <p class="lede">Each roof's snow, each roof step's drift and sliding snow, and what every frame line under it takes — "Snow Drift" panel loads, ready for NBG Frame.</p>
       </div>
+      <div class="seis-status" id="snowStatus"></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">1</span>Snow data</h3><span class="sub">PCS Box 3 / 4 · type over any value</span></div><div class="panel-body" id="snowInputs"></div></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">2</span>Roof snow · each building</h3><span class="sub">pf = 0.7 Ce Ct Is pg, ps = Cs pf, the low-slope minimum, unbalanced on a gable · checked against the PCS</span></div><div class="panel-body" id="snowRoofs"></div></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">3</span>Roof steps · drift</h3><span class="sub">where a lower roof meets a higher wall: leeward and windward drift, hc, w, pd · the fetch can be extended</span></div><div class="panel-body" id="snowSteps"></div></div>
       <div class="panel seis-step"><div class="panel-head"><h3><span class="step-no">4</span>Onto the frames</h3><span class="sub">each frame line under a step: the Snow Drift panel loads, start and end, ft from the FSW · k/ft, negative down</span></div><div class="panel-body" id="snowFrames"></div></div>
       <details class="explain"><summary>How the snow is worked and applied</summary><div class="explain-body" id="snowHow"></div></details>
+    </div>
+        </div>
+      </div>
     </section>
 
     <!-- FRAMES -->
@@ -2118,39 +2222,6 @@ table.snow-roofs td small.sub-n { display: block; }
       </details>
     </section>
 
-    <!-- SEISMIC -->
-    <section class="screen" id="v-seismic">
-      <div class="screen-heading">
-        <div><div class="eyebrow">NBG Design Calcs · Seismic · ASCE 7 equivalent lateral force</div><h2>Seismic to the <em>frames</em> &amp; bracing</h2></div>
-        <p class="lede">Typed in the way NBG Design Calcs takes it, section by section, and worked the way it works it. Then the loads go into the frame files and the bracing file.</p>
-      </div>
-      <div class="seis-status" id="seisStatus"></div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">1–6</span>Inputs</h3><span class="sub">as NBG Design Calcs takes them: building &amp; seismic data, roof loading, walls, mezzanine loads, force resisting systems · each filled from the PCS, the job's NBG files or the design, its source tagged · type over any value</span></div>
-        <div class="panel-body" id="seisInputs"></div>
-      </div>
-      <div class="panel seis-step seis-results-p">
-        <div class="panel-head"><h3><span class="step-no">=</span>Results</h3><span class="sub">what the inputs above give, building by building — the frame and bracing loads follow in 7–9</span></div>
-        <div class="panel-body" id="seisResults"></div>
-      </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">7</span>Lateral calculations · NBG Frame</h3><span class="sub">every frame line: its tributary width and the mezzanine area in its strip → roof seismic weight, seismic factor, concentrated loads · click a row for the factors and the distribution</span></div>
-        <div class="panel-body" id="seisFrames"></div>
-      </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">8</span>Into NBG Frame · EQR / EQL</h3><span class="sub">each frame line's mezzanine load on the columns it frames into, at the mezzanine level · <b>Applied</b> is what the frame files get — type over it</span></div>
-        <div class="panel-body" id="seisApply"></div>
-      </div>
-      <div class="panel seis-step">
-        <div class="panel-head"><h3><span class="step-no">9</span>Longitudinal · NBG Bracing</h3><span class="sub">the whole building → the bracing's roof seismic weight, factor and concentrated loads; the mezzanine's force to the walls: EQB / EQF at the mezzanine level · the walls are drawn on the <a href="#" data-go="bracing">Bracing page</a></span></div>
-        <div class="panel-body" id="seisBracing"></div>
-      </div>
-      <div class="panel seis-step" id="seisFlagsPanel">
-        <div class="panel-head"><h3>What the tool does beyond NBG Design Calcs</h3><span class="sub">each one is shown, and can be turned off or typed over</span></div>
-        <div class="panel-body" id="seisFlags"></div>
-      </div>
-      <details class="explain" id="seisExplain"><summary>How the seismic is worked and applied</summary><div class="explain-body" id="seisHow"></div></details>
-    </section>
 
     <!-- BEAM CALC -->
     <section class="screen" id="v-beam">
@@ -3646,6 +3717,13 @@ table.snow-roofs td small.sub-n { display: block; }
     [/(?:\bCBC\b|California)[^\n]*?\b2022\b/i, 2021, 'California Building Code 2022 is based on IBC 2021'],
     [/(?:\bCBC\b|California)[^\n]*?\b2019\b/i, 2018, 'California Building Code 2019 is based on IBC 2018'],
   ];
+  const PROVINCIAL = [
+    [/\bOBC\b|Ontario/i, y => (y >= 2024 ? 2020 : y >= 2012 ? 2010 : y || 2020), 'Ontario Building Code'],
+    [/\bBCBC\b|British Columbia/i, y => (y >= 2024 ? 2020 : y >= 2018 ? 2015 : y || 2020), 'BC Building Code'],
+    [/Alberta|NBC\s*\(AE\)|\bABC\b/i, y => (y >= 2023 ? 2020 : y >= 2019 ? 2015 : y || 2020), 'Alberta Building Code'],
+    [/Qu[eé]bec|\bCNB\b/i, y => (y >= 2020 ? 2015 : y || 2015), 'Quebec Construction Code'],
+    [/Saskatchewan|Manitoba|Nova Scotia|New Brunswick|Newfoundland|Prince Edward|National Building Code of Canada|\bNBC\s*20\d\d/i, y => y || 2020, 'National Building Code of Canada'],
+  ];
   function editionFor(code) {
     const st = !/IBC\s*\d{4}/i.test(code) && STATE_CODES.find(([re]) => re.test(code));
     if (st) return { ...editionFor(`IBC ${st[1]}`), state: true, note: `${st[2]} → ${editionFor(`IBC ${st[1]}`).spec}.` };
@@ -3658,6 +3736,13 @@ table.snow-roofs td small.sub-n { display: block; }
       return { family: 'AISC', year: y, edition: '13', spec: 'AISC 360-05' };
     }
     if (nbcc) return { family: 'CSA', year: +nbcc[1], edition: +nbcc[1] >= 2020 ? 'S16-19' : 'S16-14', spec: +nbcc[1] >= 2020 ? 'CSA S16-19' : 'CSA S16-14' };
+    // a Canadian provincial code: built on the National Building Code of Canada of its cycle (loads in kPa, NBCC seismic
+    // and snow, CSA S16 steel)
+    const prov = PROVINCIAL.find(([re]) => re.test(code));
+    if (prov) {
+      const y = +((code.match(/\b(20\d\d)\b/) || [])[1] || 0), nbc = prov[1](y);
+      return { family: 'CSA', year: nbc, edition: nbc >= 2020 ? 'S16-19' : 'S16-14', spec: nbc >= 2020 ? 'CSA S16-19' : 'CSA S16-14', provincial: true, note: `${prov[2]}${y ? ' ' + y : ''} is built on NBC ${nbc || '(cycle not read)'} — a Canadian job: loads in kPa, NBCC seismic and snow, CSA S16 steel.` };
+    }
     // state codes without an IBC year (e.g. "Massachusetts (MASS 10th Ed.) ASCE 7-16"): the ASCE 7 edition
     // pins the IBC cycle — 7-22 → IBC 2024, 7-16 → IBC 2018/2021, 7-10 → IBC 2012/2015, 7-05 → IBC 2006/2009
     const asce = code.match(/ASCE\s*7\s*-\s*(\d{2})/i);
@@ -3686,7 +3771,8 @@ table.snow-roofs td small.sub-n { display: block; }
       // ASCE 7-22 jobs list SMS and SM1 (from the hazard tool) and the SDC on the same lines
       Sms: num(/\bSms:\s*([\d.]+)/), Sm1: num(/\bSm1:\s*([\d.]+)/), sdc: grab(txt, /\bSDC:\s*([A-F])\b/),
       siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
-      groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
+      groundSnow: num(/Ground Snow Load:\s*([\d.]+)(?!\s*kPa)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
+      groundSnowKpa: num(/Ground Snow Load\s*\(Ss\):\s*([\d.]+)\s*kPa/i) ?? num(/Ground Snow Load:\s*([\d.]+)\s*kPa/i),
       Ce: num(/Snow Exposure (?:Coefficient|Factor)\s*\(Ce\):\s*([\d.]+)/i), ceText: grab(txt, /Snow Exposure (?:Coefficient|Factor)\s*\(Ce\):\s*[\d.]+\s*-?\s*(.+?)(?:\s{2,}|\n|$)/i),
       W2: num(/Winter Wind (?:Parameter|Factor)[^:\n]*:\s*([\d.]+)/i),
     };
@@ -3924,13 +4010,16 @@ table.snow-roofs td small.sub-n { display: block; }
   function parseMezz(ls) {
     const txt = ls.map(l => l.text).join('\n');
     const num = v => (v == null ? null : /per seller/i.test(v) ? 'Per Seller' : isFinite(+v) ? +v : null);
+    // a Canadian PCS gives the floor loads in kPa: taken in psf (1 kPa = 20.8854 psf), and said so
+    const kpa = re => { const v = grab(txt, re); return v != null && isFinite(+v) ? +(+v * 20.8854342).toFixed(2) : null; };
     const m = {
       id: grab(txt, /Mezzanine ID:\s*(.+?)(?:\s{2,}Building Name|\n|$)/),
       building: grab(txt, /Building Name:\s*(.+?)(?:\s{2,}|\n|$)/),
-      dead: num(grab(txt, /Dead Load:\s*(.+?)\s*PSF/i)),
-      live: num(grab(txt, /Live Load:\s*(.+?)\s*PSF/i)),
-      collateral: num(grab(txt, /Collateral(?: \(Bottom Chord\))?:\s*(.+?)\s*PSF/i)),
-      partition: num(grab(txt, /Partition Loads?:\s*(.+?)\s*PSF/i)),
+      dead: num(grab(txt, /Dead Load:\s*(.+?)\s*PSF/i)) ?? kpa(/Dead Load:\s*([\d.]+)\s*kPa/i),
+      live: num(grab(txt, /Live Load:\s*(.+?)\s*PSF/i)) ?? kpa(/Live Load:\s*([\d.]+)\s*kPa/i),
+      collateral: num(grab(txt, /Collateral(?: \(Bottom Chord\))?:\s*(.+?)\s*PSF/i)) ?? kpa(/Collateral(?: \(Bottom Chord\))?:\s*([\d.]+)\s*kPa/i),
+      partition: num(grab(txt, /Partition Loads?:\s*(.+?)\s*PSF/i)) ?? kpa(/Partition Loads?:\s*([\d.]+)\s*kPa/i),
+      loadsKpa: /(?:Dead|Live) Load:\s*[\d.]+\s*kPa/i.test(txt) || undefined,
       width: ftin(grab(txt, new RegExp(String.raw`Width:\s*(` + DIM + ')'))),
       length: ftin(grab(txt, new RegExp(String.raw`Length:\s*(` + DIM + ')'))),
       slab: ftin(grab(txt, new RegExp(String.raw`Slab\/Deck Thickness:\s*(` + DIM + ')'))),
@@ -5645,6 +5734,23 @@ table.snow-roofs td small.sub-n { display: block; }
   const kid = (xml, scope, name) => (scope ? kids(xml, scope).find(k => k.name === name) || null : null);
   const all = (xml, scope, name) => (scope ? kids(xml, scope).filter(k => k.name === name) : []);
   const path = (xml, scope, ...names) => names.reduce((s, n) => kid(xml, s, n), scope);
+  // the first element of that name anywhere inside scope (for blocks whose parent varies between versions)
+  function findDeep(xml, scope, name) {
+    if (!scope) return null;
+    const re = new RegExp(`<${name}(?=[\\s>/])`, 'g');
+    re.lastIndex = scope.innerStart;
+    const m = re.exec(xml);
+    if (!m || m.index >= scope.innerEnd) return null;
+    let depth = 0, x;
+    TAG.lastIndex = m.index;
+    while ((x = TAG.exec(xml))) {
+      const [whole, close, , self] = x;
+      if (self && depth === 0) return { name, start: m.index, end: x.index + whole.length, innerStart: x.index + whole.length, innerEnd: x.index + whole.length, empty: true };
+      if (close) { if (--depth === 0) return { name, start: m.index, end: x.index + whole.length, innerStart: xml.indexOf('>', m.index) + 1, innerEnd: x.index }; }
+      else if (!self) depth++;
+    }
+    return null;
+  }
   const text = (xml, scope, name) => { const k = kid(xml, scope, name); return k && !k.empty ? xml.slice(k.innerStart, k.innerEnd) : null; };
   const rootOf = xml => ({ innerStart: 0, innerEnd: xml.length });
 
@@ -5685,8 +5791,11 @@ table.snow-roofs td small.sub-n { display: block; }
           const from = ln(kid(xml, b, 'FromLine')), to = ln(kid(xml, b, 'ToLine'));
           [from, to].forEach(l => { if (l.index != null) lines.set(l.index, l); });
           const st = kid(xml, b, 'Struts'), br = kid(xml, b, 'Braces');
-          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType'), atRoof: num(text(xml, s, 'AtRoof')) }));
-          const braces = all(xml, br, 'Brace').map(s => ({ top: num(text(xml, s, 'TopElevation')), bottom: num(text(xml, s, 'BottomElevation')), member: text(xml, s, 'MemberDescription') }));
+          // each member with what the last design found: its force under the governing combination and what it allows
+          const struts = all(xml, st, 'Strut').map(s => ({ elev: num(text(xml, s, 'Elevation')), real: text(xml, s, 'Real') === 'true', type: text(xml, s, 'StrutType'), atRoof: num(text(xml, s, 'AtRoof')),
+            id: text(xml, s, 'ID'), axial: Math.abs(num(text(xml, s, 'Axial')) || 0), allowed: num(text(xml, s, 'AxialAllowed')), combo: num(text(xml, s, 'LoadCombination')), bogus: text(xml, s, 'BogusStrut') === 'true' }));
+          const braces = all(xml, br, 'Brace').map(s => ({ top: num(text(xml, s, 'TopElevation')), bottom: num(text(xml, s, 'BottomElevation')), member: text(xml, s, 'MemberDescription'),
+            id: text(xml, s, 'ID'), axial: Math.abs(num(text(xml, s, 'AxialLoad')) || 0), allowed: num(text(xml, s, 'AxialAllowed')), combo: num(text(xml, s, 'LoadCombination')), length: num(text(xml, s, 'Length')), orient: text(xml, s, 'BracingOrientation') }));
           return { index: num(text(xml, b, 'Index')), from: from.index, to: to.index, braced: braces.length > 0, braces, struts, strutsAt: st ? { start: st.start, end: st.end, innerEnd: st.innerEnd, empty: !!st.empty } : null };
         }) });
     });
@@ -5710,6 +5819,23 @@ table.snow-roofs td small.sub-n { display: block; }
     info.wallMap = els.map(e => ({ key: e.key, tag: e.tag, plane: e.plane, grid: e.grid, eave: e.eave, how: e.how }));
     info.lines = [...lines.values()].sort((a, b) => a.index - b.index);
     info.walls = walls;
+    // portal frames (not rods: <PortalFrames>, by wall plane and bay) — a braced bay all the same
+    const dbl = (scope, name) => all(xml, kid(xml, scope, name), 'double').map(d => +xml.slice(d.innerStart, d.innerEnd));
+    info.portals = all(xml, path(xml, pd, 'Buildings', 'BuildingLayout', 'PortalFrames') || kid(xml, pd, 'PortalFrames') || findDeep(xml, pd, 'PortalFrames'), 'PortalFrame').map(q => ({
+      id: text(xml, q, 'ID'), plane: num(text(xml, q, 'Wall')), bay: num(text(xml, q, 'Bay')), height: num(text(xml, q, 'Height')), grid: text(xml, q, 'GridLine'), combo: num(text(xml, q, 'Combination')),
+      H1: dbl(q, 'Portal_H1'), H2: dbl(q, 'Portal_H2'), T1: dbl(q, 'Portal_T1'), T2: dbl(q, 'Portal_T2'), delta: dbl(q, 'Portal_Delta') }));
+    Object.values(walls).forEach(w => w.bays.forEach(b => { const pf = info.portals.find(q => q.plane === w.plane && q.bay === b.index); if (pf) { b.portal = pf; b.braced = true; } }));
+    // the load combinations, in the order the members' forces are kept, each named by its cases
+    const CASE = { SelfWeight: 'SW', RoofDeadLoad: 'D', CollateralDeadLoad: 'C', SnowLeftSlope: 'S', SnowRightSlope: 'S', RoofLiveLeft: 'Lr', RoofLiveRight: 'Lr', LongitudinalWind1Back: 'W1B', LongitudinalWind1Front: 'W1F',
+      LongitudinalWind2Back: 'W2B', LongitudinalWind2Front: 'W2F', SeismicBack: 'EQB', SeismicFront: 'EQF', NotionalLoadToBack: 'NB', NotionalLoadToFront: 'NF' };
+    info.combos = all(xml, findDeep(xml, pd, 'LoadCombinations'), 'LoadCombination').map((c, n) => ({ n, active: text(xml, c, 'Active') !== 'false',
+      text: all(xml, kid(xml, c, 'LoadCasesWithFactor'), 'LoadCase').map(lc => { const fct = +(text(xml, lc, 'Factor') || 1), cs = text(xml, lc, 'Case') || ''; return `${fct === 1 ? '' : +fct.toFixed(3) + ' '}${CASE[cs] || cs}`; }).join(' + ') }));
+    const cw = findDeep(xml, pd, 'CostAndWeights'), cv = n => num(text(xml, cw, n));
+    info.cost = cw ? { rodWeight: cv('RodWeight'), rodCost: cv('RodCost'), strutWeight: cv('StrutWeight'), strutCost: cv('StrutCost'), portalWeight: cv('PortalWeight'), portalCost: cv('PortalCost'), cableWeight: cv('CableWeight'),
+      angleWeight: cv('AngleWeight'), purlinStrutWeight: cv('PurlinStrutWeight'), totalWeight: cv('TotalWeight'), totalCost: cv('TotalCost') } : null;
+    const ctl = findDeep(xml, pd, 'Control'), flag = n => text(xml, ctl, n) === 'true';
+    info.status = ctl ? { solved: flag('DidSolveModel'), designed: flag('DidDesignBracing'), edited: flag('DidEditBracing') } : null;
+    info.totalLong = num(text(xml, sz, 'TotalLongitudinalForce')) ?? num(text(xml, findDeep(xml, pd, 'Seismic'), 'TotalLongitudinalForce'));
     // the special concentrated loads already in the file ("Mezz. Seismic" rows from an earlier run or by hand)
     const sl = kid(xml, bl, 'SpecialConcentratedLoads');
     info.loads = all(xml, sl, 'ConcentratedLoad').map(c => ({ name: text(xml, c, 'Name'), caseId: text(xml, c, 'LoadCaseId'), plane: num(text(xml, c, 'PlaneNbr')), line: num(text(xml, c, 'Frameline')),
@@ -7959,6 +8085,145 @@ table.snow-roofs td small.sub-n { display: block; }
 
 </script>
 <script>
+/* ---- calcsfile.js ---- */
+/* NBG Design Calcs files (.nbgcalcs): the job's calc documents, a folder a building — unbalanced snow, wind, seismic and
+   each roof step's drift. Read: every document listed with the few numbers that say what it holds, and the seismic
+   inputs taken as a source for the Seismic calc (code, site, Ss / S1, roof and wall loads, each line's system). Write:
+   the mezzanine loads put back in the seismic documents the way Design Calcs keeps them — the floor's uniform loads, and
+   on each frame line and the longitudinal its Mezzanine ID, Loading Area and Concentrated Loads — with the base shear
+   results worked again by src/seismic.js (tied to NBG Design Calcs to 1e-9), so the file opens as Design Calcs would
+   have left it. Everything else in the file is left as it was; the file keeps its BOM and line endings. */
+(function (root) {
+  'use strict';
+
+  const KIND = d => {
+    const t = String((d && d.$type) || ''), n = String((d && d.Name) || '');
+    return /SeismicCalc/i.test(t) || /^Seismic/i.test(n) ? 'seismic' : /UnbalancedSnow/i.test(t) || /^Unbalanced Snow/i.test(n) ? 'snow'
+      : /Drift/i.test(t) || /Snow Drift/i.test(n) ? 'drift' : /Wind/i.test(t) || /^Wind/i.test(n) ? 'wind' : 'other';
+  };
+  // the building a folder holds: the folder's name, its seismic / snow document's width and length
+  const geomOf = docs => { const g = (docs.find(d => d.BuildingGeometryInputs) || {}).BuildingGeometryInputs || {}; return { width: g.BuildingWidthInFeet, length: g.BuildingLengthInFeet }; };
+
+  function read(text) {
+    const s = String(text), bom = s.charCodeAt(0) === 0xFEFF, raw = JSON.parse(bom ? s.slice(1) : s);
+    const folders = (raw.Folders || []).map((fo, fi) => ({ name: fo.Name, index: fi, ...geomOf(fo.Documents || []),
+      docs: (fo.Documents || []).map((d, di) => ({ name: d.Name, kind: KIND(d), index: di, doc: d })) }));
+    return { raw, bom, crlf: /\r\n/.test(s), indent: (s.match(/\n( +)"/) || [])[1] || '  ', written: raw.WriteDate || null, folders };
+  }
+  function serialize(file) {
+    let t = JSON.stringify(file.raw, null, file.indent.length);
+    if (file.crlf) t = t.replace(/\n/g, '\r\n');
+    return (file.bom ? '﻿' : '') + t;
+  }
+
+  // ---------- the seismic document as src/seismic.js takes it ----------
+  const SFRS_ENUM = t => {
+    const s = String(t || '');
+    const base = /Portal/i.test(s) ? 'Portal Frame' : /Rigid/i.test(s) ? 'Rigid Frame' : /XBrace|X_?Brac/i.test(s) ? 'X-Bracing' : /Post/i.test(s) ? 'Post & Beam' : /Fixed|Cantilever/i.test(s) ? 'Fixed Base' : /BRBF|Buckling/i.test(s) ? 'BRBF' : /EBF|Eccentric/i.test(s) ? 'EBF' : 'X-Bracing';
+    return /_IMF/i.test(s) ? `${base} (IMF)` : /_SMF/i.test(s) ? `${base} (SMF)` : /_SCBF/i.test(s) ? `${base} (SCBF)` : base;
+  };
+  const RISK = { LowHazard: 'I', StandardHazard: 'II', SubstantialHazard: 'III', EssentialFacilities: 'IV', EssentialFacility: 'IV' };
+  const ED = { ASCE705: '7-05', ASCE710: '7-10', ASCE716: '7-16', ASCE722: '7-22' };
+  const BAY = { LeftEndwall: 'Left Endwall', RightEndwall: 'Right Endwall', Interior: 'Interior', InteriorWithPartition: 'Interior w/ Partition' };
+  const wallOf = w => (!w ? null : { kind: w.TopOfMasonryElevationInFeet != null || w.IsPartialHeight ? 'partial' : 'full', shear: !!w.SelfSupportingShearWall, parapet: !!w.HasParapet, top: w.TopElevationInFeet,
+    weight: w.WallWeightInPSF, upperWeight: w.UpperWallWeightInPSF, masonryTop: w.TopOfMasonryElevationInFeet, lowerWeight: w.LowerWallWeightInPSF });
+  const mezzOf = m => ({ id: m.ID, elev: m.ElevationInFeet, FDL: m.FloorDeadInPSF, FLC: m.FloorCollateralInPSF, FLJ: m.JoistDeadInPSF, storage: !!m.ApplyStorageLoading, FLL: m.FloorLiveInPSF, partition: !!m.ApplyPartitionLoading, FLP: m.PartitionDeadInPSF });
+  const over = fi => ({ Ta: fi.OverrideFundamentalPeriod ? fi.FundamentalPeriod : undefined, k: fi.OverrideVerticalDistributionFactor ? fi.VerticalDistributionFactor : undefined, rho: fi.OverrideRedundancyFactor ? fi.RedundancyFactor : undefined });
+  const mzIn = list => (list || []).map(m => ({ id: m.UniformLoadInputId, area: m.LoadingAreaInSquareFeet, conc: m.ConcentratedLoadTotalInKips || 0 }));
+
+  // the codes src/seismic.js works (ASCE 7); a Canadian document (NBCC: Sa(T), Rd · Ro) is read and shown, not worked
+  const asce = sd => !!ED[((sd && sd.DesignCodeInputs) || {}).SelectedBuildingCode];
+  const codeOf = sd => String(((sd && sd.DesignCodeInputs) || {}).SelectedBuildingCode || ((sd && sd.BuildingCode) || {}).SelectedBuildingCode || ((sd && sd.BuildingCode) || {}).BuildingCode || '').replace(/^ASCE(\d)(\d\d)$/, 'ASCE $1-$2').replace(/^NBCC(\d{4})$/, 'NBCC $1');
+  function seismicInputs(sd) {
+    const gi = sd.BuildingGeometryInputs || {}, si = sd.SeismicDataInputs || {}, li = sd.BuildingLoadInputs || {}, ed = ED[(sd.DesignCodeInputs || {}).SelectedBuildingCode] || '7-16';
+    const long = sd.LongitudinalCalculations || { FramingInputs: {} };
+    const P = {
+      building: { ed, type: /Single/i.test((sd.BuildingTypeInputs || {}).BuildingType) ? 'Single Slope' : 'Gable', width: gi.BuildingWidthInFeet, length: gi.BuildingLengthInFeet, dtr: gi.BSWRidgeDistanceInFeet, slope: gi.BSWRoofSlopeOn12, eaveFSW: gi.FSWEaveHeightInFeet, eaveBSW: gi.BSWEaveHeightInFeet },
+      seismic: { ed, risk: RISK[si.OccupancyCategory] || 'II', Ss: si.Ss, S1: si.S1, SMS: ed === '7-22' ? si.Sms : undefined, SM1: ed === '7-22' ? si.Sm1 : undefined, siteClass: si.SiteClass,
+        roofDiaphragm: si.RoofDiaphragm, mezzDiaphragm: si.MezzanineDiaphragm, ndfs: si.UseNotDetailedForSeismicSFRSIfPossible !== false, significant: !!si.IsMultiStory,
+        irregular: !!si.SeismicIrregularitiesExist, torsionLong: si.UseAccidentalTorsionInLongDirection !== false, torsionLat: !!si.UseAccidentalTorsionInLateralDirection },
+      roof: { SW: li.LateralFrameSelfWeightInPSF, RDL: li.RoofDeadLoadInPSF, CDL: li.RoofCollateralLoadInPSF, RSW: li.RoofSelfWeightInPSF, Pf: li.RoofSnowInPSF },
+      walls: { LEW: wallOf(li.LEWLoads), REW: wallOf(li.REWLoads), FSW: wallOf(li.FSWLoads), BSW: wallOf(li.BSWLoads), Partition: wallOf(li.PartitionLoads) },
+      mezz: (li.MezzanineLoads || []).map(mezzOf), cranes: [],
+      sfrs: { FSW: SFRS_ENUM(long.FramingInputs.FSW_SFRS), BSW: SFRS_ENUM(long.FramingInputs.BSW_SFRS), lines: (sd.LateralCalculations || []).map(l => SFRS_ENUM(l.FramingInputs.SFRS)) },
+    };
+    const lines = (sd.LateralCalculations || []).map(l => { const fi = l.FramingInputs; return { desc: fi.Description, framing: SFRS_ENUM(fi.SFRS), bay: fi.BayWidthInFeet, bayType: BAY[fi.BayType] || fi.BayType, roofConc: fi.RoofConcentratedLoadsInKips, fswTrib: fi.FSWTribLengthInFeet, bswTrib: fi.BSWTribLengthInFeet, partLen: fi.PartitionWallLength, mezz: mzIn(fi.Mezzanines), cranes: [], over: over(l.SeismicFactorInputs || {}) }; });
+    const lf = long.FramingInputs;
+    const longIn = { roofConc: lf.RoofConcentratedLoadsInKips, fswTrib: lf.FSWTribLengthInFeet, bswTrib: lf.BSWTribLengthInFeet, partTrib: lf.PartitionWallLength, partQty: lf.NumberOfPartitionWalls, mezz: mzIn(lf.Mezzanines), cranes: [], over: over(long.SeismicFactorInputs || {}) };
+    return { P, lines, longIn };
+  }
+
+  // the few numbers a card shows, and what the document's results say
+  function summary(d) {
+    const doc = d.doc;
+    if (d.kind === 'seismic') {
+      const lat = doc.LateralCalculations || [], lg = doc.LongitudinalCalculations || {}, bs = lg.BaseShearResults || {};
+      const mz = (doc.BuildingLoadInputs || {}).MezzanineLoads || [];
+      return { code: codeOf(doc), asce: asce(doc), lines: lat.length, longV: bs.BaseShear, latV: lat.map(l => (l.BaseShearResults || {}).BaseShear), mezz: mz.length, SDC: ((lg.SeismicFactorResults || {}).SeismicDesignCategory || '').replace(/^Category/, ''), Cs: (lg.SeismicFactorResults || {}).Cs,
+        mezzLong: ((bs.ValuesForNBGBracing || {}).ConcentratedSeismicLoads || []).filter(c => c.SeismicMassType === 'Mezzanine').map(c => ({ name: c.Description, F: c.MagnitudeInKips, at: c.ElevationInFeet })) };
+    }
+    if (d.kind === 'snow') {
+      const c = doc.CommonSnowResults || {}, u = doc.UnbalancedSnowResults || {}, inp = doc.SnowLoadInputs || {};
+      return { code: codeOf(doc), ca: c.Cb != null, pg: inp.GroundSnowPSF, rain: inp.RainLoadPSF, Ce: c.Ce, Ct: c.Ct, Cb: c.Cb, Cw: c.Cw, Is: c.ImportanceFactor, ps: c.Slope1 ? c.Slope1.Ps : null, pmin: c.Slope1 ? c.Slope1.Pmin : null,
+        cases: Object.entries(u).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({ key: k, name: v.CaseName || '', shape: v.ShapeFactor, windward: v.WindwardSnowLoadPSF, leeward: v.LeewardSnowLoadPSF, surcharge: v.SurchargeSnowLoadPSF, length: v.SurchargeLengthInFeet })),
+        unbalanced: u.WindToRight ? { surcharge: u.WindToRight.SurchargeSnowLoadPSF, windward: u.WindToRight.WindwardSnowLoadPSF, leeward: u.WindToRight.LeewardSnowLoadPSF, length: u.WindToRight.SurchargeLengthInFeet } : null };
+    }
+    if (d.kind === 'wind') {
+      const c = doc.CommonWindResults || {}, inp = doc.WindLoadInputs || {}, m = doc.MainWindResults || {};
+      // NBCC: the reference velocity pressure q (kPa) for the importance category, Ce, Cg Cp and Cpi (Clause 4.1.7)
+      const ca = inp.WindPressureKPA != null;
+      return { code: codeOf(doc), ca, V: inp.WindSpeedMPH, exposure: String(inp.WindExposure || '').replace(/^Exposure/, ''), enclosure: inp.BuildingEnclosure || (doc.EnclosureResults || {}).Condition, Kd: c.Kd, Kh: c.Kh, Kzt: c.Kzt, Ke: c.Ke, G: c.GustFactor, GCpi: c.GCpi, qh: c.VelocityPressureInPSF, h: c.ReferenceHeightInFeet, zone: m.LateralEdgeZoneDistanceInFeet,
+        qKpa: ca ? c.VelocityPressureInKPA ?? inp.WindPressureKPA : undefined, importance: inp.ImportanceCategory, category: inp.EnclosureCategory, Ce: c.Ce, Cgi: c.Cgi, Cpi: ca ? [c.PositiveCpi, c.NegativeCpi] : undefined, Iw: c.ImportanceFactor,
+        base: m.BaseWindPressure, longBracing: m.LongitudinalForceResistedByBracing, longTotal: m.TotalLongitudinalForceAppliedToBuilding };
+    }
+    if (d.kind === 'drift') {
+      const r = doc.DriftResults || {}, c = doc.CommonSnowResults || {};
+      const pick = o => (o && typeof o === 'object' ? o : {});
+      const lee = pick(r.LeewardDrift || r.Leeward), win = pick(r.WindwardDrift || r.Windward);
+      return { ps: c.Slope1 ? c.Slope1.Ps : c.Ps, hd: r.DriftHeightInFeet ?? lee.DriftHeightInFeet, w: r.DriftWidthInFeet ?? lee.DriftWidthInFeet, pd: r.MaxDriftLoadPSF ?? lee.MaxDriftLoadPSF, windHd: win.DriftHeightInFeet, keys: Object.keys(r) };
+    }
+    return {};
+  }
+
+  /* The mezzanine loads into one seismic document, its results worked again.
+     m: { loads: [{ elev, FDL, FLC, FLJ, FLL, storage, partition, FLP }] (the floor's uniform loads, in order: ID 1, 2 …),
+          lines: [[{ n (index into loads), area, conc }]] — one list a lateral calculation, in the document's order, or null
+          to leave the lateral calculations as they are; long: [{ n, area, conc }] }
+     S: src/seismic.js. Returns { changed: [text], lat: [V], longV } */
+  function writeSeismic(sd, m, S) {
+    if (!asce(sd)) throw new Error(`${codeOf(sd) || 'this code'}: the tool works ASCE 7 seismic only — the document is left as it is`);
+    const li = sd.BuildingLoadInputs = sd.BuildingLoadInputs || {}, changed = [];
+    const uni = (q, k) => ({ ID: k + 1, ElevationInFeet: q.elev, FloorDeadInPSF: q.FDL, FloorCollateralInPSF: q.FLC || 0, JoistDeadInPSF: q.FLJ || 0, ApplyStorageLoading: !!q.storage, FloorLiveInPSF: q.FLL || 0, ApplyPartitionLoading: !!q.partition, PartitionDeadInPSF: q.partition ? q.FLP || 0 : 0 });
+    const loads = (m.loads || []).map(uni);
+    li.MezzanineLoads = loads;
+    changed.push(`${loads.length} mezzanine${loads.length === 1 ? '' : 's'} in Building Loads`);
+    const place = list => (list || []).filter(q => q.area > 0 || q.conc > 0).map(q => ({ UniformLoadInputId: q.n + 1, UniformLoads: { ...loads[q.n] }, LoadingAreaInSquareFeet: q.area, ConcentratedLoadTotalInKips: q.conc || 0 }));
+    const lat = sd.LateralCalculations || [];
+    if (m.lines) lat.forEach((l, i) => { l.FramingInputs.Mezzanines = place(m.lines[i]); });
+    sd.LongitudinalCalculations.FramingInputs.Mezzanines = place(m.long);
+    // the results, as Design Calcs works them from these inputs
+    const { P, lines, longIn } = seismicInputs(sd), J = S.project(P);
+    const TYPE = { roof: 'Roof', LEW: 'LEW', REW: 'REW', FSW: 'FSW', BSW: 'BSW', mezz: 'Mezzanine', crane: 'Crane', Partition: 'Partition' };
+    const masses = R => R.rows.map(r => ({ Description: r.name, SeismicMassType: TYPE[r.key] || r.key, WeightInLbs: r.W, ElevationInFeet: r.h, VerticalDistributionNumerator: r.num, ForceInKips: r.Fx, BaseMomentInKipFt: r.Mx }));
+    const concs = list => list.map(c => ({ Description: c.name, SeismicMassType: TYPE[c.key] || c.key, MagnitudeInKips: c.F, ElevationInFeet: c.at }));
+    const latV = lat.map((l, i) => {
+      const R = S.frameLine(J, lines[i]), bs = l.BaseShearResults = l.BaseShearResults || {}, v = bs.ValuesForNBGFrame = bs.ValuesForNBGFrame || {};
+      Object.assign(v, { EquivalentRoofForceInKips: R.frame.equivRoof, RoofWeightInPsf: R.frame.roofPsf, AltRoofWeightInPsf: R.frame.altRoofPsf, PanelLoadInKlf: R.frame.panel, AltPanelLoadInKlf: R.frame.altPanel, SeismicFactor: R.frame.factor, ConcentratedSeismicLoads: concs(R.frame.conc) });
+      bs.SeismicMassResults = masses(R); bs.BaseShear = R.V;
+      return R.V;
+    });
+    const lg = sd.LongitudinalCalculations, R = S.bracing(J, longIn), bs = lg.BaseShearResults = lg.BaseShearResults || {}, v = bs.ValuesForNBGBracing = bs.ValuesForNBGBracing || {};
+    Object.assign(v, { EquivalentRoofForceInKips: R.bracing.equivRoof, RoofSnowInPsf: R.bracing.snow, RoofDeadOnlyInPsf: R.bracing.deadPsf, RoofTotalSeismicWeightInPsf: R.bracing.totalPsf, AltRoofTotalSeismicWeightInPsf: R.bracing.altTotalPsf, SeismicFactor: R.bracing.factor, ConcentratedSeismicLoads: concs(R.bracing.conc) });
+    bs.SeismicMassResults = masses(R); bs.BaseShear = R.V;
+    return { changed, lat: latV, longV: R.V };
+  }
+
+  const api = { read, serialize, summary, seismicInputs, writeSeismic, asce, codeOf, KIND, SFRS_ENUM };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_CALCS = api;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
 /* ---- snow.js ---- */
 /* Snow loads as NBG Design Calcs works them (ASCE 7-16 chapter 7; 7-10 alike; 7-22 with its winter wind parameter):
    flat and sloped roof snow, the low-slope minimum, gable unbalanced snow, and the drift a higher roof puts on a lower
@@ -9579,7 +9844,7 @@ table.snow-roofs td small.sub-n { display: block; }
       job: { ...pcs.job, code: pcs.code },
       // Box 3: seismic site data and risk category (the seismic loads to the frames and the bracing)
       seismic: { ...(pcs.seismic || {}) },
-      mezz: { id: m.id, building: m.building, page: m.page, notes: m.notes || [], read: m.read || null, markups: m.markups || [], ocr: pcs.ocr || null, deckBy: m.deckBy || null, joistsBy: m.joistsBy || null, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, openingsAt: openingsFor(pcs, mi), columnNotes: columnNotesFor(pcs, mi), planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null },
+      mezz: { id: m.id, building: m.building, page: m.page, notes: m.notes || [], read: m.read || null, markups: m.markups || [], ocr: pcs.ocr || null, deckBy: m.deckBy || null, joistsBy: m.joistsBy || null, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, openingsAt: openingsFor(pcs, mi), columnNotes: columnNotesFor(pcs, mi), planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null, loadsKpa: m.loadsKpa || false },
       loads: {
         dead: dl.source === 'pcs' && mkNote('dead') ? { ...dl, note: mkNote('dead') } : dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default', mkNote('collateral')),
         live: v(m.live, m.live != null ? 'pcs' : 'missing', mkNote('live')), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default', mkNote('partition')),
@@ -9768,11 +10033,12 @@ table.snow-roofs td small.sub-n { display: block; }
     const deadUsed = dead + (s.partitionTo === 'dead' ? part : 0);
     const joistWt = val(inp.loads.joistWt) ?? DEFAULTS.joistWt;
 
-    // Total joist depth (Jaden): A - B - slab - seat
+    // Total joist depth: A - B - slab - seat
     const joistDepthIn = A != null && Bq != null ? Math.round((A - Bq) * 12 * 1000) / 1000 - slabIn - seatIn : null;
     if (joistDepthIn != null && joistDepthIn < 8) warn.push({ level: 'stop', text: `Total joist depth A − B − slab − seat = ${+joistDepthIn.toFixed(2)}" — too shallow for a joist. Check (B) clearance under joist.` });
 
     // flags from Box 22
+    if (inp.mezz.loadsKpa) warn.push({ level: 'warn', text: `Box 22 gives the floor loads in kPa (a Canadian job): taken in psf at 20.885 psf per kPa — dead ${val(inp.loads.dead)}, live ${val(inp.loads.live)} psf. The steel is CSA S16 on a Canadian job: check the design in the S16 workbooks.` });
     const prov = inp.mezz.provided || {};
     if (prov['Designed For Load Provisions Only']) warn.push({ level: 'stop', text: 'Designed For Load Provisions Only is checked — NBG supplies no mezzanine beams or columns. The connection hole patterns must be known at order entry, otherwise they are field drilled or field welded (DM 15.1.1, 15.1.1.4.2).' });
     if (prov['Support Beams'] === false) warn.push({ level: 'warn', text: 'Support Beams are not checked under Materials Provided By Seller.' });
@@ -10855,7 +11121,7 @@ table.snow-roofs td small.sub-n { display: block; }
        collateral, snow } } (read from a dropped bracing / eScope file), buildings: { [bkey]: { SW, RDL, CDL, RSW, Pf,
        walls: { LEW | REW | FSW | BSW: { kind, parapet, shear, top, weight, masonryTop, lowerWeight, upperWeight } },
        sfrs: { FSW, BSW }, lines: { [label]: framing }, frameFile } }, mezz: { [id]: { FDL, FLC, FLJ, FLL, storage,
-       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride } — anything left out comes from
+       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride, braceShare: 'full' | 'share' } — anything left out comes from
        the files, the PCS, the design or NBG's defaults. */
   const SEIS_DEFAULTS = { SW: 2, RDL: 3, RSW: 0, wall: 3, split: 'dead', sfrs: ['X-Bracing', 'X-Bracing'] };   // RDL: NBG Bracing's own default when the PCS says Per Seller (NBG Frame works out 2.7–2.8 psf on the jobs seen: 3 is on the safe side)
   const SEIS_SYSTEMS = ['X-Bracing', 'Portal Frame', 'Portal Frame (IMF)', 'Portal Frame (SMF)', 'X-Bracing (SCBF)'];
@@ -10884,6 +11150,9 @@ table.snow-roofs td small.sub-n { display: block; }
       .filter(e => !ctxs.some(c => { const n = nameOf(c.bkey); return n ? bkeyName(n) === bkeyName(nameOf(e.bkey)) : geoKey(c.bkey) === geoKey(e.bkey); }));
     if ((!live.length && !extra.length) || !SEIS) return null;
     const F = PCS.fmtFtIn, c0 = live[0] || { inp: { job: { ...(pcs.job || {}), code: pcs.code }, seismic: { ...(pcs.seismic || {}) } } }, px = c0.inp.seismic || {}, need = [], notes = [];
+    // a Canadian job: NBCC seismic (Sa(T), Rd · Ro, Mv, Ie) is not ASCE 7 — the numbers come from NBG Design Calcs
+    const jc = (c0.inp.job || {}).code || {};
+    if (jc.family === 'CSA') return { ok: false, error: true, canada: true, need: [], notes: [{ level: 'stop', text: `${jc.text || 'A Canadian code'}: ${jc.note || 'NBCC'} This tool works ASCE 7 seismic only — work the seismic in NBG Design Calcs (NBCC) — drop its .nbgcalcs at the top of the Calcs page and each building's seismic opens there as Design Calcs worked it.` }], buildings: [], inputs: {}, flags: {}, design: null, cfg };
     const files = cfg.files || {}, bkeys = [...new Set(live.map(c => c.bkey))].concat(extra.map(e => e.bkey));
     // a dropped bracing / eScope file belongs to one building; its project values (code, site) stand for the job
     const fx = files[bkeys.find(k => files[k])] || {};
@@ -10934,12 +11203,12 @@ table.snow-roofs td small.sub-n { display: block; }
       // 3. roof loading
       const ff = bo.frameFile || {}, bff = bf.from ? bf : fx;
       const roof = {
-        SW: srcOf([bo.SW, 'typed'], [SEIS_DEFAULTS.SW, 'default']),
+        SW: srcOf([bo.SW, 'typed'], [bff.SW, bff.from || fromFile], [SEIS_DEFAULTS.SW, 'default']),
         // NBG Frame works the roof dead out of the panel and purlins it designed — the value the engineer carries into Design
         // Calcs (2.7291 psf on the 3-building job, where the bracing run still had 3); the bracing / eScope value next
         RDL: srcOf([bo.RDL, 'typed'], [ff.roofDead, 'frame file'], [bff.roofDead, bff.from || fromFile], [rl.dead && rl.dead.value, 'PCS'], [SEIS_DEFAULTS.RDL, 'default']),
         CDL: srcOf([bo.CDL, 'typed'], [bff.collateral, bff.from || fromFile], [rl.coll1, 'PCS'], [ff.roofCollateral, 'frame file'], [0, 'default']),
-        RSW: srcOf([bo.RSW, 'typed'], [SEIS_DEFAULTS.RSW, 'default']),
+        RSW: srcOf([bo.RSW, 'typed'], [bff.RSW, bff.from || fromFile], [SEIS_DEFAULTS.RSW, 'default']),
         Pf: srcOf([bo.Pf, 'typed'], [bff.snow, bff.from || fromFile], [rl.snow && rl.snow.value, 'PCS'], [0, 'default']),
       };
       if (roof.RDL.source === 'default') notes.push({ level: 'info', text: `${name}: roof dead load ${SEIS_DEFAULTS.RDL} psf assumed ("Per Seller" on the PCS) — NBG Bracing's own default; NBG Frame works it out from the panel and purlins (2.7–2.8 psf on the jobs seen). Drop the job's .frame file on the Project page and its value is used; or type it in step 3.` });
@@ -11066,15 +11335,18 @@ table.snow-roofs td small.sub-n { display: block; }
       // all of them. Cut along the length where that changes; in each piece a mezzanine's force (by its length in the
       // piece) goes to the two edges by the lever rule. Then the same for the DM's 1 % (FDL + FLL) stability force.
       const xsCut = [...new Set(mz.flatMap(m => [m.x0, m.x1, ...m.holes.flatMap(o => [o.x0, o.x1])]).map(v => +v.toFixed(3)))].sort((a, b) => a - b);
+      // Two ways a line takes it: its share (the lever rule above), or — as the engineers' own bracing files enter it —
+      // the full force of each mezzanine it bounds, in EQB and in EQF (cfg.braceShare: 'share' | 'full', the default)
       const lines = new Map();
-      const add = (y, xa, xb, Fq, st, ids, elev) => {
-        const k = y.toFixed(2), L = lines.get(k) || { y, segs: [], F: 0, stab: 0, mezz: new Set(), at: 0 };
-        L.F += Fq; L.stab += st; ids.forEach(i => L.mezz.add(i)); L.at = Math.max(L.at, elev);
+      const add = (y, xa, xb, Fq, Ff, st, ids, elev, by) => {
+        const k = y.toFixed(2), L = lines.get(k) || { y, segs: [], Fs: 0, Ff: 0, stab: 0, mezz: new Set(), at: 0, by: {} };
+        L.Fs += Fq; L.Ff += Ff; L.stab += st; ids.forEach(i => L.mezz.add(i)); L.at = Math.max(L.at, elev);
+        Object.entries(by).forEach(([id, v]) => { const o = L.by[id] = L.by[id] || { share: 0, full: 0 }; o.share += v.share; o.full += v.full; });
         const last = L.segs[L.segs.length - 1];
         if (last && Math.abs(last[1] - xa) < 0.01) last[1] = xb; else L.segs.push([xa, xb]);
         lines.set(k, L);
       };
-      const force = id => (long.mezzLoads.find(q => q.id === id) || { F: 0 }).F;
+      const force = id => (long.mezzLoads.find(q => String(q.id) === String(id)) || { F: 0 }).F;
       const gravity = m => ((m.FDL + m.FLC + m.FLJ + (m.partition ? m.FLP : 0)) + m.FLL) * m.area / 1000;   // FDL + FLL, kips
       for (let i = 0; i + 1 < xsCut.length; i++) {
         const xa = xsCut[i], xb = xsCut[i + 1], here = mz.filter(m => m.x0 <= xa + 0.01 && m.x1 >= xb - 0.01);
@@ -11090,22 +11362,27 @@ table.snow-roofs td small.sub-n { display: block; }
             }
           }
           const yA = Math.min(...fl.map(m => m.y0)), yB = Math.max(...fl.map(m => m.y1)), span = yB - yA;
-          let FA = 0, FB = 0, SA = 0, SB = 0;
+          let FA = 0, FB = 0, Ff = 0, SA = 0, SB = 0;
+          const byA = {}, byB = {};
           fl.forEach(m => {
-            const pc = floorIn(m, xa, xb), part = m.area > 0 ? pc.a / m.area : 0, a = (yB - pc.yc) / span;
-            FA += force(m.id) * part * a; FB += force(m.id) * part * (1 - a);
+            const pc = floorIn(m, xa, xb), part = m.area > 0 ? pc.a / m.area : 0, a = (yB - pc.yc) / span, Fm = force(m.id) * part;
+            FA += Fm * a; FB += Fm * (1 - a); Ff += Fm;
+            byA[m.id] = { share: Fm * a, full: Fm }; byB[m.id] = { share: Fm * (1 - a), full: Fm };
             SA += 0.01 * gravity(m) * part * a; SB += 0.01 * gravity(m) * part * (1 - a);
           });
           const ids = fl.map(m => m.id), elev = Math.max(...fl.map(m => m.elev));
-          add(yA, xa, xb, FA, SA, ids, elev); add(yB, xa, xb, FB, SB, ids, elev);
+          add(yA, xa, xb, FA, Ff, SA, ids, elev, byA); add(yB, xa, xb, FB, Ff, SB, ids, elev, byB);
         }
       }
+      const full = cfg.braceShare !== 'share';
       [...lines.values()].sort((a, b) => a.y - b.y).forEach(L => {
+        L.F = full ? L.Ff : L.Fs;
         const onWall = L.y < 0.6 ? 'FSW' : L.y > W - 0.6 ? 'BSW' : null;
         const lab = onWall ? `${onWall} sidewall` : `${grid.yLabel(L.y) ? 'line ' + grid.yLabel(L.y) + ', ' : ''}${F(L.y)} from the FSW`;
         bOut.braceLines.push({ mezz: [...L.mezz], y: L.y, segs: L.segs, edge: lab, at: L.at, wall: onWall, x0: Math.min(...L.segs.map(s => s[0])), x1: Math.max(...L.segs.map(s => s[1])),
           element: onWall ? `${onWall} sidewall bracing — EQB / EQF at the mezzanine level, wall strut line at ${F(L.at)}` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
-          independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
+          independent: !onWall, F: L.F, Fshare: L.Fs, Ffull: L.Ff, share: full ? 'full' : 'share', by: Object.entries(L.by).map(([id, v]) => ({ id, total: force(id), ...v })),
+          stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
       bOut.workbook = seismicSteps({ inp, d, ed, code, g, bd, roof, walls, mz, significant, flags, sfrs, name, quote: (c0.inp.job || {}).quote, J, longIn }, bOut);
     });
@@ -11489,9 +11766,9 @@ table.snow-roofs td small.sub-n { display: block; }
    and src/snow.js work the numbers. */
 window.MZ_APP_BUILDING = function (C) {
   'use strict';
-  const { state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B, SITE, SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, bracingPlan, zipIO, cpSave } = C;
+  const { state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B, SITE, SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, addCalcsFile, bracingPlan, zipIO, cpSave } = C;
   const F1 = v => f(v, 1), F2 = v => f(v, 2), F3 = v => f(v, 3);
-  const JOB_VIEWS = new Set(['upload', 'building', 'snow', 'seismic', 'frames', 'bracing', 'purlins']);
+  const JOB_VIEWS = new Set(['upload', 'building', 'calcs', 'snow', 'seismic', 'frames', 'bracing', 'purlins']);
   const MEZZ_VIEWS = new Set(['results', 'inputs', 'plan', 'beam', 'column', 'designer']);
   let bldModel = null, snowRestored = null;
   const DEFAULT_PURLIN = 5;
@@ -11509,7 +11786,8 @@ window.MZ_APP_BUILDING = function (C) {
     if (tabs) tabs.classList.toggle('ws-off', ws !== 'mezz');
   }
   const wsOf = view => (MEZZ_VIEWS.has(view) ? 'mezz' : JOB_VIEWS.has(view) ? 'job' : null);
-  $$('[data-ws]').forEach(b => { b.onclick = () => { const ws = b.dataset.ws; setWs(ws); go(ws === 'mezz' ? 'results' : 'building'); }; });
+  $$('button[data-ws]').forEach(b => { b.onclick = () => { const ws = b.dataset.ws; setWs(ws); go(ws === 'mezz' ? 'results' : 'building'); }; });
+  document.body.dataset.ws = state.ws;   // the page opens on the whole building: the mezzanine strip waits for its workspace
   const navMezz = $('#navMezz');
   if (navMezz) navMezz.onclick = () => { setWs('mezz'); go('results'); };
 
@@ -11527,11 +11805,13 @@ window.MZ_APP_BUILDING = function (C) {
   function compute() {
     state.snowJob = null;
     if (!state.pcs || !state.pcs.site) return;
-    const F = facts();
-    if (!(F.pg.value > 0)) return;
+    const F = facts(), canada = ((state.pcs.code || {}).family === 'CSA');
+    // a Canadian job: the site and its frames are drawn, with no snow worked — NBCC snow (Ss, Sr, Cb …) is not ASCE 7
+    if (!(F.pg.value > 0) && !canada) return;
     try {
-      state.snowJob = SITE.snowJob(state.pcs, { ed: F.ed, pg: F.pg.value, Ce: F.Ce.value, risk: F.risk, W2: F.W2.value }, state.snow || {});
+      state.snowJob = SITE.snowJob(state.pcs, { ed: F.ed, pg: canada ? 0 : F.pg.value, Ce: F.Ce.value, risk: F.risk, W2: F.W2.value }, state.snow || {});
       state.snowJob.F = F;
+      if (canada) state.snowJob.canada = { code: state.pcs.code.text, note: state.pcs.code.note, Ss: (state.pcs.seismic || {}).groundSnowKpa };
     } catch (e) { console.error(e); state.snowJob = { error: e.message, site: { buildings: [] }, roofs: [], drifts: [], notes: [], F }; }
   }
   // the mezzanines as boxes in their own building's plan, with their columns (for the site drawings)
@@ -11559,20 +11839,21 @@ window.MZ_APP_BUILDING = function (C) {
       const pw = pb[w] || null, kind = pw ? pw.kind : 'x';
       let check = null;
       if (bf && bf.file.info.walls[w]) {
-        bays = bf.file.info.walls[w].bays.filter(x => x.braced).map(x => ({ from: x.from, to: x.to, tiers: [...new Set(x.braces.map(t => `${t.bottom}|${t.top}`))].map(q => q.split('|').map(Number)), kind: 'x', src: 'file' }));
-        // the bracing file against PCS Box 12, bay by bay (bay n: frame lines n to n + 1). Portal frames are not rods, so a
-        // PCS portal bay the file leaves bare is drawn from the PCS.
-        const fileN = bays.map(q => q.from + 1), list = a => a.join(', ');
+        bays = bf.file.info.walls[w].bays.filter(x => x.braced).map(x => ({ from: x.from, to: x.to, tiers: [...new Set(x.braces.map(t => `${t.bottom}|${t.top}`))].map(q => q.split('|').map(Number)), kind: x.portal ? 'portal' : 'x', src: 'file', id: x.portal ? x.portal.id : null }));
+        // the bracing file against PCS Box 12, bay by bay (bay n: frame lines n to n + 1): its rods, and its portal frames
+        // (<PortalFrames>); a PCS portal bay the file leaves bare is drawn from the PCS.
+        const fileN = bays.filter(q => q.kind === 'x').map(q => q.from + 1), filePF = bays.filter(q => q.kind === 'portal').map(q => q.from + 1), list = a => a.join(', ');
         const pre = `${name} ${w}: PCS Box 12 asks for ${pw ? pw.type : ''}`;
         if (pw && pw.kind === 'portal' && pw.bays.length) {
           const clash = pw.bays.filter(n => fileN.includes(n));
-          bays = bays.concat(pw.bays.filter(n => !fileN.includes(n)).map(n => ({ from: n - 1, to: n, tiers: [], kind: 'portal', src: 'PCS' })));
+          bays = bays.concat(pw.bays.filter(n => !fileN.includes(n) && !filePF.includes(n)).map(n => ({ from: n - 1, to: n, tiers: [], kind: 'portal', src: 'PCS' })));
           if (clash.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has X-bracing rods in bay${clash.length > 1 ? 's' : ''} ${list(clash)} instead — check which the wall gets.` };
         } else if (pw && pw.kind === 'x' && pw.bays.length) {
           const miss = pw.bays.filter(n => !fileN.includes(n)), extra = fileN.filter(n => !pw.bays.includes(n));
-          if (!fileN.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has no braced bay on this wall yet.` };
+          if (filePF.some(n => pw.bays.includes(n))) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has a portal frame in bay${filePF.length > 1 ? 's' : ''} ${list(filePF)}.` };
+          else if (!fileN.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} has no braced bay on this wall yet.` };
           else if (miss.length || extra.length) check = { level: 'warn', text: `${pre} in bay${pw.bays.length > 1 ? 's' : ''} ${list(pw.bays)}; ${bf.name} braces bay${fileN.length > 1 ? 's' : ''} ${list(fileN)}.` };
-        } else if (pw && pw.kind === 'none' && fileN.length) check = { level: 'warn', text: `${name} ${w}: PCS Box 12 lists no bracing on this wall; ${bf.name} braces bay${fileN.length > 1 ? 's' : ''} ${list(fileN)}.` };
+        } else if (pw && pw.kind === 'none' && (fileN.length || filePF.length)) check = { level: 'warn', text: `${name} ${w}: PCS Box 12 lists no bracing on this wall; ${bf.name} braces bay${fileN.length + filePF.length > 1 ? 's' : ''} ${list([...fileN, ...filePF].sort((a, c) => a - c))}.` };
       } else if (scopeB && scopeB.bracing && (scopeB.bracing[w] || []).some(t => (t.bays || []).length)) bays = scopeB.bracing[w].flatMap(t => (t.bays || []).map(n => ({ from: n - 1, to: n, tiers: [], kind: /portal/i.test(t.type || '') ? 'portal' : 'x', src: 'eScope' })));
       else if (pw && pw.kind !== 'none') bays = pw.kind === 'roofx' ? [{ from: 0, to: 1, tiers: [], kind: 'roofx', src: 'PCS' }] : pw.bays.map(n => ({ from: n - 1, to: n, tiers: [], kind, src: 'PCS' }));
       // an endwall's bays count from the FSW corner, as Box 2 lists its column spacing (one practice job: LEW bay 2 = F–D, 26'-9"; another:
@@ -11627,15 +11908,15 @@ window.MZ_APP_BUILDING = function (C) {
       <div class="pj-grid">
         <div class="pj-card"><h4>Buildings <small>PCS Box 2 / 4 / 12</small></h4>${bl}${att ? `<ul class="pj-list">${att}</ul>` : ''}</div>
         <div class="pj-card"><h4>Loads <small>PCS Box 3</small></h4><div class="pj-facts">${F ? `<span>Ground snow <b>${F.pg.value != null ? F1(F.pg.value) + ' psf' : '—'}</b></span><span>Ce <b>${F2(F.Ce.value)}</b>${F.ceText ? ` <small>${esc(F.ceText)}</small>` : ''}</span><span>ASCE <b>${esc(F.ed)}</b></span>` : ''}<span>Ss <b>${esc((pcs.seismic || {}).Ss ?? '—')}</b> · S1 <b>${esc((pcs.seismic || {}).S1 ?? '—')}</b></span><span>Site <b>${esc((pcs.seismic || {}).siteClass || '—')}</b></span></div>
-          <div class="pj-links"><a href="#" data-go="snow">Snow &amp; drift</a><a href="#" data-go="seismic">Seismic</a><a href="#" data-go="frames">Frames</a><a href="#" data-go="bracing">Bracing</a></div></div>
+          <div class="pj-links"><a href="#" data-go="calcs">Calcs</a><a href="#" data-go="frames">Frames</a><a href="#" data-go="bracing">Bracing</a></div></div>
         <div class="pj-card pj-files"><h4>The job's NBG files <small>frame · bracing · eScope</small></h4>
-          <label class="nbg-drop pj-drop" id="pjDrop"><input type="file" id="pjFile" accept=".frame,.bracing,.nbgscope" multiple><svg><use href="#i-file"/></svg><span><strong>Drop the .frame, .bracing and .nbgscope files here</strong><small>each goes where it belongs: frame files get their loads on the Frames page, the bracing file its EQB / EQF on the Bracing page, the eScope fills in the code and loads</small></span></label>
+          <label class="nbg-drop pj-drop" id="pjDrop"><input type="file" id="pjFile" accept=".frame,.bracing,.nbgscope,.nbgcalcs" multiple><svg><use href="#i-file"/></svg><span><strong>Drop the .frame, .bracing, .nbgscope and .nbgcalcs files here</strong><small>each goes where it belongs: frame files get their loads on the Frames page, the bracing file its EQB / EQF on the Bracing page, the eScope fills in the code and loads, the Design Calcs file is checked and filled on the Calcs page</small></span></label>
           ${loaded.length ? `<ul class="pj-list">${loaded.join('')}</ul>` : '<small class="sub-n">none yet</small>'}</div>
         <div class="pj-card"><h4>Hand-off <small>what the engineer checks</small></h4><p>The real NBG workbooks, filled by the tool, and the design basis with every input and where it came from.</p>
           <div class="pj-acts"><button class="btn-soft" data-cpdl="all"><svg><use href="#i-file"/></svg>Filled workbooks + design basis (.zip)</button><button class="btn-ghost" data-cpdl="xlsx">Design basis (.xlsx)</button></div><small class="sub-n">The workbooks are added once on the Design page (Calc package → Add workbooks); each copy is the original file with the job typed into it, so Excel recalculates everything itself.</small></div>
       </div></div>`;
     const inp = $('#pjFile'), drop = $('#pjDrop');
-    const route = list => { const fr = list.filter(x => /\.frame$/i.test(x.name)), se = list.filter(x => /\.(bracing|nbgscope)$/i.test(x.name)); if (fr.length) addFrameFiles(fr); if (se.length) addSeisFiles(se); if (!fr.length && !se.length) toast('Drop .frame, .bracing or .nbgscope files'); };
+    const route = list => { const fr = list.filter(x => /\.frame$/i.test(x.name)), se = list.filter(x => /\.(bracing|nbgscope)$/i.test(x.name)), dc = list.filter(x => /\.nbgcalcs$/i.test(x.name)); if (fr.length) addFrameFiles(fr); if (se.length) addSeisFiles(se); dc.forEach(x => addCalcsFile && addCalcsFile(x)); if (!fr.length && !se.length && !dc.length) toast('Drop .frame, .bracing, .nbgscope or .nbgcalcs files'); };
     inp.onchange = () => { route(Array.from(inp.files || [])); inp.value = ''; };
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-over'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-over'); }));
@@ -11748,6 +12029,14 @@ window.MZ_APP_BUILDING = function (C) {
     if (!box) return;
     if (!state.pcs) { box.innerHTML = '<div class="empty">Load a PCS first.</div>'; ['#snowRoofs', '#snowSteps', '#snowFrames', '#snowHow'].forEach(q => { $(q).innerHTML = ''; }); return; }
     const J = state.snowJob, F = J ? J.F : facts(), c = state.snow || {};
+    $('#v-snow').classList.toggle('calc-none', !!(J && J.canada));
+    $('#snowStatus').innerHTML = '';
+    if (J && J.canada) {
+      box.innerHTML = '';
+      $('#snowStatus').innerHTML = `<div class="seis-msg stop"><b>${esc(J.canada.code || 'Canadian code')}</b> — ${esc(J.canada.note || 'NBCC')} ${J.canada.Ss != null ? `Ground snow Ss ${J.canada.Ss} kPa on the PCS. ` : ''}This tool works ASCE 7 snow only: work the snow and the drifts in NBG Design Calcs (NBCC) — drop its .nbgcalcs at the top of this page and each roof's snow and drift opens here as Design Calcs worked it. No snow from this tool goes on the frames.</div>`;
+      ['#snowRoofs', '#snowSteps', '#snowFrames', '#snowHow'].forEach(q => { $(q).innerHTML = ''; });
+      return;
+    }
     const tag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-snow="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
     const chk = (key, on, label) => `<label class="seis-chk"><input type="checkbox" data-snow="${esc(key)}" ${on ? 'checked' : ''}> <span>${label}</span></label>`;
@@ -12220,14 +12509,14 @@ window.MZ_APP_BUILDING = function (C) {
     const lines = bf ? bf.file.info.lines.map(l => ({ no: l.index + 1, x: l.x })) : b.xs.map((x, i) => ({ no: i + 1, x }));
     const mz = mezzBoxes().filter(q => sameName(q.building, b.name)), lt = (letters.get(b.name) || { lab: new Map() }).lab;
     const letter = y => { for (const [v, t] of lt) if (Math.abs(v - y) < 0.3) return t; return null; };
-    const edges = live && bS ? bS.braceLines.map(l => ({ y: l.y, segs: l.segs, at: l.at, mezz: l.mezz, F: l.F, design: l.design, governs: l.governs, stab: l.stab, wall: l.wall }))
+    const edges = live && bS ? bS.braceLines.map(l => ({ y: l.y, segs: l.segs, at: l.at, mezz: l.mezz, F: l.F, design: l.design, governs: l.governs, stab: l.stab, wall: l.wall, by: l.by, Fshare: l.Fshare, Ffull: l.Ffull, share: l.share }))
       : edgesOf(mz).map(e => ({ ...e, F: null, design: null, wall: e.y < 0.6 ? 'FSW' : e.y > W - 0.6 ? 'BSW' : null }));
     const plan = bf && bS && live ? bracingPlan(bS) : null, M = { b, bS, bf, br, lines, fls, mz, live, plan, list: [], letter };
     // ---- the sidewalls ----
     ['FSW', 'BSW'].forEach(w => {
       const e = edges.find(q => q.wall === w) || null, wi = bf && bf.file.info.walls[w], bw = br.walls[w];
       // the file's rods, and PCS Box 12's portal frames in bays the file leaves bare (portal frames are not rods)
-      const bays = wi ? wi.bays.map(x => { const pf = !x.braced && bw.bays.find(q => q.kind === 'portal' && q.from === x.from); return pf ? { ...x, braced: true, kind: 'portal', src: 'PCS' } : { ...x, kind: 'x' }; })
+      const bays = wi ? wi.bays.map(x => { const pf = !x.braced && bw.bays.find(q => q.kind === 'portal' && q.from === x.from); return pf ? { ...x, braced: true, kind: 'portal', src: 'PCS' } : { ...x, kind: x.portal ? 'portal' : 'x' }; })
         : lines.slice(0, -1).map((l, i) => { const bb = bw.bays.find(q => q.from === i); return { from: i, to: i + 1, braced: !!bb, kind: bb ? bb.kind : 'x', braces: bb && bb.tiers.length ? bb.tiers.map(([bottom, top]) => ({ bottom, top })) : [], struts: [] }; });
       let loads = [], struts = [];
       if (plan) {
@@ -12281,6 +12570,112 @@ window.MZ_APP_BUILDING = function (C) {
     ['LEW', 'REW'].forEach(w => M.list.push({ key: `${b.name}|${w}`, kind: 'end', wall: w, label: w, bw: br.walls[w] }));
     return M;
   }
+  // ---- the bracing file: what its last design found on a wall, and what the tool writes against what it holds ----
+  const LOAD_NAME = 'Mezz. Seismic';
+  const memberName = m => String(m || '—').replace(/^(\d+(?:\/\d+)?)_ROD$/i, '$1" rod').replace(/_/g, ' ');
+  const comboText = (bf, n) => { const c = n == null ? null : (bf.file.info.combos || [])[n]; return c ? c.text : n == null ? '—' : `combination ${n + 1}`; };
+  const ratioCell = (a, cap) => (cap > 0 ? `<td class="num mono ${a / cap > 1 + 1e-9 ? 'r-bad' : a / cap > 0.9 ? 'r-warn' : ''}"><b>${F2(a / cap)}</b></td>` : '<td class="num mono"><small class="sub-n">not checked</small></td>');
+  const lineNo = (bf, i) => { const l = bf.file.info.lines.find(q => q.index === i); return l ? l.name : String(i + 1); };
+  // a portal frame's largest sway reaction and drift over the combinations, and the capacity its ID names (…H5K: 5 k)
+  function portalOf(p) {
+    const n = Math.max(p.H1.length, p.H2.length), H = i => Math.max(Math.abs(p.H1[i] || 0), Math.abs(p.H2[i] || 0));
+    let iH = 0, iD = 0;
+    for (let i = 1; i < n; i++) { if (H(i) > H(iH)) iH = i; if ((p.delta[i] || 0) > (p.delta[iD] || 0)) iD = i; }
+    const cap = +((String(p.id || '').match(/H([\d.]+)K$/i) || [])[1]) || null;
+    return { H: n ? H(iH) : null, comboH: iH, drift: p.delta.length ? p.delta[iD] : null, comboD: iD, cap };
+  }
+  // the members of one wall as the file's last design left them: rods tier by tier, portal frames, struts by height
+  function wallResults(bf, w, mezzAt) {
+    const I = bf.file.info, wl = I.walls[w];
+    if (!wl) return '';
+    const rows = [];
+    wl.bays.filter(x => x.braced).forEach(x => {
+      const bay = `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}`;
+      if (x.portal) {
+        const q = portalOf(x.portal), hgt = x.portal.height;
+        rows.push(`<tr><td class="mono"><b>${bay}</b></td><td>Portal frame <span class="mono">${esc(x.portal.id || '')}</span><small class="sub-n">${ft(hgt)} high${x.portal.grid ? ` · line ${esc(x.portal.grid)}` : ''}</small></td><td class="mono">0'-0" – ${ft(hgt)}</td>
+          <td class="num mono">H ${q.H != null ? F2(q.H) : '—'}${q.cap ? ` / ${F2(q.cap)}` : ''}<small class="sub-n">drift ${q.drift != null ? `${F2(q.drift)} in${hgt ? ` · h/${Math.round(hgt * 12 / q.drift)}` : ''}` : '—'}</small></td>${q.cap ? ratioCell(q.H, q.cap) : '<td class="num mono">—</td>'}<td><small>${esc(comboText(bf, q.comboH))}</small></td></tr>`);
+        return;
+      }
+      const tiers = new Map();
+      x.braces.forEach(r => { const k = `${r.bottom}|${r.top}`, t = tiers.get(k) || { bottom: r.bottom, top: r.top, rods: [] }; t.rods.push(r); tiers.set(k, t); });
+      [...tiers.values()].sort((a, c) => a.bottom - c.bottom).forEach(t => {
+        const g = t.rods.reduce((a, r) => (r.axial > a.axial ? r : a), t.rods[0]), cap = Math.min(...t.rods.map(r => r.allowed).filter(v => v > 0));
+        rows.push(`<tr><td class="mono"><b>${bay}</b></td><td>${esc([...new Set(t.rods.map(r => memberName(r.member)))].join(' / '))} X<small class="sub-n">${esc([...new Set(t.rods.map(r => r.id).filter(Boolean))].join(', '))}</small></td><td class="mono">${ft(t.bottom)} – ${ft(t.top)}${tiers.size > 1 ? ' <small class="sub-n">tier</small>' : ''}</td>
+          <td class="num mono">${F2(g.axial)}${isFinite(cap) ? ` / ${F2(cap)}` : ''}</td>${ratioCell(g.axial, isFinite(cap) ? cap : 0)}<td><small>${esc(comboText(bf, g.combo))}</small></td></tr>`);
+      });
+    });
+    // struts: one row a height along the wall — the largest force and the bay it is in
+    const byZ = new Map();
+    wl.bays.forEach(x => x.struts.forEach(t => { const k = (+t.elev).toFixed(2), o = byZ.get(k) || { elev: t.elev, max: null, ids: new Set(), n: 0, real: 0 }; o.n++; if (t.real) o.real++; if (t.id) o.ids.add(t.id); if (!o.max || t.axial > o.max.axial) o.max = { ...t, bay: `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}` }; byZ.set(k, o); }));
+    const st = [...byZ.values()].sort((a, c) => c.elev - a.elev).map(o => {
+      const m = o.max, atMz = mezzAt != null && Math.abs(o.elev - mezzAt) < 0.05, unchecked = !(m.allowed > 0) && m.axial > 0.005;
+      return `<tr class="${atMz ? 'is-mz' : ''}"><td class="mono"><b>${ft(o.elev)}</b>${atMz ? ' <small class="src src-ok">mezzanine</small>' : ''}</td><td><span class="mono">${esc([...o.ids].join(', ') || '—')}</span><small class="sub-n">${o.n} bay${o.n > 1 ? 's' : ''}${o.real ? ` · ${o.real} added as wall strut${o.real > 1 ? 's' : ''}` : ''}</small></td><td class="mono">${esc(m.bay)}</td>
+        <td class="num mono">${F2(m.axial)}${m.allowed > 0 ? ` / ${F2(m.allowed)}` : ''}</td>${unchecked ? '<td class="num mono"><small class="src src-bad">not checked</small></td>' : ratioCell(m.axial, m.allowed)}<td><small>${esc(comboText(bf, m.combo))}</small></td></tr>`;
+    });
+    const mz = I.loads.some(r => r.name === LOAD_NAME), status = I.status;
+    return `<div class="bl-res"><div class="bl-res-h"><h5>${esc(bf.name)} · as last designed</h5><small class="sub-n">${status ? (status.designed ? 'designed' : status.solved ? 'solved, not designed' : 'not solved') : ''}${mz ? ' · with its Mezz. Seismic rows' : ' · without mezzanine loads — design it again in NBG Bracing once the download is opened'}</small></div>
+      ${rows.length ? `<div class="table-wrap"><table class="fl-t bl-res-t"><thead><tr><th>Bay</th><th>Member</th><th>Height</th><th class="num">Force / allowed (k)</th><th class="num">Ratio</th><th>Governing combination</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<div class="seis-msg warn">No braced bay on this wall in the file.</div>'}
+      ${st.length ? `<div class="table-wrap"><table class="fl-t bl-res-t"><thead><tr><th>Strut line</th><th>Member</th><th>Largest in bay</th><th class="num">Force / allowed (k)</th><th class="num">Ratio</th><th>Governing combination</th></tr></thead><tbody>${st.join('')}</tbody></table></div>` : ''}</div>`;
+  }
+  // the Mezz. Seismic rows already in the file on one wall, against what the tool writes
+  function fileRowsCmp(bf, w, loads) {
+    const I = bf.file.info, wl = I.walls[w], have = wl ? I.loads.filter(r => r.name === LOAD_NAME && r.plane === wl.plane) : [];
+    if (!have.length) return '';
+    const key = (c, line, z) => `${c}|${line}|${(+z).toFixed(2)}`, ours = new Map(loads.map(l => [key(l.caseId, l.line - 1, l.elev), l.F]));
+    const seen = new Set(), rows = have.map(r => { const k = key(r.caseId, r.line, r.elev), o = ours.get(k); seen.add(k); const ok = o != null && Math.abs(o - r.F) <= 0.006;
+      return `<tr class="${ok ? '' : 'is-diff'}"><td class="mono"><b>${esc(r.caseId)}</b></td><td class="mono">${esc(lineNo(bf, r.line))}</td><td class="num mono">${ft(r.elev)}</td><td class="num mono">${F2(r.F)}</td><td class="num mono">${o != null ? F2(o) : '—'}</td><td>${ok ? '<span class="src src-ok">ties</span>' : '<span class="src src-bad">differs</span>'}</td></tr>`; });
+    loads.filter(l => !seen.has(key(l.caseId, l.line - 1, l.elev))).forEach(l => rows.push(`<tr class="is-diff"><td class="mono"><b>${esc(l.caseId)}</b></td><td class="mono">${esc(lineNo(bf, l.line - 1))}</td><td class="num mono">${ft(l.elev)}</td><td class="num mono">—</td><td class="num mono">${F2(l.F)}</td><td><span class="src src-bad">not in the file</span></td></tr>`));
+    const differ = rows.some(r => /is-diff/.test(r));
+    return `<div class="table-wrap"><table class="fl-t bl-cmp"><thead><tr><th>Mezz. Seismic</th><th>Frame line</th><th class="num">Elevation</th><th class="num">In the file now (k)</th><th class="num">The tool writes (k)</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      + `<small class="sub-n bl-cmp-n">${differ ? 'The download puts the tool\'s rows in place of these. Its force is the Seismic calc\'s — on the Calcs page that calc is set against the job\'s Design Calcs file (its inputs can be taken from it).' : 'The tool writes the rows the file already holds.'}</small>`;
+  }
+  /* the bracing file against the job: its building, frame lines, roof loads and seismic against the PCS and the Seismic
+     calc, each member over its allowable, and a strut at the mezzanine level NBG Bracing does not check (a girt or the
+     mezzanine's edge beam: DM 15.1 — a mezzanine beam in a bracing system is designed for the axial with its bending) */
+  function fileChecks(M) {
+    const { b, bS, bf } = M, out = [];
+    if (!bf) return out;
+    const I = bf.file.info, g = b.g, pre = `${bf.name}: `, near = (a, c, t) => a != null && c != null && Math.abs(a - c) <= t;
+    if (!near(I.width, g.width, 0.05) || !near(I.length, g.length, 0.05)) out.push({ level: 'warn', text: `${pre}${ft(I.width)} × ${ft(I.length)} — the PCS has ${ft(g.width)} × ${ft(g.length)}.` });
+    if (!near(I.eaveFSW, g.eaveFSW, 0.05) || !near(I.eaveBSW, g.eaveBSW, 0.05)) out.push({ level: 'warn', text: `${pre}eaves FSW ${ft(I.eaveFSW)} / BSW ${ft(I.eaveBSW)} — the PCS has ${ft(g.eaveFSW)} / ${ft(g.eaveBSW)}.` });
+    const xs = b.xs || [];
+    if (xs.length && (I.lines.length !== xs.length || I.lines.some((l, i) => !near(l.x, xs[i], 0.1)))) out.push({ level: 'warn', text: `${pre}frame lines at ${I.lines.map(l => ft(l.x)).join(', ')} — the PCS has ${xs.map(ft).join(', ')}.` });
+    const sjI = state.job && state.job.seismic && state.job.seismic.inputs, u = bS && bS.long && bS.long.bracing, z = I.seismic;
+    if (bS && bS.roof) {
+      const R = bS.roof;
+      if (I.roofDead != null && R.RDL.value != null && !near(I.roofDead, R.RDL.value, 0.01)) out.push({ level: 'info', text: `${pre}roof dead ${F2(I.roofDead)} psf — the seismic takes ${F2(R.RDL.value)} psf (${R.RDL.source}).` });
+      if (I.collateral != null && R.CDL.value != null && !near(I.collateral, R.CDL.value, 0.01)) out.push({ level: 'info', text: `${pre}collateral ${F2(I.collateral)} psf — the seismic takes ${F2(R.CDL.value)} psf (${R.CDL.source}).` });
+    }
+    if (z && sjI) {
+      const pairs = [['Ss', z.Ss, sjI.Ss && sjI.Ss.value, 0.0005], ['S1', z.S1, sjI.S1 && sjI.S1.value, 0.0005]].filter(([, a, c, t]) => a != null && c != null && !near(a, c, t));
+      if (pairs.length || (z.siteClass && sjI.siteClass && z.siteClass !== sjI.siteClass.value)) out.push({ level: 'warn', text: `${pre}${[...pairs.map(([k, a, c]) => `${k} ${F3(a)} (the calc ${F3(c)})`), z.siteClass && sjI.siteClass && z.siteClass !== sjI.siteClass.value ? `site class ${z.siteClass} (the calc ${sjI.siteClass.value})` : ''].filter(Boolean).join(' · ')}.` });
+    }
+    if (z && u) {
+      if (z.factor != null && !near(z.factor, u.factor, 0.0005)) out.push({ level: 'info', text: `${pre}roof seismic factor ${F3(z.factor)} with R ${z.R} — the Seismic calc's longitudinal works ${F3(u.factor)} with R ${+bS.long.R.toFixed(2)} (${bS.long.sys.label}); NBG Bracing designs with its own.` });
+      if (z.roofTotal != null && !near(z.roofTotal, u.totalPsf, 0.05)) out.push({ level: 'info', text: `${pre}roof total seismic ${F2(z.roofTotal)} psf — the Seismic calc's ${F2(u.totalPsf)} psf.` });
+    }
+    ['FSW', 'BSW'].forEach(w => {
+      const wl = I.walls[w];
+      if (!wl) return;
+      wl.bays.forEach(x => {
+        const bay = `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}`;
+        x.braces.filter(r => r.allowed > 0 && r.axial > r.allowed * (1 + 1e-9)).forEach(r => out.push({ level: 'stop', text: `${pre}${w} bay ${bay}: ${memberName(r.member)} ${ft(r.bottom)}–${ft(r.top)} at ${F2(r.axial)} k over its ${F2(r.allowed)} k (${comboText(bf, r.combo)}).` }));
+        if (x.portal) { const q = portalOf(x.portal); if (q.cap && q.H > q.cap) out.push({ level: 'stop', text: `${pre}${w} bay ${bay}: portal frame ${x.portal.id} sways ${F2(q.H)} k over its ${F2(q.cap)} k.` }); }
+      });
+      // the strut at each mezzanine level: its force, and whether the program checks it
+      M.mz.filter(m => (w === 'FSW' ? m.y0 < 0.6 : m.y1 > g.width - 0.6)).map(m => m.A).filter((v, i, a) => a.indexOf(v) === i).forEach(A => {
+        const at = wl.bays.flatMap(x => x.struts.filter(t => Math.abs(t.elev - A) < 0.05).map(t => ({ ...t, bay: `${lineNo(bf, x.from)}–${lineNo(bf, x.to)}` })));
+        const big = at.reduce((a, t) => (!a || t.axial > a.axial ? t : a), null);
+        if (!at.length) out.push({ level: 'warn', text: `${pre}${w}: no strut at the mezzanine level (${ft(A)}) yet — the download adds the wall strut line, and NBG Bracing tiers the braced bay there.` });
+        else if (big && big.axial > 0.005 && !(big.allowed > 0)) out.push({ level: 'warn', text: `${pre}${w}: the strut at the mezzanine level (${ft(A)}) is ${big.id || 'a girt'} carrying ${F2(big.axial)} k in bay ${big.bay} (${comboText(bf, big.combo)}) — NBG Bracing does not check it: the mezzanine's edge beam (or that girt) takes this axial with its bending (DM 15.1).` });
+      });
+    });
+    if (I.cost && I.cost.totalWeight > 0) out.push({ level: 'info', text: `${pre}bracing ${n0(I.cost.totalWeight)} lb${I.cost.totalCost ? ` · $${n0(I.cost.totalCost)}` : ''} (rods ${n0(I.cost.rodWeight)} · struts ${n0(I.cost.strutWeight)}${I.cost.portalWeight ? ` · portal frames ${n0(I.cost.portalWeight)}` : ''} lb), as last designed.` });
+    else if (I.cost && I.cost.portalWeight > 0) out.push({ level: 'info', text: `${pre}portal frames ${n0(I.cost.portalWeight)} lb${I.cost.portalCost ? ` · $${n0(I.cost.portalCost)}` : ''}, as last designed.` });
+    return out;
+  }
+
   // where along a building a point of a line sits: on a frame line, else its distance from the LEW
   const atLine = (lines, u) => { const l = lines.find(q => Math.abs(q.x - u) < 0.6); return l ? `frame line ${l.no}` : `${ft(u)} from the LEW`; };
 
@@ -12295,12 +12690,18 @@ window.MZ_APP_BUILDING = function (C) {
       const tb = l.bays.filter(x => x.tierable);
       const ctl = tb.length ? `<div class="bl-ctl"><span class="bl-ctl-l">Tier at the mezzanine level</span>${tb.map(x => `<button class="bl-tog${x.tier != null ? ' is-on' : ''}" data-tier="${esc(x.tkey)}" aria-pressed="${x.tier != null}"><i></i>Bay ${x.from + 1}–${x.to + 1}</button>`).join('')}<small class="sub-n">On: the X splits at ${ft(l.struts[0] ? l.struts[0].elev : 0)} where the strut line crosses it${bf ? ' (the strut goes into the file in that bay)' : ''}. Off: the X runs to the eave and the strut line stops at the bay.</small></div>` : '';
       const n = (q, i) => `${q.caseId} ${q.F == null ? '(waiting on Seismic)' : `${q.F >= 0 ? '+' : '−'}${F2(Math.abs(q.F))} k`} at frame line ${q.line}`;
+      // the mezzanine's force on this wall: each mezzanine's whole longitudinal force, the full of it or its share
+      const full = !e || e.share !== 'share';
+      const split = e && e.by && e.by.length ? `<div class="table-wrap"><table class="fl-t bl-split"><thead><tr><th>Mezzanine</th><th class="num">Its longitudinal force (k)</th><th class="num">Full, on this wall</th><th class="num">Its share here <small class="sub-n">lever rule</small></th></tr></thead><tbody>${e.by.map(q => `<tr><td><b>${esc(mezzName(q.id))}</b></td><td class="num mono">${F2(q.total)}</td><td class="num mono ${full ? 'is-on' : ''}">${F2(q.full)}</td><td class="num mono ${full ? '' : 'is-on'}">${F2(q.share)}</td></tr>`).join('')}</tbody><tfoot><tr><td>This wall takes</td><td></td><td class="num mono ${full ? 'is-on' : ''}"><b>${F2(e.Ffull)} k</b></td><td class="num mono ${full ? '' : 'is-on'}"><b>${F2(e.Fshare)} k</b></td></tr></tfoot></table></div>
+        <div class="bl-ctl"><span class="bl-ctl-l">Each wall the floor bears on takes</span>${[['full', 'The full force'], ['share', 'Its share']].map(([k, t]) => `<button class="bl-tog${(k === 'full') === full ? ' is-on' : ''}" data-share="${k}" aria-pressed="${(k === 'full') === full}"><i></i>${t}</button>`).join('')}<small class="sub-n">${full ? 'As the engineers\' own bracing files enter it: each sidewall the mezzanine bears on gets its whole force, +F in EQB at its first frame line and −F in EQF at its last — conservative, the floor not counted on to share it.' : 'The floor as a flexible diaphragm between its edges: each wall its share by the lever rule, the walls holding the force once between them.'}</small></div>` : '';
       const rows = e ? [
-        ['Force', e.F != null ? `<b>${F2(e.F)} k</b> <small class="sub-n">${esc(e.mezz.map(mezzName).join(' + '))}'s longitudinal seismic on this wall</small>` : '<small class="sub-n">once the Seismic page is complete</small>'],
+        ['Force', e.F != null ? `<b>${F2(e.F)} k</b> <small class="sub-n">${esc(e.mezz.map(mezzName).join(' + '))}'s longitudinal seismic on this wall${e.by && e.by.length ? (full ? ' — the full force' : ' — its share') : ''}</small>` : '<small class="sub-n">once the Seismic page is complete</small>'],
         ['Add Loads', `${l.loads.map(n).join(' · ')} — at ${ft(e.at)}, X - Longitudinal${bf ? ` <small class="sub-n">(Wall ${bf.file.info.walls[l.wall] ? bf.file.info.walls[l.wall].plane + 1 : '?'} in ${esc(bf.name)})</small>` : ''}`],
         ['Add Wall Strut Line', l.struts.length ? l.struts.map(s => `frame line ${s.from + 1} to ${s.to + 1} at ${ft(s.elev)}${s.skip && s.skip.length ? ` <small class="sub-n">— not through bay${s.skip.length > 1 ? 's' : ''} ${s.skip.map(k => `${k + 1}–${k + 2}`).join(', ')} (untiered)</small>` : ''}`).join(' · ') : '<small class="sub-n">off (Seismic page step 9)</small>'],
       ] : [['Mezzanine', 'none on this wall — it takes the building\'s own longitudinal seismic, as NBG Bracing designs it']];
-      return `<div class="bl-head"><h4>${esc(pre)}${l.wall}${l.letter ? ` <span class="bl-gl">line ${esc(l.letter)}</span>` : ''}</h4><small class="sub-n">eave ${ft(l.wall === 'FSW' ? g.eaveFSW : g.eaveBSW)} · ${esc(note)}</small></div><div class="wall-card">${svg}</div>${ctl}<dl class="bl-nbg">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+      const cmp = bf && e ? fileRowsCmp(bf, l.wall, l.loads.filter(q => q.F != null)) : '';
+      const res = bf ? wallResults(bf, l.wall, e ? e.at : null) : '';
+      return `<div class="bl-head"><h4>${esc(pre)}${l.wall}${l.letter ? ` <span class="bl-gl">line ${esc(l.letter)}</span>` : ''}</h4><small class="sub-n">eave ${ft(l.wall === 'FSW' ? g.eaveFSW : g.eaveBSW)} · ${esc(note)}</small></div><div class="wall-card">${svg}</div>${ctl}<dl class="bl-nbg">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${split}${cmp ? `<h5 class="bl-h5">Against the rows already in ${esc(bf.name)}</h5>${cmp}` : ''}${res}`;
     }
     if (l.kind === 'new') {
       const e = l.edge, A = e.at, top = u => SITE.roofZ(g, u, l.y), lbl = `${e.mezz.map(mezzName).join(' + ')} · ${ft(A)}`;
@@ -12359,9 +12760,11 @@ window.MZ_APP_BUILDING = function (C) {
         if (l.kind === 'new') flags.push({ level: 'warn', text: `${pre}${l.label} (${ft(l.y)} from the FSW) takes ${l.F != null ? `${F2(l.F)} k of` : ''} the mezzanine's longitudinal seismic and is not on a sidewall: create its bracing wall in NBG Bracing — ${l.bay ? `${l.pickKind === 'portal' ? 'a portal frame' : 'X-bracing to the floor'} between ${ft(l.bay.u0)} and ${ft(l.bay.u1)}` : 'no two columns on it yet'} (select it above).` });
       });
       WALLS.forEach(w => { const bw = M.br.walls[w]; if (bw.check) flags.push(bw.check); });
+      fileChecks(M).forEach(q => flags.push({ ...q, text: (many ? M.b.name + ' · ' : '') + q.text }));
     });
     if (flagsBox) flagsBox.innerHTML = (live ? '' : `<div class="seis-msg warn">The Seismic page is not complete yet${sj && sj.need && sj.need.length ? ` (${esc(sj.need[0])})` : ''} — the forces come once it is; the lines and where the loads go are known from the layout.</div>`)
-      + (flags.length ? flags.map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('') : (live ? (mezzBoxes().length ? '<div class="seis-msg ok">Every mezzanine edge that takes longitudinal seismic sits on a braced sidewall.</div>' : '<div class="seis-msg info">No mezzanine on this job: the walls carry the building\'s own longitudinal seismic, as NBG Bracing designs it.</div>') : ''));
+      + (live && !flags.some(n => n.level === 'warn' || n.level === 'stop') ? (mezzBoxes().length ? '<div class="seis-msg ok">Every mezzanine edge that takes longitudinal seismic sits on a braced sidewall.</div>' : '<div class="seis-msg info">No mezzanine on this job: the walls carry the building\'s own longitudinal seismic, as NBG Bracing designs it.</div>') : '')
+      + flags.slice().sort((p, q) => ['stop', 'warn', 'info'].indexOf(p.level) - ['stop', 'warn', 'info'].indexOf(q.level)).map(n => `<div class="seis-msg ${n.level}">${esc(n.text)}</div>`).join('');
     $('#braceWallsSub').textContent = Object.keys(state.bracing || {}).length ? 'click a line on the plan or below · bays, tiers and strut lines from the bracing file' : state.scope ? 'click a line on the plan or below · braced bays from the eScope' : 'click a line on the plan or below · frame lines from PCS Box 2, bracing from PCS Box 12';
     // ---- wiring: pick a line, tier a bay, pick a new wall's bay and kind ----
     const pick = k => { state.braceSel = k; renderBracing(); };
@@ -12370,6 +12773,7 @@ window.MZ_APP_BUILDING = function (C) {
     const save = () => { C.seisSave && C.seisSave(); renderBracing(); if (C.renderSeismic) C.renderSeismic(); };
     const tierFlip = k => { const t = state.seis.tiers = state.seis.tiers || {}; if (t[k] === false) delete t[k]; else t[k] = false; if (!Object.keys(t).length) delete state.seis.tiers; save(); };
     $$('#braceLine [data-tier]').forEach(el => { el.onclick = () => tierFlip(el.dataset.tier); });
+    $$('#braceLine [data-share]').forEach(el => { el.onclick = () => { if (el.dataset.share === 'share') state.seis.braceShare = 'share'; else delete state.seis.braceShare; C.seisSave && C.seisSave(); recompute(); }; });
     $$('#braceLine [data-tierbay]').forEach(el => { el.onclick = () => { const l = sel && sel.l, x = l && l.bays && l.bays.find(q => String(q.from) === el.dataset.tierbay); if (x && x.tkey) tierFlip(x.tkey); }; });
     const setNew = (k, patch) => { const n = state.seis.newLines = state.seis.newLines || {}; n[k] = { ...(n[k] || {}), ...patch }; save(); };
     $$('#braceLine [data-nbay]').forEach(el => { el.onclick = () => { const [k, i] = el.dataset.nbay.split(/\|(?=[^|]*$)/); setNew(k, { bay: +i }); }; });
@@ -12464,6 +12868,8 @@ window.MZ_APP_BUILDING = function (C) {
   const layoutV = (mk, q) => (mk && mk.sec && mk.params ? DESIGN.reactions({ ...mk.params, L: q ? q.span : mk.span, trib: mk.trib }, mk.sec) : null);
   const allSettings = () => (state.all ? state.all.map(a => a.settings) : [state.settings]);
   // a mezzanine's layout edited on the Plan page (lines, columns taken out, frame / mezzanine columns)
+  const nOf = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const mezzName = id => (/^mezz/i.test(String(id)) ? String(id) : 'Mezz ' + id);
   const layEdited = st => !!(st && (st.xLines || st.yLines || (st.drop && st.drop.length) || (st.colKind && Object.keys(st.colKind).length) || (st.openings && st.openings.length) || (st.openingsOff && st.openingsOff.length)));
 
   // ---------- one holistic drawing: every mezzanine of the job in this building, drawn together ----------
@@ -12661,12 +13067,16 @@ window.MZ_APP_BUILDING = function (C) {
   };
 
   // ---------- navigation ----------
-  function go(view) {
+  // the Snow and Seismic calcs (and the Design Calcs file's documents) open on the Calcs page
+  const CALC_VIEWS = new Set(['snow', 'seismic', 'calcfile']);
+  function go(view, doc) {
+    if (CALC_VIEWS.has(view)) { if (!state.calcDoc || state.calcDoc.kind !== view || doc) state.calcDoc = doc || { kind: view }; view = 'calcs'; }
     state.view = view;
     if (BLD) { const ws = BLD.wsOf(view); if (ws) BLD.setWs(ws); }
     if (railView === 'plan' || !$('#planPop').hidden) renderMiniPlan();
     $$('.screen').forEach(s => s.classList.toggle('is-active', s.id === 'v-' + view));
     $$('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
+    if (view === 'calcs' && typeof renderCalcs === 'function') renderCalcs();
     window.scrollTo({ top: 0 });
   }
   $$('#nav button').forEach(b => { b.onclick = () => go(b.dataset.view); });
@@ -12940,6 +13350,7 @@ window.MZ_APP_BUILDING = function (C) {
     const rv = $('#rvToggle'); if (rv) rv.hidden = true;
     renderSeismic();
     if (BLD) BLD.render();
+    renderCalcs();
     queueFit(true);
   }
 
@@ -13001,7 +13412,7 @@ window.MZ_APP_BUILDING = function (C) {
     return { beams: sum('beams'), cols: sum('cols'), plates: sum('plates'), total: sum('total'), nB: sum('nB'), nC: sum('nC'), govBeam: top('govBeam'), gov: top('gov'), colMax: cm.length ? Math.max(...cm) : null };
   }
 
-  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); if (BLD) BLD.render(); queueFit(true); }
+  function renderAll() { printHead(); renderRail(); renderResults(); renderPlan(); renderFrameLoads(); renderSeismic(); renderBeam(); renderColumn(); renderInputs(); renderSettings(); renderWorkbooks(); renderDesigner(); renderCalcPack(); if (BLD) BLD.render(); renderCalcs(); queueFit(true); }
 
   // ---------- rail + masthead ----------
   function renderRail() {
@@ -13020,7 +13431,7 @@ window.MZ_APP_BUILDING = function (C) {
     // the names when they are short ("1 + 2"); else the count, the names on hover — a long list would wrap and take
     // the 3D square's room on a short screen
     const ids = state.job.mezz.filter(m => !m.incomplete).map(m => m.id), names = ids.join(' + ');
-    $('#rsSub').textContent = many ? `${names.length <= 18 ? names : `${ids.length} mezzanines`} · ${jt.nB} beams · ${jt.nC} columns` : `${t.nB} beams · ${t.nC} columns`;
+    $('#rsSub').textContent = many ? `${names.length <= 18 ? names : `${ids.length} mezzanines`} · ${nOf(jt.nB, 'beam')} · ${nOf(jt.nC, 'column')}` : `${nOf(t.nB, 'beam')} · ${nOf(t.nC, 'column')}`;
     $('#rsSub').title = many ? names : '';
     $('#navPlanCount').hidden = false;
     $('#navPlanCount').textContent = `${jt.nB}·${jt.nC}`;
@@ -14093,7 +14504,7 @@ window.MZ_APP_BUILDING = function (C) {
     const ms = jobView(), many = ms.length > 1, t = many ? jobTotals() : totals(), marks = jobMarks();
     const cols = [...new Set(ms.filter(m => m.colFinal && m.columns.length).map(m => m.colFinal.quoteAs))].join(' / ');
     const nUnC = ms.reduce((a, m) => a + (!m.columns.length ? 0 : m.colFinal ? (m.colFinal.unsized || []).length : m.columns.length), 0);
-    $('#modelTitle').textContent = `${many ? ms.map(m => m.id).join(' + ') + ' · ' : ''}${t.nB} beams · ${t.nC} columns · ${state.scene.members.filter(m => m.kind === 'joist').length} joist runs`;
+    $('#modelTitle').textContent = `${many ? ms.map(m => m.id).join(' + ') + ' · ' : ''}${nOf(t.nB, 'beam')} · ${nOf(t.nC, 'column')} · ${nOf(state.scene.members.filter(m => m.kind === 'joist').length, 'joist run')}`;
     $('#modelCount').textContent = ms.map(m => `${many ? m.id + ' ' : ''}${ft(m.layout.footprint.x1 - m.layout.footprint.x0)} long × ${ft(m.layout.footprint.y1 - m.layout.footprint.y0)} wide · T/slab ${ft(inpOf(m).geom.A.value)}`).join(' · ');
     $('#modelKey').innerHTML = marks.map(mk => `<span class="mk-key"><i style="background:${mkHex(mk)}"></i><b>${mk.mark}${mk.kind ? ' · ' + mk.kind : ''}</b> ${esc(mk.desc || 'NO SECTION')} × ${mk.qtyAll}</span>`).join('') +
       `<span><i style="background:#ff9f7a"></i>Mezzanine column ${cols && t.nC > nUnC ? `${esc(cols)} × ${t.nC - nUnC}` : ''}${nUnC ? `${cols && t.nC > nUnC ? ' · ' : ''}<b class="ng">${nUnC} not sized</b>` : ''}</span><span><i style="background:#6f89a3"></i>Building column</span><span><i style="background:#a9cbe0"></i>Joists @ ${[...new Set(ms.map(m => ft(m.beamBase.Lb)))].join(' / ')}</span><span><i style="background:#8fd3ff55;border:1px solid #8fd3ff"></i>Slab ${[...new Set(ms.map(m => f((inpOf(m).geom.slab.value || 0) * 12, 1) + '"'))].join(' / ')}</span>`;
@@ -14805,6 +15216,295 @@ window.MZ_APP_BUILDING = function (C) {
   }
   $('#planSvg').addEventListener('click', layMenu);
 
+  // ---------- Calcs: every calc of the job a card (as NBG Design Calcs keeps them, a folder a building); the open one on
+  // the right — the Seismic and Snow pages, or a document of the job's .nbgcalcs read as it is ----------
+  const CF = window.MZ_CALCS;
+  const calcName = f => f.replace(/\.nbgcalcs$/i, '') + '_mz.nbgcalcs';
+  // the Design Calcs folder of one of the job's buildings: by its name, else by its width and length
+  function calcMatch(name, w, l) {
+    const file = state.calcs && state.calcs.file;
+    if (!file) return null;
+    const fo = file.folders.find(q => sameName(q.name, name)) || file.folders.find(q => Math.abs((q.width || 0) - w) < 0.6 && Math.abs((q.length || 0) - l) < 0.6);
+    return fo ? { folder: fo, seismic: fo.docs.find(d => d.kind === 'seismic') || null } : null;
+  }
+  // the tool's seismic for one building against the file's: inputs, then the results, each tied or not
+  function calcCompare(b, sd) {
+    const sj = state.job.seismic, I = sj.inputs, { P, lines } = CF.seismicInputs(sd), rows = [];
+    const tie = (a, c, tol = 1e-6) => (typeof a === 'number' && typeof c === 'number' ? Math.abs(a - c) <= tol * Math.max(1, Math.abs(c)) : String(a ?? '') === String(c ?? ''));
+    const row = (grp, lab, ours, theirs, fmt = v => v, tol) => rows.push({ grp, lab, ours, theirs, fmt, ok: tie(ours, theirs, tol) });
+    const F3 = v => (v == null ? '—' : f(v, 3)), F4 = v => (v == null ? '—' : f(v, 4));
+    // a framing type by the seismic system it is (Table 12.2-1): Post & Beam and X-Bracing are both braced frames, Portal
+    // and Rigid Frame both moment frames — Design Calcs names them XBrace_OCBF / RigidFrame_OMF
+    const SY = t => { const q = window.MZ_SEISMIC.system(t, 'D'); return q ? q.label : String(t); };
+    const sysRow = (g, lab, a, c) => { const ok = a.split(' / ').map(SY).join(' / ') === c.split(' / ').map(SY).join(' / ');
+      rows.push({ grp: g, lab: ok && a !== c ? `${lab} — the same seismic system (${[...new Set(a.split(' / ').map(SY))].join(' / ')})` : lab, ours: a, theirs: c, fmt: v => v, ok }); };
+    row('Code', 'ASCE 7', I.ed.value, P.building.ed);
+    row('Code', 'Risk category', I.risk.value, P.seismic.risk);
+    row('Code', 'Site class', I.siteClass.value, P.seismic.siteClass);
+    row('Code', 'Ss', I.Ss.value, P.seismic.Ss, F3); row('Code', 'S1', I.S1.value, P.seismic.S1, F3);
+    if (P.building.ed === '7-22') { row('Code', 'SMS', I.SMS.value, P.seismic.SMS, F3); row('Code', 'SM1', I.SM1.value, P.seismic.SM1, F3); }
+    row('Building', 'Width', b.bd.width, P.building.width, ft, 1e-3); row('Building', 'Length', b.bd.length, P.building.length, ft, 1e-3);
+    row('Building', 'Eave FSW / BSW', `${ft(b.bd.eaveFSW)} / ${ft(b.bd.eaveBSW)}`, `${ft(P.building.eaveFSW)} / ${ft(P.building.eaveBSW)}`);
+    [['SW', 'Frame self-weight'], ['RDL', 'Roof dead'], ['CDL', 'Roof collateral'], ['RSW', 'Roof self-weight'], ['Pf', 'Roof snow']].forEach(([k, t]) => row('Roof (psf)', t, b.roof[k].value, P.roof[k], F4));
+    ['LEW', 'REW', 'FSW', 'BSW'].forEach(w => row('Walls (psf)', w, (b.walls[w] || {}).weight, (P.walls[w] || {}).weight, F3));
+    b.mezz.forEach((m, k) => {
+      const q = P.mezz[k] || {}, g = `${mezzName(m.id)} → file ID ${q.id ?? '—'}`;
+      row(g, 'Elevation', m.elev, q.elev, ft, 1e-3); row(g, 'Floor dead (psf)', m.FDL, q.FDL, F3); row(g, 'Floor collateral', m.FLC, q.FLC, F3); row(g, 'Joist weight', m.FLJ, q.FLJ, F3);
+      row(g, 'Storage · live', `${m.storage ? 'yes' : 'no'} · ${f(m.FLL, 1)}`, `${q.storage ? 'yes' : 'no'} · ${q.FLL == null ? '—' : f(q.FLL, 1)}`);
+      row(g, 'Loading area, longitudinal (sq ft)', m.area, ((sd.LongitudinalCalculations.FramingInputs.Mezzanines || []).find(z => z.UniformLoadInputId === q.id) || {}).LoadingAreaInSquareFeet, v => (v == null ? '—' : n0(v)), 1e-4);
+    });
+    if (P.mezz.length > b.mezz.length) rows.push({ grp: 'Mezzanines', lab: `the file has ${P.mezz.length}`, ours: b.mezz.length, theirs: P.mezz.length, fmt: v => v, ok: false });
+    const same = lines.length === b.lines.length;
+    if (!same) rows.push({ grp: 'Frame lines', lab: 'count', ours: b.lines.length, theirs: lines.length, fmt: v => v, ok: false });
+    (same ? b.lines : []).forEach((l, i) => {
+      const fl = lines[i], g = `Frame line ${l.label}`;
+      row(g, 'Bay width', l.bay, fl.bay, ft, 1e-3);
+      sysRow(g, 'System', `${l.type}`, `${fl.framing}`);
+      b.mezz.forEach((m, k) => { const a = (l.lineIn.mezz || []).find(z => z.id === m.id), fq = (fl.mezz || []).find(z => z.id === (P.mezz[k] || {}).id); if (a || fq) { row(g, `${mezzName(m.id)} loading area`, a ? a.area : 0, fq ? fq.area : 0, n0, 1e-4); row(g, `${mezzName(m.id)} concentrated (k)`, a ? a.conc || 0 : 0, fq ? fq.conc || 0 : 0, F3); } });
+      row(g, 'Base shear (k)', l.lat ? l.lat.V : null, (sd.LateralCalculations[i].BaseShearResults || {}).BaseShear, F3);
+    });
+    sysRow('Longitudinal', 'FSW / BSW system', `${b.sfrs.FSW} / ${b.sfrs.BSW}`, `${P.sfrs.FSW} / ${P.sfrs.BSW}`);
+    row('Longitudinal', 'Base shear (k)', b.long ? b.long.V : null, (sd.LongitudinalCalculations.BaseShearResults || {}).BaseShear, F3);
+    return rows;
+  }
+  // the file's inputs typed in: the code and site, the roof, the walls, each mezzanine's loads (no framing added — the
+  // file's floor dead is what it is), each line's system, loading area and concentrated load
+  function calcUseFile(bk, sd) {
+    const sj = state.job.seismic, b = sj.buildings.find(q => q.bkey === bk), { P, lines } = CF.seismicInputs(sd), c = state.seis;
+    Object.assign(c, { ed: P.building.ed, risk: P.seismic.risk, siteClass: P.seismic.siteClass, Ss: P.seismic.Ss, S1: P.seismic.S1 });
+    if (P.building.ed === '7-22') Object.assign(c, { SMS: P.seismic.SMS, SM1: P.seismic.SM1 });
+    const bo = ((c.buildings = c.buildings || {})[bk] = c.buildings[bk] || {});
+    ['SW', 'RDL', 'CDL', 'RSW', 'Pf'].forEach(k => { if (P.roof[k] != null) bo[k] = P.roof[k]; });
+    bo.walls = bo.walls || {}; ['LEW', 'REW', 'FSW', 'BSW'].forEach(w => { if (P.walls[w]) bo.walls[w] = { ...(bo.walls[w] || {}), weight: P.walls[w].weight }; });
+    bo.sfrs = { FSW: P.sfrs.FSW, BSW: P.sfrs.BSW };
+    if (lines.length === b.lines.length) bo.lines = Object.fromEntries(b.lines.map((l, i) => [l.label, lines[i].framing]));
+    c.mezz = c.mezz || {};
+    b.mezz.forEach((m, k) => { const q = P.mezz[k]; if (q) c.mezz[m.id] = { ...(c.mezz[m.id] || {}), FDL: q.FDL, FLC: q.FLC, FLJ: q.FLJ, FLL: q.FLL, storage: q.storage, partition: q.partition, FLP: q.FLP }; });
+    if (lines.length === b.lines.length) b.lines.forEach((l, i) => b.mezz.forEach((m, k) => { const q = (lines[i].mezz || []).find(z => z.id === (P.mezz[k] || {}).id); const key = `${bk}|${l.label}|${m.id}`;
+      if (q) { (c.areaLat = c.areaLat || {})[key] = q.area; if (q.conc) (c.concLat = c.concLat || {})[key] = q.conc; else if (c.concLat) delete c.concLat[key]; } }));
+    const lf = sd.LongitudinalCalculations.FramingInputs.Mezzanines || [];
+    b.mezz.forEach((m, k) => { const q = lf.find(z => z.UniformLoadInputId === (P.mezz[k] || {}).id); if (q && q.ConcentratedLoadTotalInKips) (c.concLong = c.concLong || {})[`${bk}|${m.id}`] = q.ConcentratedLoadTotalInKips; });
+    seisSave(); recompute(); toast('The Design Calcs file\'s seismic inputs are typed in — each one shows as typed and can be typed over');
+  }
+  // the file back with this tool's mezzanine loads in every matched seismic document, its results worked again
+  function calcDownload() {
+    const sj = state.job && state.job.seismic, st = state.calcs;
+    if (!st || !sj || !sj.ok) { toast('The seismic has to be complete first', 'bad'); return; }
+    const copy = CF.read(st.text), done = [];
+    sj.buildings.forEach(b => {
+      const mt = calcMatch(b.name, b.bd.width, b.bd.length); if (!mt || !mt.seismic) return;
+      const sd = copy.folders[mt.folder.index].docs[mt.seismic.index].doc;
+      if (!CF.asce(sd)) return;
+      const idx = id => b.mezz.findIndex(m => m.id === id);
+      const lines = sd.LateralCalculations.length === b.lines.length ? b.lines.map(l => (l.lineIn.mezz || []).map(q => ({ n: idx(q.id), area: q.area, conc: q.conc || 0 }))) : null;
+      const long = b.mezz.map((m, k) => { const cl = (state.seis.concLong || {})[`${b.bkey}|${m.id}`]; return { n: k, area: m.area, conc: cl > 0 ? +cl : 0 }; });
+      const r = CF.writeSeismic(sd, { loads: b.mezz.map(m => ({ elev: m.elev, FDL: m.FDL, FLC: m.FLC, FLJ: m.FLJ, FLL: m.FLL, storage: m.storage, partition: m.partition, FLP: m.FLP })), lines, long }, window.MZ_SEISMIC);
+      done.push(`${b.name}: longitudinal ${f(r.longV, 2)} k${lines ? '' : ' (its frame lines differ from the job\'s — left as they were)'}`);
+    });
+    if (!done.length) { toast('No seismic document in the file matches a building of this job', 'bad'); return; }
+    cpSave(new TextEncoder().encode(CF.serialize(copy)), calcName(st.name), 'application/json');
+    toast(`${calcName(st.name)} — ${done.join(' · ')}`);
+  }
+  async function addCalcsFile(file) {
+    try {
+      // decoded keeping a byte-order mark (file.text() drops it): the copy written back starts the way the file did
+      const text = new TextDecoder('utf-8', { ignoreBOM: true }).decode(await file.arrayBuffer()), cf = CF.read(text);
+      state.calcs = { name: file.name, text, file: cf };
+      // its seismic inputs as a source, building by building (a typed value still wins)
+      const sj = state.job && state.job.seismic, risk = t => (String(t || '').match(/^(IV|III|II|I)\b/) || [])[1] || null;
+      state.seis.files = state.seis.files || {};
+      (sj && sj.buildings || []).forEach(b => {
+        const mt = calcMatch(b.name, b.bd.width, b.bd.length); if (!mt || !mt.seismic || !CF.asce(mt.seismic.doc)) return;
+        const { P } = CF.seismicInputs(mt.seismic.doc);
+        state.seis.files[b.bkey] = { ...(state.seis.files[b.bkey] || {}), from: 'Design Calcs file', code: `ASCE ${P.building.ed}`, risk: risk(P.seismic.risk), Ss: P.seismic.Ss, S1: P.seismic.S1, SMS: P.seismic.SMS ?? null, SM1: P.seismic.SM1 ?? null, siteClass: P.seismic.siteClass,
+          roofDead: P.roof.RDL, collateral: P.roof.CDL, snow: P.roof.Pf, SW: P.roof.SW, RSW: P.roof.RSW };
+      });
+      const n = cf.folders.reduce((a, fo) => a + fo.docs.length, 0);
+      toast(`${file.name} — ${cf.folders.length} building${cf.folders.length === 1 ? '' : 's'}, ${n} documents${cf.written ? ` · saved ${cf.written.slice(0, 10)}` : ''}`);
+      seisSave(); recompute(); go('calcs');
+    } catch (e) { console.error(e); toast(`${file.name}: not a Design Calcs file (${e.message})`, 'bad'); }
+  }
+  function calcRemove() {
+    state.calcs = null;
+    Object.keys((state.seis && state.seis.files) || {}).forEach(k => { if (state.seis.files[k].from === 'Design Calcs file') delete state.seis.files[k]; });
+    seisSave(); recompute();
+  }
+  // the cards: building by building, its seismic, its roof snow, the drifts onto it, and the file's own documents
+  function calcCards() {
+    const sj = state.job && state.job.seismic, J = state.snowJob, cards = [], groups = new Map();
+    const grp = name => { const k = String(name || '').toLowerCase(); if (!groups.has(k)) groups.set(k, { name, cards: [] }); return groups.get(k); };
+    const used = new Set();
+    const bl = sj && sj.buildings && sj.buildings.length ? sj.buildings.map(b => ({ name: b.name, w: b.bd.width, l: b.bd.length, b })) : J ? J.site.buildings.map(b => ({ name: b.name, w: b.g.width, l: b.g.length, b: null })) : [];
+    bl.forEach(({ name, w, l, b }) => {
+      const g = grp(name), mt = calcMatch(name, w, l);
+      if (mt) used.add(mt.folder.index);
+      const fileDoc = kind => (mt ? mt.folder.docs.find(d => d.kind === kind) : null);
+      // seismic
+      let sub = '', badge = null;
+      if (sj && sj.canada) sub = 'NBCC — worked in NBG Design Calcs';
+      else if (!b) sub = sj && sj.need && sj.need.length ? 'needs: ' + sj.need[0].split(' — ')[0] : '—';
+      else if (b.long) sub = `bracing ${f(b.long.V, 2)} k · ${b.lines.length} frame lines${b.mezz.length ? ' · ' + b.mezz.map(m => { const q = (b.long.mezzLoads || []).find(c => String(c.id) === String(m.id)); return `${mezzName(m.id)} ${q ? f(q.F, 2) : '—'} k`; }).join(' · ') : ''}`;
+      else sub = sj && sj.need && sj.need.length ? 'needs: ' + sj.need[0].split(' — ')[0] : 'waiting on the inputs';
+      const sd = fileDoc('seismic');
+      // a code the tool does not work (NBCC): the card opens the file's own calc
+      const asFile = (doc, title, sub2) => g.cards.push({ kind: 'calcfile', name, folder: mt.folder.index, doc: doc.index, icon: doc.kind === 'seismic' ? 'i-seismic' : 'i-snow', title, sub: sub2, badge: { cls: 'info', t: `file: ${CF.summary(doc).code || 'its own numbers'}` } });
+      if (sd && !CF.asce(sd.doc)) { const s = CF.summary(sd); asFile(sd, 'Seismic Calculations', `${s.code} · bracing ${f(s.longV, 2)} k · ${s.lines} frame line${s.lines === 1 ? '' : 's'} ${s.latV.map(v => f(v, 2)).join(' / ')} k`); }
+      else {
+        if (sd) { const s = CF.summary(sd); if (b && b.long) { const bad = calcCompare(b, sd.doc).filter(r => !r.ok).length; badge = bad ? { cls: 'warn', t: `file: ${bad} differ` } : { cls: 'ok', t: 'file: ties' }; } else badge = { cls: 'info', t: `file: bracing ${f(s.longV, 2)} k` }; }
+        g.cards.push({ kind: 'seismic', bk: b ? b.bkey : null, name, icon: 'i-seismic', title: 'Seismic Calculations', sub, badge, file: sd });
+      }
+      // roof snow
+      const r = J && J.roofs ? J.roofs.find(q => sameName(q.name, name)) : null, sn = fileDoc('snow');
+      if (J && J.canada && sn) { const s = CF.summary(sn); asFile(sn, 'Unbalanced Snow', `${s.code} · S ${f(s.ps, 1)} psf (${f(s.ps / KPA, 2)} kPa) · Ss ${f(s.pg / KPA, 2)} kPa`); }
+      else g.cards.push({ kind: 'snow', name, focus: 'roof', icon: 'i-snow', title: 'Unbalanced Snow', sub: J && J.canada ? 'NBCC — worked in NBG Design Calcs' : r ? `pf ${f(r.pf, 1)} · ps ${f(r.ps, 1)} psf${r.unbalanced && r.unbalanced.applies && !r.unbalanced.simple && !r.unbalanced.need ? ` · leeward ${f(r.unbalanced.leeward, 1)} + ${f(r.unbalanced.surcharge, 1)}` : ''}` : 'needs the ground snow', file: sn,
+        badge: sn ? (() => { const s = CF.summary(sn); return r && s.ps != null ? (Math.abs(s.ps - r.ps) < 0.05 ? { cls: 'ok', t: `file: ps ${f(s.ps, 1)} ties` } : { cls: 'warn', t: `file: ps ${f(s.ps, 1)}` }) : { cls: 'info', t: `file: ps ${s.ps == null ? '—' : f(s.ps, 1)}` }; })() : null });
+      // drifts onto this building's roof
+      (J && J.drifts ? J.drifts : []).forEach((d, i) => { if (d.level || !sameName(d.lower, name)) return; const dr = d.drift || {};
+        g.cards.push({ kind: 'snow', name, focus: 'step', step: d.key, icon: 'i-snow', title: `Roof Step Snow Drift`, sub: `from ${d.upper} ${d.upperWall || ''} to ${d.lower} ${d.lowerWall}${dr.none ? ' · no drift' : dr.leeward ? ` · hd ${ft(dr.leeward.hd)}` : ''}${d.off ? ' · off' : ''}` }); });
+      // the file's wind (and anything else the tool does not work), read as it is; its drifts when the tool works none here
+      const ownDrift = g.cards.some(c => c.focus === 'step');
+      if (mt) mt.folder.docs.filter(d => d.kind === 'wind' || d.kind === 'other' || (d.kind === 'drift' && !ownDrift)).forEach(d => g.cards.push({ kind: 'calcfile', name, folder: mt.folder.index, doc: d.index, icon: d.kind === 'drift' ? 'i-snow' : 'i-file', title: d.name.replace(/:\s*.*$/, ''),
+        sub: d.kind === 'wind' ? (() => { const s = CF.summary(d); return s.ca ? `q ${f(s.qKpa, 2)} kPa · ${ENUM(s.exposure)} · ${f(s.base, 2)} psf` : `${s.V} mph · exposure ${s.exposure} · qh ${f(s.qh, 2)} psf`; })() : d.kind === 'drift' ? (() => { const r2 = d.doc.DriftResults || {}; return `${d.name.replace(/^[^:]*:\s*/, '')} · ${f(r2.MaxDriftLoadInPSF, 1)} psf over ${ft(r2.DriftLengthFeet)}`; })() : 'from the Design Calcs file', badge: { cls: 'info', t: 'file only' } }));
+    });
+    // folders of the file no building of the job matches
+    if (state.calcs) state.calcs.file.folders.filter(fo => !used.has(fo.index)).forEach(fo => { const g = grp(`${fo.name} (file only)`); fo.docs.forEach(d => g.cards.push({ kind: 'calcfile', fileOnly: true, name: fo.name, folder: fo.index, doc: d.index, icon: d.kind === 'seismic' ? 'i-seismic' : /snow|drift/.test(d.kind) ? 'i-snow' : 'i-file', title: d.name.replace(/:\s*.*$/, ''), sub: d.kind === 'drift' ? d.name.replace(/^[^:]*:\s*/, '') : 'not a building of this PCS', badge: { cls: 'info', t: 'file only' } })); });
+    return [...groups.values()];
+  }
+  const calcKey = c => [c.kind, c.name, c.focus || '', c.step || '', c.folder ?? '', c.doc ?? ''].join('|');
+  function renderCalcs() {
+    const list = $('#calcList'), top = $('#calcTop');
+    if (!list) return;
+    if (!state.pcs) { list.innerHTML = '<div class="empty">Load a PCS first.</div>'; top.innerHTML = ''; ['#v-seismic', '#v-snow', '#v-calcfile'].forEach(q => { $(q).hidden = true; }); return; }
+    const groups = calcCards(), all = groups.flatMap(g => g.cards);
+    let cur = state.calcDoc && all.find(c => calcKey(c) === state.calcDoc.key);
+    if (!cur && state.calcDoc) cur = all.find(c => c.kind === state.calcDoc.kind && (!state.calcDoc.name || sameName(c.name, state.calcDoc.name))) || all.find(c => c.kind === state.calcDoc.kind);
+    if (!cur) cur = all.find(c => c.kind === 'seismic' && (state.job && state.job.mezz && state.job.mezz.length)) || all[0];
+    if (cur) state.calcDoc = { key: calcKey(cur), kind: cur.kind, name: cur.name };
+    list.innerHTML = groups.map(g => `<div class="calc-group"><h5>${esc(g.name)}</h5>${g.cards.map(c => `<button type="button" class="calc-card ${cur && calcKey(c) === calcKey(cur) ? 'is-on' : ''}" data-calc="${esc(calcKey(c))}"><svg class="cc-ic"><use href="#${c.icon}"/></svg><span class="cc-t">${esc(c.title)}</span><span class="cc-s">${esc(c.sub || '')}</span>${c.badge ? `<span class="cc-b ${c.badge.cls}">${esc(c.badge.t)}</span>` : ''}</button>`).join('')}</div>`).join('') || '<div class="empty">No building read yet.</div>';
+    // the top: the Design Calcs file (drop it, or what it holds), and every file the tool writes
+    const st = state.calcs, sj = state.job && state.job.seismic;
+    const fileBox = st ? `<div class="calc-file"><svg><use href="#i-file"/></svg><div><b class="mono">${esc(st.name)}</b><small class="sub-n">${st.file.folders.map(fo => `${esc(fo.name)} · ${fo.docs.length} document${fo.docs.length === 1 ? '' : 's'}`).join(' · ')}${st.file.written ? ` · saved ${esc(st.file.written.slice(0, 10))}` : ''}</small></div><button class="btn-ghost sm" type="button" id="calcRm">Remove</button></div>`
+      : `<label class="fv-drop wide calc-drop" id="calcDropL"><input type="file" accept=".nbgcalcs,.bracing,.nbgscope" multiple id="calcDrop"><svg><use href="#i-file"/></svg><span><b>Drop the job's .nbgcalcs</b><small>NBG Design Calcs' file: its seismic inputs are taken, every document is checked against the tool, and it comes back with the mezzanine loads in</small></span></label>`;
+    const canDl = st && sj && sj.ok && sj.buildings.some(b => { const mt = calcMatch(b.name, b.bd.width, b.bd.length); return mt && mt.seismic && CF.asce(mt.seismic.doc); });
+    top.innerHTML = `<div class="calc-top-in">${fileBox}<div class="calc-dl"><span class="fv-k">Files out</span>
+      <button class="btn-soft" type="button" id="calcDl" ${canDl ? '' : 'disabled'} title="${st ? (canDl ? 'the mezzanine loads into its seismic documents, results worked again' : 'the seismic has to be complete, and a building matched') : 'drop the .nbgcalcs first'}"><svg><use href="#i-file"/></svg>${st ? esc(calcName(st.name)) : 'Design Calcs file'}</button>
+      <a href="#" class="btn-ghost" data-go="bracing">Bracing files</a><a href="#" class="btn-ghost" data-go="frames">Frame files</a></div></div>`;
+    // the open calc
+    $('#v-seismic').hidden = !cur || cur.kind !== 'seismic';
+    $('#v-snow').hidden = !cur || cur.kind !== 'snow';
+    const cfDoc = $('#v-calcfile');
+    cfDoc.hidden = !cur || cur.kind !== 'calcfile';
+    if (cur && cur.kind === 'seismic') {
+      if (cur.bk && state.seisTab !== cur.bk) { state.seisTab = cur.bk; renderSeismic(); }
+      const fb = $('#seisFileCmp');
+      if (fb) fb.innerHTML = calcCmpHtml(cur);
+    }
+    if (cur && cur.kind === 'calcfile') cfDoc.innerHTML = calcFileHtml(cur);
+    $$('#calcList [data-calc]').forEach(btn => { btn.onclick = () => { const c = all.find(z => calcKey(z) === btn.dataset.calc); state.calcDoc = { key: btn.dataset.calc, kind: c.kind, name: c.name }; renderCalcs(); calcFocus(c); }; });
+    const rm = $('#calcRm'); if (rm) rm.onclick = calcRemove;
+    const dl = $('#calcDl'); if (dl) dl.onclick = calcDownload;
+    const inp = $('#calcDrop'), lab = $('#calcDropL');
+    if (inp) inp.onchange = () => routeCalcFiles(Array.from(inp.files || []));
+    if (lab) { ['dragenter', 'dragover'].forEach(ev => lab.addEventListener(ev, e => { e.preventDefault(); lab.classList.add('is-over'); })); ['dragleave', 'drop'].forEach(ev => lab.addEventListener(ev, e => { e.preventDefault(); lab.classList.remove('is-over'); })); lab.addEventListener('drop', e => routeCalcFiles(Array.from(e.dataTransfer.files || []))); }
+    $$('#seisFileCmp [data-calcuse]').forEach(b => { b.onclick = () => { const c = all.find(z => z.kind === 'seismic' && z.bk === b.dataset.calcuse); if (c && c.file) calcUseFile(c.bk, c.file.doc); }; });
+    const cnt = $('#navCalcCount'); if (cnt) { const n = all.filter(c => c.badge && c.badge.cls === 'warn').length; cnt.hidden = !n; cnt.textContent = n ? `${n} to check` : ''; cnt.title = n ? 'calcs that differ from the Design Calcs file' : ''; }
+  }
+  const routeCalcFiles = list => { const c = list.filter(x => /\.nbgcalcs$/i.test(x.name)), o = list.filter(x => /\.(bracing|nbgscope)$/i.test(x.name)); if (o.length) addSeisFiles(o); c.forEach(addCalcsFile); if (!c.length && !o.length) toast('Drop the .nbgcalcs (or .bracing / .nbgscope)'); };
+  // scroll the open calc to the part a card names (a roof's row, a step)
+  function calcFocus(c) {
+    let el = null;
+    if (c.kind === 'snow' && c.focus === 'step') el = $$('#snowSteps .snow-step')[Math.max(0, ((state.snowJob && state.snowJob.drifts) || []).filter(d => !d.level).findIndex(d => d.key === c.step))];
+    else if (c.kind === 'snow') el = $('#snowRoofs');
+    else el = $('#calcPane');
+    if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  // the Design Calcs file beside the tool, for one building's seismic: every input and result, tied or not
+  function calcCmpHtml(cur) {
+    const sj = state.job && state.job.seismic, st = state.calcs;
+    if (!st) return '';
+    if (!cur.file) return `<div class="seis-msg info">${esc(st.name)} has no seismic document for ${esc(cur.name)} (matched by name, or by width and length).</div>`;
+    const s = CF.summary(cur.file);
+    if (!s.asce) return `<div class="seis-msg info">${esc(st.name)} · ${esc(cur.file.name)}: ${esc(s.code)} — not ASCE 7; its own results: bracing ${f(s.longV, 2)} k, frame lines ${s.latV.map(v => f(v, 2)).join(' / ')} k.</div>`;
+    const b = sj && sj.buildings.find(q => q.bkey === cur.bk);
+    if (!b || !b.long) return `<div class="seis-msg info">${esc(st.name)} · ${esc(cur.file.name)} — compared once the inputs below are complete. Its bracing base shear: ${f(s.longV, 2)} k.</div>`;
+    const rows = calcCompare(b, cur.file.doc), bad = rows.filter(r => !r.ok).length;
+    const byG = []; rows.forEach(r => { const g = byG.find(x => x.g === r.grp) || (byG.push({ g: r.grp, rows: [] }), byG[byG.length - 1]); g.rows.push(r); });
+    return `<div class="panel seis-step calc-cmp"><div class="panel-head"><h3><span class="step-no">⇄</span>Against the Design Calcs file</h3><span class="sub">${esc(st.name)} · ${esc(cur.file.name)} · ${bad ? `<b class="bad">${bad} of ${rows.length} differ</b>` : `all ${rows.length} tie`}</span></div><div class="panel-body">
+      <div class="table-wrap"><table class="fl-t calc-cmp-t"><thead><tr><th>Input / result</th><th class="num">This tool</th><th class="num">Design Calcs file</th><th></th></tr></thead><tbody>${byG.map(g => `<tr class="cmp-g"><td colspan="4">${esc(g.g)}</td></tr>${g.rows.map(r => `<tr class="${r.ok ? '' : 'is-diff'}"><td>${esc(r.lab)}</td><td class="num mono">${esc(String(r.fmt(r.ours)))}</td><td class="num mono">${esc(String(r.fmt(r.theirs)))}</td><td>${r.ok ? '<span class="src src-ok">ties</span>' : '<span class="src src-bad">differs</span>'}</td></tr>`).join('')}`).join('')}</tbody></table></div>
+      <div class="calc-cmp-a"><button class="btn-soft" type="button" data-calcuse="${esc(b.bkey)}">Use the file's inputs</button><small class="sub-n">Types the file's code, site, roof, walls, systems and each mezzanine's loads, loading areas and concentrated loads into the inputs below — the tool then works what Design Calcs worked (its floor dead has no framing added). The download at the top puts this tool's mezzanine loads into the file instead.</small></div></div></div>`;
+  }
+  // a document of the file, read as Design Calcs left it — the wind (the tool does not work wind), a Canadian job's
+  // seismic and snow (NBCC), a drift or a building the job does not have: the inputs it was given and what it worked
+  const ENUM = v => String(v ?? '').replace(/^(Category|Exposure)(?=[A-Z0-9])/, '').replace(/(\d)_(\d)/g, '$1.$2').replace(/_/g, ' ').replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/\bUp To\b/, 'up to');
+  const KPA = 20.8854342;   // psf in a kPa
+  // a field of the file in words with its unit: DriftLengthFeet → "Drift length (ft)", MaxDriftLoadInPSF → "Max drift load (psf)"
+  const UNIT = [[/(In)?Feet$/, 'ft'], [/(In)?(PSF|Psf)$/, 'psf'], [/(In)?Kips$/, 'k'], [/(In)?Lbs$/, 'lb'], [/(In)?KPA$/, 'kPa'], [/On12$/, ':12'], [/Degrees$/, '°'], [/InPlf$|Plf$/, 'plf'], [/InKlf$|Klf$/, 'klf']];
+  const fieldName = k => { let u = ''; for (const [re, t] of UNIT) if (re.test(k)) { u = t; k = k.replace(re, ''); break; } const w = k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/([A-Z])([A-Z][a-z])/g, '$1 $2'); return { t: w.charAt(0) + w.slice(1).toLowerCase().replace(/\b(fsw|bsw|lew|rew|ew|sw)\b/g, x => x.toUpperCase()), u }; };
+  function calcFileHtml(cur) {
+    const st = state.calcs, fo = st && st.file.folders[cur.folder], d = fo && fo.docs[cur.doc];
+    if (!d) return '<div class="empty">Not in the file any more.</div>';
+    const w = d.doc, s = CF.summary(d), code = s.code || CF.codeOf(w), ca = /NBCC/i.test(code);
+    const why = cur.fileOnly ? 'no building of this job matches it' : d.kind === 'wind' ? 'the tool does not work wind' : ca ? `${code} is not ASCE 7 — the tool works ASCE 7 only` : 'the tool works this one on its own card';
+    const head = `<div class="screen-heading"><div><div class="eyebrow">NBG Design Calcs · ${esc(st.name)}${code ? ' · ' + esc(code) : ''}</div><h2>${esc(d.name)}</h2></div><p class="lede">Read from the file as it is — ${esc(why)}. Every number here is Design Calcs' own.</p></div>`;
+    const ok = v => v != null && v !== '' && !(typeof v === 'number' && !isFinite(v)) && v !== 'NaN';
+    const chips = kv => `<div class="seis-sum">${kv.filter(([, v]) => ok(v)).map(([k, v]) => `<span>${k} <b>${v}</b></span>`).join('')}</div>`;
+    const panel = (t, sub, body) => `<div class="panel"><div class="panel-head"><h3>${t}</h3>${sub ? `<span class="sub">${sub}</span>` : ''}</div><div class="panel-body">${body}</div></div>`;
+    const table = (heads, rows) => `<div class="table-wrap"><table class="fl-t calc-ft"><thead><tr>${heads.map(h => (h.n ? `<th class="num">${h.n}</th>` : `<th>${h}</th>`)).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    const num = (v, dp = 2) => (ok(v) ? `<td class="num mono">${f(+v, dp)}</td>` : '<td class="num mono">—</td>');
+    const psf = (v, dp = 2) => (ok(v) ? `${f(v, dp)} psf${ca ? ` <small class="sub-n">${f(v / KPA, 2)} kPa</small>` : ''}` : null);
+    // every number of a block of the file, named and with its unit
+    const fields = (o, skip = /^\$type$/) => chips(Object.entries(o || {}).filter(([k, v]) => !skip.test(k) && (typeof v === 'number' || typeof v === 'boolean' || (typeof v === 'string' && v && v !== 'NaN'))).map(([k, v]) => { const n = fieldName(k); return [n.t, typeof v === 'number' ? (n.u === 'ft' ? ft(v) : n.u === 'psf' ? psf(v) : n.u === ':12' ? `${f(v, 2)}:12` : n.u === '°' ? `${f(v, 1)}°` : `${+v.toFixed(4)}${n.u ? ' ' + n.u : ''}`) : typeof v === 'boolean' ? (v ? 'yes' : 'no') : esc(ENUM(v))]; }));
+    const geo = w.BuildingGeometryInputs || {};
+    const geoChips = chips([['Type', esc(ENUM((w.BuildingTypeInputs || {}).BuildingType || geo.SelectedBuildingType || ''))], ['Width', ok(geo.BuildingWidthInFeet) ? ft(geo.BuildingWidthInFeet) : null], ['Length', ok(geo.BuildingLengthInFeet) ? ft(geo.BuildingLengthInFeet) : null],
+      ['Eave FSW', ok(geo.FSWEaveHeightInFeet) ? ft(geo.FSWEaveHeightInFeet) : null], ['Eave BSW', ok(geo.BSWEaveHeightInFeet) ? ft(geo.BSWEaveHeightInFeet) : null], ['Slope', ok(geo.FSWRoofSlopeOn12 ?? geo.RoofSlopeOn12) ? `${f(geo.FSWRoofSlopeOn12 ?? geo.RoofSlopeOn12, 2)}:12` : null]]);
+    if (d.kind === 'seismic') {
+      const sd = w.SeismicDataInputs || {}, lg = w.LongitudinalCalculations || {}, lat = w.LateralCalculations || [], fr = lg.SeismicFactorResults || {}, bs = lg.BaseShearResults || {}, vb = bs.ValuesForNBGBracing || {};
+      const site = ca ? [['Sa(0.2)', sd.Sa_02], ['Sa(0.5)', sd.Sa_05], ['Sa(1.0)', sd.Sa_10], ['Sa(2.0)', sd.Sa_20], ['Sa(5.0)', sd.Sa_50], ['Sa(10)', sd.Sa_100], ['PGA', sd.Pga], ['Site class', sd.SiteClass], ['Importance', esc(ENUM(sd.OccupancyCategory))]]
+        : [['Ss', sd.Ss], ['S1', sd.S1], ['Site class', sd.SiteClass], ['Occupancy', esc(ENUM(sd.OccupancyCategory))], ['Fa', fr.Fa], ['Fv', fr.Fv], ['SMS', ok(fr.Sms) ? f(fr.Sms, 3) : null], ['SM1', ok(fr.Sm1) ? f(fr.Sm1, 3) : null], ['SDS', ok(fr.Sds) ? f(fr.Sds, 3) : null], ['SD1', ok(fr.Sd1) ? f(fr.Sd1, 3) : null], ['SDC', esc(ENUM(fr.SeismicDesignCategory))]];
+      const facts = ca ? [['Ie', fr.Ie], ['Mv', fr.Mv], ['Rd', fr.Rd], ['Ro', fr.Ro], ['Ta', ok(fr.Ta) ? f(fr.Ta, 3) + ' s' : null], ['S(Ta)', ok(fr.S_Ta) ? f(fr.S_Ta, 4) : null], ['Category', esc(ENUM(fr.SeismicCategory))], ['Cs', ok(fr.Cs) ? `<b>${f(fr.Cs, 4)}</b>` : null]]
+        : [['Ie', fr.Ie], ['R', fr.R], ['Ω0', fr.Omega0], ['Cd', fr.Cd], ['Ta', ok(fr.Ta) ? f(fr.Ta, 3) + ' s' : null], ['Cs', ok(fr.Cs) ? f(fr.Cs, 4) : null]];
+      const P = CF.seismicInputs(w).P;
+      const loads = chips([['Frame self-weight', psf(P.roof.SW)], ['Roof dead', psf(P.roof.RDL)], ['Collateral', psf(P.roof.CDL)], ['Roof self-weight', psf(P.roof.RSW)], ['Roof snow', psf(P.roof.Pf)], ...['LEW', 'REW', 'FSW', 'BSW'].map(k => [`${k} wall`, P.walls[k] ? psf(P.walls[k].weight) : null])]);
+      const mz = P.mezz.length ? table(['Mezzanine ID', { n: 'Elevation' }, { n: 'Floor dead' }, { n: 'Collateral' }, { n: 'Joists' }, { n: 'Live' }, 'Storage'], P.mezz.map(m => `<tr><td class="mono"><b>${esc(String(m.id))}</b></td><td class="num mono">${ft(m.elev)}</td>${num(m.FDL)}${num(m.FLC)}${num(m.FLJ)}${num(m.FLL, 1)}<td>${m.storage ? 'yes' : 'no'}</td></tr>`)) : '';
+      const latRows = lat.map((l, i) => { const fi = l.FramingInputs || {}, r = l.SeismicFactorResults || {}, b = l.BaseShearResults || {}, v = b.ValuesForNBGFrame || {}, mzl = (fi.Mezzanines || []);
+        return `<tr><td class="mono"><b>${i + 1}</b> <small class="sub-n">${esc(ENUM(fi.BayType))}</small></td><td class="num mono">${ft(fi.BayWidthInFeet)}</td><td>${esc(ENUM(fi.SFRS))}<small class="sub-n">${esc(ENUM(r.FinalSFRS))}</small></td>${num(r.Cs, 4)}${num(v.RoofWeightInPsf)}${num(v.EquivalentRoofForceInKips, 3)}<td class="mono">${mzl.length ? mzl.map(q => `ID ${esc(String(q.UniformLoadInputId))} · ${n0(q.LoadingAreaInSquareFeet)} ft²${q.ConcentratedLoadTotalInKips ? ` + ${f(q.ConcentratedLoadTotalInKips, 2)} k` : ''}`).join('<br>') : '—'}</td><td class="num mono"><b>${ok(b.BaseShear) ? f(b.BaseShear, 3) : '—'}</b></td></tr>`; });
+      const mass = (bs.SeismicMassResults || []).map(m => `<tr><td>${esc(m.Description || ENUM(m.SeismicMassType))}</td>${num((m.WeightInLbs || 0) / 1000, 3)}<td class="num mono">${ok(m.ElevationInFeet) ? ft(m.ElevationInFeet) : '—'}</td>${num(m.ForceInKips, 3)}</tr>`);
+      const conc = (vb.ConcentratedSeismicLoads || []).map(c => `<tr><td>${esc(c.Description || ENUM(c.SeismicMassType))}</td><td>${esc(ENUM(c.SeismicMassType))}</td>${num(c.MagnitudeInKips, 3)}<td class="num mono">${ok(c.ElevationInFeet) ? ft(c.ElevationInFeet) : '—'}</td></tr>`);
+      return head
+        + panel('Building', esc(code), geoChips + chips([['Roof diaphragm', esc(ENUM(sd.RoofDiaphragm))], ['Mezzanine diaphragm', esc(ENUM(sd.MezzanineDiaphragm))], ['Multistory', sd.IsMultiStory ? 'yes' : 'no']]))
+        + panel(ca ? 'Seismic data · NBCC 4.1.8' : 'Seismic data', ca ? 'spectral accelerations, site class and importance category; the longitudinal\'s factors' : 'the site, then the longitudinal\'s factors', chips(site) + chips(facts))
+        + panel('Building loads', 'roof, walls and each mezzanine as the file has them', loads + mz)
+        + (lat.length ? panel('Lateral calculations', `${lat.length} frame line${lat.length === 1 ? '' : 's'} · NBG Frame`, table(['Frame line', { n: 'Bay' }, 'System', { n: 'Cs' }, { n: 'Roof weight (psf)' }, { n: 'Roof force (k)' }, 'Mezzanine', { n: 'Base shear (k)' }], latRows)) : '')
+        + panel('Longitudinal · NBG Bracing', `${esc(ENUM((lg.FramingInputs || {}).FSW_SFRS))} FSW · ${esc(ENUM((lg.FramingInputs || {}).BSW_SFRS))} BSW`,
+          chips([['Roof dead', psf(vb.RoofDeadOnlyInPsf)], ['Roof snow', psf(vb.RoofSnowInPsf)], ['Roof seismic weight', psf(vb.RoofTotalSeismicWeightInPsf)], ['Equivalent roof force', ok(vb.EquivalentRoofForceInKips) ? f(vb.EquivalentRoofForceInKips, 3) + ' k' : null], ['Seismic factor', ok(vb.SeismicFactor) ? f(vb.SeismicFactor, 4) : null], ['Base shear', ok(bs.BaseShear) ? `<b>${f(bs.BaseShear, 3)} k</b>` : null]])
+          + (mass.length ? `<h4 class="calc-ft-h">Seismic masses</h4>` + table(['Mass', { n: 'Weight (k)' }, { n: 'Elevation' }, { n: 'Force (k)' }], mass) : '')
+          + (conc.length ? `<h4 class="calc-ft-h">Concentrated loads to NBG Bracing</h4>` + table(['Load', 'Type', { n: 'Magnitude (k)' }, { n: 'Elevation' }], conc) : ''));
+    }
+    if (d.kind === 'snow') {
+      const inp = w.SnowLoadInputs || {}, c = w.CommonSnowResults || {}, sl = [c.Slope1, c.Slope2].filter(Boolean);
+      const how = ca ? `S = Is [Ss (Cb Cw Cs Ca) + Sr] (NBC 4.1.6.2): ${f(s.Is, 2)} × [${f(s.pg / KPA, 2)} kPa × ${f(s.Cb, 2)} × ${f(s.Cw, 2)} × Cs + ${f((s.rain || 0) / KPA, 2)} kPa]` : `ps = Cs × 0.7 Ce Ct Is pg (ASCE 7 Eq. 7.3-1, 7.4-1)`;
+      return head + panel('Snow load', esc(code), geoChips + chips([['Ground snow', psf(s.pg)], ca ? ['Rain load', psf(s.rain)] : ['Exposure', esc(ENUM(inp.WindExposure || inp.SnowExposure))], ['Importance', esc(ENUM(inp.ImportanceCategory))], ['Slippery roof', inp.IsRoofSurfaceSlippery ? 'yes' : 'no'],
+          ...(ca ? [['Cb', ok(s.Cb) ? f(s.Cb, 3) : null], ['Cw', s.Cw], ['Is', s.Is]] : [['Ce', s.Ce], ['Ct', s.Ct], ['Is', s.Is]])]) + `<small class="sub-n">${esc(how)}</small>`)
+        + panel('Roof snow', 'each roof slope', table(['Slope', { n: 'Angle' }, { n: 'Cs' }, { n: ca ? 'S (psf)' : 'ps (psf)' }, { n: 'Minimum (psf)' }], sl.map((q, i) => `<tr><td>${i + 1}</td>${num(q.RoofAngleDegrees, 1)}${num(q.Cs, 3)}<td class="num mono"><b>${f(q.Ps, 2)}</b>${ca ? ` <small class="sub-n">${f(q.Ps / KPA, 2)} kPa</small>` : ''}</td>${num(q.Pmin, 1)}</tr>`)))
+        + (s.cases.length ? panel('Unbalanced snow', ca ? 'NBC 4.1.6.5 cases' : 'ASCE 7 7.6', table(['Case', { n: 'Shape factor' }, { n: 'Windward (psf)' }, { n: 'Leeward (psf)' }, { n: 'Surcharge (psf)' }, { n: 'Length' }], s.cases.map(q => `<tr><td>${esc(ENUM(q.key.replace(/Case.*$/, '')).replace(/^Wind To (Right|Left)$/, (m, x) => 'Wind to the ' + x.toLowerCase()))}${q.name ? ' · ' + esc(q.name) : ''}</td>${num(q.shape, 2)}${num(q.windward)}${num(q.leeward)}${num(q.surcharge)}<td class="num mono">${ok(q.length) ? ft(q.length) : '—'}</td></tr>`))) : '');
+    }
+    if (d.kind === 'drift') {
+      const c = w.CommonSnowResults || {};
+      return head + panel('Roof step', esc(code), fields(w.DriftGeometryInputs) + chips([['Lower roof snow', psf((c.Slope2 || c.Slope1 || {}).Ps)], ['Upper roof snow', psf((c.Slope1 || {}).Ps)]]))
+        + panel('Drift', 'as Design Calcs worked it', fields(w.DriftResults));
+    }
+    if (d.kind === 'wind') {
+      const m = w.MainWindResults || {}, zones = (m.LateralZones || []).concat(m.LongitudinalZones || []);
+      const kv = ca ? [['Reference velocity pressure q', `${f(s.qKpa, 2)} kPa <small class="sub-n">${f(s.qKpa * KPA, 2)} psf</small>`], ['Importance', esc(ENUM(s.importance))], ['Iw', s.Iw], ['Terrain', esc(ENUM(s.exposure))], ['Ce', ok(s.Ce) ? f(s.Ce, 3) : null], ['Cgi', s.Cgi], ['Cpi', s.Cpi ? `${f(s.Cpi[0], 2)} / ${f(s.Cpi[1], 2)}` : null], ['Enclosure', esc(ENUM(s.category || s.enclosure))], ['Reference height', ft(s.h)], ['Base wind pressure', ok(s.base) ? `<b>${f(s.base, 3)} psf</b>` : null], ['Edge zone', ft(s.zone)]]
+        : [['Basic wind speed', `${s.V} mph`], ['Exposure', s.exposure], ['Enclosure', s.enclosure], ['Kd', f(s.Kd, 3)], ['Kh', f(s.Kh, 4)], ['Kzt', f(s.Kzt, 3)], ['Ke', f(s.Ke, 3)], ['Gust factor G', f(s.G, 3)], ['GCpi', `± ${f(s.GCpi, 2)}`], ['Mean roof height', ft(s.h)], ['qh', `<b>${f(s.qh, 3)} psf</b>`], ['Edge zone', ft(s.zone)]];
+      const zk = zones.length ? Object.keys(zones[0]).filter(k => /^Zone\d+Coefficient$/.test(k)) : [];
+      return head + panel(ca ? 'Velocity pressure · NBC 4.1.7' : 'Velocity pressure', ca ? 'q, Ce, Cg Cp and Cpi as the file has them' : 'ASCE 7 chapter 26–28, as the file has it', geoChips + chips(kv)
+          + chips([['Longitudinal force to the bracing', ok(s.longBracing) ? f(s.longBracing, 2) + ' k' : null], ['Total longitudinal force', ok(s.longTotal) ? f(s.longTotal, 2) + ' k' : null]]))
+        + (zones.length ? panel(ca ? 'Main wind force · Cp Cg by zone' : 'Main wind force · GCpf by zone', 'each load case, interior zones (the edge zones in the file beside them)', table(['Case', ...zk.map(k => ({ n: k.replace(/^Zone(\d+)Coefficient$/, 'Zone $1') }))], zones.map(z => `<tr><td class="mono"><b>${esc(z.CaseDescription || '')}</b></td>${zk.map(k => num(z[k], 3)).join('')}</tr>`))) : '');
+    }
+    return head + panel('The document', '', fields(w));
+  }
+
   // ---------- seismic: the mezzanine on the frames (EQR / EQL) and the bracing, as the IBC Seismic workbook ----------
   const SEIS_TYPE = t => (window.MZ_SEISMIC && window.MZ_SEISMIC.frameType(t)) || 'Rigid Frame';
   // ---------- the Seismic page: NBG Design Calcs (Seismic), section by section, then the loads into the files ----------
@@ -14815,6 +15515,7 @@ window.MZ_APP_BUILDING = function (C) {
     const sj = state.job && state.job.seismic, box = $('#seisInputs');
     if (!box) return;
     const clear = () => ['#seisFrames', '#seisApply', '#seisBracing', '#seisFlags', '#seisHow'].forEach(q => { $(q).innerHTML = ''; });
+    $('#v-seismic').classList.toggle('calc-none', !sj || !!sj.error);
     if (!sj || sj.error) { $('#seisStatus').innerHTML = sj && sj.error ? `<div class="seis-msg stop">${esc(sj.notes[0].text)}</div>` : ''; box.innerHTML = '<div class="empty">Load a PCS first.</div>'; clear(); return; }
     const cfg = state.seis, d = sj.design, F1 = v => f(v, 1), F2 = v => f(v, 2), F3 = v => f(v, 3), lb = v => n0(v), srcTag = o => `<small class="src src-${esc(String(o.source).replace(/\s+/g, '-'))}">${esc(o.source === 'missing' ? 'needed' : o.source)}</small>`;
     const num = (key, v, extra = '') => `<input class="seis-in ${v == null ? 'need' : ''}" data-seis="${esc(key)}" value="${v == null ? '' : +(+v).toFixed(4)}" inputmode="decimal" ${extra}>`;
@@ -14912,15 +15613,16 @@ window.MZ_APP_BUILDING = function (C) {
     $('#seisFrames').innerHTML = !live ? '<div class="empty">Complete the inputs above.</div>' : sj.buildings.map(b => {
       if (!b.lines.length) return '';
       const ids = b.mezz.map(m => m.id);
-      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num">${esc(id)} loading area</th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th><th></th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
+      return `${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}<div class="table-wrap"><table class="fl-t seis-frames"><thead><tr><th>Frameline</th><th>System</th><th class="num">Trib. width</th>${ids.map(id => `<th class="num seis-mzh">${esc(mezzName(id))}<small class="sub-n">loading area (sq ft) · concentrated (k)</small></th>`).join('')}<th class="num">Cs</th><th class="num">Roof weight <small class="sub-n">alt.</small></th><th>Frame concentrated loads</th><th class="num">Base shear</th><th></th></tr></thead><tbody>${b.lines.map(l => { const L = l.lat, u = L.frame, fr = b.frames.find(x => x.label === l.label); return `<tr class="seis-fr ${fr ? 'has-mz' : ''}" data-fr="${esc(b.bkey + '|' + l.label)}">
         <td><b class="mono">${esc(l.label)}</b><small class="sub-n">${esc(l.bayType)}</small></td><td>${esc(l.type)}<small class="sub-n">${esc(L.sys.label)} · R ${+L.R.toFixed(2)}</small></td><td class="num mono">${ft(l.bay)}</td>
-        ${ids.map(id => `<td class="num mono">${l.areas[id] ? n0(l.areas[id]) : '—'}</td>`).join('')}<td class="num mono">${F3(L.Cs)}</td>
+        ${ids.map(id => { const q = (l.lineIn.mezz || []).find(z => z.id === id), k = `${b.bkey}|${l.label}|${id}`;
+          return !q ? `<td class="num mono sub-n">—</td>` : `<td class="num"><div class="seis-mzin">${num('la.' + k, +q.area.toFixed(1))}<span>sq ft</span>${num('cl.' + k, q.conc || 0)}<span>k</span></div>${q.aTyped ? `<small class="sub-n">typed · the layout's ${n0(q.aCalc)}</small>` : ''}</td>`; }).join('')}<td class="num mono">${F3(L.Cs)}</td>
         <td class="num mono">${F2(u.roofPsf)} psf<small class="sub-n">${F2(u.altRoofPsf)} psf</small></td><td class="seis-concs">${concT(u.conc)}</td><td class="num mono"><b>${F2(L.V)}</b> k</td>
         <td>${fr ? wbBtn(`seismic|${b.bkey}|${l.label}`, 'Workbook') : ''}</td></tr>
         <tr class="seis-dist-row" hidden><td colspan="${8 + ids.length}"><div class="seis-dist-wrap">${factorsT(L.factors, L)}${distT(L)}
           <div class="seis-out"><b>For NBG Frame</b> — roof seismic weight <b>${F2(u.roofPsf)} psf</b> (alt. ${F2(u.altRoofPsf)} psf with the sidewalls) with seismic factor <b>${F3(u.factor)}</b>; panel load ${f(u.panel, 4)} klf (alt. ${f(u.altPanel, 4)}); equivalent roof force ${F2(u.equivRoof)} k. Concentrated: ${u.conc.map(c => `${esc(c.name.replace(' Loads', ''))} ${F2(c.F)} k at ${ft(c.at)}`).join(' · ')}.${fr && fr.loose.length ? `<div class="bad">${fr.loose.map(x => `${esc(x.id)} ${F2(x.F)} k has no frame column on this line — ${esc(x.why)}`).join('<br>')}</div>` : ''}</div></div></td></tr>`; }).join('')}</tbody></table></div>`;
     }).join('') + (live && infos.length ? `<div class="seis-notes"><b>Notes</b><ul>${infos.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul></div>` : '');
-    $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('button')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
+    $$('#seisFrames .seis-fr').forEach(tr => { tr.onclick = ev => { if (ev.target.closest('button, input, label')) return; const nx = tr.nextElementSibling; nx.hidden = !nx.hidden; tr.classList.toggle('open', !nx.hidden); }; });
 
     // ---- 8: into NBG Frame — one row per frame line × column × level; Applied is what the files get ----
     const nEdit = Object.keys(cfg.eqOverride || {}).length, scale = cfg.eqScale > 0 ? +cfg.eqScale : 1;
@@ -14972,9 +15674,10 @@ window.MZ_APP_BUILDING = function (C) {
       <div class="table-wrap"><table class="fl-t seis-bvals"><thead><tr><th colspan="2">For NBG Bracing — bracing uniform loads</th><th colspan="2">Bracing concentrated loads</th></tr></thead><tbody>
         <tr><td>Roof snow</td><td class="num mono">${F2(u.snow)} psf</td><td rowspan="5" colspan="2"><div class="seis-concs">${concT(u.conc)}</div>${tor ? `<small class="sub-n">${u.torsionMezz > 1 ? 'mezzanine force × 1.1 (accidental torsion, rigid mezzanine diaphragm)' : ''}${u.torsionRoof > 1 ? ' · seismic factor × 1.1 (rigid roof diaphragm)' : ''}</small>` : ''}</td></tr>
         <tr><td>Roof dead</td><td class="num mono">${F2(u.deadPsf)} psf</td></tr><tr><td>Roof total</td><td class="num mono"><b>${F2(u.totalPsf)} psf</b></td></tr><tr><td>Alt. roof total <small class="sub-n">with the sidewalls</small></td><td class="num mono">${F2(u.altTotalPsf)} psf</td></tr><tr><td>Seismic factor</td><td class="num mono"><b>${F3(u.factor)}</b></td></tr></tbody></table></div>
+      <div class="table-wrap"><table class="fl-t seis-lmz"><thead><tr><th>Mezzanine ID</th><th class="num">Loading area (sq ft)</th><th class="num">Concentrated loads (kips)</th><th class="num">Seismic psf</th><th class="num">Weight (lb)</th><th class="num">Force to the bracing (k)</th></tr></thead><tbody>${b.mezz.map(m => { const q = (G.mezzLoads || []).find(c => String(c.id) === String(m.id)) || {}, c = ((cfg.concLong || {})[`${b.bkey}|${m.id}`]); return `<tr><td><b>${esc(mezzName(m.id))}</b><small class="sub-n">at ${ft(m.elev)}</small></td><td class="num mono">${n0(m.area)}<small class="sub-n">${m.areaSrc === 'typed' ? 'typed in step 5' : m.openArea > 0 ? `${n0(m.gross)} less ${n0(m.openArea)} opening` : 'the floor'}</small></td><td class="num">${num(`cg.${b.bkey}|${m.id}`, c != null && c !== '' ? +c : 0)}</td><td class="num mono">${m.psf == null ? '—' : F2(m.psf)}</td><td class="num mono">${q.W != null ? lb(q.W) : '—'}</td><td class="num mono"><b>${q.F != null ? F2(q.F) : '—'}</b></td></tr>`; }).join('') || '<tr><td colspan="6" class="sub-n">No mezzanine in this building.</td></tr>'}</tbody></table></div>
       <details class="seis-d"><summary>Seismic factors and the multistory distribution</summary>${factorsT(G.factors, G)}${distT(G)}</details>
-      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
-      <small class="sub-n">The mezzanine floor spans across the building between these lines (lever rule): a sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force. The walls are drawn, and the file written, on the <a href="#" data-go="bracing">Bracing page</a>.</small>`;
+      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}<small class="sub-n">${l.share === 'share' ? `share · full ${F2(l.Ffull)}` : `full · share ${F2(l.Fshare)}`}</small></td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
+      <small class="sub-n">The mezzanine floor spans across the building between these lines. ${cfg.braceShare === 'share' ? 'Each line takes its share (lever rule), the lines holding the force once' : 'Each line takes the full force of the floor it bounds, in EQB and in EQF — as the engineers\' bracing files enter it (the share by the lever rule beside it)'}: a sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force. The walls are drawn, the split chosen and the file written on the <a href="#" data-go="bracing">Bracing page</a>.</small>`;
       fileParts.push(`${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}${fileUI}`);
       return out9;
     }).join('');
@@ -15022,6 +15725,7 @@ window.MZ_APP_BUILDING = function (C) {
         const setPath = (obj, path, val) => { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); if (val === '' || val == null || (typeof val === 'number' && !isFinite(val))) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = val; };
         if (k.startsWith('b.')) { const rest = k.slice(2), bk = sj.buildings.map(b => b.bkey).find(x => rest.startsWith(x + '.')); c.buildings = c.buildings || {}; c.buildings[bk] = c.buildings[bk] || {}; setPath(c.buildings[bk], rest.slice(bk.length + 1), v); }
         else if (k.startsWith('m.')) { const id = sj.buildings.flatMap(b => b.mezz.map(m => m.id)).find(x => k.startsWith('m.' + x + '.')); c.mezz = c.mezz || {}; c.mezz[id] = c.mezz[id] || {}; setPath(c.mezz[id], k.slice(2 + id.length + 1), v); }
+        else if (/^(la|cl|cg)\./.test(k)) { const box = { la: 'areaLat', cl: 'concLat', cg: 'concLong' }[k.slice(0, 2)], key = k.slice(3); c[box] = c[box] || {}; if (v === '' || !isFinite(+v) || (box === 'areaLat' && !(+v >= 0))) delete c[box][key]; else c[box][key] = +v; if (!Object.keys(c[box]).length) delete c[box]; }
         else if (k === 'eqScale') { if (v === '' || !(+v > 0)) delete c.eqScale; else c.eqScale = +v; }
         else if (k === 'framingAll') { c.mezz = c.mezz || {}; sj.buildings.forEach(b => b.mezz.forEach(m => { c.mezz[m.id] = { ...(c.mezz[m.id] || {}), framing: !!v }; if (v) delete c.mezz[m.id].framing; })); }
         else if (k === 'significant') { if (v) c.significant = true; else delete c.significant; }
@@ -16185,7 +16889,7 @@ window.MZ_APP_BUILDING = function (C) {
       };
     });
   }
-  const BLD = window.MZ_APP_BUILDING ? window.MZ_APP_BUILDING({ state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B: window.MZ_BUILDING, SITE: window.MZ_SITE, SNOW: window.MZ_SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, cpDownload, bracingPlan, bracingDownload, bracingOutName: bf => bracingOutName(bf), zipIO, cpSave,
+  const BLD = window.MZ_APP_BUILDING ? window.MZ_APP_BUILDING({ state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B: window.MZ_BUILDING, SITE: window.MZ_SITE, SNOW: window.MZ_SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, addCalcsFile, cpDownload, bracingPlan, bracingDownload, bracingOutName: bf => bracingOutName(bf), zipIO, cpSave,
     // the mezzanine rows a dropped frame file gets (so a lean-to's rows are added to them, not in their place)
     nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave, renderSeismic }) : null;
   // the live state, for the browser tests (test/e2e*.js) and a look from the console

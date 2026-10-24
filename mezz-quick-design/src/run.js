@@ -214,7 +214,7 @@
       job: { ...pcs.job, code: pcs.code },
       // Box 3: seismic site data and risk category (the seismic loads to the frames and the bracing)
       seismic: { ...(pcs.seismic || {}) },
-      mezz: { id: m.id, building: m.building, page: m.page, notes: m.notes || [], read: m.read || null, markups: m.markups || [], ocr: pcs.ocr || null, deckBy: m.deckBy || null, joistsBy: m.joistsBy || null, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, openingsAt: openingsFor(pcs, mi), columnNotes: columnNotesFor(pcs, mi), planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null },
+      mezz: { id: m.id, building: m.building, page: m.page, notes: m.notes || [], read: m.read || null, markups: m.markups || [], ocr: pcs.ocr || null, deckBy: m.deckBy || null, joistsBy: m.joistsBy || null, material, concrete, deck, deckText, ecospan: pcs.ecospan || null, colRequest: pcs.columnRequest || null, use: Object.keys((m.checks && m.checks.use) || {}).find(k => m.checks.use[k]) || null, useRead: !!(m.checks && m.checks.use), provided, joists: (m.checks && m.checks.joists) || null, deckAttach: m.deckAttach || null, deckFinish: m.deckFinish || null, primer: m.primer || null, openings: m.openings, openingsAt: openingsFor(pcs, mi), columnNotes: columnNotesFor(pcs, mi), planJoists: m.planJoists || null, planJoistsFrom: m.planJoistsFrom || null, planArrows: m.planArrows || 0, planRead: pcs.planRead || null, loadsKpa: m.loadsKpa || false },
       loads: {
         dead: dl.source === 'pcs' && mkNote('dead') ? { ...dl, note: mkNote('dead') } : dl, coll: v(m.collateral ?? 0, m.collateral != null ? 'pcs' : 'default', mkNote('collateral')),
         live: v(m.live, m.live != null ? 'pcs' : 'missing', mkNote('live')), partition: v(m.partition ?? 0, m.partition != null ? 'pcs' : 'default', mkNote('partition')),
@@ -403,11 +403,12 @@
     const deadUsed = dead + (s.partitionTo === 'dead' ? part : 0);
     const joistWt = val(inp.loads.joistWt) ?? DEFAULTS.joistWt;
 
-    // Total joist depth (Jaden): A - B - slab - seat
+    // Total joist depth: A - B - slab - seat
     const joistDepthIn = A != null && Bq != null ? Math.round((A - Bq) * 12 * 1000) / 1000 - slabIn - seatIn : null;
     if (joistDepthIn != null && joistDepthIn < 8) warn.push({ level: 'stop', text: `Total joist depth A − B − slab − seat = ${+joistDepthIn.toFixed(2)}" — too shallow for a joist. Check (B) clearance under joist.` });
 
     // flags from Box 22
+    if (inp.mezz.loadsKpa) warn.push({ level: 'warn', text: `Box 22 gives the floor loads in kPa (a Canadian job): taken in psf at 20.885 psf per kPa — dead ${val(inp.loads.dead)}, live ${val(inp.loads.live)} psf. The steel is CSA S16 on a Canadian job: check the design in the S16 workbooks.` });
     const prov = inp.mezz.provided || {};
     if (prov['Designed For Load Provisions Only']) warn.push({ level: 'stop', text: 'Designed For Load Provisions Only is checked — NBG supplies no mezzanine beams or columns. The connection hole patterns must be known at order entry, otherwise they are field drilled or field welded (DM 15.1.1, 15.1.1.4.2).' });
     if (prov['Support Beams'] === false) warn.push({ level: 'warn', text: 'Support Beams are not checked under Materials Provided By Seller.' });
@@ -1490,7 +1491,7 @@
        collateral, snow } } (read from a dropped bracing / eScope file), buildings: { [bkey]: { SW, RDL, CDL, RSW, Pf,
        walls: { LEW | REW | FSW | BSW: { kind, parapet, shear, top, weight, masonryTop, lowerWeight, upperWeight } },
        sfrs: { FSW, BSW }, lines: { [label]: framing }, frameFile } }, mezz: { [id]: { FDL, FLC, FLJ, FLL, storage,
-       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride } — anything left out comes from
+       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride, braceShare: 'full' | 'share' } — anything left out comes from
        the files, the PCS, the design or NBG's defaults. */
   const SEIS_DEFAULTS = { SW: 2, RDL: 3, RSW: 0, wall: 3, split: 'dead', sfrs: ['X-Bracing', 'X-Bracing'] };   // RDL: NBG Bracing's own default when the PCS says Per Seller (NBG Frame works out 2.7–2.8 psf on the jobs seen: 3 is on the safe side)
   const SEIS_SYSTEMS = ['X-Bracing', 'Portal Frame', 'Portal Frame (IMF)', 'Portal Frame (SMF)', 'X-Bracing (SCBF)'];
@@ -1519,6 +1520,9 @@
       .filter(e => !ctxs.some(c => { const n = nameOf(c.bkey); return n ? bkeyName(n) === bkeyName(nameOf(e.bkey)) : geoKey(c.bkey) === geoKey(e.bkey); }));
     if ((!live.length && !extra.length) || !SEIS) return null;
     const F = PCS.fmtFtIn, c0 = live[0] || { inp: { job: { ...(pcs.job || {}), code: pcs.code }, seismic: { ...(pcs.seismic || {}) } } }, px = c0.inp.seismic || {}, need = [], notes = [];
+    // a Canadian job: NBCC seismic (Sa(T), Rd · Ro, Mv, Ie) is not ASCE 7 — the numbers come from NBG Design Calcs
+    const jc = (c0.inp.job || {}).code || {};
+    if (jc.family === 'CSA') return { ok: false, error: true, canada: true, need: [], notes: [{ level: 'stop', text: `${jc.text || 'A Canadian code'}: ${jc.note || 'NBCC'} This tool works ASCE 7 seismic only — work the seismic in NBG Design Calcs (NBCC) — drop its .nbgcalcs at the top of the Calcs page and each building's seismic opens there as Design Calcs worked it.` }], buildings: [], inputs: {}, flags: {}, design: null, cfg };
     const files = cfg.files || {}, bkeys = [...new Set(live.map(c => c.bkey))].concat(extra.map(e => e.bkey));
     // a dropped bracing / eScope file belongs to one building; its project values (code, site) stand for the job
     const fx = files[bkeys.find(k => files[k])] || {};
@@ -1569,12 +1573,12 @@
       // 3. roof loading
       const ff = bo.frameFile || {}, bff = bf.from ? bf : fx;
       const roof = {
-        SW: srcOf([bo.SW, 'typed'], [SEIS_DEFAULTS.SW, 'default']),
+        SW: srcOf([bo.SW, 'typed'], [bff.SW, bff.from || fromFile], [SEIS_DEFAULTS.SW, 'default']),
         // NBG Frame works the roof dead out of the panel and purlins it designed — the value the engineer carries into Design
         // Calcs (2.7291 psf on the 3-building job, where the bracing run still had 3); the bracing / eScope value next
         RDL: srcOf([bo.RDL, 'typed'], [ff.roofDead, 'frame file'], [bff.roofDead, bff.from || fromFile], [rl.dead && rl.dead.value, 'PCS'], [SEIS_DEFAULTS.RDL, 'default']),
         CDL: srcOf([bo.CDL, 'typed'], [bff.collateral, bff.from || fromFile], [rl.coll1, 'PCS'], [ff.roofCollateral, 'frame file'], [0, 'default']),
-        RSW: srcOf([bo.RSW, 'typed'], [SEIS_DEFAULTS.RSW, 'default']),
+        RSW: srcOf([bo.RSW, 'typed'], [bff.RSW, bff.from || fromFile], [SEIS_DEFAULTS.RSW, 'default']),
         Pf: srcOf([bo.Pf, 'typed'], [bff.snow, bff.from || fromFile], [rl.snow && rl.snow.value, 'PCS'], [0, 'default']),
       };
       if (roof.RDL.source === 'default') notes.push({ level: 'info', text: `${name}: roof dead load ${SEIS_DEFAULTS.RDL} psf assumed ("Per Seller" on the PCS) — NBG Bracing's own default; NBG Frame works it out from the panel and purlins (2.7–2.8 psf on the jobs seen). Drop the job's .frame file on the Project page and its value is used; or type it in step 3.` });
@@ -1701,15 +1705,18 @@
       // all of them. Cut along the length where that changes; in each piece a mezzanine's force (by its length in the
       // piece) goes to the two edges by the lever rule. Then the same for the DM's 1 % (FDL + FLL) stability force.
       const xsCut = [...new Set(mz.flatMap(m => [m.x0, m.x1, ...m.holes.flatMap(o => [o.x0, o.x1])]).map(v => +v.toFixed(3)))].sort((a, b) => a - b);
+      // Two ways a line takes it: its share (the lever rule above), or — as the engineers' own bracing files enter it —
+      // the full force of each mezzanine it bounds, in EQB and in EQF (cfg.braceShare: 'share' | 'full', the default)
       const lines = new Map();
-      const add = (y, xa, xb, Fq, st, ids, elev) => {
-        const k = y.toFixed(2), L = lines.get(k) || { y, segs: [], F: 0, stab: 0, mezz: new Set(), at: 0 };
-        L.F += Fq; L.stab += st; ids.forEach(i => L.mezz.add(i)); L.at = Math.max(L.at, elev);
+      const add = (y, xa, xb, Fq, Ff, st, ids, elev, by) => {
+        const k = y.toFixed(2), L = lines.get(k) || { y, segs: [], Fs: 0, Ff: 0, stab: 0, mezz: new Set(), at: 0, by: {} };
+        L.Fs += Fq; L.Ff += Ff; L.stab += st; ids.forEach(i => L.mezz.add(i)); L.at = Math.max(L.at, elev);
+        Object.entries(by).forEach(([id, v]) => { const o = L.by[id] = L.by[id] || { share: 0, full: 0 }; o.share += v.share; o.full += v.full; });
         const last = L.segs[L.segs.length - 1];
         if (last && Math.abs(last[1] - xa) < 0.01) last[1] = xb; else L.segs.push([xa, xb]);
         lines.set(k, L);
       };
-      const force = id => (long.mezzLoads.find(q => q.id === id) || { F: 0 }).F;
+      const force = id => (long.mezzLoads.find(q => String(q.id) === String(id)) || { F: 0 }).F;
       const gravity = m => ((m.FDL + m.FLC + m.FLJ + (m.partition ? m.FLP : 0)) + m.FLL) * m.area / 1000;   // FDL + FLL, kips
       for (let i = 0; i + 1 < xsCut.length; i++) {
         const xa = xsCut[i], xb = xsCut[i + 1], here = mz.filter(m => m.x0 <= xa + 0.01 && m.x1 >= xb - 0.01);
@@ -1725,22 +1732,27 @@
             }
           }
           const yA = Math.min(...fl.map(m => m.y0)), yB = Math.max(...fl.map(m => m.y1)), span = yB - yA;
-          let FA = 0, FB = 0, SA = 0, SB = 0;
+          let FA = 0, FB = 0, Ff = 0, SA = 0, SB = 0;
+          const byA = {}, byB = {};
           fl.forEach(m => {
-            const pc = floorIn(m, xa, xb), part = m.area > 0 ? pc.a / m.area : 0, a = (yB - pc.yc) / span;
-            FA += force(m.id) * part * a; FB += force(m.id) * part * (1 - a);
+            const pc = floorIn(m, xa, xb), part = m.area > 0 ? pc.a / m.area : 0, a = (yB - pc.yc) / span, Fm = force(m.id) * part;
+            FA += Fm * a; FB += Fm * (1 - a); Ff += Fm;
+            byA[m.id] = { share: Fm * a, full: Fm }; byB[m.id] = { share: Fm * (1 - a), full: Fm };
             SA += 0.01 * gravity(m) * part * a; SB += 0.01 * gravity(m) * part * (1 - a);
           });
           const ids = fl.map(m => m.id), elev = Math.max(...fl.map(m => m.elev));
-          add(yA, xa, xb, FA, SA, ids, elev); add(yB, xa, xb, FB, SB, ids, elev);
+          add(yA, xa, xb, FA, Ff, SA, ids, elev, byA); add(yB, xa, xb, FB, Ff, SB, ids, elev, byB);
         }
       }
+      const full = cfg.braceShare !== 'share';
       [...lines.values()].sort((a, b) => a.y - b.y).forEach(L => {
+        L.F = full ? L.Ff : L.Fs;
         const onWall = L.y < 0.6 ? 'FSW' : L.y > W - 0.6 ? 'BSW' : null;
         const lab = onWall ? `${onWall} sidewall` : `${grid.yLabel(L.y) ? 'line ' + grid.yLabel(L.y) + ', ' : ''}${F(L.y)} from the FSW`;
         bOut.braceLines.push({ mezz: [...L.mezz], y: L.y, segs: L.segs, edge: lab, at: L.at, wall: onWall, x0: Math.min(...L.segs.map(s => s[0])), x1: Math.max(...L.segs.map(s => s[1])),
           element: onWall ? `${onWall} sidewall bracing — EQB / EQF at the mezzanine level, wall strut line at ${F(L.at)}` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
-          independent: !onWall, F: L.F, stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
+          independent: !onWall, F: L.F, Fshare: L.Fs, Ffull: L.Ff, share: full ? 'full' : 'share', by: Object.entries(L.by).map(([id, v]) => ({ id, total: force(id), ...v })),
+          stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
       bOut.workbook = seismicSteps({ inp, d, ed, code, g, bd, roof, walls, mz, significant, flags, sfrs, name, quote: (c0.inp.job || {}).quote, J, longIn }, bOut);
     });

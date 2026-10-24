@@ -104,7 +104,7 @@ const readQuote = page => page.$$eval('#quoteSheet table', ts => ts.map(t => [..
   console.log('Frames page'.padEnd(30), await page.$eval('#frameViewTitle', e => e.textContent.trim()), '· layers', await page.$$eval('#frameToggles button', b => b.map(x => x.textContent).join(', ')));
   await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(200);
   if (inked < 2000) fail('3D model looks empty');
-  for (const v of ['building', 'snow', 'frames', 'bracing', 'purlins', 'results', 'plan', 'beam', 'column', 'inputs', 'settings']) {
+  for (const v of ['building', 'calcs', 'frames', 'bracing', 'purlins', 'results', 'plan', 'beam', 'column', 'inputs', 'settings']) {
     await page.click(`#nav button[data-view="${v}"]`);
     await page.waitForTimeout(300);
     const active = await page.$eval(`#nav button[data-view="${v}"]`, b => b.getAttribute('aria-current'));

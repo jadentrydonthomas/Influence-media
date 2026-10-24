@@ -166,6 +166,8 @@ if (pdfArgs.length > 1) {
   else if (frames.length) {
     await page.setInputFiles('#nbgFile', frames);
     await page.waitForSelector('#nbgList .nbg-file', { timeout: 20000 }); await page.waitForTimeout(300);
+    // the Seismic calc: the Calcs page, its first building's Seismic Calculations card
+    const openSeismic = async () => { await page.click('#nav button[data-view="calcs"]'); await page.waitForTimeout(150); await page.click('#calcList .calc-card[data-calc^="seismic|"]'); await page.waitForTimeout(200); };
     const cardRows = () => page.$$eval('#nbgList .nbg-file', fs_ => fs_.map(f => [f.querySelector('.nbg-fh b').textContent, [...f.querySelectorAll('table.nbg-t tbody tr')].map(tr => [0, 2, 3, 4, 6, 7, 9].map(i => (i === 7 ? tr.cells[i].firstChild.textContent : i === 3 && tr.cells[i].querySelector('input') ? tr.cells[i].querySelector('input').value : tr.cells[i].textContent).trim()).join(' ')), [...f.querySelectorAll('.nbg-left > div .mono b')].map(b => b.textContent)]));
     const got = await cardRows();
     got.forEach(g => console.log(('NBG ' + g[0].replace(/^Frame_\d+_/, '')).padEnd(30), g[1].join(' | '), g[2].length ? '· not in file: ' + g[2].join(', ') : ''));
@@ -177,7 +179,7 @@ if (pdfArgs.length > 1) {
     console.log('NBG seismic rows, frame 2'.padEnd(30), eq2.map(r => r.join(' ')).join(' | '));
     // a row: name member xMag yMag elevation flange system (the name one word: EQR2 = EQR on column 2)
     if (eq2.map(r => r.slice(0, 2).join(' ')).join() !== 'EQR2 COL02,EQL2 COL02,EQR3 COL03,EQL3 COL03' || eq2.some(r => r[4] !== '11.50' || r[5] !== 'Top/Left') || +eq2[0][2] <= 0 || +eq2[0][2] !== -eq2[1][2]) fail('frame 2 should carry EQR + / EQL − on COL02 (Mezz 2) and COL03 (Mezz 1) at the floor level');
-    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(200);
+    await openSeismic();
     const seisTxt = await page.$eval('#v-seismic', e => e.innerText);
     // every PCS building is worked (Bldg 2 has no mezzanine); the frame files are Bldg 1's, so only its roof dead comes from them
     const frBy = await page.$$eval('#seisFrames .seis-fr', trs => trs.reduce((o, tr) => { const k = tr.dataset.fr.split('|')[0]; o[k] = (o[k] || 0) + 1; return o; }, {}));
@@ -208,7 +210,7 @@ if (pdfArgs.length > 1) {
     const setVal = (sel, v) => page.$eval(sel, (e, x) => { e.value = x; e.dispatchEvent(new Event('change')); }, v).then(() => page.waitForTimeout(250));
     const eqOf = rows => Object.fromEntries(rows.filter(r => /^EQ/.test(r)).map(r => r.split(' ')).map(r => [r[0], +r[2]]));
     const calc2 = eqOf(two[1]), calc35 = eqOf((got.find(g => /_1_3-5\.frame$/.test(g[0])) || [0, []])[1]);
-    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
+    await openSeismic();
     await setVal('#seisApply [data-seis="eqScale"]', '1.1');
     const k2 = await page.$eval('#seisApply tr[data-fr$="|2"][data-member="COL02"] input[data-eqkey]', x => x.dataset.eqkey);
     await setVal(`#seisApply [data-eqkey="${k2}"]`, '5');
@@ -224,7 +226,7 @@ if (pdfArgs.length > 1) {
     const near3 = (a, b) => Math.abs(a - b) <= 0.0015;
     if (!near3(e2['EQR2'], 5) || !near3(e2['EQL2'], -5) || !near3(e2['EQR3'], calc2['EQR3'] * 1.1) || !near3(e2['EQL3'], -e2['EQR3'])) fail('frame 2: COL02 typed 5 k, COL03 the calculated load × 1.1');
     if (!near3(e35['EQR3'], 2.75) || !near3(e35['EQL3'], -2.75)) fail('frames 3-5: 2.75 k typed on the card');
-    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
+    await openSeismic();
     const seis35 = await page.$$eval('#seisApply tr[data-member]', trs => trs.filter(tr => /\|[345]$/.test(tr.dataset.fr)).map(tr => +tr.querySelector('input').value));
     console.log('EQ edits, frames 3-5'.padEnd(30), seis35.join(' '));
     if (seis35.join() !== '2.75,2.75,2.75') fail('a value typed on the 3-5 card should go to frames 3, 4 and 5');
@@ -250,7 +252,7 @@ if (pdfArgs.length > 1) {
       console.log('EQ edits, downloaded xMag'.padEnd(30), 'frame 2', got2.join(' '), '· 3-5', got35.join(' '));
       if (!near3(got2[0], 5) || !near3(got2[1], -5) || !near3(got2[2], e2['EQR3']) || !near3(got2[3], -e2['EQR3']) || !near3(got35[0], 2.75) || !near3(got35[1], -2.75)) fail('the downloaded EQR / EQL rows should be the edited values'); }
     // back to the calculated loads
-    await page.click('#nav button[data-view="seismic"]'); await page.waitForTimeout(150);
+    await openSeismic();
     await page.click('#eqResetAll'); await page.waitForTimeout(250);
     await page.click('#nav button[data-view="frames"]'); await page.waitForTimeout(150);
     const reset = await cardRows(), b2 = eqOf(reset.find(g => /_1_2\.frame$/.test(g[0]))[1]), b35 = eqOf(reset.find(g => /_1_3-5\.frame$/.test(g[0]))[1]);

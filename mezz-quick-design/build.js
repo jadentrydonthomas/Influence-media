@@ -54,6 +54,6 @@ const pkg = JSON.parse(fs.readFileSync(path.join(PDFJS, 'package.json'), 'utf8')
 if (pkg.version !== '3.11.174') console.warn(`warning: expected pdfjs-dist 3.11.174, found ${pkg.version}`);
 const stamp = new Date().toISOString().slice(0, 10);
 html = html.replace('</title>', `</title>\n<meta name="generator" content="mezz-quick-design build ${stamp}; pdf.js ${pkg.version}; ${ocrNote}">`);
-const out = path.join(__dirname, 'index.html');
+const out = process.env.BUILD_OUT ? path.resolve(process.env.BUILD_OUT) : path.join(__dirname, 'index.html');   // BUILD_OUT: a copy elsewhere (the tests read index.html)
 fs.writeFileSync(out, html);
 console.log(`wrote ${path.relative(process.cwd(), out)} (${(html.length / 1024).toFixed(0)} KB)`);

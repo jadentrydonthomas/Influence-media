@@ -294,6 +294,13 @@
     [/(?:\bCBC\b|California)[^\n]*?\b2022\b/i, 2021, 'California Building Code 2022 is based on IBC 2021'],
     [/(?:\bCBC\b|California)[^\n]*?\b2019\b/i, 2018, 'California Building Code 2019 is based on IBC 2018'],
   ];
+  const PROVINCIAL = [
+    [/\bOBC\b|Ontario/i, y => (y >= 2024 ? 2020 : y >= 2012 ? 2010 : y || 2020), 'Ontario Building Code'],
+    [/\bBCBC\b|British Columbia/i, y => (y >= 2024 ? 2020 : y >= 2018 ? 2015 : y || 2020), 'BC Building Code'],
+    [/Alberta|NBC\s*\(AE\)|\bABC\b/i, y => (y >= 2023 ? 2020 : y >= 2019 ? 2015 : y || 2020), 'Alberta Building Code'],
+    [/Qu[eé]bec|\bCNB\b/i, y => (y >= 2020 ? 2015 : y || 2015), 'Quebec Construction Code'],
+    [/Saskatchewan|Manitoba|Nova Scotia|New Brunswick|Newfoundland|Prince Edward|National Building Code of Canada|\bNBC\s*20\d\d/i, y => y || 2020, 'National Building Code of Canada'],
+  ];
   function editionFor(code) {
     const st = !/IBC\s*\d{4}/i.test(code) && STATE_CODES.find(([re]) => re.test(code));
     if (st) return { ...editionFor(`IBC ${st[1]}`), state: true, note: `${st[2]} → ${editionFor(`IBC ${st[1]}`).spec}.` };
@@ -306,6 +313,13 @@
       return { family: 'AISC', year: y, edition: '13', spec: 'AISC 360-05' };
     }
     if (nbcc) return { family: 'CSA', year: +nbcc[1], edition: +nbcc[1] >= 2020 ? 'S16-19' : 'S16-14', spec: +nbcc[1] >= 2020 ? 'CSA S16-19' : 'CSA S16-14' };
+    // a Canadian provincial code: built on the National Building Code of Canada of its cycle (loads in kPa, NBCC seismic
+    // and snow, CSA S16 steel)
+    const prov = PROVINCIAL.find(([re]) => re.test(code));
+    if (prov) {
+      const y = +((code.match(/\b(20\d\d)\b/) || [])[1] || 0), nbc = prov[1](y);
+      return { family: 'CSA', year: nbc, edition: nbc >= 2020 ? 'S16-19' : 'S16-14', spec: nbc >= 2020 ? 'CSA S16-19' : 'CSA S16-14', provincial: true, note: `${prov[2]}${y ? ' ' + y : ''} is built on NBC ${nbc || '(cycle not read)'} — a Canadian job: loads in kPa, NBCC seismic and snow, CSA S16 steel.` };
+    }
     // state codes without an IBC year (e.g. "Massachusetts (MASS 10th Ed.) ASCE 7-16"): the ASCE 7 edition
     // pins the IBC cycle — 7-22 → IBC 2024, 7-16 → IBC 2018/2021, 7-10 → IBC 2012/2015, 7-05 → IBC 2006/2009
     const asce = code.match(/ASCE\s*7\s*-\s*(\d{2})/i);
@@ -334,7 +348,8 @@
       // ASCE 7-22 jobs list SMS and SM1 (from the hazard tool) and the SDC on the same lines
       Sms: num(/\bSms:\s*([\d.]+)/), Sm1: num(/\bSm1:\s*([\d.]+)/), sdc: grab(txt, /\bSDC:\s*([A-F])\b/),
       siteClass: site ? (site.match(/^\s*([A-F])\b/i) || [])[1] || null : null, siteNote: site ? clean(site.replace(/^\s*[A-F]\b/i, '')) || null : null,
-      groundSnow: num(/Ground Snow Load:\s*([\d.]+)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
+      groundSnow: num(/Ground Snow Load:\s*([\d.]+)(?!\s*kPa)/), roofLive: num(/(?:^|\s)Live Load:\s*([\d.]+)\s*psf/i),
+      groundSnowKpa: num(/Ground Snow Load\s*\(Ss\):\s*([\d.]+)\s*kPa/i) ?? num(/Ground Snow Load:\s*([\d.]+)\s*kPa/i),
       Ce: num(/Snow Exposure (?:Coefficient|Factor)\s*\(Ce\):\s*([\d.]+)/i), ceText: grab(txt, /Snow Exposure (?:Coefficient|Factor)\s*\(Ce\):\s*[\d.]+\s*-?\s*(.+?)(?:\s{2,}|\n|$)/i),
       W2: num(/Winter Wind (?:Parameter|Factor)[^:\n]*:\s*([\d.]+)/i),
     };
@@ -572,13 +587,16 @@
   function parseMezz(ls) {
     const txt = ls.map(l => l.text).join('\n');
     const num = v => (v == null ? null : /per seller/i.test(v) ? 'Per Seller' : isFinite(+v) ? +v : null);
+    // a Canadian PCS gives the floor loads in kPa: taken in psf (1 kPa = 20.8854 psf), and said so
+    const kpa = re => { const v = grab(txt, re); return v != null && isFinite(+v) ? +(+v * 20.8854342).toFixed(2) : null; };
     const m = {
       id: grab(txt, /Mezzanine ID:\s*(.+?)(?:\s{2,}Building Name|\n|$)/),
       building: grab(txt, /Building Name:\s*(.+?)(?:\s{2,}|\n|$)/),
-      dead: num(grab(txt, /Dead Load:\s*(.+?)\s*PSF/i)),
-      live: num(grab(txt, /Live Load:\s*(.+?)\s*PSF/i)),
-      collateral: num(grab(txt, /Collateral(?: \(Bottom Chord\))?:\s*(.+?)\s*PSF/i)),
-      partition: num(grab(txt, /Partition Loads?:\s*(.+?)\s*PSF/i)),
+      dead: num(grab(txt, /Dead Load:\s*(.+?)\s*PSF/i)) ?? kpa(/Dead Load:\s*([\d.]+)\s*kPa/i),
+      live: num(grab(txt, /Live Load:\s*(.+?)\s*PSF/i)) ?? kpa(/Live Load:\s*([\d.]+)\s*kPa/i),
+      collateral: num(grab(txt, /Collateral(?: \(Bottom Chord\))?:\s*(.+?)\s*PSF/i)) ?? kpa(/Collateral(?: \(Bottom Chord\))?:\s*([\d.]+)\s*kPa/i),
+      partition: num(grab(txt, /Partition Loads?:\s*(.+?)\s*PSF/i)) ?? kpa(/Partition Loads?:\s*([\d.]+)\s*kPa/i),
+      loadsKpa: /(?:Dead|Live) Load:\s*[\d.]+\s*kPa/i.test(txt) || undefined,
       width: ftin(grab(txt, new RegExp(String.raw`Width:\s*(` + DIM + ')'))),
       length: ftin(grab(txt, new RegExp(String.raw`Length:\s*(` + DIM + ')'))),
       slab: ftin(grab(txt, new RegExp(String.raw`Slab\/Deck Thickness:\s*(` + DIM + ')'))),

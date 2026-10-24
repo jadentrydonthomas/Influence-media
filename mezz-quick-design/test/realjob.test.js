@@ -116,12 +116,15 @@ const near = (a, b, t = 1e-9) => Math.abs(a - b) <= t * Math.max(1, Math.abs(b))
     assert.ok(repl.replaced === 1 && /BackSidewall Drift/.test(repl.replacedRows[0].name), 'NBG\'s own drift row goes; left in, it would add to the new one');
     // the bracing runs: <FrontSidewall> holds line A (the BSW), told by its eave strut; read that way the rods are where
     // PCS Box 12 puts the X-bracing (Main FSW bays 2, 4; the shop's FSW bay 1) and the Main BSW's portal frames have none
-    const BRF = require('../src/bracingfile.js'), rodBays = (f, w) => f.info.walls[w].bays.filter(b => b.braced).map(b => b.from + 1);
+    const BRF = require('../src/bracingfile.js'), rodBays = (f, w) => f.info.walls[w].bays.filter(b => b.braces.length).map(b => b.from + 1), pfBays = (f, w) => f.info.walls[w].bays.filter(b => b.portal).map(b => b.from + 1);
     const mainB = await BRF.read(new Uint8Array(fs.readFileSync(path.join(dirB, 'Main.bracing'))), io, 'Main.bracing');
     const shopB = await BRF.read(new Uint8Array(fs.readFileSync(path.join(dirB, 'Maintenance_Shop.bracing'))), io, 'Maintenance_Shop.bracing');
     assert.deepStrictEqual([mainB.info.walls.FSW.tag, mainB.info.walls.FSW.how, mainB.info.walls.FSW.top, mainB.info.walls.BSW.top], ['BackSidewall', 'eave strut', 32, 37]);
     assert.deepStrictEqual([rodBays(mainB, 'FSW'), rodBays(mainB, 'BSW'), rodBays(shopB, 'FSW'), rodBays(shopB, 'BSW')], [pB.site.Main.bracing.FSW.bays, [], pB.site['Maintenance Shop'].bracing.FSW.bays, []]);
     assert.deepStrictEqual(pB.site.Main.bracing.BSW.kind, 'portal');
+    // the portal frames are in the run as <PortalFrames> (by wall plane and bay): on the BSW, in the bays Box 12 names
+    assert.deepStrictEqual([pfBays(mainB, 'BSW'), pfBays(mainB, 'FSW')], [pB.site.Main.bracing.BSW.bays, []]);
+    assert.ok(mainB.info.portals.every(q => /^PF[\d.]+W\d+H\d+K$/.test(q.id) && q.H1.length === mainB.info.combos.length) && mainB.info.status.designed, 'each portal\'s reactions a combination');
     msgB = `; the reviewed version: 4 buildings, the earlier label from page ${pB.otherDoc.page} left unread, lean-to at 64'-0", NBG Frame's own drift ${psf.toFixed(1)} psf (fetch 22'-6") replaced by ${dB.drift.pd.toFixed(1)} psf (fetch 190'-0"); the bracing runs' rods on the walls PCS Box 12 names`;
   }
   console.log(`real job tests passed (3 buildings read over Box 2's continued page; drift = NBG Design Calcs (hd, w to the last digit) with the 193'-8" fetch through the roofs in line; sliding 45.92 psf as Design Calcs works it, the frames taking the larger; ${n} seismic results with no mezzanine to 1e-9; the lean-to's 24 reaction rows as the engineer typed them; Snow Drift rows in the engineer's format${msgB})`);

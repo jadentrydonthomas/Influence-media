@@ -46,6 +46,21 @@ const geo = async (k, mi = 0) => { const p = PCS.parse(await readPcs(job(k))), g
     lat.forEach((l, i) => (l.Mezzanines || []).forEach(q => assert.ok(near(b.lines[i].areas[id], q.LoadingAreaInSquareFeet, 1e-6), `line ${i + 1} loading area`)));
     assert.ok(near(b.long.V, doc.LongitudinalCalculations.BaseShearResults.BaseShear, 1e-9));
     seen.push(`k02 seismic = its Design Calcs file on ${lat.length} frame lines and the bracing`);
+    // ...and its bracing run holds the engineer's own Mezz. Seismic rows: the full 4.73 k on each sidewall, EQB + at the
+    // mezzanine's first frame line (4), EQF − at its last (5), at the floor (10 ft). The tool's plan is the same rows; the
+    // strut line goes to the BSW's braced bay (3–4) and to the FSW's portal frame (4–5, read from <PortalFrames>)
+    const brPath = path.join(dir, 'k02', 'MAIN.bracing');
+    if (fs.existsSync(brPath)) {
+      const BRF = require('../src/bracingfile.js'), z = require('zlib'), io = { inflate: async u => new Uint8Array(z.inflateRawSync(u)), deflate: async u => new Uint8Array(z.deflateRawSync(u)) };
+      const bf = await BRF.read(new Uint8Array(fs.readFileSync(brPath)), io, 'MAIN.bracing');
+      const plan = BRF.planFor(bf, b.braceLines.filter(l => l.wall).map(l => ({ wall: l.wall, F: l.F, at: l.at, x0: l.x0, x1: l.x1, mezz: l.mezz.join(' + ') })));
+      const key = r => `${r.plane}|${r.line}|${r.caseId}|${(+r.elev).toFixed(2)}`, theirs = new Map(bf.info.loads.filter(r => r.name === BRF.LOAD_NAME).map(r => [key(r), r.F]));
+      const ours = plan.loads.map(l => ({ ...l, plane: bf.info.walls[l.wall].plane }));
+      assert.strictEqual(ours.length, theirs.size, `${ours.length} rows vs the file's ${theirs.size}`);
+      ours.forEach(l => assert.ok(theirs.has(key(l)) && near(l.F, theirs.get(key(l)), 0.006), `${l.wall} ${l.caseId} line ${l.line + 1}: ${l.F} vs ${theirs.get(key(l))}`));
+      assert.deepStrictEqual(plan.struts.map(q => `${q.wall} ${q.from}-${q.to} @${q.elev}`).sort(), ['BSW 2-4 @10', 'FSW 3-4 @10']);
+      seen.push('k02 bracing = the engineer\'s own EQB / EQF rows (4.73 k on each wall)');
+    }
   }
   // k06: a column of single-value notes, each box taller than its row
   if (fs.existsSync(job('k06'))) {

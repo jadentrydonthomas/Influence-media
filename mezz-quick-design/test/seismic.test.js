@@ -161,9 +161,16 @@ if (!ok) { console.log(`seismic tests passed (the rules worked by hand; ${nbg}; 
   b.frames.forEach(f => f.lat.mezzLoads.forEach(ml => assert.ok(near(ml.F, Cs * f.areas[ml.id] * 99.25 / 1000, 1e-9))));
   assert.ok(b.frames.every(f => !f.loose.length));
   assert.ok(near(b.long.mezzLoads[0].F, Cs * 333480 / 1000) && near(b.long.mezzLoads[1].F, Cs * 142920 / 1000));
-  const lines = b.braceLines.map(l => [l.edge.replace(/,.*$/, ''), l.segs.map(s => s.join('-')).join(' '), +l.F.toFixed(2), l.independent, l.wall]);
-  assert.deepStrictEqual(lines, [['line E', '0-40', 7.16, true, null], ['line B', '40-140', 7.16, true, null], ['BSW sidewall', '0-140', 14.31, false, 'BSW']]);
-  assert.ok(near(b.braceLines.reduce((a, l) => a + l.F, 0), b.long.mezzLoads.reduce((a, m) => a + m.F, 0), 1e-9), 'the lines hold all of it');
+  // each line takes the full force of the floor it bounds, in EQB and EQF — as the engineers' bracing files have it: the
+  // BSW the whole 28.63 k, line E its 0–40 piece and line B its 40–140 piece; shared (the lever rule) the lines hold it once
+  const lines = b.braceLines.map(l => [l.edge.replace(/,.*$/, ''), l.segs.map(s => s.join('-')).join(' '), +l.F.toFixed(2), +l.Fshare.toFixed(2), l.independent, l.wall]);
+  assert.deepStrictEqual(lines, [['line E', '0-40', 14.31, 7.16, true, null], ['line B', '40-140', 14.31, 7.16, true, null], ['BSW sidewall', '0-140', 28.63, 14.31, false, 'BSW']]);
+  const mzTotal = b.long.mezzLoads.reduce((a, m) => a + m.F, 0);
+  assert.ok(near(b.braceLines.find(l => l.wall === 'BSW').F, mzTotal, 1e-9) && near(b.braceLines.filter(l => !l.wall).reduce((a, l) => a + l.F, 0), mzTotal, 1e-9), 'full: the BSW all of it, lines E and B all of it between them');
+  assert.ok(near(b.braceLines.reduce((a, l) => a + l.Fshare, 0), mzTotal, 1e-9), 'shared: the lines hold it once');
+  b.braceLines.forEach(l => assert.ok(near(l.by.reduce((a, q) => a + q.full, 0), l.Ffull, 1e-9) && near(l.by.reduce((a, q) => a + q.share, 0), l.Fshare, 1e-9), 'each mezzanine\'s part adds up'));
+  const sh = RUN.runJob(items, { seis: { ...base, braceShare: 'share' } }).seismic.buildings[0].braceLines;
+  assert.deepStrictEqual(sh.map(l => +l.F.toFixed(2)), [7.16, 7.16, 14.31], 'shared on the page: the lever rule');
   // the engineer's edits: × 1.2 on every computed load, 5 k typed on frame 2 COL02 (Mezz 1 + Mezz 2 at that column, one
   // value), and the frame-file rows carry exactly what is shown — EQR +, EQL −
   const FF = require('../src/framefile.js');
@@ -192,5 +199,5 @@ if (!ok) { console.log(`seismic tests passed (the rules worked by hand; ${nbg}; 
   // a bracing file's code, site and roof loads stand in for the PCS's (typed values still win)
   const fromFile = RUN.runJob(items, { seis: { mezz: base.mezz, files: { [bk]: { from: 'bracing file', code: 'IBC2021', Ss: 0.2, S1: 0.07, siteClass: 'D', roofDead: 3.1 } } } }).seismic;
   assert.ok(fromFile.ok && fromFile.inputs.Ss.value === 0.2 && fromFile.inputs.Ss.source === 'bracing file' && fromFile.buildings[0].roof.RDL.value === 3.1);
-  console.log(`seismic tests passed (the rules worked by hand; ${nbg}; W1S-26062: 99.25 psf, k = 0 unless a significant mezzanine, frames 1–6 EQ on COL02 / COL03, bracing ${b.long.mezzLoads.map(m => m.F.toFixed(2)).join(' + ')} k to line E, line B and the BSW; EQ edits × scale / typed per column into the frame-file rows)`);
+  console.log(`seismic tests passed (the rules worked by hand; ${nbg}; W1S-26062: 99.25 psf, k = 0 unless a significant mezzanine, frames 1–6 EQ on COL02 / COL03, bracing ${b.long.mezzLoads.map(m => m.F.toFixed(2)).join(' + ')} k to line E, line B and the BSW (full and shared); EQ edits × scale / typed per column into the frame-file rows)`);
 })().catch(e => { console.error(e); process.exit(1); });
