@@ -38,19 +38,32 @@
   const unit = ([x, y]) => { const l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
   const snap = v => Math.abs(v) < 1e-9 ? 0 : Math.round(v);
 
-  /* the roof height of a building at a point of its own plan: a gable from each eave up to the ridge (Box 2's distance to
-     ridge measured from the BSW), a single slope or a lean-to straight from the FSW eave to the BSW eave */
+  const isGable = g => g.profile === 'Gable' || (g.profile !== 'Single Slope' && g.profile !== 'Lean-To' && g.slopeFSW != null && g.slopeBSW != null);
+  /* where the ridge of a gable is, from the FSW. Box 2's distance to ridge is read from whichever side makes the two roof
+     planes meet there (from each eave at its own slope): an unequal gable on one practice job has its 121'-6" from the
+     FSW (eaves 28'-9 3/4" / 33'-11 3/8", both planes 38'-11" at the ridge; from the BSW they would miss by 10 ft). With
+     no distance given, where the planes meet (the middle when the eaves are level). */
+  function ridgeY(g) {
+    const W = g.width, eF = g.eaveFSW ?? g.eave, eB = g.eaveBSW ?? g.eave, sF = (g.slopeFSW ?? g.slopeBSW ?? 1) / 12, sB = (g.slopeBSW ?? g.slopeFSW ?? 1) / 12;
+    const meet = eF != null && eB != null && sF + sB > 0 ? Math.min(W, Math.max(0, (eB - eF + sB * W) / (sF + sB))) : W / 2;
+    if (g.ridge == null || !(g.ridge > 0 && g.ridge < W)) return meet;
+    if (eF == null || eB == null) return W - g.ridge;
+    const gap = d => Math.abs(eF + sF * d - (eB + sB * (W - d)));
+    return gap(g.ridge) + 0.05 < gap(W - g.ridge) ? g.ridge : W - g.ridge;
+  }
+  // the roof height of a building at a point of its own plan: a gable from each eave up to the ridge, a single slope or a
+  // lean-to straight from the FSW eave to the BSW eave
   function roofZ(g, x, y) {
     const W = g.width, eF = g.eaveFSW ?? g.eave, eB = g.eaveBSW ?? g.eave;
-    if (g.profile === 'Gable' || (g.profile !== 'Single Slope' && g.profile !== 'Lean-To' && g.slopeFSW != null && g.slopeBSW != null)) {
-      const yr = W - (g.ridge != null ? g.ridge : W / 2), sF = (g.slopeFSW ?? g.slopeBSW ?? 1) / 12, sB = (g.slopeBSW ?? g.slopeFSW ?? 1) / 12;
+    if (isGable(g)) {
+      const yr = ridgeY(g), sF = (g.slopeFSW ?? g.slopeBSW ?? 1) / 12, sB = (g.slopeBSW ?? g.slopeFSW ?? 1) / 12;
       return y <= yr ? eF + sF * Math.max(0, y) : eB + sB * Math.max(0, W - y);
     }
     return eF + (eB - eF) * Math.min(1, Math.max(0, y / W));
   }
   // where the roof planes of a building change slope across its width: [0, ridge, W] for a gable
   function roofBreaks(g) {
-    if (g.profile === 'Gable' || (g.profile !== 'Single Slope' && g.profile !== 'Lean-To' && g.slopeFSW != null && g.slopeBSW != null)) return [0, g.width - (g.ridge != null ? g.ridge : g.width / 2), g.width];
+    if (isGable(g)) return [0, ridgeY(g), g.width];
     return [0, g.width];
   }
   // the frame lines of a building: x from the LEW, from Box 2's bays
@@ -203,7 +216,7 @@
       const Ct = o.Ct ?? r.Ct ?? 1, slippery = o.slippery ?? r.obstruction === false;
       const slope = Math.max(g.slopeFSW || 0, g.slopeBSW || 0);
       const gable = g.profile === 'Gable';
-      const W = gable ? Math.max(g.width - (g.ridge ?? g.width / 2), g.ridge ?? g.width / 2) : g.width;
+      const W = gable ? Math.max(g.width - ridgeY(g), ridgeY(g)) : g.width;
       const res = SNOW.roof({ ed: facts.ed, pg: facts.pg, Ce: facts.Ce ?? 1, Ct, risk: facts.risk, slope, slippery, W, gable, W2: facts.W2 });
       const pcsSnow = r.snow && r.snow.value != null ? r.snow : null;
       const shown = Math.max(res.ps, res.pm || 0);
@@ -323,6 +336,6 @@
   // roof panel number across a frame, from the FSW: RP1, RP2 … between the slope breaks
   function panelOf(brk, y) { for (let i = 0; i + 1 < brk.length; i++) if (y >= brk[i] - 1e-6 && y <= brk[i + 1] + 1e-6) return i + 1; return 1; }
 
-  const api = { wallSeg, roofZ, roofBreaks, frameXs, place, steps, snowJob, frameLoads, fetchOf, fetchThrough, envelope, envArea, drainsTo, runTo, bkey, WALLS };
+  const api = { wallSeg, roofZ, roofBreaks, ridgeY, frameXs, place, steps, snowJob, frameLoads, fetchOf, fetchThrough, envelope, envArea, drainsTo, runTo, bkey, WALLS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_SITE = api;
 })(typeof self !== 'undefined' ? self : this);

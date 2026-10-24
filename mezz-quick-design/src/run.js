@@ -479,6 +479,7 @@
     });
     readColumnSymbols(lay, bl.planCols, grid, warn);
     userColumns(lay, s.colKind, grid, warn);
+    portalLegs(lay, s.portalCols, grid, warn);
     planChecks(inp, grid, lay, s, warn);
     lay.snaps.forEach(sn => {
       const lab = (sn.axis === 'y' ? grid.yLabel(sn.line) : grid.xLabel(sn.line)), past = (sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW));
@@ -588,6 +589,30 @@
     (lay.dropped || []).forEach(d => {
       const b = lay.beams.find(x => Math.abs(x.line - d.line) < 1e-6 && x.from < (lay.joists === 'y' ? d.x : d.y) && x.to > (lay.joists === 'y' ? d.x : d.y));
       warn.push({ level: 'key', text: `${d.label}: column taken out on the Plan page — the beam spans through${b ? `, ${F(b.span)}` : ''}.` });
+    });
+  }
+
+  /* A portal frame picked on the Bracing page for a mezzanine edge off the walls stands in for the columns at its two
+     legs: they are not mezzanine columns (not on the Column sheet) and load no building frame — the beam reactions
+     there go to the portal frame, designed in NBG Bracing. pts: [{ x, y, line }] in this building's feet. */
+  function portalLegs(lay, pts, grid, warn) {
+    if (!pts || !pts.length) return;
+    const F = PCS.fmtFtIn, hit = new Set();
+    [lay, lay.alt].filter(Boolean).forEach((L, li) => {
+      L.supports.forEach(sp => {
+        // a mezzanine column only: a building column there stays one, the portal frame's leg beside it
+        const q = pts.find(p => Math.hypot(p.x - sp.x, p.y - sp.y) < 0.5);
+        if (!q || sp.onBeam || (sp.building && sp.userKind !== 'portal')) return;
+        sp.building = true; sp.userKind = 'portal'; sp.portal = q.line || true;
+        if (!li) hit.add(sp);
+      });
+      L.mezzCols = L.supports.filter(sp => !sp.building && !sp.onBeam);
+    });
+    hit.forEach(sp => warn.push({ level: 'key', text: `${sp.label}: a leg of the portal frame on ${sp.portal === true ? 'its line' : sp.portal} (Bracing page) — not a mezzanine column; its beam reactions go to the portal frame in NBG Bracing.` }));
+    // a beam along the portal frame's bay is its beam
+    lay.beams.forEach(b => {
+      const along = pts.filter(p => (b.dir === 'x' ? Math.abs(p.y - b.line) < 0.5 && p.x >= b.from - 0.5 && p.x <= b.to + 0.5 : Math.abs(p.x - b.line) < 0.5 && p.y >= b.from - 0.5 && p.y <= b.to + 0.5));
+      if (along.length >= 2) { b.portal = along[0].line || true; warn.push({ level: 'key', text: `The beam on ${b.dir === 'x' ? `line ${grid.yLabel(b.line) || F(b.line)}` : `line ${grid.xLabel(b.line) || F(b.line)}`} (${F(b.from)} – ${F(b.to)}) runs along the portal frame's bay: the portal frame's beam takes its place — design it in NBG Bracing for this beam's load (its end reactions are listed with the legs).` }); }
     });
   }
 
@@ -788,7 +813,7 @@
     const amt = { rigid: +s.setbackRigid || 0, pb: +s.setbackPB || 0 };
     return L.supports.filter(sp => !sp.onBeam && (sp.beams.L === id || sp.beams.R === id || (sp.more || []).some(q => q.id === id))).map(sp => {
       const at = { label: sp.label, x: sp.x, y: sp.y, kind: null, ft: 0 };
-      if (!sp.building) return { ...at, why: 'mezzanine column' };
+      if (!sp.building || sp.portal) return { ...at, why: sp.portal ? 'a portal frame leg' : 'mezzanine column' };
       const wall = across ? (near(sp.y, 0) ? 'FSW' : near(sp.y, W) ? 'BSW' : null) : (near(sp.x, 0) ? 'LEW' : near(sp.x, Lg) ? 'REW' : null);
       if (!wall) return { ...at, why: (across ? near(sp.x, 0) || near(sp.x, Lg) : near(sp.y, 0) || near(sp.y, W)) ? 'the beam runs along the wall' : 'interior column, on its grid line' };
       const fr = frameAt(sp.x), kind = fr && !/post|bearing/i.test(fr.type || '') ? 'rigid' : 'pb';
@@ -1023,8 +1048,14 @@
       const a = side && bm.ov ? bm.ov[side === 'L' ? 1 : 0] : 0, k = a > 0 ? 2 * a / bm.span * (1 + a / (2 * bm.span)) : 0;
       return { D: r.D * (1 + k), L: r.L * (1 + k), mark: mk.mark, ov: a };
     };
-    const cols = [], frame = [];
+    const cols = [], frame = [], portal = [];
     at.forEach(e => {
+      // a portal frame's leg: its reactions, for the portal frame's design in NBG Bracing (no frame load, no Column sheet)
+      if (e.userKind === 'portal') {
+        const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id, en.side); return { mi: en.mi, id: en.id, mezz: c.id, beam: 'B' + (c.bOff + en.id + 1), mark: r.mark, D: r.D, L: r.L }; });
+        portal.push({ label: e.label, bkey: e.bkey, x: e.x, y: e.y, D: parts.reduce((a, p) => a + p.D, 0), L: parts.reduce((a, p) => a + p.L, 0), parts, seenIn: e.seenIn });
+        return;
+      }
       if (e.building && e.ends.length) {
         // mezzanine beam reactions at a building column: the loads the frame / endwall design has to take
         const parts = e.ends.map(en => { const c = ctxs[en.mi], r = reaction(c, en.id, en.side); return { mi: en.mi, id: en.id, mezz: c.id, beam: 'B' + (c.bOff + en.id + 1), mark: r.mark, D: r.D, L: r.L, ov: r.ov }; });
@@ -1054,7 +1085,7 @@
       cols.push({ label: e.label, x: e.x, y: e.y, DL_L: Ls.D, LL_L: Ls.L, DL_R: Rs.D, LL_R: Rs.L, sides: (parts.some(p => p.sheetSide === 'left') ? 1 : 0) + (parts.some(p => p.sheetSide === 'right') ? 1 : 0),
         tribArea: Math.round(parts.reduce((a, p) => a + p.area, 0) * 10) / 10, owner, mezzes, shared: mezzes.length > 1, mixed: dirs.length > 1, parts, len, seenIn: e.seenIn });
     });
-    cols.frame = frame;
+    cols.frame = frame; cols.portal = portal;
     return cols;
   }
 
@@ -1491,8 +1522,41 @@
        collateral, snow } } (read from a dropped bracing / eScope file), buildings: { [bkey]: { SW, RDL, CDL, RSW, Pf,
        walls: { LEW | REW | FSW | BSW: { kind, parapet, shear, top, weight, masonryTop, lowerWeight, upperWeight } },
        sfrs: { FSW, BSW }, lines: { [label]: framing }, frameFile } }, mezz: { [id]: { FDL, FLC, FLJ, FLL, storage,
-       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride, braceShare: 'full' | 'share' } — anything left out comes from
+       partition, FLP, framing: false } }, split: 'dead' | 'equal', eqScale, eqOverride } — anything left out comes from
        the files, the PCS, the design or NBG's defaults. */
+  /* The lines along the length that hold the mezzanines' longitudinal seismic: each mezzanine sends half to each of its
+     two long edges. An edge on a sidewall is that wall; an edge with any stretch free is a line of its own at that y (its
+     free stretches its run); an edge joined all along to another mezzanine at its level passes its half on through that
+     one to its far edge (to the wall, or that one's own free edge). mz: [{ id, x0, x1, y0, y1, A (its level) }], W: the
+     building's width. Returns [{ y, segs, mezz: [ids], at, wall: 'FSW' | 'BSW' | null, from: [{ id, side, via }] }]. */
+  function mezzEdges(mz, W) {
+    const lvl = (a, b) => Math.abs(a.A - b.A) < 0.01, over = (a, b) => Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+    const land = (m, side, via, depth) => {
+      const y = side < 0 ? m.y0 : m.y1;
+      if (y < 0.6) return { y: 0, wall: 'FSW', segs: [[m.x0, m.x1]], at: m.A, via };
+      if (y > W - 0.6) return { y: W, wall: 'BSW', segs: [[m.x0, m.x1]], at: m.A, via };
+      const nb = mz.filter(o => o !== m && lvl(o, m) && over(o, m) > 0.01 && Math.abs((side < 0 ? o.y1 : o.y0) - y) < 0.6);
+      let segs = [[m.x0, m.x1]];
+      nb.forEach(o => { segs = segs.flatMap(([a, b]) => { const c0 = Math.max(a, o.x0), c1 = Math.min(b, o.x1); return c1 - c0 < 0.01 ? [[a, b]] : [[a, c0], [c1, b]].filter(([p, q]) => q - p > 0.6); }); });
+      if (segs.length || !nb.length || depth > 8) return { y, wall: null, segs: segs.length ? segs : [[m.x0, m.x1]], at: m.A, via };
+      const o = nb.slice().sort((p, q) => over(q, m) - over(p, m))[0];
+      return land(o, side, via || o.id, depth + 1);
+    };
+    const lines = new Map();
+    mz.forEach(m => [-1, 1].forEach(side => {
+      const t = land(m, side, null, 0), k = t.y.toFixed(2), L = lines.get(k) || { y: t.y, wall: t.wall, segs: [], mezz: [], at: 0, from: [] };
+      L.segs = union([...L.segs, ...t.segs]); if (!L.mezz.includes(m.id)) L.mezz.push(m.id); L.at = Math.max(L.at, t.at);
+      L.from.push({ id: m.id, side, via: t.via });
+      lines.set(k, L);
+    }));
+    return [...lines.values()].sort((a, b) => a.y - b.y);
+  }
+  // stretches along a line, overlapping or touching ones joined
+  function union(segs) {
+    const out = [];
+    segs.slice().sort((a, b) => a[0] - b[0]).forEach(([a, b]) => { const l = out[out.length - 1]; if (l && a <= l[1] + 0.01) l[1] = Math.max(l[1], b); else out.push([a, b]); });
+    return out;
+  }
   const SEIS_DEFAULTS = { SW: 2, RDL: 3, RSW: 0, wall: 3, split: 'dead', sfrs: ['X-Bracing', 'X-Bracing'] };   // RDL: NBG Bracing's own default when the PCS says Per Seller (NBG Frame works out 2.7–2.8 psf on the jobs seen: 3 is on the safe side)
   const SEIS_SYSTEMS = ['X-Bracing', 'Portal Frame', 'Portal Frame (IMF)', 'Portal Frame (SMF)', 'X-Bracing (SCBF)'];
   const LINE_SYSTEMS = ['Rigid Frame', 'Post & Beam', 'Rigid Frame (IMF)', 'Rigid Frame (SMF)', 'Post & Beam (SCBF)', 'Fixed Base'];
@@ -1700,58 +1764,24 @@
       const longIn = { roofConc: 0, fswTrib: Lg, bswTrib: Lg, partQty: 0, mezz: mz.map(m => { const c = (cfg.concLong || {})[`${bk}|${m.id}`]; return { id: m.id, area: m.area, conc: c != null && c !== '' && isFinite(+c) ? +c : 0 }; }) };
       const long = SEIS.bracing(J, longIn);
       bOut.long = long;
-      // each mezzanine's longitudinal force to the lines along the length that hold it. The floor is a flexible
-      // diaphragm spanning across the building between its edges; where mezzanines meet at one level it spans across
-      // all of them. Cut along the length where that changes; in each piece a mezzanine's force (by its length in the
-      // piece) goes to the two edges by the lever rule. Then the same for the DM's 1 % (FDL + FLL) stability force.
-      const xsCut = [...new Set(mz.flatMap(m => [m.x0, m.x1, ...m.holes.flatMap(o => [o.x0, o.x1])]).map(v => +v.toFixed(3)))].sort((a, b) => a - b);
-      // Two ways a line takes it: its share (the lever rule above), or — as the engineers' own bracing files enter it —
-      // the full force of each mezzanine it bounds, in EQB and in EQF (cfg.braceShare: 'share' | 'full', the default)
-      const lines = new Map();
-      const add = (y, xa, xb, Fq, Ff, st, ids, elev, by) => {
-        const k = y.toFixed(2), L = lines.get(k) || { y, segs: [], Fs: 0, Ff: 0, stab: 0, mezz: new Set(), at: 0, by: {} };
-        L.Fs += Fq; L.Ff += Ff; L.stab += st; ids.forEach(i => L.mezz.add(i)); L.at = Math.max(L.at, elev);
-        Object.entries(by).forEach(([id, v]) => { const o = L.by[id] = L.by[id] || { share: 0, full: 0 }; o.share += v.share; o.full += v.full; });
-        const last = L.segs[L.segs.length - 1];
-        if (last && Math.abs(last[1] - xa) < 0.01) last[1] = xb; else L.segs.push([xa, xb]);
-        lines.set(k, L);
-      };
+      // each mezzanine's longitudinal force to the lines along the length that hold it: half to each of its two long edges
+      // (16 k between the FSW and the BSW is 8 k on each wall, in EQB and in EQF); an edge joined all along to another
+      // mezzanine at its level passes its half through that one to its far edge. The DM's 1 % (FDL + FLL) the same way.
       const force = id => (long.mezzLoads.find(q => String(q.id) === String(id)) || { F: 0 }).F;
       const gravity = m => ((m.FDL + m.FLC + m.FLJ + (m.partition ? m.FLP : 0)) + m.FLL) * m.area / 1000;   // FDL + FLL, kips
-      for (let i = 0; i + 1 < xsCut.length; i++) {
-        const xa = xsCut[i], xb = xsCut[i + 1], here = mz.filter(m => m.x0 <= xa + 0.01 && m.x1 >= xb - 0.01);
-        // floors in this piece: mezzanines at one level whose long edges touch
-        const left = here.slice();
-        while (left.length) {
-          const fl = [left.shift()];
-          for (let grew = true; grew;) {
-            grew = false;
-            for (let q = left.length - 1; q >= 0; q--) {
-              const m = left[q];
-              if (fl.some(a => Math.abs(a.elev - m.elev) < 0.01 && (Math.abs(a.y1 - m.y0) < 0.6 || Math.abs(a.y0 - m.y1) < 0.6))) { fl.push(m); left.splice(q, 1); grew = true; }
-            }
-          }
-          const yA = Math.min(...fl.map(m => m.y0)), yB = Math.max(...fl.map(m => m.y1)), span = yB - yA;
-          let FA = 0, FB = 0, Ff = 0, SA = 0, SB = 0;
-          const byA = {}, byB = {};
-          fl.forEach(m => {
-            const pc = floorIn(m, xa, xb), part = m.area > 0 ? pc.a / m.area : 0, a = (yB - pc.yc) / span, Fm = force(m.id) * part;
-            FA += Fm * a; FB += Fm * (1 - a); Ff += Fm;
-            byA[m.id] = { share: Fm * a, full: Fm }; byB[m.id] = { share: Fm * (1 - a), full: Fm };
-            SA += 0.01 * gravity(m) * part * a; SB += 0.01 * gravity(m) * part * (1 - a);
-          });
-          const ids = fl.map(m => m.id), elev = Math.max(...fl.map(m => m.elev));
-          add(yA, xa, xb, FA, Ff, SA, ids, elev, byA); add(yB, xa, xb, FB, Ff, SB, ids, elev, byB);
-        }
-      }
-      const full = cfg.braceShare !== 'share';
-      [...lines.values()].sort((a, b) => a.y - b.y).forEach(L => {
-        L.F = full ? L.Ff : L.Fs;
+      const lines = new Map();
+      mezzEdges(mz.map(m => ({ id: m.id, x0: m.x0, x1: m.x1, y0: m.y0, y1: m.y1, A: m.elev })), W).forEach(L => {
+        L.F = 0; L.stab = 0; L.by = {};
+        L.from.forEach(q => { const m = mz.find(o => o.id === q.id), Fq = force(q.id) / 2; L.F += Fq; L.stab += 0.01 * gravity(m) / 2; L.by[q.id] = (L.by[q.id] || 0) + Fq; });
+        lines.set(L.y.toFixed(2), L);
+      });
+      bOut.mezzLong = { total: long.mezzLoads.reduce((a, q) => a + q.F, 0), mezz: long.mezzLoads.map(q => ({ id: q.id, F: q.F, W: q.W, area: q.area, psf: q.psf, at: q.at })) };
+      [...lines.values()].forEach(L => {
         const onWall = L.y < 0.6 ? 'FSW' : L.y > W - 0.6 ? 'BSW' : null;
         const lab = onWall ? `${onWall} sidewall` : `${grid.yLabel(L.y) ? 'line ' + grid.yLabel(L.y) + ', ' : ''}${F(L.y)} from the FSW`;
-        bOut.braceLines.push({ mezz: [...L.mezz], y: L.y, segs: L.segs, edge: lab, at: L.at, wall: onWall, x0: Math.min(...L.segs.map(s => s[0])), x1: Math.max(...L.segs.map(s => s[1])),
+        bOut.braceLines.push({ mezz: L.mezz, y: L.y, segs: L.segs, edge: lab, at: L.at, wall: onWall, x0: Math.min(...L.segs.map(s => s[0])), x1: Math.max(...L.segs.map(s => s[1])),
           element: onWall ? `${onWall} sidewall bracing — EQB / EQF at the mezzanine level, wall strut line at ${F(L.at)}` : 'independent X-bracing, mezzanine level to the floor (DM 15.1.3)',
-          independent: !onWall, F: L.F, Fshare: L.Fs, Ffull: L.Ff, share: full ? 'full' : 'share', by: Object.entries(L.by).map(([id, v]) => ({ id, total: force(id), ...v })),
+          independent: !onWall, F: L.F, by: Object.entries(L.by).map(([id, v]) => ({ id, total: force(id), F: v, via: (L.from.find(q => q.id === id) || {}).via || null })),
           stab: L.stab, design: onWall ? L.F : Math.max(L.F, L.stab), governs: onWall || L.F >= L.stab ? 'seismic' : 'DM 1 % stability' });
       });
       bOut.workbook = seismicSteps({ inp, d, ed, code, g, bd, roof, walls, mz, significant, flags, sfrs, name, quote: (c0.inp.job || {}).quote, J, longIn }, bOut);
@@ -1949,7 +1979,7 @@
     }
     let seismic = null;
     try { seismic = seismicJob(ctxs, mezz, fEntries, opts.seis || {}, opts.pcs || null); } catch (e) { seismic = { ok: false, need: [], notes: [{ level: 'stop', text: 'Seismic: ' + (e.message || e) }], error: true }; }
-    return { mezz, merges, columns: cols, colAlt, frameLoads: cols.frame, frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
+    return { mezz, merges, columns: cols, colAlt, frameLoads: cols.frame, portalLoads: cols.portal || [], frameEntries: fEntries, marks: marks.map(({ group, ...m }) => m), dm, excel, seismic };
   }
 
   function run(inp, settings = {}) { return runJob([{ inp, settings }]).mezz[0]; }
@@ -2123,6 +2153,6 @@
   // one mezzanine (or a job of one)
   function quoteSheet(res, inp) { return quoteJob([res], [inp]); }
 
-  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, openingSizes, openingsFor, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL, columnNotesFor };
+  const api = { SEIS_DEFAULTS, SEIS_SYSTEMS, LINE_SYSTEMS, mezzEdges, seismicJob, siteBuilding, eqKey, REQUIRED, inputsFromPCS, openingSizes, openingsFor, applyPlan, planFor, planMap, attachMap, run, runJob, quoteText, quoteSheet, quoteJob, equivTrib, SETTINGS, DEFAULTS, resolveEdition, XL, columnNotesFor };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MZ_RUN = api;
 })(typeof self !== 'undefined' ? self : this);

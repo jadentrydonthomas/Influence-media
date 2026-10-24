@@ -1,9 +1,10 @@
 /* 3D framing model — a small canvas renderer (no libraries).
    Members are boxes (I-shapes = 3 boxes) and polylines in building feet (x along length from LEW,
    y across width from FSW, z up from finish floor). Painter's algorithm with back-face culling,
-   Lambert shading, click to select, slow auto-rotate. The camera orbits a target point: drag to orbit it,
-   right-drag / Shift-drag / two fingers to pan it, the wheel or a pinch zooms toward the pointer, a double-click
-   (or focus(box)) flies to a mezzanine — so one of several far apart in a long building fills the view. */
+   Lambert shading, click to select, slow auto-rotate. Drag to orbit about the point grabbed (the member under the
+   pointer, else the middle of the view), right-drag / Shift-drag / two fingers to pan, the wheel or a pinch zooms toward
+   the pointer, a double-click (or focus(box)) flies to a mezzanine — so one of several far apart in a long building fills
+   the view. isolate(ids, box) shows those members alone (the rest faint) and flies to them. */
 (function (root) {
   'use strict';
 
@@ -18,6 +19,7 @@
     ];
   }
 
+  const mean = v => [0, 1, 2].map(i => v.reduce((a, p) => a + p[i], 0) / v.length);
   function hexToRgb(h) {
     const m = h.replace('#', '');
     const n = parseInt(m.length === 3 ? m.split('').map(c => c + c).join('') : m, 16);
@@ -40,7 +42,12 @@
       flakes = [];
       if (!f || !f.box) return;
       const b = f.box;
-      for (let i = 0; i < (f.n || 120); i++) flakes.push({ x: b.x0 + Math.random() * (b.x1 - b.x0), y: b.y0 + Math.random() * (b.y1 - b.y0), z: b.z0 + Math.random() * (b.z1 - b.z0), v: 2.2 + Math.random() * 2.6, r: 0.9 + Math.random() * 1.3, ph: Math.random() * 6.28 });
+      for (let i = 0; i < (f.n || 120); i++) {
+        const q = { x: b.x0 + Math.random() * (b.x1 - b.x0), y: b.y0 + Math.random() * (b.y1 - b.y0), z: b.z0 + Math.random() * (b.z1 - b.z0), v: 2.2 + Math.random() * 2.6, r: 0.9 + Math.random() * 1.3, ph: Math.random() * 6.28 };
+        const zr = f.roofAt ? f.roofAt(q.x, q.y) : null;
+        if (zr != null && q.z < zr) q.z = zr + Math.random() * Math.max(1, b.z1 - zr);   // over a roof, never inside the building
+        flakes.push(q);
+      }
     }
     function stepFlakes(dt) {
       const f = scene && scene.flakes, b = f && f.box, k = dt / 1000;
@@ -49,7 +56,9 @@
       for (const q of flakes) {
         q.ph += k * 1.7;
         q.z -= q.v * k; q.x += (wx + Math.sin(q.ph) * 0.6) * k; q.y += (wy + Math.cos(q.ph * 0.8) * 0.6) * k;
-        if (q.z < b.z0 || q.x < b.x0 - 2 || q.x > b.x1 + 2 || q.y < b.y0 - 2 || q.y > b.y1 + 2) { q.z = b.z1; q.x = b.x0 + Math.random() * (b.x1 - b.x0); q.y = b.y0 + Math.random() * (b.y1 - b.y0); }
+        // one that reaches the ground, leaves the box or lands on a roof starts over at the top
+        const zr = f.roofAt ? f.roofAt(q.x, q.y) : null;
+        if (q.z < b.z0 || (zr != null && q.z < zr) || q.x < b.x0 - 2 || q.x > b.x1 + 2 || q.y < b.y0 - 2 || q.y > b.y1 + 2) { q.z = b.z1; q.x = b.x0 + Math.random() * (b.x1 - b.x0); q.y = b.y0 + Math.random() * (b.y1 - b.y0); }
       }
     }
     const pointers = new Map();
@@ -128,7 +137,7 @@
       const z = Math.max(ZMIN, Math.min(ZMAX, fitOf(b, c, view.pitch, 0.82) * Math.min(1, Math.max(0.4, room)) / fit));
       // the middle of that part, not of the canvas: the box sits lower by half the overlay
       const { U } = axes(), dy = (top - PAD_T) / 2 / (fit * z);
-      anim = { t0: performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c.map((v, i) => v + U[i] * dy), zoom: z } };
+      anim = { t0: win.performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c.map((v, i) => v + U[i] * dy), zoom: z } };
     }
     function stopAuto() { if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); } }
 
@@ -142,9 +151,13 @@
       polys = [];
       if (!scene) return;
       const vd = viewDir();
-      for (const m of scene.members) {
-        if ((m.kind === 'slab' && !view.toggles.slab) || (m.kind === 'joist' && !view.toggles.joists) || (m.kind === 'bcol' && !view.toggles.building)) continue;
-        if (view.toggles[m.kind] === false) continue;   // any other kind a page switches off (roof, snow, drift …)
+      for (const m0 of scene.members) {
+        if ((m0.kind === 'slab' && !view.toggles.slab) || (m0.kind === 'joist' && !view.toggles.joists) || (m0.kind === 'bcol' && !view.toggles.building)) continue;
+        if (view.toggles[m0.kind] === false) continue;   // any other kind a page switches off (roof, snow, drift …)
+        // isolating: the rest faint, the snow and drift left out
+        const ghost = view.only && !view.only.has(m0.id);
+        if (ghost && (m0.kind === 'snow' || m0.kind === 'drift')) continue;
+        const m = ghost ? { ...m0, alpha: Math.min(m0.alpha ?? 1, m0.kind === 'roof' ? 0.04 : 0.1) } : m0;
         const rgb = hexToRgb(m.color);
         const hl = view.hover === m.id || view.selected === m.id;
         for (const b of m.boxes || []) {
@@ -154,7 +167,7 @@
             const pts = f.v.map(project);
             const depth = pts.reduce((a, p) => a + p[2], 0) / 4;
             const lam = 0.5 + 0.55 * Math.max(0, f.n[0] * light[0] + f.n[1] * light[1] + f.n[2] * light[2]);
-            polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgb, lam * (hl ? 1.25 : 1), m.alpha ?? 1), stroke: m.kind === 'slab' ? shade(rgb, 1.4, 0.35) : shade(rgb, 0.55, 0.9), hl, kind: m.kind });
+            polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgb, lam * (hl ? 1.25 : 1), m.alpha ?? 1), stroke: m.kind === 'slab' ? shade(rgb, 1.4, 0.35) : shade(rgb, 0.55, ghost ? 0.12 : 0.9), hl, kind: m.kind, ghost, w: mean(f.v) });
           }
         }
         // free polygons (roof planes, snow, drift wedges): lit from either side, never culled
@@ -170,11 +183,11 @@
           const depth = pts.reduce((a, q) => a + q[2], 0) / pts.length;
           const lam = 0.62 + 0.45 * Math.max(0, n[0] * light[0] + n[1] * light[1] + n[2] * light[2]);
           const rgbF = fc.color ? hexToRgb(fc.color) : rgb;
-          polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgbF, lam * (hl ? 1.2 : 1), fc.alpha ?? m.alpha ?? 1), stroke: shade(rgbF, 1.15, Math.min(0.5, (m.alpha ?? 1) * 0.8)), hl, kind: m.kind });
+          polys.push({ type: 'poly', pts, depth, id: m.id, fill: shade(rgbF, lam * (hl ? 1.2 : 1), ghost ? m.alpha : fc.alpha ?? m.alpha ?? 1), stroke: shade(rgbF, 1.15, Math.min(0.5, (m.alpha ?? 1) * 0.8)), hl, kind: m.kind, ghost, w: mean(v) });
         }
         for (const [a, c] of m.lines || []) {
           const pa = project(a), pc = project(c);
-          polys.push({ type: 'line', pts: [pa, pc], depth: (pa[2] + pc[2]) / 2, id: m.id, stroke: shade(rgb, hl ? 1.3 : 1, m.alpha ?? 0.8), width: m.width || 1, hl, kind: m.kind });
+          polys.push({ type: 'line', pts: [pa, pc], depth: (pa[2] + pc[2]) / 2, id: m.id, stroke: shade(rgb, hl ? 1.3 : 1, ghost ? Math.min(0.12, m.alpha ?? 0.8) : m.alpha ?? 0.8), width: m.width || 1, hl, kind: m.kind, ghost, w: mean([a, c]) });
         }
       }
       polys.sort((a, b) => b.depth - a.depth);
@@ -209,7 +222,7 @@
         }
       }
       // snow in the air: the far flakes first, small and faint, the near ones last
-      if (flakes.length && view.toggles.flakes !== false) {
+      if (flakes.length && view.toggles.flakes !== false && !view.only) {
         const pts = flakes.map(q => { const p = project([q.x, q.y, q.z]); return { x: p[0], y: p[1], d: p[2], r: q.r }; }).sort((a, b) => b.d - a.d);
         const dMin = Math.min(...pts.map(p => p.d)), dMax = Math.max(...pts.map(p => p.d)), span = Math.max(1e-6, dMax - dMin);
         for (const p of pts) { const near = 1 - (p.d - dMin) / span; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.6 + near * 0.9), 0, Math.PI * 2); ctx.fillStyle = `rgba(240,248,255,${(0.35 + near * 0.55).toFixed(2)})`; ctx.fill(); }
@@ -221,6 +234,9 @@
       const all = scene.labels || [], bubbles = all.filter(l => l.kind === 'bubble').map(l => project(l.p)), placed = [], placedTags = [];
       const hits = (x0, y0, x1, y1) => bubbles.some(b => b[0] + 11 > x0 && b[0] - 11 < x1 && b[1] + 11 > y0 && b[1] - 11 < y1) || placed.some(r => r[0] < x1 && r[2] > x0 && r[1] < y1 && r[3] > y0);
       for (const l of all.filter(q => q.kind !== 'tag').concat(all.filter(q => q.kind === 'tag'))) {
+        // the Labels switch takes the words off (the grid bubbles stay); a label of a layer that is off goes with it
+        if (l.kind !== 'bubble' && (view.toggles.labels === false || view.only)) continue;
+        if (l.toggle && [].concat(l.toggle).some(k => view.toggles[k] === false)) continue;
         const p = project(l.p);
         if (l.kind === 'tag') {
           // a mark tag on a beam (MB1 INT): outlined pill in the mark's colour
@@ -258,17 +274,24 @@
           ctx.textAlign = 'center'; ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
         }
       }
+      // the point the view turns about, while turning
+      if (dragging && dragging.pivot && dragging.moved && !dragging.pan) {
+        const p = project(dragging.pivot);
+        ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(105,250,197,.9)'; ctx.lineWidth = 1.6; ctx.stroke();
+        ctx.beginPath(); ctx.arc(p[0], p[1], 1.8, 0, Math.PI * 2); ctx.fillStyle = 'rgba(105,250,197,.95)'; ctx.fill(); ctx.lineWidth = 1;
+      }
     }
 
-    function hit(x, y) {
+    function hitPoly(x, y, any) {
       for (let i = polys.length - 1; i >= 0; i--) {
         const p = polys[i];
-        if (p.kind === 'slab' || p.kind === 'floor' || p.kind === 'roof' || p.kind === 'snow') continue;
-        if (p.type === 'poly') { if (inside(x, y, p.pts)) return p.id; }
-        else if (segDist(x, y, p.pts[0], p.pts[1]) < 4) return p.id;
+        if (!any && (p.kind === 'slab' || p.kind === 'floor' || p.kind === 'roof' || p.kind === 'snow')) continue;
+        if (p.type === 'poly') { if (inside(x, y, p.pts)) return p; }
+        else if (segDist(x, y, p.pts[0], p.pts[1]) < 4) return p;
       }
       return null;
     }
+    const hit = (x, y) => { const p = hitPoly(x, y); return p ? p.id : null; };
     function inside(x, y, pts) {
       let c = false;
       for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
@@ -286,7 +309,7 @@
       raf = win.requestAnimationFrame(tick);
       const dt = Math.min(64, t - (last || t)); last = t;
       if (anim) {
-        const k = Math.min(1, (t - anim.t0) / anim.ms), e = 1 - Math.pow(1 - k, 3);
+        const k = Math.max(0, Math.min(1, (t - anim.t0) / anim.ms)), e = 1 - Math.pow(1 - k, 3);
         view.target = anim.from.target.map((a, i) => a + (anim.to.target[i] - a) * e);
         view.zoom = anim.from.zoom * Math.pow(anim.to.zoom / anim.from.zoom, e);
         if (k >= 1) anim = null;
@@ -304,7 +327,9 @@
       anim = null;
       if (pointers.size === 2) { dragging = { two: pinch(), moved: true }; stopAuto(); return; }
       const panning = e.button === 1 || e.button === 2 || e.shiftKey;
-      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY };
+      // the point to turn about: what is under the pointer (a member, the roof, the floor), else the view's middle
+      const [px, py] = pos(e), hp = !panning && scene ? hitPoly(px, py, true) : null;
+      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY, pivot: hp && !hp.ghost ? hp.w : null };
       if (panning) { e.preventDefault(); canvas.style.cursor = 'move'; }
     });
     canvas.addEventListener('pointermove', e => {
@@ -319,8 +344,11 @@
         if (Math.abs(dx) + Math.abs(dy) > 3) { dragging.moved = true; stopAuto(); }
         if (dragging.pan) { pan(e.clientX - dragging.lx, e.clientY - dragging.ly); dragging.lx = e.clientX; dragging.ly = e.clientY; }
         else {
+          // turn, then slide the view so the grabbed point stays under the pointer's start
+          const P = dragging.pivot, a = P && project(P);
           view.yaw = dragging.yaw + dx * 0.008;
           view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.006));
+          if (P) for (let k = 0; k < 2; k++) { const c = project(P); pan(a[0] - c[0], a[1] - c[1]); }
         }
         draw();
       } else if (!dragging) {
@@ -361,16 +389,19 @@
       set(s) {
         const same = scene && s && scene.box && s.box && ['x0', 'x1', 'y0', 'y1'].every(k => Math.abs(scene.box[k] - s.box[k]) < 0.5);
         scene = s;
-        if (!same) { view.target = s.center.slice(); view.zoom = 1; anim = null; }
+        if (!same) { view.target = s.center.slice(); view.zoom = 1; anim = null; view.only = null; }
         seedFlakes();
         resize();
       },
       select(id) { view.selected = id; draw(); },
+      // show these members alone (the rest faint) and fly to box; null: the whole scene again
+      isolate(ids, b) { view.only = ids && ids.length ? new Set(ids) : null; stopAuto(); if (b) focus(b); else if (!ids && scene) anim = { t0: win.performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; draw(); },
+      get isolated() { return !!view.only; },
       toggle(k, v) { view.toggles[k] = v; draw(); },
       toggles: view.toggles,
       zoom(k) { anim = null; zoomAt(k); draw(); },
       // frame a box (a mezzanine), or the whole scene with no box
-      focus(b) { stopAuto(); if (b) focus(b); else if (scene) anim = { t0: performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; },
+      focus(b) { stopAuto(); if (b) focus(b); else if (scene) anim = { t0: win.performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; },
       reset() { anim = null; Object.assign(view, home); if (scene) view.target = scene.center.slice(); draw(); },
       pause(on) { view.auto = !on; return view.auto; },
       // the camera, for a test: what it looks at and how close

@@ -223,7 +223,7 @@ tr.muted td { color: var(--ink-faint); }
 .model-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
 .model-head .eyebrow { color: #61dbb8; }
 .model-head h3 { margin: 6px 0 0; font: 500 24px var(--display); letter-spacing: -.035em; color: #eef6ff; }
-.model-toggles { display: inline-flex; gap: 3px; padding: 5px; border: 1px solid #b0d2ed2a; border-radius: 13px; background: #0e1c2c; }
+.model-toggles { display: inline-flex; flex-wrap: wrap; gap: 3px; padding: 5px; border: 1px solid #b0d2ed2a; border-radius: 13px; background: #0e1c2c; }
 .model-toggles button { min-height: 30px; padding: 5px 12px; border: 0; border-radius: 9px; color: #9fb7ca; background: transparent; font-size: 12.5px; }
 .model-toggles button.is-on { color: #80f8ce; background: #2cdfac1c; box-shadow: inset 0 0 0 1px #48e5b52b; }
 .model-body { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; }
@@ -842,6 +842,11 @@ svg.lr .lr-a { fill: none; stroke: var(--ink-muted); stroke-width: 1.6; }
 @media (max-width: 1100px) { .viz { grid-template-columns: 1fr; } }
 
 .rv-toggle #rvBig { font-size: 12px; padding: 1px 7px; }
+.rv-toggle #rvLayers.is-on { color: #0b1724; background: #66edbc; }
+/* the sidebar's layer switches, over the top of its 3D */
+.rv-layers { position: absolute; left: 6px; right: 6px; top: 34px; z-index: 3; display: flex; flex-wrap: wrap; gap: 4px; padding: 7px; border-radius: 10px; background: #0b1724f2; box-shadow: 0 8px 22px #0007, inset 0 0 0 1px #65e7c133; }
+.rv-layers[hidden] { display: none; }
+.rv-layers button { padding: 4px 8px; font-size: 10.5px; }
 .plan-pop { position: fixed; z-index: 40; left: 262px; top: 96px; width: min(1040px, calc(100vw - 290px)); max-height: calc(100vh - 110px); overflow: auto; padding: 12px 14px 14px; border: 1px solid #65e7c140; border-radius: 18px; background: linear-gradient(160deg, #102234f5, #0a1522f8); box-shadow: 0 30px 60px #000a; backdrop-filter: blur(10px); }
 .pp-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; color: #dfeefa; }
 .pp-head b { font: 600 15px var(--display); }
@@ -1363,6 +1368,10 @@ table.seis-bvals td[rowspan] { vertical-align: top; }
 .site-plan .sp-fl:hover line:not(.sp-hit), .site-plan .sp-fl:focus-visible line:not(.sp-hit), .site-plan .sp-fl.is-sel line:not(.sp-hit) { stroke: var(--green); stroke-width: 2.4; }
 .site-plan .sp-fl:hover circle, .site-plan .sp-fl.is-sel circle { stroke: var(--green); fill: var(--green-soft); }
 .site-plan .sp-fl.is-sel text, .site-plan .sp-fl:hover text { fill: var(--green); }
+/* the frame line picked: a wide band under a bright line, its bubble filled */
+.site-plan .sp-fl.is-sel line:not(.sp-hit) { stroke-width: 3.6; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--green) 70%, transparent)); }
+.site-plan .sp-fl.is-sel circle { fill: var(--green); stroke: var(--green); }
+.site-plan .sp-fl.is-sel text { fill: var(--surface); }
 .site-plan .sp-fl:focus { outline: none; }
 .site-plan .sp-name { fill: var(--ink); font-size: 14px; font-weight: 700; text-anchor: middle; letter-spacing: .02em; }
 .site-plan .sp-dim { fill: var(--ink-faint); font-size: 11px; text-anchor: middle; font-family: var(--mono); }
@@ -1587,6 +1596,19 @@ body[data-ws="job"] #mezzTabs { display: none; }
 /* the site plan: wall names, braced bays, portal frames, roof rods */
 .site-plan .sp-wall { fill: var(--ink-faint); font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-anchor: middle; }
 .site-plan .sp-brace line { stroke: var(--amber); stroke-width: 2; stroke-linecap: round; }
+.site-plan .sp-brace .sp-band { stroke-width: 1; opacity: .55; }
+.site-plan .sp-xg { stroke: var(--amber); stroke-width: 2.4; stroke-linecap: round; fill: none; }
+.site-plan .sp-brace text { fill: var(--amber); font: 800 10px var(--mono); text-anchor: middle; }
+.site-plan .sp-brace.is-new .sp-band, .site-plan .sp-brace.is-new .sp-xg { stroke: #ff8f8f; } .site-plan .sp-brace.is-new text { fill: #ff8f8f; }
+.site-plan .sp-portal.is-new line { stroke: #ff8f8f; } .site-plan .sp-portal.is-new text { fill: #ff8f8f; }
+.site-plan .sp-strut { stroke: var(--green); stroke-width: 2; stroke-dasharray: 6 4; }
+.site-plan .sp-gb.is-braced circle { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.6; } .site-plan .sp-gb.is-braced text { fill: var(--amber); }
+.site-plan .sp-gb.is-sel circle { fill: var(--green-soft); stroke: var(--green); stroke-width: 2; } .site-plan .sp-gb.is-sel text { fill: var(--green-dark); }
+.site-plan .sp-eqlab rect { fill: var(--surface); stroke: #ff8f8f; stroke-width: 1; opacity: .96; }
+.site-plan .sp-eqlab text { fill: var(--ink); font: 700 9.5px var(--mono); text-anchor: middle; }
+[data-theme="light"] .site-plan .sp-eqlab rect { stroke: #c0392b; }
+[data-theme="light"] .site-plan .sp-brace.is-new .sp-band, [data-theme="light"] .site-plan .sp-brace.is-new .sp-xg, [data-theme="light"] .site-plan .sp-portal.is-new line { stroke: #c0392b; }
+[data-theme="light"] .site-plan .sp-brace.is-new text, [data-theme="light"] .site-plan .sp-portal.is-new text { fill: #c0392b; }
 .site-plan .sp-portal line { stroke: var(--amber); stroke-width: 5; stroke-linecap: butt; }
 .site-plan .sp-portal text { fill: var(--amber); font-size: 9px; font-weight: 800; text-anchor: middle; letter-spacing: .06em; }
 .site-plan .sp-roofx line { stroke: var(--amber); stroke-width: 1.3; stroke-dasharray: 5 4; opacity: .8; }
@@ -1721,6 +1743,9 @@ table.fl-t tr.is-off td { opacity: .5; }
 /* the lean-to on the frame elevation */
 .frame-elev .fe-leanghost rect { fill: color-mix(in srgb, var(--lean) 9%, transparent); stroke: var(--lean); stroke-width: 1.2; stroke-dasharray: 5 4; }
 .frame-elev .fe-leanghost text { fill: var(--lean); font-size: 11.5px; font-weight: 600; text-anchor: middle; }
+.frame-elev .fe-leanghost polygon { fill: color-mix(in srgb, var(--lean) 8%, transparent); stroke: var(--lean); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.frame-elev .fe-leanghost line { stroke: var(--lean); stroke-width: 3; opacity: .6; }
+.frame-elev .fe-leanghost .fe-sub { font-size: 10.5px; font-weight: 500; opacity: .85; }
 .frame-elev .fe-lean line { stroke: var(--lean); stroke-width: 2.4; }
 .frame-elev .fe-leanhead { fill: var(--lean); }
 .frame-elev .fe-lean .fe-val { fill: var(--lean); }
@@ -1826,6 +1851,15 @@ table.snow-roofs td small.sub-n { display: block; }
 .bl-tog i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); transition: transform .15s; }
 .bl-tog.is-on { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
 .bl-tog.is-on i { background: var(--green); } .bl-tog.is-on i::after { transform: translateX(10px); }
+/* a sidewall's bays, each to brace as wanted */
+.bl-bays { gap: 6px; }
+.bl-bay { display: inline-flex; flex-direction: column; align-items: center; min-width: 46px; padding: 4px 8px 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink-muted); font: 600 11px var(--mono); line-height: 1.25; cursor: pointer; }
+.bl-bay b { color: var(--ink); font-weight: 700; } .bl-bay small { font-size: 10.5px; }
+.bl-bay.is-x { border-color: var(--amber); background: var(--amber-soft); } .bl-bay.is-x small { color: var(--amber); }
+.bl-bay.is-portal { border-color: var(--amber); background: var(--amber-soft); } .bl-bay.is-portal small { color: var(--amber); font-weight: 700; }
+.bl-bay.is-mine { box-shadow: 0 0 0 2px var(--green); }
+.bl-bay:hover { border-color: var(--green); }
+.bl-note { flex: 1 1 260px; min-width: 200px; height: 30px; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: 13px var(--body); }
 .bl-tog:focus-visible, .bl-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .bl-nbg { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
 .bl-nbg dt { color: var(--ink-muted); font-weight: 700; } .bl-nbg dd { margin: 0; }
@@ -1881,24 +1915,39 @@ table.snow-roofs td small.sub-n { display: block; }
 .calc-ft-h { margin: 18px 0 8px; font: 600 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
 .calc-ft td small.sub-n { display: block; }
 /* the Bracing page: the mezzanine's force on a wall, the rows already in the file, the file's last design */
-.bl-split, .bl-cmp, .bl-res-t { margin-top: 12px; }
-.bl-split td.is-on { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--green) 8%, transparent); }
-.bl-split td:not(.is-on).num { color: var(--ink-faint); }
-.bl-split tfoot td { border-top: 1px solid var(--line-strong); font-weight: 700; }
-.bl-split + .bl-ctl { margin-top: 10px; }
+.bl-res-t { margin-top: 12px; }
 .bl-h5, .bl-res-h h5 { margin: 18px 0 0; font: 600 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
 .bl-res-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 18px; }
 .bl-res-h h5 { margin: 0; }
-.bl-cmp tr.is-diff td { background: color-mix(in srgb, var(--amber) 9%, transparent); }
 .bl-res-t td.r-bad b { color: var(--red); } .bl-res-t td.r-warn b { color: var(--amber); }
 .bl-res-t tr.is-mz td { background: color-mix(in srgb, var(--green) 6%, transparent); }
-.bl-res-t td small.sub-n, .bl-split td small.sub-n { display: block; }
-.bl-split th small.sub-n { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; }
-.bl-cmp-n { display: block; margin-top: 6px; }
+.bl-res-t td small.sub-n { display: block; }
+/* the mezzanine's longitudinal seismic, mezzanine by line */
+.bt-bh { margin: 18px 0 8px; font-size: 14px; } .bt-bh:first-child { margin-top: 0; }
+.bt-split td small.sub-n, .bt-split th small.sub-n { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.bt-split .bt-tot { background: color-mix(in srgb, var(--green) 7%, transparent); }
+.bt-split td.is-nil { color: var(--ink-faint); }
+.bt-split th.is-new, .bt-split td.is-new { color: var(--red); }
+.bt-split tfoot td { border-top: 1px solid var(--line-strong); font-weight: 700; }
+.bt-split tr.bt-eq td { border-top: 0; font-weight: 600; font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
+#braceTotal .wall-card { margin: 12px 0 8px; }
+.bt-n { display: block; }
+.wall-elev .sp-fig { stroke: var(--red); stroke-width: 2.4; stroke-dasharray: 7 5; }
+.wall-elev .le-other { fill: color-mix(in srgb, var(--red) 8%, transparent); stroke: var(--red); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.wall-elev .sp-flow line { stroke: var(--green); stroke-width: 1.6; }
+.wall-elev .sp-head { fill: var(--green); }
+.wall-elev .sp-flow.is-via line { stroke-dasharray: 5 3; }
+.wall-elev .sp-flow .sp-drop { stroke-width: 1; stroke-dasharray: 2 3; opacity: .8; }
+.wall-elev .sp-lead { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+.wall-elev .sp-dot.sp-wall { fill: var(--steel); } .wall-elev .sp-dot.sp-new { fill: var(--red); }
+.wall-elev .we-lab.sp-wall { fill: var(--steel); } .wall-elev .we-lab.sp-new { fill: var(--red); }
+.wall-elev .sp-name { font-size: 11.5px; font-weight: 700; text-anchor: middle; fill: var(--ink); } .wall-elev .sp-name.sp-new { fill: var(--red); }
+.wall-elev .sp-eq { font-size: 11px; font-family: var(--mono); text-anchor: middle; fill: var(--ink-muted); }
 /* the frame elevation: column numbers at the bases, the load heights outside on dotted leaders */
 .frame-elev .fe-colno circle { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
 .frame-elev .fe-colno text { fill: var(--ink); font: 700 11.5px var(--mono); text-anchor: middle; }
 .frame-elev .fe-lvl { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 4; }
+.frame-elev .fe-lvlx { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 5; opacity: .75; }
 .frame-elev .fe-lvlt { fill: var(--ink-muted); font: 600 11.5px var(--mono); }
 [data-theme="light"] .frame-elev .fe-eq line { stroke: #c9424b; }
 [data-theme="light"] .frame-elev .fe-eqhead { fill: #c9424b; }

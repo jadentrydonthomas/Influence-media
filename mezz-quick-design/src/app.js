@@ -489,7 +489,12 @@
   function recompute() {
     if (!state.inputs) return state.pcs && !state.pcs.mezzanines.length ? recomputeBuilding() : false;
     if (state.all) { state.all[state.mi] = { inputs: state.inputs, settings: state.settings }; readPlan(); }
-    const items = (state.all || [{ inputs: state.inputs, settings: state.settings }]).map(a => ({ inp: a.inputs, settings: a.settings }));
+    // a portal frame picked on the Bracing page stands in for the mezzanine columns at its legs (in that mezzanine's building)
+    const legs = Object.values((state.seis && state.seis.newLines) || {}).filter(v => v && v.kind === 'portal' && v.legs);
+    const items = (state.all || [{ inputs: state.inputs, settings: state.settings }]).map(a => {
+      const bn = (a.inputs.mezz && a.inputs.mezz.building) || (state.pcs && state.pcs.planBuilding) || '', mine = legs.filter(v => !v.building || !bn || sameName(v.building, bn));
+      return { inp: a.inputs, settings: mine.length ? { ...a.settings, portalCols: mine.flatMap(v => v.legs.map(p => ({ ...p, line: v.label }))) } : a.settings };
+    });
     try { state.job = RUN.runJob(items, { seis: state.seis, pcs: state.pcs }); state.res = state.job.mezz[state.all ? state.mi : 0]; } catch (err) { console.error(err); status('Design error: ' + err.message, 'bad'); return false; }
     if (BLD) BLD.compute();
     planCheck();
@@ -1469,6 +1474,11 @@
           bx(-cd / 2 - 0.12, cd / 2 + 0.12, -cb / 2 - 0.12, cb / 2 + 0.12, zc - 0.06, zc), bx(-cd / 2 - 0.25, cd / 2 + 0.25, -cb / 2 - 0.25, cb / 2 + 0.25, 0, 0.07),
         ], ref: { type: 'col', m, c, no: cno.get(c.label) } });
       });
+      // a portal frame's legs (picked on the Bracing page) where mezzanine columns would stand: drawn in its colour
+      lay.supports.filter(sp => sp.userKind === 'portal').forEach(sp => {
+        const zc = zTop - dBeam;
+        members.push({ id: `${sp.label} · portal frame leg`, kind: 'col', color: '#ff8f8f', boxes: [{ x0: sp.x - 0.4, x1: sp.x + 0.4, y0: sp.y - 0.4, y1: sp.y + 0.4, z0: 0, z1: zc }], ref: { type: 'portal', m, sp } });
+      });
       // joists: open-web lines between beam lines at the joist spacing
       const sp = m.beamBase.Lb;
       if (sp > 0) {
@@ -1534,6 +1544,7 @@
   // the sidebar shows the whole building on the building pages, the mezzanines in the Mezzanine workspace
   const railJob = () => state.ws !== 'mezz' && !!state.bldScene;
   function setRailView(v) {
+    v = '3d';   // the sidebar turns the model; its plan is in the window of its own (⤢)
     railView = v;
     try { localStorage.setItem('mzd.railView', v); } catch (e) { /* storage off */ }
     $$('#rvToggle button[data-v]').forEach(b => b.classList.toggle('is-on', b.dataset.v === v));
@@ -1544,10 +1555,13 @@
     if (v === 'plan') renderMiniPlan();
     queueFit(true);
   }
-  $$('#rvToggle button[data-v]').forEach(b => { b.onclick = e => { e.stopPropagation(); setRailView(b.dataset.v); }; });
   const openPop = on => { $('#planPop').hidden = !on; if (on) renderMiniPlan(); };
-  // ⤢: on the building pages the building in its own window (a second screen); in the Mezzanine workspace the plan large
-  $('#rvBig').onclick = e => { e.stopPropagation(); if (railJob() && BLD) BLD.popOut(); else openPop($('#planPop').hidden); };
+  // ⤢: the building (or, in the Mezzanine workspace, the mezzanine) in its own window — a second screen
+  $('#rvBig').onclick = e => { e.stopPropagation(); if (BLD) BLD.popOut(); else openPop($('#planPop').hidden); };
+  // Layers: what the sidebar's 3D shows — the same switches as the page's own model
+  const rvMenu = on => { const m = $('#rvLayersMenu'), b = $('#rvLayers'); if (!m || !BLD) return; if (on) { const k = railJob() ? 'job' : 'mezz'; m.innerHTML = BLD.layerBar(k); BLD.layerWire(m); } m.hidden = !on; b.setAttribute('aria-expanded', on); b.classList.toggle('is-on', on); };
+  $('#rvLayers').onclick = e => { e.stopPropagation(); rvMenu($('#rvLayersMenu').hidden); };
+  document.addEventListener('click', e => { if (!e.target.closest('#rvLayersMenu, #rvLayers') && $('#rvLayersMenu') && !$('#rvLayersMenu').hidden) rvMenu(false); });
   $('#ppClose').onclick = () => openPop(false);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#planPop').hidden) openPop(false); });
   // the sidebar fits the window: on a short screen it tightens in steps, then the 3D / plan square takes the height
@@ -1591,7 +1605,8 @@
     $('#orbEmpty').hidden = !!show;
     $('#orbEmpty').textContent = state.pcs && !(state.job && state.job.mezz && state.job.mezz.length) ? 'No mezzanine' : state.res && state.res.incomplete ? 'Needs input' : 'Drop a PCS';
     $('#rvToggle').hidden = !show;
-    $('#rvBig').title = job ? 'Open the building in its own window — drag it to a second screen' : 'Show the plan larger';
+    $('#rvBig').title = job ? 'Open the building in its own window — drag it to a second screen' : 'Open the mezzanine in its own window — drag it to a second screen';
+    if (!$('#rvLayersMenu').hidden) rvMenu(true);
     $('#rvBig').setAttribute('aria-label', $('#rvBig').title);
     $('#railView').classList.toggle('is-bldg', job);
     if (job) {
@@ -1604,12 +1619,11 @@
     if (!show) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); $('#miniSite').setAttribute('hidden', ''); return; }
     if (!mini) {
       mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, onSelect: () => { if (railJob()) { go('building'); return; } go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
-      mini.toggle('joists', false);
     }
+    if (BLD) BLD.layerRegister(mini, () => (railJob() ? 'job' : 'mezz'));
     if (job) {
       // the whole building, small and turning: no tags, the purlins off as on the Building page
       mini.set({ ...state.bldScene, labels: [] });
-      ['purlin'].forEach(k => mini.toggle(k, false));
       setRailView(railView);
       return;
     }
@@ -1714,10 +1728,11 @@
       $('#m3Pause').onclick = () => { const on = model.auto; model.pause(on); $('#m3Pause').textContent = on ? 'Resume rotation' : 'Pause rotation'; };
       $('#m3Reset').onclick = () => { model.reset(); markFocus(null); };
       $('#m3In').onclick = () => model.zoom(1.15); $('#m3Out').onclick = () => model.zoom(1 / 1.15);
-      $$('#modelToggles button').forEach(b => { b.onclick = () => { const on = !b.classList.contains('is-on'); b.classList.toggle('is-on', on); model.toggle(b.dataset.t, on); }; });
+      if (BLD) { $('#modelToggles').innerHTML = BLD.layerBar('mezz'); BLD.layerWire($('#modelToggles')); BLD.layerRegister(model, 'mezz'); }
     }
     state.scene = buildScene();
     model.set(state.scene);
+    if (BLD && BLD.popOpen()) BLD.popSync();
     renderFocus(state.scene);
     renderMini(state.scene);
     window.MZ_DEBUG = { modelPoint: id => (model ? model.screenOf(id) : null), beams: () => state.scene.members.filter(x => x.kind === 'beam').map(x => x.id), view: () => (model ? model.state() : null), groups: () => state.scene.groups };
@@ -2896,8 +2911,8 @@
         <tr><td>Roof dead</td><td class="num mono">${F2(u.deadPsf)} psf</td></tr><tr><td>Roof total</td><td class="num mono"><b>${F2(u.totalPsf)} psf</b></td></tr><tr><td>Alt. roof total <small class="sub-n">with the sidewalls</small></td><td class="num mono">${F2(u.altTotalPsf)} psf</td></tr><tr><td>Seismic factor</td><td class="num mono"><b>${F3(u.factor)}</b></td></tr></tbody></table></div>
       <div class="table-wrap"><table class="fl-t seis-lmz"><thead><tr><th>Mezzanine ID</th><th class="num">Loading area (sq ft)</th><th class="num">Concentrated loads (kips)</th><th class="num">Seismic psf</th><th class="num">Weight (lb)</th><th class="num">Force to the bracing (k)</th></tr></thead><tbody>${b.mezz.map(m => { const q = (G.mezzLoads || []).find(c => String(c.id) === String(m.id)) || {}, c = ((cfg.concLong || {})[`${b.bkey}|${m.id}`]); return `<tr><td><b>${esc(mezzName(m.id))}</b><small class="sub-n">at ${ft(m.elev)}</small></td><td class="num mono">${n0(m.area)}<small class="sub-n">${m.areaSrc === 'typed' ? 'typed in step 5' : m.openArea > 0 ? `${n0(m.gross)} less ${n0(m.openArea)} opening` : 'the floor'}</small></td><td class="num">${num(`cg.${b.bkey}|${m.id}`, c != null && c !== '' ? +c : 0)}</td><td class="num mono">${m.psf == null ? '—' : F2(m.psf)}</td><td class="num mono">${q.W != null ? lb(q.W) : '—'}</td><td class="num mono"><b>${q.F != null ? F2(q.F) : '—'}</b></td></tr>`; }).join('') || '<tr><td colspan="6" class="sub-n">No mezzanine in this building.</td></tr>'}</tbody></table></div>
       <details class="seis-d"><summary>Seismic factors and the multistory distribution</summary>${factorsT(G.factors, G)}${distT(G)}</details>
-      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}<small class="sub-n">${l.share === 'share' ? `share · full ${F2(l.Ffull)}` : `full · share ${F2(l.Fshare)}`}</small></td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
-      <small class="sub-n">The mezzanine floor spans across the building between these lines. ${cfg.braceShare === 'share' ? 'Each line takes its share (lever rule), the lines holding the force once' : 'Each line takes the full force of the floor it bounds, in EQB and in EQF — as the engineers\' bracing files enter it (the share by the lever rule beside it)'}: a sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs independent X-bracing, for the larger of the seismic and the DM's 1 % stability force. The walls are drawn, the split chosen and the file written on the <a href="#" data-go="bracing">Bracing page</a>.</small>`;
+      <div class="table-wrap"><table class="fl-t"><thead><tr><th>Line at the mezzanine level</th><th>Along</th><th>Holds it</th><th class="num">Seismic (k)</th><th class="num">1 % (FDL+FLL) (k)</th><th class="num">Design (k)</th></tr></thead><tbody>${b.braceLines.map(l => `<tr class="${l.independent ? 'indep' : ''}"><td><b>${esc(l.edge)}</b><small class="sub-n">${esc(l.mezz.join(' + '))} · at ${ft(l.at)}</small></td><td class="mono">${l.segs.map(([a, c]) => `${ft(a)} – ${ft(c)}`).join(', ')}</td><td>${esc(l.element)}</td><td class="num mono">${F2(l.F)}${b.mezzLong && b.mezzLong.total > 0 ? `<small class="sub-n">${Math.round(l.F / b.mezzLong.total * 100)} % of ${F2(b.mezzLong.total)}</small>` : ''}</td><td class="num mono">${l.independent ? F2(l.stab) : '—'}</td><td class="num mono"><b>${F2(l.design)}</b><small class="sub-n">${esc(l.governs)}</small></td></tr>`).join('')}</tbody></table></div>
+      <small class="sub-n">Each mezzanine sends half its longitudinal seismic to each of its two long edges (${b.mezzLong ? `${F2(b.mezzLong.total)} k in all` : 'the total'}, EQB and EQF on each line); an edge joined all along to another mezzanine passes its half through that one. A sidewall line is the building's bracing, loaded at the mezzanine level; any other line needs bracing of its own (X-bracing or a portal frame), for the larger of the seismic and the DM's 1 % stability force. The walls are drawn and the file written on the <a href="#" data-go="bracing">Bracing page</a>.</small>`;
       fileParts.push(`${many ? `<h4 class="seis-bh">${esc(b.name)}</h4>` : ''}${fileUI}`);
       return out9;
     }).join('');
@@ -4111,7 +4126,14 @@
   }
   const BLD = window.MZ_APP_BUILDING ? window.MZ_APP_BUILDING({ state, $, $$, esc, ft, f, n0, go, toast, recompute, M3, B: window.MZ_BUILDING, SITE: window.MZ_SITE, SNOW: window.MZ_SNOW, FF, sameName, inpOf, addFrameFiles, addSeisFiles, addCalcsFile, cpDownload, bracingPlan, bracingDownload, bracingOutName: bf => bracingOutName(bf), zipIO, cpSave,
     // the mezzanine rows a dropped frame file gets (so a lean-to's rows are added to them, not in their place)
-    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave, renderSeismic, railRefresh }) : null;
+    nbgRows: item => { const p = nbgPlan(item); return p.r.rows; }, webCode: () => webCode().code, mezzScene: () => buildScene({ calm: true }), LINE_SYSTEMS: RUN.LINE_SYSTEMS, seisSave, renderSeismic, railRefresh,
+    // the mezzanine in its own window: its model, its floor plan (a column or beam clicked there opens its calc here)
+    mezzSceneLive: () => state.scene || (state.res && !state.res.incomplete ? buildScene() : null),
+    mezzPlanSvg: w => { const r = state.res; if (!r || r.incomplete) return ''; const lays = jobView().map(m => m.layout), ext = (k, lo) => lays.map(l => (lo ? Math.min : Math.max)(l.footprint[k], ...(k[0] === 'x' ? l.xLines : l.yLines)));
+      const ratio = (Math.max(...ext('y1')) - Math.min(...ext('y0', 1))) / Math.max(1, Math.max(...ext('x1')) - Math.min(...ext('x0', 1))), h = Math.round(Math.max(260, (w - 80) * ratio + 120));
+      return `<svg viewBox="0 0 ${w} ${h}" id="planPopSvg" style="--k:1.8" role="img" aria-label="Floor plan">${planMarkup(w, h, 1.8)}</svg>`; },
+    mezzPlanWire: svg => wirePlan(svg),
+    openMember: ref => { if (!ref) return; if (ref.type === 'col' && ref.c) openCol({ x: ref.c.x, y: ref.c.y, mi: ref.m ? ref.m.index : undefined }); else if (ref.type === 'beam' && ref.m) openBeam(ref.m, ref.b.id); try { window.focus(); } catch (e) { /* the browser decides */ } } }) : null;
   // the live state, for the browser tests (test/e2e*.js) and a look from the console
   window.MZ_STATE = () => state;
   renderSettings();

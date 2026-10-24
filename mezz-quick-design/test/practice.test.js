@@ -46,9 +46,10 @@ const geo = async (k, mi = 0) => { const p = PCS.parse(await readPcs(job(k))), g
     lat.forEach((l, i) => (l.Mezzanines || []).forEach(q => assert.ok(near(b.lines[i].areas[id], q.LoadingAreaInSquareFeet, 1e-6), `line ${i + 1} loading area`)));
     assert.ok(near(b.long.V, doc.LongitudinalCalculations.BaseShearResults.BaseShear, 1e-9));
     seen.push(`k02 seismic = its Design Calcs file on ${lat.length} frame lines and the bracing`);
-    // ...and its bracing run holds the engineer's own Mezz. Seismic rows: the full 4.73 k on each sidewall, EQB + at the
-    // mezzanine's first frame line (4), EQF − at its last (5), at the floor (10 ft). The tool's plan is the same rows; the
-    // strut line goes to the BSW's braced bay (3–4) and to the FSW's portal frame (4–5, read from <PortalFrames>)
+    // ...and its bracing run holds the engineer's Mezz. Seismic rows: EQB + at the mezzanine's first frame line (4), EQF −
+    // at its last (5), at the floor (10 ft), the floor's whole 4.73 k on each sidewall. The tool's plan has the same rows
+    // with half on each wall (the floor spans FSW to BSW: 2.36 k each, the walls holding it once); the strut line goes to
+    // the BSW's braced bay (3–4) and to the FSW's portal frame (4–5, read from <PortalFrames>)
     const brPath = path.join(dir, 'k02', 'MAIN.bracing');
     if (fs.existsSync(brPath)) {
       const BRF = require('../src/bracingfile.js'), z = require('zlib'), io = { inflate: async u => new Uint8Array(z.inflateRawSync(u)), deflate: async u => new Uint8Array(z.deflateRawSync(u)) };
@@ -57,9 +58,10 @@ const geo = async (k, mi = 0) => { const p = PCS.parse(await readPcs(job(k))), g
       const key = r => `${r.plane}|${r.line}|${r.caseId}|${(+r.elev).toFixed(2)}`, theirs = new Map(bf.info.loads.filter(r => r.name === BRF.LOAD_NAME).map(r => [key(r), r.F]));
       const ours = plan.loads.map(l => ({ ...l, plane: bf.info.walls[l.wall].plane }));
       assert.strictEqual(ours.length, theirs.size, `${ours.length} rows vs the file's ${theirs.size}`);
-      ours.forEach(l => assert.ok(theirs.has(key(l)) && near(l.F, theirs.get(key(l)), 0.006), `${l.wall} ${l.caseId} line ${l.line + 1}: ${l.F} vs ${theirs.get(key(l))}`));
+      ours.forEach(l => assert.ok(theirs.has(key(l)) && near(l.F, theirs.get(key(l)) / 2, 0.006), `${l.wall} ${l.caseId} line ${l.line + 1}: ${l.F} vs half of ${theirs.get(key(l))}`));
+      assert.ok(near(Math.abs(ours.filter(l => l.caseId === 'EQB').reduce((a, l) => a + l.F, 0)), b.mezzLong.total, 0.01), 'the two walls hold the total once');
       assert.deepStrictEqual(plan.struts.map(q => `${q.wall} ${q.from}-${q.to} @${q.elev}`).sort(), ['BSW 2-4 @10', 'FSW 3-4 @10']);
-      seen.push('k02 bracing = the engineer\'s own EQB / EQF rows (4.73 k on each wall)');
+      seen.push('k02 bracing: the engineer\'s EQB / EQF rows, half the floor\'s 4.73 k on each wall');
     }
   }
   // k02 as the engineer designed it in the workbooks (their filled 15th-edition copies): MB1 BU15x30, 25'-0" span, 8'-0"
@@ -89,8 +91,14 @@ const geo = async (k, mi = 0) => { const p = PCS.parse(await readPcs(job(k))), g
       const [c] = p.cranes;
       assert.ok(p.cranes.length === 1 && c.type === 'UHSG' && c.tons === 5 && c.cmaa === 'C' && c.startLine === 6 && c.direction === 'REW' && near(c.runway, 53) && c.wheel === 5100 && c.bridge === 2273 && c.hoistTrolley === 690 && near(c.wheelSpacing, 7 + 6.5 / 12) && near(c.beamCC, 15) && c.runwayBeam === 50 && c.notBySeller, JSON.stringify(c));
     } else assert.strictEqual(p.cranes.length, 0, `${k}: no crane`);
+    // k04, an unequal gable: Box 2's 121'-6" to the ridge is from the FSW (eaves 28'-9 3/4" / 33'-11 3/8", slopes 1 and
+    // 0.987:12) — the two roof planes meet there; from the BSW they would miss by 10 ft (a step at the ridge in every drawing)
+    if (k === 'k04') {
+      const SITE = require('../src/site.js'), b = p.site.Main.building, yr = SITE.ridgeY(b);
+      assert.ok(near(yr, b.ridge, 1e-9) && near(SITE.roofZ(b, 0, yr - 1e-6), SITE.roofZ(b, 0, yr + 1e-6), 0.01), `k04 ridge ${yr} from the FSW, the planes meeting there`);
+    }
   }
-  seen.push('k04 / k05 / k07 / k10 building only; k05 Box 4 yes / no; k10 Box 23 crane (5 t UHSG from line 6)');
+  seen.push('k04 / k05 / k07 / k10 building only; k04 ridge 121\'-6" from the FSW (the planes meet); k05 Box 4 yes / no; k10 Box 23 crane (5 t UHSG from line 6)');
   // k06: a column of single-value notes, each box taller than its row
   if (fs.existsSync(job('k06'))) {
     const g = await geo('k06');
