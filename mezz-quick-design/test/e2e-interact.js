@@ -651,12 +651,23 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
         await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
         await allLightest();
         if (await quote() !== base) fail('the lightest option after the designer should restore the quote');
-        // a mark the designer took from the job follows the job: the section it has now, not the one it was loaded with
-        await page.click('#nav button[data-view="designer"]'); await page.click('#dzTabs button[data-t="beam"]'); await page.waitForTimeout(200);
-        const fromLab = await page.$eval('#dzFrom', e => (e.selectedOptions[0] && e.value ? e.selectedOptions[0].textContent : '')), secNow = (fromLab.match(/\b(BU\d+x\d+|W\d+X\d+)\b/) || [])[1];
-        const h4 = await dzHead();
-        console.log('designer: follows the job'.padEnd(30), secNow ? `${secNow} → ${h4}` : '(edited here: its own numbers)');
-        if (secNow && !h4.includes(secNow)) fail(`the designer should show the job's ${secNow} for its mark, not an earlier section`);
+        // a mark the designer took from the job follows the job: load it, pick another option for it on the Design
+        // page, come back — the designer shows the section the mark has now, not the one it was loaded with
+        await page.click('#nav button[data-view="designer"]'); await page.click('#dzTabs button[data-t="beam"]'); await page.waitForTimeout(150);
+        await page.selectOption('#dzFrom', srcOpts[0]); await page.waitForTimeout(200);
+        await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
+        const other = await page.$(`#options button[data-opt][data-mark="${srcOpts[0]}"]:not([data-opt="lightest"])`);
+        if (other) {
+          await other.click(); await page.waitForTimeout(300);
+          await page.click('#nav button[data-view="designer"]'); await page.waitForTimeout(200);
+          const fromLab = await page.$eval('#dzFrom', e => (e.selectedOptions[0] && e.value ? e.selectedOptions[0].textContent : '')), secNow = (fromLab.match(/\b(BU\d+x\d+|W\d+X\d+)\b/) || [])[1];
+          const h4 = await dzHead();
+          console.log('designer: follows the job'.padEnd(30), `${srcOpts[0]} now ${secNow} → ${h4}`);
+          if (!secNow || !h4.includes(secNow)) fail(`the designer should show the job's ${secNow} for ${srcOpts[0]}, not an earlier section`);
+          await page.click('#nav button[data-view="results"]'); await page.waitForTimeout(150);
+          await allLightest();
+          if (await quote() !== base) fail('the lightest option should restore the quote');
+        } else console.log('designer: follows the job'.padEnd(30), `(${srcOpts[0]} has one option)`);
       }
     }
   }
