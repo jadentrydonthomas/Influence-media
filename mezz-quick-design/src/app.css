@@ -2044,7 +2044,8 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
 .lay-pop .lay-pl input { flex: 1 1 auto; min-width: 0; }
 .note .note-act { margin-left: auto; flex: 0 0 auto; align-self: center; }
 /* D / F read off the frame files' rafters */
-.df-row .df-calc { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; font-weight: 400; font-size: 13px; }
-.df-row .df-calc small { flex-basis: 100%; color: var(--ink-muted); }
+.df-row .df-calc { display: flex; flex-wrap: wrap; gap: 4px 22px; align-items: baseline; justify-content: flex-start; text-align: left; font: 400 13px var(--sans, inherit); color: var(--ink); }
+.df-row .df-calc b { font: 700 14px var(--mono); color: var(--green-bright, var(--green)); }
+.df-row .df-calc small { flex-basis: 100%; color: var(--ink-muted); font: 400 12px var(--sans, inherit); }
 .df-row .good { color: var(--green-deep, var(--green)); } .df-row .bad { color: var(--red-deep); }
 .site-plan .sp-mz-lead { stroke: var(--green); stroke-width: 1; stroke-dasharray: 2 2; opacity: .8; }

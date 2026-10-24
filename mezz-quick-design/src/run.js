@@ -275,7 +275,10 @@
     REQUIRED.forEach(([k, lab, kind, suggest]) => {
       const [g, f] = k.split('.'), x = val(inp[g][f]);
       if (f === 'C' && inp.geom.C && inp.geom.C.source === 'none') return;   // entered as "no requirement"
-      if (!num(x) || ((f === 'joistSpacing' || f === 'slab' || f === 'width' || f === 'length') && !(x > 0)) || (f === 'seat' && x < 0)) { miss.push(lab); need.push({ path: k, label: lab, kind, suggest: suggest || [] }); }
+      // B open with C known: the joists sit on the beams, so C is where B starts
+      const cv = val(inp.geom.C), cOn = f === 'B' && num(cv) && !(inp.geom.C && inp.geom.C.source === 'none');
+      const sug = cOn ? [[cv, PCS.fmtFtIn(cv), "C: the joists sit on the beams"], ...(suggest || []).filter(q => q[0] >= cv)] : suggest || [];
+      if (!num(x) || ((f === 'joistSpacing' || f === 'slab' || f === 'width' || f === 'length') && !(x > 0)) || (f === 'seat' && x < 0)) { miss.push(lab); need.push({ path: k, label: lab, kind, suggest: sug }); }
     });
     const b = inp.building || {};
     if (!(b.width > 0) || !(b.length > 0)) miss.push('Building width / length (Box 2)');
@@ -517,6 +520,15 @@
     userColumns(lay, s.colKind, grid, warn);
     portalLegs(lay, s.portalCols, grid, warn);
     planChecks(inp, grid, lay, s, warn);
+    // the joists run past the first or last beam line to the slab edge (an edge line taken out on the Plan page): a
+    // joist cantilever — said, with the beam that takes the edge's floor
+    {
+      const fp = lay.footprint, bl = lay.beamLines, alongY = lay.joists === 'y', lo = alongY ? fp.y0 : fp.x0, hi = alongY ? fp.y1 : fp.x1;
+      const lab = v => (alongY ? grid.yLabel(v) : grid.xLabel(v)) || PCS.fmtFtIn(v);
+      [[bl[0] - lo, bl[0]], [hi - bl[bl.length - 1], bl[bl.length - 1]]].forEach(([d, v]) => {
+        if (d > 1 + 1e-6 && !lay.snaps.some(sn => Math.abs(sn.line - v) < 0.01)) warn.push({ level: 'key', text: `${inp.mezz.id || 'This mezzanine'}: the joists cantilever ${PCS.fmtFtIn(d)} past the beam on line ${lab(v)} to the slab edge — no edge beam or columns there. The beam on line ${lab(v)} takes that floor in its trib; the joist supplier designs the extended ends (confirm the cantilever with them).` });
+      });
+    }
     lay.snaps.forEach(sn => {
       const lab = (sn.axis === 'y' ? grid.yLabel(sn.line) : grid.xLabel(sn.line)), past = (sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW));
       const along = (sn.axis === 'x') === (lay.joists === 'y');   // the overhang runs along the beams (else along the joists)
@@ -544,6 +556,12 @@
     // joist span against the total joist depth: SJI limits a K-series joist to 24 × its depth (a removed beam line on the
     // Plan page, or a wide bay, can go past it)
     if (joistDepthIn > 0 && lay.joistSpan * 12 / joistDepthIn > 24 + 1e-6) warn.push({ level: 'warn', text: `Joists span ${PCS.fmtFtIn(lay.joistSpan)} on a ${+joistDepthIn.toFixed(2)}" total joist depth — ${(lay.joistSpan * 12 / joistDepthIn).toFixed(1)} × the depth, over the 24 × depth SJI allows for K-series joists. Add a beam line or deepen the joists; confirm with the joist supplier.` });
+    // B under C: the joists bear on top of the beams, so their bottom cannot be below the beams' — the "total joist depth"
+    // A − B − slab − seat then is a depth no joist on these beams can have (a TBD B filled low does this)
+    if (Bq != null && Cq != null && !(inp.geom.C && inp.geom.C.source === 'none') && Bq < Cq - 1e-6 && joistDepthIn > 0) {
+      const need = Math.max(8, Math.ceil(lay.joistSpan * 12 / 24 / 2) * 2), bFit = A != null ? A - (slabIn + seatIn + need) / 12 : null;
+      warn.push({ level: 'warn', text: `(B) ${PCS.fmtFtIn(Bq)} under the joists is below (C) ${PCS.fmtFtIn(Cq)} under the beams: the joists bear on the beams, so their bottom sits above the beams' bottom — B is at least C. As typed, the total joist depth A − B − slab − seat is ${+joistDepthIn.toFixed(2)}", far deeper than the ${PCS.fmtFtIn(lay.joistSpan)} joist span needs (about ${need}" at span / 24, SJI)${bFit != null ? `; a ${need}" joist gives B ${PCS.fmtFtIn(bFit)}` : ''}. ${inp.geom.B && inp.geom.B.source === 'manual' ? 'B was typed (the PCS has it TBD): ' : ''}confirm B with the customer or the estimator.` });
+    }
     // the room under C for the beam and its sag, in inches: A − C − slab − seat (a 1/1000" tolerance absorbs rounding)
     const roomIn = Cq != null && A != null ? (A - Cq) * 12 - slabIn - seatIn : null;
     const maxDepthByC = roomIn != null ? Math.floor(roomIn + 1e-3) : null;

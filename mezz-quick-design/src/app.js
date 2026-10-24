@@ -2438,7 +2438,14 @@
       const mk = mkOf(m, id);
       head = `${bNo(m, id)}${mk ? ' · ' + esc(mk.mark) : ''} · ${esc(layLine(m, ax, b.line))}`;
       if (inner) items.push({ t: `Remove the beam line`, sub: `joists span ${ft(ly.beamLines[bi + 1] - ly.beamLines[bi - 1])} across it — the beams either side carry more`, go: () => layDo(`${layLine(m, ax, b.line)}: beam line removed`, () => { const st = sets[mi]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.filter((u, i) => i !== bi); }) });
-      else items.push({ t: 'An edge beam stays', sub: 'it carries the slab edge', off: true });
+      else {
+        // an edge line close to the next one: the joists can run past that beam to the slab edge instead (a joist
+        // cantilever — top chord extensions by the joist supplier), no beam or columns on the edge
+        const nb = bi === 0 ? ly.beamLines[1] : ly.beamLines[ly.beamLines.length - 2], gap = nb != null ? Math.abs(b.line - nb) : Infinity;
+        if (ly.beamLines.length > 2 && gap <= 6 + 1e-6) items.push({ t: 'Cantilever the joists to this edge', sub: `no beam or columns here: the joists run ${ft(gap)} past ${layLine(m, ax, nb)} to the slab edge, and that beam takes the edge's floor (the joist supplier designs the extensions)`,
+          go: () => layDo(`${layLine(m, ax, b.line)}: the joists cantilever ${ft(gap)} past ${layLine(m, ax, nb)} — no edge beam or columns`, () => { const st = sets[mi]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.filter((u, i) => i !== bi); }) });
+        else items.push({ t: 'An edge beam stays', sub: gap > 6 ? `it carries the slab edge — ${ft(gap)} to the next line is more than a joist cantilevers` : 'it carries the slab edge', off: true });
+      }
       if (!m._map) {
         const sAx = ax === 'y' ? 'x' : 'y', clk = snapFt(Math.min(b.to, Math.max(b.from, sAx === 'x' ? wx : wy)), ptLines(m, sAx));
         items.push({ t: 'Add a mezzanine column on this beam at', sub: `${ft(b.from)} to ${ft(b.to)} from the ${sAx === 'x' ? 'LEW' : 'FSW'} — the beam splits there`, at: { id: 'layAc', v: ft(clk), from: sAx === 'x' ? 'LEW' : 'FSW', W: m.grid.width },
@@ -4118,8 +4125,8 @@
     const reqD = state.inputs.geom.D && state.inputs.geom.D.value, reqF = state.inputs.geom.F && state.inputs.geom.F.value;
     const ok = (have, want) => (want == null ? '' : have + 1e-6 >= want ? ` <b class="good">≥ ${ft(want)} asked ✓</b>` : ` <b class="bad">under the ${ft(want)} asked</b>`);
     const each = fc.map(q => `line ${q.line} ${ft(q.u)}${q.how === 'assumed' ? '*' : ''}`).join(' · ');
-    return `<div class="field-row full df-row"><label>Under the frame, from the frame files<small>the rafter's underside over the mezzanine, lowest point: ${esc(each)} (${esc(fc.map(q => q.file).filter((v, i, a) => a.indexOf(v) === i).join(', '))})${fc.some(q => q.how === 'assumed') ? ' · * COL01 taken as the FSW column' : ''}</small></label>
-      <div class="calc df-calc"><span>F <b>${ft(lo.u)}</b> from the finished floor${ok(lo.u, reqF)}</span><span>D <b>${D != null ? ft(D) : '—'}</b> above the mezzanine floor (F − A ${A != null ? ft(A) : '—'})${D != null ? ok(D, reqD) : ''}</span><small>line ${lo.line}, ${ft(lo.y)} from the FSW</small></div></div>`;
+    return `<div class="field-row full df-row"><label>Under the frame<small>read off the frame files' rafters: the lowest underside over the mezzanine</small></label>
+      <div class="calc df-calc"><span>F <b>${ft(lo.u)}</b> from the finished floor${ok(lo.u, reqF)}</span><span>D <b>${D != null ? ft(D) : '—'}</b> above the mezzanine floor (F − A ${A != null ? ft(A) : '—'})${D != null ? ok(D, reqD) : ''}</span><small>lowest at line ${lo.line}, ${ft(lo.y)} from the FSW · each line: ${esc(each)} · ${esc(fc.map(q => q.file).filter((v, i, a) => a.indexOf(v) === i).join(', '))}${fc.some(q => q.how === 'assumed') ? ' · * COL01 taken as the FSW column' : ''}</small></div></div>`;
   }
   function renderInputs() {
     const inp = state.inputs, r = state.res;

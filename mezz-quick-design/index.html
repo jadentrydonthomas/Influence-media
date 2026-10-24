@@ -2053,8 +2053,9 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
 .lay-pop .lay-pl input { flex: 1 1 auto; min-width: 0; }
 .note .note-act { margin-left: auto; flex: 0 0 auto; align-self: center; }
 /* D / F read off the frame files' rafters */
-.df-row .df-calc { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; font-weight: 400; font-size: 13px; }
-.df-row .df-calc small { flex-basis: 100%; color: var(--ink-muted); }
+.df-row .df-calc { display: flex; flex-wrap: wrap; gap: 4px 22px; align-items: baseline; justify-content: flex-start; text-align: left; font: 400 13px var(--sans, inherit); color: var(--ink); }
+.df-row .df-calc b { font: 700 14px var(--mono); color: var(--green-bright, var(--green)); }
+.df-row .df-calc small { flex-basis: 100%; color: var(--ink-muted); font: 400 12px var(--sans, inherit); }
 .df-row .good { color: var(--green-deep, var(--green)); } .df-row .bad { color: var(--red-deep); }
 .site-plan .sp-mz-lead { stroke: var(--green); stroke-width: 1; stroke-dasharray: 2 2; opacity: .8; }
 
@@ -10551,7 +10552,10 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     REQUIRED.forEach(([k, lab, kind, suggest]) => {
       const [g, f] = k.split('.'), x = val(inp[g][f]);
       if (f === 'C' && inp.geom.C && inp.geom.C.source === 'none') return;   // entered as "no requirement"
-      if (!num(x) || ((f === 'joistSpacing' || f === 'slab' || f === 'width' || f === 'length') && !(x > 0)) || (f === 'seat' && x < 0)) { miss.push(lab); need.push({ path: k, label: lab, kind, suggest: suggest || [] }); }
+      // B open with C known: the joists sit on the beams, so C is where B starts
+      const cv = val(inp.geom.C), cOn = f === 'B' && num(cv) && !(inp.geom.C && inp.geom.C.source === 'none');
+      const sug = cOn ? [[cv, PCS.fmtFtIn(cv), "C: the joists sit on the beams"], ...(suggest || []).filter(q => q[0] >= cv)] : suggest || [];
+      if (!num(x) || ((f === 'joistSpacing' || f === 'slab' || f === 'width' || f === 'length') && !(x > 0)) || (f === 'seat' && x < 0)) { miss.push(lab); need.push({ path: k, label: lab, kind, suggest: sug }); }
     });
     const b = inp.building || {};
     if (!(b.width > 0) || !(b.length > 0)) miss.push('Building width / length (Box 2)');
@@ -10793,6 +10797,15 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     userColumns(lay, s.colKind, grid, warn);
     portalLegs(lay, s.portalCols, grid, warn);
     planChecks(inp, grid, lay, s, warn);
+    // the joists run past the first or last beam line to the slab edge (an edge line taken out on the Plan page): a
+    // joist cantilever — said, with the beam that takes the edge's floor
+    {
+      const fp = lay.footprint, bl = lay.beamLines, alongY = lay.joists === 'y', lo = alongY ? fp.y0 : fp.x0, hi = alongY ? fp.y1 : fp.x1;
+      const lab = v => (alongY ? grid.yLabel(v) : grid.xLabel(v)) || PCS.fmtFtIn(v);
+      [[bl[0] - lo, bl[0]], [hi - bl[bl.length - 1], bl[bl.length - 1]]].forEach(([d, v]) => {
+        if (d > 1 + 1e-6 && !lay.snaps.some(sn => Math.abs(sn.line - v) < 0.01)) warn.push({ level: 'key', text: `${inp.mezz.id || 'This mezzanine'}: the joists cantilever ${PCS.fmtFtIn(d)} past the beam on line ${lab(v)} to the slab edge — no edge beam or columns there. The beam on line ${lab(v)} takes that floor in its trib; the joist supplier designs the extended ends (confirm the cantilever with them).` });
+      });
+    }
     lay.snaps.forEach(sn => {
       const lab = (sn.axis === 'y' ? grid.yLabel(sn.line) : grid.xLabel(sn.line)), past = (sn.axis === 'y' ? (sn.edge < sn.line) === (sn.edge === mz.startFSW) : (sn.edge < sn.line) === (sn.edge === mz.startLEW));
       const along = (sn.axis === 'x') === (lay.joists === 'y');   // the overhang runs along the beams (else along the joists)
@@ -10820,6 +10833,12 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     // joist span against the total joist depth: SJI limits a K-series joist to 24 × its depth (a removed beam line on the
     // Plan page, or a wide bay, can go past it)
     if (joistDepthIn > 0 && lay.joistSpan * 12 / joistDepthIn > 24 + 1e-6) warn.push({ level: 'warn', text: `Joists span ${PCS.fmtFtIn(lay.joistSpan)} on a ${+joistDepthIn.toFixed(2)}" total joist depth — ${(lay.joistSpan * 12 / joistDepthIn).toFixed(1)} × the depth, over the 24 × depth SJI allows for K-series joists. Add a beam line or deepen the joists; confirm with the joist supplier.` });
+    // B under C: the joists bear on top of the beams, so their bottom cannot be below the beams' — the "total joist depth"
+    // A − B − slab − seat then is a depth no joist on these beams can have (a TBD B filled low does this)
+    if (Bq != null && Cq != null && !(inp.geom.C && inp.geom.C.source === 'none') && Bq < Cq - 1e-6 && joistDepthIn > 0) {
+      const need = Math.max(8, Math.ceil(lay.joistSpan * 12 / 24 / 2) * 2), bFit = A != null ? A - (slabIn + seatIn + need) / 12 : null;
+      warn.push({ level: 'warn', text: `(B) ${PCS.fmtFtIn(Bq)} under the joists is below (C) ${PCS.fmtFtIn(Cq)} under the beams: the joists bear on the beams, so their bottom sits above the beams' bottom — B is at least C. As typed, the total joist depth A − B − slab − seat is ${+joistDepthIn.toFixed(2)}", far deeper than the ${PCS.fmtFtIn(lay.joistSpan)} joist span needs (about ${need}" at span / 24, SJI)${bFit != null ? `; a ${need}" joist gives B ${PCS.fmtFtIn(bFit)}` : ''}. ${inp.geom.B && inp.geom.B.source === 'manual' ? 'B was typed (the PCS has it TBD): ' : ''}confirm B with the customer or the estimator.` });
+    }
     // the room under C for the beam and its sag, in inches: A − C − slab − seat (a 1/1000" tolerance absorbs rounding)
     const roomIn = Cq != null && A != null ? (A - Cq) * 12 - slabIn - seatIn : null;
     const maxDepthByC = roomIn != null ? Math.floor(roomIn + 1e-3) : null;
@@ -16278,7 +16297,14 @@ window.MZ_APP_BUILDING = function (C) {
       const mk = mkOf(m, id);
       head = `${bNo(m, id)}${mk ? ' · ' + esc(mk.mark) : ''} · ${esc(layLine(m, ax, b.line))}`;
       if (inner) items.push({ t: `Remove the beam line`, sub: `joists span ${ft(ly.beamLines[bi + 1] - ly.beamLines[bi - 1])} across it — the beams either side carry more`, go: () => layDo(`${layLine(m, ax, b.line)}: beam line removed`, () => { const st = sets[mi]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.filter((u, i) => i !== bi); }) });
-      else items.push({ t: 'An edge beam stays', sub: 'it carries the slab edge', off: true });
+      else {
+        // an edge line close to the next one: the joists can run past that beam to the slab edge instead (a joist
+        // cantilever — top chord extensions by the joist supplier), no beam or columns on the edge
+        const nb = bi === 0 ? ly.beamLines[1] : ly.beamLines[ly.beamLines.length - 2], gap = nb != null ? Math.abs(b.line - nb) : Infinity;
+        if (ly.beamLines.length > 2 && gap <= 6 + 1e-6) items.push({ t: 'Cantilever the joists to this edge', sub: `no beam or columns here: the joists run ${ft(gap)} past ${layLine(m, ax, nb)} to the slab edge, and that beam takes the edge's floor (the joist supplier designs the extensions)`,
+          go: () => layDo(`${layLine(m, ax, b.line)}: the joists cantilever ${ft(gap)} past ${layLine(m, ax, nb)} — no edge beam or columns`, () => { const st = sets[mi]; layFreeze(st, ly); st[ax === 'y' ? 'yLines' : 'xLines'] = ly.beamLines.filter((u, i) => i !== bi); }) });
+        else items.push({ t: 'An edge beam stays', sub: gap > 6 ? `it carries the slab edge — ${ft(gap)} to the next line is more than a joist cantilevers` : 'it carries the slab edge', off: true });
+      }
       if (!m._map) {
         const sAx = ax === 'y' ? 'x' : 'y', clk = snapFt(Math.min(b.to, Math.max(b.from, sAx === 'x' ? wx : wy)), ptLines(m, sAx));
         items.push({ t: 'Add a mezzanine column on this beam at', sub: `${ft(b.from)} to ${ft(b.to)} from the ${sAx === 'x' ? 'LEW' : 'FSW'} — the beam splits there`, at: { id: 'layAc', v: ft(clk), from: sAx === 'x' ? 'LEW' : 'FSW', W: m.grid.width },
@@ -17958,8 +17984,8 @@ window.MZ_APP_BUILDING = function (C) {
     const reqD = state.inputs.geom.D && state.inputs.geom.D.value, reqF = state.inputs.geom.F && state.inputs.geom.F.value;
     const ok = (have, want) => (want == null ? '' : have + 1e-6 >= want ? ` <b class="good">≥ ${ft(want)} asked ✓</b>` : ` <b class="bad">under the ${ft(want)} asked</b>`);
     const each = fc.map(q => `line ${q.line} ${ft(q.u)}${q.how === 'assumed' ? '*' : ''}`).join(' · ');
-    return `<div class="field-row full df-row"><label>Under the frame, from the frame files<small>the rafter's underside over the mezzanine, lowest point: ${esc(each)} (${esc(fc.map(q => q.file).filter((v, i, a) => a.indexOf(v) === i).join(', '))})${fc.some(q => q.how === 'assumed') ? ' · * COL01 taken as the FSW column' : ''}</small></label>
-      <div class="calc df-calc"><span>F <b>${ft(lo.u)}</b> from the finished floor${ok(lo.u, reqF)}</span><span>D <b>${D != null ? ft(D) : '—'}</b> above the mezzanine floor (F − A ${A != null ? ft(A) : '—'})${D != null ? ok(D, reqD) : ''}</span><small>line ${lo.line}, ${ft(lo.y)} from the FSW</small></div></div>`;
+    return `<div class="field-row full df-row"><label>Under the frame<small>read off the frame files' rafters: the lowest underside over the mezzanine</small></label>
+      <div class="calc df-calc"><span>F <b>${ft(lo.u)}</b> from the finished floor${ok(lo.u, reqF)}</span><span>D <b>${D != null ? ft(D) : '—'}</b> above the mezzanine floor (F − A ${A != null ? ft(A) : '—'})${D != null ? ok(D, reqD) : ''}</span><small>lowest at line ${lo.line}, ${ft(lo.y)} from the FSW · each line: ${esc(each)} · ${esc(fc.map(q => q.file).filter((v, i, a) => a.indexOf(v) === i).join(', '))}${fc.some(q => q.how === 'assumed') ? ' · * COL01 taken as the FSW column' : ''}</small></div></div>`;
   }
   function renderInputs() {
     const inp = state.inputs, r = state.res;
