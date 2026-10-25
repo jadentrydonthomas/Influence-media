@@ -307,11 +307,12 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
       const [dl] = await Promise.all([page.waitForEvent('download'), page.click(`#wbPanel [data-wb="${key}"]`)]);
       const fp = path.join(shots, dl.suggestedFilename()); await dl.saveAs(fp);
       const kind = key.split('|')[0];
-      const got = xr(fp, kind === 'beam' ? [['MB1', 'D5'], ['MB1', 'D7'], ['MB1', 'M22'], ['INPUT', 'D14'], ['MB1', 'M20'], ['INPUT', 'H2']] : kind === 'column' ? [['Column', 'C16'], ['Column', 'C27']] : [['Input Data', 'B26'], ['Input Data', 'B89'], ['Lateral Calcs. (1)', 'B18'], ['Miscellaneous', 'B36']]);
+      const got = xr(fp, kind === 'beam' ? [['MB1', 'D5'], ['MB1', 'D7'], ['MB1', 'M22'], ['INPUT', 'D14'], ['MB1', 'M20'], ['INPUT', 'H2'], ['INPUT', 'B4']] : kind === 'column' ? [['Column', 'C16'], ['Column', 'C27']] : [['Input Data', 'B26'], ['Input Data', 'B89'], ['Lateral Calcs. (1)', 'B18'], ['Miscellaneous', 'B36']]);
       console.log(('workbook ' + kind).padEnd(30), dl.suggestedFilename(), JSON.stringify(got));
       if (kind === 'beam' && !(got['MB1!D5'] === 'MB1' && got['MB1!D7'] > 0 && got['MB1!M22'] >= 10)) fail('the beam workbook copy should carry MB1');
       // the section saved as MB1's result (what Protected View shows before Excel recalculates), the quote in the header
-      if (kind === 'beam' && !(/^(BU|W)\d/.test(got['MB1!M20']) && String(got['INPUT!H2'] || '').length)) fail('the beam workbook copy should carry its section as the saved result and the quote number');
+      // (INPUT!H2; the 13th edition's header is INPUT!B4)
+      if (kind === 'beam' && !(/^(BU|W)\d/.test(got['MB1!M20']) && String(got['INPUT!H2'] || got['INPUT!B4'] || '').length)) fail('the beam workbook copy should carry its section as the saved result and the quote number');
       if (kind === 'column' && !/^W\d+X\d+/.test(got['Column!C16'])) fail('the column workbook copy should carry the section');
       if (kind === 'seismic' && !(got['Input Data!B26'] > 0 && got['Input Data!B89'] > 0 && got['Lateral Calcs. (1)!B18'] > 0)) fail('the seismic workbook copy should carry Ss, the mezzanine and the bay');
     }
