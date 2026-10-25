@@ -41,8 +41,21 @@ def main():
             if not ok:
                 bad += 1
                 print(f"  xlrd ✗ {it['file']} {st['sheet']}!{st['cell']}: {v!r} · typed {want!r}")
+        # written as the page writes them: the results saved with their formulas read back before any recalculation
+        if it.get('cached'):
+            for r in it['read']:
+                if r.get('expect') is None:
+                    continue
+                sh = bk.sheet_by_name(r['sheet'])
+                rr, cc = rc(r['cell'])
+                v, want = sh.cell_value(rr, cc), r.get('cache', r['expect'])
+                ok = abs(float(v) - want) < 1e-9 if isinstance(want, (int, float)) and not isinstance(want, bool) and v != '' else str(v) == str(want)
+                n += 1
+                if not ok:
+                    bad += 1
+                    print(f"  saved ✗ {it['file']} {r['sheet']}!{r['cell']}: {v!r} · tool {want!r}")
         bk.release_resources()
-    print(f'xlrd: {n} typed cells read back, {bad} differ')
+    print(f'xlrd: {n} typed cells (and saved results) read back, {bad} differ')
     # 2. LibreOffice: open the copy, recalculate, read
     desk = start()
     m = 0

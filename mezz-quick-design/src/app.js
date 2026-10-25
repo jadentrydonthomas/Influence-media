@@ -903,7 +903,7 @@
      this browser (IndexedDB) and never leave the computer. "Open in the workbook" types this job's entries into a copy
      (src/xls.js) and downloads it: Excel recalculates on opening, so the copy shows the workbook's own answer. */
   const WB_DB = 'mzd-workbooks', WB_STORE = 'books';
-  const books = { list: [], loaded: false };
+  const books = { list: [], loaded: false, ready: null };   // ready: the stored and built-in workbooks are in
   const wbIdb = () => new Promise((ok, no) => { try { const r = indexedDB.open(WB_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(WB_STORE, { keyPath: 'id' }); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
   async function wbLoadAll() {
     try { const db = await wbIdb(); books.list = await new Promise((ok, no) => { const q = db.transaction(WB_STORE).objectStore(WB_STORE).getAll(); q.onsuccess = () => ok(q.result || []); q.onerror = () => no(q.error); }); } catch (e) { /* private window: kept for this session only */ }
@@ -979,23 +979,30 @@
       name: `${q}-Seismic-${sj.buildings.length > 1 ? b.name.replace(/[^A-Za-z0-9]+/g, '') + '-' : ''}F${fr.label}.xls`, steps: b.workbook.input.concat(b.workbook.long, fr.steps), read: fr.read.concat(b.workbook.longRead) })));
     return out;
   }
+  // one copy filled: this job's entries typed in, the tool's results saved with their formulas (what Excel shows before
+  // it recalculates — a downloaded file opens in Protected View), every other saved result emptied (the template's last
+  // job never shows); Excel recalculates the whole workbook when editing is enabled
+  const wbFill = (bk, j) => XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value })),
+    { results: (j.read || []).filter(q => q.expect != null).map(q => ({ sheet: q.sheet, cell: q.cell, value: q.cache ?? q.expect })), clearCached: true });
+  // ask for the workbook files this copy of the tool does not carry (kept on this computer for next time), then go on
+  function wbAsk(names, then) {
+    const pick = document.createElement('input'); pick.type = 'file'; pick.accept = '.xls'; pick.multiple = true;
+    toast(`This copy of the tool has no ${names.join(', ')} built in — choose your .xls (kept on this computer for next time). The copy with your workbooks inside needs nothing.`);
+    pick.onchange = async () => { await wbAdd(Array.from(pick.files || [])); then(); };
+    pick.click();
+  }
   // a button for one copy; clicking it fills and downloads (or asks for the workbook first)
   const wbBtn = (key, label = 'Open in the workbook') => `<button class="btn-soft wb-btn" data-wb="${esc(key)}"><svg><use href="#i-file"/></svg>${esc(label)}</button>`;
   async function wbDownload(key) {
     const j = wbJobs().find(x => x.key === key);
     if (!j) { toast('Nothing to fill yet — this member has no section'); return; }
+    if (!books.loaded) await books.ready;   // a click while the built-in workbooks still unpack waits for them
     let bk = wbFind(j.kind, j.ed);
-    if (!bk) {
-      const pick = document.createElement('input'); pick.type = 'file'; pick.accept = '.xls'; pick.multiple = true;
-      toast(`Choose the ${WB_NAME[j.kind](j.ed)} workbook (.xls) — it is kept on this computer for next time`);
-      pick.onchange = async () => { await wbAdd(Array.from(pick.files || [])); if (wbFind(j.kind, j.ed)) wbDownload(key); };
-      pick.click();
-      return;
-    }
+    if (!bk) { wbAsk([WB_NAME[j.kind](j.ed)], () => { if (wbFind(j.kind, j.ed)) wbDownload(key); }); return; }
     try {
-      const r = XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value })));
+      const r = wbFill(bk, j);
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.bytes], { type: 'application/vnd.ms-excel' })); a.download = j.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      toast(`${j.name} — ${r.done.length} cells typed into ${bk.name}${r.missing.length ? ` · not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')}` : ''}. Excel recalculates when it opens.`);
+      toast(`${j.name} — your ${WB_NAME[j.kind](j.ed)} with ${r.done.length} cells typed in${r.missing.length ? ` (not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')})` : ''} and its ${r.cached.length} key results. Excel recalculates the rest once editing is enabled.`);
     } catch (e) { toast(`${bk.name}: ${e.message || e}`); }
   }
   // the workbook buttons anywhere on the page
@@ -1032,9 +1039,14 @@
     try {
       const xlsx = cpXlsx(), name = `${cpName()}-calc-package`;
       if (what === 'xlsx') { cpSave(xlsx, name + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); toast(`${name}.xlsx — inputs, sources, MB / Column sheets, options, shop rules`); return; }
-      // everything: the package and every filled workbook this computer has
+      // everything: every filled workbook and the package — a workbook this copy does not have is asked for first, so
+      // the zip is never the design basis alone
+      if (!books.loaded) await books.ready;
+      const need = [...new Set(wbJobs().filter(j => !wbFind(j.kind, j.ed)).map(j => WB_NAME[j.kind](j.ed)))];
+      if (need.length && !cpDownload.asked) { cpDownload.asked = true; wbAsk(need, () => cpDownload('all').finally(() => { cpDownload.asked = false; })); return; }
+      cpDownload.asked = false;
       const files = [{ name: name + '.xlsx', data: xlsx }], missing = new Set();
-      wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value }))).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
+      wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: wbFill(bk, j).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
       if (zipIO.ok) for (const f of files) f.packed = await zipIO.deflate(f.data);   // compressed where the browser can
       cpSave(window.MZ_XLSX.zip(files), name + '.zip', 'application/zip');
       const seisOut = state.job.seismic && !state.job.seismic.ok ? ' · IBC Seismic is left out until the Seismic calc is complete' : '';
@@ -1072,7 +1084,7 @@
     const seisWait = !!(state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null));
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Filled Column workbook (.xls)') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'Filled MB workbook (.xls)') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
     });
   }
 
@@ -1695,27 +1707,16 @@
      outline. "Whole building" puts it all back until the page or the frame changes. */
   let railFocusKey = null, railWholeAt = null;
   var railReady = true;   // (go() runs before this point while the page starts: the sidebar is not up yet)
-  const boundsOf = ms => { const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity }, add = p => { b.x0 = Math.min(b.x0, p[0]); b.x1 = Math.max(b.x1, p[0]); b.y0 = Math.min(b.y0, p[1]); b.y1 = Math.max(b.y1, p[1]); b.z0 = Math.min(b.z0, p[2]); b.z1 = Math.max(b.z1, p[2]); };
-    ms.forEach(m => { (m.boxes || []).forEach(q => { add([q.x0, q.y0, q.z0]); add([q.x1, q.y1, q.z1]); }); (m.faces || []).forEach(fc => (fc.pts || fc).forEach(add)); (m.lines || []).forEach(([a, c]) => { add(a); add(c); }); });
-    return isFinite(b.x0) ? { ...b, x0: b.x0 - 4, x1: b.x1 + 4, y0: b.y0 - 2, y1: b.y1 + 2, z0: 0 } : null; };
   function railFocus() {
+    if (BLD && BLD.popFocus) BLD.popFocus();   // the window of its own follows the page too
     const btn = $('#rvFocus');
-    if (!mini || !railJob() || !state.bldScene) { if (btn) btn.hidden = true; return; }
-    const S = state.bldScene, fs = state.frameSel;
-    let ids = null, box = null, key = 'all', what = '', o = {};
-    if (state.view === 'frames' && fs) {
-      const ms = S.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, fs.building) && +q.ref.frame === +fs.frame);
-      if (ms.length) { ids = ms.map(q => q.id); box = boundsOf(ms); key = `f|${fs.building}|${fs.frame}`; what = `${S.members.some(q => q.ref && q.ref.building && !sameName(q.ref.building, fs.building)) ? fs.building + ' · ' : ''}Frame ${fs.frame}`; o = { ghost: 0.08, turn: true }; }
-    } else if (state.view === 'bracing') {
-      const ms = S.members.filter(q => q.kind === 'brace' || q.kind === 'mezz');
-      if (ms.some(q => q.kind === 'brace')) { ids = ms.map(q => q.id); key = 'b'; what = 'Bracing'; o = { ghost: 0.2, turn: true }; }
-    }
+    if (!mini || !railJob() || !state.bldScene || !BLD || !BLD.focusOf) { if (btn) btn.hidden = true; return; }
+    const F = BLD.focusOf(), key = F.key;
     if (railWholeAt && railWholeAt !== key) railWholeAt = null;
-    if (railWholeAt) { ids = null; box = null; }
     const k2 = railWholeAt ? 'whole' : key;
-    if (k2 !== railFocusKey) { railFocusKey = k2; mini.isolate(ids, box, o); }
-    btn.hidden = !ids && !railWholeAt;
-    $('#rvFocusWhat').textContent = railWholeAt ? 'Whole building' : what;
+    if (k2 !== railFocusKey || (F.ids && !railWholeAt && !mini.isolated)) { railFocusKey = k2; mini.isolate(railWholeAt ? null : F.ids || null, railWholeAt ? null : F.box || null, F.o || { turn: true }); }
+    btn.hidden = !F.ids;
+    $('#rvFocusWhat').textContent = railWholeAt ? 'Whole building' : F.what || '';
     $('#rvWhole').textContent = railWholeAt ? 'Refocus' : 'Show all';
     $('#rvWhole').title = railWholeAt ? `Back to ${key === 'b' ? 'the bracing' : 'the frame'}` : 'Show the whole building';
   }
@@ -1743,7 +1744,7 @@
     else if (state.res && state.inputs && state.job && state.job.mezz && state.job.mezz.length) renderRail();
     if (!show) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); $('#miniSite').setAttribute('hidden', ''); return; }
     if (!mini) {
-      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, onSelect: () => { if (railJob()) { go('building'); return; } go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
+      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, resume: 3500, onSelect: () => { if (railJob()) { go('building'); return; } go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
     }
     if (BLD) BLD.layerRegister(mini, () => (railJob() ? 'job' : 'mezz'));
     if (job) {
@@ -4408,5 +4409,5 @@
   window.MZ_STATE = () => state;
   renderSettings();
   renderDesigner();
-  wbLoadAll().then(() => renderWorkbooks());
+  books.ready = wbLoadAll().then(() => { renderWorkbooks(); renderCalcPack(); });   // the panel and the page bars
 })();

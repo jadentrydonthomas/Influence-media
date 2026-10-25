@@ -32,10 +32,12 @@ const WB = process.env.MZ_WORKBOOKS || path.join(__dirname, '..', 'private', 'wo
     for (const b of books) {
       const src = fs.readFileSync(path.join(WB, b.file));
       const edits = b.runs[0].steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value }));
-      const r = XLS.fill(new Uint8Array(src), edits);
+      // MZ_FILL_CACHED: as the page writes them — the tool's results saved with their formulas, every other saved result emptied
+      const cachedMode = !!process.env.MZ_FILL_CACHED;
+      const r = XLS.fill(new Uint8Array(src), edits, cachedMode ? { results: b.runs[0].read.filter(q => q.expect != null).map(q => ({ sheet: q.sheet, cell: q.cell, value: q.cache ?? q.expect })), clearCached: true } : {});
       const name = `${q}-${b.tag}.xls`;
       fs.writeFileSync(path.join(out, name), r.bytes);
-      list.push({ quote: q, file: name, book: b.file, missing: r.missing, done: r.done.length, added: r.stringsAdded, steps: edits, read: b.runs[0].read });
+      list.push({ quote: q, file: name, book: b.file, missing: r.missing, done: r.done.length, added: r.stringsAdded, steps: edits, read: b.runs[0].read, cached: cachedMode });
       console.log(q, name, `${r.done.length}/${edits.length} cells`, r.missing.length ? 'MISSING ' + JSON.stringify(r.missing) : '', r.stringsAdded ? `+${r.stringsAdded} strings` : '');
     }
   }

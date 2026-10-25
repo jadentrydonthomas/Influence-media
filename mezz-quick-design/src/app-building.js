@@ -145,7 +145,7 @@ window.MZ_APP_BUILDING = function (C) {
   const frameData = (name, no) => (state.snowJob && state.snowJob.site.buildings.length ? B.frameData(state.snowJob, name, no, ext(name, no)) : null);
   function selectFrame(name, no, open) {
     state.frameSel = { building: name, frame: +no };
-    popAll = false;
+    popAllAt = null;
     renderFrames(); renderBldPlan(); popSelect();
     if (open) go('frames'); else if (C.railFocus) C.railFocus();
   }
@@ -308,7 +308,27 @@ window.MZ_APP_BUILDING = function (C) {
      page stays where it is); the frame picked here is lit there and, in 3D, shown on its own and flown to. A column or
      beam picked on the mezzanine's plan opens its calc here. The window is this page's own (same origin): it is drawn
      from here, with the page's styles, and follows every change. ---------- */
-  let popW = null, popModel = null, popView = '3d', popKindNow = 'job', popAll = false, popIso = '';
+  let popW = null, popModel = null, popView = '3d', popKindNow = 'job', popAllAt = null, popIso = '';
+  /* what the building's 3D shows for the page (the sidebar and the window of its own alike): the whole building; on the
+     Frames page the frame picked, the rest faint, flown to; on the Bracing page the bracing and the floors, the frames
+     faint as the outline. { key, ids, box, o, what, sel } — no ids: the whole building */
+  const boundsOf = ms => { const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity }, add = p => { b.x0 = Math.min(b.x0, p[0]); b.x1 = Math.max(b.x1, p[0]); b.y0 = Math.min(b.y0, p[1]); b.y1 = Math.max(b.y1, p[1]); b.z0 = Math.min(b.z0, p[2]); b.z1 = Math.max(b.z1, p[2]); };
+    ms.forEach(m => { (m.boxes || []).forEach(q => { add([q.x0, q.y0, q.z0]); add([q.x1, q.y1, q.z1]); }); (m.faces || []).forEach(fc => (fc.pts || fc).forEach(add)); (m.lines || []).forEach(([a, c]) => { add(a); add(c); }); });
+    return isFinite(b.x0) ? { ...b, x0: b.x0 - 4, x1: b.x1 + 4, y0: b.y0 - 2, y1: b.y1 + 2, z0: 0 } : null; };
+  function focusOf() {
+    const S = state.bldScene, fs = state.frameSel;
+    if (!S) return { key: 'all' };
+    if (state.view === 'frames' && fs) {
+      const ms = S.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, fs.building) && +q.ref.frame === +fs.frame);
+      const many = state.snowJob && state.snowJob.site.buildings.length > 1, raf = ms.find(q => q.ref.type === 'frame');
+      if (ms.length) return { key: `f|${fs.building}|${fs.frame}`, ids: ms.map(q => q.id), box: boundsOf(ms), o: { ghost: 0.08, turn: true }, what: `${many ? fs.building + ' · ' : ''}Frame ${fs.frame}`, sel: raf ? raf.id : null };
+    }
+    if (state.view === 'bracing') {
+      const ms = S.members.filter(q => q.kind === 'brace' || q.kind === 'mezz');
+      if (ms.some(q => q.kind === 'brace')) return { key: 'b', ids: ms.map(q => q.id), o: { ghost: 0.2, turn: true }, what: 'Bracing' };
+    }
+    return { key: 'all' };
+  }
   const POP_CSS = `body.pop { display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden; }
     .pop-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; padding: 14px 20px 10px; border-bottom: 1px solid var(--line); }
     .pop-h h1 { margin: 2px 0 0; font-size: 20px; line-height: 1.2; } .pop-h small { color: var(--ink-muted); font-size: 12px; }
@@ -341,8 +361,8 @@ window.MZ_APP_BUILDING = function (C) {
     d.close();
     d.querySelectorAll('#popSeg button').forEach(b => { b.onclick = () => { popView = b.dataset.v; popSync(); }; });
     d.getElementById('popPause').onclick = () => { if (!popModel) return; const on = popModel.auto; popModel.pause(on); d.getElementById('popPause').textContent = on ? 'Resume rotation' : 'Pause rotation'; };
-    d.getElementById('popReset').onclick = () => { if (popModel) { popAll = true; popModel.isolate(null); popModel.reset(); popSync(); } };
-    d.getElementById('popWhole').onclick = () => { popAll = true; if (popModel) popModel.isolate(null); popSync(); };
+    d.getElementById('popReset').onclick = () => { if (popModel) { popAllAt = focusOf().key; popIso = 'whole'; popModel.isolate(null); popModel.reset(); popSync(); } };
+    d.getElementById('popWhole').onclick = () => { popAllAt = popAllAt ? null : focusOf().key; popSelect(); };
     w.addEventListener('pagehide', () => { if (popModel) { layerDrop(popModel); popModel.destroy(); } popModel = null; popW = null; });
     popSync();
   }
@@ -350,7 +370,7 @@ window.MZ_APP_BUILDING = function (C) {
   { const bp = $('#bldPop'); if (bp) bp.onclick = popOut; }
   // a frame line picked there opens here, on the Frames page; already there, the page stays where it is
   const popPick = (building, frame) => {
-    popAll = false;
+    popAllAt = null;
     if (state.view === 'frames') selectFrame(building, frame, false);
     else { selectFrame(building, frame, true); requestAnimationFrame(() => { const v = $('#frameViewTitle'); if (v) v.scrollIntoView({ block: 'start' }); }); }
     try { window.focus(); } catch (e) { /* the browser decides */ }
@@ -360,7 +380,7 @@ window.MZ_APP_BUILDING = function (C) {
   function popSync() {
     if (!popOpen()) return;
     const d = popW.document, J = state.snowJob, kind = popKind();
-    if (kind !== popKindNow) { popKindNow = kind; if (popModel) popModel.isolate(null); popAll = false; }
+    if (kind !== popKindNow) { popKindNow = kind; if (popModel) popModel.isolate(null); popAllAt = null; popIso = ''; }
     const mz = kind === 'mezz', scene = popScene(), has = !!scene;
     d.documentElement.dataset.theme = document.documentElement.dataset.theme || 'dark';
     const names = J ? J.site.buildings.map(b => b.name).join(' + ') : '';
@@ -370,8 +390,8 @@ window.MZ_APP_BUILDING = function (C) {
     d.getElementById('popTitle').textContent = mz ? (mzIds.join(' + ') || 'No mezzanine designed yet') : has ? names : 'Load a PCS in the main window';
     d.getElementById('popMeta').textContent = mz ? (state.job && state.job.mezz || []).filter(m => !m.incomplete && m.layout).map(m => `${m.id} ${ft(m.layout.footprint.x1 - m.layout.footprint.x0)} × ${ft(m.layout.footprint.y1 - m.layout.footprint.y0)}`).join(' · ')
       : has ? J.site.buildings.map(b => `${b.name} ${ft(b.g.width)} × ${ft(b.g.length)} · eaves ${ft(b.g.eaveFSW)} / ${ft(b.g.eaveBSW)}`).join(' · ') : '';
-    d.getElementById('popFoot').textContent = mz ? 'Drag to turn about the point you grab · right-drag to pan · wheel to zoom · a column or beam clicked on the plan opens its calc in the main window.'
-      : 'Drag to turn about the point you grab · right-drag to pan · wheel to zoom · click a frame line — in 3D or on the plan — to open it on the Frames page of the main window.';
+    d.getElementById('popFoot').textContent = mz ? 'Drag to turn · right-drag to pan · wheel to zoom to the pointer · a column or beam clicked on the plan opens its calc in the main window.'
+      : 'It follows the main window: the frame picked on the Frames page, the bracing on the Bracing page · drag to turn · right-drag to pan · wheel to zoom to the pointer · click a frame line to open it on the Frames page.';
     d.querySelectorAll('#popSeg button').forEach(b => { b.classList.toggle('is-on', b.dataset.v === popView); b.setAttribute('aria-pressed', b.dataset.v === popView); });
     const lay = d.getElementById('popLayers');
     lay.innerHTML = layerBar(kind); layerWire(lay);
@@ -409,19 +429,14 @@ window.MZ_APP_BUILDING = function (C) {
       return;
     }
     if (!popModel || mz || !state.bldScene) return;
-    const ms = sel ? state.bldScene.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, sel.building) && +q.ref.frame === +sel.frame) : [];
-    const raf = ms.find(q => q.ref.type === 'frame');
-    popModel.select(raf ? raf.id : null);
-    if (!ms.length || popAll) { if (popModel.isolated) popModel.isolate(null); popIso = ''; return; }
-    // flown to once when picked; an edit redrawing the window keeps the view
-    const key = `${sel.building}|${sel.frame}`;
-    if (key === popIso && popModel.isolated) { popModel.isolate(ms.map(q => q.id)); whole.hidden = false; selEl.textContent = `${state.snowJob.site.buildings.length > 1 ? sel.building + ' · ' : ''}frame line ${sel.frame}`; return; }
-    popIso = key;
-    // its box: every point of its members
-    const pts = ms.flatMap(q => [...(q.faces || []).flatMap(fc => fc.pts || fc), ...(q.boxes || []).flatMap(b => [[b.x0, b.y0, b.z0], [b.x1, b.y1, b.z1]])]);
-    const bx = { x0: Math.min(...pts.map(p => p[0])) - 2, x1: Math.max(...pts.map(p => p[0])) + 2, y0: Math.min(...pts.map(p => p[1])) - 2, y1: Math.max(...pts.map(p => p[1])) + 2, z0: 0, z1: Math.max(...pts.map(p => p[2])) + 1 };
-    popModel.isolate(ms.map(q => q.id), bx);
-    whole.hidden = false; selEl.textContent = `${state.snowJob.site.buildings.length > 1 ? sel.building + ' · ' : ''}frame line ${sel.frame}`;
+    // the page's focus, followed as the page and the frame change ("Whole building" holds the whole until they do)
+    const F = focusOf();
+    if (popAllAt && popAllAt !== F.key) popAllAt = null;
+    const key = popAllAt ? 'whole' : F.key;
+    popModel.select(F.sel || null);
+    if (key !== popIso || (F.ids && key !== 'whole' && !popModel.isolated)) { popIso = key; popModel.isolate(key === 'whole' ? null : F.ids || null, key === 'whole' ? null : F.box || null, F.o || {}); }
+    whole.hidden = !F.ids; whole.textContent = popAllAt ? `Back to ${F.key === 'b' ? 'the bracing' : 'the frame'}` : 'Whole building';
+    selEl.textContent = key === 'whole' ? '' : F.what || '';
   }
 
   // the site plan and the frame-line table (the selected line lit) — cheap, so a click redraws these alone
@@ -1290,5 +1305,5 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   function render() { renderProject(); renderBuilding(); renderSnow(); renderFrames(); renderBracing(); renderPurlins(); }
-  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, bracingAll, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
+  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, bracingAll, focusOf, popFocus: () => popSelect(), popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
 };

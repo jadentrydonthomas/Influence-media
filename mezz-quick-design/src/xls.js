@@ -9,7 +9,12 @@
    rewritten: each edited cell's record is replaced (a NUMBER / RK for a number, a LABELSST for text — a string the
    workbook does not have yet is added to its shared-string table), multi-cell records are split around it, and every
    stream position the format keeps (BOUNDSHEET, INDEX, DBCELL, EXTSST) is re-pointed. The RECALCID record goes, which
-   makes Excel recalculate on load. */
+   makes Excel recalculate on load.
+
+   What a formula shows before Excel has recalculated (a downloaded file opens in Protected View) is the result saved
+   with it — the template's last job. opts.results puts the tool's own answer there for the cells it knows (the
+   section, end shears, deflections, ratios, Cs, base shears), and opts.clearCached empties every other formula's
+   saved result, so nothing from an earlier job can show; Excel fills them all when it recalculates. */
 (function (root) {
   'use strict';
   const FREE = 0xFFFFFFFF, END = 0xFFFFFFFE, FATSECT = 0xFFFFFFFD;
@@ -219,8 +224,10 @@
 
   /* fill a workbook: edits [{ sheet, cell: 'D14', value: number | string | null }] (null leaves the cell empty).
      Returns { bytes, done: [{sheet, cell, value, was}], missing: [...] } — a cell the workbook has no record for (never
-     formatted, nowhere on the sheet) is reported in missing, not written. */
-  function fill(bytes, edits) {
+     formatted, nowhere on the sheet) is reported in missing, not written.
+     opts: { results: [{ sheet, cell, value }] saved as those formulas' results, clearCached: every other formula's
+     saved result emptied } */
+  function fill(bytes, edits, opts = {}) {
     const cf = cfbRead(bytes);
     const wb = cf.stream('Workbook') || cf.stream('Book');
     if (!wb) throw new Error('no Workbook stream — save it as an Excel 97–2003 workbook');
@@ -240,6 +247,9 @@
       const { r, c } = addr(ed.cell);
       want.set(`${sh.pos}|${r}|${c}`, { ...ed, r, c });
     });
+    // the results to save with their formulas
+    const res = new Map(), cached = [];
+    (opts.results || []).forEach(q => { const sh = sheets.find(s => s.name.toLowerCase() === String(q.sheet).toLowerCase()); if (!sh) return; const { r, c } = addr(q.cell); res.set(`${sh.pos}|${r}|${c}`, q); });
     // walk the stream: which substream a record is in (by its BOF position)
     const out = [];   // { type, data, from: old record or null }
     let cur = null;
@@ -248,6 +258,27 @@
       if (x.type === R.BOF) cur = x.off;
       if (x.type === R.RECALCID) continue;   // gone: Excel then recalculates the workbook on load
       const isCell = [R.NUMBER, R.RK, R.LABELSST, R.LABEL, R.BLANK, R.BOOLERR, R.FORMULA].includes(x.type);
+      if (x.type === R.FORMULA && !want.has(`${cur}|${u16(x.data, 0)}|${u16(x.data, 2)}`) && (res.size || opts.clearCached)) {
+        const q = res.get(`${cur}|${u16(x.data, 0)}|${u16(x.data, 2)}`);
+        if (q || opts.clearCached) {
+          // the saved result (bytes 6–13): a number as itself; text, a boolean or nothing as a tagged value (FFFF at 12)
+          const d = x.data.slice(), v = q ? q.value : null;
+          let str = null;
+          if (typeof v === 'number' && isFinite(v)) new DataView(d.buffer, d.byteOffset, d.byteLength).setFloat64(6, v, true);
+          else if (typeof v === 'boolean') d.set([1, 0, v ? 1 : 0, 0, 0, 0, 0xFF, 0xFF], 6);
+          else if (v == null || v === '') d.set([3, 0, 0, 0, 0, 0, 0xFF, 0xFF], 6);
+          else { d.set([0, 0, 0, 0, 0, 0, 0xFF, 0xFF], 6); str = String(v); }
+          out.push({ type: x.type, data: d, from: x });
+          if (q) cached.push({ sheet: q.sheet, cell: q.cell, value: v });
+          // after a formula: its SHRFMLA / ARRAY / TABLE (kept), then its old STRING result and that one's CONTINUEs (dropped)
+          let k = i + 1;
+          while (rs[k] && [R.SHRFMLA, R.ARRAY, R.TABLE].includes(rs[k].type)) { out.push({ ...rs[k], from: rs[k] }); k++; }
+          if (rs[k] && rs[k].type === R.STRING) { out.push({ type: -1, data: null, from: rs[k] }); k++; while (rs[k] && rs[k].type === R.CONTINUE) { out.push({ type: -1, data: null, from: rs[k] }); k++; } }
+          if (str != null) out.push({ type: R.STRING, data: strData(str), from: null });
+          i = k - 1;
+          continue;
+        }
+      }
       if (isCell) {
         const r = u16(x.data, 0), c = u16(x.data, 2), w = want.get(`${cur}|${r}|${c}`);
         if (w) {
@@ -354,7 +385,7 @@
     });
     const ns = new Uint8Array(pos);
     let o = 0; chunks.forEach(r => { put16(ns, o, r.type); put16(ns, o + 2, r.data.length); ns.set(r.data, o + 4); o += 4 + r.data.length; });
-    return { bytes: cfbReplace(cf, cf.ents.find(x => x.type === 2 && /^(workbook|book)$/i.test(x.name)).name, ns), done, missing, sheets: sheets.map(s => s.name), stringsAdded: added };
+    return { bytes: cfbReplace(cf, cf.ents.find(x => x.type === 2 && /^(workbook|book)$/i.test(x.name)).name, ns), done, missing, cached, sheets: sheets.map(s => s.name), stringsAdded: added };
   }
   function cellText(x, sst) {
     const d = x.data;
@@ -379,11 +410,20 @@
       if ([R.NUMBER, R.RK, R.LABELSST, R.BLANK, R.BOOLERR].includes(x.type)) take(u16(x.data, 0), u16(x.data, 2), cellText(x, sst));
       else if (x.type === R.FORMULA) {
         const d = x.data;
-        if (d[12] === 0xFF && d[13] === 0xFF) take(u16(d, 0), u16(d, 2), d[6] === 0 && rs[i + 1] && rs[i + 1].type === R.STRING ? strRec(rs[i + 1].data) : d[6] === 1 ? !!d[8] : d[6] === 2 ? '#ERR' : '');
+        let k = i + 1; while (rs[k] && [R.SHRFMLA, R.ARRAY, R.TABLE].includes(rs[k].type)) k++;   // its text result follows these
+        if (d[12] === 0xFF && d[13] === 0xFF) take(u16(d, 0), u16(d, 2), d[6] === 0 && rs[k] && rs[k].type === R.STRING ? strRec(rs[k].data) : d[6] === 1 ? !!d[8] : d[6] === 2 ? '#ERR' : '');
         else take(u16(d, 0), u16(d, 2), new DataView(d.buffer, d.byteOffset, d.byteLength).getFloat64(6, true));
       } else if (x.type === R.MULRK) splitMulti(x).forEach(q => take(q.r, q.c, rkVal(q.rk)));
     });
     return res;
+  }
+  // a STRING record (a formula's text result): its length, 8-bit when every character fits, else UTF-16
+  function strData(t) {
+    t = t.slice(0, 255);
+    const wide = [...t].some(ch => ch.charCodeAt(0) > 255), d = new Uint8Array(3 + t.length * (wide ? 2 : 1));
+    put16(d, 0, t.length); d[2] = wide ? 1 : 0;
+    for (let k = 0; k < t.length; k++) { if (wide) put16(d, 3 + 2 * k, t.charCodeAt(k)); else d[3 + k] = t.charCodeAt(k); }
+    return d;
   }
   const strRec = d => { const n = u16(d, 0), hi = d[2] & 1; let t = ''; for (let k = 0; k < n; k++) t += String.fromCharCode(hi ? u16(d, 3 + k * 2) : d[3 + k]); return t; };
 

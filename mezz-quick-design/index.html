@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Building Design</title>
-<meta name="generator" content="mezz-quick-design build 2026-10-24; pdf.js 3.11.174; OCR reader tesseract.js 5.1.1">
+<meta name="generator" content="mezz-quick-design build 2026-10-25; pdf.js 3.11.174; OCR reader tesseract.js 5.1.1">
 <meta name="description" content="Upload a PCS: the building's snow, drift and seismic loads on every frame and the bracing, and the NBG mezzanine beam and column sections.">
 <style>
 /* Mezzanine design · Astra skin (tokens and components follow the Quote Intelligence "Astra" build) */
@@ -6236,7 +6236,12 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
    rewritten: each edited cell's record is replaced (a NUMBER / RK for a number, a LABELSST for text — a string the
    workbook does not have yet is added to its shared-string table), multi-cell records are split around it, and every
    stream position the format keeps (BOUNDSHEET, INDEX, DBCELL, EXTSST) is re-pointed. The RECALCID record goes, which
-   makes Excel recalculate on load. */
+   makes Excel recalculate on load.
+
+   What a formula shows before Excel has recalculated (a downloaded file opens in Protected View) is the result saved
+   with it — the template's last job. opts.results puts the tool's own answer there for the cells it knows (the
+   section, end shears, deflections, ratios, Cs, base shears), and opts.clearCached empties every other formula's
+   saved result, so nothing from an earlier job can show; Excel fills them all when it recalculates. */
 (function (root) {
   'use strict';
   const FREE = 0xFFFFFFFF, END = 0xFFFFFFFE, FATSECT = 0xFFFFFFFD;
@@ -6446,8 +6451,10 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
 
   /* fill a workbook: edits [{ sheet, cell: 'D14', value: number | string | null }] (null leaves the cell empty).
      Returns { bytes, done: [{sheet, cell, value, was}], missing: [...] } — a cell the workbook has no record for (never
-     formatted, nowhere on the sheet) is reported in missing, not written. */
-  function fill(bytes, edits) {
+     formatted, nowhere on the sheet) is reported in missing, not written.
+     opts: { results: [{ sheet, cell, value }] saved as those formulas' results, clearCached: every other formula's
+     saved result emptied } */
+  function fill(bytes, edits, opts = {}) {
     const cf = cfbRead(bytes);
     const wb = cf.stream('Workbook') || cf.stream('Book');
     if (!wb) throw new Error('no Workbook stream — save it as an Excel 97–2003 workbook');
@@ -6467,6 +6474,9 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       const { r, c } = addr(ed.cell);
       want.set(`${sh.pos}|${r}|${c}`, { ...ed, r, c });
     });
+    // the results to save with their formulas
+    const res = new Map(), cached = [];
+    (opts.results || []).forEach(q => { const sh = sheets.find(s => s.name.toLowerCase() === String(q.sheet).toLowerCase()); if (!sh) return; const { r, c } = addr(q.cell); res.set(`${sh.pos}|${r}|${c}`, q); });
     // walk the stream: which substream a record is in (by its BOF position)
     const out = [];   // { type, data, from: old record or null }
     let cur = null;
@@ -6475,6 +6485,27 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       if (x.type === R.BOF) cur = x.off;
       if (x.type === R.RECALCID) continue;   // gone: Excel then recalculates the workbook on load
       const isCell = [R.NUMBER, R.RK, R.LABELSST, R.LABEL, R.BLANK, R.BOOLERR, R.FORMULA].includes(x.type);
+      if (x.type === R.FORMULA && !want.has(`${cur}|${u16(x.data, 0)}|${u16(x.data, 2)}`) && (res.size || opts.clearCached)) {
+        const q = res.get(`${cur}|${u16(x.data, 0)}|${u16(x.data, 2)}`);
+        if (q || opts.clearCached) {
+          // the saved result (bytes 6–13): a number as itself; text, a boolean or nothing as a tagged value (FFFF at 12)
+          const d = x.data.slice(), v = q ? q.value : null;
+          let str = null;
+          if (typeof v === 'number' && isFinite(v)) new DataView(d.buffer, d.byteOffset, d.byteLength).setFloat64(6, v, true);
+          else if (typeof v === 'boolean') d.set([1, 0, v ? 1 : 0, 0, 0, 0, 0xFF, 0xFF], 6);
+          else if (v == null || v === '') d.set([3, 0, 0, 0, 0, 0, 0xFF, 0xFF], 6);
+          else { d.set([0, 0, 0, 0, 0, 0, 0xFF, 0xFF], 6); str = String(v); }
+          out.push({ type: x.type, data: d, from: x });
+          if (q) cached.push({ sheet: q.sheet, cell: q.cell, value: v });
+          // after a formula: its SHRFMLA / ARRAY / TABLE (kept), then its old STRING result and that one's CONTINUEs (dropped)
+          let k = i + 1;
+          while (rs[k] && [R.SHRFMLA, R.ARRAY, R.TABLE].includes(rs[k].type)) { out.push({ ...rs[k], from: rs[k] }); k++; }
+          if (rs[k] && rs[k].type === R.STRING) { out.push({ type: -1, data: null, from: rs[k] }); k++; while (rs[k] && rs[k].type === R.CONTINUE) { out.push({ type: -1, data: null, from: rs[k] }); k++; } }
+          if (str != null) out.push({ type: R.STRING, data: strData(str), from: null });
+          i = k - 1;
+          continue;
+        }
+      }
       if (isCell) {
         const r = u16(x.data, 0), c = u16(x.data, 2), w = want.get(`${cur}|${r}|${c}`);
         if (w) {
@@ -6581,7 +6612,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
     });
     const ns = new Uint8Array(pos);
     let o = 0; chunks.forEach(r => { put16(ns, o, r.type); put16(ns, o + 2, r.data.length); ns.set(r.data, o + 4); o += 4 + r.data.length; });
-    return { bytes: cfbReplace(cf, cf.ents.find(x => x.type === 2 && /^(workbook|book)$/i.test(x.name)).name, ns), done, missing, sheets: sheets.map(s => s.name), stringsAdded: added };
+    return { bytes: cfbReplace(cf, cf.ents.find(x => x.type === 2 && /^(workbook|book)$/i.test(x.name)).name, ns), done, missing, cached, sheets: sheets.map(s => s.name), stringsAdded: added };
   }
   function cellText(x, sst) {
     const d = x.data;
@@ -6606,11 +6637,20 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       if ([R.NUMBER, R.RK, R.LABELSST, R.BLANK, R.BOOLERR].includes(x.type)) take(u16(x.data, 0), u16(x.data, 2), cellText(x, sst));
       else if (x.type === R.FORMULA) {
         const d = x.data;
-        if (d[12] === 0xFF && d[13] === 0xFF) take(u16(d, 0), u16(d, 2), d[6] === 0 && rs[i + 1] && rs[i + 1].type === R.STRING ? strRec(rs[i + 1].data) : d[6] === 1 ? !!d[8] : d[6] === 2 ? '#ERR' : '');
+        let k = i + 1; while (rs[k] && [R.SHRFMLA, R.ARRAY, R.TABLE].includes(rs[k].type)) k++;   // its text result follows these
+        if (d[12] === 0xFF && d[13] === 0xFF) take(u16(d, 0), u16(d, 2), d[6] === 0 && rs[k] && rs[k].type === R.STRING ? strRec(rs[k].data) : d[6] === 1 ? !!d[8] : d[6] === 2 ? '#ERR' : '');
         else take(u16(d, 0), u16(d, 2), new DataView(d.buffer, d.byteOffset, d.byteLength).getFloat64(6, true));
       } else if (x.type === R.MULRK) splitMulti(x).forEach(q => take(q.r, q.c, rkVal(q.rk)));
     });
     return res;
+  }
+  // a STRING record (a formula's text result): its length, 8-bit when every character fits, else UTF-16
+  function strData(t) {
+    t = t.slice(0, 255);
+    const wide = [...t].some(ch => ch.charCodeAt(0) > 255), d = new Uint8Array(3 + t.length * (wide ? 2 : 1));
+    put16(d, 0, t.length); d[2] = wide ? 1 : 0;
+    for (let k = 0; k < t.length; k++) { if (wide) put16(d, 3 + 2 * k, t.charCodeAt(k)); else d[3 + k] = t.charCodeAt(k); }
+    return d;
   }
   const strRec = d => { const n = u16(d, 0), hi = d[2] & 1; let t = ''; for (let k = 0; k < n; k++) t += String.fromCharCode(hi ? u16(d, 3 + k * 2) : d[3 + k]); return t; };
 
@@ -6784,8 +6824,8 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
 /* 3D framing model — a small canvas renderer (no libraries).
    Members are boxes (I-shapes = 3 boxes) and polylines in building feet (x along length from LEW,
    y across width from FSW, z up from finish floor). Painter's algorithm with back-face culling,
-   Lambert shading, click to select, slow auto-rotate. Drag to orbit about the point grabbed (the member under the
-   pointer, else the middle of the view), right-drag / Shift-drag / two fingers to pan, the wheel or a pinch zooms toward
+   Lambert shading, click to select, slow auto-rotate. Drag to turn it about the middle of the view (a turntable: the up
+   axis stays up), right-drag / Shift-drag / two fingers to pan, the wheel or a pinch zooms toward
    the pointer, a double-click (or focus(box)) flies to a mezzanine — so one of several far apart in a long building fills
    the view. isolate(ids, box) shows those members alone (the rest faint) and flies to them. */
 (function (root) {
@@ -6922,7 +6962,12 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       const { U } = axes(), dy = (top - PAD_T) / 2 / (fit * z);
       anim = { t0: win.performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c.map((v, i) => v + U[i] * dy), zoom: z } };
     }
-    function stopAuto() { if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); } }
+    // a hand on it stops the turning; opts.resume (ms): it turns again after that long left alone (the sidebar)
+    let resumeT = null, paused = false;
+    function stopAuto() {
+      if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); }
+      if (opts.resume && !paused) { win.clearTimeout(resumeT); resumeT = win.setTimeout(function again() { if (dragging) { resumeT = win.setTimeout(again, opts.resume); return; } if (!paused) { view.auto = true; if (opts.onAuto) opts.onAuto(true); } }, opts.resume); }
+    }
 
     function viewDir() { // direction from the scene toward the camera, in world coords
       const cp = Math.cos(view.pitch), sp = Math.sin(view.pitch), cyw = Math.cos(view.yaw), syw = Math.sin(view.yaw);
@@ -7110,9 +7155,8 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       anim = null;
       if (pointers.size === 2) { dragging = { two: pinch(), moved: true }; stopAuto(); return; }
       const panning = e.button === 1 || e.button === 2 || e.shiftKey;
-      // the point to turn about: what is under the pointer (a member, the roof, the floor), else the view's middle
-      const [px, py] = pos(e), hp = !panning && scene ? hitPoly(px, py, true) : null;
-      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY, pivot: hp && !hp.ghost ? hp.w : null };
+      // a drag turns the model about the middle of the view (where it was zoomed or flown to), the up axis kept up
+      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY };
       if (panning) { e.preventDefault(); canvas.style.cursor = 'move'; }
     });
     canvas.addEventListener('pointermove', e => {
@@ -7127,11 +7171,9 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
         if (Math.abs(dx) + Math.abs(dy) > 3) { dragging.moved = true; stopAuto(); }
         if (dragging.pan) { pan(e.clientX - dragging.lx, e.clientY - dragging.ly); dragging.lx = e.clientX; dragging.ly = e.clientY; }
         else {
-          // turn, then slide the view so the grabbed point stays under the pointer's start
-          const P = dragging.pivot, a = P && project(P);
-          view.yaw = dragging.yaw + dx * 0.008;
-          view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.006));
-          if (P) for (let k = 0; k < 2; k++) { const c = project(P); pan(a[0] - c[0], a[1] - c[1]); }
+          // a turntable: left / right turns it about the vertical through the middle of the view, up / down tilts it
+          view.yaw = dragging.yaw + dx * 0.007;
+          view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.005));
         }
         draw();
       } else if (!dragging) {
@@ -7187,7 +7229,7 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       // frame a box (a mezzanine), or the whole scene with no box
       focus(b) { stopAuto(); if (b) focus(b); else if (scene) anim = { t0: win.performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; },
       reset() { anim = null; Object.assign(view, home); if (scene) view.target = scene.center.slice(); draw(); },
-      pause(on) { view.auto = !on; return view.auto; },
+      pause(on) { paused = !!on; win.clearTimeout(resumeT); view.auto = !on; return view.auto; },
       // the camera, for a test: what it looks at and how close
       state() { return { target: view.target.slice(), zoom: view.zoom, yaw: view.yaw, pitch: view.pitch, moving: !!anim }; },
       get auto() { return view.auto; },
@@ -11878,7 +11920,11 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
       // INPUT sheet takes the deepest of the four MB sheets in that copy (D26 = MAX(MB1..MB4!M22))
       const inputFor = (c, dRead) => {
         const v = { dead: c.beamBase.dead, coll: c.beamBase.coll, live: c.beamBase.live, joistWt: c.beamBase.joistWt, A: c.A, slab: c.slabIn, seat: c.seatIn, joistDepth: c.joistDepthIn, beamDepth: dMax, B: c.Bq, C: c.Cq };
-        const steps = map.map(([k, cell, label]) => ({ sheet: 'INPUT', cell, label, value: n3(v[k]), show: v[k] == null ? '(leave blank)' : String(n3(v[k])) }));
+        // the sheet's header: the quote number and what this copy is (13th: B4 / B5; 15th / 16th: H2 / H3)
+        const job = c.inp.job || {}, ids = live.filter(x => ms.some(m => m.mezzIds.includes(x.index))).map(x => x.inp.mezz.id).filter(Boolean);
+        const desc = [job.project, ms.map(m => m.mark).join(', '), ids.join(' + ')].filter(Boolean).join(' · ');
+        const head = [[e13 ? 'B4' : 'H2', 'Project Number', job.quote || null], [e13 ? 'B5' : 'H3', 'Description', desc]].map(([cell, label, val]) => ({ sheet: 'INPUT', cell, label, value: val, show: val || '(leave blank)' }));
+        const steps = head.concat(map.map(([k, cell, label]) => ({ sheet: 'INPUT', cell, label, value: n3(v[k]), show: v[k] == null ? '(leave blank)' : String(n3(v[k])) })));
         const read = XL.clear[e13 ? 13 : 15].map(([k, prov, ok]) => {
           const p = k === 'B' ? c.A - (c.slabIn + c.joistDepthIn) / 12 : c.A - (c.slabIn + c.seatIn + dRead) / 12, req = k === 'B' ? c.Bq : c.Cq;
           return [{ sheet: 'INPUT', cell: prov, label: `${k} provided (ft.)`, expect: n3(p) }, { sheet: 'INPUT', cell: ok, label: `${k} check`, expect: req == null || p >= req - 1e-9 ? 'OK' : 'No Good' }];
@@ -11919,8 +11965,8 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
             { sheet, cell: 'M20', label: 'Section Description', expect: c.desc },
             { sheet, cell: 'H6', label: 'Floor dead load — shear at left / right, kips', expect: n3(c.V.D) },
             { sheet, cell: 'H10', label: 'Floor live load — shear at left / right, kips', expect: n3(c.V.L) },
-            { sheet, cell: 'K11', label: 'Live load deflection, L /', expect: Math.round(c.defl.rLL) },
-            { sheet, cell: 'K15', label: 'Total load deflection, L /', expect: Math.round(c.defl.rTL) },
+            { sheet, cell: 'K11', label: 'Live load deflection, L /', expect: Math.round(c.defl.rLL), cache: c.defl.rLL },
+            { sheet, cell: 'K15', label: 'Total load deflection, L /', expect: Math.round(c.defl.rTL), cache: c.defl.rTL },
             { sheet, cell: 'G19', label: 'Combined', expect: c.combinedText },
             { sheet, cell: 'G20', label: 'Shear', expect: c.shearText },
           ];
@@ -11952,7 +11998,11 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
           // the Fy drop-down beside the section writes Miscellaneous!K8; the 16th sheet opens at 55 ksi, a W column is 50
           { sheet: 'Miscellaneous', cell: 'K8', where: 'Column!D16 Fy (ksi) drop-down', label: `Fy (ksi) — 50 for a W column${ed === '16' ? ' (this sheet opens at 55)' : ''}`, value: '50', show: '50' },
         ];
+        const job = c.inp.job || {}, cdesc = [job.project, c.inp.mezz.id, `columns ${colOrder(gp.cols).map(q => q.label).join(' ')}`].filter(Boolean).join(' · ');
         const steps = [
+          // the sheet's header: the quote number and which columns this copy is
+          { sheet: 'Column', cell: 'H1', label: 'Project Number', value: job.quote || null, show: job.quote || '(leave blank)' },
+          { sheet: 'Column', cell: 'H2', label: 'Description', value: cdesc, show: cdesc },
           { sheet: 'Column', cell: 'C7', label: 'Column Mark (the grid points of this case)', value: colOrder(gp.cols).map(q => q.label).join(' '), show: colOrder(gp.cols).map(q => q.label).join(' ') },
           { sheet: 'Column', cell: 'C8', label: 'Column Length, L (ft.)', value: n3(L), show: String(n3(L)) },
         ].concat(ed === '16' ? [{ sheet: 'Column', cell: 'C10', label: 'Y-Axis Unbraced Length, Lby (in.) — hard-coded 120 on this sheet: type L × 12', value: n3(L * 12), show: String(n3(L * 12)) }] : []).concat(secSteps, [
@@ -12809,7 +12859,7 @@ window.MZ_APP_BUILDING = function (C) {
   const frameData = (name, no) => (state.snowJob && state.snowJob.site.buildings.length ? B.frameData(state.snowJob, name, no, ext(name, no)) : null);
   function selectFrame(name, no, open) {
     state.frameSel = { building: name, frame: +no };
-    popAll = false;
+    popAllAt = null;
     renderFrames(); renderBldPlan(); popSelect();
     if (open) go('frames'); else if (C.railFocus) C.railFocus();
   }
@@ -12972,7 +13022,27 @@ window.MZ_APP_BUILDING = function (C) {
      page stays where it is); the frame picked here is lit there and, in 3D, shown on its own and flown to. A column or
      beam picked on the mezzanine's plan opens its calc here. The window is this page's own (same origin): it is drawn
      from here, with the page's styles, and follows every change. ---------- */
-  let popW = null, popModel = null, popView = '3d', popKindNow = 'job', popAll = false, popIso = '';
+  let popW = null, popModel = null, popView = '3d', popKindNow = 'job', popAllAt = null, popIso = '';
+  /* what the building's 3D shows for the page (the sidebar and the window of its own alike): the whole building; on the
+     Frames page the frame picked, the rest faint, flown to; on the Bracing page the bracing and the floors, the frames
+     faint as the outline. { key, ids, box, o, what, sel } — no ids: the whole building */
+  const boundsOf = ms => { const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity }, add = p => { b.x0 = Math.min(b.x0, p[0]); b.x1 = Math.max(b.x1, p[0]); b.y0 = Math.min(b.y0, p[1]); b.y1 = Math.max(b.y1, p[1]); b.z0 = Math.min(b.z0, p[2]); b.z1 = Math.max(b.z1, p[2]); };
+    ms.forEach(m => { (m.boxes || []).forEach(q => { add([q.x0, q.y0, q.z0]); add([q.x1, q.y1, q.z1]); }); (m.faces || []).forEach(fc => (fc.pts || fc).forEach(add)); (m.lines || []).forEach(([a, c]) => { add(a); add(c); }); });
+    return isFinite(b.x0) ? { ...b, x0: b.x0 - 4, x1: b.x1 + 4, y0: b.y0 - 2, y1: b.y1 + 2, z0: 0 } : null; };
+  function focusOf() {
+    const S = state.bldScene, fs = state.frameSel;
+    if (!S) return { key: 'all' };
+    if (state.view === 'frames' && fs) {
+      const ms = S.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, fs.building) && +q.ref.frame === +fs.frame);
+      const many = state.snowJob && state.snowJob.site.buildings.length > 1, raf = ms.find(q => q.ref.type === 'frame');
+      if (ms.length) return { key: `f|${fs.building}|${fs.frame}`, ids: ms.map(q => q.id), box: boundsOf(ms), o: { ghost: 0.08, turn: true }, what: `${many ? fs.building + ' · ' : ''}Frame ${fs.frame}`, sel: raf ? raf.id : null };
+    }
+    if (state.view === 'bracing') {
+      const ms = S.members.filter(q => q.kind === 'brace' || q.kind === 'mezz');
+      if (ms.some(q => q.kind === 'brace')) return { key: 'b', ids: ms.map(q => q.id), o: { ghost: 0.2, turn: true }, what: 'Bracing' };
+    }
+    return { key: 'all' };
+  }
   const POP_CSS = `body.pop { display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden; }
     .pop-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; padding: 14px 20px 10px; border-bottom: 1px solid var(--line); }
     .pop-h h1 { margin: 2px 0 0; font-size: 20px; line-height: 1.2; } .pop-h small { color: var(--ink-muted); font-size: 12px; }
@@ -13005,8 +13075,8 @@ window.MZ_APP_BUILDING = function (C) {
     d.close();
     d.querySelectorAll('#popSeg button').forEach(b => { b.onclick = () => { popView = b.dataset.v; popSync(); }; });
     d.getElementById('popPause').onclick = () => { if (!popModel) return; const on = popModel.auto; popModel.pause(on); d.getElementById('popPause').textContent = on ? 'Resume rotation' : 'Pause rotation'; };
-    d.getElementById('popReset').onclick = () => { if (popModel) { popAll = true; popModel.isolate(null); popModel.reset(); popSync(); } };
-    d.getElementById('popWhole').onclick = () => { popAll = true; if (popModel) popModel.isolate(null); popSync(); };
+    d.getElementById('popReset').onclick = () => { if (popModel) { popAllAt = focusOf().key; popIso = 'whole'; popModel.isolate(null); popModel.reset(); popSync(); } };
+    d.getElementById('popWhole').onclick = () => { popAllAt = popAllAt ? null : focusOf().key; popSelect(); };
     w.addEventListener('pagehide', () => { if (popModel) { layerDrop(popModel); popModel.destroy(); } popModel = null; popW = null; });
     popSync();
   }
@@ -13014,7 +13084,7 @@ window.MZ_APP_BUILDING = function (C) {
   { const bp = $('#bldPop'); if (bp) bp.onclick = popOut; }
   // a frame line picked there opens here, on the Frames page; already there, the page stays where it is
   const popPick = (building, frame) => {
-    popAll = false;
+    popAllAt = null;
     if (state.view === 'frames') selectFrame(building, frame, false);
     else { selectFrame(building, frame, true); requestAnimationFrame(() => { const v = $('#frameViewTitle'); if (v) v.scrollIntoView({ block: 'start' }); }); }
     try { window.focus(); } catch (e) { /* the browser decides */ }
@@ -13024,7 +13094,7 @@ window.MZ_APP_BUILDING = function (C) {
   function popSync() {
     if (!popOpen()) return;
     const d = popW.document, J = state.snowJob, kind = popKind();
-    if (kind !== popKindNow) { popKindNow = kind; if (popModel) popModel.isolate(null); popAll = false; }
+    if (kind !== popKindNow) { popKindNow = kind; if (popModel) popModel.isolate(null); popAllAt = null; popIso = ''; }
     const mz = kind === 'mezz', scene = popScene(), has = !!scene;
     d.documentElement.dataset.theme = document.documentElement.dataset.theme || 'dark';
     const names = J ? J.site.buildings.map(b => b.name).join(' + ') : '';
@@ -13034,8 +13104,8 @@ window.MZ_APP_BUILDING = function (C) {
     d.getElementById('popTitle').textContent = mz ? (mzIds.join(' + ') || 'No mezzanine designed yet') : has ? names : 'Load a PCS in the main window';
     d.getElementById('popMeta').textContent = mz ? (state.job && state.job.mezz || []).filter(m => !m.incomplete && m.layout).map(m => `${m.id} ${ft(m.layout.footprint.x1 - m.layout.footprint.x0)} × ${ft(m.layout.footprint.y1 - m.layout.footprint.y0)}`).join(' · ')
       : has ? J.site.buildings.map(b => `${b.name} ${ft(b.g.width)} × ${ft(b.g.length)} · eaves ${ft(b.g.eaveFSW)} / ${ft(b.g.eaveBSW)}`).join(' · ') : '';
-    d.getElementById('popFoot').textContent = mz ? 'Drag to turn about the point you grab · right-drag to pan · wheel to zoom · a column or beam clicked on the plan opens its calc in the main window.'
-      : 'Drag to turn about the point you grab · right-drag to pan · wheel to zoom · click a frame line — in 3D or on the plan — to open it on the Frames page of the main window.';
+    d.getElementById('popFoot').textContent = mz ? 'Drag to turn · right-drag to pan · wheel to zoom to the pointer · a column or beam clicked on the plan opens its calc in the main window.'
+      : 'It follows the main window: the frame picked on the Frames page, the bracing on the Bracing page · drag to turn · right-drag to pan · wheel to zoom to the pointer · click a frame line to open it on the Frames page.';
     d.querySelectorAll('#popSeg button').forEach(b => { b.classList.toggle('is-on', b.dataset.v === popView); b.setAttribute('aria-pressed', b.dataset.v === popView); });
     const lay = d.getElementById('popLayers');
     lay.innerHTML = layerBar(kind); layerWire(lay);
@@ -13073,19 +13143,14 @@ window.MZ_APP_BUILDING = function (C) {
       return;
     }
     if (!popModel || mz || !state.bldScene) return;
-    const ms = sel ? state.bldScene.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, sel.building) && +q.ref.frame === +sel.frame) : [];
-    const raf = ms.find(q => q.ref.type === 'frame');
-    popModel.select(raf ? raf.id : null);
-    if (!ms.length || popAll) { if (popModel.isolated) popModel.isolate(null); popIso = ''; return; }
-    // flown to once when picked; an edit redrawing the window keeps the view
-    const key = `${sel.building}|${sel.frame}`;
-    if (key === popIso && popModel.isolated) { popModel.isolate(ms.map(q => q.id)); whole.hidden = false; selEl.textContent = `${state.snowJob.site.buildings.length > 1 ? sel.building + ' · ' : ''}frame line ${sel.frame}`; return; }
-    popIso = key;
-    // its box: every point of its members
-    const pts = ms.flatMap(q => [...(q.faces || []).flatMap(fc => fc.pts || fc), ...(q.boxes || []).flatMap(b => [[b.x0, b.y0, b.z0], [b.x1, b.y1, b.z1]])]);
-    const bx = { x0: Math.min(...pts.map(p => p[0])) - 2, x1: Math.max(...pts.map(p => p[0])) + 2, y0: Math.min(...pts.map(p => p[1])) - 2, y1: Math.max(...pts.map(p => p[1])) + 2, z0: 0, z1: Math.max(...pts.map(p => p[2])) + 1 };
-    popModel.isolate(ms.map(q => q.id), bx);
-    whole.hidden = false; selEl.textContent = `${state.snowJob.site.buildings.length > 1 ? sel.building + ' · ' : ''}frame line ${sel.frame}`;
+    // the page's focus, followed as the page and the frame change ("Whole building" holds the whole until they do)
+    const F = focusOf();
+    if (popAllAt && popAllAt !== F.key) popAllAt = null;
+    const key = popAllAt ? 'whole' : F.key;
+    popModel.select(F.sel || null);
+    if (key !== popIso || (F.ids && key !== 'whole' && !popModel.isolated)) { popIso = key; popModel.isolate(key === 'whole' ? null : F.ids || null, key === 'whole' ? null : F.box || null, F.o || {}); }
+    whole.hidden = !F.ids; whole.textContent = popAllAt ? `Back to ${F.key === 'b' ? 'the bracing' : 'the frame'}` : 'Whole building';
+    selEl.textContent = key === 'whole' ? '' : F.what || '';
   }
 
   // the site plan and the frame-line table (the selected line lit) — cheap, so a click redraws these alone
@@ -13954,7 +14019,7 @@ window.MZ_APP_BUILDING = function (C) {
   }
 
   function render() { renderProject(); renderBuilding(); renderSnow(); renderFrames(); renderBracing(); renderPurlins(); }
-  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, bracingAll, popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
+  return { render, renderProject, renderBuilding, renderBldPlan, renderSnow, snowFocus, renderFrames, renderBracing, renderPurlins, selectFrame, compute, setWs, wsOf, snowLoad, facts, mezzBoxes, bracingOf, bracingAll, focusOf, popFocus: () => popSelect(), popOut, popSync, popOpen, TOGGLES, layerBar, layerWire, layerRegister };
 };
 
 </script>
@@ -14865,7 +14930,7 @@ window.MZ_APP_BUILDING = function (C) {
      this browser (IndexedDB) and never leave the computer. "Open in the workbook" types this job's entries into a copy
      (src/xls.js) and downloads it: Excel recalculates on opening, so the copy shows the workbook's own answer. */
   const WB_DB = 'mzd-workbooks', WB_STORE = 'books';
-  const books = { list: [], loaded: false };
+  const books = { list: [], loaded: false, ready: null };   // ready: the stored and built-in workbooks are in
   const wbIdb = () => new Promise((ok, no) => { try { const r = indexedDB.open(WB_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(WB_STORE, { keyPath: 'id' }); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
   async function wbLoadAll() {
     try { const db = await wbIdb(); books.list = await new Promise((ok, no) => { const q = db.transaction(WB_STORE).objectStore(WB_STORE).getAll(); q.onsuccess = () => ok(q.result || []); q.onerror = () => no(q.error); }); } catch (e) { /* private window: kept for this session only */ }
@@ -14941,23 +15006,30 @@ window.MZ_APP_BUILDING = function (C) {
       name: `${q}-Seismic-${sj.buildings.length > 1 ? b.name.replace(/[^A-Za-z0-9]+/g, '') + '-' : ''}F${fr.label}.xls`, steps: b.workbook.input.concat(b.workbook.long, fr.steps), read: fr.read.concat(b.workbook.longRead) })));
     return out;
   }
+  // one copy filled: this job's entries typed in, the tool's results saved with their formulas (what Excel shows before
+  // it recalculates — a downloaded file opens in Protected View), every other saved result emptied (the template's last
+  // job never shows); Excel recalculates the whole workbook when editing is enabled
+  const wbFill = (bk, j) => XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value })),
+    { results: (j.read || []).filter(q => q.expect != null).map(q => ({ sheet: q.sheet, cell: q.cell, value: q.cache ?? q.expect })), clearCached: true });
+  // ask for the workbook files this copy of the tool does not carry (kept on this computer for next time), then go on
+  function wbAsk(names, then) {
+    const pick = document.createElement('input'); pick.type = 'file'; pick.accept = '.xls'; pick.multiple = true;
+    toast(`This copy of the tool has no ${names.join(', ')} built in — choose your .xls (kept on this computer for next time). The copy with your workbooks inside needs nothing.`);
+    pick.onchange = async () => { await wbAdd(Array.from(pick.files || [])); then(); };
+    pick.click();
+  }
   // a button for one copy; clicking it fills and downloads (or asks for the workbook first)
   const wbBtn = (key, label = 'Open in the workbook') => `<button class="btn-soft wb-btn" data-wb="${esc(key)}"><svg><use href="#i-file"/></svg>${esc(label)}</button>`;
   async function wbDownload(key) {
     const j = wbJobs().find(x => x.key === key);
     if (!j) { toast('Nothing to fill yet — this member has no section'); return; }
+    if (!books.loaded) await books.ready;   // a click while the built-in workbooks still unpack waits for them
     let bk = wbFind(j.kind, j.ed);
-    if (!bk) {
-      const pick = document.createElement('input'); pick.type = 'file'; pick.accept = '.xls'; pick.multiple = true;
-      toast(`Choose the ${WB_NAME[j.kind](j.ed)} workbook (.xls) — it is kept on this computer for next time`);
-      pick.onchange = async () => { await wbAdd(Array.from(pick.files || [])); if (wbFind(j.kind, j.ed)) wbDownload(key); };
-      pick.click();
-      return;
-    }
+    if (!bk) { wbAsk([WB_NAME[j.kind](j.ed)], () => { if (wbFind(j.kind, j.ed)) wbDownload(key); }); return; }
     try {
-      const r = XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value })));
+      const r = wbFill(bk, j);
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.bytes], { type: 'application/vnd.ms-excel' })); a.download = j.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      toast(`${j.name} — ${r.done.length} cells typed into ${bk.name}${r.missing.length ? ` · not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')}` : ''}. Excel recalculates when it opens.`);
+      toast(`${j.name} — your ${WB_NAME[j.kind](j.ed)} with ${r.done.length} cells typed in${r.missing.length ? ` (not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')})` : ''} and its ${r.cached.length} key results. Excel recalculates the rest once editing is enabled.`);
     } catch (e) { toast(`${bk.name}: ${e.message || e}`); }
   }
   // the workbook buttons anywhere on the page
@@ -14994,9 +15066,14 @@ window.MZ_APP_BUILDING = function (C) {
     try {
       const xlsx = cpXlsx(), name = `${cpName()}-calc-package`;
       if (what === 'xlsx') { cpSave(xlsx, name + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); toast(`${name}.xlsx — inputs, sources, MB / Column sheets, options, shop rules`); return; }
-      // everything: the package and every filled workbook this computer has
+      // everything: every filled workbook and the package — a workbook this copy does not have is asked for first, so
+      // the zip is never the design basis alone
+      if (!books.loaded) await books.ready;
+      const need = [...new Set(wbJobs().filter(j => !wbFind(j.kind, j.ed)).map(j => WB_NAME[j.kind](j.ed)))];
+      if (need.length && !cpDownload.asked) { cpDownload.asked = true; wbAsk(need, () => cpDownload('all').finally(() => { cpDownload.asked = false; })); return; }
+      cpDownload.asked = false;
       const files = [{ name: name + '.xlsx', data: xlsx }], missing = new Set();
-      wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: XLS.fill(bk.bytes, j.steps.map(st => ({ sheet: st.sheet, cell: st.cell, value: st.value }))).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
+      wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: wbFill(bk, j).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
       if (zipIO.ok) for (const f of files) f.packed = await zipIO.deflate(f.data);   // compressed where the browser can
       cpSave(window.MZ_XLSX.zip(files), name + '.zip', 'application/zip');
       const seisOut = state.job.seismic && !state.job.seismic.ok ? ' · IBC Seismic is left out until the Seismic calc is complete' : '';
@@ -15034,7 +15111,7 @@ window.MZ_APP_BUILDING = function (C) {
     const seisWait = !!(state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null));
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Column workbook') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'MB workbook') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Filled Column workbook (.xls)') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'Filled MB workbook (.xls)') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
     });
   }
 
@@ -15657,27 +15734,16 @@ window.MZ_APP_BUILDING = function (C) {
      outline. "Whole building" puts it all back until the page or the frame changes. */
   let railFocusKey = null, railWholeAt = null;
   var railReady = true;   // (go() runs before this point while the page starts: the sidebar is not up yet)
-  const boundsOf = ms => { const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity }, add = p => { b.x0 = Math.min(b.x0, p[0]); b.x1 = Math.max(b.x1, p[0]); b.y0 = Math.min(b.y0, p[1]); b.y1 = Math.max(b.y1, p[1]); b.z0 = Math.min(b.z0, p[2]); b.z1 = Math.max(b.z1, p[2]); };
-    ms.forEach(m => { (m.boxes || []).forEach(q => { add([q.x0, q.y0, q.z0]); add([q.x1, q.y1, q.z1]); }); (m.faces || []).forEach(fc => (fc.pts || fc).forEach(add)); (m.lines || []).forEach(([a, c]) => { add(a); add(c); }); });
-    return isFinite(b.x0) ? { ...b, x0: b.x0 - 4, x1: b.x1 + 4, y0: b.y0 - 2, y1: b.y1 + 2, z0: 0 } : null; };
   function railFocus() {
+    if (BLD && BLD.popFocus) BLD.popFocus();   // the window of its own follows the page too
     const btn = $('#rvFocus');
-    if (!mini || !railJob() || !state.bldScene) { if (btn) btn.hidden = true; return; }
-    const S = state.bldScene, fs = state.frameSel;
-    let ids = null, box = null, key = 'all', what = '', o = {};
-    if (state.view === 'frames' && fs) {
-      const ms = S.members.filter(q => q.ref && (q.ref.type === 'frame' || q.ref.type === 'frameCol') && sameName(q.ref.building, fs.building) && +q.ref.frame === +fs.frame);
-      if (ms.length) { ids = ms.map(q => q.id); box = boundsOf(ms); key = `f|${fs.building}|${fs.frame}`; what = `${S.members.some(q => q.ref && q.ref.building && !sameName(q.ref.building, fs.building)) ? fs.building + ' · ' : ''}Frame ${fs.frame}`; o = { ghost: 0.08, turn: true }; }
-    } else if (state.view === 'bracing') {
-      const ms = S.members.filter(q => q.kind === 'brace' || q.kind === 'mezz');
-      if (ms.some(q => q.kind === 'brace')) { ids = ms.map(q => q.id); key = 'b'; what = 'Bracing'; o = { ghost: 0.2, turn: true }; }
-    }
+    if (!mini || !railJob() || !state.bldScene || !BLD || !BLD.focusOf) { if (btn) btn.hidden = true; return; }
+    const F = BLD.focusOf(), key = F.key;
     if (railWholeAt && railWholeAt !== key) railWholeAt = null;
-    if (railWholeAt) { ids = null; box = null; }
     const k2 = railWholeAt ? 'whole' : key;
-    if (k2 !== railFocusKey) { railFocusKey = k2; mini.isolate(ids, box, o); }
-    btn.hidden = !ids && !railWholeAt;
-    $('#rvFocusWhat').textContent = railWholeAt ? 'Whole building' : what;
+    if (k2 !== railFocusKey || (F.ids && !railWholeAt && !mini.isolated)) { railFocusKey = k2; mini.isolate(railWholeAt ? null : F.ids || null, railWholeAt ? null : F.box || null, F.o || { turn: true }); }
+    btn.hidden = !F.ids;
+    $('#rvFocusWhat').textContent = railWholeAt ? 'Whole building' : F.what || '';
     $('#rvWhole').textContent = railWholeAt ? 'Refocus' : 'Show all';
     $('#rvWhole').title = railWholeAt ? `Back to ${key === 'b' ? 'the bracing' : 'the frame'}` : 'Show the whole building';
   }
@@ -15705,7 +15771,7 @@ window.MZ_APP_BUILDING = function (C) {
     else if (state.res && state.inputs && state.job && state.job.mezz && state.job.mezz.length) renderRail();
     if (!show) { cv.style.display = 'none'; $('#miniPlan').setAttribute('hidden', ''); $('#miniSite').setAttribute('hidden', ''); return; }
     if (!mini) {
-      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, onSelect: () => { if (railJob()) { go('building'); return; } go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
+      mini = M3.mount(cv, { pad: [8, 8], min: [60, 60], speed: 0.00035, fitScale: 1.04, resume: 3500, onSelect: () => { if (railJob()) { go('building'); return; } go('results'); setTimeout(() => $('#modelSec').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); } });
     }
     if (BLD) BLD.layerRegister(mini, () => (railJob() ? 'job' : 'mezz'));
     if (job) {
@@ -18370,7 +18436,7 @@ window.MZ_APP_BUILDING = function (C) {
   window.MZ_STATE = () => state;
   renderSettings();
   renderDesigner();
-  wbLoadAll().then(() => renderWorkbooks());
+  books.ready = wbLoadAll().then(() => { renderWorkbooks(); renderCalcPack(); });   // the panel and the page bars
 })();
 
 </script>

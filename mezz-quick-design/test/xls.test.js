@@ -40,4 +40,22 @@ for (const [file, edits] of cases) {
   a.ents.filter(e => e.type === 2 && !/^workbook$/i.test(e.name)).forEach(e => assert.ok(Buffer.from(a.stream(e.name)).equals(Buffer.from(b.stream(e.name))), `${file}: ${e.name} unchanged`));
   assert.strictEqual(r.bytes.length % a.ss, 0);
 }
+// as the page writes a download: the tool's results saved with their formulas (what Excel shows before it recalculates,
+// in Protected View), every other formula's saved result emptied (the template's last job never shows)
+{
+  // (the later copy carries an earlier job's results on MB1 — 11.5 k live end shear, "SHEAR OK …" — the first is blank)
+  const later = path.join(dir, '..', 'jobs', 'workbooks-new', 'Mezzanine_Beam_Design_15th.xls');
+  const src = new Uint8Array(fs.readFileSync(fs.existsSync(later) ? later : path.join(dir, 'Mezzanine_Beam_Design_15th.xls')));
+  const was = X.read(src, [{ sheet: 'MB1', cell: 'H10' }, { sheet: 'MB1', cell: 'G20' }]);
+  if (fs.existsSync(later)) assert.ok(was['MB1!H10'] !== '' && was['MB1!G20'] !== '', 'the later copy carries an earlier job\'s results');
+  const r = X.fill(src, [{ sheet: 'MB1', cell: 'D7', value: 24 }, { sheet: 'MB1', cell: 'D9', value: 28 }],
+    { results: [{ sheet: 'MB1', cell: 'M20', value: 'BU16x77' }, { sheet: 'MB1', cell: 'H6', value: 18.5 }, { sheet: 'MB1', cell: 'K11', value: 395.25 }, { sheet: 'MB1', cell: 'G19', value: 'COMBINED OK (SR = 0.97)' }], clearCached: true });
+  assert.strictEqual(r.cached.length, 4);
+  const back = X.read(r.bytes, ['M20', 'H6', 'K11', 'G19', 'H10', 'G20', 'D7'].map(cell => ({ sheet: 'MB1', cell })));
+  assert.deepStrictEqual([back['MB1!M20'], back['MB1!H6'], back['MB1!K11'], back['MB1!G19']], ['BU16x77', 18.5, 395.25, 'COMBINED OK (SR = 0.97)'], 'saved results');
+  assert.deepStrictEqual([back['MB1!H10'], back['MB1!G20']], ['', ''], 'the rest emptied');
+  assert.strictEqual(back['MB1!D7'], 24);
+  const a = X.cfbRead(src), b = consistent(r.bytes);
+  a.ents.filter(e => e.type === 2 && !/^workbook$/i.test(e.name)).forEach(e => assert.ok(Buffer.from(a.stream(e.name)).equals(Buffer.from(b.stream(e.name))), `saved results: ${e.name} unchanged`));
+}
 console.log('xls tests passed (beam, column and seismic workbooks: numbers, text — a new shared string too — check boxes and blanks typed and read back; BOUNDSHEET / INDEX / DBCELL consistent; every other stream unchanged)');

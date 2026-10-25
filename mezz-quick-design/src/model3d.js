@@ -1,8 +1,8 @@
 /* 3D framing model — a small canvas renderer (no libraries).
    Members are boxes (I-shapes = 3 boxes) and polylines in building feet (x along length from LEW,
    y across width from FSW, z up from finish floor). Painter's algorithm with back-face culling,
-   Lambert shading, click to select, slow auto-rotate. Drag to orbit about the point grabbed (the member under the
-   pointer, else the middle of the view), right-drag / Shift-drag / two fingers to pan, the wheel or a pinch zooms toward
+   Lambert shading, click to select, slow auto-rotate. Drag to turn it about the middle of the view (a turntable: the up
+   axis stays up), right-drag / Shift-drag / two fingers to pan, the wheel or a pinch zooms toward
    the pointer, a double-click (or focus(box)) flies to a mezzanine — so one of several far apart in a long building fills
    the view. isolate(ids, box) shows those members alone (the rest faint) and flies to them. */
 (function (root) {
@@ -139,7 +139,12 @@
       const { U } = axes(), dy = (top - PAD_T) / 2 / (fit * z);
       anim = { t0: win.performance.now(), ms, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: c.map((v, i) => v + U[i] * dy), zoom: z } };
     }
-    function stopAuto() { if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); } }
+    // a hand on it stops the turning; opts.resume (ms): it turns again after that long left alone (the sidebar)
+    let resumeT = null, paused = false;
+    function stopAuto() {
+      if (view.auto) { view.auto = false; if (opts.onAuto) opts.onAuto(false); }
+      if (opts.resume && !paused) { win.clearTimeout(resumeT); resumeT = win.setTimeout(function again() { if (dragging) { resumeT = win.setTimeout(again, opts.resume); return; } if (!paused) { view.auto = true; if (opts.onAuto) opts.onAuto(true); } }, opts.resume); }
+    }
 
     function viewDir() { // direction from the scene toward the camera, in world coords
       const cp = Math.cos(view.pitch), sp = Math.sin(view.pitch), cyw = Math.cos(view.yaw), syw = Math.sin(view.yaw);
@@ -327,9 +332,8 @@
       anim = null;
       if (pointers.size === 2) { dragging = { two: pinch(), moved: true }; stopAuto(); return; }
       const panning = e.button === 1 || e.button === 2 || e.shiftKey;
-      // the point to turn about: what is under the pointer (a member, the roof, the floor), else the view's middle
-      const [px, py] = pos(e), hp = !panning && scene ? hitPoly(px, py, true) : null;
-      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY, pivot: hp && !hp.ghost ? hp.w : null };
+      // a drag turns the model about the middle of the view (where it was zoomed or flown to), the up axis kept up
+      dragging = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, pan: panning, lx: e.clientX, ly: e.clientY };
       if (panning) { e.preventDefault(); canvas.style.cursor = 'move'; }
     });
     canvas.addEventListener('pointermove', e => {
@@ -344,11 +348,9 @@
         if (Math.abs(dx) + Math.abs(dy) > 3) { dragging.moved = true; stopAuto(); }
         if (dragging.pan) { pan(e.clientX - dragging.lx, e.clientY - dragging.ly); dragging.lx = e.clientX; dragging.ly = e.clientY; }
         else {
-          // turn, then slide the view so the grabbed point stays under the pointer's start
-          const P = dragging.pivot, a = P && project(P);
-          view.yaw = dragging.yaw + dx * 0.008;
-          view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.006));
-          if (P) for (let k = 0; k < 2; k++) { const c = project(P); pan(a[0] - c[0], a[1] - c[1]); }
+          // a turntable: left / right turns it about the vertical through the middle of the view, up / down tilts it
+          view.yaw = dragging.yaw + dx * 0.007;
+          view.pitch = Math.max(0.08, Math.min(1.45, dragging.pitch + dy * 0.005));
         }
         draw();
       } else if (!dragging) {
@@ -404,7 +406,7 @@
       // frame a box (a mezzanine), or the whole scene with no box
       focus(b) { stopAuto(); if (b) focus(b); else if (scene) anim = { t0: win.performance.now(), ms: 420, from: { target: view.target.slice(), zoom: view.zoom }, to: { target: scene.center.slice(), zoom: 1 } }; },
       reset() { anim = null; Object.assign(view, home); if (scene) view.target = scene.center.slice(); draw(); },
-      pause(on) { view.auto = !on; return view.auto; },
+      pause(on) { paused = !!on; win.clearTimeout(resumeT); view.auto = !on; return view.auto; },
       // the camera, for a test: what it looks at and how close
       state() { return { target: view.target.slice(), zoom: view.zoom, yaw: view.yaw, pitch: view.pitch, moving: !!anim }; },
       get auto() { return view.auto; },

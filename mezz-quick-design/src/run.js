@@ -1510,7 +1510,11 @@
       // INPUT sheet takes the deepest of the four MB sheets in that copy (D26 = MAX(MB1..MB4!M22))
       const inputFor = (c, dRead) => {
         const v = { dead: c.beamBase.dead, coll: c.beamBase.coll, live: c.beamBase.live, joistWt: c.beamBase.joistWt, A: c.A, slab: c.slabIn, seat: c.seatIn, joistDepth: c.joistDepthIn, beamDepth: dMax, B: c.Bq, C: c.Cq };
-        const steps = map.map(([k, cell, label]) => ({ sheet: 'INPUT', cell, label, value: n3(v[k]), show: v[k] == null ? '(leave blank)' : String(n3(v[k])) }));
+        // the sheet's header: the quote number and what this copy is (13th: B4 / B5; 15th / 16th: H2 / H3)
+        const job = c.inp.job || {}, ids = live.filter(x => ms.some(m => m.mezzIds.includes(x.index))).map(x => x.inp.mezz.id).filter(Boolean);
+        const desc = [job.project, ms.map(m => m.mark).join(', '), ids.join(' + ')].filter(Boolean).join(' · ');
+        const head = [[e13 ? 'B4' : 'H2', 'Project Number', job.quote || null], [e13 ? 'B5' : 'H3', 'Description', desc]].map(([cell, label, val]) => ({ sheet: 'INPUT', cell, label, value: val, show: val || '(leave blank)' }));
+        const steps = head.concat(map.map(([k, cell, label]) => ({ sheet: 'INPUT', cell, label, value: n3(v[k]), show: v[k] == null ? '(leave blank)' : String(n3(v[k])) })));
         const read = XL.clear[e13 ? 13 : 15].map(([k, prov, ok]) => {
           const p = k === 'B' ? c.A - (c.slabIn + c.joistDepthIn) / 12 : c.A - (c.slabIn + c.seatIn + dRead) / 12, req = k === 'B' ? c.Bq : c.Cq;
           return [{ sheet: 'INPUT', cell: prov, label: `${k} provided (ft.)`, expect: n3(p) }, { sheet: 'INPUT', cell: ok, label: `${k} check`, expect: req == null || p >= req - 1e-9 ? 'OK' : 'No Good' }];
@@ -1551,8 +1555,8 @@
             { sheet, cell: 'M20', label: 'Section Description', expect: c.desc },
             { sheet, cell: 'H6', label: 'Floor dead load — shear at left / right, kips', expect: n3(c.V.D) },
             { sheet, cell: 'H10', label: 'Floor live load — shear at left / right, kips', expect: n3(c.V.L) },
-            { sheet, cell: 'K11', label: 'Live load deflection, L /', expect: Math.round(c.defl.rLL) },
-            { sheet, cell: 'K15', label: 'Total load deflection, L /', expect: Math.round(c.defl.rTL) },
+            { sheet, cell: 'K11', label: 'Live load deflection, L /', expect: Math.round(c.defl.rLL), cache: c.defl.rLL },
+            { sheet, cell: 'K15', label: 'Total load deflection, L /', expect: Math.round(c.defl.rTL), cache: c.defl.rTL },
             { sheet, cell: 'G19', label: 'Combined', expect: c.combinedText },
             { sheet, cell: 'G20', label: 'Shear', expect: c.shearText },
           ];
@@ -1584,7 +1588,11 @@
           // the Fy drop-down beside the section writes Miscellaneous!K8; the 16th sheet opens at 55 ksi, a W column is 50
           { sheet: 'Miscellaneous', cell: 'K8', where: 'Column!D16 Fy (ksi) drop-down', label: `Fy (ksi) — 50 for a W column${ed === '16' ? ' (this sheet opens at 55)' : ''}`, value: '50', show: '50' },
         ];
+        const job = c.inp.job || {}, cdesc = [job.project, c.inp.mezz.id, `columns ${colOrder(gp.cols).map(q => q.label).join(' ')}`].filter(Boolean).join(' · ');
         const steps = [
+          // the sheet's header: the quote number and which columns this copy is
+          { sheet: 'Column', cell: 'H1', label: 'Project Number', value: job.quote || null, show: job.quote || '(leave blank)' },
+          { sheet: 'Column', cell: 'H2', label: 'Description', value: cdesc, show: cdesc },
           { sheet: 'Column', cell: 'C7', label: 'Column Mark (the grid points of this case)', value: colOrder(gp.cols).map(q => q.label).join(' '), show: colOrder(gp.cols).map(q => q.label).join(' ') },
           { sheet: 'Column', cell: 'C8', label: 'Column Length, L (ft.)', value: n3(L), show: String(n3(L)) },
         ].concat(ed === '16' ? [{ sheet: 'Column', cell: 'C10', label: 'Y-Axis Unbraced Length, Lby (in.) — hard-coded 120 on this sheet: type L × 12', value: n3(L * 12), show: String(n3(L * 12)) }] : []).concat(secSteps, [
