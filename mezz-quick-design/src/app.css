@@ -2067,3 +2067,36 @@ table.seis-kips tr.cont td { border-top-color: transparent; }
 .wb-top.is-many { flex-wrap: wrap; } .wb-top.is-many .wb-top-t { flex-basis: calc(100% - 40px); } .wb-top.is-many .wb-top-b { flex-basis: 100%; justify-content: flex-start; padding-left: 36px; }
 @media (max-width: 760px) { .wb-top { flex-wrap: wrap; } .wb-top .wb-top-b { justify-content: flex-start; } }
 @media print { .wb-top { display: none; } }
+/* opening the filled workbooks with their macros: the line under each workbook bar, and the dialog */
+.wb-trust { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin-top: 3px; color: var(--amber); font-size: 12px; line-height: 1.45; }
+.wb-trust svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.wb-trust.ok { color: var(--green); }
+.wb-panel > .wb-trust { margin: -4px 0 14px; }
+.lnk { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.lnk:hover { color: var(--ink); }
+.trust-dlg { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid var(--line-strong); border-radius: 18px; color: var(--ink); background: var(--surface); box-shadow: var(--lift-3); }
+.trust-dlg::backdrop { background: #04080fb8; backdrop-filter: blur(3px); }
+.td-head { display: flex; align-items: flex-start; gap: 14px; padding: 20px 22px 16px; border-bottom: 1px solid var(--line); }
+.td-ic { width: 28px; height: 28px; flex: none; margin-top: 1px; color: var(--green); fill: none; stroke: currentColor; stroke-width: 1.6; }
+.td-head h3 { margin: 0 0 6px; font-size: 17px; }
+.td-head p { margin: 0; color: var(--ink-muted); font-size: 13px; line-height: 1.55; }
+.td-x { flex: none; margin-left: auto; padding: 2px 6px; border: 0; background: none; color: var(--ink-faint); font-size: 16px; cursor: pointer; }
+.td-x:hover { color: var(--ink); }
+.td-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 18px 22px 22px; }
+.td-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+.td-card.rec { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.td-card h4 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 9px; font-size: 14px; }
+.td-card h4 small { color: var(--green); font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.td-card ol, .td-card ul { display: grid; gap: 6px; margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.5; }
+.td-path { color: var(--ink); font: 12px var(--mono); }
+.td-card kbd { padding: 0 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 6px; background: var(--surface); font: 11.5px var(--mono); }
+.td-dir { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.td-state { color: var(--ink-muted); font-size: 12.5px; }
+.td-state b { color: var(--green); }
+.td-code { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.td-code .btn-ghost { flex: none; min-height: 32px; padding: 5px 11px; }
+.td-code .btn-ghost svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.td-code code { flex: 1; min-width: 0; overflow-x: auto; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font: 12px var(--mono); white-space: nowrap; }
+.td-result { margin: 10px 0 0; color: var(--ink-muted); font-size: 12.5px; line-height: 1.5; }
+.td-note { margin: 0; color: var(--ink-faint); font-size: 12px; line-height: 1.5; }
+@media print { .trust-dlg { display: none; } }

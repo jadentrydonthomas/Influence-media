@@ -341,6 +341,18 @@ print(json.dumps(out))`, file, JSON.stringify(cells)]).toString());
       console.log('calc package zip'.padEnd(30), cz.suggestedFilename(), '·', zn.length, 'files ·', zn.filter(n => n.startsWith('workbooks/')).length, 'filled workbooks');
       if (!zn.some(n => /\.xlsx$/.test(n))) fail('the zip should carry the calc package');
       if (!zn.some(n => /^workbooks\/.+\.xls$/.test(n))) fail('the zip should carry the filled workbooks');
+      // a trusted folder (a stand-in: no folder picker headless): the copies are written there as files, no download
+      await page.evaluate(() => { const got = {}; window.__folder = got; return window.MZ_WBDIR({ name: 'NBG filled workbooks', kind: 'directory', queryPermission: async () => 'granted', requestPermission: async () => 'granted',
+        getFileHandle: async n => ({ createWritable: async () => { let size = 0; return { write: async b => { size += b.byteLength ?? b.size ?? 0; }, close: async () => { got[n] = size; } }; } }) }); });
+      let dlEvent = false; const onDl = () => { dlEvent = true; }; page.on('download', onDl);
+      await page.waitForTimeout(150);
+      if (!/trusted folder/.test(await page.$eval('[data-wbtop="col"]', e => e.textContent))) fail('the workbook bar should say the copy goes to the trusted folder');
+      await page.click('.calcpack[data-cp="col"] [data-cpdl="all"]'); await page.waitForTimeout(4000);
+      const inFolder = await page.evaluate(() => window.__folder);
+      console.log('trusted folder'.padEnd(30), Object.keys(inFolder).length, 'files ·', Object.keys(inFolder).filter(n => /\.xls$/.test(n)).length, 'workbooks · download', dlEvent);
+      if (dlEvent || Object.keys(inFolder).length !== zn.length || Object.values(inFolder).some(v => !(v > 0))) fail('with a trusted folder every file should be written there, none downloaded');
+      page.off('download', onDl);
+      await page.evaluate(() => window.MZ_WBDIR(null));
     }
   }
 

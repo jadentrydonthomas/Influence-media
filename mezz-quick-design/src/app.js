@@ -991,6 +991,68 @@
     pick.onchange = async () => { await wbAdd(Array.from(pick.files || [])); then(); };
     pick.click();
   }
+  /* where the filled workbooks are saved. Windows marks a file a browser downloads as from the internet, and Excel then
+     blocks the workbook's VBA — the NBG workbooks calculate with VBA functions, so their checks fail. A folder the
+     engineer made an Excel trusted location, picked here once (Chrome / Edge), takes every filled copy instead: opened
+     from there the macros run. The folder is kept in this browser; the browser asks again before writing in a new
+     session. */
+  const wbDir = { handle: null, name: '' };
+  const dirIdb = () => new Promise((ok, no) => { try { const r = indexedDB.open('mzd-wb-folder', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+  async function wbDirLoad() {
+    try { const db = await dirIdb(), h = await new Promise((ok, no) => { const q = db.transaction('h').objectStore('h').get('dir'); q.onsuccess = () => ok(q.result || null); q.onerror = () => no(q.error); }); if (h) { wbDir.handle = h; wbDir.name = h.name; } } catch (e) { /* none kept */ }
+  }
+  async function wbDirSet(h) {
+    wbDir.handle = h || null; wbDir.name = h ? h.name : '';
+    try { const db = await dirIdb(); await new Promise(ok => { const t = db.transaction('h', 'readwrite'); if (h) t.objectStore('h').put(h, 'dir'); else t.objectStore('h').delete('dir'); t.oncomplete = ok; t.onerror = ok; t.onabort = ok; }); } catch (e) { /* this session only */ }
+    renderTrust(); renderWorkbooks(); renderCalcPack();
+  }
+  async function wbDirPick() {
+    if (!window.showDirectoryPicker) { toast('This browser cannot save into a folder — use Chrome or Edge, or unblock each download'); return; }
+    try { const h = await window.showDirectoryPicker({ id: 'nbg-filled-workbooks', mode: 'readwrite', startIn: 'documents' }); await wbDirSet(h); toast(`Filled workbooks are saved in “${h.name}” from now on`); }
+    catch (e) { if (e && e.name !== 'AbortError') toast(e.message || String(e)); }
+  }
+  // the folder, writable now (the browser asks once a session — called straight from the click)
+  async function wbDirReady() {
+    const h = wbDir.handle;
+    if (!h) return false;
+    try { let p = await h.queryPermission({ mode: 'readwrite' }); if (p !== 'granted') p = await h.requestPermission({ mode: 'readwrite' }); return p === 'granted'; } catch (e) { return false; }
+  }
+  // files [{ name, data }] written into the folder (a copy open in Excel cannot be replaced)
+  async function wbDirWrite(files) {
+    for (const f of files) {
+      try { const fh = await wbDir.handle.getFileHandle(f.name, { create: true }), w = await fh.createWritable(); await w.write(f.data); await w.close(); }
+      catch (e) { throw new Error(`${f.name} could not be saved in “${wbDir.name}” (${e.message || e.name}) — if it is open in Excel, close it and try again`); }
+    }
+  }
+  // the line under each workbook bar: where the copy goes, and how it opens with its macros
+  const trustLine = () => wbDir.handle
+    ? `<small class="wb-trust ok"><svg><use href="#i-shield"/></svg>Saved into your trusted folder “${esc(wbDir.name)}” — opens with its macros running · <button class="lnk" data-trust>change</button></small>`
+    : `<small class="wb-trust"><svg><use href="#i-shield"/></svg>Excel blocks the macros of a downloaded copy until you trust it · <button class="lnk" data-trust>Open with macros — set it up once</button></small>`;
+  function renderTrust() {
+    const el = $('#trustBody');
+    if (!el) return;
+    const can = !!window.showDirectoryPicker, ps = 'Get-ChildItem "$env:USERPROFILE\\Downloads\\*.xls" | Unblock-File';
+    el.innerHTML = `<section class="td-card rec"><h4>Once: a trusted folder <small>recommended</small></h4><ol>
+        <li>In Excel: <span class="td-path">File › Options › Trust Center › Trust Center Settings… › Trusted Locations › Add new location…</span></li>
+        <li>Browse to a folder on this computer for the filled copies — for example <span class="td-path">Documents\\NBG filled workbooks</span> — tick <b>Subfolders of this location are also trusted</b>, then OK, OK.</li>
+        <li>${can ? 'Pick the same folder here, and every filled workbook from this tool is saved straight into it.' : 'This browser cannot save into a folder: move each download into that folder before you open it (Chrome or Edge save straight into it).'}</li></ol>
+      ${can ? `<div class="td-dir"><button class="btn-soft" data-trustpick><svg><use href="#i-shield"/></svg>${wbDir.handle ? 'Choose another folder…' : 'Choose the trusted folder…'}</button>${wbDir.handle ? `<span class="td-state">Saving into <b>“${esc(wbDir.name)}”</b></span><button class="lnk td-state" data-trustoff>save to Downloads instead</button>` : '<span class="td-state">Not set — copies go to your Downloads folder</span>'}</div>` : ''}
+      <p class="td-result">Opened from that folder, a workbook skips Protected View, its macros run and Excel calculates every cell as it opens.</p></section>
+      <section class="td-card"><h4>Or: one file at a time</h4><ul>
+        <li>Right-click the downloaded .xls › <span class="td-path">Properties › General</span> › tick <b>Unblock</b> › OK. Open it, click <b>Enable Content</b> if Excel asks, then press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F9</kbd> once so every cell recalculates with the macros.</li>
+        <li>Every .xls in Downloads at once, in PowerShell:<div class="td-code"><code>${esc(ps)}</code><button class="btn-ghost" data-trustcopy="${esc(ps)}"><svg><use href="#i-copy"/></svg>Copy</button></div></li>
+        <li>The Everything (.zip): unblock the .zip the same way before you extract it.</li></ul></section>
+      <p class="td-note">Trusted Locations greyed out? Your company manages them — Unblock still works, or ask IT to add the folder as a trusted location.</p>`;
+  }
+  document.addEventListener('click', ev => {
+    const t = ev.target;
+    if (t.closest('[data-trust]')) { ev.preventDefault(); renderTrust(); const d = $('#trustDlg'); if (d && !d.open) d.showModal(); return; }
+    if (t.closest('[data-trustclose]')) { $('#trustDlg').close(); return; }
+    if (t.closest('[data-trustpick]')) { wbDirPick(); return; }
+    if (t.closest('[data-trustoff]')) { wbDirSet(null); toast('Filled workbooks go to your Downloads folder again'); return; }
+    const c = t.closest('[data-trustcopy]'); if (c) { navigator.clipboard.writeText(c.dataset.trustcopy).then(() => toast('Copied — paste it into PowerShell'), () => toast('Select the line and copy it')); return; }
+    if (t.id === 'trustDlg') t.close();   // a click on the backdrop
+  });
   // a button for one copy; clicking it fills and downloads (or asks for the workbook first)
   const wbBtn = (key, label = 'Open in the workbook') => `<button class="btn-soft wb-btn" data-wb="${esc(key)}"><svg><use href="#i-file"/></svg>${esc(label)}</button>`;
   async function wbDownload(key) {
@@ -999,10 +1061,12 @@
     if (!books.loaded) await books.ready;   // a click while the built-in workbooks still unpack waits for them
     let bk = wbFind(j.kind, j.ed);
     if (!bk) { wbAsk([WB_NAME[j.kind](j.ed)], () => { if (wbFind(j.kind, j.ed)) wbDownload(key); }); return; }
+    const toDir = await wbDirReady();   // asked while the click still counts
     try {
-      const r = wbFill(bk, j);
-      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.bytes], { type: 'application/vnd.ms-excel' })); a.download = j.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      toast(`${j.name} — your ${WB_NAME[j.kind](j.ed)} with ${r.done.length} cells typed in${r.missing.length ? ` (not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')})` : ''} and its ${r.cached.length} key results. Excel recalculates the rest once editing is enabled.`);
+      const r = wbFill(bk, j), what = `your ${WB_NAME[j.kind](j.ed)} with ${r.done.length} cells typed in${r.missing.length ? ` (not typed: ${r.missing.map(m => m.sheet + '!' + m.cell).join(', ')})` : ''} and its ${r.cached.length} key results`;
+      if (toDir) { await wbDirWrite([{ name: j.name, data: r.bytes }]); toast(`${j.name} saved in “${wbDir.name}” — ${what}. Open it from there: its macros run and Excel calculates every cell.`); return; }
+      cpSave(r.bytes, j.name, 'application/vnd.ms-excel');
+      toast(`${j.name} — ${what}. In Downloads Excel blocks its macros: “Open with macros” on the workbook bar sets up a trusted folder once.`);
     } catch (e) { toast(`${bk.name}: ${e.message || e}`); }
   }
   // the workbook buttons anywhere on the page
@@ -1016,7 +1080,8 @@
     const needed = new Set(jobs.map(j => j.kind + '|' + (j.ed || '')));
     const have = kinds.filter(([k, e]) => needed.has(k + '|' + (e || '')) || wbFind(k, e)).map(([k, e]) => { const b = wbFind(k, e); return `<span class="wb-chip ${b ? 'ok' : 'miss'}">${b ? '✓' : '+'} ${esc(WB_NAME[k](e))}${b ? `<small>${esc(b.name)}${b.builtin ? ' · built in' : ''}</small>${b.builtin ? '' : `<button class="wb-x" data-wbdel="${esc(b.id)}" title="Forget it on this computer">✕</button>`}` : '<small>not added yet</small>'}</span>`; }).join('');
     const groups = [['beam', 'Beam design'], ['column', 'Columns'], ['seismic', 'Seismic']].map(([k, t]) => { const xs = jobs.filter(j => j.kind === k); return xs.length ? `<div class="wb-group"><h5>${t} <small>${esc(WB_NAME[k](xs[0].ed))}</small></h5><div class="wb-rows" data-k="${k}">${xs.map(j => `<div class="wb-row"><div><b>${esc(j.title)}</b><small>${esc(j.sub || '')} · ${j.steps.length} cells${j.note ? ' · ' + esc(j.note) : ''}</small></div>${wbBtn(j.key, 'Download')}</div>`).join('')}</div></div>` : ''; }).join('');
-    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (.zip)</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
+    el.innerHTML = `${jobs.length ? `<div class="cp-lead"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button><button class="btn-ghost" data-cpdl="all" ${books.list.length ? '' : 'disabled title="Add the workbooks below to zip them with the design basis"'}>Everything (${wbDir.handle ? 'to the folder' : '.zip'})</button><small>The design basis workbook: every input and its source, the MB and Column sheet cells and results, the options and how they were found, the shop rules, stock, flange economy, frame and seismic loads, and the sources. Everything adds the filled workbooks below.</small></div>` : ''}
+      ${jobs.length ? trustLine() : ''}
       <div class="wb-have">${have || '<span class="sub-n">No workbooks added yet.</span>'}<label class="btn-ghost wb-add"><input type="file" accept=".xls" multiple hidden id="wbFile">Add workbooks…</label></div>
       ${jobs.length && state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null) ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}
       ${jobs.length ? `<div class="wb-groups">${groups}</div>` : '<div class="empty">Load a PCS to fill the workbooks with its design.</div>'}
@@ -1045,11 +1110,17 @@
       const need = [...new Set(wbJobs().filter(j => !wbFind(j.kind, j.ed)).map(j => WB_NAME[j.kind](j.ed)))];
       if (need.length && !cpDownload.asked) { cpDownload.asked = true; wbAsk(need, () => cpDownload('all').finally(() => { cpDownload.asked = false; })); return; }
       cpDownload.asked = false;
+      const toDir = await wbDirReady();
       const files = [{ name: name + '.xlsx', data: xlsx }], missing = new Set();
       wbJobs().forEach(j => { const bk = wbFind(j.kind, j.ed); if (!bk) { missing.add(WB_NAME[j.kind](j.ed)); return; } try { files.push({ name: 'workbooks/' + j.name, data: wbFill(bk, j).bytes }); } catch (e) { missing.add(`${bk.name} (${e.message})`); } });
+      const seisOut = state.job.seismic && !state.job.seismic.ok ? ' · IBC Seismic is left out until the Seismic calc is complete' : '';
+      if (toDir) {   // the trusted folder: each file as itself, ready to open
+        await wbDirWrite(files.map(f => ({ name: f.name.replace(/^workbooks\//, ''), data: f.data })));
+        toast(`Saved in “${wbDir.name}”: ${name}.xlsx and ${files.length - 1} filled workbook${files.length === 2 ? '' : 's'}${missing.size ? ` · add ${[...missing].join(', ')} to include ${missing.size > 1 ? 'them' : 'it'}` : ''}${seisOut}`);
+        return;
+      }
       if (zipIO.ok) for (const f of files) f.packed = await zipIO.deflate(f.data);   // compressed where the browser can
       cpSave(window.MZ_XLSX.zip(files), name + '.zip', 'application/zip');
-      const seisOut = state.job.seismic && !state.job.seismic.ok ? ' · IBC Seismic is left out until the Seismic calc is complete' : '';
       toast(`${name}.zip — the package and ${files.length - 1} filled workbook${files.length === 2 ? '' : 's'}${missing.size ? ` · add ${[...missing].join(', ')} to include ${missing.size > 1 ? 'them' : 'it'}` : ''}${seisOut}`);
     } catch (e) { toast('Calc package: ' + (e.message || e)); }
   }
@@ -1058,7 +1129,7 @@
      the column case, the IBC Seismic workbook for each frame line — the engineer's own .xls with this job typed in */
   function renderWbTop() {
     const jobs = state.job ? wbJobs() : [], src = (kind, ed) => { const bk = wbFind(kind, ed); return bk ? (bk.builtin ? `${esc(bk.name)} · built into this copy of the tool` : `your ${esc(bk.name)} · kept on this computer`) : `choose your ${esc(WB_NAME[kind](ed))} .xls once — it is kept on this computer`; };
-    const bar = (title, sub, btns) => `<svg class="wb-top-ic"><use href="#i-file"/></svg><div class="wb-top-t"><b>${title}</b><small>${sub}</small></div><div class="wb-top-b">${btns}</div>`;
+    const bar = (title, sub, btns) => `<svg class="wb-top-ic"><use href="#i-file"/></svg><div class="wb-top-t"><b>${title}</b><small>${sub}</small>${btns ? trustLine() : ''}</div><div class="wb-top-b">${btns}</div>`;
     $$('[data-wbtop]').forEach(el => {
       let h = '';
       if (el.dataset.wbtop === 'beam') {
@@ -1084,7 +1155,7 @@
     const seisWait = !!(state.job && !(state.job.seismic && state.job.seismic.ok) && wbFind('seismic', null));
     $$('.calcpack').forEach(el => {
       el.innerHTML = !ready ? '' : `<div class="cp-bar"><div class="cp-t"><b>Calc package</b><small>The inputs and where each came from, the ${el.dataset.cp === 'col' ? 'Column' : 'MB'} sheet cells and results, the options, the shop rules, stock and flange economy — for the engineer checking the design.</small></div>
-        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Filled Column workbook (.xls)') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'Filled MB workbook (.xls)') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (.zip)${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
+        <div class="cp-btns"><button class="btn-soft" data-cpdl="xlsx"><svg><use href="#i-file"/></svg>Design basis (.xlsx)</button>${el.dataset.cp === 'col' ? (colShown() && colShown().colFinal && colShown().colFinal.checks[state.colGroup] ? wbBtn(`column|${colShown().index}|${state.colGroup}`, 'Filled Column workbook (.xls)') : '') : (() => { const mk = jobMarks()[state.mark], b = mk && (state.job.excel.beam || []).find(x => x.marks.includes(mk.mark)); return b ? wbBtn(`beam|${b.copy}|${b.marks.join('+')}`, 'Filled MB workbook (.xls)') : ''; })()}<button class="btn-ghost" data-cpdl="all" ${nWb ? `title="the design basis and ${nWb} filled workbook${nWb > 1 ? 's' : ''}${seisWait ? ' — IBC Seismic is not in it until the Seismic calc is finished' : ''}"` : 'disabled title="Add the NBG workbooks (Design page → Calc package) to zip them with the design basis"'}>Everything (${wbDir.handle ? 'to the folder' : '.zip'})${nWb ? ` · ${nWb}` : ''}</button>${seisWait && nWb ? '<small class="cp-note">IBC Seismic joins the zip once the Seismic calc is finished</small>' : ''}</div></div>`;
     });
   }
 
@@ -4409,5 +4480,6 @@
   window.MZ_STATE = () => state;
   renderSettings();
   renderDesigner();
-  books.ready = wbLoadAll().then(() => { renderWorkbooks(); renderCalcPack(); });   // the panel and the page bars
+  books.ready = Promise.all([wbLoadAll(), wbDirLoad()]).then(() => { renderWorkbooks(); renderCalcPack(); });   // the panel and the page bars
+  window.MZ_WBDIR = h => wbDirSet(h);   // the browser tests stand in a folder (no picker in a headless browser)
 })();

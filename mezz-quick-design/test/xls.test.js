@@ -58,4 +58,39 @@ for (const [file, edits] of cases) {
   const a = X.cfbRead(src), b = consistent(r.bytes);
   a.ents.filter(e => e.type === 2 && !/^workbook$/i.test(e.name)).forEach(e => assert.ok(Buffer.from(a.stream(e.name)).equals(Buffer.from(b.stream(e.name))), `saved results: ${e.name} unchanged`));
 }
-console.log('xls tests passed (beam, column and seismic workbooks: numbers, text — a new shared string too — check boxes and blanks typed and read back; BOUNDSHEET / INDEX / DBCELL consistent; every other stream unchanged)');
+// what Excel's file validation walks: every stream position the BIFF8 stream keeps (BOUNDSHEET, INDEX, DBCELL and the
+// first cell of each of its rows) lands on the same record in the filled copy as in the original, and a formula has a
+// STRING after it exactly when its saved result is text
+function pointers(bytes) {
+  const rs = X.records(X.cfbRead(bytes).stream('Workbook')), at = new Map(rs.map((r, i) => [r.off, i])), R = X.R, n = {}, ord = new Map();
+  const CELL = [R.NUMBER, R.RK, R.MULRK, R.LABELSST, R.LABEL, R.BLANK, R.MULBLANK, R.BOOLERR, R.FORMULA];
+  rs.forEach(r => { n[r.type] = n[r.type] || 0; ord.set(r.off, n[r.type]++); });
+  const id = p => { const r = rs[at.get(p)]; return !r ? `mid-record ${p}` : CELL.includes(r.type) ? `cell ${u16(r.data, 0)},${u16(r.data, 2)}` : `${r.type}#${ord.get(p)}`; };
+  const out = [];
+  rs.forEach((r, i) => {
+    if (r.type === R.BOUNDSHEET) out.push('BS ' + id(u32(r.data, 0)));
+    if (r.type === R.INDEX) for (let o = 16; o + 4 <= r.data.length; o += 4) out.push('IX ' + id(u32(r.data, o)));
+    if (r.type === R.DBCELL) {
+      const first = r.off - u32(r.data, 0), rows = []; out.push('DB ' + id(first));
+      for (let k = at.get(first); k < i && rs[k].type === R.ROW; k++) rows.push(rs[k]);
+      let base = rows.length > 1 ? rows[1].off : rows[0].off + 4 + rows[0].data.length;
+      for (let o = 4; o + 2 <= r.data.length; o += 2) { base += u16(r.data, o); out.push('DB ' + id(base)); }
+    }
+    if (r.type === R.FORMULA) {
+      let k = i + 1; while (rs[k] && [R.SHRFMLA, R.ARRAY, R.TABLE].includes(rs[k].type)) k++;
+      assert.strictEqual(r.data[12] === 0xFF && r.data[13] === 0xFF && r.data[6] === 0, !!(rs[k] && rs[k].type === R.STRING), 'a text result has its STRING');
+    }
+  });
+  return out;
+}
+{
+  const later = path.join(dir, '..', 'jobs', 'workbooks-new', 'Mezzanine_Beam_Design_15th.xls');
+  [[fs.existsSync(later) ? later : path.join(dir, 'Mezzanine_Beam_Design_15th.xls'), [{ sheet: 'INPUT', cell: 'H2', value: 'a new project number' }, { sheet: 'MB1', cell: 'D7', value: 24 }]],
+    [path.join(dir, 'Mezzanine_Column_16th_S16-19.xls'), [{ sheet: 'Column', cell: 'H2', value: 'a new description' }]],
+    [path.join(dir, 'IBC_Seismic.xls'), [{ sheet: 'Input Data', cell: 'B26', value: 1.5 }]]].filter(([f]) => fs.existsSync(f)).forEach(([f, edits]) => {
+    const src = new Uint8Array(fs.readFileSync(f)), r = X.fill(src, edits, { results: [], clearCached: true });
+    assert.strictEqual(r.done.length, edits.length, `${path.basename(f)}: typed in`);
+    assert.deepStrictEqual(pointers(r.bytes), pointers(src), `${path.basename(f)}: every stream position lands on the same record`);
+  });
+}
+console.log('xls tests passed (beam, column and seismic workbooks: numbers, text — a new shared string too — check boxes and blanks typed and read back; BOUNDSHEET / INDEX / DBCELL consistent and landing on the same records as the original; every other stream unchanged)');
