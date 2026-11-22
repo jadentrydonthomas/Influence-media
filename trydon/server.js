@@ -13,7 +13,7 @@ import { completeText, hasKey } from './server/anthropic.js';
 import * as feeds from './server/feeds.js';
 import { startCron, morningBriefing, weeklyReview, learningDigest, eveningNudge, steelAlertCheck, suggestLearning, thesisWatch, ensureCalendarPlan } from './server/cron.js';
 import { listAgents, runAgent, setAgent, addCustomAgent } from './server/agents.js';
-import { brokerStatus, positions as brokerPositions } from './server/broker.js';
+import { brokerStatus, positions as brokerPositions, orders as brokerOrders } from './server/broker.js';
 import { seedMemory, memoryDistill } from './server/memory.js';
 import { listMemory, addMemory, forgetMemory } from './server/db.js';
 
@@ -227,12 +227,15 @@ const server = createServer(async (req, res) => {
         return send(res, 400, { error: 'action must be add|forget|distill' });
       }
 
-      // ---------- broker (Webull-ready adapter) ----------
+      // ---------- broker (read-only: Webull OpenAPI + SnapTrade/Robinhood) ----------
       if (path === '/api/broker/status' && req.method === 'GET') {
         return send(res, 200, brokerStatus());
       }
       if (path === '/api/broker/positions' && req.method === 'GET') {
         return send(res, 200, await brokerPositions());
+      }
+      if (path === '/api/broker/orders' && req.method === 'GET') {
+        return send(res, 200, await brokerOrders());
       }
 
       // ---------- autonomous desk agents ----------
