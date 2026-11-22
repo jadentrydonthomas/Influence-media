@@ -43,7 +43,7 @@ VPS work the same: `node server.js` + a persistent `TRYDON_DATA_DIR`.
 | Auth + sync | Access-code login (signed session cookie), per-key state sync to SQLite, laptop + phone see the same data live (25s poll + on-focus pull). |
 | Migration | First login against an empty server pushes the browser's existing `trydon.v2` localStorage up automatically. Coming from the old standalone file (different origin): export there is not possible, so use ⌘K → **IMPORT BACKUP** with a JSON of the blob (see below). |
 | Ask Trydon | Server-side Anthropic tool loop over his real data: create/update/delete events (confirm-first for deletes), tasks, station to-dos, gym + food logs, Nucor jobs + statuses, theses/stances (confirm-first), watchlist adds, courses, media ideas/goals, mentor/leadership questions, schedule reads, live stock/steel reads, quote saves, `configure_source`. Every action returns a receipt chip. Falls back to the built-in quick parser when no API key. |
-| Stocks | Live quotes + candles (all ranges) via Yahoo Finance (no key needed), per-ticker headlines merged from Yahoo + Google News (deduped, publisher-tagged, all linking out), holdings marked to market, live 52-week/volume stats, watchlist sparks. **Webull OpenAPI was not used** — it requires a regional developer application and is unavailable for personal US accounts; Yahoo market data is the fallback, holdings stay manual (add them in the Portfolio panel any time and they price live). Supply Webull App Key/Secret later and an adapter can be attempted. |
+| Stocks | Live quotes + candles (all ranges) via Yahoo Finance (no key needed), per-ticker headlines merged from Yahoo + Google News (deduped, publisher-tagged, all linking out), holdings marked to market, live 52-week/volume stats, watchlist sparks. Live broker positions + orders come from `server/broker.js` (read-only, see Plug-in points); manual holdings in the Portfolio panel remain the fallback. |
 | Thesis Debater | ⚔ DEBATE ME button on every symbol (and "debate me on X" in chat): steelmans the opposite side of the recorded stance in 3–5 points tied to live price + headlines and his own thesis text, ends with "what would change your mind", offers to save concessions. |
 | Nucor | HRC steel price live from CME futures (`HRC=F`) with 12-week trend; Quote Helper computes from the live number; >2% move triggers an assistant alert with the quote impact; **SAVE QUOTE** builds a personal pricing history (`/api/quotes`). Nucor News merges three independent feeds — Google News on Nucor, Google News on the steel market, Yahoo's NUE wire — deduped, publisher-tagged, every headline links to the full article. Scrap price stays user-side and is tagged `sample` until a source is configured. Jobs import: paste your spreadsheet rows (CSV) into Ask Trydon and it maps them into the log; full Google Sheets 2-way sync needs a Google OAuth app — ask when ready. |
 | AI Signal | Hacker News + arXiv cs.AI + Anthropic/OpenAI/DeepMind blogs, aggregated server-side, ranked + rewritten daily by Claude for *his* profile (agents, building, investing). Learning digest (Mon + Thu) reads his aiLog + courses and recommends next course / tool / build idea. |
@@ -55,15 +55,23 @@ VPS work the same: `node server.js` + a persistent `TRYDON_DATA_DIR`.
 | Long-term memory | The second-brain substrate: a `memory` table seeded with the owner's founding profile, grown nightly by a distiller that reads the day's chat with the fast model and keeps at most 3 durable facts (usually zero). Injected into every assistant answer and every agent run. Say "remember that …" / "forget #id" in chat, or view it all under 🧠 in the Agent Deck. `/api/memory` (GET list, POST add/forget/distill). |
 | Content studio | "Script that idea" in chat → `draft_script` writes a hook/beats/CTA short-form script with CapCut edit notes in the Influence Media voice, saved per-idea and pasted in chat. |
 | Outbound seam | Set `TRYDON_WEBHOOK_URL` to any webhook (Zapier/Make/ntfy/Discord) and briefings, weekly reviews and steel alerts POST there as JSON — the bridge to email/SMS and, later, real autonomous outbound actions (`server/outbound.js`). |
-| Research Desk | Portfolio-manager persona over a live tape injected per turn: watchlist quotes, 1M trend + range position, holdings P/L, next earnings date within 21 days (binary-event warning), broker link state. Candlestick charts with volume + crosshair on every range. `server/broker.js` is the Webull-ready seam (`WEBULL_APP_KEY`/`WEBULL_APP_SECRET`). |
+| Research Desk | Portfolio-manager persona over a live tape injected per turn: watchlist quotes, 1M trend + range position, holdings P/L, next earnings date within 21 days (binary-event warning), broker link state, and live Webull/Robinhood positions when a broker is linked. Candlestick charts with volume + crosshair on every range. |
 
 ## Plug-in points (whenever you're ready — everything adjusts automatically)
 
 - **Channels**: tell Ask Trydon "my YouTube is @…" (same for TikTok/Instagram) — the Media
   labels start linking out instantly. Add `YOUTUBE_API_KEY` (free, Google Cloud console →
   YouTube Data API v3) and the sample stats flip to live subs/views.
-- **Webull**: holdings live in the Portfolio panel and price live off Yahoo today. If Webull
-  OpenAPI credentials ever land, drop them in and an adapter can be wired.
+- **Brokers (read-only)**: `server/broker.js` only ever sends GET requests; there is no order code.
+  Set env vars in the Render dashboard (never in the repo) and restart:
+  - Webull direct: `WEBULL_APP_KEY` + `WEBULL_APP_SECRET` from developer.webull.com (OpenAPI
+    application). Optional `WEBULL_ACCOUNT_ID` (comma-separated) to skip the account lookup.
+  - Robinhood (and Webull, if the direct API is not approved): SnapTrade personal API key,
+    `SNAPTRADE_CLIENT_ID` + `SNAPTRADE_CONSUMER_KEY`. Link the brokerage once in SnapTrade's
+    portal as a read-only connection. Robinhood has no official equities API; this is the route.
+  - Endpoints: `GET /api/broker/status`, `/api/broker/positions`, `/api/broker/orders`
+    (60 s cache, stale copy served if a provider errors). Offline check:
+    `TRYDON_DATA_DIR=$(mktemp -d) node tools/broker-selftest.mjs`.
 - **Quoting spreadsheet**: paste rows into Ask Trydon and it fills the jobs log; Sheets 2-way
   sync is a later upgrade (needs a Google OAuth app).
 - **Access code**: one env var (`TRYDON_ACCESS_CODE`) locks the deck the day you want it locked.

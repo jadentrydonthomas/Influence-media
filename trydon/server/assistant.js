@@ -4,7 +4,7 @@ import { askClaude, completeText } from './anthropic.js';
 import { TOOL_DEFS, createExecutor, sourcesSummary } from './tools.js';
 import { nowParts, TZ } from './util.js';
 import * as feeds from './feeds.js';
-import { brokerStatus } from './broker.js';
+import { brokerStatus, positions as brokerPositions } from './broker.js';
 import { memoryBrief } from './memory.js';
 
 const MAX_TOOL_ROUNDS = 8;
@@ -69,7 +69,22 @@ async function marketBrief(snapshot) {
       }
     }
     const b = brokerStatus();
-    lines.push(b.connected ? 'Broker: Webull LIVE.' : 'Broker: not linked yet — holdings above are hand-tracked. ' + (b.credsPresent ? 'Webull keys present, wiring pending.' : ''));
+    if (b.credsPresent) {
+      try {
+        const live = await brokerPositions();
+        for (const p of (live.positions || []).slice(0, 25)) {
+          if (!p.sym || p.shares == null) continue;
+          const pl = p.cost && p.last ? ((p.last - p.cost) / p.cost) * 100 : null;
+          const opt = p.kind === 'option' && p.option ? ` ${p.option.type} ${p.option.strike} ${p.option.expiry}` : '';
+          lines.push(`LIVE ${p.broker.toUpperCase()} ${p.sym}${opt}: ${p.shares} ${p.kind === 'option' ? 'contracts' : 'sh'}` +
+            (p.cost != null ? ` @ $${p.cost}` : '') + (p.last != null ? `, now $${p.last}` : '') +
+            (pl != null ? ` (${pl >= 0 ? '+' : ''}${pl.toFixed(1)}%)` : ''));
+        }
+      } catch { /* broker gap is fine */ }
+    }
+    lines.push(b.credsPresent
+      ? `Broker: ${b.providers.join(' + ')} linked (read-only)${b.connected ? '' : ' but last sync failed'}; live positions at /api/broker/positions.`
+      : 'Broker: not linked yet — holdings above are hand-tracked.');
     return lines.join('\n');
   } catch {
     return '(tape unavailable)';

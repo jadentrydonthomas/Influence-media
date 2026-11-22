@@ -25,3 +25,13 @@ services:
         sync: false
       # optional — set later in the Render dashboard to lock the deck
       # (TRYDON_ACCESS_CODE) or light up YouTube stats (YOUTUBE_API_KEY)
+      # optional, read-only broker links (trydon/server/broker.js). Leave
+      # blank to keep holdings manual. Values live only in the Render dashboard.
+      - key: WEBULL_APP_KEY
+        sync: false
+      - key: WEBULL_APP_SECRET
+        sync: false
+      - key: SNAPTRADE_CLIENT_ID
+        sync: false
+      - key: SNAPTRADE_CONSUMER_KEY
+        sync: false
