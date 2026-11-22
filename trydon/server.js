@@ -16,6 +16,7 @@ import { listAgents, runAgent, setAgent, addCustomAgent } from './server/agents.
 import { brokerStatus, positions as brokerPositions } from './server/broker.js';
 import { seedMemory, memoryDistill } from './server/memory.js';
 import { listMemory, addMemory, forgetMemory } from './server/db.js';
+import { listTrades, getTrade, createTrade, updateTrade, deleteTrade } from './server/journal.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -189,6 +190,38 @@ const server = createServer(async (req, res) => {
         return send(res, 200, { ok: true });
       }
       if (path === '/api/quotes' && req.method === 'GET') return send(res, 200, listQuotes());
+
+      // ---------- trade journal (realized P/L) ----------
+      if (path === '/api/trades' && req.method === 'GET') {
+        const q = Object.fromEntries(url.searchParams);
+        return send(res, 200, listTrades(q));
+      }
+      if (path === '/api/trades' && req.method === 'POST') {
+        const body = JSON.parse(await readBody(req) || '{}');
+        try { return send(res, 201, { trade: createTrade(body) }); }
+        catch (e) { if (e.code === 'BAD_INPUT') return send(res, 400, { error: e.message }); throw e; }
+      }
+      {
+        const m = path.match(/^\/api\/trades\/(\d+)$/);
+        if (m) {
+          const id = Number(m[1]);
+          if (req.method === 'GET') {
+            const t = getTrade(id);
+            return t ? send(res, 200, { trade: t }) : send(res, 404, { error: 'not found' });
+          }
+          if (req.method === 'PATCH' || req.method === 'PUT') {
+            const body = JSON.parse(await readBody(req) || '{}');
+            try {
+              const t = updateTrade(id, body);
+              return t ? send(res, 200, { trade: t }) : send(res, 404, { error: 'not found' });
+            } catch (e) { if (e.code === 'BAD_INPUT') return send(res, 400, { error: e.message }); throw e; }
+          }
+          if (req.method === 'DELETE') {
+            return deleteTrade(id) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'not found' });
+          }
+          return send(res, 405, { error: 'method not allowed' });
+        }
+      }
 
       if (path === '/api/learn/suggest' && req.method === 'POST') {
         try {

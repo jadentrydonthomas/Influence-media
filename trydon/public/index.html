@@ -1631,7 +1631,7 @@ button, a, nav { -webkit-touch-callout: none; }
           <!-- STOCKS MODE TABS -->
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
             <sc-for list="{{ stTabs }}" as="stb" hint-placeholder-count="2"><button onclick="{{ stb.go }}" style="padding:8px 16px; border-radius:9px; border:1px solid {{ stb.border }}; background:{{ stb.bg }}; color:{{ stb.c }}; cursor:pointer; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;">{{ stb.label }}</button></sc-for>
-            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; margin-left:auto;">MARKET — the tape · THESIS DESK — write, track, get challenged</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; margin-left:auto;">MARKET — the tape · THESIS DESK — write, track, get challenged · JOURNAL — realized P/L</span>
           </div>
           <sc-if value="{{ stTabMarket }}" hint-placeholder-val="{{ true }}">
           <div>
@@ -1721,6 +1721,84 @@ button, a, nav { -webkit-touch-callout: none; }
 
             </div>
           </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ stTabJournal }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <!-- JOURNAL · totals -->
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px;">
+              <sc-for list="{{ jrStats }}" as="js" hint-placeholder-count="4">
+                <div style="padding:13px 14px; border-radius:12px; border:1px solid rgba(52,211,153,.2); background:rgba(6,18,12,.45); min-width:0;">
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:#7d8694;">{{ js.k }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:19px; font-weight:700; margin-top:5px; color:{{ js.c }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ js.v }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ js.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <!-- JOURNAL · log a trade -->
+            <div style="border-radius:14px; border:1px solid rgba(52,211,153,.25); background:rgba(6,18,12,.45); padding:15px 16px; margin-bottom:14px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#5cd6a0;">LOG A TRADE</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#56606e;">leave exit blank to keep it open · fees = round-trip total</span>
+              </div>
+              <div style="display:grid; grid-template-columns:90px 130px repeat(4,1fr); gap:8px; align-items:end;">
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">SYMBOL</span><input value="{{ jrForm.sym }}" onchange="{{ jrSet.sym }}" placeholder="NUE" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;text-transform:uppercase;"></label>
+                <div style="display:flex; flex-direction:column;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">SIDE</span><div style="display:flex; gap:5px;"><sc-for list="{{ jrSides }}" as="sd" hint-placeholder-count="2"><button onclick="{{ sd.go }}" style="flex:1; padding:8px 0; border-radius:8px; border:1px solid {{ sd.border }}; background:{{ sd.bg }}; color:{{ sd.c }}; cursor:pointer; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace;">{{ sd.label }}</button></sc-for></div></div>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">QTY</span><input type="number" value="{{ jrForm.qty }}" onchange="{{ jrSet.qty }}" placeholder="100" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">ENTRY $</span><input type="number" value="{{ jrForm.entry_price }}" onchange="{{ jrSet.entry_price }}" placeholder="12.50" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">EXIT $</span><input type="number" value="{{ jrForm.exit_price }}" onchange="{{ jrSet.exit_price }}" placeholder="open" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">FEES $</span><input type="number" value="{{ jrForm.fees }}" onchange="{{ jrSet.fees }}" placeholder="0" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(3,1fr) 2fr; gap:8px; margin-top:8px; align-items:end;">
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">ENTRY DATE</span><input type="date" value="{{ jrForm.entry_at }}" onchange="{{ jrSet.entry_at }}" placeholder="" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">EXIT DATE</span><input type="date" value="{{ jrForm.exit_at }}" onchange="{{ jrSet.exit_at }}" placeholder="" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">MULTIPLIER</span><input type="number" value="{{ jrForm.multiplier }}" onchange="{{ jrSet.multiplier }}" placeholder="1 (100 = options)" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+                <label style="display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">TAGS</span><input value="{{ jrForm.tags }}" onchange="{{ jrSet.tags }}" placeholder="swing, earnings, breakout" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0;"></label>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:8px; align-items:flex-end;">
+                <label style="flex:1; display:flex; flex-direction:column; min-width:0;"><span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:1px; color:#7d8694; margin-bottom:4px;">NOTES</span><textarea value="{{ jrForm.notes }}" onchange="{{ jrSet.notes }}" placeholder="Setup, why you took it, what you'd do differently…" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0; height:54px; resize:vertical; font-family:inherit;"></textarea></label>
+                <button onclick="{{ saveTrade }}" style="flex:none; padding:11px 18px; border-radius:9px; border:1px solid rgba(52,211,153,.5); background:rgba(52,211,153,.16); color:#5cd6a0; cursor:pointer; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px;">{{ jrSaveLabel }}</button>
+              </div>
+              <div style="display:{{ jrErrDisp }}; margin-top:8px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#f87171;">⚠ {{ jrErr }}</div>
+            </div>
+            <!-- JOURNAL · trades -->
+            <div style="border-radius:14px; border:1px solid rgba(255,255,255,.08); background:rgba(8,10,14,.5); padding:15px 16px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#9aa4b2;">TRADES · REALIZED P/L PER TRADE</span>
+                <div style="display:flex; gap:5px;"><sc-for list="{{ jrFilters }}" as="jfl" hint-placeholder-count="3"><button onclick="{{ jfl.go }}" style="padding:5px 10px; border-radius:7px; border:1px solid {{ jfl.border }}; background:{{ jfl.bg }}; color:{{ jfl.c }}; cursor:pointer; font-size:9.5px; font-weight:700; font-family:'JetBrains Mono',monospace;">{{ jfl.label }}</button></sc-for></div>
+              </div>
+              <sc-if value="{{ jrEmpty }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:#7d8694; padding:8px 2px;">No trades here yet — log one above.</div></sc-if>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <sc-for list="{{ jrRows }}" as="tr" hint-placeholder-count="3">
+                  <div style="padding:10px 12px; border-radius:10px; border:1px solid {{ tr.rowBd }}; background:rgba(255,255,255,.02);">
+                    <div style="display:flex; align-items:center; gap:11px;">
+                      <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                          <b style="font-size:14px; color:#e8ecf2;">{{ tr.sym }}</b>
+                          <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; color:{{ tr.sideC }}; border:1px solid {{ tr.sideBd }}; padding:1px 6px; border-radius:4px;">{{ tr.side }}</span>
+                          <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#9aa4b2;">{{ tr.size }} → {{ tr.exit }}</span>
+                          <sc-for list="{{ tr.tags }}" as="tg" hint-placeholder-count="1"><span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#7dd3fc;">{{ tg.g }}</span></sc-for>
+                        </div>
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#56606e; margin-top:3px;">{{ tr.dates }}{{ tr.fees }}</div>
+                      </div>
+                      <div style="text-align:right; flex:none;">
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:{{ tr.plC }};">{{ tr.pl }}</div>
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:{{ tr.plC }}; margin-top:1px;">{{ tr.plPct }}</div>
+                      </div>
+                      <sc-if value="{{ tr.isClosed }}" hint-placeholder-val="{{ true }}"><button onclick="{{ tr.reopen }}" title="Reopen (clear exit)" style="flex:none; background:none; border:none; color:#5b6677; cursor:pointer; font-size:13px;">↺</button></sc-if>
+                      <button onclick="{{ tr.del }}" title="Delete trade" style="flex:none; background:none; border:none; color:{{ tr.delC }}; cursor:pointer; font-size:12px; font-family:'JetBrains Mono',monospace;">{{ tr.delLabel }}</button>
+                    </div>
+                    <sc-if value="{{ tr.isOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; gap:6px; margin-top:8px;">
+                        <input type="number" value="{{ tr.closeDraft }}" onchange="{{ tr.setClose }}" placeholder="exit price" style="padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.3); color:#eef1f6; font-size:12px; outline:none; min-width:0; width:120px;">
+                        <button onclick="{{ tr.close }}" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(56,189,248,.45); background:rgba(56,189,248,.1); color:#7dd3fc; cursor:pointer; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace;">CLOSE TRADE</button>
+                      </div>
+                    </sc-if>
+                    <div style="display:{{ tr.notesDisp }}; font-size:11.5px; color:#9aa4b2; margin-top:6px; line-height:1.4; white-space:pre-wrap;">{{ tr.notes }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
           </div>
           </sc-if>
           <sc-if value="{{ stTabThesis }}" hint-placeholder-val="{{ false }}">
@@ -2374,6 +2452,7 @@ class Component extends DCLogic {
     this.state={
       view:'calendar', navCollapsed:false, calTab:'today', weekOffset:0, monthCursor:{y:Y,m:Mo}, selectedDay:null,
       agentsOpen:false, agentsList:[], agentsBusy:'', newAgentName:'', newAgentMission:'', newAgentStation:'stocks', newAgentCadence:'daily', memList:[],
+      jrTrades:[], jrTotals:null, jrFilter:'all', jrErr:'', jrBusy:false, jrCloseDrafts:{}, jrConfirmDel:null, jrForm:{sym:'',side:'long',qty:'',entry_price:'',entry_at:'',exit_price:'',exit_at:'',fees:'',multiplier:'',tags:'',notes:''},
       clock:this.fmtClock(new Date()), input:'', thinking:false,
       messages:[{id:'m0',role:'assistant',text:"Hey — I'm Trydon, your life command deck. Tell me what to schedule and I'll place it.\n\nTry: \"FE study tomorrow 9am for 2 hours\" or \"add Mom's birthday June 28\".",chips:[]}],
       events:(()=>{ const evs=[]; const mon=new Date(today); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
@@ -2538,7 +2617,23 @@ class Component extends DCLogic {
     this.setState(s=>({ thesisPoints:{...(s.thesisPoints||{}),[sym]:[...(((s.thesisPoints||{})[sym])||[]),{id:'tp'+Date.now(),side:g.side==='bear'?'bear':'bull',text:g.text,done:false}]} })); }
   dismissSuggestion(i){ const sym=this.state.selSym; if(this._suggest&&this._suggest[sym]){ this._suggest[sym]=this._suggest[sym].filter((_,k)=>k!==i); this.forceUpdate(); } }
   pickAiTab(t){ this.setState({aiTab:t}); }
-  pickStocksTab(t){ this.setState({stocksTab:t},()=>{ try{ this._drawChart(); }catch(e){} }); }
+  pickStocksTab(t){ this.setState({stocksTab:t},()=>{ try{ this._drawChart(); }catch(e){} }); if(t==='journal') this.fetchJournal(); }
+  // ---------- trade journal (server: /api/trades, SQLite) ----------
+  async fetchJournal(){ try{ const r=await fetch('/api/trades',{credentials:'same-origin'}); if(r.ok){ const p=await r.json(); this.setState({jrTrades:p.trades||[],jrTotals:p.totals||null}); } }catch(e){} }
+  async _jrCall(url,method,body){ this.setState({jrBusy:true,jrErr:''});
+    try{ const r=await fetch(url,{method,credentials:'same-origin',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined}); const p=await r.json().catch(()=>({}));
+      if(!r.ok){ this.setState({jrBusy:false,jrErr:p.error||('HTTP '+r.status)}); return false; }
+      await this.fetchJournal(); this.setState({jrBusy:false}); return true; }
+    catch(e){ this.setState({jrBusy:false,jrErr:'network error'}); return false; } }
+  setJrField(k,e){ const v=e&&e.target?e.target.value:e; this.setState(s=>({jrForm:{...s.jrForm,[k]:k==='sym'?String(v).toUpperCase():v}})); }
+  async saveTrade(){ const f=this.state.jrForm; const body={...f}; Object.keys(body).forEach(k=>{ if(body[k]==='') delete body[k]; });
+    if(await this._jrCall('/api/trades','POST',body)) this.setState(s=>({jrForm:{sym:'',side:s.jrForm.side,qty:'',entry_price:'',entry_at:'',exit_price:'',exit_at:'',fees:'',multiplier:s.jrForm.multiplier,tags:'',notes:''}})); }
+  setJrClose(id,e){ const v=e.target.value; this.setState(s=>({jrCloseDrafts:{...s.jrCloseDrafts,[id]:v}})); }
+  async closeTrade(id){ const v=this.state.jrCloseDrafts[id]; if(v===undefined||v==='') { this.setState({jrErr:'enter an exit price first'}); return; }
+    if(await this._jrCall('/api/trades/'+id,'PATCH',{exit_price:v})) this.setState(s=>{ const d={...s.jrCloseDrafts}; delete d[id]; return {jrCloseDrafts:d}; }); }
+  async reopenTrade(id){ await this._jrCall('/api/trades/'+id,'PATCH',{exit_price:null}); }
+  async deleteTrade(id){ if(this.state.jrConfirmDel!==id){ this.setState({jrConfirmDel:id}); setTimeout(()=>{ if(this.state.jrConfirmDel===id) this.setState({jrConfirmDel:null}); },3000); return; }
+    this.setState({jrConfirmDel:null}); await this._jrCall('/api/trades/'+id,'DELETE'); }
   async refreshSuggest(){ if(this.state.suggLoading) return; this.setState({suggLoading:true});
     try{ const r=await fetch('/api/learn/suggest',{method:'POST',credentials:'same-origin'}); if(r.ok){ const p=await r.json(); if(p.items) this.setState({learnSuggest:p.items}); } }catch(e){}
     this.setState({suggLoading:false}); }
@@ -3504,8 +3599,34 @@ class Component extends DCLogic {
     const learnSuggest=(s.learnSuggest||[]).map((g,i)=>({icon:g.kind==='course'?'\uD83C\uDF93':g.kind==='tool'?'\uD83E\uDDEA':'\uD83D\uDD28',kindLabel:(g.kind||'idea').toUpperCase(),title:g.title||'',note:g.note||'',url:g.url||'#',urlDisp:g.url?'inline':'none',accept:()=>this.acceptLearnSuggest(i),dismiss:()=>this.dismissLearnSuggest(i),acceptDisp:g.kind==='course'?'inline-block':'none'}));
     const noLearnSuggest=learnSuggest.length===0;
     const suggBtnLabel=s.suggLoading?'\u2026 thinking':'\u21BB SUGGEST FOR ME';
-    const stTabs=[['market','\u25E8 MARKET'],['thesis','\u270E THESIS DESK']].map(([k,l])=>({label:l,go:()=>this.pickStocksTab(k),bg:s.stocksTab===k?'rgba(52,211,153,.14)':'transparent',c:s.stocksTab===k?'#5cd6a0':'#7d8694',border:s.stocksTab===k?'rgba(52,211,153,.5)':'rgba(255,255,255,.1)'}));
-    const stTabMarket=s.stocksTab!=='thesis';
+    const stTabs=[['market','\u25E8 MARKET'],['thesis','\u270E THESIS DESK'],['journal','\u25CE JOURNAL']].map(([k,l])=>({label:l,go:()=>this.pickStocksTab(k),bg:s.stocksTab===k?'rgba(52,211,153,.14)':'transparent',c:s.stocksTab===k?'#5cd6a0':'#7d8694',border:s.stocksTab===k?'rgba(52,211,153,.5)':'rgba(255,255,255,.1)'}));
+    const stTabMarket=s.stocksTab!=='thesis'&&s.stocksTab!=='journal';
+    const stTabJournal=s.stocksTab==='journal';
+    // trade journal view-model
+    const jMoney=v=>v==null?'\u2014':((v<0?'-':(v>0?'+':''))+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));
+    const jC=v=>v==null||v===0?'#9aa4b2':(v>0?'#34d399':'#f87171');
+    const jt=s.jrTotals||{};
+    const jrStats=[
+      {k:'REALIZED P/L',v:jMoney(jt.realized??0),c:jC(jt.realized)},
+      {k:'WIN RATE',v:jt.winRate==null?'\u2014':jt.winRate+'%',c:'#e8ecf2',sub:(jt.wins||0)+'W \u00b7 '+(jt.losses||0)+'L'},
+      {k:'PROFIT FACTOR',v:jt.profitFactor==null?'\u2014':String(jt.profitFactor),c:jt.profitFactor==null?'#9aa4b2':(jt.profitFactor>=1?'#34d399':'#f87171'),sub:'gross win / gross loss'},
+      {k:'AVG WIN',v:jMoney(jt.avgWin),c:jC(jt.avgWin),sub:'avg loss '+jMoney(jt.avgLoss)+' \u00b7 worst '+jMoney(jt.worst)},
+    ].map(x=>({...x,sub:x.sub||((jt.closed||0)+' closed \u00b7 '+(jt.open||0)+' open \u00b7 fees '+jMoney(-(jt.fees||0)).replace('+',''))}));
+    const jrFilters=[['all','ALL'],['open','OPEN'],['closed','CLOSED']].map(([k,l])=>({label:l,go:()=>this.setState({jrFilter:k}),bg:s.jrFilter===k?'rgba(52,211,153,.14)':'transparent',c:s.jrFilter===k?'#5cd6a0':'#7d8694',border:s.jrFilter===k?'rgba(52,211,153,.5)':'rgba(255,255,255,.1)'}));
+    const jrRows=(s.jrTrades||[]).filter(t=>s.jrFilter==='all'||t.status===s.jrFilter).map(t=>{ const open=t.status==='open'; const net=t.pl?t.pl.net:null; const px=v=>'$'+(+v).toLocaleString('en-US',{maximumFractionDigits:4});
+      return {sym:t.sym, side:t.side.toUpperCase(), sideC:t.side==='short'?'#f87171':'#34d399', sideBd:t.side==='short'?'rgba(248,113,113,.4)':'rgba(52,211,153,.4)',
+        size:(+t.qty)+(t.multiplier&&t.multiplier!==1?(' \u00d7'+t.multiplier):'')+' @ '+px(t.entry_price),
+        dates:t.entry_at+(t.exit_at?(' \u2192 '+t.exit_at):' \u2192 open'),
+        exit:open?'OPEN':px(t.exit_price), fees:t.fees?(' \u00b7 fees $'+(+t.fees).toFixed(2)):'',
+        pl:open?'\u2014':jMoney(net), plPct:open?'':((t.pl.pct>0?'+':'')+t.pl.pct+'%'), plC:jC(net),
+        notes:t.notes||'', notesDisp:t.notes?'block':'none', tags:(t.tags||[]).map(g=>({g:'#'+g})),
+        isOpen:open, isClosed:!open,
+        closeDraft:s.jrCloseDrafts[t.id]??'', setClose:e=>this.setJrClose(t.id,e), close:()=>this.closeTrade(t.id), reopen:()=>this.reopenTrade(t.id),
+        del:()=>this.deleteTrade(t.id), delLabel:s.jrConfirmDel===t.id?'sure?':'\u00d7', delC:s.jrConfirmDel===t.id?'#f87171':'#5b6677',
+        rowBd:open?'rgba(56,189,248,.25)':'rgba(255,255,255,.06)'}; });
+    const jf=s.jrForm;
+    const jrSides=[['long','LONG','#34d399'],['short','SHORT','#f87171']].map(([k,l,c])=>({label:l,go:()=>this.setJrField('side',k),bg:jf.side===k?hex2rgba(c,0.14):'transparent',c:jf.side===k?c:'#7d8694',border:jf.side===k?hex2rgba(c,0.5):'rgba(255,255,255,.1)'}));
+    const jrSet={}; ['sym','qty','entry_price','entry_at','exit_price','exit_at','fees','multiplier','tags','notes'].forEach(k=>{ jrSet[k]=e=>this.setJrField(k,e); });
     const stTabThesis=s.stocksTab==='thesis';
     const symChips=s.watchlist.map(w=>{ const active=w.sym===s.selSym; const up=w.chgN>=0;
       return {sym:w.sym,chg:(up?'+':'')+w.chgN.toFixed(1)+'%',pick:()=>this.selectStock(w.sym),symC:active?'#eef1f6':'#9aa4b2',chgC:up?'#34d399':'#f87171',bg:active?'rgba(52,211,153,.12)':'rgba(255,255,255,.02)',border:active?'rgba(52,211,153,.5)':'rgba(255,255,255,.08)'}; });
@@ -3540,6 +3661,7 @@ class Component extends DCLogic {
       setNbTopicDraft:e=>this.setNbField('nbTopicDraft',e), setNbTextDraft:e=>this.setNbField('nbTextDraft',e), addNbNote:()=>this.addNbNote(),
       aiTabs, aiTabLearn, aiTabTest, aiTabBuild, learnSuggest, noLearnSuggest, suggBtnLabel, refreshSuggest:()=>this.refreshSuggest(),
       stTabs, stTabMarket, stTabThesis, symChips,
+      stTabJournal, jrStats, jrFilters, jrRows, jrEmpty:jrRows.length===0, jrSides, jrSet, jrForm:jf, jrErr:s.jrErr, jrErrDisp:s.jrErr?'block':'none', saveTrade:()=>this.saveTrade(), jrSaveLabel:s.jrBusy?'\u2026 saving':'LOG TRADE',
       debateMe:()=>this.debateMe(), saveQuoteCalc:()=>this.saveQuoteCalc(), quoteSaveLabel:s.quoteSavedFlash||'\u2913 SAVE QUOTE',
       openIG:()=>this.openChannel('instagram'), openTT:()=>this.openChannel('tiktok'), openYT:()=>this.openChannel('youtube'),
       steelSrcChip, nucorNewsSrcChip, chartsSrcChip, stockNewsSrcChip, aiNewsSrcChip,
